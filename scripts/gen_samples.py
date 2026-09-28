@@ -3,7 +3,7 @@
 
 Deterministic (fixed seed). The observations are SYNTHETIC but anchored to price
 levels reported publicly in August/September 2026 (founder notes):
-  H100 neo-cloud ~$2.6-2.9/GPU-h, marketplaces ~$1.4-2.3, AWS p5 on-demand $1.376,
+  H100 neo-cloud ~$2.6-2.9/GPU-h, marketplaces ~$1.4-2.3, AWS p5 on-demand $6.88,
   other hyperscalers list ~$6-11, B200 ~$4.0-4.5, H200 ~$3.2-3.6, A100-80 ~$1.1-1.5,
   RTX 5090 ~$0.5-0.8. Power hubs: PJM Dominion ~$110/MWh, ERCOT West ~$45, ERCOT North
   ~$60, MISO North ~$38. Re-run with `python3 scripts/gen_samples.py`.
@@ -26,7 +26,7 @@ DAYS = 25
 
 PROVIDERS = [
     # name, tier, regions, gpus, level multiplier vs neo-cloud base, listing kind, interconnect
-    ("aws", "hyperscaler", ["us_east", "us_west", "eu_west"], ["h100", "h200", "a100_80"], 0.53, "list", "sxm"),
+    ("aws", "hyperscaler", ["us_east", "us_west", "eu_west"], ["h100", "h200", "a100_80"], 2.55, "list", "sxm"),
     ("azure", "hyperscaler", ["us_east", "eu_west", "apac"], ["h100", "h200", "b200"], 2.6, "list", "sxm"),
     ("gcp", "hyperscaler", ["us_central", "eu_west", "apac"], ["h100", "b200", "a100_80"], 3.1, "list", "sxm"),
     ("oci", "hyperscaler", ["us_east", "eu_central"], ["h100", "h200"], 1.9, "list", "sxm"),
@@ -117,7 +117,7 @@ def main() -> None:
                 elif term == "spot":
                     base_price /= 1.25
                 if name == "aws" and gpu == "h100":
-                    base_price = 1.376 * math.exp(rng.gauss(0, 0.005))  # anchored to the live price list
+                    base_price = 6.88 * math.exp(rng.gauss(0, 0.005))  # anchored to the live price list (p5.48xlarge $55.04/8)
                 price = base_price * math.exp(rng.gauss(0, 0.04))
                 if rng.random() < 0.02:
                     price *= rng.uniform(0.3, 6.0)  # planted outliers

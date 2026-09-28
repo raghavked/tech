@@ -13,7 +13,6 @@ use basis_core::Store;
 use crate::{Cli, Command, EXIT_CONFIG, EXIT_DATA, EXIT_NETWORK};
 
 /// Shared handles for every command.
-#[allow(dead_code)] // config and seed are consumed from milestone M2 onward
 pub struct Ctx {
     pub store: Store,
     pub config: ConfigDir,

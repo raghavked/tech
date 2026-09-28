@@ -560,8 +560,8 @@ mod tests {
         let p5 = by_type["p5.48xlarge"];
         assert_eq!(p5.gpu, GpuClass::H100);
         assert_eq!(p5.gpu_count, 8);
-        assert!((p5.usd_per_hour - 11.008).abs() < 1e-9);
-        assert!((p5.usd_per_gpu_hour - 1.376).abs() < 1e-9);
+        assert!((p5.usd_per_hour - 55.04).abs() < 1e-9);
+        assert!((p5.usd_per_gpu_hour - 6.88).abs() < 1e-9);
         assert_eq!(by_type["p5.4xlarge"].gpu_count, 1);
         assert_eq!(by_type["p6-b200.48xlarge"].gpu, GpuClass::B200);
         assert_eq!(by_type["p4d.24xlarge"].gpu, GpuClass::A100_40);
@@ -582,7 +582,7 @@ mod tests {
                 .find(|o| o.gpu_sku.as_deref() == Some("p5.48xlarge"))
                 .unwrap()
                 .price_per_gpu_hour()
-                - 1.376)
+                - 6.88)
                 .abs()
                 < 1e-9
         );
