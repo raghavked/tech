@@ -203,8 +203,8 @@ def main() -> None:
     write_csv(ROOT / "assumptions" / "pipeline.csv", ["project", "gpu", "region", "hub", "mw", "online_month", "delay_mean_months", "delay_sd_months", "prob_complete"], pipeline)
 
     demand = [
-        ["h100", 28000000, 2.64, 0.35, 0.6],
-        ["b200", 9000000, 4.08, 1.20, 0.6],
+        ["h100", 34000000, 2.64, 0.30, 0.8],
+        ["b200", 9000000, 4.08, 0.80, 0.8],
     ]
     write_csv(ROOT / "assumptions" / "demand.csv", ["gpu", "d0_gpu_hours_per_day", "ref_price", "growth_per_year", "elasticity"], demand)
 

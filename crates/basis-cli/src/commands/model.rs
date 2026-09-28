@@ -291,9 +291,188 @@ pub fn standardize(ctx: &Ctx, a: &StandardizeArgs) -> Result<()> {
 pub fn nowcast(ctx: &Ctx, a: &NowcastArgs) -> Result<()> {
     nowcast_cmd(ctx, a)
 }
-pub fn curve(_ctx: &Ctx, _a: &CurveArgs) -> Result<()> {
-    anyhow::bail!("not implemented yet (milestone M4)")
+fn load_supply_model_inputs(
+    ctx: &Ctx,
+) -> Result<(
+    Vec<FleetCohort>,
+    Vec<PipelineProject>,
+    Vec<DemandAssumption>,
+    Vec<PerfRatio>,
+)> {
+    let cohorts: Vec<FleetCohort> = ctx.store.read_all("fleet_cohorts")?;
+    let pipeline: Vec<PipelineProject> = ctx.store.read_all("pipeline")?;
+    let demand: Vec<DemandAssumption> = ctx.store.read_all("demand")?;
+    let perf: Vec<PerfRatio> = ctx.store.read_all("perf")?;
+    if cohorts.is_empty() || demand.is_empty() {
+        anyhow::bail!("supply-stack assumptions missing; run `basis ingest --source sample` first");
+    }
+    Ok((cohorts, pipeline, demand, perf))
 }
-pub fn spreads(_ctx: &Ctx, _a: &SpreadsArgs) -> Result<()> {
-    anyhow::bail!("not implemented yet (milestone M5)")
+
+/// Dates for which the curve is (re)built: every estimate date, else every futures date.
+fn curve_dates(ctx: &Ctx, as_of: &Option<String>) -> Result<Vec<Date>> {
+    if let Some(s) = as_of {
+        return Ok(vec![parse_date(s)?]);
+    }
+    let mut dates: std::collections::BTreeSet<Date> = Default::default();
+    if let Ok(est) = ctx.store.read_derived::<IndexEstimate>("estimates") {
+        dates.extend(est.iter().map(|e| e.date));
+    }
+    if dates.is_empty() {
+        let fut: Vec<FuturesQuote> = ctx.store.read_all("futures")?;
+        dates.extend(fut.iter().map(|f| f.date));
+    }
+    if dates.is_empty() {
+        let obs: Vec<PriceObservation> = ctx.store.read_all("observations")?;
+        dates.extend(obs.iter().map(|o| o.date()));
+    }
+    if dates.is_empty() {
+        anyhow::bail!("no dates found in the store");
+    }
+    Ok(dates.into_iter().collect())
+}
+
+pub fn curve(ctx: &Ctx, a: &CurveArgs) -> Result<()> {
+    use basis_model::curve::{build_curve, trailing_power};
+    use basis_model::supply::{CostStack, SupplyModel, SupplyParams};
+    let mut params: SupplyParams = ctx
+        .config
+        .load("supply.toml")
+        .context("loading supply.toml")?;
+    if let Some(t) = a.tenors {
+        params.tenors = t;
+    }
+    let cost = ctx.config.cost_stack().context("loading cost_stack.toml")?;
+    let (cohorts, pipeline, demand, perf) = load_supply_model_inputs(ctx)?;
+    let power: Vec<PowerPrice> = ctx.store.read_all("power").unwrap_or_default();
+    let dates = curve_dates(ctx, &a.as_of)?;
+    let mut out = Vec::new();
+    for d in &dates {
+        let model = SupplyModel {
+            params: &params,
+            cost: CostStack::new(&cost),
+            cohorts: &cohorts,
+            pipeline: &pipeline,
+            demand: &demand,
+            perf: &perf,
+            power: trailing_power(&power, *d, params.power_lookback_days),
+        };
+        out.extend(build_curve(&model, &params, *d)?);
+    }
+    ctx.store.write_derived("curve", &out)?;
+    let last = *dates.last().unwrap();
+    let rows: Vec<Vec<String>> = out
+        .iter()
+        .filter(|c| c.as_of == last)
+        .map(|c| {
+            vec![
+                c.gpu.to_string(),
+                c.tenor.to_string(),
+                format!("{:.4}", c.fair_value),
+                format!("{:.3}", c.srmc_floor),
+                format!("{:.3}", c.lrmc_ceiling),
+                format!("{:.1}M", c.supply_gpu_hours / 1e6),
+                format!("{:.1}M", c.demand_gpu_hours / 1e6),
+                format!("{:.1}%", c.utilization * 100.0),
+            ]
+        })
+        .collect();
+    println!(
+        "forward curve as of {} ({} dates, {} rows written)",
+        basis_core::date_serde::fmt(last),
+        dates.len(),
+        out.len()
+    );
+    print!(
+        "{}",
+        super::table(
+            &[
+                "gpu",
+                "tenor",
+                "fair",
+                "srmc_floor",
+                "lrmc_ceil",
+                "supply/mo",
+                "demand/mo",
+                "util"
+            ],
+            &rows
+        )
+    );
+    Ok(())
+}
+
+pub fn spreads(ctx: &Ctx, a: &SpreadsArgs) -> Result<()> {
+    use basis_model::spreads::{compute_all, SpreadInputs, SpreadsSection};
+    let estimates: Vec<IndexEstimate> = ctx
+        .store
+        .read_derived("estimates")
+        .context("run `basis nowcast` first")?;
+    let prints: Vec<IndexPrint> = ctx.store.read_all("index_prints").unwrap_or_default();
+    let futures: Vec<FuturesQuote> = ctx.store.read_all("futures")?;
+    let curve: Vec<ForwardCurvePoint> = ctx.store.read_derived("curve").unwrap_or_default();
+    let power: Vec<PowerPrice> = ctx.store.read_all("power").unwrap_or_default();
+    let perf: Vec<PerfRatio> = ctx.store.read_all("perf").unwrap_or_default();
+    let cost = ctx.config.cost_stack()?;
+    let indices = ctx.config.indices()?;
+    let contracts = ctx.config.contracts()?;
+    let nowcast_p = nowcast_params(ctx)?;
+    let sec: SpreadsSection = ctx.config.load("strategies.toml")?;
+    let estimates: Vec<IndexEstimate> = match &a.as_of {
+        Some(s) => {
+            let d = parse_date(s)?;
+            estimates.into_iter().filter(|e| e.date <= d).collect()
+        }
+        None => estimates,
+    };
+    let inp = SpreadInputs {
+        estimates: &estimates,
+        prints: &prints,
+        futures: &futures,
+        curve: &curve,
+        power: &power,
+        perf: &perf,
+        cost: &cost,
+        indices: &indices,
+        contracts: &contracts,
+        nowcast: &nowcast_p,
+        params: &sec.spreads,
+    };
+    let mut out = compute_all(&inp)?;
+    if let Some(s) = &a.as_of {
+        let d = parse_date(s)?;
+        out.retain(|r| r.date == d);
+    }
+    if out.is_empty() {
+        anyhow::bail!("no spreads computed: need estimates and futures on common dates");
+    }
+    ctx.store.write_derived("spreads", &out)?;
+    let last = out.iter().map(|s| s.date).max().unwrap();
+    let rows: Vec<Vec<String>> = out
+        .iter()
+        .filter(|s| s.date == last)
+        .map(|s| {
+            vec![
+                s.kind.to_string(),
+                s.spread_id.clone(),
+                format!("{:.4}", s.value),
+                format!("{:.4}", s.fair_value),
+                s.z.map(|z| format!("{z:.2}")).unwrap_or_else(|| "-".into()),
+            ]
+        })
+        .collect();
+    println!(
+        "spreads as of {} ({} rows written over {} dates)",
+        basis_core::date_serde::fmt(last),
+        out.len(),
+        out.iter()
+            .map(|s| s.date)
+            .collect::<std::collections::BTreeSet<_>>()
+            .len()
+    );
+    print!(
+        "{}",
+        super::table(&["kind", "spread", "value", "fair", "z"], &rows)
+    );
+    Ok(())
 }

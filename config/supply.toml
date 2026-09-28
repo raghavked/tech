@@ -2,6 +2,37 @@
 life_months = 60
 availability = 0.95
 hours_per_month = 729.6         # 24 * 30.4
-scarcity_multiplier = 2.0       # cap on price above marginal LRMC when demand exceeds all supply
+scarcity_multiplier = 3.0       # cap on price above marginal LRMC when demand exceeds all supply
 bisection_iters = 60
+reservation_sigma = 0.5         # log dispersion of reservation prices around LRMC
 tenors = 12
+power_lookback_days = 30        # trailing mean of hub power prices feeds the cost stack
+demand_horizon_anchor_days = 30 # demand growth is measured from the curve date
+
+# Share of open-market (sellable) supply by provider tier.
+[tier_share]
+hyperscaler = 0.05
+neo_cloud = 0.50
+marketplace = 0.20
+colo = 0.15
+private = 0.10
+
+# Which power hub prices each region's supply.
+[region_hub]
+us_east = "pjm_dominion"
+us_central = "ercot_west"
+us_west = "ercot_north"
+eu_west = "miso_north"
+eu_central = "miso_north"
+apac = "miso_north"
+other = "miso_north"
+
+# Fraction of each tier's open-market supply offered at cash cost (the rest is withheld
+# unless price covers long-run cost). Marketplaces sell anything above power cost;
+# hyperscalers rarely discount below their return hurdle.
+[srmc_share]
+hyperscaler = 0.05
+neo_cloud = 0.30
+marketplace = 0.80
+colo = 0.40
+private = 0.50
