@@ -1,18 +1,19 @@
-# Log-additive adjustments applied to move an observation onto an index's reference spec.
-# Values are ln(reference / observed) priors. Positive means the observed configuration
-# trades cheaper than the reference and is marked UP.
+# Log-premium tables used to move an observation onto an index's reference specification.
+# Every value is ln(price_of_this_configuration / price_of_the_reference_configuration).
+# Standardized price: ln p_std = ln p_raw - (premium[observed] - premium[reference]).
+# Founder-supplied priors; re-estimate from data once published index history exists.
 
 [interconnect]                  # relative to SXM
-pcie = 0.1133                   # ln(1.12)
+pcie = -0.1133                  # PCIe trades ~12% below SXM
 sxm = 0.0
-nvl = -0.0488                   # ln(1/1.05)
+nvl = 0.0488                    # multi-node NVLink pods ~5% above
 unknown = 0.0
 
 [term]                          # relative to on-demand
 on_demand = 0.0
-spot = 0.2231                   # ln(1.25)
+spot = -0.2231                  # spot ~20% below on-demand (1/1.25)
 
-# reserved / contract discounts by term length in months (ratio to on-demand);
+# reserved / contract price as a ratio of on-demand, by term length in months;
 # interpolated linearly in ln(months).
 [term.reserved_ratio]
 "1" = 0.92
@@ -35,11 +36,12 @@ kind_transaction = 1.0
 kind_list = 0.6
 kind_bid = 0.4
 kind_ask = 0.4
-recency_tau_hours = 24.0
+recency_tau_hours = 24.0        # used in intraday (live) mode only
 max_age_hours = 48.0
 quantity_cap_gpus = 64.0
 unknown_quantity_weight = 0.5
 unknown_interconnect_penalty = 0.7
+min_observations = 5            # below this an (index, day) is not estimated
 
 [weights.source]
 sample = 1.0
