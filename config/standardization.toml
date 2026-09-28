@@ -1,0 +1,52 @@
+# Log-additive adjustments applied to move an observation onto an index's reference spec.
+# Values are ln(reference / observed) priors. Positive means the observed configuration
+# trades cheaper than the reference and is marked UP.
+
+[interconnect]                  # relative to SXM
+pcie = 0.1133                   # ln(1.12)
+sxm = 0.0
+nvl = -0.0488                   # ln(1/1.05)
+unknown = 0.0
+
+[term]                          # relative to on-demand
+on_demand = 0.0
+spot = 0.2231                   # ln(1.25)
+
+# reserved / contract discounts by term length in months (ratio to on-demand);
+# interpolated linearly in ln(months).
+[term.reserved_ratio]
+"1" = 0.92
+"3" = 0.87
+"6" = 0.82
+"12" = 0.75
+"36" = 0.65
+
+[region]                        # relative to us_east
+us_east = 0.0
+us_central = -0.02
+us_west = 0.02
+eu_west = 0.06
+eu_central = 0.05
+apac = 0.08
+other = 0.05
+
+[weights]
+kind_transaction = 1.0
+kind_list = 0.6
+kind_bid = 0.4
+kind_ask = 0.4
+recency_tau_hours = 24.0
+max_age_hours = 48.0
+quantity_cap_gpus = 64.0
+unknown_quantity_weight = 0.5
+unknown_interconnect_penalty = 0.7
+
+[weights.source]
+sample = 1.0
+synth = 1.0
+aws_pricelist = 1.0
+vast = 0.7
+runpod = 0.7
+lambda = 0.9
+silicondata = 1.0
+ornn = 1.0

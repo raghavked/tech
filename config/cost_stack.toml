@@ -1,0 +1,69 @@
+# Physical cost stack per GPU-hour. Founder-supplied priors; they set spark-spread LEVELS,
+# not dynamics. Re-estimate from vendor quotes and colo contracts.
+server_overhead = 1.35          # server power above GPU TDP: CPU, memory, NICs, fans
+
+[gpu.h100]
+tdp_kw = 0.70
+capex_usd = 32000.0             # all-in server cost share per GPU
+life_years = 5.0
+target_util = 0.70
+opex_usd_per_hour = 0.08
+
+[gpu.h200]
+tdp_kw = 0.70
+capex_usd = 38000.0
+life_years = 5.0
+target_util = 0.70
+opex_usd_per_hour = 0.08
+
+[gpu.b200]
+tdp_kw = 1.00
+capex_usd = 50000.0
+life_years = 5.0
+target_util = 0.70
+opex_usd_per_hour = 0.10
+
+[gpu.b300]
+tdp_kw = 1.40
+capex_usd = 60000.0
+life_years = 5.0
+target_util = 0.70
+opex_usd_per_hour = 0.12
+
+[gpu.a100_80]
+tdp_kw = 0.40
+capex_usd = 12000.0
+life_years = 5.0
+target_util = 0.65
+opex_usd_per_hour = 0.05
+
+[tier.hyperscaler]
+pue = 1.15
+[tier.neo_cloud]
+pue = 1.20
+[tier.marketplace]
+pue = 1.40
+[tier.colo]
+pue = 1.30
+[tier.private]
+pue = 1.45
+
+[hub.pjm_dominion]
+default_power_usd_mwh = 110.0
+capacity_usd_mw_day = 333.44    # PJM 2026/27 auction clearing price (founder note)
+colo_usd_per_kw_month = 160.0
+
+[hub.ercot_west]
+default_power_usd_mwh = 45.0
+capacity_usd_mw_day = 0.0       # energy-only market
+colo_usd_per_kw_month = 120.0
+
+[hub.ercot_north]
+default_power_usd_mwh = 60.0
+capacity_usd_mw_day = 0.0
+colo_usd_per_kw_month = 130.0
+
+[hub.miso_north]
+default_power_usd_mwh = 38.0
+capacity_usd_mw_day = 30.0
+colo_usd_per_kw_month = 110.0

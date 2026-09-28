@@ -1,0 +1,57 @@
+# Settlement index specifications. Reference specs describe what each observation is
+# adjusted TO before aggregation. Methodology parameters are founder-supplied priors:
+# re-estimate against published prints once index history is available.
+
+[[index]]
+id = "sdh100rt"                 # Silicon Data H100 Rental Index style (CME)
+gpu = "h100"
+exchange = "cme"
+reference = { interconnect = "sxm", term = "on_demand", region = "us_east" }
+tiers = ["hyperscaler", "neo_cloud", "marketplace", "colo", "private"]
+listing_kinds = ["list", "transaction"]
+tier_weight_cap = { hyperscaler = 0.10 }
+provider_cap = 0.15
+mad_k = 3.0
+winsor = [0.05, 0.95]
+settlement = "final_day"        # TO VERIFY against the CME contract specification
+calibration_days = 60
+
+[[index]]
+id = "sdb200rt"                 # Silicon Data B200 Rental Index style (CME)
+gpu = "b200"
+exchange = "cme"
+reference = { interconnect = "sxm", term = "on_demand", region = "us_east" }
+tiers = ["hyperscaler", "neo_cloud", "marketplace", "colo", "private"]
+listing_kinds = ["list", "transaction"]
+tier_weight_cap = { hyperscaler = 0.10 }
+provider_cap = 0.15
+mad_k = 3.0
+winsor = [0.05, 0.95]
+settlement = "final_day"        # TO VERIFY
+calibration_days = 60
+
+[[index]]
+id = "ocpi_h100"                # Ornn Compute Price Index style (ICE): printed transactions only
+gpu = "h100"
+exchange = "ice"
+reference = { interconnect = "sxm", term = "on_demand", region = "us_east" }
+tiers = ["neo_cloud", "marketplace", "colo"]
+listing_kinds = ["transaction"]
+provider_cap = 0.20
+mad_k = 3.0
+winsor = [0.05, 0.95]
+settlement = "asian_average"
+calibration_days = 60
+
+[[index]]
+id = "ocpi_b200"
+gpu = "b200"
+exchange = "ice"
+reference = { interconnect = "sxm", term = "on_demand", region = "us_east" }
+tiers = ["neo_cloud", "marketplace", "colo"]
+listing_kinds = ["transaction"]
+provider_cap = 0.20
+mad_k = 3.0
+winsor = [0.05, 0.95]
+settlement = "asian_average"
+calibration_days = 60

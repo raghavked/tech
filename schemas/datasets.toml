@@ -1,0 +1,74 @@
+# Column contract for every dataset the Rust CLI writes and the Python SDK reads.
+# Tests on both sides assert against this file. Order matters.
+
+[raw.observations]
+columns = ["obs_id","observed_at","source","provider","tier","gpu","gpu_sku","gpu_count","interconnect","region","country","term","term_months","quantity_gpus","price","currency","unit","listing_kind","raw_ref"]
+dates = ["observed_at"]
+
+[raw.power]
+columns = ["date","hub","price_usd_mwh","capacity_usd_mw_day"]
+dates = ["date"]
+
+[raw.futures]
+columns = ["date","exchange","contract_id","index_id","gpu","tenor","settle","bid","ask","volume","open_interest"]
+dates = ["date"]
+
+[raw.index_prints]
+columns = ["date","index_id","gpu","value","source"]
+dates = ["date"]
+
+[raw.aws_pricelist]
+columns = ["publication_date","region","instance_type","gpu","gpu_count","usd_per_hour","usd_per_gpu_hour","rate_code"]
+dates = ["publication_date"]
+
+[raw.fleet_cohorts]
+columns = ["gpu","region","ship_month","units","sellable_share"]
+dates = []
+
+[raw.pipeline]
+columns = ["project","gpu","region","hub","mw","online_month","delay_mean_months","delay_sd_months","prob_complete"]
+dates = []
+
+[raw.demand]
+columns = ["gpu","d0_gpu_hours_per_day","ref_price","growth_per_year","elasticity"]
+dates = []
+
+[raw.perf]
+columns = ["gpu","inference_vs_h100","training_vs_h100"]
+dates = []
+
+[derived.standardized]
+columns = ["obs_id","date","index_id","gpu","price_raw","price_std","adj_interconnect","adj_term","adj_region","weight","provider","tier","flags"]
+dates = ["date"]
+
+[derived.estimates]
+columns = ["date","index_id","gpu","estimate","se","ci_low","ci_high","n_obs","n_used","n_providers","method","composite_raw","composite_median","calib_alpha","calib_beta"]
+dates = ["date"]
+
+[derived.settlements]
+columns = ["as_of","contract_id","index_id","gpu","style","window_start","window_end","realized_days","remaining_days","estimate","se"]
+dates = ["as_of","window_start","window_end"]
+
+[derived.curve]
+columns = ["as_of","gpu","tenor","fair_value","srmc_floor","lrmc_ceiling","supply_gpu_hours","demand_gpu_hours","utilization"]
+dates = ["as_of"]
+
+[derived.spreads]
+columns = ["date","spread_id","kind","gpu","leg_a","leg_b","value","fair_value","z","inputs"]
+dates = ["date"]
+
+[derived.signals]
+columns = ["date","strategy","spread_id","contract_id","side","qty","intent","z","reason"]
+dates = ["date"]
+
+[derived.positions]
+columns = ["date","strategy","contract_id","qty","avg_price","mark","unrealized_pnl","notional"]
+dates = ["date"]
+
+[derived.ledger]
+columns = ["seq","date","strategy","contract_id","kind","qty","price","cash_delta","fee","position_after","cash_after","equity_after","note"]
+dates = ["date"]
+
+[derived.equity]
+columns = ["date","cash","unrealized","equity","daily_pnl","gross_notional","open_positions"]
+dates = ["date"]
