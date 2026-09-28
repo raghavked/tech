@@ -291,14 +291,14 @@ pub fn standardize(ctx: &Ctx, a: &StandardizeArgs) -> Result<()> {
 pub fn nowcast(ctx: &Ctx, a: &NowcastArgs) -> Result<()> {
     nowcast_cmd(ctx, a)
 }
-fn load_supply_model_inputs(
-    ctx: &Ctx,
-) -> Result<(
+type SupplyInputs = (
     Vec<FleetCohort>,
     Vec<PipelineProject>,
     Vec<DemandAssumption>,
     Vec<PerfRatio>,
-)> {
+);
+
+fn load_supply_model_inputs(ctx: &Ctx) -> Result<SupplyInputs> {
     let cohorts: Vec<FleetCohort> = ctx.store.read_all("fleet_cohorts")?;
     let pipeline: Vec<PipelineProject> = ctx.store.read_all("pipeline")?;
     let demand: Vec<DemandAssumption> = ctx.store.read_all("demand")?;
