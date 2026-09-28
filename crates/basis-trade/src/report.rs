@@ -292,7 +292,7 @@ pub fn build(inp: &ReportInputs) -> Report {
 
     // 6. Positions and P&L
     md.push_str("## 6. Positions and P&L\n\n");
-    if let Some(last) = inp.equity.iter().filter(|e| e.date <= d).next_back() {
+    if let Some(last) = inp.equity.iter().rfind(|e| e.date <= d) {
         let month_start = Date::from_calendar_date(d.year(), d.month(), 1).unwrap();
         let mtd: f64 = inp
             .equity
