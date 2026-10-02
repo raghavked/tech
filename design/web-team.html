@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fold — Session</title>
-<meta name="description" content="The shared, living session: one conversation column, a quiet sidebar, nothing else.">
+<title>Fold — Payments</title>
+<meta name="description" content="The team page: what needs you, the projects, and recent handoffs.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="tokens.css">
 <style>
@@ -31,6 +31,19 @@
 .app { width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; }
 .app .shell { height: 100%; }
 
+.page { width: min(var(--col), 100%); margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 24px; }
+.page h1 { font-size: 26px; }
+.page .lead { color: var(--fg-2); margin-top: 6px; }
+.label { font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; margin-bottom: 4px; }
+.rowitem { border-bottom: 0; padding: 8px 4px; }
+.rowitem .r { display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--fg-2); white-space: nowrap; }
+.rowitem .s { margin-top: 1px; }
+.direction { display: flex; flex-direction: column; gap: 10px; }
+.direction .field { background: var(--bg-2); border-radius: var(--radius-lg); padding: 12px 16px; color: var(--fg-3); display: flex; align-items: center; }
+.direction .field .send { margin-left: auto; width: 28px; height: 28px; }
+.conflict { display: flex; flex-direction: column; gap: 10px; padding: 12px 4px 16px; }
+.conflict .actions { display: flex; gap: 8px; }
+
 </style>
 </head>
 <body>
@@ -54,7 +67,7 @@
   <div class="search"><svg class="ic"><use href="#i-search"/></svg>Search</div>
   <div class="section">Projects</div>
   <a class="item" href="web-project.html"><svg class="ic"><use href="#i-chev-d"/></svg>Billing page</a>
-  <a class="item sub active" href="web-session.html">Invoice PDF + tax lines</a>
+  <a class="item sub" href="web-session.html">Invoice PDF + tax lines</a>
   <a class="item sub" href="#">Tax rounding audit</a>
   <a class="item sub" href="#">Proration fix</a>
   <a class="item" href="#"><svg class="ic"><use href="#i-chev-r"/></svg>Checkout</a>
@@ -63,35 +76,38 @@
   <a class="item" href="#">Webhook retries</a>
   <a class="item" href="#">Refund ledger</a>
   <a class="item" href="#">Stripe Tax spike</a>
-  <a class="item" href="web-team.html">Payments team</a>
+  <a class="item active" href="web-team.html">Payments team</a>
   <div class="me"><span class="avatar">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div></div>
 </aside>
-<div class="main">
-<div class="topbar">
-  <span class="title">Invoice PDF + tax lines</span>
-  <div class="right"><span class="stack"><span class="avatar" title="Ana">A</span><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar" title="Dee">D</span></span><a class="btn sm" href="#">Share</a><a class="btn sm" href="web-session-details.html">Details</a></div>
-</div>
-<div class="scroll end"><div class="column">
-<div class="msg human"><div class="meta">Ana</div><div class="text">Add tax lines to the invoice PDF. Use the rates in tax/rates.ts for now and keep the layout change on the pdf-layout branch.</div></div>
-<div class="msg agent"><div class="meta agent-name">Ana's agent</div><div class="text">I read the invoice renderer and the tax module. Tax lines fit under the subtotal without touching the page template, so the layout change stays small. One rounding test fails: rates.ts rounds per line and the PDF rounds the total.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step"><svg class="ic"><use href="#i-file"/></svg><span>Read <span class="mono">invoices/pdf.ts</span> · 480 lines</span></div><div class="step fail"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 31 passed, 1 failed</span></div></div></div>
-<div class="divider">Dee set project direction: schema freeze until Thursday</div>
-<div class="msg human"><div class="meta">Bo</div><div class="text">Then leave the invoices table alone. Compute the tax lines at render time.</div></div>
-<div class="msg human"><div class="meta">Cy</div><div class="text">Stripe Tax would give us the right rate per region. Worth the call?</div></div>
-<div class="notice contention"><p>Bo and Cy disagree on where tax rates come from. Stripe Tax is right per region but adds a call to every render; local tables are instant but go stale.</p><div class="actions"><button class="btn sm" type="button">Pick Stripe Tax</button><button class="btn sm" type="button">Pick local tables</button></div></div>
-<div class="msg agent"><div class="meta agent-name">Ana's agent</div><div class="text">While that is decided I fixed the rounding: the PDF now rounds each tax line the way rates.ts does, and all 32 tests pass. Next I need to clear legacy_invoices so the new renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
-<div class="divider">Checkpoint c7</div>
-<div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">1 of 2 drivers have approved.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
-<div class="divider">Ana handed the session to Bo</div>
-</div></div>
-<div class="composer-wrap">
-  <div class="composer">
-    <div class="input">Steer the session…</div>
-    <div class="bar"><button class="btn icon" type="button" aria-label="Add"><svg class="ic"><use href="#i-plus"/></svg></button><span class="chip">goal</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic"><use href="#i-up"/></svg></button></div></div>
+<div class="main"><div class="topbar"><span class="title">Payments</span></div>
+<div class="scroll"><div class="page">
+  <div><h1>Payments</h1><p class="lead">4 sessions running, 2 waiting on approval, 1 blocked.</p></div>
+  <div>
+    <div class="label">Needs you</div>
+    <div class="list">
+      <div class="rowitem"><div><div class="t">Delete 41,208 archived invoices</div><div class="s">Invoice PDF + tax lines · Ana approved, 1 of 2</div></div><button class="btn sm primary" type="button">Approve</button></div>
+      <div class="rowitem"><div><div class="t">Stripe Tax or local tables</div><div class="s">Invoice PDF + tax lines · Bo and Cy disagree</div></div><button class="btn sm" type="button">Decide</button></div>
+      <div class="rowitem"><div><div class="t">Drop unused index on payments</div><div class="s">Proration fix · Dee asked</div></div><button class="btn sm" type="button">Approve</button></div>
+    </div>
   </div>
-  <div class="hint">Shift+Enter for a new line · ⌘K to interrupt</div>
+  <div>
+    <div class="label">Projects</div>
+    <div class="list">
+      <a class="rowitem" href="web-project.html"><div class="t">Billing page</div><div class="r">4 sessions · 2 waiting</div></a>
+      <a class="rowitem" href="#"><div class="t">Checkout</div><div class="r">2 sessions</div></a>
+      <a class="rowitem" href="#"><div class="t">Dunning</div><div class="r">1 session · blocked</div></a>
+    </div>
+  </div>
+  <div>
+    <div class="label">Recent handoffs</div>
+    <div class="list">
+      <a class="rowitem" href="web-session.html"><div class="t">Ana → Bo <span class="muted">Invoice PDF + tax lines</span></div><div class="r">2m ago</div></a>
+      <a class="rowitem" href="#"><div class="t">Cy → Dee <span class="muted">Tax rounding audit</span></div><div class="r">1h ago</div></a>
+      <a class="rowitem" href="#"><div class="t">Bo → Ana <span class="muted">Refund ledger</span></div><div class="r">Yesterday</div></a>
+    </div>
+  </div>
+</div></div>
 </div>
-</div>
-
 </div></div>
 <fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
 </body>

@@ -134,3 +134,29 @@ a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: un
 .frame { border-radius: 14px; border: 1px solid var(--line); overflow: hidden; background: var(--bg); }
 .theme-toggle { position: fixed; right: 16px; bottom: 16px; z-index: 9; display: inline-flex; gap: 2px; background: var(--bg-2); border-radius: var(--radius-full); padding: 3px; font-size: 12px; }
 .theme-toggle label { padding: 4px 10px; border-radius: var(--radius-full); cursor: pointer; }
+
+/* appended: CSS-only theme switch (radio inputs inside .theme-toggle) and the apricot selection tint */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle { border: 0; margin: 0; }
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle label { color: var(--fg-2); }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.sidebar .item.active { background: var(--highlight-soft); }
+.ic { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }

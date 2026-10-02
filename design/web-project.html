@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fold — Session</title>
-<meta name="description" content="The shared, living session: one conversation column, a quiet sidebar, nothing else.">
+<title>Fold — Billing page</title>
+<meta name="description" content="A project: direction for everyone, the sessions inside it, and the team memory they share.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="tokens.css">
 <style>
@@ -31,6 +31,19 @@
 .app { width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; }
 .app .shell { height: 100%; }
 
+.page { width: min(var(--col), 100%); margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 24px; }
+.page h1 { font-size: 26px; }
+.page .lead { color: var(--fg-2); margin-top: 6px; }
+.label { font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; margin-bottom: 4px; }
+.rowitem { border-bottom: 0; padding: 8px 4px; }
+.rowitem .r { display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--fg-2); white-space: nowrap; }
+.rowitem .s { margin-top: 1px; }
+.direction { display: flex; flex-direction: column; gap: 10px; }
+.direction .field { background: var(--bg-2); border-radius: var(--radius-lg); padding: 12px 16px; color: var(--fg-3); display: flex; align-items: center; }
+.direction .field .send { margin-left: auto; width: 28px; height: 28px; }
+.conflict { display: flex; flex-direction: column; gap: 10px; padding: 12px 4px 16px; }
+.conflict .actions { display: flex; gap: 8px; }
+
 </style>
 </head>
 <body>
@@ -53,8 +66,8 @@
   <button class="new" type="button"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
   <div class="search"><svg class="ic"><use href="#i-search"/></svg>Search</div>
   <div class="section">Projects</div>
-  <a class="item" href="web-project.html"><svg class="ic"><use href="#i-chev-d"/></svg>Billing page</a>
-  <a class="item sub active" href="web-session.html">Invoice PDF + tax lines</a>
+  <a class="item active" href="web-project.html"><svg class="ic"><use href="#i-chev-d"/></svg>Billing page</a>
+  <a class="item sub" href="web-session.html">Invoice PDF + tax lines</a>
   <a class="item sub" href="#">Tax rounding audit</a>
   <a class="item sub" href="#">Proration fix</a>
   <a class="item" href="#"><svg class="ic"><use href="#i-chev-r"/></svg>Checkout</a>
@@ -66,32 +79,35 @@
   <a class="item" href="web-team.html">Payments team</a>
   <div class="me"><span class="avatar">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div></div>
 </aside>
-<div class="main">
-<div class="topbar">
-  <span class="title">Invoice PDF + tax lines</span>
-  <div class="right"><span class="stack"><span class="avatar" title="Ana">A</span><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar" title="Dee">D</span></span><a class="btn sm" href="#">Share</a><a class="btn sm" href="web-session-details.html">Details</a></div>
-</div>
-<div class="scroll end"><div class="column">
-<div class="msg human"><div class="meta">Ana</div><div class="text">Add tax lines to the invoice PDF. Use the rates in tax/rates.ts for now and keep the layout change on the pdf-layout branch.</div></div>
-<div class="msg agent"><div class="meta agent-name">Ana's agent</div><div class="text">I read the invoice renderer and the tax module. Tax lines fit under the subtotal without touching the page template, so the layout change stays small. One rounding test fails: rates.ts rounds per line and the PDF rounds the total.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step"><svg class="ic"><use href="#i-file"/></svg><span>Read <span class="mono">invoices/pdf.ts</span> · 480 lines</span></div><div class="step fail"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 31 passed, 1 failed</span></div></div></div>
-<div class="divider">Dee set project direction: schema freeze until Thursday</div>
-<div class="msg human"><div class="meta">Bo</div><div class="text">Then leave the invoices table alone. Compute the tax lines at render time.</div></div>
-<div class="msg human"><div class="meta">Cy</div><div class="text">Stripe Tax would give us the right rate per region. Worth the call?</div></div>
-<div class="notice contention"><p>Bo and Cy disagree on where tax rates come from. Stripe Tax is right per region but adds a call to every render; local tables are instant but go stale.</p><div class="actions"><button class="btn sm" type="button">Pick Stripe Tax</button><button class="btn sm" type="button">Pick local tables</button></div></div>
-<div class="msg agent"><div class="meta agent-name">Ana's agent</div><div class="text">While that is decided I fixed the rounding: the PDF now rounds each tax line the way rates.ts does, and all 32 tests pass. Next I need to clear legacy_invoices so the new renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
-<div class="divider">Checkpoint c7</div>
-<div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">1 of 2 drivers have approved.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
-<div class="divider">Ana handed the session to Bo</div>
-</div></div>
-<div class="composer-wrap">
-  <div class="composer">
-    <div class="input">Steer the session…</div>
-    <div class="bar"><button class="btn icon" type="button" aria-label="Add"><svg class="ic"><use href="#i-plus"/></svg></button><span class="chip">goal</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic"><use href="#i-up"/></svg></button></div></div>
+<div class="main"><div class="topbar"><span class="title">Billing page</span><div class="right"><a class="btn sm" href="#">Share</a></div></div>
+<div class="scroll"><div class="page">
+  <div><h1>Billing page</h1><p class="lead">Invoices, tax, proration and the PDF customers download.</p></div>
+  <div class="direction">
+    <div class="field">Set direction for everyone in this project<button class="send" type="button" aria-label="Set"><svg class="ic"><use href="#i-up"/></svg></button></div>
+    <div><span class="chip on">schema freeze until Thursday</span> <span class="small faint">Dee · 2h ago</span></div>
   </div>
-  <div class="hint">Shift+Enter for a new line · ⌘K to interrupt</div>
+  <div>
+    <div class="label">Sessions</div>
+    <div class="list">
+      <a class="rowitem" href="web-session.html"><div class="t">Invoice PDF + tax lines</div><div class="r"><span>Bo</span><span class="status awaiting">Waiting on approval</span><span class="faint">2m ago</span></div></a>
+      <a class="rowitem" href="#"><div class="t">Tax rounding audit</div><div class="r"><span>Cy</span><span class="status running">Running</span><span class="faint">14m ago</span></div></a>
+      <a class="rowitem" href="#"><div class="t">Proration fix</div><div class="r"><span>Dee</span><span class="status blocked">Blocked</span><span class="faint">1h ago</span></div></a>
+      <a class="rowitem" href="#"><div class="t">Refund ledger</div><div class="r"><span>Bo</span><span class="status paused">Paused</span><span class="faint">Yesterday</span></div></a>
+    </div>
+  </div>
+  <div>
+    <div class="label">Team memory</div>
+    <div class="conflict"><div>Ana says Postgres 16 · Bo says CockroachDB · <span class="muted">Which is right?</span></div><div class="actions"><button class="btn sm" type="button">Postgres 16</button><button class="btn sm" type="button">CockroachDB</button></div></div>
+    <div class="list">
+      <div class="rowitem"><div>Invoice totals round once, at the end</div><div class="r">added by Ana · session billing-42 · commit 9f3c1a</div></div>
+      <div class="rowitem"><div>rates.ts is the source for EU VAT until Stripe Tax lands</div><div class="r">added by Cy · session billing-37 · commit 41be0d</div></div>
+      <div class="rowitem"><div>Proration runs in UTC; customer timezones only affect display</div><div class="r">added by Dee · session billing-29 · commit c02e77</div></div>
+      <div class="rowitem"><div>Never regenerate a PDF that has been emailed; version it</div><div class="r">added by Bo · session billing-18 · commit 7a91d4</div></div>
+      <div class="rowitem"><div>Stripe webhooks can arrive twice; handlers are idempotent on event id</div><div class="r">added by Ana · session billing-11 · commit e5f20b</div></div>
+    </div>
+  </div>
+</div></div>
 </div>
-</div>
-
 </div></div>
 <fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
 </body>

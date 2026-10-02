@@ -3,130 +3,154 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atelier — Mobile</title>
-<meta name="description" content="Atelier mobile shell: session view, fleet board and approval sheet in three 390x844 phone frames.">
+<title>Fold — Mobile</title>
+<meta name="description" content="Three phone frames: the session, the sidebar drawer, and a project.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="tokens.css">
 <style>
-  .phones { display: flex; gap: var(--space-4); justify-content: center; align-items: flex-start; padding: var(--space-3); overflow-x: auto; }
-  .phones figure { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-  .phones figcaption { font-size: var(--fs-2); color: var(--fg-muted); text-align: center; max-width: 390px; }
-  .m-head .crumb { font-size: 11px; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .m-head .ttl { font: 500 var(--fs-4)/1.2 var(--font-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .m-stream { flex: 1; min-height: 0; overflow: hidden; }
-  .m-stream .ev .body { font-size: 13px; }
-  .sticky { margin: 0 12px; padding: 10px 12px; border-radius: var(--radius); background: var(--amber-soft); border: 1px solid var(--amber); display: flex; align-items: center; gap: 10px; font-size: 12px; flex: none; }
-  .sticky b { display: block; font-size: 13px; }
-  .m-composer { padding: 10px 12px 28px; border-top: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; gap: 8px; flex: none; }
-  .m-composer .box { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 6px 0 12px; border: 1px solid var(--border); border-radius: 22px; background: var(--bg); font-size: 13px; color: var(--fg-faint); }
-  .m-composer .box .btn-icon { width: 34px; height: 34px; border-radius: 50%; }
-  .m-tabs { display: flex; justify-content: space-around; padding: 8px 0 26px; border-top: 1px solid var(--border); background: var(--surface); flex: none; font-size: 10px; color: var(--fg-muted); }
-  .m-tabs span { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-  .m-tabs span i { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid currentColor; }
-  .m-tabs .cur { color: var(--fg); font-weight: 600; }
-  .m-tabs .cur i { background: var(--fg); }
-  .m-cards { flex: 1; overflow: hidden; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-  .m-cards .card { padding: 12px; }
-  .m-cards .goal { font-size: 13px; margin: 6px 0 8px; }
-  .m-cards .meta { font-size: 11px; color: var(--fg-muted); }
-  .sheet-wrap { position: relative; flex: 1; min-height: 0; }
-  .sheet-wrap .behind { position: absolute; inset: 0; overflow: hidden; opacity: .9; }
-  .sheet-wrap .scrim { position: absolute; inset: 0; background: var(--scrim); }
-  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 10px 20px 36px; box-shadow: var(--shadow); }
-  .sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--border-strong); margin: 0 auto 16px; }
-  .sheet .btn-lg { font-size: 16px; }
-  .m-notif { position: absolute; top: 58px; left: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px 12px; display: grid; grid-template-columns: 28px 1fr; gap: 10px; font-size: 12px; box-shadow: var(--shadow); }
+
+.sidebar .item.sub { padding-left: 34px; color: var(--fg-2); font-size: 13.5px; }
+.sidebar .item.sub.active { color: var(--fg); }
+.sidebar .item .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); }
+.sidebar .search:hover { background: var(--bg-3); }
+.sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
+.sidebar .me .who { line-height: 1.3; }
+.topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.msg .meta.agent-name { color: var(--fg-3); }
+.step .mono { font-size: 12.5px; }
+.notice p { margin: 0; }
+.hint { text-align: center; font-size: 12px; color: var(--fg-3); margin-top: 8px; }
+.composer .input { color: var(--fg-3); }
+.composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.scroll.end { display: flex; flex-direction: column-reverse; }
+.column { padding-bottom: 24px; }
+.composer-wrap { padding-top: 4px; }
+.composer { border-color: transparent; }
+.drawer a { color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.app { width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; }
+.app .shell { height: 100%; }
+
+.page { width: min(var(--col), 100%); margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 24px; }
+.page h1 { font-size: 26px; }
+.page .lead { color: var(--fg-2); margin-top: 6px; }
+.label { font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; margin-bottom: 4px; }
+.rowitem { border-bottom: 0; padding: 8px 4px; }
+.rowitem .r { display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--fg-2); white-space: nowrap; }
+.rowitem .s { margin-top: 1px; }
+.direction { display: flex; flex-direction: column; gap: 10px; }
+.direction .field { background: var(--bg-2); border-radius: var(--radius-lg); padding: 12px 16px; color: var(--fg-3); display: flex; align-items: center; }
+.direction .field .send { margin-left: auto; width: 28px; height: 28px; }
+.conflict { display: flex; flex-direction: column; gap: 10px; padding: 12px 4px 16px; }
+.conflict .actions { display: flex; gap: 8px; }
+
+body { background: var(--bg-2); height: auto; min-height: 100%; }
+.phones { display: flex; gap: 40px; justify-content: center; padding: 48px 24px; }
+.phone { position: relative; }
+.phone .topbar { padding: 14px 16px 6px; }
+.phone .topbar .ic { color: var(--fg-2); width: 20px; height: 20px; }
+.phone .topbar .title { flex: 1; text-align: center; }
+.phone .column { padding: 8px 16px 24px; gap: 22px; }
+.phone .msg.human .text { max-width: 92%; }
+.phone .composer-wrap { padding: 8px 12px 20px; margin-top: auto; }
+.phone .hint { display: none; }
+.phone .page { padding: 12px 16px 24px; gap: 24px; }
+.phone .page h1 { font-size: 22px; }
+.phone .rowitem { grid-template-columns: 1fr; gap: 2px; }
+.phone .rowitem .r { gap: 10px; }
+.phone .direction .field { padding: 10px 14px; font-size: 14px; }
+.scrim { position: absolute; inset: 0; background: rgba(42, 50, 68, 0.35); }
+.phone .sidebar { position: absolute; top: 0; left: 0; bottom: 0; width: 300px; padding: 20px 12px; }
+.phone .sidebar .brand { padding-top: 10px; }
+
 </style>
 </head>
 <body>
-<input type="checkbox" id="theme" class="theme-input">
-<header class="site-head">
-  <a class="brand" href="index.html"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-width="12" stroke-linecap="round"><path class="s-navy" d="M84 88 Q78 48 50 16"/><path class="s-choc" d="M16 88 Q22 48 50 16"/><path class="s-apri" d="M50 90 Q46 52 50 16"/></g></svg><span class="wordmark">Atelier</span></a>
-  <nav><a href="index.html">Brand</a><a href="web-session.html">Session</a><a href="web-fleet.html">Fleet</a><a href="web-management.html">Management</a><a href="slack.html">Slack mock</a><a href="mobile.html" aria-current="page">Mobile</a><a href="desktop.html">Desktop</a></nav>
-  <span class="spacer"></span>
-  <span class="mock-label">Mobile · 390 × 844 · one hand</span>
-  <label for="theme" class="theme-toggle" title="Toggle light / dark">Theme <span class="track"></span></label>
-</header>
-
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+<symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16z"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+</svg>
 <div class="phones">
-
-  <figure>
-    <div class="phone">
-      <div class="notch"></div>
-      <div class="status"><span>14:14</span><span>●●● ▲ ▮</span></div>
-      <div class="screen">
-        <div class="m-head"><a class="btn btn-ghost btn-sm" href="#" aria-label="Back">‹</a><div class="grow"><div class="crumb">Northwind › Payments › Billing page</div><div class="ttl">Invoice PDF + tax lines</div></div><span class="presence"><span class="avatar ana sm avatar-driver">AN</span><span class="avatar bo sm">BO</span><span class="avatar agent sm">A</span></span></div>
-        <div class="row" style="padding:8px 12px;border-bottom:1px solid var(--border)"><span class="pill pill-running">Running · turn 41</span><span class="chip chip-claim contended">tax frozen</span><span class="grow"></span><button class="btn btn-sm">Pause</button></div>
-        <div class="m-stream stream">
-          <div class="ev ev-human"><span class="avatar ana sm avatar-driver">AN</span><div><div class="meta"><span class="name">Ana</span><span class="tag">steer · goal</span></div><div class="body">Invoice PDF with tax lines per jurisdiction. Keep the template layout.</div><span class="time">14:02</span></div></div>
-          <div class="ev ev-agent"><span class="avatar agent sm">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">turn 39</span></div><div class="body">Added <code>taxLines()</code>. Checkpoint c7.</div><div class="tool"><b>write</b> tax/lines.ts · +64</div><span class="time">14:05</span></div></div>
-          <div class="ev ev-alert"><span class="sys-ico">!</span><div><div class="meta"><span class="name">Contention</span><span class="tag">tax</span></div><div class="body">Stripe tax API (Bo) vs local tax tables (Cy). You are driver. <a href="#"><b>Pick</b></a></div><span class="time">14:06</span></div></div>
-          <div class="ev ev-agent"><span class="avatar agent sm">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">turn 40</span></div><div class="body">Tax source under discussion; extended the PDF template to take either. 12 tests pass.</div><span class="time">14:09</span></div></div>
-          <div class="ev ev-human"><span class="avatar dee sm">DE</span><div><div class="meta"><span class="name">Dee</span><span class="tag">lead · all sessions</span></div><div class="body">Schema freeze until Thursday.</div><span class="time">14:12</span></div></div>
-          <div class="ev ev-agent"><span class="avatar agent sm">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">turn 41</span></div><div class="body">Writing jurisdiction tests DE, FR, US-CA.</div><span class="time">14:14</span></div></div>
-        </div>
-        <div class="sticky"><span class="avatar agent sm wait">A</span><div class="grow"><b>Approval needed · DELETE legacy_invoices</b>irreversible · 1 of 2 drivers · billing-43</div><button class="btn btn-sm btn-primary">Review</button></div>
-        <div class="m-composer">
-          <div class="row"><span class="chip chip-scope">Steer ▾</span><span class="chip">scope: goal ▾</span><span class="grow"></span><span class="switch"><span class="track"></span>Interrupt</span></div>
-          <div class="box"><span class="grow">Steer the goal…</span><button class="btn btn-icon btn-primary" aria-label="Send">↑</button></div>
-        </div>
-      </div>
-      <div class="home"></div>
-    </div>
-    <figcaption><b>Session.</b> Stream, sticky approval banner, composer with mode, scope and interrupt. Primary actions sit in the bottom third for the thumb.</figcaption>
-  </figure>
-
-  <figure>
-    <div class="phone">
-      <div class="notch"></div>
-      <div class="status"><span>14:14</span><span>●●● ▲ ▮</span></div>
-      <div class="screen">
-        <div class="m-head"><div class="grow"><div class="crumb">Northwind › Payments</div><div class="ttl">Fleet · 4 sessions</div></div><span class="avatar dee sm">DE</span></div>
-        <div class="row wrap" style="padding:8px 12px"><span class="pill pill-running">1</span><span class="pill pill-approval">1</span><span class="pill pill-blocked">1</span><span class="pill pill-paused">1</span></div>
-        <div class="banner banner-slate" style="margin:0 12px;font-size:12px"><span class="avatar dee sm">DE</span><span><b>Lead directive</b> · Schema freeze until Thursday · all sessions</span></div>
-        <div class="m-cards">
-          <div class="card card-olive"><div class="card-head"><span class="who"><span class="avatar ana sm">AN</span><span class="name">Ana's agent</span></span><span class="pill pill-running">Running</span></div><p class="goal">Invoice PDF with tax lines per jurisdiction.</p><div class="row wrap"><span class="chip chip-claim">src/billing/**</span><span class="chip chip-claim">svc:pdf-render</span></div><div class="meta" style="margin-top:8px">turn 41 · waiting on contention tax</div></div>
-          <div class="card card-amber"><div class="card-head"><span class="who"><span class="avatar bo sm">BO</span><span class="name">Bo's agent</span></span><span class="pill pill-approval">Awaiting approval</span></div><p class="goal">Retire legacy invoice table.</p><div class="row wrap"><span class="chip chip-claim">db:legacy_invoices</span></div><div class="meta" style="margin-top:8px">turn 17 · DELETE legacy_invoices · 1 of 2</div><div class="row" style="margin-top:10px"><button class="btn btn-sm btn-success">Approve</button><button class="btn btn-sm btn-outline-danger">Deny</button></div></div>
-          <div class="card card-brick"><div class="card-head"><span class="who"><span class="avatar cy sm">CY</span><span class="name">Cy's agent</span></span><span class="pill pill-blocked">Blocked</span></div><p class="goal">Sync EU tax tables and validate rounding.</p><div class="row wrap"><span class="chip chip-claim">svc:tax-rates</span><span class="chip chip-claim contended">svc:stripe</span></div><div class="meta" style="margin-top:8px">turn 9 · claim held by Bo's agent · <a href="#"><b>Resolve</b></a></div></div>
-          <div class="card card-slate"><div class="card-head"><span class="who"><span class="avatar dee sm">DE</span><span class="name">Dee's agent</span></span><span class="pill pill-paused">Paused</span></div><p class="goal">Audit migrations against the freeze.</p><div class="meta" style="margin-top:4px">turn 3 · paused by Dee 14:13</div></div>
-        </div>
-        <div class="m-tabs"><span><i></i>Sessions</span><span class="cur"><i></i>Fleet</span><span><i></i>Approvals</span><span><i></i>Memory</span></div>
-      </div>
-      <div class="home"></div>
-    </div>
-    <figcaption><b>Fleet board.</b> Same cards as the web board: owner, status, goal, claims, blockers; approve and resolve inline.</figcaption>
-  </figure>
-
-  <figure>
-    <div class="phone">
-      <div class="notch"></div>
-      <div class="status"><span>14:11</span><span>●●● ▲ ▮</span></div>
-      <div class="screen sheet-wrap">
-        <div class="behind">
-          <div class="m-head"><div class="grow"><div class="crumb">Northwind › Payments › Billing page</div><div class="ttl">Invoice PDF + tax lines</div></div></div>
-          <div class="stream"><div class="ev ev-agent"><span class="avatar agent sm">A</span><div><div class="meta"><span class="name">Ana's agent</span></div><div class="body">Tax source under discussion; extended the PDF template.</div></div></div><div class="ev ev-approval"><span class="sys-ico">◍</span><div><div class="meta"><span class="name">Approval requested</span></div><div class="body">Bo's agent asks to DELETE legacy_invoices.</div></div></div></div>
-        </div>
-        <div class="scrim"></div>
-        <div class="m-notif"><span class="avatar agent sm wait">A</span><div><b>Atelier</b> · now<br>Approval needed: DELETE legacy_invoices · you are 1 of 2 drivers</div></div>
-        <div class="sheet">
-          <div class="grab"></div>
-          <div class="row between"><span class="t-label" style="margin:0">Approval needed</span><span class="chip chip-risk">irreversible</span></div>
-          <h2 class="t-h2" style="margin:10px 0 6px">DELETE legacy_invoices</h2>
-          <p class="t-small muted">Bo's agent · session billing-43 · turn 17. Drops 1.2M rows in <code>billing.legacy_invoices</code>. Bound to call hash <code>4b7e…c1</code>; any change to the call needs a new approval.</p>
-          <div class="card card-flat" style="margin:12px 0;padding:10px 12px"><div class="t-small"><b>Memory says:</b> <code>legacy_invoices</code> is still read by the finance export on the 1st of each month; archive before dropping. <span class="muted">added by Dee · billing-45</span></div></div>
-          <div class="quorum" style="margin-bottom:14px"><span class="seat on"></span><span class="seat"></span> 1 of 2 drivers · Ana approved 14:13 · your vote completes quorum</div>
-          <div class="stack-1"><button class="btn btn-success btn-lg btn-block">Approve</button><button class="btn btn-outline-danger btn-lg btn-block">Deny</button><button class="btn btn-ghost btn-block">Open session first</button></div>
-        </div>
-      </div>
-      <div class="home"></div>
-    </div>
-    <figcaption><b>Notification sheet.</b> Tap the push, decide from the sheet: context, relevant project memory, quorum state, then Approve / Deny within thumb reach.</figcaption>
-  </figure>
+<div class="phone">
+  <div class="topbar"><svg class="ic"><use href="#i-menu"/></svg><span class="title">Invoice PDF + tax lines</span><span class="stack"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar" title="Dee">D</span></span></div>
+  <div class="scroll end"><div class="column">
+    <div class="msg human"><div class="meta">Bo</div><div class="text">Then leave the invoices table alone. Compute the tax lines at render time.</div></div>
+    <div class="msg human"><div class="meta">Cy</div><div class="text">Stripe Tax would give us the right rate per region. Worth the call?</div></div>
+    <div class="notice contention"><p>Bo and Cy disagree on where tax rates come from. Stripe Tax is right per region but adds a call to every render; local tables are instant but go stale.</p><div class="actions"><button class="btn sm" type="button">Pick Stripe Tax</button><button class="btn sm" type="button">Pick local tables</button></div></div>
+    <div class="msg agent"><div class="meta agent-name">Ana's agent</div><div class="text">While that is decided I fixed the rounding: all 32 tests pass. Next I need to clear legacy_invoices, and that delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+    <div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">1 of 2 drivers have approved.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
+  </div></div>
+  <div class="composer-wrap">
+  <div class="composer">
+    <div class="input">Steer the session…</div>
+    <div class="bar"><button class="btn icon" type="button" aria-label="Add"><svg class="ic"><use href="#i-plus"/></svg></button><span class="chip">goal</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic"><use href="#i-up"/></svg></button></div></div>
+  </div>
+  <div class="hint">Shift+Enter for a new line · ⌘K to interrupt</div>
 </div>
-
-<footer class="foot page" style="padding-top:0"><span>Atelier · static mockup · no JavaScript</span><span>Identical functionality to the web app; layout for one hand.</span></footer>
+  
+</div>
+<div class="phone">
+  <div class="topbar"><svg class="ic"><use href="#i-menu"/></svg><span class="title">Invoice PDF + tax lines</span><span class="stack"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar" title="Dee">D</span></span></div>
+  <div class="scroll end"><div class="column">
+    <div class="msg human"><div class="meta">Bo</div><div class="text">Then leave the invoices table alone. Compute the tax lines at render time.</div></div>
+    <div class="msg human"><div class="meta">Cy</div><div class="text">Stripe Tax would give us the right rate per region. Worth the call?</div></div>
+    <div class="notice contention"><p>Bo and Cy disagree on where tax rates come from. Stripe Tax is right per region but adds a call to every render; local tables are instant but go stale.</p><div class="actions"><button class="btn sm" type="button">Pick Stripe Tax</button><button class="btn sm" type="button">Pick local tables</button></div></div>
+    <div class="msg agent"><div class="meta agent-name">Ana's agent</div><div class="text">While that is decided I fixed the rounding: all 32 tests pass. Next I need to clear legacy_invoices, and that delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+    <div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">1 of 2 drivers have approved.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
+  </div></div>
+  <div class="composer-wrap">
+  <div class="composer">
+    <div class="input">Steer the session…</div>
+    <div class="bar"><button class="btn icon" type="button" aria-label="Add"><svg class="ic"><use href="#i-plus"/></svg></button><span class="chip">goal</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic"><use href="#i-up"/></svg></button></div></div>
+  </div>
+  <div class="hint">Shift+Enter for a new line · ⌘K to interrupt</div>
+</div>
+  <div class="scrim"></div><aside class="sidebar">
+  <div class="brand"><svg class="mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg>Fold</div>
+  <button class="new" type="button"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
+  <div class="search"><svg class="ic"><use href="#i-search"/></svg>Search</div>
+  <div class="section">Projects</div>
+  <a class="item" href="web-project.html"><svg class="ic"><use href="#i-chev-d"/></svg>Billing page</a>
+  <a class="item sub active" href="web-session.html">Invoice PDF + tax lines</a>
+  <a class="item sub" href="#">Tax rounding audit</a>
+  <a class="item sub" href="#">Proration fix</a>
+  <a class="item" href="#"><svg class="ic"><use href="#i-chev-r"/></svg>Checkout</a>
+  <a class="item" href="#"><svg class="ic"><use href="#i-chev-r"/></svg>Dunning</a>
+  <div class="section">Recents</div>
+  <a class="item" href="#">Webhook retries</a>
+  <a class="item" href="#">Refund ledger</a>
+  <a class="item" href="#">Stripe Tax spike</a>
+  <a class="item" href="web-team.html">Payments team</a>
+  <div class="me"><span class="avatar">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div></div>
+</aside>
+</div>
+<div class="phone">
+  <div class="topbar"><svg class="ic"><use href="#i-menu"/></svg><span class="title">Billing page</span><span class="avatar">A</span></div>
+  <div class="scroll"><div class="page">
+    <div><h1>Billing page</h1><p class="lead">Invoices, tax, proration and the PDF customers download.</p></div>
+    <div class="direction"><div class="field">Set direction for everyone</div><div><span class="chip on">schema freeze until Thursday</span></div></div>
+    <div><div class="label">Sessions</div><div class="list">
+      <a class="rowitem" href="#"><div class="t">Invoice PDF + tax lines</div><div class="r"><span>Bo</span><span class="status awaiting">Waiting on approval</span><span class="faint">2m</span></div></a>
+      <a class="rowitem" href="#"><div class="t">Tax rounding audit</div><div class="r"><span>Cy</span><span class="status running">Running</span><span class="faint">14m</span></div></a>
+      <a class="rowitem" href="#"><div class="t">Proration fix</div><div class="r"><span>Dee</span><span class="status blocked">Blocked</span><span class="faint">1h</span></div></a>
+      <a class="rowitem" href="#"><div class="t">Refund ledger</div><div class="r"><span>Bo</span><span class="status paused">Paused</span><span class="faint">1d</span></div></a>
+    </div></div>
+    <div><div class="label">Team memory</div><div class="list">
+      <div class="rowitem"><div>Invoice totals round once, at the end</div><div class="s">Ana · billing-42</div></div>
+      <div class="rowitem"><div>rates.ts is the source for EU VAT until Stripe Tax lands</div><div class="s">Cy · billing-37</div></div>
+    </div></div>
+  </div></div>
+</div>
+</div>
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
 </body>
 </html>
