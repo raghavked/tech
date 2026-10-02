@@ -4,30 +4,60 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fold — Brand</title>
-<meta name="description" content="Fold brand sheet: mark, wordmark, palette, type and the handful of components the product is made of.">
+<meta name="description" content="Fold brand sheet: mark, wordmark, palette, type, the three signature elements and the handful of components the product is made of.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="tokens.css">
 <style>
 
-.sidebar .item.sub { padding-left: 34px; color: var(--fg-2); font-size: 13.5px; }
-.sidebar .item.sub.active { color: var(--fg); }
-.sidebar .item .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.row { display: flex; align-items: center; gap: 8px; }
+.grow { flex: 1; min-width: 0; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.input { display: flex; align-items: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-full); background: var(--bg); color: var(--fg-3); font-size: 13.5px; }
+.sidebar .brand { text-decoration: none; color: var(--fg); }
+.sidebar .brand .mark { flex: none; }
 .sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); }
-.sidebar .search:hover { background: var(--bg-3); }
+.sidebar .search .ic { width: 14px; height: 14px; }
+.sidebar .new .ic { width: 16px; height: 16px; color: var(--fg-2); }
+.sidebar .lists { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+.sidebar .lists > * { flex: none; }
+.sidebar .item.team { color: var(--fg-3); font-size: 13px; padding-top: 4px; padding-bottom: 4px; }
+.sidebar .item.project { font-weight: 500; }
 .sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
-.sidebar .me .who { line-height: 1.3; }
+.sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.sidebar .me .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.agent .head .pill { height: 18px; padding: 0 6px; font-size: 11px; }
+.topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.topbar .title .serif { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
-.msg .meta.agent-name { color: var(--fg-3); }
+.topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.topbar .right .btn .ic { width: 14px; height: 14px; }
+.main .body { flex: 1; min-height: 0; display: flex; }
+.scroll { display: flex; flex-direction: column; overflow: hidden; }
+.stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.msg .meta .faint { font-size: 12px; }
+.msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
 .step .mono { font-size: 12.5px; }
 .notice p { margin: 0; }
 .hint { text-align: center; font-size: 12px; color: var(--fg-3); margin-top: 8px; }
-.composer .input { color: var(--fg-3); }
+.column { padding-top: 0; padding-bottom: 12px; }
+.composer-wrap { padding-top: 4px; padding-bottom: 12px; }
+.composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; border-radius: 0; }
 .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
-.scroll.end { display: flex; flex-direction: column-reverse; }
-.column { padding-bottom: 24px; }
-.composer-wrap { padding-top: 4px; }
-.composer { border-color: transparent; }
-.drawer a { color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.drawer p { margin: 0; }
+.drawer .group > .btn { align-self: flex-start; }
+.drawer .row { gap: 6px; }
+.drawer .input { min-height: 30px; font-size: 13px; }
+.drawer .agent { background: var(--bg-2); }
+.drawer .drawer-head { display: none; align-items: center; justify-content: space-between; font-weight: 500; }
+.drawer .drawer-head .btn.icon { width: 28px; min-height: 28px; }
+.drawer .brief { margin: 0; white-space: pre-wrap; font: 13px/1.5 var(--font); color: var(--fg-2); }
+.memlist { display: flex; flex-direction: column; gap: 10px; }
+.memline { display: flex; flex-direction: column; gap: 1px; }
+.memline.conflict { padding-left: 10px; border-left: 2px solid var(--highlight); }
 .app { width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; }
 .app .shell { height: 100%; }
 
@@ -40,17 +70,33 @@ body { height: auto; min-height: 100%; }
 .tile { aspect-ratio: 1; border-radius: var(--radius-lg); display: grid; place-items: center; }
 .tile.light { background: #F3F0EA; } .tile.navy { background: #2A3244; }
 .tile svg, .tile img { width: 120px; height: 120px; }
-.word { display: flex; align-items: center; gap: 14px; font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.word { display: flex; align-items: center; gap: 14px; font-family: var(--serif); font-size: 44px; line-height: 1; }
 .word img { width: 44px; height: 44px; }
 .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
 .swatch div:first-child { height: 64px; border-radius: var(--radius); margin-bottom: 8px; box-shadow: inset 0 0 0 1px var(--line); }
 .swatch b { display: block; font-weight: 500; font-size: 12.5px; white-space: nowrap; }
 .swatch span { display: block; font-size: 11.5px; color: var(--fg-3); }
 .spec { display: flex; flex-direction: column; gap: 12px; }
-.spec .h { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.spec .h { font-family: var(--serif); font-size: 34px; line-height: 1.15; }
 .spec .l { font-weight: 500; }
-.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.row { flex-wrap: wrap; gap: 10px; }
 .demo { display: flex; flex-direction: column; gap: 28px; }
+.demo .composer-wrap { position: static; padding: 0; background: none; }
+.sig { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.sig .ex { height: 120px; border-radius: var(--radius-lg); background: var(--bg-2); display: grid; place-items: center; margin-bottom: 12px; overflow: hidden; }
+.sig b { display: block; font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+.sig span { font-size: 13px; color: var(--fg-2); line-height: 1.5; }
+.sig .ex .serif { font-size: 30px; }
+.sig .card { width: 150px; padding: 12px 14px; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--line); font-size: 13px; }
+.sig .card .faint { display: block; font-size: 12px; }
+.sig .ex.crease-ex { display: flex; place-items: unset; }
+.sig .ex.crease-ex .side { width: 42%; background: var(--bg-2); border-right: 1px solid var(--crease); }
+.sig .ex.crease-ex .body { flex: 1; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+.sig .ex.crease-ex .body i { font-family: var(--serif); color: var(--fg-3); }
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cards .agent { background: var(--bg-2); }
+.cards .agent.active { background: var(--bg); border: 1px solid var(--line); }
+.railbit { background: var(--bg-2); border-radius: var(--radius); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
 
 </style>
 </head>
@@ -58,15 +104,15 @@ body { height: auto; min-height: 100%; }
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
-<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
-<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
 <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
 <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
 <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16z"/></symbol>
 <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
-<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M7.5 16.5l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 7.5l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
 </svg>
 <div class="sheet">
   <nav class="nav"><a href="web-session.html">Session</a><a href="web-session-details.html">Details</a><a href="web-project.html">Project</a><a href="web-team.html">Team</a><a href="mobile.html">Mobile</a><a href="desktop.html">Desktop</a></nav>
@@ -74,6 +120,15 @@ body { height: auto; min-height: 100%; }
   <div><div class="label">Mark</div><div class="marks"><div class="tile light"><img src="mark.svg" alt="Fold mark"></div><div class="tile navy"><svg viewBox="0 0 96 96" role="img" aria-label="Fold mark on navy"><rect x="12" y="12" width="72" height="72" rx="14" fill="#F3EEE7"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="#2A3244" stroke-width="3" stroke-linecap="round"/></svg></div></div></div>
 
   <div><div class="label">Wordmark</div><div class="word"><img src="mark.svg" alt="">Fold</div><p class="muted" style="margin-top:16px">One sheet, one corner turned: a session anyone on the team can pick up where it was left.</p></div>
+
+  <div><div class="label">Signature</div>
+    <p class="muted" style="margin-bottom:16px">The base stays in the register of claude.ai and ChatGPT: one centred column, hairlines, no shadows. Three things make it Fold's own.</p>
+    <div class="sig">
+      <div><div class="ex"><span class="serif">Invoice rollout</span></div><b>1 · The editorial serif</b><span>Instrument Serif carries the titles, the wordmark and people's names. Everything else is Instrument Sans, so the serif stays rare.</span></div>
+      <div><div class="ex"><div class="folded deep card">Invoice PDF<span class="faint">with Bo, Cy</span></div></div><b>2 · The folded corner</b><span>The mark repeated as a small apricot turn: on the composer, on human messages and on <span class="mono">.folded</span> cards.</span></div>
+      <div><div class="ex crease-ex"><div class="side"></div><div class="body"><i>one crease</i></div></div><b>3 · One crease</b><span>A single hairline in Apricot Illusion separates the rail from the conversation. Every other line is grey.</span></div>
+    </div>
+  </div>
 
   <div><div class="label">Colour</div><div class="swatches">
     <div class="swatch"><div style="background:#56352D"></div><b>Chocolate Fondant</b><span>19-1432 TCX · #56352D</span></div>
@@ -85,25 +140,51 @@ body { height: auto; min-height: 100%; }
   </div></div>
 
   <div><div class="label">Type</div><div class="spec">
-    <div class="h">Instrument Sans 600 · 22px · headings</div>
+    <div class="h">Instrument Serif 400 · 34px · titles and names</div>
     <div class="l">Instrument Sans 500 · 15px · labels and buttons</div>
     <div>Instrument Sans 400 · 15px / 1.6 · body. The agent read tax/rates.ts, fixed the rounding and asked before deleting anything.</div>
     <div class="mono">JetBrains Mono 400 · 13px · tax/rates.ts · pnpm vitest</div>
   </div></div>
 
+  <div><div class="label">Agents</div><div class="demo">
+    <div class="cards">
+      <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Checkout retries</span></span><span class="doing"><i>working on</i> Retry failed card auths with backoff</span><span class="foot"><span class="pill solo">Solo</span><span class="stack" aria-hidden="true"><span class="avatar" title="Bo">B</span></span><span class="with">Bo</span></span></a>
+      <a class="agent active" href="#"><span class="head"><span class="dot awaiting_approval"></span><span class="t">Invoice PDF + tax lines</span><span class="pill" title="Approvals waiting">1</span></span><span class="doing"><i>waiting on</i> an approval</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar" title="Ana">A</span><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span class="with">with Bo, Cy</span></span></a>
+    </div>
+    <div class="railbit"><div class="crew"><span class="serif">Invoice rollout</span><span class="faint">2 agents</span></div><a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Tax rounding audit</span></span><span class="doing"><i>working on</i> Per-line rounding across the EU VAT rates</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar" title="Cy">C</span></span><span class="with">Cy</span></span></a><a class="agent" href="#"><span class="head"><span class="dot idle"></span><span class="t">Proration fix</span></span><span class="doing"><i>last</i> Proration runs in UTC; display converts</span><span class="foot"><span class="pill solo">Solo</span><span class="stack" aria-hidden="true"><span class="avatar" title="Dee">D</span></span><span class="with">Dee</span></span></a></div>
+    <div class="row" style="gap:16px"><span class="pill team">Team</span><span class="pill solo">Solo</span><span class="pill">1</span><div class="seg"><label class="on">Agent</label><label>Team</label></div><div class="seg"><label>Agent</label><label class="on">Team</label></div><span class="avatar agent">F</span><span class="stack" aria-hidden="true"><span class="avatar" title="Ana">A</span><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar off" title="Dee">D</span></span></div>
+    <div class="row" style="gap:16px"><div class="person"><span class="avatar driver" title="Bo">B</span><span class="name">Bo</span><span class="role">driving</span></div><div class="person off"><span class="avatar off" title="Dee">D</span><span class="name">Dee</span><span class="role">observer · away</span></div></div>
+  </div></div>
+
   <div><div class="label">Controls</div><div class="row">
-    <button class="btn primary" type="button">Approve</button><button class="btn" type="button">Deny</button><button class="btn ghost" type="button">Share</button><button class="btn sm" type="button">Hand off</button>
-    <span class="chip">goal</span><span class="chip on">schema freeze until Thursday</span>
-    <button class="send" type="button" aria-label="Send"><svg class="ic"><use href="#i-up"/></svg></button>
+    <button class="btn primary" type="button">Approve</button><button class="btn" type="button">Deny</button><button class="btn ghost" type="button">Share</button><button class="btn sm" type="button">Team up</button><button class="btn ghost sm" type="button">Leave crew</button>
+    <span class="chip">steer</span><span class="chip on">schema freeze until Thursday</span>
+    <button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button>
   </div>
-  <div class="row" style="margin-top:16px;gap:20px"><span class="status running">Running</span><span class="status awaiting">Waiting on approval</span><span class="status blocked">Blocked</span><span class="status paused">Paused</span><span class="stack"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar" title="Dee">D</span></span></div></div>
+  <div class="row" style="margin-top:16px;gap:20px"><span class="status running">Running</span><span class="status awaiting">Needs approval</span><span class="status blocked">Blocked</span><span class="status paused">Paused</span><span class="status idle">Idle</span></div></div>
 
   <div><div class="label">Conversation</div><div class="demo">
-    <div class="msg human"><div class="meta">Ana</div><div class="text">Add tax lines to the invoice PDF. Use the rates in tax/rates.ts for now.</div></div>
-    <div class="msg agent"><div class="meta agent-name">Ana's agent</div><div class="text">I read the invoice renderer and the tax module. Tax lines fit under the subtotal without touching the page template. One rounding test fails.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step fail"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 31 passed, 1 failed</span></div></div></div>
+    <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">goal</span></div><div class="text">Add tax lines to the invoice PDF. Use the rates in tax/rates.ts for now.</div></div>
+    <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Agent</span><span class="faint">turn 6</span></div><div class="text">I read the invoice renderer and the tax module. Tax lines fit under the subtotal without touching the page template. One rounding test fails.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step fail"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 31 passed, 1 failed</span></div></div></div>
+    <div class="msg human team"><div class="meta"><span class="who">Cy</span><span class="to">to the team</span></div><div class="text">Heads up: the rounding audit is touching rates.ts next door. I'll hold off until this lands.</div></div>
+    <div class="chat"><div class="line"><span class="who">Bo</span><span class="what">Taking the fold for the delete. Back in five.</span></div><div class="line mine"><span class="who">You</span><span class="what">Approved on my side.</span></div></div>
     <div class="divider">Dee set project direction: schema freeze until Thursday</div>
-    <div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">1 of 2 drivers have approved.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
-    <div class="notice contention"><p>Bo and Cy disagree on where tax rates come from. Stripe Tax is right per region but adds a call to every render; local tables are instant but go stale.</p><div class="actions"><button class="btn sm" type="button">Pick Stripe Tax</button><button class="btn sm" type="button">Pick local tables</button></div></div>
+    <div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">Ana approved · 1 of 2 drivers.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
+    <div class="notice contention"><span>Both want <span class="mono">invoices/pdf.ts</span>: Ana and Cy</span><div class="actions"><button class="btn sm" type="button">Ana wins</button><button class="btn sm" type="button">Cy wins</button><button class="btn ghost sm" type="button">Dismiss</button></div></div>
+    <div class="composer-wrap">
+  <div class="composer">
+    <div class="input">Steer the agent</div>
+    <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label class="">Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+  </div>
+  
+</div>
+    <div class="composer-wrap">
+  <div class="composer to-team">
+    <div class="input">Say something to the people in this session</div>
+    <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="">Agent</label><label class="on">Team</label></div><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+  </div>
+  
+</div>
   </div></div>
 </div>
 <fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>

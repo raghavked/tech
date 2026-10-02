@@ -4,45 +4,81 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fold — Billing page</title>
-<meta name="description" content="A project: direction for everyone, the sessions inside it, and the team memory they share.">
+<meta name="description" content="A project: direction for everyone, the agents grouped by crew, contentions, team chat and team memory.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="tokens.css">
 <style>
 
-.sidebar .item.sub { padding-left: 34px; color: var(--fg-2); font-size: 13.5px; }
-.sidebar .item.sub.active { color: var(--fg); }
-.sidebar .item .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.row { display: flex; align-items: center; gap: 8px; }
+.grow { flex: 1; min-width: 0; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.input { display: flex; align-items: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-full); background: var(--bg); color: var(--fg-3); font-size: 13.5px; }
+.sidebar .brand { text-decoration: none; color: var(--fg); }
+.sidebar .brand .mark { flex: none; }
 .sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); }
-.sidebar .search:hover { background: var(--bg-3); }
+.sidebar .search .ic { width: 14px; height: 14px; }
+.sidebar .new .ic { width: 16px; height: 16px; color: var(--fg-2); }
+.sidebar .lists { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+.sidebar .lists > * { flex: none; }
+.sidebar .item.team { color: var(--fg-3); font-size: 13px; padding-top: 4px; padding-bottom: 4px; }
+.sidebar .item.project { font-weight: 500; }
 .sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
-.sidebar .me .who { line-height: 1.3; }
+.sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.sidebar .me .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.agent .head .pill { height: 18px; padding: 0 6px; font-size: 11px; }
+.topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.topbar .title .serif { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
-.msg .meta.agent-name { color: var(--fg-3); }
+.topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.topbar .right .btn .ic { width: 14px; height: 14px; }
+.main .body { flex: 1; min-height: 0; display: flex; }
+.scroll { display: flex; flex-direction: column; overflow: hidden; }
+.stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.msg .meta .faint { font-size: 12px; }
+.msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
 .step .mono { font-size: 12.5px; }
 .notice p { margin: 0; }
 .hint { text-align: center; font-size: 12px; color: var(--fg-3); margin-top: 8px; }
-.composer .input { color: var(--fg-3); }
+.column { padding-top: 0; padding-bottom: 12px; }
+.composer-wrap { padding-top: 4px; padding-bottom: 12px; }
+.composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; border-radius: 0; }
 .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
-.scroll.end { display: flex; flex-direction: column-reverse; }
-.column { padding-bottom: 24px; }
-.composer-wrap { padding-top: 4px; }
-.composer { border-color: transparent; }
-.drawer a { color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.drawer p { margin: 0; }
+.drawer .group > .btn { align-self: flex-start; }
+.drawer .row { gap: 6px; }
+.drawer .input { min-height: 30px; font-size: 13px; }
+.drawer .agent { background: var(--bg-2); }
+.drawer .drawer-head { display: none; align-items: center; justify-content: space-between; font-weight: 500; }
+.drawer .drawer-head .btn.icon { width: 28px; min-height: 28px; }
+.drawer .brief { margin: 0; white-space: pre-wrap; font: 13px/1.5 var(--font); color: var(--fg-2); }
+.memlist { display: flex; flex-direction: column; gap: 10px; }
+.memline { display: flex; flex-direction: column; gap: 1px; }
+.memline.conflict { padding-left: 10px; border-left: 2px solid var(--highlight); }
 .app { width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; }
 .app .shell { height: 100%; }
 
-.page { width: min(var(--col), 100%); margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 24px; }
-.page h1 { font-size: 26px; }
+.page { width: min(var(--col), 100%); margin: 0 auto; padding: 24px 20px 64px; display: flex; flex-direction: column; gap: 24px; }
 .page .lead { color: var(--fg-2); margin-top: 6px; }
-.label { font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; margin-bottom: 4px; }
-.rowitem { border-bottom: 0; padding: 8px 4px; }
-.rowitem .r { display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--fg-2); white-space: nowrap; }
-.rowitem .s { margin-top: 1px; }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group h2 { font-size: 13px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; }
+.rowitem { padding: 10px 4px; }
+.rowitem > a { color: var(--fg); display: flex; flex-direction: column; min-width: 0; }
+.rowitem > a:hover { text-decoration: none; }
+.rowitem .t.serif { font-size: 17px; }
+.rowitem .s { font-size: 13px; color: var(--fg-2); }
+.rowitem .row { gap: 10px; white-space: nowrap; }
+.rowitem.new { grid-template-columns: 1fr; color: var(--fg-2); border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.rowitem.new .ic { width: 14px; height: 14px; }
+.list .crew { padding-top: 14px; }
+.list > div + div .crew { padding-top: 18px; }
 .direction { display: flex; flex-direction: column; gap: 10px; }
 .direction .field { background: var(--bg-2); border-radius: var(--radius-lg); padding: 12px 16px; color: var(--fg-3); display: flex; align-items: center; }
 .direction .field .send { margin-left: auto; width: 28px; height: 28px; }
-.conflict { display: flex; flex-direction: column; gap: 10px; padding: 12px 4px 16px; }
-.conflict .actions { display: flex; gap: 8px; }
+.chat .line { gap: 1px; }
 
 </style>
 </head>
@@ -50,63 +86,78 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
-<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
-<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
 <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
 <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
 <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16z"/></symbol>
 <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
-<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M7.5 16.5l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 7.5l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
 </svg>
 <div class="app"><div class="shell">
-<aside class="sidebar">
-  <div class="brand"><svg class="mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg>Fold</div>
-  <button class="new" type="button"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
-  <div class="search"><svg class="ic"><use href="#i-search"/></svg>Search</div>
-  <div class="section">Projects</div>
-  <a class="item active" href="web-project.html"><svg class="ic"><use href="#i-chev-d"/></svg>Billing page</a>
-  <a class="item sub" href="web-session.html">Invoice PDF + tax lines</a>
-  <a class="item sub" href="#">Tax rounding audit</a>
-  <a class="item sub" href="#">Proration fix</a>
-  <a class="item" href="#"><svg class="ic"><use href="#i-chev-r"/></svg>Checkout</a>
-  <a class="item" href="#"><svg class="ic"><use href="#i-chev-r"/></svg>Dunning</a>
-  <div class="section">Recents</div>
-  <a class="item" href="#">Webhook retries</a>
-  <a class="item" href="#">Refund ledger</a>
-  <a class="item" href="#">Stripe Tax spike</a>
-  <a class="item" href="web-team.html">Payments team</a>
-  <div class="me"><span class="avatar">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div></div>
+<aside class="sidebar" aria-label="Sidebar">
+  <a class="brand" href="index.html"><svg class="mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+  <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+  <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search sessions</div>
+  <div class="lists">
+    <div class="section">Agents<span class="n">4</span></div>
+    <a class="item team" href="web-team.html">Payments</a>
+    <a class="item project active" href="web-project.html">Billing page</a>
+    <div class="crew"><span class="serif">Invoice rollout</span><span class="faint">2 agents</span></div>
+    <a class="agent" href="web-session.html"><span class="head"><span class="dot awaiting_approval"></span><span class="t">Invoice PDF + tax lines</span><span class="pill" title="Approvals waiting">1</span></span><span class="doing"><i>waiting on</i> an approval</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar" title="Ana">A</span><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span class="with">with Bo, Cy</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Tax rounding audit</span></span><span class="doing"><i>working on</i> Per-line rounding across the EU VAT rates</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar" title="Cy">C</span></span><span class="with">Cy</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot blocked"></span><span class="t">Proration fix</span></span><span class="doing"><i>blocked on</i> migration 0042 on the prod snapshot</span><span class="foot"><span class="pill solo">Solo</span><span class="stack" aria-hidden="true"><span class="avatar" title="Dee">D</span></span><span class="with">Dee</span></span></a>
+    <a class="item project" href="#">Checkout</a>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Checkout retries</span></span><span class="doing"><i>working on</i> Retry failed card auths with backoff</span><span class="foot"><span class="pill solo">Solo</span><span class="stack" aria-hidden="true"><span class="avatar" title="Bo">B</span></span><span class="with">Bo</span></span></a>
+    <div class="section">Recents</div>
+    <a class="item" href="#">Refund ledger</a>
+  </div>
+  <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></div>
 </aside>
-<div class="main"><div class="topbar"><span class="title">Billing page</span><div class="right"><a class="btn sm" href="#">Share</a></div></div>
-<div class="scroll"><div class="page">
+<div class="main"><div class="topbar"><span class="title"><span class="serif">Billing page</span></span><div class="right"><a class="btn ghost sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a></div></div>
+<div class="body"><div class="scroll" style="overflow:auto"><div class="page">
   <div><h1>Billing page</h1><p class="lead">Invoices, tax, proration and the PDF customers download.</p></div>
   <div class="direction">
-    <div class="field">Set direction for everyone in this project<button class="send" type="button" aria-label="Set"><svg class="ic"><use href="#i-up"/></svg></button></div>
-    <div><span class="chip on">schema freeze until Thursday</span> <span class="small faint">Dee · 2h ago</span></div>
+    <div class="field">Set direction for everyone in this project<button class="send" type="button" aria-label="Set direction"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div>
+    <div class="row"><span class="chip on">schema freeze until Thursday</span><span class="small faint">Dee · 2h ago</span><a class="small faint" href="#">Withdraw</a></div>
   </div>
-  <div>
-    <div class="label">Sessions</div>
+  <section class="group"><h2>Agents</h2>
     <div class="list">
-      <a class="rowitem" href="web-session.html"><div class="t">Invoice PDF + tax lines</div><div class="r"><span>Bo</span><span class="status awaiting">Waiting on approval</span><span class="faint">2m ago</span></div></a>
-      <a class="rowitem" href="#"><div class="t">Tax rounding audit</div><div class="r"><span>Cy</span><span class="status running">Running</span><span class="faint">14m ago</span></div></a>
-      <a class="rowitem" href="#"><div class="t">Proration fix</div><div class="r"><span>Dee</span><span class="status blocked">Blocked</span><span class="faint">1h ago</span></div></a>
-      <a class="rowitem" href="#"><div class="t">Refund ledger</div><div class="r"><span>Bo</span><span class="status paused">Paused</span><span class="faint">Yesterday</span></div></a>
+      <div>
+        <div class="crew"><span class="serif">Invoice rollout</span><span class="faint">2 agents on one task</span></div>
+        <div class="rowitem"><a class="ellipsis" href="web-session.html"><span class="t serif">Invoice PDF + tax lines</span><span class="s">Ana with Bo, Cy · waiting on an approval · 1 approval waiting</span></a><span class="row"><span class="pill team">Team</span><span class="status awaiting">Needs approval</span><button class="btn ghost sm" type="button">Leave crew</button></span></div>
+        <div class="rowitem"><a class="ellipsis" href="#"><span class="t serif">Tax rounding audit</span><span class="s">Cy · working on Per-line rounding across the EU VAT rates</span></a><span class="row"><span class="pill team">Team</span><span class="status running">Running</span><button class="btn ghost sm" type="button">Leave crew</button></span></div>
+      </div>
+      <div>
+        <div class="rowitem"><a class="ellipsis" href="#"><span class="t serif">Proration fix</span><span class="s">Dee · blocked on migration 0042 on the prod snapshot</span></a><span class="row"><span class="pill solo">Solo</span><span class="status blocked">Blocked</span><button class="btn ghost sm" type="button">Team up</button></span></div>
+      </div>
+      <button class="rowitem new" type="button"><span class="row"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</span></button>
     </div>
-  </div>
-  <div>
-    <div class="label">Team memory</div>
-    <div class="conflict"><div>Ana says Postgres 16 · Bo says CockroachDB · <span class="muted">Which is right?</span></div><div class="actions"><button class="btn sm" type="button">Postgres 16</button><button class="btn sm" type="button">CockroachDB</button></div></div>
-    <div class="list">
-      <div class="rowitem"><div>Invoice totals round once, at the end</div><div class="r">added by Ana · session billing-42 · commit 9f3c1a</div></div>
-      <div class="rowitem"><div>rates.ts is the source for EU VAT until Stripe Tax lands</div><div class="r">added by Cy · session billing-37 · commit 41be0d</div></div>
-      <div class="rowitem"><div>Proration runs in UTC; customer timezones only affect display</div><div class="r">added by Dee · session billing-29 · commit c02e77</div></div>
-      <div class="rowitem"><div>Never regenerate a PDF that has been emailed; version it</div><div class="r">added by Bo · session billing-18 · commit 7a91d4</div></div>
-      <div class="rowitem"><div>Stripe webhooks can arrive twice; handlers are idempotent on event id</div><div class="r">added by Ana · session billing-11 · commit e5f20b</div></div>
+  </section>
+  <section class="group"><h2>Contentions</h2>
+    <div class="notice contention"><span>Both want <span class="mono">invoices/pdf.ts</span>: Ana and Cy · the audit rewrites the rounding helper the PDF renderer calls</span><div class="actions"><button class="btn sm" type="button">Ana wins</button><button class="btn sm" type="button">Cy wins</button><button class="btn ghost sm" type="button">Dismiss</button></div></div>
+  </section>
+  <section class="group"><h2>Team chat</h2>
+    <div class="chat">
+      <div class="line"><span class="who">Dee</span><span class="what">Schema freeze holds until Thursday; render-time only for anything new.</span></div>
+      <div class="line"><span class="who">Cy</span><span class="what">Starting the rounding audit in the Invoice rollout crew. Shout if you need rates.ts.</span></div>
+      <div class="line mine"><span class="who">You</span><span class="what">Tax lines are in; one approval left on the archive delete.</span></div>
     </div>
-  </div>
-</div></div>
+    <div class="row"><span class="input grow">Say something to everyone on this project</span><button class="btn sm" type="button">Send</button></div>
+  </section>
+  <section class="group"><h2>Team memory</h2>
+    <div class="notice contention"><span>Two entries disagree on <span class="mono">db.engine</span>.</span><div class="memline conflict"><span><span class="muted">Conflict · </span><span class="mono muted">db.engine</span> Postgres 16 in prod</span><span class="small faint">Bo · billing-18 · 7a91d4</span></div><div class="memline conflict"><span><span class="muted">Conflict · </span><span class="mono muted">db.engine</span> CockroachDB after the Q4 migration</span><span class="small faint">Ana · billing-40 · 2c0f9e</span></div></div>
+    <div class="memlist">
+      <div class="memline"><span><span class="mono muted">invoice.rounding</span> Totals round once, at the end</span><span class="small faint">Ana · billing-42 · 9f3c1a</span></div>
+      <div class="memline"><span><span class="mono muted">tax.source</span> rates.ts is the source for EU VAT until Stripe Tax lands</span><span class="small faint">Cy · billing-37 · 41be0d</span></div>
+      <div class="memline"><span><span class="mono muted">proration.tz</span> Proration runs in UTC; customer time zones only affect display</span><span class="small faint">Dee · billing-29 · c02e77</span></div>
+      <div class="memline"><span><span class="mono muted">pdf.versioning</span> Never regenerate a PDF that has been emailed; version it</span><span class="small faint">Bo · billing-18 · 7a91d4</span></div>
+      <div class="memline"><span><span class="mono muted">webhooks.idempotent</span> Stripe webhooks can arrive twice; handlers are idempotent on event id</span><span class="small faint">Ana · billing-11 · e5f20b</span></div>
+    </div>
+  </section>
+</div></div></div>
 </div>
 </div></div>
 <fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
