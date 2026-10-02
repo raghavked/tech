@@ -3,7 +3,7 @@
 # two scripted websocket clients. No network beyond localhost; no model API.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-export ATELIER_OFFLINE=1
+export TILLER_OFFLINE=1
 STORE="${STORE:-./store-e2e}"
 rm -rf "$STORE"
 mkdir -p "$STORE"

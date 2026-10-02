@@ -6,10 +6,10 @@
  * Slack is write-mostly here (no polling of threads) and updates coalesce per thread so a
  * busy fleet stays under the roughly one-message-per-second-per-channel limit.
  */
-import type { ProjectEvent } from "@atelier/fleet";
-import type { MemoryEvent, MemoryStore } from "@atelier/memory";
-import type { DirectiveInput, SessionEvent } from "@atelier/protocol";
-import type { AtelierServer, ProjectHost } from "@atelier/server";
+import type { ProjectEvent } from "@tiller/fleet";
+import type { MemoryEvent, MemoryStore } from "@tiller/memory";
+import type { DirectiveInput, SessionEvent } from "@tiller/protocol";
+import type { ProjectHost, TillerServer } from "@tiller/server";
 import { z } from "zod";
 import type { Block, SlackClient } from "./client.js";
 
@@ -20,7 +20,7 @@ export const ChannelMap = z.object({
   projects: z.record(z.string()).default({}),
   /** channel id for leads and managers: digests, contentions, memory conflicts */
   management: z.string().optional(),
-  /** slack user id -> atelier user id */
+  /** slack user id -> tiller user id */
   users: z.record(z.string()).default({}),
 });
 export type ChannelMap = z.infer<typeof ChannelMap>;
@@ -31,7 +31,7 @@ interface ThreadRef {
 }
 
 export interface SlackAdapterOptions {
-  server: AtelierServer;
+  server: TillerServer;
   client: SlackClient;
   map: ChannelMap;
   /** Coalesce window for thread updates, ms. 0 = immediate (tests). */
@@ -51,7 +51,7 @@ export class SlackAdapter {
     const { client } = opts;
     client.onAction((e) => this.onAction(e));
     client.onMessage((e) => this.onMessage(e));
-    client.onSlash("/atelier", (e) => this.onSlash(e));
+    client.onSlash("/tiller", (e) => this.onSlash(e));
   }
 
   /** Attach to a project host: existing sessions get threads; new ones are picked up as they register. */
@@ -108,7 +108,7 @@ export class SlackAdapter {
     void this.opts.client
       .post({
         channel,
-        text: `:atelier: *${owner}'s agent* started "${title}" in ${host.state().name}. Reply in this thread to steer it.`,
+        text: `:tiller: *${owner}'s agent* started "${title}" in ${host.state().name}. Reply in this thread to steer it.`,
       })
       .then((posted) => {
         this.threads.set(sessionId, posted);
@@ -445,7 +445,7 @@ export class SlackAdapter {
             "team memory is empty",
         );
       } else {
-        await e.respond("usage: /atelier brief <project> | sessions <project> | memory <org>");
+        await e.respond("usage: /tiller brief <project> | sessions <project> | memory <org>");
       }
     } catch (err) {
       await e.respond(`error: ${err instanceof Error ? err.message : String(err)}`);

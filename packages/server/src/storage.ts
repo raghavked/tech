@@ -11,7 +11,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { MemoryBlobStore, type SerializedLog } from "@atelier/kernel";
+import { MemoryBlobStore, type SerializedLog } from "@tiller/kernel";
 
 export class FileBlobStore extends MemoryBlobStore {
   constructor(private readonly dir: string) {

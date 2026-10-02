@@ -6,8 +6,8 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ProjectEvent } from "@atelier/fleet";
-import type { SessionEvent } from "@atelier/protocol";
+import type { ProjectEvent } from "@tiller/fleet";
+import type { SessionEvent } from "@tiller/protocol";
 import { atomicWrite } from "./storage.js";
 
 export interface Notification {
@@ -16,7 +16,7 @@ export interface Notification {
   kind: "approval" | "handoff" | "contention" | "done" | "blocked";
   title: string;
   body: string;
-  /** Deep link understood by every shell: atelier://p/<project>/s/<session> */
+  /** Deep link understood by every shell: tiller://p/<project>/s/<session> */
   link: string;
   at: number;
   read: boolean;
@@ -107,7 +107,7 @@ export class Notifier {
     e: SessionEvent,
     participants: { id: string; name: string; role: string; isDriver: boolean; kind: string }[],
   ): void {
-    const link = `atelier://p/${projectId}/s/${sessionId}`;
+    const link = `tiller://p/${projectId}/s/${sessionId}`;
     const humans = participants.filter((p) => p.kind === "human");
     const actorName = humans.find((p) => p.id === e.actor)?.name ?? e.actor;
     switch (e.kind) {
@@ -171,7 +171,7 @@ export class Notifier {
         kind: "contention",
         title: "Fleet contention",
         body: `${e.payload.kind} on ${e.payload.resource}: ${e.payload.detail.slice(0, 140)}`,
-        link: `atelier://p/${projectId}`,
+        link: `tiller://p/${projectId}`,
       });
   }
 }

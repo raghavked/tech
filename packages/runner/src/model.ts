@@ -2,8 +2,8 @@
  * Model interface. The runner builds a request from session state; a model returns text and
  * tool calls. Outputs are recorded in the log so replays never call a model.
  */
-import type { Intent } from "@atelier/kernel";
-import type { RiskClass, ToolCall, ToolResult } from "@atelier/protocol";
+import type { Intent } from "@tiller/kernel";
+import type { RiskClass, ToolCall, ToolResult } from "@tiller/protocol";
 
 export interface ToolSpec {
   name: string;

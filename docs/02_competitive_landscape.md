@@ -45,7 +45,7 @@ level and is the right hosting substrate; it is not a framework-neutral session 
 has no fork or replay. ElectricSQL's Durable Streams (forkable, humans and agents attach to
 one stream) is the most thesis-adjacent infrastructure and is small and early. Temporal
 (valued at $12.55B in September 2026) and the collaboration vendors sit on opposite sides of
-exactly the join Atelier builds.
+exactly the join Tiller builds.
 
 ## Startups and demand signals
 
@@ -67,9 +67,9 @@ single-analyst; Spekit and Mutiny (sales) build buyer-seller rooms; Sierra, Deca
 Intercom (support) hand off agent to human with context; Jasper (marketing) has multiplayer
 canvases with agents as tools. In every vertical the agent run itself stays single-driver.
 
-## Where Atelier sits
+## Where Tiller sits
 
-Atelier is the layer under all of the above: session state, arbitration, authority, fork and
+Tiller is the layer under all of the above: session state, arbitration, authority, fork and
 replay, exposed over a protocol any harness can speak. The main risk is not demand. It is
 that Anthropic, OpenAI or Cognition add native multi-user to their own harnesses (each has
 the pieces), and that Slack Code becomes the default cross-vendor surface. The defence is to

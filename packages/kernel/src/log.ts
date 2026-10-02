@@ -6,7 +6,7 @@
  * history a reducer must fold. Every event id commits to its predecessor, so any edit to the
  * past is detectable with `verify()`.
  */
-import { type EventBody, MAIN_BRANCH, type SessionEvent } from "@atelier/protocol";
+import { type EventBody, MAIN_BRANCH, type SessionEvent } from "@tiller/protocol";
 import { hashValue } from "./hash.js";
 
 /** Minimal shape every chained event shares; `SessionEvent` and the fleet ledger's events fit it. */

@@ -2,7 +2,7 @@
  * Cross-session contention detection from session states: two open sessions touching the
  * same path without a claim, or a merge that left conflicts on a path another session holds.
  */
-import type { SessionState } from "@atelier/kernel";
+import type { SessionState } from "@tiller/kernel";
 import { pathCovered } from "./claims.js";
 import type { FleetContentionKind } from "./events.js";
 import { activeClaims, type ProjectState } from "./state.js";

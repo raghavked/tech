@@ -4,15 +4,15 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { checkReplay, handoffBrief, type Session } from "@atelier/kernel";
+import { checkReplay, handoffBrief, type Session } from "@tiller/kernel";
 import {
   type Actor,
   DEFAULT_APPROVAL_POLICY,
   MAIN_BRANCH,
   type SessionEvent,
-} from "@atelier/protocol";
-import { defaultTools, Runner, ScriptedModel } from "@atelier/runner";
-import { ProjectHost, SessionHost } from "@atelier/server";
+} from "@tiller/protocol";
+import { defaultTools, Runner, ScriptedModel } from "@tiller/runner";
+import { ProjectHost, SessionHost } from "@tiller/server";
 import { renderReport } from "./report.js";
 
 const ana: Actor = { id: "ana", kind: "human", name: "Ana" };
@@ -68,7 +68,7 @@ export async function runDemo(
     });
   });
 
-  say("# Atelier demo: one agent, four humans, one session");
+  say("# Tiller demo: one agent, four humans, one session");
   s.join(M, ana, "owner");
   s.join(M, bo, "contributor");
   s.join(M, cy, "contributor");

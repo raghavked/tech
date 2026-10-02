@@ -1,4 +1,4 @@
-import { ChainLog, type SerializedChain } from "@atelier/kernel";
+import { ChainLog, type SerializedChain } from "@tiller/kernel";
 import type { ProjectEvent, ProjectEventBody } from "./events.js";
 
 export type SerializedLedger = SerializedChain<ProjectEvent>;

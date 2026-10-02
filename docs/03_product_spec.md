@@ -2,7 +2,7 @@
 
 ## One sentence
 
-Atelier is the shared, living session for a team's long-running agents: anyone on the team
+Tiller is the shared, living session for a team's long-running agents: anyone on the team
 drops in, sees exactly what the agent is doing and why, steers it with attributed
 directives, approves what needs approving, forks to try something, and hands the wheel to
 the next person with a brief the system wrote.
@@ -33,15 +33,31 @@ the next person with a brief the system wrote.
 | **Hand off** | Offer the driver seat | Recipient accepts; receives a computed brief: situation, open items, what changed since they were last here |
 | **Replay** | Open any past session | Deterministic; verifiable; no model calls |
 
+## Fleet and memory primitives
+
+| Primitive | What the user does | What the system guarantees |
+|---|---|---|
+| **Fleet board** | Open a project | Every engineer's session as a card: status, goal, claims, blockers; one page, live |
+| **Claim** | Agent or human claims a path, service or ticket | Deterministic verdict; a denied claim is a contention for both owners and the lead |
+| **Lead directive** | A lead steers or constrains the project | Enters every session above owner rank; visible as `[project]` in every intent |
+| **Fleet contention** | Two sessions collide | Both owners and the lead see it; the lead resolves; the loser's claims release |
+| **Fleet brief** | A manager opens the team view | Computed from the ledger: sessions, open items, direction, claims |
+| **Remember** | An agent or human records a fact | Attributed to the engineer, session and commit; scoped; conflicts surfaced by name |
+| **Curator** | Runs on a schedule | Compacts with attribution, flags stale agent-written entries, lists conflicts |
+
 ## Surfaces
 
 - **Web client** (`apps/web`): event stream, intent panel, contention and approval cards,
   team and roles, branches, workspace, brief. One page; folds the same events as the server.
-- **CLI** (`atelier join`): the same session from a terminal, for people who live there.
-- **Server** (`atelier serve`): hosts sessions, persists logs, runs the agent.
-- **Phase 1 surfaces:** Slack thread adapter (presence and directives from a thread), GitHub
-  PR adapter (a PR is a session), VS Code and Zed panels, and a harness SDK so Claude Agent
-  SDK, LangGraph and OpenAI Agents runs can be hosted as Atelier sessions.
+- **CLI** (`tiller join`): the same session from a terminal, for people who live there.
+- **Server** (`tiller serve`): hosts sessions, persists logs, runs the agent.
+- **Slack** (`packages/slack`): channels per team, project and management; a thread per
+  session; approvals as buttons; contentions and memory conflicts with resolve buttons.
+- **Desktop and mobile shells** (`apps/desktop`, `apps/mobile`): the same web client with a
+  tray and native push, opened by deep links from notifications.
+- **Phase 1 surfaces:** GitHub PR adapter (a PR is a session), VS Code and Zed panels, and a
+  harness SDK so Claude Agent SDK, LangGraph and OpenAI Agents runs can be hosted as Tiller
+  sessions.
 
 ## Roles
 

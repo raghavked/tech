@@ -23,11 +23,11 @@ import {
   type SerializedLedger,
   syncDirectives,
   withdrawPropagated,
-} from "@atelier/fleet";
-import type { SessionState } from "@atelier/kernel";
-import type { MemoryStore } from "@atelier/memory";
-import { type Actor, MAIN_BRANCH, type SessionEvent, type SessionPolicy } from "@atelier/protocol";
-import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@atelier/runner";
+} from "@tiller/fleet";
+import type { SessionState } from "@tiller/kernel";
+import type { MemoryStore } from "@tiller/memory";
+import { type Actor, MAIN_BRANCH, type SessionEvent, type SessionPolicy } from "@tiller/protocol";
+import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@tiller/runner";
 import { SessionHost } from "./host.js";
 import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
 

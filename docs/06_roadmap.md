@@ -8,19 +8,27 @@ policies with quorum; fork and three-way merge with directive carry-over; comput
 brief; crash-resumable runner; websocket server with persistence; web and CLI clients; an
 offline demo and an end-to-end test that runs in CI with no network and no model API.
 
+## Phase 0.5: fleet, memory, Slack, shells (this repository, second pass)
+
+Done. Project ledger with claims, lead directives, cross-session contentions and a fleet
+brief; organisation memory with attribution, conflicts, compaction and a curator; Slack
+adapter with channels per team, project and management; identity from `users.json`;
+notifications with deep links; the Tiller brand, mockups of every surface, the rebuilt web
+app with fleet board and management views, and the desktop and mobile shells.
+
 ## Phase 1: design partners (months 1 to 4)
 
-Goal: three engineering teams using Atelier weekly on real multi-hour agent runs.
+Goal: three engineering teams using Tiller weekly on real multi-hour agent runs.
 
-- **Harness adapters.** Host a Claude Agent SDK run as a Atelier session (the adapter maps
+- **Harness adapters.** Host a Claude Agent SDK run as a Tiller session (the adapter maps
   its hooks to turn, tool and approval events). Then LangGraph and the OpenAI Agents SDK.
   The kernel does not change; the runner grows a `HarnessRunner`.
 - **Identity.** OIDC login, server-issued actor ids, per-event signatures. Per-participant
   tool credentials through a server-side broker so an action runs with the authority of
   those who approved it.
 - **Sandboxing.** Per-session container for tools; network off by default.
-- **Slack adapter.** A thread is a session view: presence from the thread, directives from
-  messages, approvals as buttons. This is where non-engineering teams first meet Atelier.
+- **Slack adapter in production.** Install the Bolt app with three design partners; add
+  per-channel digests and a daily management summary.
 - **Receiver synthesis on handoff.** The incoming driver restates the plan; the restatement
   is journaled before authority moves.
 - **Log compaction and reconnect.** JSONL per branch, periodic snapshots, resume-from-seq

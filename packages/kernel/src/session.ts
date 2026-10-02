@@ -12,8 +12,8 @@ import type {
   SessionPolicy,
   ToolCall,
   ToolResult,
-} from "@atelier/protocol";
-import { DirectiveInput as DirectiveInputSchema, MAIN_BRANCH, ROLE_RANK } from "@atelier/protocol";
+} from "@tiller/protocol";
+import { DirectiveInput as DirectiveInputSchema, MAIN_BRANCH, ROLE_RANK } from "@tiller/protocol";
 import { requiresApproval } from "./approvals.js";
 import { shortId } from "./hash.js";
 import { type SerializedLog, SessionLog } from "./log.js";

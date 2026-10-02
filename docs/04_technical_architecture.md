@@ -40,12 +40,15 @@ session; nothing in the kernel changes because the kernel never does I/O.
 
 | Package | Role | Depends on |
 |---|---|---|
-| `@atelier/protocol` | zod schemas for actors, roles, directives, tool calls, events, wire messages | zod |
-| `@atelier/kernel` | pure core: hashing, log, arbitration, approvals, reducer, merge, brief, replay, `Session` command layer | protocol |
-| `@atelier/runner` | the agent loop, tool registry, scripted and Claude models | kernel |
-| `@atelier/server` | websocket front door, session host, disk persistence | runner |
-| `@atelier/cli` | `atelier serve / demo / join / replay / verify / report` | server |
-| `@atelier/web` | React client that folds the same events as the server | kernel, protocol |
+| `@tiller/protocol` | zod schemas for actors, roles, directives, tool calls, events, wire messages | zod |
+| `@tiller/kernel` | pure core: hashing, log, arbitration, approvals, reducer, merge, brief, replay, `Session` command layer | protocol |
+| `@tiller/runner` | the agent loop, tool registry, scripted and Claude models | kernel |
+| `@tiller/fleet` | project ledger, claims, lead directives, contentions, fleet brief, identity | kernel |
+| `@tiller/memory` | organisation memory: attributed entries, conflicts, compaction, curator | kernel |
+| `@tiller/server` | websocket and HTTP front door, project and session hosts, notifications, persistence | runner, fleet, memory |
+| `@tiller/slack` | Slack adapter (interface, fake, Bolt socket mode) | server |
+| `@tiller/cli` | `tiller serve / demo / join / replay / verify / report / fleet / slack` | server, slack |
+| `@tiller/web` | the product: React client that folds the same events as the server; PWA | kernel, fleet, protocol |
 
 The kernel has **no Node dependency**: it ships its own SHA-256 so the browser, the CLI and
 the server hash identically. The web client imports the kernel directly and runs `reduce` on
@@ -117,8 +120,26 @@ the chain.
 Authentication in phase 0 is a shared token and client-asserted identity, acceptable for a
 dev server and nothing else. See `07_security_and_compliance.md`.
 
+## Fleet and memory hosts
+
+A `ProjectHost` owns every `SessionHost` in a project plus the project ledger. It hands each
+runner a guard (claims, refused writes, status reports) and a memory access (attributed
+writes, scoped context), propagates lead directives into every branch of every session,
+detects cross-session contentions after status reports and merges, mirrors them into the
+sessions involved, and fans project events out to subscribers. One `MemoryStore` per
+organisation is shared across its projects and persisted beside the project ledgers. Store
+layout: `store/sessions/<id>/`, `store/projects/<id>/ledger.json`, `store/memory/<org>.json`,
+`store/orgs.json`, `store/users.json`, `store/push.json`.
+
+## Shells
+
+The web app is the product. The desktop shell (Tauri) and the mobile shell (Capacitor)
+load the same built client, add a tray and native push, and open deep links of the form
+`tiller://p/<project>/s/<session>` that the notifications carry.
+
 ## What is not here yet
 
-Multi-process hosting, authentication, a Slack or GitHub adapter, LLM-assisted merge of
-context, Merkle inclusion proofs for observers, compaction of long logs, and adapters for
-third-party harnesses. All are on the roadmap with the reasoning in `06_roadmap.md`.
+Multi-process hosting, real authentication, a GitHub adapter, LLM-assisted merge of
+context, Merkle inclusion proofs for observers, compaction of long session logs, semantic
+overlap detection for claims, and adapters for third-party harnesses. All are on the roadmap
+with the reasoning in `06_roadmap.md`.

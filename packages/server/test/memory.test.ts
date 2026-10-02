@@ -1,8 +1,8 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MemoryStore } from "@atelier/memory";
-import { defaultTools, ScriptedModel } from "@atelier/runner";
+import { MemoryStore } from "@tiller/memory";
+import { defaultTools, ScriptedModel } from "@tiller/runner";
 import { describe, expect, it } from "vitest";
 import { ProjectHost } from "../src/projectHost.js";
 
@@ -20,7 +20,7 @@ const sessionPolicy = {
 
 describe("organisation memory through the project host", () => {
   it("an agent's memory write is attributed to its engineer and reaches the next engineer's agent", async () => {
-    const root = mkdtempSync(join(tmpdir(), "atelier-mem-"));
+    const root = mkdtempSync(join(tmpdir(), "tiller-mem-"));
     const memory = MemoryStore.create("northwind");
     const host = new ProjectHost({
       root,

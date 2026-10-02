@@ -2,7 +2,7 @@
  * Claims: leases on shared ground. Conflict detection is a function of the *set* of active
  * claims, never of their arrival order, which is what lets every replica agree.
  */
-import { shortId } from "@atelier/kernel";
+import { shortId } from "@tiller/kernel";
 import { type ClaimMode, normalizePattern, type Resource, resourceKey } from "./events.js";
 
 export interface ClaimRecord {

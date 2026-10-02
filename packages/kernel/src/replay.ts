@@ -2,7 +2,7 @@
  * Replay and determinism checks. Because tool and model outputs are recorded in the log,
  * folding the log reconstructs the state without re-running anything.
  */
-import type { SessionEvent } from "@atelier/protocol";
+import type { SessionEvent } from "@tiller/protocol";
 import { hashValue } from "./hash.js";
 import type { SessionLog } from "./log.js";
 import { fold, type SessionState } from "./state.js";

@@ -10,8 +10,8 @@ import type {
   SessionPolicy,
   ToolCall,
   ToolResult,
-} from "@atelier/protocol";
-import { DEFAULT_APPROVAL_POLICY, LEAD_RANK, MAIN_BRANCH, ROLE_RANK } from "@atelier/protocol";
+} from "@tiller/protocol";
+import { DEFAULT_APPROVAL_POLICY, LEAD_RANK, MAIN_BRANCH, ROLE_RANK } from "@tiller/protocol";
 import { type ApprovalRecord, evaluate, ruleFor } from "./approvals.js";
 import {
   arbitrate,

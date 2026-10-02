@@ -1,10 +1,10 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defaultTools, ScriptedModel } from "@atelier/runner";
+import { defaultTools, ScriptedModel } from "@tiller/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ProjectHost } from "../src/projectHost.js";
-import { AtelierServer } from "../src/server.js";
+import { TillerServer } from "../src/server.js";
 
 const sessionPolicy = {
   approvals: {
@@ -21,7 +21,7 @@ const sessionPolicy = {
 describe("project host", () => {
   let root: string;
   beforeAll(() => {
-    root = mkdtempSync(join(tmpdir(), "atelier-proj-"));
+    root = mkdtempSync(join(tmpdir(), "tiller-proj-"));
   });
   afterAll(() => rmSync(root, { recursive: true, force: true }));
 
@@ -104,7 +104,7 @@ describe("project host", () => {
   });
 
   it("derives roles from users.json over the websocket front door", async () => {
-    const root2 = mkdtempSync(join(tmpdir(), "atelier-srv2-"));
+    const root2 = mkdtempSync(join(tmpdir(), "tiller-srv2-"));
     writeFileSync(
       join(root2, "orgs.json"),
       JSON.stringify({
@@ -128,7 +128,7 @@ describe("project host", () => {
         ],
       }),
     );
-    const server = new AtelierServer({
+    const server = new TillerServer({
       root: root2,
       model: new ScriptedModel(),
       tools: defaultTools(),

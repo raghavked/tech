@@ -1,17 +1,17 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defaultTools, ScriptedModel } from "@atelier/runner";
+import { defaultTools, ScriptedModel } from "@tiller/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { AtelierServer } from "../src/server.js";
+import { TillerServer } from "../src/server.js";
 
 describe("notifications", () => {
   let root: string;
-  let server: AtelierServer;
+  let server: TillerServer;
   let port: number;
   beforeAll(async () => {
-    root = mkdtempSync(join(tmpdir(), "atelier-notify-"));
-    server = new AtelierServer({ root, model: new ScriptedModel(), tools: defaultTools() });
+    root = mkdtempSync(join(tmpdir(), "tiller-notify-"));
+    server = new TillerServer({ root, model: new ScriptedModel(), tools: defaultTools() });
     port = await server.listen(0);
   });
   afterAll(async () => {
@@ -34,7 +34,7 @@ describe("notifications", () => {
     expect(ana.map((n) => n.kind)).toContain("approval");
     expect(bo.map((n) => n.kind)).toContain("approval");
     expect(server.notifier.list("ol")).toEqual([]);
-    expect(ana[0]?.link).toBe("atelier://p/default/s/s1");
+    expect(ana[0]?.link).toBe("tiller://p/default/s/s1");
     const h = sh.session.requestHandoff("main", "ana", "bo");
     expect(h.kind).toBe("handoff.requested");
     expect(

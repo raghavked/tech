@@ -7,16 +7,16 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
-import { ProjectClientMessage, type ProjectEvent } from "@atelier/fleet";
-import { KernelError } from "@atelier/kernel";
-import { Curator, MemoryStore, type SerializedMemory } from "@atelier/memory";
+import { ProjectClientMessage, type ProjectEvent } from "@tiller/fleet";
+import { KernelError } from "@tiller/kernel";
+import { Curator, MemoryStore, type SerializedMemory } from "@tiller/memory";
 import {
   ClientMessage,
   DEFAULT_APPROVAL_POLICY,
   type ServerMessage,
   type SessionPolicy,
-} from "@atelier/protocol";
-import type { Model, ToolRegistry } from "@atelier/runner";
+} from "@tiller/protocol";
+import type { Model, ToolRegistry } from "@tiller/runner";
 import { type WebSocket, WebSocketServer } from "ws";
 import type { ClientLink, SessionHost } from "./host.js";
 import { Notifier, type PushSubscription } from "./notify.js";
@@ -42,7 +42,7 @@ const DEFAULT_POLICY: SessionPolicy = {
 type AnyClientMessage = ClientMessage | ProjectClientMessage;
 const AnyClientMessageSchema = ClientMessage.or(ProjectClientMessage);
 
-export class AtelierServer {
+export class TillerServer {
   readonly projects = new Map<string, ProjectHost>();
   readonly orgs: OrgRegistry;
   readonly memories = new Map<string, MemoryStore>();

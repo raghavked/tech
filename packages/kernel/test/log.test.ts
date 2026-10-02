@@ -1,4 +1,4 @@
-import { MAIN_BRANCH } from "@atelier/protocol";
+import { MAIN_BRANCH } from "@tiller/protocol";
 import { describe, expect, it } from "vitest";
 import { SessionLog } from "../src/log.js";
 

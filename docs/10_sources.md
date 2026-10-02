@@ -101,3 +101,30 @@ snippets from this environment; those are marked (snippet). Re-verify before ext
 - anthropics/claude-code #60082, real-time multi-user sessions (fetched): https://github.com/anthropics/claude-code/issues/60082
 - anthropics/claude-code #48828, group chat with a coworker, "context loss when handing off work": https://github.com/anthropics/claude-code/issues/48828
 - Essays on supervising long runs: https://vibingwithai.substack.com/p/long-running-coding-agents-raise and https://radar.firstaimovers.com/coding-agent-stack-changed-2026
+
+## Fleet coordination (research memo, 2026-10-02)
+
+- dibs, path claims for coding agents (fetched): https://github.com/polymatx/dibs
+- agent-fridge, SameTree, agentroom (snippets): https://pkg.go.dev/github.com/RagnarPitla/agent-fridge ; https://glama.ai/mcp/servers/simozampa/sametree ; https://pkg.go.dev/github.com/dotcommander/agentroom
+- Google Omega, EuroSys 2013: https://cs.brown.edu/~malte/pub/papers/2013-eurosys-omega.pdf
+- Chubby (OSDI 2006) and ZooKeeper recipes (from memory; verify): https://research.google/pubs/the-chubby-lock-service-for-loosely-coupled-distributed-systems/ ; https://zookeeper.apache.org/doc/current/recipes.html
+- Claude Code worktrees (fetched): https://code.claude.com/docs/en/common-workflows
+- Cursor Projects (snippet): https://www.eesel.ai/blog/cursor-projects-review
+- Devin managed Devins (snippet): https://cognition.com/blog/devin-can-now-manage-devins
+- Warp Oz launch (snippet): https://warp.dev/newsroom/2026/2/10/warp-launches-oz-the-orchestration-platform-for-cloud-coding-agents
+- CodeCRDT: https://arxiv.org/abs/2510.18893
+- ATM pre-write admission (snippet, unverified): arXiv 2607.00041; Loop-Back Authority (snippet, unverified): arXiv 2609.14767
+- Linear agents ownership model: https://linear.app/agents
+- Slack rate limits (from memory; verify): https://docs.slack.dev/apis/web-api/rate-limits
+
+## Organisation memory (research memo, 2026-10-02)
+
+- Anthropic Managed Agents memory stores (fetched): https://platform.claude.com/docs/en/managed-agents/memory
+- Anthropic Dreams compaction (fetched): https://platform.claude.com/docs/en/managed-agents/dreams
+- Claude Code memory hierarchy (fetched): https://code.claude.com/docs/en/memory
+- A-MEM, NeurIPS 2025: https://proceedings.neurips.cc/paper_files/paper/2025/hash/19909c36f51abc4856b4560aff3d36d6-Abstract-Conference.html
+- Zep / Graphiti bi-temporal graph (snippet): https://blog.getzep.com/beyond-static-knowledge-graphs/ ; arXiv 2501.13956
+- Letta shared memory blocks and Conversations (snippet): https://docs.letta.com/guides/agents/multi-agent-shared-memory
+- Mem0 (not fetched): arXiv 2504.19413
+- W3C PROV-O (not fetched): https://www.w3.org/TR/prov-o/
+- Mosaic (YC S26) review (snippet): https://wavect.io/blog/mosaic-yc-s26-shared-agent-sessions-review/

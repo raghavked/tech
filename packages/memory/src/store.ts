@@ -3,8 +3,8 @@
  * session to its engineer), conflicts between different authors on the same key become
  * explicit entries, and compaction is copy-on-write into a higher level.
  */
-import { ChainLog, KernelError, type SerializedChain, shortId } from "@atelier/kernel";
-import { MAIN_BRANCH } from "@atelier/protocol";
+import { ChainLog, KernelError, type SerializedChain, shortId } from "@tiller/kernel";
+import { MAIN_BRANCH } from "@tiller/protocol";
 import {
   type Attribution,
   DEFAULT_MEMORY_POLICY,
