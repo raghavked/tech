@@ -19,6 +19,7 @@ import {
 import type { Model, ToolRegistry } from "@fold/runner";
 import { type WebSocket, WebSocketServer } from "ws";
 import type { ClientLink, SessionHost } from "./host.js";
+import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
 import { Notifier, type PushSubscription } from "./notify.js";
 import { OrgRegistry } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
@@ -248,14 +249,8 @@ export class FoldServer {
             context: store.contextFor(scope, url.searchParams.get("user") ?? "api"),
           });
         }
-        const st = store.state();
-        return json(200, {
-          orgId: st.orgId,
-          seq: st.seq,
-          entries: Object.values(st.entries),
-          conflicts: Object.values(st.conflicts),
-          compactions: st.compactions,
-        });
+        // memory-browser: optional ?level|team|project|status|q filters (memoryQuery.ts).
+        return json(200, memoryFeed(store.state(), memoryQueryOf(url.searchParams)));
       }
       const m = url.pathname.match(/^\/api\/projects\/([^/]+)(?:\/(sessions|brief|state))?$/);
       if (m) {

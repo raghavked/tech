@@ -279,7 +279,12 @@ function Housekeeping({ orgId }: { orgId: string }) {
   };
   return (
     <section className="group">
-      <h2>{copy.team.housekeeping}</h2>
+      <div className="row">
+        <h2 className="grow">{copy.team.housekeeping}</h2>
+        <a className="small" href={paths.memory(orgId)}>
+          {copy.team.browseMemory}
+        </a>
+      </div>
       {error && <p className="small danger">{error}</p>}
       {!report && (
         <p className="row">

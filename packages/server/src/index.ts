@@ -1,4 +1,5 @@
 export * from "./host.js";
+export * from "./memoryQuery.js";
 export * from "./notify.js";
 export * from "./orgs.js";
 export * from "./projectHost.js";

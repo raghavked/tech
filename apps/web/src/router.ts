@@ -1,4 +1,4 @@
-/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/inbox`. */
+/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/inbox`, `#/memory/:orgId`. */
 import { useSyncExternalStore } from "react";
 
 export type Route =
@@ -6,7 +6,8 @@ export type Route =
   | { name: "fleet"; projectId: string }
   | { name: "session"; projectId: string; sessionId: string; title: string | null }
   | { name: "management"; teamId: string }
-  | { name: "inbox" };
+  | { name: "inbox" }
+  | { name: "memory"; orgId: string; team: string | null; project: string | null };
 
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#/, "") || "/";
@@ -25,6 +26,13 @@ export function parseHash(hash: string): Route {
   }
   if (parts[0] === "m" && parts[1]) return { name: "management", teamId: parts[1] };
   if (parts[0] === "inbox") return { name: "inbox" };
+  if (parts[0] === "memory" && parts[1])
+    return {
+      name: "memory",
+      orgId: parts[1],
+      team: params.get("team"),
+      project: params.get("project"),
+    };
   return { name: "home" };
 }
 
@@ -37,6 +45,13 @@ export const paths = {
     }`,
   management: (teamId: string) => `#/m/${encodeURIComponent(teamId)}`,
   inbox: () => "#/inbox",
+  memory: (orgId: string, scope: { team?: string; project?: string } = {}) => {
+    const p = new URLSearchParams();
+    if (scope.team) p.set("team", scope.team);
+    if (scope.project) p.set("project", scope.project);
+    const q = p.toString();
+    return `#/memory/${encodeURIComponent(orgId)}${q ? `?${q}` : ""}`;
+  },
 };
 
 export function navigate(href: string): void {

@@ -536,7 +536,12 @@ function TeamMemory({
   const rest = entries.filter((e) => !inConflict.has(e.id));
   return (
     <section className="group">
-      <h2>{copy.project.teamMemory}</h2>
+      <div className="row">
+        <h2 className="grow">{copy.project.teamMemory}</h2>
+        <a className="small" href={paths.memory(orgId, { team: teamId, project: projectId })}>
+          {copy.project.allMemory}
+        </a>
+      </div>
       {feed.error && <p className="small danger">{feed.error}</p>}
       {conflicts.map((c) => (
         <div className="notice contention" key={c.id}>

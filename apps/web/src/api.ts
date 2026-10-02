@@ -41,6 +41,16 @@ export interface MemoryFeed {
   }[];
 }
 
+/** Optional filters on the memory feed; see packages/server/src/memoryQuery.ts. */
+export interface MemoryQuery {
+  level?: "org" | "team" | "project";
+  team?: string;
+  project?: string;
+  /** Comma-separated entry statuses. */
+  status?: string;
+  q?: string;
+}
+
 export interface Notification {
   id: string;
   userId: string;
@@ -70,7 +80,12 @@ export const api = {
     getJson<SessionRow[]>(`/api/projects/${encodeURIComponent(id)}/sessions`),
   brief: (id: string) =>
     getJson<{ markdown: string }>(`/api/projects/${encodeURIComponent(id)}/brief`),
-  memory: (org: string) => getJson<MemoryFeed>(`/api/memory/${encodeURIComponent(org)}`),
+  memory: (org: string, q: MemoryQuery = {}) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(q)) if (v) p.set(k, v);
+    const qs = p.toString();
+    return getJson<MemoryFeed>(`/api/memory/${encodeURIComponent(org)}${qs ? `?${qs}` : ""}`);
+  },
   memoryContext: (org: string, q: { team?: string; project?: string; user?: string }) => {
     const p = new URLSearchParams();
     if (q.team) p.set("team", q.team);

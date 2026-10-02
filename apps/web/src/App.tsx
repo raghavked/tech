@@ -14,6 +14,7 @@ import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
 import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
 import { Home } from "./views/Home.js";
 import { Inbox } from "./views/Inbox.js";
+import { Memory } from "./views/Memory.js";
 import { Project } from "./views/Project.js";
 import { SessionView } from "./views/SessionView.js";
 import { Team } from "./views/Team.js";
@@ -80,6 +81,16 @@ function Page() {
       return <Team teamId={route.teamId} identity={identity} me={me.data} ctx={ctx} />;
     case "inbox":
       return <Inbox identity={identity} me={me.data} ctx={ctx} />;
+    case "memory":
+      return (
+        <Memory
+          orgId={route.orgId}
+          team={route.team}
+          project={route.project}
+          me={me.data}
+          ctx={ctx}
+        />
+      );
   }
 }
 
@@ -191,6 +202,7 @@ function Sidebar({
   const activeSession = route.name === "session" ? route.sessionId : null;
   const activeProject = route.name === "fleet" ? route.projectId : null;
   const activeTeam = route.name === "management" ? route.teamId : null;
+  const activeMemory = route.name === "memory" ? route.orgId : null;
   const teams = useMemo(() => {
     const out = new Map<string, { id: string; name: string; projects: typeof projects }>();
     for (const p of projects) {
@@ -201,6 +213,13 @@ function Sidebar({
     return [...out.values()];
   }, [projects]);
   const firstProject = projects[0]?.projectId ?? "default";
+  // memory-browser: one "Memory" item per org (the default org when none is known).
+  const orgs = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const p of projects) out.set(p.orgId, p.orgName);
+    if (out.size === 0) out.set("default", "Default org");
+    return [...out.entries()];
+  }, [projects]);
   const listed = new Set(
     Object.values(sessions).flatMap((rows) => rows.filter((r) => r.open).map((r) => r.sessionId)),
   );
@@ -313,6 +332,17 @@ function Sidebar({
               {copy.shell.defaultTeam}
             </a>
           )}
+          {identity &&
+            orgs.map(([id, name]) => (
+              <a
+                key={id}
+                className={`item${activeMemory === id ? " active" : ""}`}
+                href={paths.memory(id)}
+              >
+                <Icon d={ICONS.memory} size={14} />
+                {orgs.length > 1 ? copy.shell.orgMemory(name) : copy.shell.memory}
+              </a>
+            ))}
           {recentsShown.length > 0 && <div className="section">{copy.shell.recents}</div>}
           {recentsShown.map((r) => (
             <a
