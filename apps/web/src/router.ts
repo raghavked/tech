@@ -1,4 +1,4 @@
-/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/inbox`, `#/memory/:orgId`. */
+/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/inbox`, `#/memory/:orgId`, `#/settings`. */
 import { useSyncExternalStore } from "react";
 
 export type Route =
@@ -7,7 +7,8 @@ export type Route =
   | { name: "session"; projectId: string; sessionId: string; title: string | null }
   | { name: "management"; teamId: string }
   | { name: "inbox" }
-  | { name: "memory"; orgId: string; team: string | null; project: string | null };
+  | { name: "memory"; orgId: string; team: string | null; project: string | null }
+  | { name: "settings" };
 
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#/, "") || "/";
@@ -33,6 +34,7 @@ export function parseHash(hash: string): Route {
       team: params.get("team"),
       project: params.get("project"),
     };
+  if (parts[0] === "settings") return { name: "settings" };
   return { name: "home" };
 }
 
@@ -52,6 +54,7 @@ export const paths = {
     const q = p.toString();
     return `#/memory/${encodeURIComponent(orgId)}${q ? `?${q}` : ""}`;
   },
+  settings: () => "#/settings",
 };
 
 export function navigate(href: string): void {

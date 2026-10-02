@@ -1,4 +1,5 @@
 /** Browser notifications, every call guarded: unsupported browsers and denied permission are no-ops. */
+import { type NotifyKind, wantsNotify } from "./prefs.js";
 
 export type NotifyPermission = NotificationPermission | "unsupported";
 
@@ -19,9 +20,13 @@ export async function requestNotifications(): Promise<NotifyPermission> {
   }
 }
 
-/** Show a notification only when the tab is hidden and permission was granted. */
-export function notifyIfHidden(title: string, body: string, tag?: string): void {
+/**
+ * Show a notification only when the tab is hidden and permission was granted. A `kind` lets
+ * the person turn that kind off on the Settings page (settings-page).
+ */
+export function notifyIfHidden(title: string, body: string, tag?: string, kind?: NotifyKind): void {
   try {
+    if (kind && !wantsNotify(kind)) return;
     if (typeof document === "undefined" || !document.hidden) return;
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
     const n = new Notification(title, { body, icon: "/favicon.svg", ...(tag ? { tag } : {}) });

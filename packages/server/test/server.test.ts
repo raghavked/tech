@@ -2,7 +2,12 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fold, type SessionState } from "@fold/kernel";
-import type { Actor, ClientMessage, ServerMessage } from "@fold/protocol";
+import {
+  type Actor,
+  type ClientMessage,
+  DEFAULT_APPROVAL_POLICY,
+  type ServerMessage,
+} from "@fold/protocol";
 import { defaultTools, ScriptedModel } from "@fold/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
@@ -167,5 +172,20 @@ describe("websocket server", () => {
     expect(again.session.state().driver).toBe("bo");
     expect(again.session.readFile("main", "PLAN.md")).toContain("Build a greeter");
     again.close();
+  });
+
+  // settings-page: the Team policy and Integrations sections read these two routes.
+  it("serves the project's session policy and the integration status over HTTP", async () => {
+    const base = url.replace(/^ws/, "http").replace(/\/ws$/, "");
+    const policy = await (await fetch(`${base}/api/projects/default/policy`)).json();
+    expect(policy).toEqual({
+      approvals: DEFAULT_APPROVAL_POLICY,
+      contention: "block",
+      maxTurns: 200,
+    });
+    expect(await (await fetch(`${base}/api/integrations`)).json()).toEqual({ slack: false });
+    server.integrations.slack = true;
+    expect(await (await fetch(`${base}/api/integrations`)).json()).toEqual({ slack: true });
+    server.integrations.slack = false;
   });
 });

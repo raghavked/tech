@@ -96,6 +96,11 @@ export class ProjectHost {
     return this.project.state();
   }
 
+  /** The policy every new session in this project is created with (settings-page reads it). */
+  sessionPolicy(): SessionPolicy {
+    return this.opts.sessionPolicy;
+  }
+
   sessionStates(): Record<string, SessionState> {
     const out: Record<string, SessionState> = {};
     for (const [id, h] of this.hosts) out[id] = h.session.state();

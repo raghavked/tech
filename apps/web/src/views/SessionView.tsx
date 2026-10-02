@@ -90,20 +90,23 @@ export function SessionView({
             copy.notify.approvalTitle,
             copy.notify.approvalBody(e.payload.call.name, e.payload.call.risk, where),
             e.payload.approvalId,
+            "approval",
           );
         else if (e.kind === "handoff.requested" && e.payload.to === identity.userId)
           notifyIfHidden(
             copy.notify.handoffTitle,
             copy.notify.handoffBody(who(e.actor), where),
             e.payload.handoffId,
+            "handoff",
           );
         else if (e.kind === "note.posted" && e.actor !== identity.userId)
-          notifyIfHidden(`${who(e.actor)} to the team`, e.payload.text, e.id);
+          notifyIfHidden(`${who(e.actor)} to the team`, e.payload.text, e.id, "team");
         else if (e.kind === "fleet.contention.mirrored" && !e.payload.resolved)
           notifyIfHidden(
             copy.notify.contentionTitle,
             copy.notify.contentionBody(e.payload.kind, e.payload.resource),
             e.payload.contentionId,
+            "contention",
           );
       }),
     [client, identity.userId, sessionId],

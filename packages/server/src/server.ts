@@ -33,6 +33,13 @@ export interface ServerOptions {
   token?: string | undefined;
   defaultPolicy?: SessionPolicy;
   log?: (line: string) => void;
+  /** Which adapters run beside this server; reported by GET /api/integrations. */
+  integrations?: Partial<Integrations>;
+}
+
+/** settings-page hook point: adapters flip their flag here (the CLI's `slack` command does). */
+export interface Integrations {
+  slack: boolean;
 }
 
 const DEFAULT_POLICY: SessionPolicy = {
@@ -49,12 +56,15 @@ export class FoldServer {
   readonly orgs: OrgRegistry;
   readonly memories = new Map<string, MemoryStore>();
   readonly notifier: Notifier;
+  /** Live adapter status; mutable so an adapter started after `listen` can report itself. */
+  readonly integrations: Integrations;
   private http: Server | null = null;
   private wss: WebSocketServer | null = null;
 
   constructor(private readonly opts: ServerOptions) {
     this.orgs = new OrgRegistry(opts.root);
     this.notifier = new Notifier(opts.root, null, opts.log ?? (() => {}));
+    this.integrations = { slack: false, ...opts.integrations };
   }
 
   /** Get or create the host for a project known to the org registry (or "default"). */
@@ -205,6 +215,7 @@ export class FoldServer {
         });
       }
       if (url.pathname === "/api/orgs") return json(200, this.orgs.orgs);
+      if (url.pathname === "/api/integrations") return json(200, { ...this.integrations });
       if (url.pathname === "/api/notifications") {
         const user = url.searchParams.get("user") ?? "";
         if (req.method === "POST") {
@@ -255,10 +266,13 @@ export class FoldServer {
       }
       // Branch compare and file read (branchApi.ts) sit under /api/projects/:p/sessions/:s/.
       if (handleBranchApi(url, (id) => this.project(id), json)) return true;
-      const m = url.pathname.match(/^\/api\/projects\/([^/]+)(?:\/(sessions|brief|state))?$/);
+      const m = url.pathname.match(
+        /^\/api\/projects\/([^/]+)(?:\/(sessions|brief|state|policy))?$/,
+      );
       if (m) {
         const p = this.project(m[1] as string);
         if (m[2] === "brief") return json(200, { markdown: p.brief() });
+        if (m[2] === "policy") return json(200, p.sessionPolicy());
         if (m[2] === "sessions") {
           const st = p.state();
           return json(

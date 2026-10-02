@@ -17,6 +17,7 @@ import { Inbox } from "./views/Inbox.js";
 import { Memory } from "./views/Memory.js";
 import { Project } from "./views/Project.js";
 import { SessionView } from "./views/SessionView.js";
+import { Settings } from "./views/Settings.js";
 import { Team } from "./views/Team.js";
 
 /**
@@ -91,6 +92,8 @@ function Page() {
           ctx={ctx}
         />
       );
+    case "settings":
+      return <Settings identity={identity} me={me.data} ctx={ctx} />;
   }
 }
 
@@ -468,6 +471,9 @@ function Account({ identity }: { identity: Identity | null }) {
               {copy.account.notifyTurnOn}
             </button>
           )}
+          <a className="small" href={paths.settings()}>
+            Settings
+          </a>
           <a className="small" href={paths.home()}>
             {copy.account.changeIdentity}
           </a>

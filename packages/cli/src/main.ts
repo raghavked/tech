@@ -132,6 +132,7 @@ async function main(): Promise<number> {
       for (const pid of cfg.projects ?? server.orgs.projectsFor(null).map((p) => p.projectId))
         adapter.watchProject(pid);
       await adapter.start();
+      server.integrations.slack = true;
       process.stdout.write(
         `fold server on ws://127.0.0.1:${bound}/ws with Slack adapter (socket mode)\n`,
       );

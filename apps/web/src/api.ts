@@ -2,6 +2,7 @@
 import type { ProjectState, SessionSummary } from "@fold/fleet";
 import type { SessionStatus } from "@fold/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@fold/memory";
+import type { SessionPolicy } from "@fold/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface ProjectRef {
@@ -94,6 +95,10 @@ export const api = {
     return getJson<{ context: string }>(`/api/memory/${encodeURIComponent(org)}/context?${p}`);
   },
   curate: (org: string) => getJson<CuratorReport>(`/api/memory/${encodeURIComponent(org)}/curate`),
+  /** settings-page: the policy new sessions in a project are created with. */
+  policy: (id: string) => getJson<SessionPolicy>(`/api/projects/${encodeURIComponent(id)}/policy`),
+  /** settings-page: which adapters run beside the server. */
+  integrations: () => getJson<{ slack: boolean }>("/api/integrations"),
   notifications: (user: string) =>
     getJson<{ notifications: Notification[] }>(
       `/api/notifications?user=${encodeURIComponent(user)}`,
