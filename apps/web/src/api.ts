@@ -4,6 +4,7 @@ import type { SessionStatus } from "@fold/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@fold/memory";
 import type { SessionPolicy } from "@fold/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { apiUrl } from "./shell.js";
 
 export interface ProjectRef {
   orgId: string;
@@ -69,7 +70,8 @@ export interface Notification {
 export type { CuratorReport, EntryRecord, MemoryConflict, ProjectState };
 
 export async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: { accept: "application/json" } });
+  // `apiUrl` is a no-op in a browser; the desktop shell's bundled client prefixes its server.
+  const res = await fetch(apiUrl(url), { headers: { accept: "application/json" } });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`);
   return (await res.json()) as T;
 }

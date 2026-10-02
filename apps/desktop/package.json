@@ -3,14 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "fold:excluded": true,
-  "description": "Tauri v2 shell around the Fold web client with a tray. Not part of the pnpm workspace: install with npm inside this directory.",
+  "description": "Tauri v2 shell around the Fold web client: tray, badge, native notifications, fold:// links. Not part of the pnpm workspace: install with npm inside this directory.",
   "type": "module",
   "scripts": {
     "web": "pnpm --filter @fold/web build",
+    "icons": "node scripts/make-icons.mjs",
+    "icons:full": "tauri icon src-tauri/icons/icon.svg",
+    "check": "cargo check --manifest-path src-tauri/Cargo.toml",
     "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "tauri build",
+    "build:mac": "tauri build --bundles app,dmg",
+    "build:mac:universal": "tauri build --target universal-apple-darwin --bundles app,dmg",
+    "build:win": "tauri build --bundles nsis,msi",
+    "build:linux": "tauri build --bundles deb,rpm,appimage"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.1.0"
+    "@tauri-apps/cli": "^2.5.0"
   }
 }

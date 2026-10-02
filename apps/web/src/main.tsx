@@ -14,14 +14,15 @@ try {
   // ignore
 }
 
-// Desktop shell (Tauri): tray clicks and fold:// deep links arrive as window events.
-connectShell();
-
-const el = document.getElementById("root");
-// Last resort: when the shell itself cannot render, a bare recovery row instead of a white page.
-if (el)
-  createRoot(el).render(
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>,
-  );
+// Desktop shell (Tauri): learn where the server is, then tray clicks and fold:// deep links
+// arrive as window events. Resolves at once in a browser.
+connectShell().then(() => {
+  const el = document.getElementById("root");
+  // Last resort: when the shell itself cannot render, a bare recovery row instead of a white page.
+  if (el)
+    createRoot(el).render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>,
+    );
+});

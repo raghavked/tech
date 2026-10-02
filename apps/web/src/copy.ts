@@ -52,6 +52,7 @@ export const copy = {
     themeDark: "Dark",
     notifications: "Notifications",
     notifyOn: "On while this tab is hidden",
+    notifyOnDesktop: "On while Fold is in the background",
     notifyBlocked: "Blocked by the browser",
     notifyUnsupported: "Not available here",
     notifyTurnOn: "Turn on",

@@ -51,6 +51,17 @@ export function clearIdentity(): void {
   for (const fn of listeners) fn();
 }
 
+/** The identity right now, outside React (the desktop shell reads it in shell.ts). */
+export function getIdentity(): Identity | null {
+  return current;
+}
+
+/** Called after every save or clear; returns the unsubscribe. */
+export function onIdentityChange(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
 export function useIdentity(): Identity | null {
   return useSyncExternalStore(
     (fn) => {

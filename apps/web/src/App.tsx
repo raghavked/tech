@@ -10,6 +10,7 @@ import { CommandPalette, hotkeyLabel, openPalette, publishSidebarSessions } from
 import { useRecents } from "./recents.js";
 import { navigate, paths, type Route, useRoute } from "./router.js";
 import { MemoryResults, matchSession, needleOf, searchKeys, useMemorySearch } from "./search.js";
+import { isDesktop } from "./shell.js";
 import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
 import { type Theme, useTheme } from "./theme.js";
 import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
@@ -497,7 +498,11 @@ function Account({ identity, route }: { identity: Identity | null; route: Route 
             {themeOpt("dark", copy.account.themeDark)}
           </div>
           <div className="small muted">{copy.account.notifications}</div>
-          {perm === "granted" && <span className="small">{copy.account.notifyOn}</span>}
+          {perm === "granted" && (
+            <span className="small">
+              {isDesktop() ? copy.account.notifyOnDesktop : copy.account.notifyOn}
+            </span>
+          )}
           {perm === "denied" && <span className="small">{copy.account.notifyBlocked}</span>}
           {perm === "unsupported" && (
             <span className="small">{copy.account.notifyUnsupported}</span>

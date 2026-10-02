@@ -14,6 +14,7 @@ import type {
 } from "@fold/protocol";
 import { isQueueable, OfflineQueue, type QueuedMessage, queueKey } from "./offlineQueue.js";
 import { Reconnector } from "./reconnect.js";
+import { wsBase } from "./shell.js";
 
 export interface ClientSnapshot {
   state: SessionState | null;
@@ -232,4 +233,6 @@ export class FoldClient {
   }
 }
 
-export const wsUrl = () => `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
+/** `/ws` on this origin, or next to the server the desktop shell's bundled client talks to. */
+export const wsUrl = () =>
+  wsBase() ?? `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
