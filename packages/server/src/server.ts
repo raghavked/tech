@@ -133,6 +133,10 @@ export class FoldServer {
     projectHost.project.join(user.id, user.name, role);
   }
 
+  /** Pending debounced memory writes by org; cleared on `close()`. */
+  private readonly memoryTimers = new Map<string, NodeJS.Timeout>();
+  private closed = false;
+
   /** The organisation's memory store, persisted at store/memory/<org>.json and curated on a timer. */
   memory(orgId: string): MemoryStore {
     let m = this.memories.get(orgId);
@@ -143,13 +147,17 @@ export class FoldServer {
     m = existsSync(path)
       ? MemoryStore.fromSerialized(JSON.parse(readFileSync(path, "utf8")) as SerializedMemory)
       : MemoryStore.create(orgId);
-    let timer: NodeJS.Timeout | null = null;
     m.onEvent(() => {
-      if (timer) return;
-      timer = setTimeout(() => {
-        timer = null;
-        atomicWrite(path, JSON.stringify(m?.ledger.serialize()));
-      }, 20);
+      // Debounced persist; `close()` clears it and writes the ledger itself, so nothing lands
+      // after the store directory is gone.
+      if (this.closed || this.memoryTimers.has(orgId)) return;
+      this.memoryTimers.set(
+        orgId,
+        setTimeout(() => {
+          this.memoryTimers.delete(orgId);
+          atomicWrite(path, JSON.stringify(m?.ledger.serialize()));
+        }, 20),
+      );
     });
     this.memories.set(orgId, m);
     return m;
@@ -201,6 +209,9 @@ export class FoldServer {
   }
 
   async close(): Promise<void> {
+    this.closed = true;
+    for (const t of this.memoryTimers.values()) clearTimeout(t);
+    this.memoryTimers.clear();
     for (const p of this.projects.values()) p.close();
     for (const [org, m] of this.memories)
       atomicWrite(

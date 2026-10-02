@@ -244,7 +244,8 @@ export class BlockFolder {
         break;
       case "branch.merged":
         divider(
-          copy.stream.folded(e.payload.source, e.payload.base, e.payload.conflicts.length),
+          // The merge lands on the target branch; `payload.base` is the merge-base checkpoint.
+          copy.stream.folded(e.payload.source, e.branch, e.payload.conflicts.length),
           e.payload.conflicts.length > 0,
         );
         break;

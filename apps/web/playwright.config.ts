@@ -2,6 +2,8 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./test",
+  // Only the Playwright specs: the *.test.ts files beside them belong to vitest.
+  testMatch: /.*\.spec\.ts$/,
   timeout: 60_000,
   retries: 0,
   use: {

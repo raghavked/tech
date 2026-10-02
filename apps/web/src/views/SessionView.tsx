@@ -51,6 +51,19 @@ import { ReplayScrubber, ReplayToggle, useReplay } from "./ReplayScrubber.js";
 import { ShareSheet } from "./ShareSheet.js";
 import { sessionCommands } from "./sessionCommands.js";
 
+/** Live events after which the project listing (people, status, goal) reads differently. */
+const FLEET_KINDS = new Set<string>([
+  "participant.joined",
+  "participant.left",
+  "handoff.accepted",
+  "directive.submitted",
+  "agent.turn.started",
+  "agent.turn.ended",
+  "approval.requested",
+  "approval.voted",
+  "session.closed",
+]);
+
 export function SessionView({
   projectId,
   sessionId,
@@ -127,6 +140,23 @@ export function SessionView({
       }),
     [client, identity.userId, sessionId],
   );
+
+  // The sidebar's agents rail reads the project listing: tell it when who is here or what the
+  // agent is doing changed, instead of leaving it to the next poll.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const off = client.onLiveEvent((e) => {
+      if (!FLEET_KINDS.has(e.kind) || timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        dispatchEvent(new Event("fold:fleet"));
+      }, 400);
+    });
+    return () => {
+      off();
+      if (timer) clearTimeout(timer);
+    };
+  }, [client]);
 
   const ref = refOf(me, projectId);
   const s = snap.state;
