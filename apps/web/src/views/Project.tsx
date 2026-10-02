@@ -15,7 +15,7 @@ import { wsUrl } from "../client.js";
 import type { Identity } from "../identity.js";
 import { ProjectClient } from "../projectClient.js";
 import { navigate, paths } from "../router.js";
-import { ErrorLine, ICONS, Icon, MemoryLine, Status } from "../ui.js";
+import { doingOf, ErrorLine, ICONS, Icon, MemoryLine, Status, TeamPill } from "../ui.js";
 
 export function Project({
   projectId,
@@ -51,9 +51,11 @@ export function Project({
     (a, b) => b.registeredSeq - a.registeredSeq,
   );
   const liveRows = useFetch(() => api.sessions(projectId), `${projectId}:${s?.seq ?? -1}`);
+  const rowOf = new Map<string, SessionRow>((liveRows.data ?? []).map((r) => [r.sessionId, r]));
   const live = new Map<string, SessionRow["live"]>(
     (liveRows.data ?? []).map((r) => [r.sessionId, r.live]),
   );
+  const groups = groupSessions(sessions);
   const open = Object.values(s?.contentions ?? {}).filter((c) => !c.resolved);
   const myRole = s?.members[identity.userId]?.role ?? "member";
   const lead = myRole === "lead" || myRole === "admin";
@@ -76,18 +78,41 @@ export function Project({
           onWithdraw={(id) => client.send({ type: "project.withdraw", directiveId: id })}
         />
         <section className="group">
-          <h2>Sessions</h2>
+          <h2>Agents</h2>
           {sessions.length === 0 && <p className="muted">No sessions yet.</p>}
           <div className="list">
-            {sessions.map((sess) => (
-              <SessionRowItem
-                key={sess.sessionId}
-                s={sess}
-                live={live.get(sess.sessionId) ?? null}
-                projectId={projectId}
-                nameOf={nameOf}
-                state={s}
-              />
+            {groups.map(([crew, members]) => (
+              <div key={crew ?? "_solo"}>
+                {crew && (
+                  <div className="crew">
+                    <span className="serif">{crew}</span>
+                    <span className="faint">
+                      {members.length} agent{members.length === 1 ? "" : "s"} on one task
+                    </span>
+                  </div>
+                )}
+                {members.map((sess) => (
+                  <SessionRowItem
+                    key={sess.sessionId}
+                    s={sess}
+                    row={rowOf.get(sess.sessionId) ?? null}
+                    live={live.get(sess.sessionId) ?? null}
+                    projectId={projectId}
+                    nameOf={nameOf}
+                    state={s}
+                    canCrew={lead || sess.ownerId === identity.userId}
+                    crews={groups.map(([c]) => c).filter((c): c is string => Boolean(c))}
+                    onCrew={(crewName) => {
+                      client.send({
+                        type: "project.crew",
+                        sessionId: sess.sessionId,
+                        crew: crewName,
+                      });
+                      setTimeout(() => dispatchEvent(new Event("fold:fleet")), 300);
+                    }}
+                  />
+                ))}
+              </div>
             ))}
             <NewSessionRow
               startOpen={location.hash.includes("new=1")}
@@ -152,6 +177,12 @@ export function Project({
             ))}
           </section>
         )}
+        <TeamChat
+          notes={s?.notes ?? []}
+          me={identity.userId}
+          nameOf={nameOf}
+          onSay={(text) => client.send({ type: "project.note", text })}
+        />
         <TeamMemory orgId={orgId} teamId={teamId} projectId={projectId} seq={s?.seq ?? -1} />
         {snap.brief && (
           <details className="group fold">
@@ -176,33 +207,156 @@ function statusOf(s: SessionSummary, live: SessionRow["live"], state: ProjectSta
   return s.report?.status ?? "idle";
 }
 
+/** Crewed sessions first under their crew name, then the solo ones. Open before closed. */
+function groupSessions(sessions: SessionSummary[]): [string | null, SessionSummary[]][] {
+  const crews = new Map<string, SessionSummary[]>();
+  const solo: SessionSummary[] = [];
+  for (const s of sessions) {
+    if (s.open && s.crew) crews.set(s.crew, [...(crews.get(s.crew) ?? []), s]);
+    else solo.push(s);
+  }
+  const out: [string | null, SessionSummary[]][] = [...crews.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  );
+  if (solo.length) out.push([null, solo]);
+  return out;
+}
+
 function SessionRowItem({
   s,
+  row,
   live,
   projectId,
   nameOf,
   state,
+  canCrew,
+  crews,
+  onCrew,
 }: {
   s: SessionSummary;
+  row: SessionRow | null;
   live: SessionRow["live"];
   projectId: string;
   nameOf: (id: string) => string;
   state: ProjectState | null;
+  canCrew: boolean;
+  crews: string[];
+  onCrew: (crew: string | null) => void;
 }) {
   const status = statusOf(s, live, state);
   const pending = s.report?.pendingApprovals ?? 0;
+  const [naming, setNaming] = useState(false);
+  const [crewName, setCrewName] = useState("");
+  const online = (row?.people ?? []).filter((p) => p.online);
+  const others = online.filter((p) => p.id !== s.ownerId).map((p) => p.name);
+  const doing = row ? doingOf(row) : null;
   return (
-    <a className="rowitem" href={paths.session(projectId, s.sessionId)}>
-      <span className="ellipsis">
-        <span className="t">{s.title || s.sessionId}</span>
+    <div className="rowitem agentrow">
+      <a className="ellipsis" href={paths.session(projectId, s.sessionId)}>
+        <span className="t serif">{s.title || s.sessionId}</span>
         <span className="s">
           {nameOf(s.ownerId)}
-          {s.report?.goal ? ` · ${s.report.goal}` : ""}
+          {others.length ? ` with ${others.join(", ")}` : ""}
+          {doing ? ` · ${doing.lead} ${doing.text}` : s.report?.goal ? ` · ${s.report.goal}` : ""}
           {pending > 0 ? ` · ${pending} approval${pending === 1 ? "" : "s"} waiting` : ""}
         </span>
+      </a>
+      <span className="row">
+        {row && <TeamPill row={row} />}
+        <Status status={status} />
+        {canCrew && s.open && !naming && (
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={() => (s.crew ? onCrew(null) : setNaming(true))}
+          >
+            {s.crew ? "Leave crew" : "Team up"}
+          </button>
+        )}
       </span>
-      <Status status={status} />
-    </a>
+      {naming && (
+        <form
+          className="row crewform"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!crewName.trim()) return;
+            onCrew(crewName.trim());
+            setNaming(false);
+            setCrewName("");
+          }}
+        >
+          <input
+            className="input grow"
+            list={`crews-${s.sessionId}`}
+            aria-label="Crew name"
+            placeholder="Name the shared task"
+            value={crewName}
+            onChange={(e) => setCrewName(e.target.value)}
+          />
+          <datalist id={`crews-${s.sessionId}`}>
+            {crews.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+          <button type="submit" className="btn sm" disabled={!crewName.trim()}>
+            Team up
+          </button>
+          <button type="button" className="btn ghost sm" onClick={() => setNaming(false)}>
+            Cancel
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+/** The project's own channel: short messages between the people on it, kept in the ledger. */
+function TeamChat({
+  notes,
+  me,
+  nameOf,
+  onSay,
+}: {
+  notes: { actor: string; text: string; seq: number }[];
+  me: string;
+  nameOf: (id: string) => string;
+  onSay: (text: string) => void;
+}) {
+  const [text, setText] = useState("");
+  return (
+    <section className="group">
+      <h2>Team chat</h2>
+      <div className="chat">
+        {notes.length === 0 && <p className="muted">Nothing said on this project yet.</p>}
+        {notes.slice(-40).map((n) => (
+          <div className={`line${n.actor === me ? " mine" : ""}`} key={n.seq}>
+            <span className="who">{n.actor === me ? "You" : nameOf(n.actor)}</span>
+            <span className="what">{n.text}</span>
+          </div>
+        ))}
+      </div>
+      <form
+        className="row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const t = text.trim();
+          if (!t) return;
+          onSay(t);
+          setText("");
+        }}
+      >
+        <input
+          className="input grow"
+          aria-label="Say to the project"
+          placeholder="Say something to everyone on this project"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <button type="submit" className="btn sm" disabled={!text.trim()}>
+          Send
+        </button>
+      </form>
+    </section>
   );
 }
 

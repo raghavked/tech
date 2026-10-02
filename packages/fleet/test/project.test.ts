@@ -300,7 +300,9 @@ describe("crews", () => {
     expect(fleetBrief(p.state())).toMatch(/\[crew: Invoice rollout\]/);
     p.crew("ana", "s-ana", null);
     expect(p.state().sessions["s-ana"]?.crew).toBeNull();
-    expect(crews(p.state())).toEqual({ "Invoice rollout": [expect.objectContaining({ sessionId: "s-bo" })] });
+    expect(crews(p.state())).toEqual({
+      "Invoice rollout": [expect.objectContaining({ sessionId: "s-bo" })],
+    });
     expect(p.ledger.verify()).toEqual({ ok: true });
   });
 });

@@ -1,4 +1,5 @@
 /** Websocket client for one session. It folds events with the same reducer the server uses. */
+import type { ProjectClientMessage } from "@fold/fleet";
 import { fold, type SessionState } from "@fold/kernel";
 import type {
   Actor,
@@ -116,6 +117,10 @@ export class FoldClient {
   }
 
   send(msg: ClientMessage): void {
+    this.ws?.send(JSON.stringify(msg));
+  }
+  /** Project-level messages ride the same socket once joined (the server knows the project). */
+  sendProject(msg: ProjectClientMessage): void {
     this.ws?.send(JSON.stringify(msg));
   }
 }

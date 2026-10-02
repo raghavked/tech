@@ -196,3 +196,86 @@ export async function copyText(text: string): Promise<boolean> {
   }
   return false;
 }
+
+// ---- the agents rail ---------------------------------------------------------------------
+
+export interface AgentRow {
+  sessionId: string;
+  ownerId: string;
+  title: string;
+  open: boolean;
+  crew: string | null;
+  report: { status: string; goal: string | null; summary: string; pendingApprovals: number } | null;
+  live: string | null;
+  people: { id: string; name: string; role: string; online: boolean; driving: boolean }[];
+}
+
+/** Solo or team: a session is a team when more than one human is in it or when it is in a crew. */
+export function teamOf(row: AgentRow): { team: boolean; with: AgentRow["people"] } {
+  const humans = row.people.filter((p) => p.online);
+  const others = humans.filter((p) => p.id !== row.ownerId);
+  return { team: humans.length > 1 || Boolean(row.crew), with: others };
+}
+
+export function TeamPill({ row }: { row: AgentRow }) {
+  const t = teamOf(row);
+  return <span className={`pill ${t.team ? "team" : "solo"}`}>{t.team ? "Team" : "Solo"}</span>;
+}
+
+/** What an agent is doing, in one line: the goal while running, the last summary otherwise. */
+export function doingOf(row: AgentRow): { lead: string; text: string } {
+  const r = row.report;
+  const status = row.live ?? r?.status ?? "idle";
+  if (!r?.goal && !r?.summary) return { lead: "waiting for", text: "a goal" };
+  if (status === "awaiting_approval") return { lead: "waiting on", text: "an approval" };
+  if (status === "blocked") return { lead: "blocked on", text: r.goal ?? r.summary };
+  if (status === "running") return { lead: "working on", text: r.goal ?? r.summary };
+  return { lead: "last", text: r.summary || r.goal || "" };
+}
+
+export function AgentCard({
+  row,
+  href,
+  active,
+  nameOf,
+}: {
+  row: AgentRow;
+  href: string;
+  active: boolean;
+  nameOf: (id: string) => string;
+}) {
+  const status = row.open ? (row.live ?? row.report?.status ?? "idle") : "closed";
+  const d = doingOf(row);
+  const t = teamOf(row);
+  const online = row.people.filter((p) => p.online);
+  const withNames = t.with.map((p) => p.name);
+  return (
+    <a className={`agent${active ? " active" : ""}`} href={href} title={row.sessionId}>
+      <span className="head">
+        <span className={`dot ${status}`} />
+        <span className="t">{row.title || row.sessionId}</span>
+        {(row.report?.pendingApprovals ?? 0) > 0 && (
+          <span className="pill" title="Approvals waiting">
+            {row.report?.pendingApprovals}
+          </span>
+        )}
+      </span>
+      <span className="doing">
+        <i>{d.lead}</i> {d.text}
+      </span>
+      <span className="foot">
+        <TeamPill row={row} />
+        {online.length > 0 && (
+          <span className="stack" aria-hidden="true">
+            {online.slice(0, 3).map((p) => (
+              <Avatar key={p.id} id={p.id} name={p.name} driver={p.driving} />
+            ))}
+          </span>
+        )}
+        <span className="with">
+          {t.with.length ? `with ${withNames.join(", ")}` : nameOf(row.ownerId)}
+        </span>
+      </span>
+    </a>
+  );
+}

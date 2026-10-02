@@ -5,7 +5,7 @@ import { notifyPermission, requestNotifications } from "./notify.js";
 import { useRecents } from "./recents.js";
 import { paths, type Route, useRoute } from "./router.js";
 import { type Theme, useTheme } from "./theme.js";
-import { Avatar, ICONS, Icon, Mark } from "./ui.js";
+import { AgentCard, Avatar, ICONS, Icon, Mark } from "./ui.js";
 import { Home } from "./views/Home.js";
 import { Project } from "./views/Project.js";
 import { SessionView } from "./views/SessionView.js";
@@ -134,7 +134,7 @@ function Sidebar({
       <nav className={`sidebar${open ? " open" : ""}`} aria-label="Sidebar">
         <a className="brand" href={paths.home()}>
           <Mark size={22} />
-          Fold
+          <span className="serif">Fold</span>
         </a>
         <a className="new" href={paths.fleet(firstProject) + (identity ? "?new=1" : "")}>
           <Icon d={ICONS.plus} />
@@ -151,7 +151,12 @@ function Sidebar({
           />
         </label>
         <div className="lists">
-          {identity && teams.length > 0 && <div className="section">Projects</div>}
+          {identity && teams.length > 0 && (
+            <div className="section">
+              Agents
+              <span className="n">{listed.size || ""}</span>
+            </div>
+          )}
           {teams.map((t) => (
             <div key={t.id}>
               {teams.length > 1 || t.name !== t.projects[0]?.name ? (
@@ -175,16 +180,28 @@ function Sidebar({
                     >
                       {p.name}
                     </a>
-                    {rows.map((s) => (
-                      <a
-                        key={s.sessionId}
-                        className={`item sub${activeSession === s.sessionId ? " active" : ""}`}
-                        href={paths.session(p.projectId, s.sessionId)}
-                        title={s.sessionId}
-                      >
-                        <span className={`dot ${s.live ?? "idle"}`} />
-                        {s.title || s.sessionId}
-                      </a>
+                    {groupByCrew(rows).map(([crew, members]) => (
+                      <div key={crew ?? "_solo"}>
+                        {crew && (
+                          <div className="crew">
+                            <span className="serif">{crew}</span>
+                            <span className="faint">
+                              {members.length} agent{members.length === 1 ? "" : "s"}
+                            </span>
+                          </div>
+                        )}
+                        {members.map((s) => (
+                          <AgentCard
+                            key={s.sessionId}
+                            row={s}
+                            href={paths.session(p.projectId, s.sessionId)}
+                            active={activeSession === s.sessionId}
+                            nameOf={(id) =>
+                              me?.user?.id === id ? "you" : (nameOfMember(s, id) ?? id)
+                            }
+                          />
+                        ))}
+                      </div>
                     ))}
                   </div>
                 );
@@ -217,6 +234,26 @@ function Sidebar({
   );
 }
 
+/** Crewed sessions first, grouped under their crew; solo sessions after, under no header. */
+function groupByCrew(rows: SessionRow[]): [string | null, SessionRow[]][] {
+  const crews = new Map<string, SessionRow[]>();
+  const solo: SessionRow[] = [];
+  for (const r of rows) {
+    if (r.crew) crews.set(r.crew, [...(crews.get(r.crew) ?? []), r]);
+    else solo.push(r);
+  }
+  const out: [string | null, SessionRow[]][] = [...crews.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  );
+  if (solo.length) out.push([null, solo]);
+  return out;
+}
+
+/** The owner's name as the session's people list knows it (they may be offline). */
+function nameOfMember(row: SessionRow, id: string): string | undefined {
+  return row.people.find((p) => p.id === id)?.name;
+}
+
 /** Open sessions per project for the sidebar; refetched whenever the route changes. */
 function useProjectSessions(ids: string[], route: Route): Record<string, SessionRow[]> {
   const [out, setOut] = useState<Record<string, SessionRow[]>>({});
@@ -238,13 +275,15 @@ function useProjectSessions(ids: string[], route: Route): Record<string, Session
     load();
     // A session registers a moment after its page opens; look again shortly, then now and then.
     const soon = setTimeout(load, 1500);
-    const every = setInterval(load, 20_000);
+    const every = setInterval(load, 8_000);
     addEventListener("focus", load);
+    addEventListener("fold:fleet", load);
     return () => {
       alive = false;
       clearTimeout(soon);
       clearInterval(every);
       removeEventListener("focus", load);
+      removeEventListener("fold:fleet", load);
     };
   }, [key]);
   return out;

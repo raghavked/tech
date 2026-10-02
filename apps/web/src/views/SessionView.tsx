@@ -1,15 +1,15 @@
 import { describeRule, ruleFor, type SessionState } from "@fold/kernel";
-import type { Actor, DirectiveMode, SessionEvent, ToolCall } from "@fold/protocol";
+import type { Actor, DirectiveMode, PresenceEntry, SessionEvent, ToolCall } from "@fold/protocol";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Shell, type ShellContext } from "../App.js";
-import { api, type Me, refOf, useFetch } from "../api.js";
+import { api, type Me, refOf, type SessionRow, useFetch } from "../api.js";
 import { FoldClient, wsUrl } from "../client.js";
 import { actorOf, type Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
 import { rememberRecent } from "../recents.js";
 import { paths } from "../router.js";
 import { reportPendingApprovals } from "../shell.js";
-import { Avatar, copyText, ErrorLine, ICONS, Icon, Status } from "../ui.js";
+import { AgentCard, Avatar, copyText, ErrorLine, ICONS, Icon, Status, TeamPill } from "../ui.js";
 
 export function SessionView({
   projectId,
@@ -62,6 +62,8 @@ export function SessionView({
             `${who(e.actor)} wants to hand off ${st?.title || sessionId}`,
             e.payload.handoffId,
           );
+        else if (e.kind === "note.posted" && e.actor !== identity.userId)
+          notifyIfHidden(`${who(e.actor)} to the team`, e.payload.text, e.id);
         else if (e.kind === "fleet.contention.mirrored" && !e.payload.resolved)
           notifyIfHidden(
             "Fleet contention",
@@ -78,8 +80,11 @@ export function SessionView({
   useEffect(() => {
     rememberRecent({ projectId, sessionId, title: shownTitle });
   }, [projectId, sessionId, shownTitle]);
-  const [details, setDetails] = useState(false);
+  const [panel, setPanel] = useState<"none" | "details" | "team">("none");
+  const details = panel === "details";
   const [copied, setCopied] = useState(false);
+  const rows = useFetch(() => api.sessions(projectId), `${projectId}:${s?.seq ?? -1}`);
+  const mine = rows.data?.find((r) => r.sessionId === sessionId) ?? null;
 
   if (!s)
     return (
@@ -107,8 +112,9 @@ export function SessionView({
       ctx={ctx}
       title={
         <>
-          <span className="ellipsis">{shownTitle}</span>
+          <span className="ellipsis serif">{shownTitle}</span>
           <Status status={s.status} />
+          {mine && <TeamPill row={mine} />}
         </>
       }
       right={
@@ -134,9 +140,17 @@ export function SessionView({
           </button>
           <button
             type="button"
+            className={`btn sm${panel === "team" ? " on" : ""}`}
+            aria-pressed={panel === "team"}
+            onClick={() => setPanel((v) => (v === "team" ? "none" : "team"))}
+          >
+            Team
+          </button>
+          <button
+            type="button"
             className={`btn sm${details ? " on" : ""}`}
             aria-pressed={details}
-            onClick={() => setDetails((v) => !v)}
+            onClick={() => setPanel((v) => (v === "details" ? "none" : "details"))}
           >
             Details
           </button>
@@ -153,7 +167,19 @@ export function SessionView({
             orgId={ref.orgId}
             teamId={ref.teamId}
             projectId={projectId}
-            onClose={() => setDetails(false)}
+            onClose={() => setPanel("none")}
+          />
+        ) : panel === "team" ? (
+          <TeamPanel
+            s={s}
+            me={actor}
+            client={client}
+            presence={snap.presence}
+            rows={rows.data ?? []}
+            reload={rows.reload}
+            projectId={projectId}
+            errors={snap.errors}
+            onClose={() => setPanel("none")}
           />
         ) : null
       }
@@ -178,7 +204,7 @@ interface Step {
 }
 
 type Block =
-  | { kind: "human"; id: string; who: string; text: string; sub: string }
+  | { kind: "human"; id: string; who: string; text: string; sub: string; team?: boolean }
   | { kind: "agent"; id: string; text: string; steps: Step[] }
   | { kind: "divider"; id: string; text: string; danger?: boolean }
   | { kind: "approval"; id: string; approvalId: string };
@@ -286,7 +312,14 @@ function blocksOf(events: SessionEvent[], s: SessionState, meId: string): Block[
         break;
       }
       case "note.posted":
-        human(e, e.payload.text, "note");
+        out.push({
+          kind: "human",
+          id: e.id,
+          who: name(e.actor),
+          text: e.payload.text,
+          sub: "",
+          team: true,
+        });
         break;
       case "agent.model.completed":
         agent = { kind: "agent", id: e.id, text: e.payload.text, steps: [] };
@@ -431,9 +464,10 @@ function Stream({
         switch (b.kind) {
           case "human":
             return (
-              <div className="msg human" key={b.id}>
+              <div className={`msg human${b.team ? " team" : ""}`} key={b.id}>
                 <div className="meta">
-                  {b.who}
+                  <span className="who">{b.who}</span>
+                  {b.team && <span className="to">to the team</span>}
                   {b.sub && <span className="faint">{b.sub}</span>}
                 </div>
                 <div className="text">{b.text}</div>
@@ -640,11 +674,18 @@ function Composer({
   const [mode, setMode] = useState<DirectiveMode>("steer");
   const [interrupt, setInterrupt] = useState(false);
   const [more, setMore] = useState(false);
+  const [to, setTo] = useState<"agent" | "team">("agent");
   const ta = useRef<HTMLTextAreaElement>(null);
   const role = s.participants[me.id]?.role ?? "observer";
-  const needsText = mode === "steer" || mode === "constrain";
+  const needsText = to === "team" || mode === "steer" || mode === "constrain";
   const submit = () => {
     if (needsText && !text.trim()) return;
+    if (to === "team") {
+      client.send({ type: "note", text: text.trim() });
+      setText("");
+      if (ta.current) ta.current.style.height = "auto";
+      return;
+    }
     client.send({
       type: "directive",
       input: {
@@ -668,8 +709,8 @@ function Composer({
   return (
     <div className="composer-wrap">
       <form
-        className="composer"
-        aria-label="Steer the agent"
+        className={`composer${to === "team" ? " to-team" : ""}`}
+        aria-label={to === "team" ? "Say to the team" : "Steer the agent"}
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -679,7 +720,13 @@ function Composer({
           ref={ta}
           rows={1}
           aria-label="Directive"
-          placeholder={needsText ? "Steer the agent" : `Send "${mode}"`}
+          placeholder={
+            to === "team"
+              ? "Say something to the people in this session"
+              : needsText
+                ? "Steer the agent"
+                : `Send "${mode}"`
+          }
           value={text}
           onChange={(e) => {
             setText(e.target.value);
@@ -693,24 +740,53 @@ function Composer({
           }}
         />
         <div className="bar">
-          <button
-            type="button"
-            className="btn ghost icon"
-            aria-label="Mode and scope"
-            aria-expanded={more}
-            onClick={() => setMore((v) => !v)}
-          >
-            <Icon d={more ? ICONS.close : ICONS.plus} />
-          </button>
-          <button
-            type="button"
-            className={`chip${mode !== "steer" ? " on" : ""}`}
-            onClick={() => setMore((v) => !v)}
-          >
-            {mode !== "steer" ? `${mode} · ` : ""}
-            {scope}
-            {interrupt ? " · interrupt" : ""}
-          </button>
+          <fieldset className="seg" aria-label="Send to">
+            <label className={to === "agent" ? "on" : ""}>
+              <input
+                type="radio"
+                name="to"
+                className="sr-only"
+                checked={to === "agent"}
+                onChange={() => setTo("agent")}
+              />
+              Agent
+            </label>
+            <label className={to === "team" ? "on" : ""}>
+              <input
+                type="radio"
+                name="to"
+                className="sr-only"
+                checked={to === "team"}
+                onChange={() => {
+                  setTo("team");
+                  setMore(false);
+                }}
+              />
+              Team
+            </label>
+          </fieldset>
+          {to === "agent" && (
+            <>
+              <button
+                type="button"
+                className="btn ghost icon"
+                aria-label="Mode and scope"
+                aria-expanded={more}
+                onClick={() => setMore((v) => !v)}
+              >
+                <Icon d={more ? ICONS.close : ICONS.plus} />
+              </button>
+              <button
+                type="button"
+                className={`chip${mode !== "steer" ? " on" : ""}`}
+                onClick={() => setMore((v) => !v)}
+              >
+                {mode !== "steer" ? `${mode} · ` : ""}
+                {scope}
+                {interrupt ? " · interrupt" : ""}
+              </button>
+            </>
+          )}
           <div className="right">
             <button
               type="submit"
@@ -722,7 +798,7 @@ function Composer({
             </button>
           </div>
         </div>
-        {more && (
+        {more && to === "agent" && (
           <div className="popover">
             <div className="group">
               <span className="small muted">Mode</span>
@@ -769,6 +845,200 @@ function Composer({
         {s.driver === me.id ? ", driving" : ""}
       </p>
     </div>
+  );
+}
+
+// ---- team panel ------------------------------------------------------------------------
+
+/** Who is in this session, which crew it works in, and a chat line to the people here. */
+function TeamPanel({
+  s,
+  me,
+  client,
+  presence,
+  rows,
+  reload,
+  projectId,
+  errors,
+  onClose,
+}: {
+  s: SessionState;
+  me: Actor;
+  client: FoldClient;
+  presence: PresenceEntry[];
+  rows: SessionRow[];
+  reload: () => void;
+  projectId: string;
+  errors: string[];
+  onClose: () => void;
+}) {
+  const [crewName, setCrewName] = useState("");
+  // Crew changes live in the project ledger, not this session's log: look again now and then.
+  useEffect(() => {
+    const every = setInterval(reload, 5_000);
+    return () => clearInterval(every);
+  }, [reload]);
+  const [text, setText] = useState("");
+  const name = (id: string) => s.participants[id]?.actor.name ?? id;
+  const mine = rows.find((r) => r.sessionId === s.sessionId) ?? null;
+  const crew = mine?.crew ?? null;
+  const mates = rows.filter(
+    (r) => r.open && crew && r.crew === crew && r.sessionId !== s.sessionId,
+  );
+  const crewNames = [...new Set(rows.map((r) => r.crew).filter((c): c is string => Boolean(c)))];
+  const people = [...presence].sort((a, b) => Number(b.online) - Number(a.online));
+  const iOwn = s.ownerId === me.id || s.participants[me.id]?.role === "owner";
+  const setCrew = (value: string | null) => {
+    client.sendProject({ type: "project.crew", sessionId: s.sessionId, crew: value });
+    // The rail and the panel both read the project listing; tell them the fleet changed.
+    const tell = () => {
+      reload();
+      dispatchEvent(new Event("fold:fleet"));
+    };
+    setTimeout(tell, 250);
+    setTimeout(tell, 1500);
+  };
+  const say = () => {
+    const t = text.trim();
+    if (!t) return;
+    client.send({ type: "note", text: t });
+    setText("");
+  };
+  return (
+    <>
+      <button
+        type="button"
+        className="scrim sheet-scrim"
+        aria-label="Close team"
+        onClick={onClose}
+      />
+      <aside className="drawer" aria-label="Team">
+        <div className="drawer-head">
+          <span>Team</span>
+          <button
+            type="button"
+            className="btn ghost icon sm"
+            aria-label="Close team"
+            onClick={onClose}
+          >
+            <Icon d={ICONS.close} size={14} />
+          </button>
+        </div>
+        <ErrorLine errors={errors} />
+        <section className="group">
+          <h3>In this session</h3>
+          {people.length === 0 && <p className="muted">Only you so far.</p>}
+          {people.map((p) => (
+            <div className={`person${p.online ? "" : " off"}`} key={p.actor.id}>
+              <Avatar id={p.actor.id} name={p.actor.name} driver={s.driver === p.actor.id} />
+              <span className="name">
+                {p.actor.name}
+                {p.actor.id === me.id ? " (you)" : ""}
+              </span>
+              <span className="role">
+                {s.driver === p.actor.id ? "driving" : p.role}
+                {p.online ? "" : " · away"}
+              </span>
+            </div>
+          ))}
+          <p className="small faint">
+            {mine && mine.people.filter((p) => p.online).length > 1
+              ? "A team: more than one person is steering this agent."
+              : "Solo: one person is steering this agent. Share the link to team up."}
+          </p>
+        </section>
+        <section className="group">
+          <h3>Crew</h3>
+          {crew ? (
+            <>
+              <p>
+                Working on <span className="serif">{crew}</span> with{" "}
+                {mates.length
+                  ? `${mates.length} other agent${mates.length === 1 ? "" : "s"}`
+                  : "no one else yet"}
+                .
+              </p>
+              {mates.map((r) => (
+                <AgentCard
+                  key={r.sessionId}
+                  row={r}
+                  href={paths.session(projectId, r.sessionId)}
+                  active={false}
+                  nameOf={name}
+                />
+              ))}
+              {iOwn && (
+                <button type="button" className="btn ghost sm" onClick={() => setCrew(null)}>
+                  Leave crew
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="muted">
+                Solo. Put this agent in a crew to share one task with other agents in {projectId}.
+              </p>
+              {iOwn && (
+                <form
+                  className="row"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (crewName.trim()) setCrew(crewName.trim());
+                  }}
+                >
+                  <input
+                    className="input grow"
+                    list="crew-names"
+                    aria-label="Crew name"
+                    placeholder="Name the task"
+                    value={crewName}
+                    onChange={(e) => setCrewName(e.target.value)}
+                  />
+                  <datalist id="crew-names">
+                    {crewNames.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                  <button type="submit" className="btn sm" disabled={!crewName.trim()}>
+                    Team up
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+        </section>
+        <section className="group">
+          <h3>Chat</h3>
+          <div className="chat">
+            {s.notes.length === 0 && <p className="muted">Nothing said yet.</p>}
+            {s.notes.slice(-30).map((n) => (
+              <div className={`line${n.actor === me.id ? " mine" : ""}`} key={n.seq}>
+                <span className="who">{n.actor === me.id ? "You" : name(n.actor)}</span>
+                <span className="what">{n.text}</span>
+              </div>
+            ))}
+          </div>
+          <form
+            className="row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              say();
+            }}
+          >
+            <input
+              className="input grow"
+              aria-label="Say to the team"
+              placeholder="Say to the team"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <button type="submit" className="btn sm" disabled={!text.trim()}>
+              Send
+            </button>
+          </form>
+        </section>
+      </aside>
+    </>
   );
 }
 

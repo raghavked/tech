@@ -242,7 +242,9 @@ export function crews(s: ProjectState): Record<string, SessionSummary[]> {
   const out: Record<string, SessionSummary[]> = {};
   for (const ss of Object.values(s.sessions)) {
     if (!ss.open || !ss.crew) continue;
-    (out[ss.crew] ??= []).push(ss);
+    const list = out[ss.crew] ?? [];
+    list.push(ss);
+    out[ss.crew] = list;
   }
   for (const list of Object.values(out)) list.sort((a, b) => a.registeredSeq - b.registeredSeq);
   return out;

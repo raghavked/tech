@@ -15,6 +15,7 @@ const conversation = (page: Page) => page.getByLabel("Conversation");
 const details = (page: Page) => page.getByRole("complementary", { name: "Details" });
 
 test("two people share one live agent session in the browser", async ({ browser }) => {
+  test.setTimeout(120_000);
   const session = `smoke-${Date.now()}`;
   const ana = await browser.newPage();
   await enter(ana, "Ana", "ana", session);
@@ -53,8 +54,28 @@ test("two people share one live agent session in the browser", async ({ browser 
   await bo.getByRole("button", { name: "Ask for brief" }).click();
   await expect(details(bo).locator("pre.brief")).toContainText("Driver: Bo");
 
-  // The session is now in the sidebar and in recents.
-  await expect(ana.getByRole("navigation", { name: "Sidebar" })).toContainText(session);
+  // The session is now in the sidebar as an agent card: a team of two, with Bo.
+  const rail = ana.getByRole("navigation", { name: "Sidebar" });
+  await expect(rail).toContainText(session);
+  await expect(rail.locator(".agent", { hasText: session })).toContainText("Team");
+  await expect(rail.locator(".agent", { hasText: session })).toContainText("with Bo");
+
+  // Team chat: Ana talks to the people in the session, not to the agent.
+  await ana.getByRole("button", { name: "Details" }).click();
+  await ana.getByLabel("Send to").getByText("Team").click();
+  await ana.getByPlaceholder("Say something to the people in this session").fill("Bo, take tests?");
+  await ana.getByPlaceholder("Say something to the people in this session").press("Enter");
+  await expect(conversation(bo)).toContainText("to the team");
+  await expect(conversation(bo)).toContainText("Bo, take tests?");
+
+  // Crew: Ana puts the session in a crew from the Team panel; the rail groups it under the crew.
+  await ana.getByRole("button", { name: "Team", exact: true }).click();
+  const team = ana.getByRole("complementary", { name: "Team" });
+  await expect(team).toContainText("Bo, take tests?");
+  await team.getByLabel("Crew name").fill("Greeter rollout");
+  await team.getByRole("button", { name: "Team up" }).click();
+  await expect(team).toContainText("Working on Greeter rollout");
+  await expect(rail).toContainText("Greeter rollout");
 });
 
 test("project and team pages render from the same server", async ({ page }) => {
