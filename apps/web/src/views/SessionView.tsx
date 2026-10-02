@@ -7,6 +7,7 @@ import { FoldClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import { actorOf, type Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
+import { describeQueued, type QueuedMessage } from "../offlineQueue.js";
 import { rememberRecent } from "../recents.js";
 import { ReconnectLine } from "../reconnect.js";
 import { paths } from "../router.js";
@@ -206,7 +207,7 @@ export function SessionView({
       }
     >
       <Stream events={snap.events} s={s} me={actor} client={client} showHandoff={!details} />
-      <Composer s={s} me={actor} client={client} connected={snap.connected} />
+      <Composer s={s} me={actor} client={client} connected={snap.connected} queued={snap.queued} />
     </Shell>
   );
 }
@@ -628,11 +629,14 @@ function Composer({
   me,
   client,
   connected,
+  queued,
 }: {
   s: SessionState;
   me: Actor;
   client: FoldClient;
   connected: boolean;
+  /** Offline queue: what waits for the socket (see offlineQueue.ts). */
+  queued: QueuedMessage[];
 }) {
   const [text, setText] = useState("");
   const [scope, setScope] = useState("goal");
@@ -640,6 +644,7 @@ function Composer({
   const [interrupt, setInterrupt] = useState(false);
   const [more, setMore] = useState(false);
   const [to, setTo] = useState<"agent" | "team">("agent");
+  const [showQueue, setShowQueue] = useState(false);
   const ta = useRef<HTMLTextAreaElement>(null);
   const role = s.participants[me.id]?.role ?? "observer";
   const needsText = to === "team" || mode === "steer" || mode === "constrain";
@@ -801,9 +806,25 @@ function Composer({
               />
               {copy.composer.interruptNow}
             </label>
+            <label className="row small">
+              <input
+                type="checkbox"
+                checked={showQueue}
+                onChange={(e) => setShowQueue(e.target.checked)}
+              />
+              Show queue
+              {queued.length > 0 && <span className="faint">{queued.length}</span>}
+            </label>
           </div>
         )}
       </form>
+      {queued.length > 0 && (
+        <p className="queue-note small muted" role="status">
+          <Icon d={ICONS.clock} size={13} />
+          Queued · will send when back online
+        </p>
+      )}
+      {showQueue && <QueueList queued={queued} s={s} client={client} />}
       <p className="hint small faint">
         {connected ? "" : copy.composer.reconnecting}
         {copy.composer.hint(me.name, role, s.driver === me.id)}
@@ -1003,6 +1024,41 @@ function TeamPanel({
         </section>
       </aside>
     </>
+  );
+}
+
+/** The offline queue as quiet rows under the composer; each can be dropped before it sends. */
+function QueueList({
+  queued,
+  s,
+  client,
+}: {
+  queued: QueuedMessage[];
+  s: SessionState;
+  client: FoldClient;
+}) {
+  const name = (id: string) => s.participants[id]?.actor.name ?? id;
+  const when = (at: number) =>
+    new Date(at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return (
+    <section className="queue small" aria-label="Queued messages">
+      {queued.length === 0 && <span className="faint">Nothing queued.</span>}
+      {queued.map((q, i) => (
+        <div className="row" key={q.id}>
+          <span className="faint mono">{i + 1}</span>
+          <span className="grow ellipsis">{describeQueued(q.msg, name)}</span>
+          <span className="faint">{when(q.at)}</span>
+          <button
+            type="button"
+            className="btn ghost icon sm"
+            aria-label="Remove from queue"
+            onClick={() => client.unqueue(q.id)}
+          >
+            <Icon d={ICONS.close} size={12} />
+          </button>
+        </div>
+      ))}
+    </section>
   );
 }
 

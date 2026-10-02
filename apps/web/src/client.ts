@@ -12,6 +12,7 @@ import type {
   ServerMessage,
   SessionEvent,
 } from "@fold/protocol";
+import { isQueueable, OfflineQueue, type QueuedMessage, queueKey } from "./offlineQueue.js";
 import { Reconnector } from "./reconnect.js";
 
 export interface ClientSnapshot {
@@ -23,6 +24,8 @@ export interface ClientSnapshot {
   connected: boolean;
   /** The socket dropped and a re-dial is pending or in flight; `state` is kept meanwhile. */
   reconnecting: boolean;
+  /** Messages waiting for the socket to come back (offline queue), oldest first. */
+  queued: QueuedMessage[];
 }
 
 export interface JoinOptions {
@@ -45,6 +48,7 @@ const EMPTY: ClientSnapshot = {
   brief: null,
   connected: false,
   reconnecting: false,
+  queued: [],
 };
 
 export class FoldClient {
@@ -59,6 +63,8 @@ export class FoldClient {
   private fatal = false;
   /** Set once per socket when a trimmed snapshot did not line up and we asked for everything. */
   private askedFull = false;
+  /** Offline queue (hook point): `send` parks queueable messages here while disconnected. */
+  readonly queue = new OfflineQueue();
 
   subscribe(fn: () => void): () => void {
     this.listeners.add(fn);
@@ -77,7 +83,8 @@ export class FoldClient {
   connect(url: string, opts: JoinOptions): void {
     this.disconnect();
     this.target = { url, opts };
-    this.emit({ ...EMPTY });
+    this.queue.load(queueKey(opts.projectId, opts.sessionId));
+    this.emit({ ...EMPTY, queued: this.queue.items });
     this.dial();
   }
 
@@ -113,6 +120,9 @@ export class FoldClient {
       if (this.ws !== ws) return;
       this.emit({ connected: true });
       ws.send(JSON.stringify(this.joinMessage(opts, this.resumePoint())));
+      // Offline queue (hook point): everything typed while away goes out now, in order.
+      this.queue.flush((m) => ws.send(JSON.stringify(m)));
+      this.emit({ queued: this.queue.items });
     };
     ws.onclose = () => {
       if (this.ws !== ws) return;
@@ -199,7 +209,22 @@ export class FoldClient {
   }
 
   send(msg: ClientMessage): void {
-    this.ws?.send(JSON.stringify(msg));
+    const ws = this.ws;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(msg));
+      return;
+    }
+    // Offline queue (hook point): human intent waits for the socket; the rest is dropped.
+    if (isQueueable(msg)) {
+      this.queue.enqueue(msg);
+      this.emit({ queued: this.queue.items });
+    }
+  }
+
+  /** Drop one queued message before it is sent. */
+  unqueue(id: string): void {
+    this.queue.remove(id);
+    this.emit({ queued: this.queue.items });
   }
   /** Project-level messages ride the same socket once joined (the server knows the project). */
   sendProject(msg: ProjectClientMessage): void {
