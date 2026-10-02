@@ -26,6 +26,10 @@ const USAGE = `atelier <command> [options]
   verify   <log.json>                                                           check hashes and replay determinism
   report   <log.json>                                                           markdown report of every branch
   fleet    <ledger.json>                                                        fleet brief from a project ledger
+  slack    --config slack.json [--port 7700] [--dir ./store] [--model ...]     serve plus the Slack adapter (socket mode)
+
+slack.json: { "botToken": "xoxb-...", "appToken": "xapp-...", "map": { "teams": {"payments": "C..."},
+             "projects": {"billing": "C..."}, "management": "C...", "users": {"U123": "ana"} }, "projects": ["billing"] }
 
 Environment: ATELIER_OFFLINE=1 blocks the Claude adapter; ANTHROPIC_API_KEY enables it.
 Exit codes: 0 ok, 2 usage, 3 verification failed, 4 network.`;
@@ -92,6 +96,47 @@ async function main(): Promise<number> {
         `atelier server on ws://127.0.0.1:${bound}/ws (model ${model.name}, store ${root}${token ? ", token required" : ""})\n`,
       );
       const stop = async () => {
+        await server.close();
+        process.exit(0);
+      };
+      process.on("SIGINT", stop);
+      process.on("SIGTERM", stop);
+      return new Promise(() => {});
+    }
+    case "slack": {
+      const cfgPath = flag(flags, "config", "");
+      if (!cfgPath) return usage();
+      const cfg = JSON.parse(readFileSync(resolve(cfgPath), "utf8")) as {
+        botToken: string;
+        appToken: string;
+        map: Record<string, unknown>;
+        projects?: string[];
+      };
+      const { BoltSlackClient, ChannelMap, SlackAdapter } = await import("@atelier/slack");
+      const port = Number(flag(flags, "port", "7700"));
+      const root = resolve(flag(flags, "dir", "./store"));
+      const server = new AtelierServer({
+        root,
+        model: pickModel(flag(flags, "model", "scripted")),
+        tools: defaultTools(),
+        token: process.env.ATELIER_TOKEN,
+        log: (l) => process.stderr.write(`${l}\n`),
+      });
+      const bound = await server.listen(port, flag(flags, "host", "127.0.0.1"));
+      const adapter = new SlackAdapter({
+        server,
+        client: new BoltSlackClient({ botToken: cfg.botToken, appToken: cfg.appToken }),
+        map: ChannelMap.parse(cfg.map),
+        log: (l) => process.stderr.write(`${l}\n`),
+      });
+      for (const pid of cfg.projects ?? server.orgs.projectsFor(null).map((p) => p.projectId))
+        adapter.watchProject(pid);
+      await adapter.start();
+      process.stdout.write(
+        `atelier server on ws://127.0.0.1:${bound}/ws with Slack adapter (socket mode)\n`,
+      );
+      const stop = async () => {
+        await adapter.stop();
         await server.close();
         process.exit(0);
       };

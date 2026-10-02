@@ -11,6 +11,7 @@ export default defineConfig({
       "@atelier/runner": src("runner"),
       "@atelier/fleet": src("fleet"),
       "@atelier/memory": src("memory"),
+      "@atelier/slack": src("slack"),
       "@atelier/server": src("server"),
     },
   },

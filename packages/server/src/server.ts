@@ -154,14 +154,15 @@ export class AtelierServer {
 
   // ---- HTTP: read-only API for the web app --------------------------------------------
 
-  private handleHttp(req: IncomingMessage, res: ServerResponse): void {
+  private handleHttp(req: IncomingMessage, res: ServerResponse): boolean {
     const url = new URL(req.url ?? "/", "http://localhost");
-    const json = (code: number, body: unknown) => {
+    const json = (code: number, body: unknown): boolean => {
       res.writeHead(code, {
         "content-type": "application/json",
         "access-control-allow-origin": "*",
       });
       res.end(JSON.stringify(body));
+      return true;
     };
     try {
       if (url.pathname === "/health")
@@ -224,8 +225,9 @@ export class AtelierServer {
       }
       res.writeHead(404);
       res.end();
+      return false;
     } catch (err) {
-      json(err instanceof KernelError && err.code === "not_found" ? 404 : 500, {
+      return json(err instanceof KernelError && err.code === "not_found" ? 404 : 500, {
         error: err instanceof Error ? err.message : String(err),
       });
     }
