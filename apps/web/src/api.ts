@@ -118,11 +118,20 @@ export const api = {
   },
 };
 
-/** Turn a fold:// deep link into the client's hash route, or null when it is not one. */
-export function routeOfLink(link: string): string | null {
-  const m = link.match(/^fold:\/\/p\/([^/]+)\/s\/([^/?#]+)/);
-  return m ? `#/p/${m[1]}/s/${m[2]}` : null;
+/** Mark notifications read for a user; failures are the caller's to ignore. */
+export async function markNotificationsRead(userId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const res = await fetch(`/api/notifications?user=${encodeURIComponent(userId)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ read: ids }),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText} marking notifications read`);
 }
+
+// Deep links (fold://p/<project>/s/<session>, fold://inbox) are parsed in links.ts; this
+// re-export keeps the name the views already import.
+export { routeOfLink } from "./links.js";
 
 export interface Fetched<T> {
   data: T | null;

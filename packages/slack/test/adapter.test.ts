@@ -47,6 +47,8 @@ describe("slack adapter", () => {
     server = new FoldServer({ root, model: new ScriptedModel(), tools: defaultTools() });
   });
   afterAll(async () => {
+    // Let the server's debounced memory write (20ms) land before the store directory goes.
+    await new Promise((r) => setTimeout(r, 60));
     await server.close();
     rmSync(root, { recursive: true, force: true });
   });
@@ -63,6 +65,7 @@ describe("slack adapter", () => {
         users: { U_DEE: "dee", U_BO: "bo", U_ANA: "ana" },
       },
       coalesceMs: 0,
+      appBaseUrl: "https://fold.example.com/",
     });
     adapter.watchProject("billing");
     const host = server.project("billing");
@@ -73,6 +76,8 @@ describe("slack adapter", () => {
     await new Promise((r) => setTimeout(r, 20));
     const root = slack.posts.find((p) => p.channel === "C_PROJ" && !p.threadTs);
     expect(root?.text).toContain("Ana's agent");
+    // The thread root links into the app: the session's hash route under appBaseUrl.
+    expect(root?.text).toContain("<https://fold.example.com/#/p/billing/s/s-ana|Open in Fold>");
 
     // Steering from a thread reply as Bo (contributor via users.json).
     await slack.reply(
@@ -90,6 +95,9 @@ describe("slack adapter", () => {
       (p) => p.threadTs === root?.ts && (p.blocks ?? []).some((b) => b.type === "actions"),
     );
     expect(approval?.text).toContain("Approval needed");
+    expect(approval?.text).toContain(
+      "<https://fold.example.com/#/p/billing/s/s-ana|Review in Fold>",
+    );
     const approveId = String(buttons(approval)[0]?.action_id);
     await slack.click(approveId, "U_BO");
     await new Promise((r) => setTimeout(r, 400));
@@ -134,6 +142,7 @@ describe("slack adapter", () => {
       (p) => p.channel === "C_MGMT" && p.text.includes("Fleet contention"),
     );
     expect(mgmt).toBeDefined();
+    expect(mgmt?.text).toContain("<https://fold.example.com/#/p/billing|Open in Fold>");
     const resolveId = String(buttons(mgmt).find((e) => e.value === "s-bo")?.action_id);
     await slack.click(resolveId, "U_DEE");
     expect(host.state().contentions[verdict.contentionId ?? ""]?.resolved).toBe(true);
@@ -168,5 +177,6 @@ describe("slack adapter", () => {
     expect(brief[0]).toContain("Fleet brief");
     const sessions = await slack.slash("/fold", "sessions billing", "U_DEE", "C_MGMT");
     expect(sessions[0]).toContain("Ana: Doubling helper");
+    expect(sessions[0]).toContain("<https://fold.example.com/#/p/billing/s/s-ana|open>");
   });
 });

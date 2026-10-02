@@ -12,6 +12,7 @@ import type { DirectiveInput, SessionEvent } from "@fold/protocol";
 import type { FoldServer, ProjectHost } from "@fold/server";
 import { z } from "zod";
 import type { Block, SlackClient } from "./client.js";
+import { appUrlOf, linkOf, mrkdwnLink } from "./links.js";
 
 export const ChannelMap = z.object({
   /** teamId -> channel id */
@@ -36,6 +37,12 @@ export interface SlackAdapterOptions {
   map: ChannelMap;
   /** Coalesce window for thread updates, ms. 0 = immediate (tests). */
   coalesceMs?: number;
+  /**
+   * Where the web app is served, e.g. "https://fold.example.com". When set, threads,
+   * approvals and contentions carry a link that opens the session or project in the app
+   * (the client's hash route under this origin; the desktop shell opens it too). Unset: no links.
+   */
+  appBaseUrl?: string | undefined;
   log?: (line: string) => void;
 }
 
@@ -85,6 +92,12 @@ export class SlackAdapter {
     return host.state().members[userId]?.name ?? this.opts.server.orgs.user(userId)?.name ?? userId;
   }
 
+  /** " <url|label>" for a session or project when `appBaseUrl` is set, else "". */
+  private open(projectId: string, sessionId?: string, label = "Open in Fold"): string {
+    const url = appUrlOf(linkOf(projectId, sessionId), this.opts.appBaseUrl);
+    return url ? ` ${mrkdwnLink(url, label)}` : "";
+  }
+
   private channelFor(host: ProjectHost): string | null {
     const st = host.state();
     return (
@@ -108,7 +121,7 @@ export class SlackAdapter {
     void this.opts.client
       .post({
         channel,
-        text: `:fold: *${owner}'s agent* started "${title}" in ${host.state().name}. Reply in this thread to steer it.`,
+        text: `:fold: *${owner}'s agent* started "${title}" in ${host.state().name}. Reply in this thread to steer it.${this.open(host.projectId, sessionId)}`,
       })
       .then((posted) => {
         this.threads.set(sessionId, posted);
@@ -127,7 +140,7 @@ export class SlackAdapter {
         const names = e.payload.sessionIds.map(
           (id) => host.state().members[host.state().sessions[id]?.ownerId ?? ""]?.name ?? id,
         );
-        const text = `:warning: Fleet contention (${e.payload.kind}) on \`${e.payload.resource}\` between ${names.join(" and ")}: ${e.payload.detail}`;
+        const text = `:warning: Fleet contention (${e.payload.kind}) on \`${e.payload.resource}\` between ${names.join(" and ")}: ${e.payload.detail}${this.open(host.projectId)}`;
         const blocks: Block[] = [
           { type: "section", text: { type: "mrkdwn", text } },
           {
@@ -202,7 +215,7 @@ export class SlackAdapter {
         if (!ref) break;
         const call = e.payload.call;
         const rule = st ? st.policy.approvals[call.risk] : undefined;
-        const text = `:raised_hand: *Approval needed* in ${name(st?.ownerId ?? "")}'s session: \`${call.name}\` [${call.risk}] ${JSON.stringify(call.args).slice(0, 200)}${rule && typeof rule === "object" ? ` (needs ${rule.quorum} ${rule.of}s)` : ""}`;
+        const text = `:raised_hand: *Approval needed* in ${name(st?.ownerId ?? "")}'s session: \`${call.name}\` [${call.risk}] ${JSON.stringify(call.args).slice(0, 200)}${rule && typeof rule === "object" ? ` (needs ${rule.quorum} ${rule.of}s)` : ""}${this.open(host.projectId, sessionId, "Review in Fold")}`;
         const blocks: Block[] = [
           { type: "section", text: { type: "mrkdwn", text } },
           {
@@ -435,7 +448,7 @@ export class SlackAdapter {
             .filter((s) => s.open)
             .map(
               (s) =>
-                `• ${st.members[s.ownerId]?.name ?? s.ownerId}: ${s.title} [${s.report?.status ?? "unknown"}]`,
+                `• ${st.members[s.ownerId]?.name ?? s.ownerId}: ${s.title} [${s.report?.status ?? "unknown"}]${this.open(arg, s.sessionId, "open")}`,
             )
             .join("\n") || "no open sessions",
         );

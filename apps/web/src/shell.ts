@@ -9,6 +9,7 @@
  * Tauri object (`withGlobalTauri`).
  */
 import { getIdentity, onIdentityChange } from "./identity.js";
+import { LINK_EVENT } from "./links.js";
 import { parseHash } from "./router.js";
 
 export interface DesktopInfo {
@@ -39,6 +40,15 @@ export interface FoldDesktop {
   onDeepLink: (cb: (route: unknown) => void) => Promise<() => void>;
   onTray: (cb: (item: unknown) => void) => Promise<() => void>;
   onInbox: (cb: (counts: unknown) => void) => Promise<() => void>;
+}
+
+/** Hand a fold:// link or a hash route to the client's link handler (`connectLinks`). */
+export function dispatchLink(link: string): void {
+  try {
+    dispatchEvent(new CustomEvent(LINK_EVENT, { detail: link }));
+  } catch {
+    // no window
+  }
 }
 
 interface TauriGlobal {
@@ -162,12 +172,13 @@ export function connectShell(): Promise<void> {
     };
     onIdentityChange(sendIdentity);
     addEventListener("hashchange", sendRoute);
+    // Both land on the "fold:link" DOM event that links.ts routes (hash routes and fold:// alike).
     d.onDeepLink((route) => {
-      if (isRoute(route)) location.hash = route;
+      if (typeof route === "string") dispatchLink(route);
     }).catch(() => undefined);
     d.onTray((item) => {
-      // The session view shows its approvals; the home page lists what awaits you.
-      if (item === "pending" && !location.hash.includes("/s/")) location.hash = "#/";
+      // The session view lists approvals in its inspector; elsewhere the inbox has them.
+      if (item === "pending" && !location.hash.includes("/s/")) dispatchLink("fold://inbox");
     }).catch(() => undefined);
     const ready = d
       .info()

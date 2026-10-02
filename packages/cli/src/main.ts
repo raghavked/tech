@@ -111,6 +111,8 @@ async function main(): Promise<number> {
         appToken: string;
         map: Record<string, unknown>;
         projects?: string[];
+        /** Where the web app is served; Slack messages then link into it (or FOLD_APP_URL). */
+        appBaseUrl?: string;
       };
       const { BoltSlackClient, ChannelMap, SlackAdapter } = await import("@fold/slack");
       const port = Number(flag(flags, "port", "7700"));
@@ -127,6 +129,7 @@ async function main(): Promise<number> {
         server,
         client: new BoltSlackClient({ botToken: cfg.botToken, appToken: cfg.appToken }),
         map: ChannelMap.parse(cfg.map),
+        appBaseUrl: cfg.appBaseUrl ?? process.env.FOLD_APP_URL,
         log: (l) => process.stderr.write(`${l}\n`),
       });
       for (const pid of cfg.projects ?? server.orgs.projectsFor(null).map((p) => p.projectId))
