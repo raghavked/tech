@@ -1,0 +1,314 @@
+/**
+ * Every user-facing string of the web app, in Fold's voice (docs/15_copy.md): calm, specific,
+ * no AI-speak. Views import `copy` and never carry a literal of their own. Strings that take
+ * data are functions, so word order and plurals live here too.
+ *
+ * Grouped by surface: shell (sidebar, account), home, session (top row, stream, steps,
+ * approvals, composer, details drawer), project, team, notify (browser notifications) and the
+ * five status words.
+ */
+
+/** "1 approval" / "3 approvals". */
+export const plural = (n: number, one: string, many = `${one}s`): string =>
+  `${n} ${n === 1 ? one : many}`;
+
+/** The five status words, the same everywhere (sidebar dot, top row, fleet rows, Slack). */
+export const status = {
+  running: "Running",
+  awaiting_approval: "Awaiting approval",
+  blocked: "Blocked",
+  paused: "Paused",
+  idle: "Idle",
+  cancelled: "Cancelled",
+  closed: "Closed",
+  offline: "Offline",
+} as const;
+
+export const copy = {
+  product: "Fold",
+  loading: "Loading…",
+  roles: { driving: "driving", you: "you" },
+
+  shell: {
+    menu: "Menu",
+    closeMenu: "Close menu",
+    sidebar: "Sidebar",
+    newSession: "New session",
+    searchSessions: "Search sessions",
+    projects: "Projects",
+    agents: "Agents",
+    defaultTeam: "Default team",
+    recents: "Recents",
+    signIn: "Sign in",
+  },
+
+  account: {
+    menu: "Account",
+    theme: "Theme",
+    themeAuto: "Auto",
+    themeLight: "Light",
+    themeDark: "Dark",
+    notifications: "Notifications",
+    notifyOn: "On while this tab is hidden",
+    notifyBlocked: "Blocked by the browser",
+    notifyUnsupported: "Not available here",
+    notifyTurnOn: "Turn on",
+    changeIdentity: "Change identity",
+    signOut: "Sign out",
+  },
+
+  home: {
+    title: "Home",
+    heroTitle: "Several hands on the fold; one holds it at a time.",
+    heroLine: "Watch the course, redirect, hand off.",
+    needsIdentity: "Pick an identity to open that page.",
+    signedInAs: (name: string) => `Signed in as ${name}`,
+    unknownToServer: " · unknown to the server; first in owns a session",
+    change: "Change",
+    yourName: "Your name",
+    userId: "User id",
+    userIdHint: "as in users.json",
+    token: "Token (optional)",
+    tokenHint: "only if the server requires one",
+    continue: "Continue",
+    cancel: "Cancel",
+    projects: "Projects",
+    meFailed: (error: string) => `Could not load /api/me: ${error}`,
+    noProjects: "No projects for you yet. Ask a lead to add you.",
+    open: "Open",
+    teamOverview: "team overview",
+    project: "Project",
+    sessionId: "Session id",
+    sessionIdHint: "Open a session by id",
+    openSession: "Open session",
+  },
+
+  session: {
+    joining: "Joining…",
+    connecting: "Connecting…",
+    present: (names: string[]) => `Present: ${names.join(", ")}`,
+    avatarTitle: (name: string, role: string, driving: boolean) =>
+      `${name} · ${role}${driving ? " · driving" : ""}`,
+    more: (n: number) => `+${n}`,
+    share: "Share",
+    copied: "Copied",
+    details: "Details",
+    copyLink: "Copy this link",
+  },
+
+  stream: {
+    label: "Conversation",
+    empty: "Set a goal to start the agent.",
+    note: "note",
+    interrupt: "interrupt",
+    turnEnded: (turn: number, reason: string, summary: string | undefined) =>
+      `Turn ${turn} ${reason}${summary ? ` · ${summary}` : ""}`,
+    projectDirection: (who: string, text: string) => `${who} set a project direction: ${text}`,
+    picked: (who: string) => `${who} picked a direction`,
+    withdrew: (who: string) => `${who} withdrew a directive`,
+    offered: (who: string, to: string) => `${who} offers the fold to ${to}`,
+    hasTheFold: (who: string) => `${who} has the fold`,
+    declined: (who: string) => `${who} declined the fold`,
+    joined: (who: string, role: string) => `${who} joined as ${role}`,
+    left: (who: string) => `${who} left`,
+    roleChanged: (who: string, role: string) => `${who} is now ${role}`,
+    checkpoint: (label: string) => `Checkpoint ${label}`,
+    forked: (branch: string, from: string) => `Branch ${branch} forked from ${from}`,
+    folded: (source: string, base: string, conflicts: number) =>
+      `Folded ${source} into ${base}${conflicts ? ` · ${plural(conflicts, "conflict")}` : ""}`,
+    writeRefused: (path: string, holder: string) => `Write to ${path} refused: held by ${holder}`,
+    fleetContention: (kind: string, resource: string, others: string[], resolved: boolean) =>
+      `${resolved ? "Resolved: " : "Fleet contention: "}${kind} on ${resource} with ${others.join(", ") || "another session"}`,
+    /** "Two directions for <b>scope</b>. The agent holds this scope until you pick one." */
+    contentionBefore: "Two directions for ",
+    contentionAfter: ". The agent holds this scope until ",
+    youPick: "you pick one",
+    theyPick: (who: string) => `${who} picks one`,
+    pick: "Pick",
+    withdraw: "Withdraw",
+    offeredYou: (who: string) => `${who} offers you the fold.`,
+    accept: "Accept",
+    decline: "Decline",
+  },
+
+  /** What a tool call does, in words: `ask` for the approval sentence, `doing`/`done` for the step. */
+  steps: {
+    read: (p: string) => ({ ask: `read ${p}`, doing: `Reading ${p}`, done: `Read ${p}` }),
+    write: (p: string) => ({ ask: `write ${p}`, doing: `Writing ${p}`, done: `Wrote ${p}` }),
+    delete: (p: string) => ({ ask: `delete ${p}`, doing: `Deleting ${p}`, done: `Deleted ${p}` }),
+    list: { ask: "list the workspace", doing: "Listing files", done: "Listed files" },
+    shell: (cmd: string) => ({
+      ask: `run \`${cmd}\``,
+      doing: `Running shell: ${cmd}`,
+      done: `Ran shell: ${cmd}`,
+    }),
+    deploy: (env: string) => ({
+      ask: `deploy to ${env}`,
+      doing: `Deploying to ${env}`,
+      done: `Deployed to ${env}`,
+    }),
+    remember: (key: string) => ({
+      ask: `remember ${key}`,
+      doing: `Remembering ${key}`,
+      done: `Remembered ${key}`,
+    }),
+    recall: { ask: "recall team memory", doing: "Recalling memory", done: "Recalled memory" },
+    claim: { ask: "claim a resource", doing: "Claiming", done: "Claimed" },
+    release: { ask: "release a claim", doing: "Releasing", done: "Released" },
+    other: (name: string, args: string) => ({ ask: `${name} ${args}`, doing: name, done: name }),
+    exitOk: " · exit 0",
+    failed: " · failed",
+  },
+
+  approval: {
+    approved: "Approved",
+    denied: "Denied",
+    wants: (ask: string, risk: string, rule: string) =>
+      `The agent wants to ${ask} (${risk}); needs ${rule}.`,
+    vote: (who: string, approve: boolean) => `${who} ${approve ? "approved" : "denied"}`,
+    approve: "Approve",
+    deny: "Deny",
+  },
+
+  composer: {
+    label: "Steer the agent",
+    labelTeam: "Say to the team",
+    sendTo: "Send to",
+    toAgent: "Agent",
+    toTeam: "Team",
+    placeholderTeam: "Say something to the people in this session",
+    directive: "Directive",
+    placeholder: "Steer the agent",
+    placeholderFor: (mode: string) => `Send "${mode}"`,
+    modeAndScope: "Mode and scope",
+    send: "Send",
+    mode: "Mode",
+    scope: "Scope",
+    scopeDefault: "goal",
+    interruptNow: "Interrupt now",
+    reconnecting: "Reconnecting · ",
+    hint: (name: string, role: string, driving: boolean) =>
+      `Enter to send · Shift+Enter for a new line · as ${name}, ${role}${driving ? ", driving" : ""}`,
+  },
+
+  details: {
+    title: "Details",
+    close: "Close details",
+    intent: "Intent",
+    noGoal: "No goal yet.",
+    always: "always",
+    fromProject: " · project",
+    held: (scopes: string[]) => `Held until a pick: ${scopes.join(", ")}`,
+    control: (control: string, interrupt: boolean, turn: number) =>
+      `${control}${interrupt ? " · interrupt pending" : ""} · turn ${turn}`,
+    pause: "Pause",
+    resume: "Resume",
+    people: "People",
+    you: " (you)",
+    away: " · away",
+    handOff: "Hand off",
+    roleOf: (name: string) => `Role of ${name}`,
+    alone: "Nobody else here yet. Share the link.",
+    branches: "Branches",
+    here: " · here",
+    switch: "Switch",
+    foldInto: (branch: string) => `Fold into ${branch}`,
+    branchName: "New branch name",
+    branchHint: "try/idea",
+    fork: "Fork",
+    files: (n: number) => plural(n, "file"),
+    conflicts: (n: number) => ` · ${plural(n, "conflict")}`,
+    checkpoints: (n: number) => ` · ${n} checkpoints`,
+    checkpoint: "Checkpoint",
+    conflict: " · conflict",
+    memory: "Memory",
+    refresh: "Refresh",
+    catchUp: "Catch-up",
+    briefHint: "A brief of what happened since you were last here.",
+    askBrief: "Ask for brief",
+    memoryEmpty: "Nothing remembered for this project yet.",
+    memoryConflict: "Conflict · ",
+  },
+
+  project: {
+    sessions: "Sessions",
+    agents: "Agents",
+    withOthers: (names: string[]) => ` with ${names.join(", ")}`,
+    noSessions: "No sessions yet.",
+    approvalsWaiting: (n: number) => ` · ${plural(n, "approval")} waiting`,
+    newSession: "New session",
+    title: "Title",
+    titleHint: "What is this session for?",
+    sessionId: "Session id",
+    open: "Open",
+    contentions: "Contentions",
+    bothWant: "Both want",
+    mergeConflictOn: "Merge conflict on",
+    overlapOn: "Overlapping work on",
+    and: " and ",
+    wins: (who: string) => `${who} wins`,
+    dismiss: "Dismiss",
+    dismissed: "dismissed",
+    direction: "Project direction",
+    directionHint: "Set direction for everyone in this project",
+    constrainHint: "A standing constraint for every session",
+    steerHint: "A steer every session follows",
+    setDirection: "Set direction",
+    withdraw: (text: string) => `Withdraw: ${text}`,
+    teamMemory: "Team memory",
+    disagree: "Two entries disagree on ",
+    memoryEmpty: "Nothing remembered for this project yet.",
+    brief: "Brief",
+  },
+
+  team: {
+    refresh: "Refresh",
+    noProjects: "No projects in this team are visible to you.",
+    summary: (open: number, projects: number, counts: string, needs: number) =>
+      `${plural(open, "open session")} across ${plural(projects, "project")}${counts ? `: ${counts}` : ""}. ${
+        needs === 0
+          ? "Nothing needs you right now."
+          : `${plural(needs, "thing")} need${needs === 1 ? "s" : ""} you.`
+      }`,
+    counts: {
+      running: (n: number) => `${n} running`,
+      awaiting_approval: (n: number) => `${n} awaiting approval`,
+      blocked: (n: number) => `${n} blocked`,
+      paused: (n: number) => `${n} paused`,
+      idle: (n: number) => `${n} idle`,
+    },
+    needsYou: "Needs you",
+    nothingWaiting: "Nothing waiting.",
+    approvalsIn: (n: number, title: string) => `${plural(n, "approval")} waiting in ${title}`,
+    open: "Open",
+    resolve: "Resolve",
+    on: " on ",
+    projects: "Projects",
+    noOpenSessions: "no open sessions",
+    recentHandoffs: "Recent handoffs",
+    noHandoffs: "None offered to you yet.",
+    new: "New",
+    housekeeping: "Memory housekeeping",
+    curatorHint: (org: string) =>
+      `One curator pass over ${org}: fold grown scopes, flag stale entries, list conflicts.`,
+    run: "Run",
+    running: "Running…",
+    runAgain: "Run again",
+    nothingToTidy: "Nothing to tidy.",
+    foldedIn: (n: number) => `Folded ${n} entries in `,
+    level: (n: number) => `level ${n}`,
+    stale: "Stale: ",
+    staleLine: (author: string, unreadFor: number) =>
+      `by ${author} · unread for ${unreadFor} events`,
+    conflictOn: "Conflict on ",
+  },
+
+  notify: {
+    approvalTitle: "Approval needed",
+    approvalBody: (call: string, risk: string, where: string) => `${call} [${risk}] in ${where}`,
+    handoffTitle: "You are offered the fold",
+    handoffBody: (who: string, where: string) => `${who} wants to hand off ${where}`,
+    contentionTitle: "Fleet contention",
+    contentionBody: (kind: string, resource: string) => `${kind} on ${resource}`,
+  },
+} as const;

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, refOf, type SessionRow, useFetch } from "../api.js";
 import { FoldClient, wsUrl } from "../client.js";
+import { copy } from "../copy.js";
 import { actorOf, type Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
 import { rememberRecent } from "../recents.js";
@@ -50,24 +51,25 @@ export function SessionView({
       client.onLiveEvent((e) => {
         const st = client.snapshot.state;
         const who = (id: string) => st?.participants[id]?.actor.name ?? id;
+        const where = st?.title || sessionId;
         if (e.kind === "approval.requested")
           notifyIfHidden(
-            "Approval needed",
-            `${e.payload.call.name} [${e.payload.call.risk}] in ${st?.title || sessionId}`,
+            copy.notify.approvalTitle,
+            copy.notify.approvalBody(e.payload.call.name, e.payload.call.risk, where),
             e.payload.approvalId,
           );
         else if (e.kind === "handoff.requested" && e.payload.to === identity.userId)
           notifyIfHidden(
-            "You are offered the fold",
-            `${who(e.actor)} wants to hand off ${st?.title || sessionId}`,
+            copy.notify.handoffTitle,
+            copy.notify.handoffBody(who(e.actor), where),
             e.payload.handoffId,
           );
         else if (e.kind === "note.posted" && e.actor !== identity.userId)
           notifyIfHidden(`${who(e.actor)} to the team`, e.payload.text, e.id);
         else if (e.kind === "fleet.contention.mirrored" && !e.payload.resolved)
           notifyIfHidden(
-            "Fleet contention",
-            `${e.payload.kind} on ${e.payload.resource}`,
+            copy.notify.contentionTitle,
+            copy.notify.contentionBody(e.payload.kind, e.payload.resource),
             e.payload.contentionId,
           );
       }),
@@ -91,7 +93,7 @@ export function SessionView({
       <Shell ctx={ctx} title={shownTitle}>
         <div className="column">
           <ErrorLine errors={snap.errors} />
-          <p className="muted">{snap.connected ? "Joining…" : "Connecting…"}</p>
+          <p className="muted">{snap.connected ? copy.session.joining : copy.session.connecting}</p>
         </div>
       </Shell>
     );
@@ -121,7 +123,7 @@ export function SessionView({
         <>
           <fieldset
             className="stack"
-            aria-label={`Present: ${online.map((p) => p.actor.name).join(", ")}`}
+            aria-label={copy.session.present(online.map((p) => p.actor.name))}
           >
             {online.slice(0, 4).map((p) => (
               <Avatar
@@ -129,14 +131,16 @@ export function SessionView({
                 id={p.actor.id}
                 name={p.actor.name}
                 driver={s.driver === p.actor.id}
-                title={`${p.actor.name} · ${p.role}${s.driver === p.actor.id ? " · driving" : ""}`}
+                title={copy.session.avatarTitle(p.actor.name, p.role, s.driver === p.actor.id)}
               />
             ))}
-            {online.length > 4 && <span className="avatar">+{online.length - 4}</span>}
+            {online.length > 4 && (
+              <span className="avatar">{copy.session.more(online.length - 4)}</span>
+            )}
           </fieldset>
           <button type="button" className="btn ghost sm" onClick={share}>
             <Icon d={ICONS.link} size={14} />
-            <span className="lbl">{copied ? "Copied" : "Share"}</span>
+            <span className="lbl">{copied ? copy.session.copied : copy.session.share}</span>
           </button>
           <button
             type="button"
@@ -152,7 +156,7 @@ export function SessionView({
             aria-pressed={details}
             onClick={() => setPanel((v) => (v === "details" ? "none" : "details"))}
           >
-            Details
+            {copy.session.details}
           </button>
         </>
       }
@@ -209,83 +213,38 @@ type Block =
   | { kind: "divider"; id: string; text: string; danger?: boolean }
   | { kind: "approval"; id: string; approvalId: string };
 
-/** What a tool call does, in words: `ask` for the approval sentence, `doing`/`done` for the step. */
+/** What a tool call does, in words (copy.steps): `ask` for the approval sentence, `doing`/`done` for the step. */
 function describeCall(call: ToolCall): { ask: string; doing: string; done: string; icon: string } {
   const a = call.args as Record<string, unknown>;
   const str = (k: string) => (typeof a[k] === "string" ? (a[k] as string) : "");
   const list = (k: string) => (Array.isArray(a[k]) ? (a[k] as unknown[]).map(String) : []);
+  const w = copy.steps;
   switch (call.name) {
     case "workspace.read":
-      return {
-        ask: `read ${str("path")}`,
-        doing: `Reading ${str("path")}`,
-        done: `Read ${str("path")}`,
-        icon: ICONS.file,
-      };
+      return { ...w.read(str("path")), icon: ICONS.file };
     case "workspace.write":
-      return {
-        ask: `write ${str("path")}`,
-        doing: `Writing ${str("path")}`,
-        done: `Wrote ${str("path")}`,
-        icon: ICONS.pen,
-      };
+      return { ...w.write(str("path")), icon: ICONS.pen };
     case "workspace.delete":
-      return {
-        ask: `delete ${str("path")}`,
-        doing: `Deleting ${str("path")}`,
-        done: `Deleted ${str("path")}`,
-        icon: ICONS.file,
-      };
+      return { ...w.delete(str("path")), icon: ICONS.file };
     case "workspace.list":
+      return { ...w.list, icon: ICONS.file };
+    case "shell.run":
       return {
-        ask: "list the workspace",
-        doing: "Listing files",
-        done: "Listed files",
-        icon: ICONS.file,
-      };
-    case "shell.run": {
-      const cmd = [str("command"), ...list("args")].join(" ").trim();
-      return {
-        ask: `run \`${cmd}\``,
-        doing: `Running shell: ${cmd}`,
-        done: `Ran shell: ${cmd}`,
+        ...w.shell([str("command"), ...list("args")].join(" ").trim()),
         icon: ICONS.terminal,
       };
-    }
     case "deploy":
-      return {
-        ask: `deploy to ${str("env")}`,
-        doing: `Deploying to ${str("env")}`,
-        done: `Deployed to ${str("env")}`,
-        icon: ICONS.rocket,
-      };
+      return { ...w.deploy(str("env")), icon: ICONS.rocket };
     case "memory.remember":
-      return {
-        ask: `remember ${str("key")}`,
-        doing: `Remembering ${str("key")}`,
-        done: `Remembered ${str("key")}`,
-        icon: ICONS.memory,
-      };
+      return { ...w.remember(str("key")), icon: ICONS.memory };
     case "memory.recall":
-      return {
-        ask: "recall team memory",
-        doing: "Recalling memory",
-        done: "Recalled memory",
-        icon: ICONS.memory,
-      };
+      return { ...w.recall, icon: ICONS.memory };
     case "fleet.claim":
-      return { ask: "claim a resource", doing: "Claiming", done: "Claimed", icon: ICONS.tool };
+      return { ...w.claim, icon: ICONS.tool };
     case "fleet.release":
-      return { ask: "release a claim", doing: "Releasing", done: "Released", icon: ICONS.tool };
-    default: {
-      const short = JSON.stringify(call.args).slice(0, 60);
-      return {
-        ask: `${call.name} ${short}`,
-        doing: `${call.name}`,
-        done: `${call.name}`,
-        icon: ICONS.tool,
-      };
-    }
+      return { ...w.release, icon: ICONS.tool };
+    default:
+      return { ...w.other(call.name, JSON.stringify(call.args).slice(0, 60)), icon: ICONS.tool };
   }
 }
 
@@ -296,8 +255,8 @@ function blocksOf(events: SessionEvent[], s: SessionState, meId: string): Block[
   let agent: Extract<Block, { kind: "agent" }> | null = null;
   const divider = (e: SessionEvent, text: string, danger = false) =>
     out.push({ kind: "divider", id: e.id, text, danger });
-  const human = (e: SessionEvent, text: string, sub = "") =>
-    out.push({ kind: "human", id: e.id, who: name(e.actor), text, sub });
+  const human = (e: SessionEvent, text: string, sub = "", team = false) =>
+    out.push({ kind: "human", id: e.id, who: name(e.actor), text, sub, team });
   for (const e of events) {
     switch (e.kind) {
       case "directive.submitted": {
@@ -305,21 +264,14 @@ function blocksOf(events: SessionEvent[], s: SessionState, meId: string): Block[
         const parts = [
           i.mode !== "steer" ? i.mode : "",
           i.scope !== "goal" ? i.scope : "",
-          i.interrupt ? "interrupt" : "",
+          i.interrupt ? copy.stream.interrupt : "",
         ];
         human(e, i.text, parts.filter(Boolean).join(" · "));
         agent = null;
         break;
       }
       case "note.posted":
-        out.push({
-          kind: "human",
-          id: e.id,
-          who: name(e.actor),
-          text: e.payload.text,
-          sub: "",
-          team: true,
-        });
+        human(e, e.payload.text, "", true);
         break;
       case "agent.model.completed":
         agent = { kind: "agent", id: e.id, text: e.payload.text, steps: [] };
@@ -355,68 +307,69 @@ function blocksOf(events: SessionEvent[], s: SessionState, meId: string): Block[
       }
       case "agent.turn.ended":
         if (e.payload.reason !== "done")
-          divider(
-            e,
-            `Turn ${e.payload.turn} ${e.payload.reason}${e.payload.summary ? ` · ${e.payload.summary}` : ""}`,
-          );
+          divider(e, copy.stream.turnEnded(e.payload.turn, e.payload.reason, e.payload.summary));
         break;
       case "approval.requested":
         out.push({ kind: "approval", id: e.id, approvalId: e.payload.approvalId });
         break;
       case "project.directive.applied":
-        divider(e, `${name(e.payload.author)} set a project direction: ${e.payload.input.text}`);
+        divider(e, copy.stream.projectDirection(name(e.payload.author), e.payload.input.text));
         break;
       case "contention.resolved":
-        divider(e, `${name(e.actor)} picked a direction`);
+        divider(e, copy.stream.picked(name(e.actor)));
         break;
       case "directive.withdrawn":
-        divider(e, `${name(e.actor)} withdrew a directive`);
+        divider(e, copy.stream.withdrew(name(e.actor)));
         break;
       case "handoff.requested":
         divider(
           e,
-          `${name(e.actor)} offers the fold to ${e.payload.to === meId ? "you" : name(e.payload.to)}`,
+          copy.stream.offered(
+            name(e.actor),
+            e.payload.to === meId ? copy.roles.you : name(e.payload.to),
+          ),
         );
         break;
       case "handoff.accepted":
-        divider(e, `${name(e.actor)} has the fold`);
+        divider(e, copy.stream.hasTheFold(name(e.actor)));
         break;
       case "handoff.declined":
-        divider(e, `${name(e.actor)} declined the fold`);
+        divider(e, copy.stream.declined(name(e.actor)));
         break;
       case "participant.joined":
-        divider(e, `${e.payload.actor.name} joined as ${e.payload.role}`);
+        divider(e, copy.stream.joined(e.payload.actor.name, e.payload.role));
         break;
       case "participant.left":
-        divider(e, `${name(e.actor)} left`);
+        divider(e, copy.stream.left(name(e.actor)));
         break;
       case "role.changed":
-        divider(e, `${name(e.payload.actorId)} is now ${e.payload.role}`);
+        divider(e, copy.stream.roleChanged(name(e.payload.actorId), e.payload.role));
         break;
       case "checkpoint.created":
-        divider(e, `Checkpoint ${e.payload.label}`);
+        divider(e, copy.stream.checkpoint(e.payload.label));
         break;
       case "branch.created":
-        divider(e, `Branch ${e.payload.branch} forked from ${e.payload.fromBranch}`);
+        divider(e, copy.stream.forked(e.payload.branch, e.payload.fromBranch));
         break;
       case "branch.merged":
         divider(
           e,
-          `Folded ${e.payload.source} into ${e.payload.base}${e.payload.conflicts.length ? ` · ${e.payload.conflicts.length} conflict${e.payload.conflicts.length === 1 ? "" : "s"}` : ""}`,
+          copy.stream.folded(e.payload.source, e.payload.base, e.payload.conflicts.length),
           e.payload.conflicts.length > 0,
         );
         break;
       case "workspace.blocked":
-        divider(
-          e,
-          `Write to ${e.payload.path} refused: held by ${e.payload.holderSessionId}`,
-          true,
-        );
+        divider(e, copy.stream.writeRefused(e.payload.path, e.payload.holderSessionId), true);
         break;
       case "fleet.contention.mirrored":
         divider(
           e,
-          `${e.payload.resolved ? "Resolved: " : "Fleet contention: "}${e.payload.kind} on ${e.payload.resource} with ${e.payload.sessionIds.filter((id) => id !== s.sessionId).join(", ") || "another session"}`,
+          copy.stream.fleetContention(
+            e.payload.kind,
+            e.payload.resource,
+            e.payload.sessionIds.filter((id) => id !== s.sessionId),
+            e.payload.resolved,
+          ),
           !e.payload.resolved,
         );
         break;
@@ -454,10 +407,10 @@ function Stream({
   );
   const canPick = s.driver === me.id || s.participants[me.id]?.role === "owner";
   return (
-    <section className="column" aria-label="Conversation">
+    <section className="column" aria-label={copy.stream.label}>
       {blocks.length === 0 && (
         <p className="muted" style={{ textAlign: "center", padding: "48px 0" }}>
-          Set a goal to start the agent.
+          {copy.stream.empty}
         </p>
       )}
       {blocks.map((b) => {
@@ -501,8 +454,10 @@ function Stream({
       {contentions.map((c) => (
         <div className="notice contention" key={c.id}>
           <span>
-            Two directions for <b>{c.scope}</b>. The agent holds this scope until{" "}
-            {s.driver === me.id ? "you pick one" : `${name(s.driver ?? "")} picks one`}.
+            {copy.stream.contentionBefore}
+            <b>{c.scope}</b>
+            {copy.stream.contentionAfter}
+            {s.driver === me.id ? copy.stream.youPick : copy.stream.theyPick(name(s.driver ?? ""))}.
           </span>
           {c.directiveIds.map((id) => {
             const d = s.directives[id];
@@ -521,7 +476,7 @@ function Stream({
                         client.send({ type: "resolve", contentionId: c.id, winner: id })
                       }
                     >
-                      Pick
+                      {copy.stream.pick}
                     </button>
                   )}
                   {d.author === me.id && (
@@ -530,7 +485,7 @@ function Stream({
                       className="btn ghost sm"
                       onClick={() => client.send({ type: "withdraw", directiveId: id })}
                     >
-                      Withdraw
+                      {copy.stream.withdraw}
                     </button>
                   )}
                 </span>
@@ -542,21 +497,21 @@ function Stream({
       {showHandoff &&
         handoffs.map((h) => (
           <div className="notice" key={h.id}>
-            <span>{name(h.from)} offers you the fold.</span>
+            <span>{copy.stream.offeredYou(name(h.from))}</span>
             <div className="actions">
               <button
                 type="button"
                 className="btn primary sm"
                 onClick={() => client.send({ type: "handoff.accept", handoffId: h.id })}
               >
-                Accept
+                {copy.stream.accept}
               </button>
               <button
                 type="button"
                 className="btn sm"
                 onClick={() => client.send({ type: "handoff.decline", handoffId: h.id })}
               >
-                Decline
+                {copy.stream.decline}
               </button>
             </div>
           </div>
@@ -570,15 +525,7 @@ function StepLine({ step }: { step: Step }) {
   const [open, setOpen] = useState(false);
   const shell = step.name === "shell.run";
   const suffix =
-    step.ok === null
-      ? ""
-      : step.ok
-        ? shell
-          ? " · exit 0"
-          : ""
-        : shell
-          ? " · failed"
-          : " · failed";
+    step.ok === null ? "" : step.ok ? (shell ? copy.steps.exitOk : "") : copy.steps.failed;
   return (
     <div className={`step${step.ok === false ? " fail" : ""}`}>
       <button
@@ -616,7 +563,7 @@ function ApprovalNotice({ s, id, client }: { s: SessionState; id: string; client
       .map(([k]) => name(k));
     return (
       <div className="divider">
-        {a.status === "granted" ? "Approved" : "Denied"}: {d.ask}
+        {a.status === "granted" ? copy.approval.approved : copy.approval.denied}: {d.ask}
         {by.length ? ` · ${by.join(", ")}` : ""}
       </div>
     );
@@ -624,14 +571,15 @@ function ApprovalNotice({ s, id, client }: { s: SessionState; id: string; client
   return (
     <div className="notice">
       <span>
-        The agent wants to {d.ask} ({a.call.risk}); needs{" "}
-        {describeRule(ruleFor(s.policy.approvals, a.call.risk))}.
+        {copy.approval.wants(
+          d.ask,
+          a.call.risk,
+          describeRule(ruleFor(s.policy.approvals, a.call.risk)),
+        )}
       </span>
       {votes.length > 0 && (
         <span className="small muted">
-          {votes
-            .map(([k, v]) => `${name(k)} ${v === "approve" ? "approved" : "denied"}`)
-            .join(" · ")}
+          {votes.map(([k, v]) => copy.approval.vote(name(k), v === "approve")).join(" · ")}
         </span>
       )}
       <div className="actions">
@@ -640,14 +588,14 @@ function ApprovalNotice({ s, id, client }: { s: SessionState; id: string; client
           className="btn primary sm"
           onClick={() => client.send({ type: "vote", approvalId: a.id, vote: "approve" })}
         >
-          Approve
+          {copy.approval.approve}
         </button>
         <button
           type="button"
           className="btn sm"
           onClick={() => client.send({ type: "vote", approvalId: a.id, vote: "deny" })}
         >
-          Deny
+          {copy.approval.deny}
         </button>
       </div>
     </div>
@@ -710,7 +658,7 @@ function Composer({
     <div className="composer-wrap">
       <form
         className={`composer${to === "team" ? " to-team" : ""}`}
-        aria-label={to === "team" ? "Say to the team" : "Steer the agent"}
+        aria-label={to === "team" ? copy.composer.labelTeam : copy.composer.label}
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -719,13 +667,13 @@ function Composer({
         <textarea
           ref={ta}
           rows={1}
-          aria-label="Directive"
+          aria-label={copy.composer.directive}
           placeholder={
             to === "team"
-              ? "Say something to the people in this session"
+              ? copy.composer.placeholderTeam
               : needsText
-                ? "Steer the agent"
-                : `Send "${mode}"`
+                ? copy.composer.placeholder
+                : copy.composer.placeholderFor(mode)
           }
           value={text}
           onChange={(e) => {
@@ -740,7 +688,7 @@ function Composer({
           }}
         />
         <div className="bar">
-          <fieldset className="seg" aria-label="Send to">
+          <fieldset className="seg" aria-label={copy.composer.sendTo}>
             <label className={to === "agent" ? "on" : ""}>
               <input
                 type="radio"
@@ -749,7 +697,7 @@ function Composer({
                 checked={to === "agent"}
                 onChange={() => setTo("agent")}
               />
-              Agent
+              {copy.composer.toAgent}
             </label>
             <label className={to === "team" ? "on" : ""}>
               <input
@@ -762,7 +710,7 @@ function Composer({
                   setMore(false);
                 }}
               />
-              Team
+              {copy.composer.toTeam}
             </label>
           </fieldset>
           {to === "agent" && (
@@ -770,7 +718,7 @@ function Composer({
               <button
                 type="button"
                 className="btn ghost icon"
-                aria-label="Mode and scope"
+                aria-label={copy.composer.modeAndScope}
                 aria-expanded={more}
                 onClick={() => setMore((v) => !v)}
               >
@@ -783,7 +731,7 @@ function Composer({
               >
                 {mode !== "steer" ? `${mode} · ` : ""}
                 {scope}
-                {interrupt ? " · interrupt" : ""}
+                {interrupt ? ` · ${copy.stream.interrupt}` : ""}
               </button>
             </>
           )}
@@ -791,7 +739,7 @@ function Composer({
             <button
               type="submit"
               className="send"
-              aria-label="Send"
+              aria-label={copy.composer.send}
               disabled={needsText && !text.trim()}
             >
               <Icon d={ICONS.send} />
@@ -801,7 +749,7 @@ function Composer({
         {more && to === "agent" && (
           <div className="popover">
             <div className="group">
-              <span className="small muted">Mode</span>
+              <span className="small muted">{copy.composer.mode}</span>
               <div className="row">
                 {MODES.map((m) => (
                   <button
@@ -818,13 +766,13 @@ function Composer({
             </div>
             <div className="group">
               <label className="small muted" htmlFor="scope-input">
-                Scope
+                {copy.composer.scope}
               </label>
               <input
                 id="scope-input"
                 className="input mono"
                 value={scope}
-                placeholder="goal"
+                placeholder={copy.composer.scopeDefault}
                 onChange={(e) => setScope(e.target.value)}
               />
             </div>
@@ -834,15 +782,14 @@ function Composer({
                 checked={interrupt}
                 onChange={(e) => setInterrupt(e.target.checked)}
               />
-              Interrupt now
+              {copy.composer.interruptNow}
             </label>
           </div>
         )}
       </form>
       <p className="hint small faint">
-        {connected ? "" : "Reconnecting · "}
-        Enter to send · Shift+Enter for a new line · as {me.name}, {role}
-        {s.driver === me.id ? ", driving" : ""}
+        {connected ? "" : copy.composer.reconnecting}
+        {copy.composer.hint(me.name, role, s.driver === me.id)}
       </p>
     </div>
   );
@@ -1089,16 +1036,16 @@ function Drawer({
       <button
         type="button"
         className="scrim sheet-scrim"
-        aria-label="Close details"
+        aria-label={copy.details.close}
         onClick={onClose}
       />
-      <aside className="drawer" aria-label="Details">
+      <aside className="drawer" aria-label={copy.details.title}>
         <div className="drawer-head">
-          <span>Details</span>
+          <span>{copy.details.title}</span>
           <button
             type="button"
             className="btn ghost icon sm"
-            aria-label="Close details"
+            aria-label={copy.details.close}
             onClick={onClose}
           >
             <Icon d={ICONS.close} size={14} />
@@ -1106,13 +1053,13 @@ function Drawer({
         </div>
         <ErrorLine errors={errors} />
         <section className="group">
-          <h3>Intent</h3>
+          <h3>{copy.details.intent}</h3>
           {s.intent.goal ? (
             <p>
               {s.intent.goal.text} <span className="faint">{name(s.intent.goal.author)}</span>
             </p>
           ) : (
-            <p className="muted">No goal yet.</p>
+            <p className="muted">{copy.details.noGoal}</p>
           )}
           {Object.entries(s.intent.steers).map(([k, v]) => (
             <p key={k}>
@@ -1122,42 +1069,41 @@ function Drawer({
           ))}
           {s.intent.constraints.map((c) => (
             <p key={c.directiveId}>
-              <span className="muted">always</span> {c.text}{" "}
+              <span className="muted">{copy.details.always}</span> {c.text}{" "}
               <span className="faint">
                 {name(c.author)}
-                {c.origin === "project" ? " · project" : ""}
+                {c.origin === "project" ? copy.details.fromProject : ""}
               </span>
             </p>
           ))}
           {s.intent.contendedScopes.length > 0 && (
-            <p className="muted">Held until a pick: {s.intent.contendedScopes.join(", ")}</p>
+            <p className="muted">{copy.details.held(s.intent.contendedScopes)}</p>
           )}
           <p className="row">
             <span className="muted">
-              {s.intent.control}
-              {s.intent.interrupt ? " · interrupt pending" : ""} · turn {s.turn}
+              {copy.details.control(s.intent.control, s.intent.interrupt, s.turn)}
             </span>
             <button
               type="button"
               className="btn sm"
               onClick={() => control(paused ? "resume" : "pause")}
             >
-              {paused ? "Resume" : "Pause"}
+              {paused ? copy.details.resume : copy.details.pause}
             </button>
           </p>
         </section>
         <section className="group">
-          <h3>People</h3>
+          <h3>{copy.details.people}</h3>
           {humans.map((p) => (
             <div className="person" key={p.actor.id}>
               <Avatar id={p.actor.id} name={p.actor.name} driver={s.driver === p.actor.id} />
               <span className="grow ellipsis">
                 {p.actor.name}
-                {p.actor.id === me.id ? " (you)" : ""}
+                {p.actor.id === me.id ? copy.details.you : ""}
               </span>
               <span className="muted small">
-                {s.driver === p.actor.id ? "driving" : p.role}
-                {p.present ? "" : " · away"}
+                {s.driver === p.actor.id ? copy.roles.driving : p.role}
+                {p.present ? "" : copy.details.away}
               </span>
               {p.actor.id !== me.id && s.driver === me.id && (
                 <button
@@ -1165,13 +1111,13 @@ function Drawer({
                   className="btn sm"
                   onClick={() => client.send({ type: "handoff.request", to: p.actor.id })}
                 >
-                  Hand off
+                  {copy.details.handOff}
                 </button>
               )}
               {p.actor.id !== me.id && iOwn && s.driver !== me.id && (
                 <select
                   className="select sm"
-                  aria-label={`Role of ${p.actor.name}`}
+                  aria-label={copy.details.roleOf(p.actor.name)}
                   value={p.role}
                   onChange={(e) =>
                     client.send({
@@ -1190,34 +1136,32 @@ function Drawer({
           ))}
           {myHandoffs.map((h) => (
             <div className="row" key={h.id}>
-              <span className="grow small">{name(h.from)} offers you the fold.</span>
+              <span className="grow small">{copy.stream.offeredYou(name(h.from))}</span>
               <button
                 type="button"
                 className="btn primary sm"
                 onClick={() => client.send({ type: "handoff.accept", handoffId: h.id })}
               >
-                Accept
+                {copy.stream.accept}
               </button>
               <button
                 type="button"
                 className="btn ghost sm"
                 onClick={() => client.send({ type: "handoff.decline", handoffId: h.id })}
               >
-                Decline
+                {copy.stream.decline}
               </button>
             </div>
           ))}
-          {humans.length <= 1 && (
-            <p className="muted small">Nobody else here yet. Share the link.</p>
-          )}
+          {humans.length <= 1 && <p className="muted small">{copy.details.alone}</p>}
         </section>
         <section className="group">
-          <h3>Branches</h3>
+          <h3>{copy.details.branches}</h3>
           {branches.map((b) => (
             <div className="row" key={b}>
               <span className={`grow${b === s.branch ? "" : " mono"}`}>
                 {b}
-                {b === s.branch && <span className="muted"> · here</span>}
+                {b === s.branch && <span className="muted">{copy.details.here}</span>}
               </span>
               {b !== s.branch && (
                 <>
@@ -1226,14 +1170,14 @@ function Drawer({
                     className="btn ghost sm"
                     onClick={() => client.send({ type: "switch", branch: b })}
                   >
-                    Switch
+                    {copy.details.switch}
                   </button>
                   <button
                     type="button"
                     className="btn ghost sm"
                     onClick={() => client.send({ type: "merge", source: b })}
                   >
-                    Fold into {s.branch}
+                    {copy.details.foldInto(s.branch)}
                   </button>
                 </>
               )}
@@ -1249,58 +1193,57 @@ function Drawer({
           >
             <input
               className="input mono grow"
-              aria-label="New branch name"
-              placeholder="try/idea"
+              aria-label={copy.details.branchName}
+              placeholder={copy.details.branchHint}
               value={forkName}
               onChange={(e) => setForkName(e.target.value)}
             />
             <button type="submit" className="btn sm">
-              Fork
+              {copy.details.fork}
             </button>
           </form>
           <p className="row small muted">
             <span className="grow">
-              {files.length} file{files.length === 1 ? "" : "s"}
+              {copy.details.files(files.length)}
               {s.openConflicts.length > 0 && (
-                <span className="danger">
-                  {" "}
-                  · {s.openConflicts.length} conflict{s.openConflicts.length === 1 ? "" : "s"}
-                </span>
+                <span className="danger">{copy.details.conflicts(s.openConflicts.length)}</span>
               )}
-              {s.checkpoints.length > 0 && ` · ${s.checkpoints.length} checkpoints`}
+              {s.checkpoints.length > 0 && copy.details.checkpoints(s.checkpoints.length)}
             </span>
             <button
               type="button"
               className="btn ghost sm"
               onClick={() => client.send({ type: "checkpoint", label: "manual" })}
             >
-              Checkpoint
+              {copy.details.checkpoint}
             </button>
           </p>
           {files.slice(0, 12).map((p) => (
             <div className="mono small ellipsis" key={p}>
               {p}
-              {s.openConflicts.includes(p) && <span className="danger"> · conflict</span>}
+              {s.openConflicts.includes(p) && (
+                <span className="danger">{copy.details.conflict}</span>
+              )}
             </div>
           ))}
         </section>
         <section className="group">
-          <h3>Memory</h3>
+          <h3>{copy.details.memory}</h3>
           {ctxMem.error && <p className="small danger">{ctxMem.error}</p>}
           <MemoryContext text={ctxMem.data?.context ?? ""} loading={ctxMem.loading} />
           <button type="button" className="btn ghost sm" onClick={ctxMem.reload}>
-            Refresh
+            {copy.details.refresh}
           </button>
         </section>
         <section className="group">
-          <h3>Catch-up</h3>
+          <h3>{copy.details.catchUp}</h3>
           {brief ? (
             <pre className="brief">{brief}</pre>
           ) : (
-            <p className="muted small">A brief of what happened since you were last here.</p>
+            <p className="muted small">{copy.details.briefHint}</p>
           )}
           <button type="button" className="btn sm" onClick={() => client.send({ type: "brief" })}>
-            Ask for brief
+            {copy.details.askBrief}
           </button>
         </section>
       </aside>
@@ -1327,17 +1270,13 @@ function MemoryContext({ text, loading }: { text: string; loading: boolean }) {
       };
     });
   if (lines.length === 0)
-    return (
-      <p className="muted small">
-        {loading ? "Loading…" : "Nothing remembered for this project yet."}
-      </p>
-    );
+    return <p className="muted small">{loading ? copy.loading : copy.details.memoryEmpty}</p>;
   return (
     <div className="memlist">
       {lines.map((l) => (
         <div className={`memline${l.conflict ? " conflict" : ""}`} key={`${l.who}:${l.text}`}>
           <span>
-            {l.conflict && <span className="muted">Conflict · </span>}
+            {l.conflict && <span className="muted">{copy.details.memoryConflict}</span>}
             {l.key && <span className="mono muted">{l.key} </span>}
             {l.text}
           </span>

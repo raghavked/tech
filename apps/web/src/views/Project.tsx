@@ -12,6 +12,7 @@ import {
   useFetch,
 } from "../api.js";
 import { wsUrl } from "../client.js";
+import { copy } from "../copy.js";
 import type { Identity } from "../identity.js";
 import { ProjectClient } from "../projectClient.js";
 import { navigate, paths } from "../router.js";
@@ -78,8 +79,8 @@ export function Project({
           onWithdraw={(id) => client.send({ type: "project.withdraw", directiveId: id })}
         />
         <section className="group">
-          <h2>Agents</h2>
-          {sessions.length === 0 && <p className="muted">No sessions yet.</p>}
+          <h2>{copy.project.agents}</h2>
+          {sessions.length === 0 && <p className="muted">{copy.project.noSessions}</p>}
           <div className="list">
             {groups.map(([crew, members]) => (
               <div key={crew ?? "_solo"}>
@@ -125,17 +126,17 @@ export function Project({
         </section>
         {open.length > 0 && (
           <section className="group">
-            <h2>Contentions</h2>
+            <h2>{copy.project.contentions}</h2>
             {open.map((c) => (
               <div className="notice contention" key={c.id}>
                 <span>
                   {c.kind === "claim"
-                    ? "Both want"
+                    ? copy.project.bothWant
                     : c.kind === "merge-conflict"
-                      ? "Merge conflict on"
-                      : "Overlapping work on"}{" "}
+                      ? copy.project.mergeConflictOn
+                      : copy.project.overlapOn}{" "}
                   <span className="mono">{c.resource}</span>:{" "}
-                  {c.sessionIds.map(ownerOf).join(" and ")}
+                  {c.sessionIds.map(ownerOf).join(copy.project.and)}
                   {c.detail ? ` · ${c.detail}` : ""}
                 </span>
                 {lead && (
@@ -154,7 +155,7 @@ export function Project({
                           })
                         }
                       >
-                        {ownerOf(sid)} wins
+                        {copy.project.wins(ownerOf(sid))}
                       </button>
                     ))}
                     <button
@@ -165,11 +166,11 @@ export function Project({
                           type: "fleet.resolve",
                           contentionId: c.id,
                           winnerSessionId: null,
-                          note: "dismissed",
+                          note: copy.project.dismissed,
                         })
                       }
                     >
-                      Dismiss
+                      {copy.project.dismiss}
                     </button>
                   </div>
                 )}
@@ -187,7 +188,7 @@ export function Project({
         {snap.brief && (
           <details className="group fold">
             <summary>
-              <h2>Brief</h2>
+              <h2>{copy.project.brief}</h2>
             </summary>
             <pre className="brief">{snap.brief}</pre>
           </details>
@@ -256,9 +257,9 @@ function SessionRowItem({
         <span className="t serif">{s.title || s.sessionId}</span>
         <span className="s">
           {nameOf(s.ownerId)}
-          {others.length ? ` with ${others.join(", ")}` : ""}
+          {others.length ? copy.project.withOthers(others) : ""}
           {doing ? ` · ${doing.lead} ${doing.text}` : s.report?.goal ? ` · ${s.report.goal}` : ""}
-          {pending > 0 ? ` · ${pending} approval${pending === 1 ? "" : "s"} waiting` : ""}
+          {pending > 0 ? copy.project.approvalsWaiting(pending) : ""}
         </span>
       </a>
       <span className="row">
@@ -375,7 +376,7 @@ function NewSessionRow({
       <button type="button" className="rowitem new" onClick={() => setOpen(true)}>
         <span className="row">
           <Icon d={ICONS.plus} size={14} />
-          New session
+          {copy.project.newSession}
         </span>
       </button>
     );
@@ -390,20 +391,20 @@ function NewSessionRow({
     >
       <input
         className="input grow"
-        aria-label="Title"
-        placeholder="What is this session for?"
+        aria-label={copy.project.title}
+        placeholder={copy.project.titleHint}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
       />
       <input
         className="input mono"
         style={{ width: 150 }}
-        aria-label="Session id"
+        aria-label={copy.project.sessionId}
         value={id}
         onChange={(e) => setId(e.target.value)}
       />
       <button type="submit" className="btn primary sm">
-        Open
+        {copy.project.open}
       </button>
     </form>
   );
@@ -438,8 +439,8 @@ function Direction({
       >
         <input
           type="text"
-          aria-label="Project direction"
-          placeholder="Set direction for everyone in this project"
+          aria-label={copy.project.direction}
+          placeholder={copy.project.directionHint}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
@@ -448,11 +449,7 @@ function Direction({
             type="button"
             className={`chip${mode === "constrain" ? " on" : ""}`}
             aria-pressed={mode === "constrain"}
-            title={
-              mode === "constrain"
-                ? "A standing constraint for every session"
-                : "A steer every session follows"
-            }
+            title={mode === "constrain" ? copy.project.constrainHint : copy.project.steerHint}
             onClick={() => setMode(mode === "constrain" ? "steer" : "constrain")}
           >
             {mode}
@@ -461,7 +458,7 @@ function Direction({
             <button
               type="submit"
               className="send"
-              aria-label="Set direction"
+              aria-label={copy.project.setDirection}
               disabled={!text.trim()}
             >
               <Icon d={ICONS.send} />
@@ -482,7 +479,7 @@ function Direction({
                 <button
                   type="button"
                   className="x"
-                  aria-label={`Withdraw: ${d.input.text}`}
+                  aria-label={copy.project.withdraw(d.input.text)}
                   onClick={() => onWithdraw(d.id)}
                 >
                   <Icon d={ICONS.close} size={12} />
@@ -527,12 +524,13 @@ function TeamMemory({
   const rest = entries.filter((e) => !inConflict.has(e.id));
   return (
     <section className="group">
-      <h2>Team memory</h2>
+      <h2>{copy.project.teamMemory}</h2>
       {feed.error && <p className="small danger">{feed.error}</p>}
       {conflicts.map((c) => (
         <div className="notice contention" key={c.id}>
           <span>
-            Two entries disagree on <span className="mono">{c.key}</span>.
+            {copy.project.disagree}
+            <span className="mono">{c.key}</span>.
           </span>
           {c.entryIds.map((id) => {
             const e = byId.get(id);
@@ -541,9 +539,7 @@ function TeamMemory({
         </div>
       ))}
       {rest.length === 0 && !feed.error && (
-        <p className="muted">
-          {feed.loading ? "Loading…" : "Nothing remembered for this project yet."}
-        </p>
+        <p className="muted">{feed.loading ? copy.loading : copy.project.memoryEmpty}</p>
       )}
       <div className="memlist">
         {rest.map((e) => (

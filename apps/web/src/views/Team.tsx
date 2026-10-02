@@ -10,6 +10,7 @@ import {
   routeOfLink,
   type SessionRow,
 } from "../api.js";
+import { copy } from "../copy.js";
 import type { Identity } from "../identity.js";
 import { paths } from "../router.js";
 import { Status } from "../ui.js";
@@ -38,11 +39,8 @@ function countsOf(rows: SessionRow[]): Counts {
 
 function countLine(c: Counts): string {
   const parts: string[] = [];
-  if (c.running) parts.push(`${c.running} running`);
-  if (c.awaiting_approval) parts.push(`${c.awaiting_approval} waiting on approval`);
-  if (c.blocked) parts.push(`${c.blocked} blocked`);
-  if (c.paused) parts.push(`${c.paused} paused`);
-  if (c.idle) parts.push(`${c.idle} idle`);
+  for (const k of Object.keys(ZERO) as (keyof Counts)[])
+    if (c[k]) parts.push(copy.team.counts[k](c[k]));
   return parts.join(", ");
 }
 
@@ -129,14 +127,9 @@ export function Team({
   const summary =
     projects.length === 0
       ? me
-        ? "No projects in this team are visible to you."
-        : "Loading…"
-      : `${openSessions} open session${openSessions === 1 ? "" : "s"} across ${projects.length} project${projects.length === 1 ? "" : "s"}${
-          totals.running + totals.awaiting_approval + totals.blocked + totals.paused + totals.idle >
-          0
-            ? `: ${countLine(totals)}`
-            : ""
-        }. ${needs === 0 ? "Nothing needs you right now." : `${needs} thing${needs === 1 ? "" : "s"} need${needs === 1 ? "s" : ""} you.`}`;
+        ? copy.team.noProjects
+        : copy.loading
+      : copy.team.summary(openSessions, projects.length, countLine(totals), needs);
 
   return (
     <Shell
@@ -144,7 +137,7 @@ export function Team({
       title={teamName}
       right={
         <button type="button" className="btn ghost sm" onClick={() => setTick((t) => t + 1)}>
-          Refresh
+          {copy.team.refresh}
         </button>
       }
     >
@@ -152,8 +145,8 @@ export function Team({
         <h1>{teamName}</h1>
         <p className="muted">{summary}</p>
         <section className="group">
-          <h2>Needs you</h2>
-          {needs === 0 && <p className="muted">Nothing waiting.</p>}
+          <h2>{copy.team.needsYou}</h2>
+          {needs === 0 && <p className="muted">{copy.team.nothingWaiting}</p>}
           <div className="list">
             {approvals.map(({ d, s, n }) => (
               <a
@@ -162,12 +155,10 @@ export function Team({
                 href={paths.session(d.ref.projectId, s.sessionId)}
               >
                 <span className="ellipsis">
-                  <span className="t">
-                    {n} approval{n === 1 ? "" : "s"} waiting in {s.title || s.sessionId}
-                  </span>
+                  <span className="t">{copy.team.approvalsIn(n, s.title || s.sessionId)}</span>
                   <span className="s">{d.ref.name}</span>
                 </span>
-                <span className="small muted">Open</span>
+                <span className="small muted">{copy.team.open}</span>
               </a>
             ))}
             {contentions.map(({ c, d }) => (
@@ -178,19 +169,21 @@ export function Team({
               >
                 <span className="ellipsis">
                   <span className="t">
-                    {c.kind} on <span className="mono">{c.resource}</span>
+                    {c.kind}
+                    {copy.team.on}
+                    <span className="mono">{c.resource}</span>
                   </span>
                   <span className="s">
                     {d.ref.name} · {sessionNames(c, d.state)}
                   </span>
                 </span>
-                <span className="small muted">Resolve</span>
+                <span className="small muted">{copy.team.resolve}</span>
               </a>
             ))}
           </div>
         </section>
         <section className="group">
-          <h2>Projects</h2>
+          <h2>{copy.team.projects}</h2>
           <div className="list">
             {data.map((d) => {
               const c = countsOf(d.sessions);
@@ -200,7 +193,7 @@ export function Team({
                   <span className="ellipsis">
                     <span className="t">{d.ref.name}</span>
                     <span className="s">
-                      {d.error ? d.error : open === 0 ? "no open sessions" : countLine(c)}
+                      {d.error ? d.error : open === 0 ? copy.team.noOpenSessions : countLine(c)}
                     </span>
                   </span>
                   <Status
@@ -222,8 +215,8 @@ export function Team({
           </div>
         </section>
         <section className="group">
-          <h2>Recent handoffs</h2>
-          {handoffs.length === 0 && <p className="muted">None offered to you yet.</p>}
+          <h2>{copy.team.recentHandoffs}</h2>
+          {handoffs.length === 0 && <p className="muted">{copy.team.noHandoffs}</p>}
           <div className="list">
             {handoffs.map((n) => {
               const href = routeOfLink(n.link);
@@ -233,7 +226,7 @@ export function Team({
                     <span className="t">{n.body}</span>
                     <span className="s">{new Date(n.at).toLocaleString()}</span>
                   </span>
-                  <span className="small muted">{n.read ? "" : "New"}</span>
+                  <span className="small muted">{n.read ? "" : copy.team.new}</span>
                 </>
               );
               return href ? (
@@ -262,7 +255,7 @@ function sessionNames(c: FleetContention, state: ProjectState | null): string {
       const owner = state?.sessions[sid]?.ownerId;
       return owner ? (state?.members[owner]?.name ?? owner) : sid;
     })
-    .join(" and ");
+    .join(copy.project.and);
 }
 
 function Housekeeping({ orgId }: { orgId: string }) {
@@ -282,15 +275,13 @@ function Housekeeping({ orgId }: { orgId: string }) {
   };
   return (
     <section className="group">
-      <h2>Memory housekeeping</h2>
+      <h2>{copy.team.housekeeping}</h2>
       {error && <p className="small danger">{error}</p>}
       {!report && (
         <p className="row">
-          <span className="muted grow">
-            One curator pass over {orgId}: fold grown scopes, flag stale entries, list conflicts.
-          </span>
+          <span className="muted grow">{copy.team.curatorHint(orgId)}</span>
           <button type="button" className="btn sm" disabled={busy} onClick={run}>
-            {busy ? "Running…" : "Run"}
+            {busy ? copy.team.running : copy.team.run}
           </button>
         </p>
       )}
@@ -298,14 +289,15 @@ function Housekeeping({ orgId }: { orgId: string }) {
         <div className="list quiet">
           {report.compacted.length === 0 &&
             report.stale.length === 0 &&
-            report.conflicts.length === 0 && <p className="muted">Nothing to tidy.</p>}
+            report.conflicts.length === 0 && <p className="muted">{copy.team.nothingToTidy}</p>}
           {report.compacted.map((c) => (
             <div className="rowitem" key={c.summaryId}>
               <span className="ellipsis">
                 <span className="t">
-                  Folded {c.folded} entries in <span className="mono">{c.scope}</span>
+                  {copy.team.foldedIn(c.folded)}
+                  <span className="mono">{c.scope}</span>
                 </span>
-                <span className="s">level {c.level}</span>
+                <span className="s">{copy.team.level(c.level)}</span>
               </span>
             </div>
           ))}
@@ -313,11 +305,10 @@ function Housekeeping({ orgId }: { orgId: string }) {
             <div className="rowitem" key={s.id}>
               <span className="ellipsis">
                 <span className="t">
-                  Stale: <span className="mono">{s.key ?? s.id}</span>
+                  {copy.team.stale}
+                  <span className="mono">{s.key ?? s.id}</span>
                 </span>
-                <span className="s">
-                  by {s.author} · unread for {s.unreadFor} events
-                </span>
+                <span className="s">{copy.team.staleLine(s.author, s.unreadFor)}</span>
               </span>
             </div>
           ))}
@@ -325,7 +316,8 @@ function Housekeeping({ orgId }: { orgId: string }) {
             <div className="rowitem" key={c.id}>
               <span className="ellipsis">
                 <span className="t">
-                  Conflict on <span className="mono">{c.key}</span>
+                  {copy.team.conflictOn}
+                  <span className="mono">{c.key}</span>
                 </span>
                 <span className="s">
                   {c.entries.map((e) => `${e.author}: ${e.content}`).join(" · ")}
@@ -336,7 +328,7 @@ function Housekeeping({ orgId }: { orgId: string }) {
           <p className="row">
             <span className="grow" />
             <button type="button" className="btn ghost sm" disabled={busy} onClick={run}>
-              Run again
+              {copy.team.runAgain}
             </button>
           </p>
         </div>

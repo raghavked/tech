@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import type { Me, ProjectRef } from "../api.js";
+import { copy } from "../copy.js";
 import { type Identity, saveIdentity, slugify } from "../identity.js";
 import { navigate, paths } from "../router.js";
 import { Mark } from "../ui.js";
@@ -18,14 +19,14 @@ export function Home({
 }) {
   const needsIdentity = ctx.route.name !== "home" && !identity;
   return (
-    <Shell ctx={ctx} title={identity ? "Home" : "Fold"}>
+    <Shell ctx={ctx} title={identity ? copy.home.title : copy.product}>
       <div className="column page home">
         {!identity && (
           <div className="hero">
             <Mark size={40} />
-            <h1>Several hands on the fold; one holds it at a time.</h1>
-            <p className="muted">Watch the course, redirect, hand off.</p>
-            {needsIdentity && <p className="small danger">Pick an identity to open that page.</p>}
+            <h1>{copy.home.heroTitle}</h1>
+            <p className="muted">{copy.home.heroLine}</p>
+            {needsIdentity && <p className="small danger">{copy.home.needsIdentity}</p>}
           </div>
         )}
         <IdentityForm identity={identity} me={me} />
@@ -45,11 +46,11 @@ function IdentityForm({ identity, me }: { identity: Identity | null; me: Me | nu
     return (
       <p className="row muted">
         <span className="grow">
-          Signed in as {identity.name} <span className="mono">{identity.userId}</span>
-          {me && !me.user && " · unknown to the server; first in owns a session"}
+          {copy.home.signedInAs(identity.name)} <span className="mono">{identity.userId}</span>
+          {me && !me.user && copy.home.unknownToServer}
         </span>
         <button type="button" className="btn ghost sm" onClick={() => setEditing(true)}>
-          Change
+          {copy.home.change}
         </button>
       </p>
     );
@@ -65,7 +66,7 @@ function IdentityForm({ identity, me }: { identity: Identity | null; me: Me | nu
       }}
     >
       <label className="field">
-        <span>Your name</span>
+        <span>{copy.home.yourName}</span>
         <input
           className="input"
           value={name}
@@ -77,11 +78,11 @@ function IdentityForm({ identity, me }: { identity: Identity | null; me: Me | nu
         />
       </label>
       <label className="field">
-        <span>User id</span>
+        <span>{copy.home.userId}</span>
         <input
           className="input mono"
           value={userId}
-          placeholder="as in users.json"
+          placeholder={copy.home.userIdHint}
           onChange={(e) => {
             setUserTouched(true);
             setUserId(slugify(e.target.value));
@@ -89,23 +90,23 @@ function IdentityForm({ identity, me }: { identity: Identity | null; me: Me | nu
         />
       </label>
       <label className="field">
-        <span>Token (optional)</span>
+        <span>{copy.home.token}</span>
         <input
           className="input"
           type="password"
           value={token}
           autoComplete="off"
-          placeholder="only if the server requires one"
+          placeholder={copy.home.tokenHint}
           onChange={(e) => setToken(e.target.value)}
         />
       </label>
       <div className="row">
         <button type="submit" className="btn primary">
-          Continue
+          {copy.home.continue}
         </button>
         {identity && (
           <button type="button" className="btn ghost" onClick={() => setEditing(false)}>
-            Cancel
+            {copy.home.cancel}
           </button>
         )}
       </div>
@@ -124,12 +125,10 @@ function Projects({ me, error }: { me: Me | null; error: string | null }) {
   return (
     <>
       <section className="group">
-        <h2>Projects</h2>
-        {error && <p className="small danger">Could not load /api/me: {error}</p>}
-        {!error && !me && <p className="muted">Loading…</p>}
-        {me && teams.length === 0 && (
-          <p className="muted">No projects for you yet. Ask a lead to add you.</p>
-        )}
+        <h2>{copy.home.projects}</h2>
+        {error && <p className="small danger">{copy.home.meFailed(error)}</p>}
+        {!error && !me && <p className="muted">{copy.loading}</p>}
+        {me && teams.length === 0 && <p className="muted">{copy.home.noProjects}</p>}
         {teams.map((t) => (
           <div className="list" key={t.id}>
             {t.projects.map((p) => (
@@ -140,15 +139,15 @@ function Projects({ me, error }: { me: Me | null; error: string | null }) {
                     {p.orgName} · {p.teamName}
                   </span>
                 </span>
-                <span className="small muted">Open</span>
+                <span className="small muted">{copy.home.open}</span>
               </a>
             ))}
             <a className="rowitem" href={paths.management(t.id)}>
               <span className="ellipsis">
                 <span className="t">{t.name}</span>
-                <span className="s">team overview</span>
+                <span className="s">{copy.home.teamOverview}</span>
               </span>
-              <span className="small muted">Open</span>
+              <span className="small muted">{copy.home.open}</span>
             </a>
           </div>
         ))}
@@ -165,7 +164,7 @@ function Projects({ me, error }: { me: Me | null; error: string | null }) {
         {projects.length > 1 ? (
           <select
             className="select"
-            aria-label="Project"
+            aria-label={copy.home.project}
             value={pid}
             onChange={(e) => setProject(e.target.value)}
           >
@@ -178,13 +177,13 @@ function Projects({ me, error }: { me: Me | null; error: string | null }) {
         ) : null}
         <input
           className="input mono grow"
-          aria-label="Session id"
-          placeholder="Open a session by id"
+          aria-label={copy.home.sessionId}
+          placeholder={copy.home.sessionIdHint}
           value={sessionId}
           onChange={(e) => setSessionId(e.target.value)}
         />
         <button type="submit" className="btn sm">
-          Open session
+          {copy.home.openSession}
         </button>
       </form>
     </>

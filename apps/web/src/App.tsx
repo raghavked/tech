@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { api, type Me, type SessionRow, useFetch } from "./api.js";
+import { copy } from "./copy.js";
 import { clearIdentity, type Identity, useIdentity } from "./identity.js";
 import { notifyPermission, requestNotifications } from "./notify.js";
 import { useRecents } from "./recents.js";
@@ -74,7 +75,7 @@ export function Shell({
           <button
             type="button"
             className="btn ghost icon menu"
-            aria-label="Menu"
+            aria-label={copy.shell.menu}
             onClick={() => setNavOpen(true)}
           >
             <Icon d={ICONS.menu} />
@@ -130,22 +131,29 @@ function Sidebar({
   const recentsShown = recents.filter((r) => !listed.has(r.sessionId) && hit(r.title, r.sessionId));
   return (
     <>
-      {open && <button type="button" className="scrim" aria-label="Close menu" onClick={onClose} />}
-      <nav className={`sidebar${open ? " open" : ""}`} aria-label="Sidebar">
+      {open && (
+        <button
+          type="button"
+          className="scrim"
+          aria-label={copy.shell.closeMenu}
+          onClick={onClose}
+        />
+      )}
+      <nav className={`sidebar${open ? " open" : ""}`} aria-label={copy.shell.sidebar}>
         <a className="brand" href={paths.home()}>
           <Mark size={22} />
-          <span className="serif">Fold</span>
+          <span className="serif">{copy.product}</span>
         </a>
         <a className="new" href={paths.fleet(firstProject) + (identity ? "?new=1" : "")}>
           <Icon d={ICONS.plus} />
-          New session
+          {copy.shell.newSession}
         </a>
         <label className="search">
           <Icon d={ICONS.search} size={14} />
           <input
             type="search"
-            placeholder="Search sessions"
-            aria-label="Search sessions"
+            placeholder={copy.shell.searchSessions}
+            aria-label={copy.shell.searchSessions}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -153,7 +161,7 @@ function Sidebar({
         <div className="lists">
           {identity && teams.length > 0 && (
             <div className="section">
-              Agents
+              {copy.shell.agents}
               <span className="n">{listed.size || ""}</span>
             </div>
           )}
@@ -213,10 +221,10 @@ function Sidebar({
               className={`item${activeTeam === "default" ? " active" : ""}`}
               href={paths.management("default")}
             >
-              Default team
+              {copy.shell.defaultTeam}
             </a>
           )}
-          {recentsShown.length > 0 && <div className="section">Recents</div>}
+          {recentsShown.length > 0 && <div className="section">{copy.shell.recents}</div>}
           {recentsShown.map((r) => (
             <a
               key={`${r.projectId}/${r.sessionId}`}
@@ -297,7 +305,7 @@ function Account({ identity }: { identity: Identity | null }) {
     return (
       <a className="me" href={paths.home()}>
         <span className="avatar">?</span>
-        Sign in
+        {copy.shell.signIn}
       </a>
     );
   const themeOpt = (t: Theme, label: string) => (
@@ -313,17 +321,19 @@ function Account({ identity }: { identity: Identity | null }) {
   return (
     <div className="me-wrap">
       {open && (
-        <div className="menu" role="menu" aria-label="Account">
-          <div className="small muted">Theme</div>
+        <div className="menu" role="menu" aria-label={copy.account.menu}>
+          <div className="small muted">{copy.account.theme}</div>
           <div className="row">
-            {themeOpt("system", "Auto")}
-            {themeOpt("light", "Light")}
-            {themeOpt("dark", "Dark")}
+            {themeOpt("system", copy.account.themeAuto)}
+            {themeOpt("light", copy.account.themeLight)}
+            {themeOpt("dark", copy.account.themeDark)}
           </div>
-          <div className="small muted">Notifications</div>
-          {perm === "granted" && <span className="small">On while this tab is hidden</span>}
-          {perm === "denied" && <span className="small">Blocked by the browser</span>}
-          {perm === "unsupported" && <span className="small">Not available here</span>}
+          <div className="small muted">{copy.account.notifications}</div>
+          {perm === "granted" && <span className="small">{copy.account.notifyOn}</span>}
+          {perm === "denied" && <span className="small">{copy.account.notifyBlocked}</span>}
+          {perm === "unsupported" && (
+            <span className="small">{copy.account.notifyUnsupported}</span>
+          )}
           {perm === "default" && (
             <button
               type="button"
@@ -333,11 +343,11 @@ function Account({ identity }: { identity: Identity | null }) {
               }}
             >
               <Icon d={ICONS.bell} size={14} />
-              Turn on
+              {copy.account.notifyTurnOn}
             </button>
           )}
           <a className="small" href={paths.home()}>
-            Change identity
+            {copy.account.changeIdentity}
           </a>
           <button
             type="button"
@@ -347,7 +357,7 @@ function Account({ identity }: { identity: Identity | null }) {
               setOpen(false);
             }}
           >
-            Sign out
+            {copy.account.signOut}
           </button>
         </div>
       )}

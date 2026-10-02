@@ -2,6 +2,7 @@
 import type { Resource } from "@fold/fleet";
 import type { EntryRecord } from "@fold/memory";
 import { type ReactNode, useEffect, useState } from "react";
+import { copy, status as statusWords } from "./copy.js";
 import { initials } from "./identity.js";
 
 /** The Fold mark inline (design/mark.svg): sheet, underside, folded corner, crease. */
@@ -87,16 +88,16 @@ export function Avatar({
   );
 }
 
-/** Status as a word with a quiet dot: `.status.running`, `.status.awaiting`... */
+/** Status as a word with a quiet dot: `.status.running`, `.status.awaiting`... Words live in copy.ts. */
 export const STATUS: Record<string, { cls: string; label: string }> = {
-  running: { cls: "running", label: "Running" },
-  awaiting_approval: { cls: "awaiting", label: "Needs approval" },
-  blocked: { cls: "blocked", label: "Blocked" },
-  paused: { cls: "paused", label: "Paused" },
-  idle: { cls: "idle", label: "Idle" },
-  cancelled: { cls: "idle", label: "Cancelled" },
-  closed: { cls: "idle", label: "Closed" },
-  offline: { cls: "idle", label: "Offline" },
+  running: { cls: "running", label: statusWords.running },
+  awaiting_approval: { cls: "awaiting", label: statusWords.awaiting_approval },
+  blocked: { cls: "blocked", label: statusWords.blocked },
+  paused: { cls: "paused", label: statusWords.paused },
+  idle: { cls: "idle", label: statusWords.idle },
+  cancelled: { cls: "idle", label: statusWords.cancelled },
+  closed: { cls: "idle", label: statusWords.closed },
+  offline: { cls: "idle", label: statusWords.offline },
 };
 
 export function Status({
@@ -106,7 +107,7 @@ export function Status({
   status: string | null | undefined;
   children?: ReactNode;
 }) {
-  const s = STATUS[status ?? "offline"] ?? { cls: "idle", label: "Idle" };
+  const s = STATUS[status ?? "offline"] ?? { cls: "idle", label: statusWords.idle };
   return (
     <span className={`status ${s.cls}`}>
       {s.label}
@@ -190,7 +191,7 @@ export async function copyText(text: string): Promise<boolean> {
     // fall through
   }
   try {
-    prompt("Copy this link", text);
+    prompt(copy.session.copyLink, text);
   } catch {
     // ignore
   }
