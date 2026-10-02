@@ -10,7 +10,18 @@ import { notifyIfHidden } from "../notify.js";
 import { rememberRecent } from "../recents.js";
 import { paths } from "../router.js";
 import { reportPendingApprovals } from "../shell.js";
-import { AgentCard, Avatar, copyText, ErrorLine, ICONS, Icon, Status, TeamPill } from "../ui.js";
+import {
+  AgentCard,
+  Avatar,
+  copyText,
+  ErrorLine,
+  ICONS,
+  Icon,
+  Status,
+  TeamPill,
+  toast,
+  useConnectionToasts,
+} from "../ui.js";
 
 export function SessionView({
   projectId,
@@ -44,6 +55,8 @@ export function SessionView({
     });
     return () => client.disconnect();
   }, [client, sessionId, projectId, title, actor, identity.userId, identity.token]);
+  // Hook point (error-boundary-toasts): server errors and a lost socket as quiet toasts.
+  useConnectionToasts(snap.connected, snap.errors);
 
   // Notifications for things that need this person, only while the tab is hidden.
   useEffect(
@@ -84,7 +97,6 @@ export function SessionView({
   }, [projectId, sessionId, shownTitle]);
   const [panel, setPanel] = useState<"none" | "details" | "team">("none");
   const details = panel === "details";
-  const [copied, setCopied] = useState(false);
   const rows = useFetch(() => api.sessions(projectId), `${projectId}:${s?.seq ?? -1}`);
   const mine = rows.data?.find((r) => r.sessionId === sessionId) ?? null;
 
@@ -103,10 +115,7 @@ export function SessionView({
   const online = snap.presence.filter((p) => p.online);
   const share = () => {
     const url = `${location.origin}${location.pathname}${paths.session(projectId, sessionId)}`;
-    copyText(url).then((ok) => {
-      setCopied(ok);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    copyText(url).then((ok) => toast(ok ? copy.session.linkCopied : copy.session.copyFailed));
   };
 
   return (
@@ -140,7 +149,7 @@ export function SessionView({
           </fieldset>
           <button type="button" className="btn ghost sm" onClick={share}>
             <Icon d={ICONS.link} size={14} />
-            <span className="lbl">{copied ? copy.session.copied : copy.session.share}</span>
+            <span className="lbl">{copy.session.share}</span>
           </button>
           <button
             type="button"

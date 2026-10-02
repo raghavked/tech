@@ -1,9 +1,13 @@
 /** Small shared pieces on top of tokens.css v3: the mark, line icons, avatars, status words. */
 import type { Resource } from "@fold/fleet";
 import type { EntryRecord } from "@fold/memory";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { copy, status as statusWords } from "./copy.js";
 import { initials } from "./identity.js";
+import { getToasts, subscribeToasts, toast } from "./toast.js";
+
+/** `toast("Link copied")`: a short text at the bottom centre that goes away by itself. */
+export { toast };
 
 /** The Fold mark inline (design/mark.svg): sheet, underside, folded corner, crease. */
 export function Mark({ size = 22 }: { size?: number }) {
@@ -178,6 +182,41 @@ export function MemoryLine({ e, conflict = false }: { e: EntryRecord; conflict?:
       <span className="small faint">{attribLine(e)}</span>
     </div>
   );
+}
+
+/** The toast stack: rendered once by App, bottom-centre, text only, nothing to click. */
+export function Toasts() {
+  const list = useSyncExternalStore(subscribeToasts, getToasts, getToasts);
+  if (list.length === 0) return null;
+  return (
+    <div className="toasts" role="status" aria-live="polite">
+      {list.map((t) => (
+        <div key={t.id} className="toast">
+          {t.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Toasts for a websocket client's snapshot: every server error as it arrives, and one
+ * "Connection lost" when a live socket closes. Call it from a view with `snap.connected` and
+ * `snap.errors`.
+ */
+export function useConnectionToasts(connected: boolean, errors: string[]): void {
+  const wasConnected = useRef(false);
+  useEffect(() => {
+    if (connected) wasConnected.current = true;
+    else if (wasConnected.current) {
+      wasConnected.current = false;
+      toast("Connection lost");
+    }
+  }, [connected]);
+  useEffect(() => {
+    const last = errors[errors.length - 1];
+    if (last) toast(last);
+  }, [errors]);
 }
 
 /** A guarded clipboard write; falls back to a prompt when the API is unavailable. */

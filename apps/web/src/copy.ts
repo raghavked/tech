@@ -94,6 +94,8 @@ export const copy = {
     copied: "Copied",
     details: "Details",
     copyLink: "Copy this link",
+    linkCopied: "Link copied",
+    copyFailed: "Could not copy the link",
   },
 
   stream: {

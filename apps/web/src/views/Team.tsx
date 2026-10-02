@@ -13,7 +13,7 @@ import {
 import { copy } from "../copy.js";
 import type { Identity } from "../identity.js";
 import { paths } from "../router.js";
-import { Status } from "../ui.js";
+import { Status, toast } from "../ui.js";
 
 interface ProjectData {
   ref: ProjectRef;
@@ -270,7 +270,11 @@ function Housekeeping({ orgId }: { orgId: string }) {
         setReport(r);
         setError(null);
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) => {
+        const message = e instanceof Error ? e.message : String(e);
+        setError(message);
+        toast(`Housekeeping did not run: ${message}`);
+      })
       .finally(() => setBusy(false));
   };
   return (

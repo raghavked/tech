@@ -16,7 +16,16 @@ import { copy } from "../copy.js";
 import type { Identity } from "../identity.js";
 import { ProjectClient } from "../projectClient.js";
 import { navigate, paths } from "../router.js";
-import { doingOf, ErrorLine, ICONS, Icon, MemoryLine, Status, TeamPill } from "../ui.js";
+import {
+  doingOf,
+  ErrorLine,
+  ICONS,
+  Icon,
+  MemoryLine,
+  Status,
+  TeamPill,
+  useConnectionToasts,
+} from "../ui.js";
 
 export function Project({
   projectId,
@@ -38,6 +47,8 @@ export function Project({
     client.connect(wsUrl(), projectId, identity.userId);
     return () => client.disconnect();
   }, [client, projectId, identity.userId]);
+  // Hook point (error-boundary-toasts): server errors and a lost socket as quiet toasts.
+  useConnectionToasts(snap.connected, snap.errors);
   const ref = refOf(me, projectId);
   const s = snap.state;
   const orgId = s?.orgId || ref.orgId;

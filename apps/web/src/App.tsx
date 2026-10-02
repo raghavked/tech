@@ -1,18 +1,54 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { api, type Me, type SessionRow, useFetch } from "./api.js";
 import { copy } from "./copy.js";
+import { ErrorBoundary, Recover } from "./ErrorBoundary.js";
 import { clearIdentity, type Identity, useIdentity } from "./identity.js";
 import { notifyPermission, requestNotifications } from "./notify.js";
 import { useRecents } from "./recents.js";
 import { paths, type Route, useRoute } from "./router.js";
 import { type Theme, useTheme } from "./theme.js";
-import { AgentCard, Avatar, ICONS, Icon, Mark } from "./ui.js";
+import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
 import { Home } from "./views/Home.js";
 import { Project } from "./views/Project.js";
 import { SessionView } from "./views/SessionView.js";
 import { Team } from "./views/Team.js";
 
+/**
+ * Hook point (error-boundary-toasts): every view renders inside one error boundary that resets
+ * when the route changes, and the toast stack sits beside it. The views themselves live in `Page`.
+ */
 export function App() {
+  const route = useRoute();
+  const routeKey = JSON.stringify(route);
+  return (
+    <>
+      <ErrorBoundary
+        resetKey={routeKey}
+        fallback={(error, reset) => <BrokenView error={error} onRetry={reset} />}
+      >
+        <Page />
+      </ErrorBoundary>
+      <Toasts />
+    </>
+  );
+}
+
+/** The shell with the sidebar intact and a recovery row where the view was. */
+function BrokenView({ error, onRetry }: { error: Error; onRetry: () => void }) {
+  const route = useRoute();
+  const identity = useIdentity();
+  const userId = identity?.userId ?? "";
+  const me = useFetch<Me>(identity ? () => api.me(userId) : null, userId);
+  return (
+    <Shell ctx={{ route, identity, me: me.data }} title="Something went wrong">
+      <div className="column page">
+        <Recover error={error} onRetry={onRetry} />
+      </div>
+    </Shell>
+  );
+}
+
+function Page() {
   const route = useRoute();
   const identity = useIdentity();
   const userId = identity?.userId ?? "";

@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
+import { ErrorBoundary } from "./ErrorBoundary.js";
 import { connectShell } from "./shell.js";
 
 // PWA shell: the service worker caches the shell and passes /ws and /api through.
@@ -17,4 +18,10 @@ try {
 connectShell();
 
 const el = document.getElementById("root");
-if (el) createRoot(el).render(<App />);
+// Last resort: when the shell itself cannot render, a bare recovery row instead of a white page.
+if (el)
+  createRoot(el).render(
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>,
+  );
