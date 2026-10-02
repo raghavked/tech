@@ -3,9 +3,13 @@
  * ProjectHost owning its sessions. Phase-0 auth: an optional shared token plus a users.json
  * that maps asserted user ids to memberships; without it, the first human in owns a session.
  */
+
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { join } from "node:path";
 import { ProjectClientMessage, type ProjectEvent } from "@atelier/fleet";
 import { KernelError } from "@atelier/kernel";
+import { Curator, MemoryStore, type SerializedMemory } from "@atelier/memory";
 import {
   ClientMessage,
   DEFAULT_APPROVAL_POLICY,
@@ -17,7 +21,7 @@ import { type WebSocket, WebSocketServer } from "ws";
 import type { ClientLink, SessionHost } from "./host.js";
 import { OrgRegistry } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
-import { listSessions, readLog, sessionDir } from "./storage.js";
+import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
 
 export interface ServerOptions {
   root: string;
@@ -40,6 +44,7 @@ const AnyClientMessageSchema = ClientMessage.or(ProjectClientMessage);
 export class AtelierServer {
   readonly projects = new Map<string, ProjectHost>();
   readonly orgs: OrgRegistry;
+  readonly memories = new Map<string, MemoryStore>();
   private http: Server | null = null;
   private wss: WebSocketServer | null = null;
 
@@ -62,10 +67,40 @@ export class AtelierServer {
       model: this.opts.model,
       tools: this.opts.tools,
       sessionPolicy: this.opts.defaultPolicy ?? DEFAULT_POLICY,
+      memory: this.memory(ref.orgId),
     };
     p = new ProjectHost(this.opts.log ? { ...base, log: this.opts.log } : base);
     this.projects.set(projectId, p);
     return p;
+  }
+
+  /** The organisation's memory store, persisted at store/memory/<org>.json and curated on a timer. */
+  memory(orgId: string): MemoryStore {
+    let m = this.memories.get(orgId);
+    if (m) return m;
+    const dir = join(this.opts.root, "memory");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, `${orgId}.json`);
+    m = existsSync(path)
+      ? MemoryStore.fromSerialized(JSON.parse(readFileSync(path, "utf8")) as SerializedMemory)
+      : MemoryStore.create(orgId);
+    let timer: NodeJS.Timeout | null = null;
+    m.onEvent(() => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        atomicWrite(path, JSON.stringify(m?.ledger.serialize()));
+      }, 20);
+    });
+    this.memories.set(orgId, m);
+    return m;
+  }
+
+  /** Run the curator over every loaded org memory; returns the reports. */
+  curate() {
+    const out: Record<string, ReturnType<Curator["tick"]>> = {};
+    for (const [org, m] of this.memories) out[org] = new Curator(m).tick();
+    return out;
   }
 
   /** Find which project a stored session belongs to, defaulting to "default". */
@@ -108,6 +143,11 @@ export class AtelierServer {
 
   async close(): Promise<void> {
     for (const p of this.projects.values()) p.close();
+    for (const [org, m] of this.memories)
+      atomicWrite(
+        join(this.opts.root, "memory", `${org}.json`),
+        JSON.stringify(m.ledger.serialize()),
+      );
     this.wss?.close();
     await new Promise<void>((r) => (this.http ? this.http.close(() => r()) : r()));
   }
@@ -139,6 +179,33 @@ export class AtelierServer {
         });
       }
       if (url.pathname === "/api/orgs") return json(200, this.orgs.orgs);
+      const mm = url.pathname.match(/^\/api\/memory\/([^/]+)(?:\/(curate|context))?$/);
+      if (mm) {
+        const store = this.memory(mm[1] as string);
+        if (mm[2] === "curate") return json(200, new Curator(store).tick());
+        if (mm[2] === "context") {
+          const scope = {
+            orgId: mm[1] as string,
+            ...(url.searchParams.get("team")
+              ? { teamId: url.searchParams.get("team") as string }
+              : {}),
+            ...(url.searchParams.get("project")
+              ? { projectId: url.searchParams.get("project") as string }
+              : {}),
+          };
+          return json(200, {
+            context: store.contextFor(scope, url.searchParams.get("user") ?? "api"),
+          });
+        }
+        const st = store.state();
+        return json(200, {
+          orgId: st.orgId,
+          seq: st.seq,
+          entries: Object.values(st.entries),
+          conflicts: Object.values(st.conflicts),
+          compactions: st.compactions,
+        });
+      }
       const m = url.pathname.match(/^\/api\/projects\/([^/]+)(?:\/(sessions|brief|state))?$/);
       if (m) {
         const p = this.project(m[1] as string);

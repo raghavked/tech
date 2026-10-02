@@ -7,7 +7,7 @@
 import { renderIntent, type Session, type SessionState } from "@atelier/kernel";
 import type { Actor, ToolCall, ToolResult } from "@atelier/protocol";
 import type { Model, ModelRequest, TranscriptEntry } from "./model.js";
-import type { ToolRegistry, WorkspaceGuard } from "./tools.js";
+import type { MemoryAccess, ToolRegistry, WorkspaceGuard } from "./tools.js";
 
 export interface RunnerOptions {
   maxStepsPerTurn?: number;
@@ -18,6 +18,8 @@ export interface RunnerOptions {
   log?: (line: string) => void;
   /** Fleet hook: claims, blocked writes and status reports to the project. */
   guard?: WorkspaceGuard | undefined;
+  /** Organisation memory hook: attributed writes and scoped context. */
+  memory?: MemoryAccess | undefined;
 }
 
 export type TurnOutcome =
@@ -202,6 +204,7 @@ export class Runner {
         branch,
         agentId: agent.id,
         guard: this.opts.guard,
+        memory: this.opts.memory,
       });
       return { callId: call.id, ok: true, output };
     } catch (err) {
@@ -264,11 +267,13 @@ export class Runner {
         (d) =>
           `${s.participants[d.author]?.actor.name ?? d.author} [${d.input.mode}/${d.input.scope}]: ${d.input.text}`,
       );
-    const fleet = this.opts.guard?.context() ?? "";
+    const extras = [this.opts.guard?.context() ?? "", this.opts.memory?.context() ?? ""].filter(
+      Boolean,
+    );
     return {
       title: s.title,
       intent: s.intent,
-      intentText: fleet ? `${renderIntent(s.intent)}\n${fleet}` : renderIntent(s.intent),
+      intentText: [renderIntent(s.intent), ...extras].join("\n"),
       history: s.turns.map((x) => `turn ${x.turn}: ${x.summary}`),
       files: Object.keys(s.workspace).sort(),
       transcript,

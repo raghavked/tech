@@ -15,7 +15,13 @@ import type {
   SessionPolicy,
 } from "@atelier/protocol";
 import { MAIN_BRANCH, type ROLE_RANK } from "@atelier/protocol";
-import { type Model, Runner, type ToolRegistry, type WorkspaceGuard } from "@atelier/runner";
+import {
+  type MemoryAccess,
+  type Model,
+  Runner,
+  type ToolRegistry,
+  type WorkspaceGuard,
+} from "@atelier/runner";
 import { FileBlobStore, readLog, sessionDir, writeLog } from "./storage.js";
 
 export interface ClientLink {
@@ -35,6 +41,8 @@ export interface HostOptions {
   log?: (line: string) => void;
   /** Fleet hook supplied by a ProjectHost. */
   guard?: WorkspaceGuard | undefined;
+  /** Organisation memory hook supplied by a ProjectHost. */
+  memory?: MemoryAccess | undefined;
   /** Role to give a joining human, by actor id; falls back to first-in-owns. */
   roleFor?: ((actorId: string) => Role | null) | undefined;
 }
@@ -123,6 +131,7 @@ export class SessionHost {
       const runnerOpts = {
         ...(this.opts.log ? { log: this.opts.log } : {}),
         guard: this.opts.guard,
+        memory: this.opts.memory,
       };
       r = new Runner(
         this.session,

@@ -34,11 +34,27 @@ export interface WorkspaceGuard {
   reportStatus(): void;
 }
 
+/** The organisation memory's hook into a session: attributed writes, scoped reads. */
+export interface MemoryAccess {
+  remember(input: {
+    key?: string;
+    content: string;
+    kind?: "fact" | "decision" | "convention";
+    tags?: string[];
+    evidence?: string[];
+    path?: string;
+  }): string;
+  recall(query: string): string;
+  /** Rendered team memory for this session's scope chain; injected into the model context. */
+  context(): string;
+}
+
 export interface ToolContext {
   session: Session;
   branch: string;
   agentId: string;
   guard?: WorkspaceGuard | undefined;
+  memory?: MemoryAccess | undefined;
 }
 
 export interface ToolImpl {
@@ -231,6 +247,58 @@ export const fleetStatus: ToolImpl = {
   },
 };
 
+export const memoryRemember: ToolImpl = {
+  spec: {
+    name: "memory.remember",
+    description:
+      "Record a fact, decision or convention in the team's shared memory, attributed to this session's engineer. Use a short key like db.engine so later updates supersede it.",
+    risk: "write",
+    schema: {
+      type: "object",
+      properties: {
+        key: { type: "string" },
+        content: { type: "string" },
+        kind: { type: "string", enum: ["fact", "decision", "convention"] },
+        tags: { type: "array", items: { type: "string" } },
+        evidence: { type: "array", items: { type: "string" } },
+        path: { type: "string", description: "optional path prefix the entry is about" },
+      },
+      required: ["content"],
+      additionalProperties: false,
+    },
+  },
+  async run(args, ctx) {
+    if (!ctx.memory) return "no shared memory in this session";
+    const kind = args.kind === "decision" || args.kind === "convention" ? args.kind : "fact";
+    return ctx.memory.remember({
+      content: str(args.content, "content"),
+      kind,
+      ...(typeof args.key === "string" ? { key: args.key } : {}),
+      ...(Array.isArray(args.tags) ? { tags: args.tags.map(String) } : {}),
+      ...(Array.isArray(args.evidence) ? { evidence: args.evidence.map(String) } : {}),
+      ...(typeof args.path === "string" ? { path: safePath(args.path) } : {}),
+    });
+  },
+};
+
+export const memoryRecall: ToolImpl = {
+  spec: {
+    name: "memory.recall",
+    description: "Search the team's shared memory for this project, team and organisation.",
+    risk: "read",
+    schema: {
+      type: "object",
+      properties: { query: { type: "string" } },
+      required: ["query"],
+      additionalProperties: false,
+    },
+  },
+  async run(args, ctx) {
+    if (!ctx.memory) return "no shared memory in this session";
+    return ctx.memory.recall(str(args.query, "query"));
+  },
+};
+
 const SHELL_ALLOWLIST = new Set([
   "node",
   "ls",
@@ -320,5 +388,7 @@ export function defaultTools(): ToolRegistry {
     .register(deploy)
     .register(fleetClaim)
     .register(fleetRelease)
-    .register(fleetStatus);
+    .register(fleetStatus)
+    .register(memoryRemember)
+    .register(memoryRecall);
 }

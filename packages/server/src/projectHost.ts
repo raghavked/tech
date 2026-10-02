@@ -25,8 +25,9 @@ import {
   withdrawPropagated,
 } from "@atelier/fleet";
 import type { SessionState } from "@atelier/kernel";
+import type { MemoryStore } from "@atelier/memory";
 import { type Actor, MAIN_BRANCH, type SessionEvent, type SessionPolicy } from "@atelier/protocol";
-import type { Model, ToolRegistry, WorkspaceGuard } from "@atelier/runner";
+import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@atelier/runner";
 import { SessionHost } from "./host.js";
 import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
 
@@ -52,6 +53,8 @@ export interface ProjectHostOptions {
   policy?: ProjectPolicy;
   sessionPolicy: SessionPolicy;
   log?: (line: string) => void;
+  /** The organisation's shared memory (one store per org, shared across its projects). */
+  memory?: MemoryStore | undefined;
 }
 
 export class ProjectHost {
@@ -108,6 +111,7 @@ export class ProjectHost {
       model: this.opts.model,
       tools: this.opts.tools,
       guard: this.guardFor(sessionId),
+      memory: this.memoryFor(sessionId),
     };
     const withLog = this.opts.log ? { ...base, log: this.opts.log } : base;
     try {
@@ -261,6 +265,48 @@ export class ProjectHost {
         });
         project.expireStale();
       },
+    };
+  }
+
+  /** Attributed, scoped access to the org memory for one session. */
+  private memoryFor(sessionId: string): MemoryAccess | undefined {
+    const store = this.opts.memory;
+    if (!store) return undefined;
+    const scope = { orgId: this.opts.orgId, teamId: this.opts.teamId, projectId: this.projectId };
+    const attribution = () => {
+      const owner =
+        this.project.state().sessions[sessionId]?.ownerId ??
+        this.hosts.get(sessionId)?.session.state().ownerId ??
+        "unknown";
+      const name = this.project.state().members[owner]?.name;
+      return { userId: owner, ...(name ? { userName: name } : {}), agentId: "agent", sessionId };
+    };
+    return {
+      remember: (input) => {
+        const r = store.remember({
+          scope: input.path ? { ...scope, path: input.path } : scope,
+          kind: input.kind ?? "fact",
+          key: input.key ?? null,
+          content: input.content,
+          tags: input.tags ?? [],
+          evidence: input.evidence ?? [],
+          attribution: attribution(),
+        });
+        return r.conflictId
+          ? `remembered ${r.entry.id}; it conflicts with another engineer's entry on [${r.entry.key}] (conflict ${r.conflictId}); a lead will resolve`
+          : `remembered ${r.entry.id}${r.superseded.length ? ` (supersedes ${r.superseded.join(", ")})` : ""} as ${attribution().userName ?? attribution().userId}`;
+      },
+      recall: (query) => {
+        const hits = store.recall(scope, query);
+        if (!hits.length) return `nothing in team memory matches "${query}"`;
+        return hits
+          .map(
+            (e) =>
+              `- ${e.key ? `[${e.key}] ` : ""}${e.content.split("\n")[0]} (${e.attribution.userName ?? e.attribution.userId}${e.attribution.sessionId ? `, session ${e.attribution.sessionId}` : ""}${e.attribution.commitSha ? `, commit ${e.attribution.commitSha.slice(0, 7)}` : ""})`,
+          )
+          .join("\n");
+      },
+      context: () => store.contextFor(scope, sessionId),
     };
   }
 

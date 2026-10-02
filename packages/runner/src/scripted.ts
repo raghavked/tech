@@ -99,6 +99,19 @@ export class ScriptedModel implements Model {
       return { text: `Writing ${src}.`, toolCalls: calls, done: false };
     }
     if (!files.has(test) && !didThisTurn.has(`workspace.write:${test}`)) {
+      if (req.tools.some((t) => t.name === "memory.remember")) {
+        calls.push({
+          id: id(7),
+          name: "memory.remember",
+          args: {
+            key: `module.${module}`,
+            content: `${module} lives in ${src}; tests in ${test}`,
+            kind: "fact",
+            evidence: [src],
+          },
+          risk: "write",
+        });
+      }
       calls.push({
         id: id(4),
         name: "workspace.write",

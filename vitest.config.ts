@@ -10,6 +10,7 @@ export default defineConfig({
       "@atelier/kernel": src("kernel"),
       "@atelier/runner": src("runner"),
       "@atelier/fleet": src("fleet"),
+      "@atelier/memory": src("memory"),
       "@atelier/server": src("server"),
     },
   },
