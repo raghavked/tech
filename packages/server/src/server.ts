@@ -19,6 +19,7 @@ import {
 import type { Model, ToolRegistry } from "@fold/runner";
 import { type WebSocket, WebSocketServer } from "ws";
 import { handleBranchApi } from "./branchApi.js";
+import { EXPORT_PATH, exportHeaders, exportSessionMarkdown } from "./export.js";
 import type { ClientLink, SessionHost } from "./host.js";
 import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
 import { Notifier, type PushSubscription } from "./notify.js";
@@ -241,6 +242,18 @@ export class FoldServer {
             subscriptions: this.notifier.subscriptions(sub.userId).length,
           });
         });
+        return true;
+      }
+      // export-session hook: GET /api/sessions/:id/export.md renders the session as markdown.
+      const ex = url.pathname.match(EXPORT_PATH);
+      if (ex) {
+        const sessionId = decodeURIComponent(ex[1] as string);
+        const markdown = exportSessionMarkdown(
+          { root: this.opts.root, projects: this.projects },
+          sessionId,
+        );
+        res.writeHead(200, exportHeaders(sessionId, url.searchParams.get("download") === "1"));
+        res.end(markdown);
         return true;
       }
       const mm = url.pathname.match(/^\/api\/memory\/([^/]+)(?:\/(curate|context))?$/);

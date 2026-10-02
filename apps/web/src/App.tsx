@@ -381,7 +381,7 @@ function Sidebar({
           {nothingMatches && <p className="item faint">No sessions match.</p>}
           {identity && <MemoryResults hits={memoryHits} needle={needle} />}
         </div>
-        <Account identity={identity} />
+        <Account identity={identity} route={route} />
       </nav>
     </>
   );
@@ -445,7 +445,7 @@ function useProjectSessions(ids: string[], route: Route): Record<string, Session
   return out;
 }
 
-function Account({ identity }: { identity: Identity | null }) {
+function Account({ identity, route }: { identity: Identity | null; route: Route }) {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useTheme();
   const [perm, setPerm] = useState(notifyPermission());
@@ -497,6 +497,21 @@ function Account({ identity }: { identity: Identity | null }) {
           <a className="small" href={paths.settings()}>
             Settings
           </a>
+          {route.name === "session" && (
+            <>
+              {/* export-session hook: the session menu's Export action */}
+              <div className="small muted">Session</div>
+              <a
+                className="small"
+                href={api.exportUrl(route.sessionId)}
+                target="_blank"
+                rel="noopener"
+                onClick={() => setOpen(false)}
+              >
+                Export as markdown
+              </a>
+            </>
+          )}
           <a className="small" href={paths.home()}>
             {copy.account.changeIdentity}
           </a>

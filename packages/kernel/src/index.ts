@@ -6,6 +6,7 @@ export * from "./intent.js";
 export * from "./log.js";
 export * from "./merge.js";
 export * from "./replay.js";
+export * from "./report.js";
 export * from "./session.js";
 export * from "./state.js";
 export * from "./workspace.js";

@@ -99,6 +99,9 @@ export const api = {
   policy: (id: string) => getJson<SessionPolicy>(`/api/projects/${encodeURIComponent(id)}/policy`),
   /** settings-page: which adapters run beside the server. */
   integrations: () => getJson<{ slack: boolean }>("/api/integrations"),
+  /** The session rendered as markdown (export-session); opens in a tab, `download` saves a file. */
+  exportUrl: (sessionId: string, download = false) =>
+    `/api/sessions/${encodeURIComponent(sessionId)}/export.md${download ? "?download=1" : ""}`,
   notifications: (user: string) =>
     getJson<{ notifications: Notification[] }>(
       `/api/notifications?user=${encodeURIComponent(user)}`,
