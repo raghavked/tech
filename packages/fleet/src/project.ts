@@ -161,8 +161,7 @@ export class Project {
 
   release(sessionId: string, claimId: string): ProjectEvent {
     const c = this.current.claims[claimId];
-    if (!c || c.status !== "active")
-      throw new KernelError("not_found", `no active claim ${claimId}`);
+    if (c?.status !== "active") throw new KernelError("not_found", `no active claim ${claimId}`);
     if (c.sessionId !== sessionId)
       throw new KernelError("unauthorized", "only the holding session releases a claim");
     return this.emit(`session:${sessionId}`, { kind: "claim.released", payload: { claimId } });
