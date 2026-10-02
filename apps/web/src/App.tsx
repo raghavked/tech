@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { api, type Me, type SessionRow, useFetch } from "./api.js";
 import { copy } from "./copy.js";
 import { ErrorBoundary, Recover } from "./ErrorBoundary.js";
@@ -8,6 +8,7 @@ import { notifyPermission, requestNotifications } from "./notify.js";
 import { CommandPalette, hotkeyLabel, openPalette, publishSidebarSessions } from "./palette.js";
 import { useRecents } from "./recents.js";
 import { navigate, paths, type Route, useRoute } from "./router.js";
+import { MemoryResults, matchSession, needleOf, searchKeys, useMemorySearch } from "./search.js";
 import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
 import { type Theme, useTheme } from "./theme.js";
 import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
@@ -199,9 +200,15 @@ function Sidebar({
     projects.map((p) => p.projectId),
     route,
   );
-  const needle = q.trim().toLowerCase();
+  const needle = needleOf(q);
   const hit = (...xs: (string | undefined)[]) =>
     !needle || xs.some((x) => x?.toLowerCase().includes(needle));
+  // session-search: owner and goal matching, team memory after two characters, keyboard.
+  const searchInput = useRef<HTMLInputElement>(null);
+  const listsRef = useRef<HTMLDivElement>(null);
+  const memoryHits = useMemorySearch(me, needle);
+  const matchRow = (s: SessionRow) =>
+    s.open && matchSession(s, needle, me?.user?.id === s.ownerId ? me.user.name : undefined);
   const activeSession = route.name === "session" ? route.sessionId : null;
   const activeProject = route.name === "fleet" ? route.projectId : null;
   const activeTeam = route.name === "management" ? route.teamId : null;
@@ -227,6 +234,11 @@ function Sidebar({
     Object.values(sessions).flatMap((rows) => rows.filter((r) => r.open).map((r) => r.sessionId)),
   );
   const recentsShown = recents.filter((r) => !listed.has(r.sessionId) && hit(r.title, r.sessionId));
+  const nothingMatches =
+    Boolean(needle) &&
+    recentsShown.length === 0 &&
+    !projects.some((p) => hit(p.name, p.projectId)) &&
+    !Object.values(sessions).some((rows) => rows.some(matchRow));
   return (
     <>
       {open && (
@@ -237,7 +249,17 @@ function Sidebar({
           onClick={onClose}
         />
       )}
-      <nav className={`sidebar${open ? " open" : ""}`} aria-label={copy.shell.sidebar}>
+      <nav
+        className={`sidebar${open ? " open" : ""}`}
+        aria-label={copy.shell.sidebar}
+        onKeyDown={(e) =>
+          searchKeys(e, {
+            clear: () => setQ(""),
+            input: searchInput.current,
+            lists: listsRef.current,
+          })
+        }
+      >
         <a className="brand" href={paths.home()}>
           <Mark size={22} />
           <span className="serif">{copy.product}</span>
@@ -249,6 +271,7 @@ function Sidebar({
         <label className="search">
           <Icon d={ICONS.search} size={14} />
           <input
+            ref={searchInput}
             type="search"
             placeholder={copy.shell.searchSessions}
             aria-label={copy.shell.searchSessions}
@@ -269,7 +292,7 @@ function Sidebar({
             {inbox.unread > 0 && <span className="count">{inbox.unread}</span>}
           </a>
         )}
-        <div className="lists">
+        <div className="lists" ref={listsRef}>
           {identity && teams.length > 0 && (
             <div className="section">
               {copy.shell.agents}
@@ -287,9 +310,7 @@ function Sidebar({
                 </a>
               ) : null}
               {t.projects.map((p) => {
-                const rows = (sessions[p.projectId] ?? []).filter(
-                  (s) => s.open && hit(s.title, s.sessionId),
-                );
+                const rows = (sessions[p.projectId] ?? []).filter(matchRow);
                 if (!hit(p.name, p.projectId) && rows.length === 0) return null;
                 return (
                   <div key={p.projectId}>
@@ -357,6 +378,8 @@ function Sidebar({
               {r.title || r.sessionId}
             </a>
           ))}
+          {nothingMatches && <p className="item faint">No sessions match.</p>}
+          {identity && <MemoryResults hits={memoryHits} needle={needle} />}
         </div>
         <Account identity={identity} />
       </nav>
