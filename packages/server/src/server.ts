@@ -206,33 +206,29 @@ export class TillerServer {
       if (url.pathname === "/api/notifications") {
         const user = url.searchParams.get("user") ?? "";
         if (req.method === "POST") {
-          return (
-            void readBody(req).then((body) => {
-              const ids = (JSON.parse(body || "{}") as { read?: string[] }).read ?? [];
-              this.notifier.markRead(user, ids);
-              json(200, { ok: true });
-            }),
-            true
-          );
+          void readBody(req).then((body) => {
+            const ids = (JSON.parse(body || "{}") as { read?: string[] }).read ?? [];
+            this.notifier.markRead(user, ids);
+            json(200, { ok: true });
+          });
+          return true;
         }
         return json(200, {
           notifications: this.notifier.list(user, url.searchParams.get("unread") === "1"),
         });
       }
       if (url.pathname === "/api/push/subscribe" && req.method === "POST") {
-        return (
-          void readBody(req).then((body) => {
-            const sub = JSON.parse(body) as PushSubscription;
-            if (!sub.userId || !sub.platform || !sub.token)
-              return json(400, { error: "userId, platform and token are required" });
-            this.notifier.subscribe(sub);
-            return json(200, {
-              ok: true,
-              subscriptions: this.notifier.subscriptions(sub.userId).length,
-            });
-          }),
-          true
-        );
+        void readBody(req).then((body) => {
+          const sub = JSON.parse(body) as PushSubscription;
+          if (!sub.userId || !sub.platform || !sub.token)
+            return json(400, { error: "userId, platform and token are required" });
+          this.notifier.subscribe(sub);
+          return json(200, {
+            ok: true,
+            subscriptions: this.notifier.subscriptions(sub.userId).length,
+          });
+        });
+        return true;
       }
       const mm = url.pathname.match(/^\/api\/memory\/([^/]+)(?:\/(curate|context))?$/);
       if (mm) {
