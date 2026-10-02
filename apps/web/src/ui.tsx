@@ -226,11 +226,15 @@ export function TeamPill({ row }: { row: AgentRow }) {
 export function doingOf(row: AgentRow): { lead: string; text: string } {
   const r = row.report;
   const status = row.live ?? r?.status ?? "idle";
-  if (!r?.goal && !r?.summary) return { lead: "waiting for", text: "a goal" };
-  if (status === "awaiting_approval") return { lead: "waiting on", text: "an approval" };
-  if (status === "blocked") return { lead: "blocked on", text: r.goal ?? r.summary };
-  if (status === "running") return { lead: "working on", text: r.goal ?? r.summary };
-  return { lead: "last", text: r.summary || r.goal || "" };
+  // The report lands at turn boundaries; until then the title stands in for the goal.
+  const goal = r?.goal || row.title || row.sessionId;
+  const summary = (r?.summary ?? "").replace(/^(DONE|continuing):?\s*/i, "").trim();
+  if (status === "awaiting_approval") return { lead: "waiting on", text: `an approval · ${goal}` };
+  if (status === "blocked") return { lead: "blocked on", text: goal };
+  if (status === "running") return { lead: "working on", text: goal };
+  if (status === "paused") return { lead: "paused on", text: goal };
+  if (!r) return { lead: "waiting for", text: "a goal" };
+  return { lead: "last", text: summary || goal };
 }
 
 export function AgentCard({
