@@ -34,6 +34,18 @@ export interface MemoryFeed {
   }[];
 }
 
+export interface Notification {
+  id: string;
+  userId: string;
+  kind: "approval" | "handoff" | "contention" | "done" | "blocked";
+  title: string;
+  body: string;
+  /** fold://p/<project>/s/<session> */
+  link: string;
+  at: number;
+  read: boolean;
+}
+
 export type { CuratorReport, EntryRecord, MemoryConflict, ProjectState };
 
 export async function getJson<T>(url: string): Promise<T> {
@@ -58,7 +70,17 @@ export const api = {
     return getJson<{ context: string }>(`/api/memory/${encodeURIComponent(org)}/context?${p}`);
   },
   curate: (org: string) => getJson<CuratorReport>(`/api/memory/${encodeURIComponent(org)}/curate`),
+  notifications: (user: string) =>
+    getJson<{ notifications: Notification[] }>(
+      `/api/notifications?user=${encodeURIComponent(user)}`,
+    ),
 };
+
+/** Turn a fold:// deep link into the client's hash route, or null when it is not one. */
+export function routeOfLink(link: string): string | null {
+  const m = link.match(/^fold:\/\/p\/([^/]+)\/s\/([^/?#]+)/);
+  return m ? `#/p/${m[1]}/s/${m[2]}` : null;
+}
 
 export interface Fetched<T> {
   data: T | null;
