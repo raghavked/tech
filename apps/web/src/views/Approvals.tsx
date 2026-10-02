@@ -315,7 +315,7 @@ function QueueRowItem({
         </button>
         <button
           type="button"
-          className="btn ghost sm"
+          className="btn sm"
           disabled={r.myVote === "deny"}
           onClick={() => onVote("deny")}
         >

@@ -59,7 +59,8 @@ export function BranchCompare({
 }) {
   const here = s.branch;
   const cmp = useFetch(
-    () => branchApi.compare(projectId, s.sessionId, here, other),
+    // Counted from the other branch to here, so "+" is what this branch adds.
+    () => branchApi.compare(projectId, s.sessionId, other, here),
     `${s.sessionId}/${here}/${other}/${s.seq}`,
   );
   // The other branch's events do not reach this socket: look again now and then.
@@ -74,7 +75,7 @@ export function BranchCompare({
   const others = ["main", ...Object.keys(s.branches)].filter((b) => b !== here);
   const files = cmp.data?.files ?? [];
   const note = (f: Compare["files"][number]) =>
-    !f.inA ? `only on ${other}` : !f.inB ? `only on ${here}` : "";
+    !f.inA ? `only on ${here}` : !f.inB ? `only on ${other}` : "";
 
   return (
     <section className="column page compare" aria-label={`Compare ${here} with ${other}`}>
@@ -132,8 +133,8 @@ export function BranchCompare({
       <section className="group">
         <h2>Last turns</h2>
         <div className="sides">
-          <Turns branch={here} turns={cmp.data?.turns.a ?? []} />
-          <Turns branch={other} turns={cmp.data?.turns.b ?? []} />
+          <Turns branch={here} turns={cmp.data?.turns.b ?? []} />
+          <Turns branch={other} turns={cmp.data?.turns.a ?? []} />
         </div>
       </section>
 
@@ -202,7 +203,7 @@ function Turns({ branch, turns }: { branch: string; turns: TurnGlimpse[] }) {
       {turns.length === 0 && <p className="muted small">No turns yet.</p>}
       {turns.map((t) => (
         <p className="turn" key={t.turn}>
-          <b>Turn {t.turn}</b> {t.text || "(no summary)"}
+          <b>Turn {t.turn}</b> {t.text.replace(/^(DONE|continuing):?\s*/i, "") || "(no summary)"}
           <span className="faint">
             {t.toolCalls ? ` · ${t.toolCalls} tool call${t.toolCalls === 1 ? "" : "s"}` : ""}
             {t.reason && t.reason !== "done" ? ` · ${t.reason}` : ""}
