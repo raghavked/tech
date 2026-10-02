@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — Session</title>
+<meta name="description" content="Atelier web session view: live agent session with stream, composer and sidebar.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .app { display: grid; grid-template-columns: 1fr 372px; min-height: 920px; }
+  .main { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--border); }
+  .main .stream { flex: 1; }
+  .main .stream-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: var(--fs-2); color: var(--fg-muted); }
+  .side { padding: 12px; background: var(--bg); }
+  .side .card { padding: 14px; }
+  .side .card + .card { margin-top: 12px; }
+  .side .t-h3 { font-size: var(--fs-3); }
+  .intent dt { color: var(--fg-muted); }
+  .branch { display: flex; align-items: center; gap: 8px; font-size: var(--fs-2); padding: 6px 0; }
+  .branch .node { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--slate); background: var(--surface); }
+  .branch .node.cur { background: var(--olive); border-color: var(--olive); }
+  .file { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: var(--fs-1); padding: 5px 0; }
+  .file .d { margin-left: auto; color: var(--fg-muted); font-family: var(--font-ui); }
+  .brief p { font-size: var(--fs-2); }
+  .brief .t-label { margin: 10px 0 4px; font-size: 10px; }
+  .sr { font-size: 11px; color: var(--fg-faint); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<input type="checkbox" id="theme" class="theme-input">
+<header class="site-head">
+  <a class="brand" href="index.html"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-width="12" stroke-linecap="round"><path class="s-navy" d="M84 88 Q78 48 50 16"/><path class="s-choc" d="M16 88 Q22 48 50 16"/><path class="s-apri" d="M50 90 Q46 52 50 16"/></g></svg><span class="wordmark">Atelier</span></a>
+  <nav><a href="index.html">Brand</a><a href="web-session.html" aria-current="page">Session</a><a href="web-fleet.html">Fleet</a><a href="web-management.html">Management</a><a href="slack.html">Slack mock</a><a href="mobile.html">Mobile</a><a href="desktop.html">Desktop</a></nav>
+  <span class="spacer"></span>
+  <span class="mock-label">Web · session · 1440</span>
+  <label for="theme" class="theme-toggle" title="Toggle light / dark">Theme <span class="track"></span></label>
+</header>
+
+<div class="canvas"><div class="frame-scale"><div class="frame-desktop">
+
+  <div class="topbar">
+    <span class="brand"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-width="12" stroke-linecap="round"><path d="M84 88 Q78 48 50 16" stroke="#5B7390"/><path d="M16 88 Q22 48 50 16" stroke="#F6EEE4"/><path d="M50 90 Q46 52 50 16" stroke="#E2C4A6"/></g></svg></span>
+    <nav class="crumbs"><a href="web-fleet.html">Northwind</a><span class="sep">›</span><a href="web-fleet.html">Payments</a><span class="sep">›</span><span>Billing page</span><span class="sep">›</span><span class="cur">Invoice PDF + tax lines</span></nav>
+    <span class="pill pill-running">Running · turn 41</span>
+    <span class="grow"></span>
+    <span class="presence on-chrome" title="Ana is driving"><span class="avatar ana avatar-driver">AN</span><span class="avatar bo">BO</span><span class="avatar cy">CY</span><span class="avatar dee">DE</span><span class="avatar agent">A</span></span>
+    <span class="t-small" style="color:var(--chrome-muted)">4 here · Ana driving</span>
+    <button class="btn btn-sm">Fork</button><button class="btn btn-sm">Pause</button><button class="btn btn-sm btn-accent">Hand off</button>
+  </div>
+
+  <div class="app">
+    <section class="main">
+      <div class="stream-head"><span class="t-label" style="margin:0">Event stream</span><span class="chip">main</span><span class="grow"></span><span>Showing since checkpoint c6</span><a href="#">Jump to latest</a></div>
+      <div class="stream">
+        <div class="ev ev-system"><span class="sys-ico">○</span><div><div class="meta"><span class="name">System</span></div><div class="body">Ana joined as owner and took the driver seat. Policy: exec needs a contributor, external the driver, irreversible 2 drivers. Contention policy: block.</div></div><span class="time">13:58</span></div>
+        <div class="ev ev-human"><span class="avatar ana avatar-driver">AN</span><div><div class="meta"><span class="name">Ana</span><span class="tag">steer · goal</span></div><div class="body">Generate the invoice PDF with tax lines per jurisdiction. Keep the layout from the current template; tax lines go below subtotal.</div></div><span class="time">14:02</span></div>
+        <div class="ev ev-agent"><span class="avatar agent">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">plan · turn 38</span></div><div class="body">Plan: 1) read the renderer and the tax module; 2) add a <code>taxLines()</code> helper; 3) extend the PDF template; 4) tests for three jurisdictions. No schema changes.</div></div><span class="time">14:02</span></div>
+        <div class="ev ev-agent"><span class="avatar agent">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">tool · turn 38</span></div><div class="body">Reading the current renderer.</div><div class="tool"><b>read</b> src/billing/invoice.ts · 214 lines · risk: read · 0.4s
+<b>read</b> src/billing/tax/index.ts · 88 lines · risk: read · 0.2s</div></div><span class="time">14:03</span></div>
+        <div class="ev ev-human"><span class="avatar bo">BO</span><div><div class="meta"><span class="name">Bo</span><span class="tag">constrain</span></div><div class="body">No new external dependencies on the invoice path.</div><div class="scopes"><span class="chip chip-scope">api</span></div></div><span class="time">14:04</span></div>
+        <div class="ev ev-agent"><span class="avatar agent">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">write · turn 39</span></div><div class="body">Added <code>taxLines(invoice)</code> grouping line items by jurisdiction. Constraint noted: no new dependencies.</div><div class="tool"><b>write</b> src/billing/tax/lines.ts · +64 −0 · risk: write</div></div><span class="time">14:05</span></div>
+        <div class="ev ev-system"><span class="sys-ico">○</span><div><div class="meta"><span class="name">System</span></div><div class="body">Checkpoint c7 recorded · hash <code>e91d…7a</code> · fork point.</div></div><span class="time">14:05</span></div>
+        <div class="ev ev-human"><span class="avatar bo">BO</span><div><div class="meta"><span class="name">Bo</span><span class="tag">steer · tax</span></div><div class="body">Use the Stripe tax API for every jurisdiction; it is already configured for checkout.</div></div><span class="time">14:06</span></div>
+        <div class="ev ev-human"><span class="avatar cy">CY</span><div><div class="meta"><span class="name">Cy</span><span class="tag">steer · tax</span></div><div class="body">Use local tax tables. No external calls on the invoice path; the PDF must render offline.</div></div><span class="time">14:06</span></div>
+        <div class="ev ev-alert"><span class="sys-ico">!</span><div><div class="meta"><span class="name">Contention</span><span class="tag">scope tax · same epoch · same rank</span></div><div class="body">Stripe tax API vs local tax tables. Scope <code>tax</code> is frozen; the agent keeps working on every other scope until the driver picks.</div></div><span class="time">14:06</span></div>
+        <div class="ev ev-agent"><span class="avatar agent">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">turn 40</span></div><div class="body">Tax source is under discussion, so I am not choosing one. Extending the PDF template with a tax block that takes either source.</div><div class="tool"><b>write</b> src/billing/pdf/template.tsx · +41 −6 · risk: write
+<b>exec</b> pnpm test billing/pdf · 12 passed · risk: exec · approved by Bo</div></div><span class="time">14:09</span></div>
+        <div class="ev ev-approval"><span class="sys-ico">◍</span><div><div class="meta"><span class="name">Approval requested</span><span class="tag">irreversible · 2 of 2 drivers</span></div><div class="body">Bo's agent (session billing-43) asks to <code>DELETE legacy_invoices</code>. Ana has approved; waiting for a second driver.</div></div><span class="time">14:11</span></div>
+        <div class="ev ev-human"><span class="avatar dee">DE</span><div><div class="meta"><span class="name">Dee</span><span class="tag">lead · project directive</span></div><div class="body">Schema freeze until Thursday. Applies to all sessions in Payments.</div><div class="scopes"><span class="chip chip-scope">schema</span><span class="badge badge-all">all sessions</span></div></div><span class="time">14:12</span></div>
+        <div class="ev ev-agent"><span class="avatar agent">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">turn 41 · running</span></div><div class="body">Writing jurisdiction tests (DE, FR, US-CA). Will wait on the tax contention before wiring the source.</div></div><span class="time">14:14</span></div>
+      </div>
+      <div class="composer">
+        <div class="field">
+          <select aria-label="Mode"><option>Steer</option><option>Constrain</option><option>Pause</option><option>Resume</option><option>Cancel</option></select>
+          <span class="input row" style="padding-right:6px">scope <span class="chip chip-scope">goal</span><span class="faint">▾</span></span>
+          <span class="grow"></span>
+          <span class="switch"><span class="track"></span> Interrupt now</span>
+          <span class="sr">epoch 41</span>
+        </div>
+        <textarea aria-label="Directive" placeholder="Steer the goal… arbitrated against everyone else's directive and applied at the next safe point."></textarea>
+        <div class="field"><span class="t-small muted">As Ana · owner · driver</span><span class="grow"></span><button class="btn btn-ghost btn-sm">Ask for brief</button><button class="btn btn-primary">Send</button></div>
+      </div>
+    </section>
+
+    <aside class="side sidebar">
+      <div class="card card-hero intent">
+        <div class="card-head"><span class="t-label">Intent</span><span class="t-small muted">composed · epoch 41</span></div>
+        <dl class="kv">
+          <dt>Goal</dt><dd>Invoice PDF with tax lines per jurisdiction. <span class="faint">Ana</span></dd>
+          <dt>Scopes</dt><dd><div class="row wrap"><span class="chip chip-scope">layout: keep template</span><span class="chip chip-scope">tests: DE FR US-CA</span></div></dd>
+          <dt>Constraints</dt><dd>No new external deps on invoice path <span class="faint">Bo</span><br>Schema freeze until Thursday <span class="faint">Dee · project</span></dd>
+          <dt>Under discussion</dt><dd><span class="chip chip-claim contended">tax</span> <span class="t-small muted">agent must not act</span></dd>
+        </dl>
+      </div>
+
+      <div class="card card-brick contention">
+        <div class="card-head"><span class="t-label">Contention</span><span class="chip chip-scope">tax</span></div>
+        <h3 class="t-h3">Stripe tax API vs local tax tables</h3>
+        <div style="margin-top:8px">
+          <div class="option"><span class="avatar bo sm">BO</span><div class="grow">Stripe tax API for every jurisdiction.<div class="by">14:06</div></div><button class="btn btn-sm">Pick</button></div>
+          <div class="option"><span class="avatar cy sm">CY</span><div class="grow">Local tax tables; renders offline.<div class="by">14:06</div></div><button class="btn btn-sm">Pick</button></div>
+        </div>
+        <div class="card-foot"><button class="btn btn-sm btn-ghost">Write replacement</button><span class="grow"></span><span class="t-small muted">you are driver</span></div>
+      </div>
+
+      <div class="card card-amber approval">
+        <div class="card-head"><span class="t-label">Approval</span><span class="chip chip-risk">irreversible</span></div>
+        <h3 class="t-h3">DELETE legacy_invoices</h3>
+        <p class="t-small muted" style="margin-top:4px">From Bo's agent · billing-43 · 1.2M rows · bound to call hash <code>4b7e…c1</code></p>
+        <div class="quorum" style="margin-top:8px"><span class="seat on"></span><span class="seat"></span> 1 of 2 drivers · you approved</div>
+        <div class="card-foot"><button class="btn btn-sm btn-success" disabled>Approved</button><button class="btn btn-sm btn-outline-danger">Withdraw</button><span class="grow"></span><span class="t-small muted">needs Bo</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="t-label">Team</span><span class="t-small muted">4 present</span></div>
+        <ul class="list tight">
+          <li class="row"><span class="who"><span class="avatar ana sm avatar-driver">AN</span><span class="name">Ana</span></span><span class="grow"></span><span class="chip chip-role">owner · driver</span></li>
+          <li class="row"><span class="who"><span class="avatar bo sm">BO</span><span class="name">Bo</span></span><span class="grow"></span><span class="chip chip-role">contributor</span><button class="btn btn-sm btn-accent">Hand off</button></li>
+          <li class="row"><span class="who"><span class="avatar cy sm">CY</span><span class="name">Cy</span></span><span class="grow"></span><span class="chip chip-role">contributor</span></li>
+          <li class="row"><span class="who"><span class="avatar dee sm">DE</span><span class="name">Dee</span></span><span class="grow"></span><span class="chip chip-role">lead · observer</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="t-label">Branches</span><div class="row"><button class="btn btn-sm">Fork</button><button class="btn btn-sm">Merge</button></div></div>
+        <div class="branch"><span class="node cur"></span><b>main</b><span class="muted">· c7 · you are here</span></div>
+        <div class="branch" style="padding-left:18px"><span class="node"></span><code>try/stripe-tax</code><span class="muted">· Bo · from c7</span><span class="grow"></span><span class="badge badge-conflict">2 conflicts</span></div>
+        <div class="branch" style="padding-left:18px"><span class="node"></span><code>try/local-tables</code><span class="muted">· Cy · from c7</span><span class="grow"></span><span class="badge badge-ok">clean</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="t-label">Workspace</span><span class="badge badge-conflict">1 conflict</span></div>
+        <div class="file"><span class="badge badge-new">M</span>src/billing/tax/lines.ts<span class="d">+64</span></div>
+        <div class="file"><span class="badge badge-new">M</span>src/billing/pdf/template.tsx<span class="d">+41 −6</span></div>
+        <div class="file"><span class="badge badge-conflict">C</span>src/billing/tax/rates.ts<span class="d">vs try/stripe-tax</span></div>
+        <div class="file"><span class="badge badge-ok">A</span>test/billing/tax.test.ts<span class="d">+120</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="t-label">Project memory</span><a class="t-small" href="#">Add</a></div>
+        <ul class="list">
+          <li class="memory"><p class="body">EU tax tables live in <code>tax/rates.ts</code>, regenerated by <code>pnpm tax:sync</code>; never hand-edit.</p><div class="attrib"><span class="avatar ana sm">AN</span><span>added by Ana</span><span class="dot">session billing-42</span><span class="dot"><code>9f3c1a</code></span></div></li>
+          <li class="memory"><p class="body">Stripe tax is configured for checkout only; invoice path has no Stripe credentials in prod.</p><div class="attrib"><span class="avatar bo sm">BO</span><span>added by Bo</span><span class="dot">session billing-43</span><span class="dot"><code>a12e07</code></span></div></li>
+          <li class="memory"><p class="body">PDF renderer must stay offline: it runs in the nightly batch worker without egress.</p><div class="attrib"><span class="avatar cy sm">CY</span><span>added by Cy</span><span class="dot">session billing-40</span><span class="dot"><code>77c0d9</code></span></div></li>
+        </ul>
+      </div>
+
+      <div class="card brief">
+        <div class="card-head"><span class="t-label">Catch-up brief</span><span class="t-small muted">computed · 14:14</span></div>
+        <p class="t-label">Situation</p><p>Agent is on turn 41 writing jurisdiction tests. Goal unchanged since 14:02.</p>
+        <p class="t-label">Open items</p><p>Tax contention (Bo vs Cy) waits on you. One irreversible approval needs Bo. One workspace conflict with <code>try/stripe-tax</code>.</p>
+        <p class="t-label">Since you were last here</p><p>Dee set a project directive: schema freeze until Thursday. Bo forked at c7.</p>
+      </div>
+    </aside>
+  </div>
+</div></div></div>
+
+<footer class="foot page" style="padding-top:0"><span>Atelier · static mockup · no JavaScript</span><span>Frame rendered at 82% so the 1440 canvas fits most displays; scroll horizontally if needed.</span></footer>
+</body>
+</html>

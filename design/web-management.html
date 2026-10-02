@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — Management</title>
+<meta name="description" content="Atelier team management dashboard: counts, fleet briefs, approvals, contentions, handoffs and 7-day activity.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .app { min-height: 900px; }
+  .dash { padding: var(--space-3); display: grid; gap: var(--space-2); }
+  .dash-head { display: flex; align-items: flex-end; gap: var(--space-2); }
+  .dash-head .t-title { font-size: 32px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr) 2fr; gap: var(--space-2); }
+  .kpi .delta { font-size: var(--fs-1); color: var(--fg-muted); }
+  .spark svg { width: 100%; height: 150px; }
+  .spark .axis { font: 11px var(--font-ui); fill: var(--fg-faint); }
+  .spark .area { fill: var(--pantone-apricot); opacity: .35; }
+  .spark .line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .spark .line2 { fill: none; stroke: var(--amber); stroke-width: 2; stroke-dasharray: 4 4; stroke-linejoin: round; }
+  .spark .grid line { stroke: var(--border); }
+  .spark .legend { display: flex; gap: 16px; font-size: var(--fs-1); color: var(--fg-muted); }
+  .spark .legend i { display: inline-block; width: 16px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .two { display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--space-2); }
+  .briefs { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+  .briefs .card p { font-size: var(--fs-2); }
+  .briefs .card .t-h3 { font-family: var(--font-display); font-weight: 500; font-size: var(--fs-5); }
+  .log li { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; }
+  .log .t { font-size: var(--fs-1); color: var(--fg-faint); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<input type="checkbox" id="theme" class="theme-input">
+<header class="site-head">
+  <a class="brand" href="index.html"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-width="12" stroke-linecap="round"><path class="s-navy" d="M84 88 Q78 48 50 16"/><path class="s-choc" d="M16 88 Q22 48 50 16"/><path class="s-apri" d="M50 90 Q46 52 50 16"/></g></svg><span class="wordmark">Atelier</span></a>
+  <nav><a href="index.html">Brand</a><a href="web-session.html">Session</a><a href="web-fleet.html">Fleet</a><a href="web-management.html" aria-current="page">Management</a><a href="slack.html">Slack mock</a><a href="mobile.html">Mobile</a><a href="desktop.html">Desktop</a></nav>
+  <span class="spacer"></span>
+  <span class="mock-label">Web · management · 1440</span>
+  <label for="theme" class="theme-toggle" title="Toggle light / dark">Theme <span class="track"></span></label>
+</header>
+
+<div class="canvas"><div class="frame-scale"><div class="frame-desktop app">
+  <div class="topbar">
+    <span class="brand"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-width="12" stroke-linecap="round"><path d="M84 88 Q78 48 50 16" stroke="#5B7390"/><path d="M16 88 Q22 48 50 16" stroke="#F6EEE4"/><path d="M50 90 Q46 52 50 16" stroke="#E2C4A6"/></g></svg></span>
+    <nav class="crumbs"><span class="cur">Northwind</span><span class="sep">›</span><span>Management</span></nav>
+    <span class="grow"></span>
+    <span class="t-small" style="color:var(--chrome-muted)">Thu 2 Oct · 14:20 · 12 sessions · 3 projects</span>
+    <span class="avatar dee sm">DE</span>
+  </div>
+
+  <div class="dash">
+    <div class="dash-head"><div><p class="t-label">Team management</p><h1 class="t-title">Northwind engineering</h1></div><span class="grow"></span><div class="row"><button class="btn btn-sm">Daily digest</button><button class="btn btn-sm btn-primary">Fleet brief</button></div></div>
+
+    <div class="tiles">
+      <div class="card kpi running"><span class="t-label">Running</span><div class="n">6</div><div class="delta">across 3 projects · 14 humans present</div></div>
+      <div class="card kpi approval"><span class="t-label">Awaiting approval</span><div class="n">2</div><div class="delta">1 irreversible · oldest 9 min</div></div>
+      <div class="card kpi blocked"><span class="t-label">Blocked</span><div class="n">1</div><div class="delta">fleet contention · svc:stripe</div></div>
+      <div class="card kpi paused"><span class="t-label">Paused</span><div class="n">3</div><div class="delta">2 by lead · 1 budget</div></div>
+      <div class="card spark">
+        <div class="card-head"><span class="t-label">7-day activity</span><span class="legend"><span><i style="background:var(--fg)"></i>agent turns ×10</span><span><i style="background:var(--amber)"></i>approvals</span></span></div>
+        <svg viewBox="0 0 600 150" role="img" aria-label="Agent turns and approvals over the last seven days">
+          <g class="grid"><line x1="40" y1="36" x2="556" y2="36"/><line x1="40" y1="88" x2="556" y2="88"/><line x1="40" y1="140" x2="556" y2="140"/></g>
+          <path class="area" d="M40 84 L126 68 L212 52 L298 72 L384 36 L470 104 L556 96 L556 140 L40 140 Z"/>
+          <path class="line" d="M40 84 L126 68 L212 52 L298 72 L384 36 L470 104 L556 96"/>
+          <path class="line2" d="M40 128 L126 120 L212 124 L298 116 L384 108 L470 132 L556 128"/>
+          <g fill="currentColor"><circle cx="384" cy="36" r="3.5"/><circle cx="556" cy="96" r="3.5"/></g>
+          <g class="axis"><text x="40" y="150" text-anchor="middle">Fri</text><text x="126" y="150" text-anchor="middle">Sat</text><text x="212" y="150" text-anchor="middle">Sun</text><text x="298" y="150" text-anchor="middle">Mon</text><text x="384" y="150" text-anchor="middle">Tue</text><text x="470" y="150" text-anchor="middle">Wed</text><text x="556" y="150" text-anchor="middle">Thu</text><text x="8" y="40">26</text><text x="8" y="92">13</text><text x="8" y="143">0</text></g>
+        </svg>
+      </div>
+    </div>
+
+    <p class="t-label" style="margin-top:8px">Fleet brief per project · computed 14:20</p>
+    <div class="briefs">
+      <div class="card card-hero">
+        <div class="card-head"><h3 class="t-h3">Payments</h3><span class="who"><span class="avatar dee sm">DE</span><span class="t-small muted">lead Dee</span></span></div>
+        <div class="row wrap" style="margin-bottom:10px"><span class="pill pill-running">1</span><span class="pill pill-approval">1</span><span class="pill pill-blocked">1</span><span class="pill pill-paused">1</span></div>
+        <p>Four sessions on the billing page. Ana's agent is close on invoice tax lines but a tax-source contention is unresolved. Bo's archive job holds an irreversible delete at 1 of 2. Cy is blocked on <code>svc:stripe</code>. Schema freeze until Thursday is in force fleet-wide.</p>
+        <div class="card-foot"><a class="btn btn-sm" href="web-fleet.html">Open fleet</a><span class="grow"></span><span class="t-small muted">2 open items need a driver</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3 class="t-h3">Checkout</h3><span class="who"><span class="avatar bo sm">BO</span><span class="t-small muted">lead Bo</span></span></div>
+        <div class="row wrap" style="margin-bottom:10px"><span class="pill pill-running">3</span><span class="pill pill-approval">1</span><span class="pill pill-paused">1</span></div>
+        <p>Three agents on the cart redesign share <code>apps/web/checkout/**</code> through disjoint claims; no contentions today. One external approval (Stripe webhook replay) waits on the driver. 1,340 turns this week, two handoffs.</p>
+        <div class="card-foot"><button class="btn btn-sm">Open fleet</button><span class="grow"></span><span class="t-small muted">healthy</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3 class="t-h3">Ledger</h3><span class="who"><span class="avatar cy sm">CY</span><span class="t-small muted">lead Cy</span></span></div>
+        <div class="row wrap" style="margin-bottom:10px"><span class="pill pill-running">2</span><span class="pill pill-paused">1</span><span class="pill pill-idle">2</span></div>
+        <p>Reconciliation migration is 70% through its turn budget. One session paused on budget; lead to extend or cancel. Two idle sessions hold stale claims on <code>svc:ledger-export</code> and will release at 15:00.</p>
+        <div class="card-foot"><button class="btn btn-sm">Open fleet</button><span class="grow"></span><span class="t-small muted">budget decision due</span></div>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="card card-amber" style="padding:0">
+        <div class="card-head" style="padding:14px 16px 0"><span class="t-label">Approvals pending across projects</span><span class="chip">2</span></div>
+        <table class="table">
+          <thead><tr><th>Call</th><th>Project · session</th><th>Risk</th><th>Quorum</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><b>DELETE legacy_invoices</b><div class="t-small muted">Bo's agent · 9 min</div></td><td>Payments · billing-43</td><td><span class="chip chip-risk">irreversible</span></td><td><span class="quorum"><span class="seat on"></span><span class="seat"></span>1 of 2 drivers</span></td><td><div class="row"><button class="btn btn-sm btn-success">Approve</button><button class="btn btn-sm btn-outline-danger">Deny</button></div></td></tr>
+            <tr><td><b>POST stripe/webhooks/replay</b><div class="t-small muted">Bo's agent · 3 min</div></td><td>Checkout · cart-12</td><td><span class="chip chip-risk external">external</span></td><td><span class="quorum"><span class="seat"></span>0 of 1 driver</span></td><td><div class="row"><button class="btn btn-sm btn-success">Approve</button><button class="btn btn-sm btn-outline-danger">Deny</button></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="t-label">Contentions</span><span class="chip">2 open · 5 resolved this week</span></div>
+        <ul class="list">
+          <li><div class="row between"><b class="t-small">Stripe tax API vs local tax tables</b><span class="pill pill-blocked">open</span></div><div class="t-small muted">Payments · billing-42 · scope tax · Bo vs Cy · driver Ana · 14 min</div></li>
+          <li><div class="row between"><b class="t-small">svc:stripe claim</b><span class="pill pill-blocked">open</span></div><div class="t-small muted">Payments · fleet · Bo's agent vs Cy's agent · lead Dee · 28 min</div></li>
+          <li><div class="row between"><b class="t-small">Cart: optimistic vs server-confirmed totals</b><span class="pill pill-idle">resolved</span></div><div class="t-small muted">Checkout · cart-11 · picked by Bo · yesterday</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card log">
+      <div class="card-head"><span class="t-label">Handoff log</span><span class="t-small muted">driver seat transfers · each with a computed brief</span></div>
+      <ul class="list">
+        <li><span class="t">14:16</span><span class="row"><span class="who"><span class="avatar ana sm">AN</span>Ana</span><span class="muted">→</span><span class="who"><span class="avatar bo sm">BO</span>Bo</span><span class="t-small muted">· Payments · billing-42 · offered, pending</span></span><span class="badge badge-new">pending</span></li>
+        <li><span class="t">11:40</span><span class="row"><span class="who"><span class="avatar cy sm">CY</span>Cy</span><span class="muted">→</span><span class="who"><span class="avatar ana sm">AN</span>Ana</span><span class="t-small muted">· Payments · billing-40 · brief read in 4 min</span></span><span class="badge badge-ok">accepted</span></li>
+        <li><span class="t">Wed</span><span class="row"><span class="who"><span class="avatar bo sm">BO</span>Bo</span><span class="muted">→</span><span class="who"><span class="avatar dee sm">DE</span>Dee</span><span class="t-small muted">· Checkout · cart-11 · overnight babysit</span></span><span class="badge badge-ok">accepted</span></li>
+        <li><span class="t">Tue</span><span class="row"><span class="who"><span class="avatar dee sm">DE</span>Dee</span><span class="muted">→</span><span class="who"><span class="avatar cy sm">CY</span>Cy</span><span class="t-small muted">· Ledger · recon-7 · declined, Cy out of office</span></span><span class="badge badge-conflict">declined</span></li>
+      </ul>
+    </div>
+  </div>
+</div></div></div>
+
+<footer class="foot page" style="padding-top:0"><span>Atelier · static mockup · no JavaScript</span><span>Sparkline is inline SVG in the palette; it uses currentColor so it reads in both themes.</span></footer>
+</body>
+</html>

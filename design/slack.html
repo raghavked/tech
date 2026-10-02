@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — Chat Mock</title>
+<meta name="description" content="Atelier Slack integration mock: team, project and management channels with session threads, approvals and directives.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .chat { display: grid; grid-template-columns: 256px 1fr 360px; height: 860px; }
+  .chans { background: var(--chrome); color: var(--chrome-fg); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--chrome-border); }
+  .chans .ws { font: 500 var(--fs-4)/1.2 var(--font-display); padding: 4px 8px 14px; }
+  .chans .t-label { color: var(--chrome-muted); padding: 10px 8px 4px; }
+  .chan { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font-size: var(--fs-2); color: var(--chrome-muted); white-space: nowrap; }
+  .chan.cur { background: rgba(240, 221, 198, 0.14); color: var(--chrome-fg); font-weight: 500; }
+  .chan .n { margin-left: 6px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--amber); color: #fff; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
+  .chan .map { font-size: 10px; color: var(--chrome-muted); opacity: .8; margin-left: auto; }
+  .pane { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--border); }
+  .pane-head { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: var(--fs-2); }
+  .pane-head b { font-size: var(--fs-3); }
+  .msgs { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .msg { display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 10px 20px; }
+  .msg .avatar { width: 36px; height: 36px; border-radius: 8px; }
+  .msg .hd { display: flex; align-items: baseline; gap: 8px; font-size: var(--fs-2); }
+  .msg .hd b { font-weight: 600; }
+  .msg .hd .app { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: var(--idle-soft); color: var(--fg-muted); }
+  .msg .hd .t { color: var(--fg-faint); font-size: var(--fs-1); }
+  .msg .tx { font-size: var(--fs-2); margin-top: 2px; }
+  .msg .att { margin-top: 8px; padding: 10px 12px; border-left: 3px solid var(--slate); background: var(--surface); border-radius: 0 8px 8px 0; font-size: var(--fs-2); }
+  .msg .att.amber { border-left-color: var(--amber); }
+  .msg .att.navy { border-left-color: var(--pantone-chocolate); }
+  .msg .att .t-label { font-size: 10px; margin-bottom: 4px; }
+  .msg .replies { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: var(--fs-1); color: var(--slate); font-weight: 500; }
+  .thread { display: flex; flex-direction: column; background: var(--bg); }
+  .thread .msgs { padding: 4px 0; }
+  .thread .msg { padding: 10px 16px; grid-template-columns: 28px 1fr; }
+  .thread .msg .avatar { width: 28px; height: 28px; border-radius: 6px; }
+  .reply { margin: 8px 16px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); padding: 8px 10px; font-size: var(--fs-2); color: var(--fg-faint); }
+  .date { text-align: center; font-size: var(--fs-1); color: var(--fg-faint); padding: 8px 0; position: relative; }
+  .date::before { content: ""; position: absolute; left: 20px; right: 20px; top: 50%; border-top: 1px solid var(--border); z-index: 0; }
+  .date span { position: relative; background: var(--bg); padding: 0 10px; }
+</style>
+</head>
+<body>
+<input type="checkbox" id="theme" class="theme-input">
+<header class="site-head">
+  <a class="brand" href="index.html"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-width="12" stroke-linecap="round"><path class="s-navy" d="M84 88 Q78 48 50 16"/><path class="s-choc" d="M16 88 Q22 48 50 16"/><path class="s-apri" d="M50 90 Q46 52 50 16"/></g></svg><span class="wordmark">Atelier</span></a>
+  <nav><a href="index.html">Brand</a><a href="web-session.html">Session</a><a href="web-fleet.html">Fleet</a><a href="web-management.html">Management</a><a href="slack.html" aria-current="page">Slack mock</a><a href="mobile.html">Mobile</a><a href="desktop.html">Desktop</a></nav>
+  <span class="spacer"></span>
+  <span class="mock-label">Slack integration mock · illustrative, not affiliated with Slack</span>
+  <label for="theme" class="theme-toggle" title="Toggle light / dark">Theme <span class="track"></span></label>
+</header>
+
+<div class="page" style="max-width:1320px">
+  <div class="banner banner-slate" style="margin-bottom:16px"><b>Slack integration mock.</b> A generic chat layout in Atelier's own look, showing how channels map to team, project and management, and what the Atelier app posts into them. No Slack branding; not a claim to be Slack.</div>
+
+  <div class="window">
+    <div class="titlebar"><span class="dots"><i></i><i></i><i></i></span><span class="title">Northwind workspace · chat</span></div>
+    <div class="chat">
+      <aside class="chans">
+        <div class="ws">Northwind</div>
+        <p class="t-label">Channels</p>
+        <a class="chan" href="#"># general</a>
+        <a class="chan" href="#"># team-payments <span class="map">team</span></a>
+        <a class="chan cur" href="#"># proj-billing <span class="map">project</span><span class="n">3</span></a>
+        <a class="chan" href="#"># proj-checkout <span class="map">project</span></a>
+        <a class="chan" href="#"># mgmt-digest <span class="map">management</span><span class="n">1</span></a>
+        <p class="t-label">Apps</p>
+        <a class="chan" href="#"><svg class="mark" viewBox="0 0 100 100" width="14" height="14" aria-hidden="true"><g fill="none" stroke-width="14" stroke-linecap="round"><path d="M84 88 Q78 48 50 16" stroke="#5B7390"/><path d="M16 88 Q22 48 50 16" stroke="#F6EEE4"/><path d="M50 90 Q46 52 50 16" stroke="#E2C4A6"/></g></svg> Atelier</a>
+        <p class="t-label">Direct messages</p>
+        <a class="chan" href="#"><span class="avatar ana sm" style="width:16px;height:16px;font-size:8px">AN</span> Ana</a>
+        <a class="chan" href="#"><span class="avatar dee sm" style="width:16px;height:16px;font-size:8px">DE</span> Dee</a>
+      </aside>
+
+      <section class="pane">
+        <div class="pane-head"><b># proj-billing</b><span class="muted">Project channel · Payments › Billing page · 4 sessions linked</span><span class="grow"></span><span class="presence"><span class="avatar ana sm">AN</span><span class="avatar bo sm">BO</span><span class="avatar cy sm">CY</span><span class="avatar dee sm">DE</span></span></div>
+        <div class="msgs">
+          <div class="date"><span>Today</span></div>
+
+          <div class="msg"><span class="avatar agent">A</span><div><div class="hd"><b>Atelier</b><span class="app">APP</span><span class="t">14:02</span></div><div class="tx">Session <b>billing-42</b> started by Ana · <i>Invoice PDF + tax lines</i> · Ana is driving.</div>
+            <div class="att"><span class="t-label">Session thread</span><div class="row wrap"><span class="pill pill-running">Running · turn 41</span><span class="chip chip-scope">goal</span><span class="t-small muted">4 present</span></div><div class="t-small" style="margin-top:6px">Agent updates post here as a thread. Replying in the thread steers the session, with the same arbitration as the app.</div></div>
+            <div class="replies"><span class="presence"><span class="avatar agent sm">A</span><span class="avatar bo sm">BO</span><span class="avatar cy sm">CY</span></span> 9 replies · last at 14:14 · <a href="#">open thread</a></div></div></div>
+
+          <div class="msg"><span class="avatar dee">DE</span><div><div class="hd"><b>Dee</b><span class="t">14:12</span></div><div class="tx">/atelier directive --all <b>Schema freeze until Thursday.</b> No migrations, no column drops; agents may stage SQL for review but not run it.</div>
+            <div class="att navy"><span class="t-label">Lead directive · project channel</span><div class="row wrap"><span class="badge badge-all">applies to all sessions</span><span class="chip chip-scope">schema</span><span class="t-small muted">rank owner on billing-42, 43, 44, 45</span></div><div class="t-small" style="margin-top:6px">In force. 0 shadowed directives. Dee's agent paused itself to audit migrations.</div></div></div></div>
+
+          <div class="msg"><span class="avatar agent wait">A</span><div><div class="hd"><b>Atelier</b><span class="app">APP</span><span class="t">14:11</span></div><div class="tx">Approval needed in <b>billing-43</b> (Bo's agent).</div>
+            <div class="att amber"><div class="row between"><b>DELETE legacy_invoices</b><span class="chip chip-risk">irreversible</span></div><p class="t-small muted" style="margin:4px 0 8px">Drops 1.2M rows in <code>billing.legacy_invoices</code>. Bound to call hash <code>4b7e…c1</code>. Needs 2 of 2 drivers.</p><div class="quorum"><span class="seat on"></span><span class="seat"></span> 1 of 2 · Ana approved 14:13 · waiting for Bo</div><div class="row" style="margin-top:10px"><button class="btn btn-sm btn-success">Approve</button><button class="btn btn-sm btn-outline-danger">Deny</button><a class="t-small" href="web-session.html" style="margin-left:6px">Open in Atelier</a></div><div class="t-small faint" style="margin-top:8px">Buttons act as the signed-in person; a non-driver's vote is recorded but does not count toward quorum.</div></div></div></div>
+
+          <div class="msg"><span class="avatar agent block">A</span><div><div class="hd"><b>Atelier</b><span class="app">APP</span><span class="t">14:06</span></div><div class="tx">Contention in <b>billing-42</b> · scope <code>tax</code> · <i>Stripe tax API vs local tax tables</i> · Bo and Cy, same epoch. Driver Ana to resolve. <a href="#">Pick in thread</a></div></div></div>
+
+          <div class="msg"><span class="avatar bo">BO</span><div><div class="hd"><b>Bo</b><span class="t">14:15</span></div><div class="tx">I will take the driver seat from Ana at 14:30; she is out for the afternoon. Brief me in the thread.</div></div></div>
+        </div>
+        <div class="reply">Message # proj-billing · type /atelier to steer, approve, fork or ask for a brief</div>
+      </section>
+
+      <aside class="thread">
+        <div class="pane-head"><b>Thread</b><span class="muted">billing-42</span><span class="grow"></span><span class="pill pill-running">Running</span></div>
+        <div class="msgs">
+          <div class="msg"><span class="avatar agent">A</span><div><div class="hd"><b>Ana's agent</b><span class="t">14:02</span></div><div class="tx">Plan: read renderer and tax module, add <code>taxLines()</code>, extend PDF template, tests for DE/FR/US-CA. No schema changes.</div></div></div>
+          <div class="msg"><span class="avatar bo">BO</span><div><div class="hd"><b>Bo</b><span class="t">14:04</span></div><div class="tx">/constrain api: no new external deps on the invoice path</div></div></div>
+          <div class="msg"><span class="avatar agent">A</span><div><div class="hd"><b>Ana's agent</b><span class="t">14:05</span></div><div class="tx">Added <code>tax/lines.ts</code> (+64). Checkpoint c7 recorded; fork point.</div></div></div>
+          <div class="msg"><span class="avatar bo">BO</span><div><div class="hd"><b>Bo</b><span class="t">14:06</span></div><div class="tx">/steer tax: use the Stripe tax API</div></div></div>
+          <div class="msg"><span class="avatar cy">CY</span><div><div class="hd"><b>Cy</b><span class="t">14:06</span></div><div class="tx">/steer tax: local tables, PDF must render offline</div></div></div>
+          <div class="msg"><span class="avatar agent block">A</span><div><div class="hd"><b>Atelier</b><span class="app">APP</span><span class="t">14:06</span></div><div class="tx">Contention on <code>tax</code>. Frozen until Ana picks. <span class="row" style="display:inline-flex;margin-top:4px"><button class="btn btn-sm">Pick Bo</button><button class="btn btn-sm">Pick Cy</button></span></div></div></div>
+          <div class="msg"><span class="avatar agent">A</span><div><div class="hd"><b>Ana's agent</b><span class="t">14:09</span></div><div class="tx">Not choosing a tax source. Extended the PDF template to take either. <code>pnpm test billing/pdf</code> 12 passed (exec approved by Bo).</div></div></div>
+          <div class="msg"><span class="avatar agent">A</span><div><div class="hd"><b>Ana's agent</b><span class="t">14:14</span></div><div class="tx">Turn 41: jurisdiction tests DE, FR, US-CA. Waiting on tax before wiring the source.</div></div></div>
+          <div class="msg"><span class="avatar agent">A</span><div><div class="hd"><b>Atelier</b><span class="app">APP</span><span class="t">14:16</span></div><div class="tx">Ana offered the driver seat to Bo. <span class="row" style="display:inline-flex;margin-top:4px"><button class="btn btn-sm btn-accent">Accept and read brief</button></span></div></div></div>
+        </div>
+        <div class="reply">Reply in thread · steers billing-42</div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="grid cols-3" style="margin-top:16px">
+    <div class="card"><div class="card-head"><span class="t-label"># team-payments</span><span class="badge badge-all">team</span></div><p class="t-small muted">People. Presence, who is driving what, handoff offers, and the daily "what my agents did" roll-up per engineer. Nothing here steers a session.</p></div>
+    <div class="card card-hero"><div class="card-head"><span class="t-label"># proj-billing</span><span class="badge badge-all">project</span></div><p class="t-small muted">Work. One thread per session; approvals and contentions as messages with buttons; lead directives with <code>--all</code> fan out to every session in the project.</p></div>
+    <div class="card"><div class="card-head"><span class="t-label"># mgmt-digest</span><span class="badge badge-all">management</span></div><p class="t-small muted">Oversight. The computed fleet brief per project at 09:00 and 17:00, pending approvals older than 15 minutes, and handoffs. Read-only; buttons deep-link to the app.</p>
+      <div class="msg" style="padding:10px 0 0"><span class="avatar agent">A</span><div><div class="hd"><b>Atelier</b><span class="app">APP</span><span class="t">14:20</span></div><div class="tx t-small"><b>Payments fleet brief.</b> 1 running, 1 awaiting approval, 1 blocked, 1 paused. Irreversible delete at 1 of 2 for 9 min. Schema freeze in force. <a href="web-management.html">Open dashboard</a></div></div></div></div>
+  </div>
+
+  <footer class="foot"><span>Atelier · static mockup · no JavaScript</span><span>Not affiliated with or endorsed by Slack Technologies.</span></footer>
+</div>
+</body>
+</html>

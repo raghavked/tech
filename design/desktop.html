@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — Desktop</title>
+<meta name="description" content="Atelier desktop shell: the session view in a window frame with a tray popover for pending approvals.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .desk { position: relative; padding: 48px 32px 32px; border-radius: var(--radius); background: linear-gradient(160deg, var(--navy-mid), var(--navy-deep)); overflow: hidden; }
+  .menubar { position: absolute; top: 0; left: 0; right: 0; height: 28px; display: flex; align-items: center; gap: 18px; padding: 0 16px; background: rgba(28, 34, 48, 0.85); color: var(--apricot-light); font-size: 12px; }
+  .menubar .tray { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .menubar .tray .at { display: inline-flex; align-items: center; gap: 5px; padding: 2px 6px; border-radius: 6px; background: rgba(240, 221, 198, 0.16); }
+  .menubar .tray .at .n { min-width: 16px; height: 16px; border-radius: 8px; background: var(--amber); color: #fff; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
+  .popover { position: absolute; top: 36px; right: 24px; width: 380px; z-index: 2; }
+  .popover .item + .item { margin-top: 8px; }
+  .popover .item { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); font-size: var(--fs-2); }
+  .popover .item .t-small { margin: 2px 0 8px; }
+  .window { width: 1040px; }
+  .app { display: grid; grid-template-columns: 1fr 340px; height: 720px; }
+  .main { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--border); }
+  .main { min-height: 0; overflow: hidden; }
+  .main .stream { flex: 1; min-height: 0; overflow: hidden; }
+  .side { overflow: hidden; padding: 12px; }
+  .side .card { padding: 12px; }
+  .side .card + .card { margin-top: 10px; }
+  .side .t-h3 { font-size: var(--fs-2); }
+  .topbar { height: 48px; }
+</style>
+</head>
+<body>
+<input type="checkbox" id="theme" class="theme-input">
+<header class="site-head">
+  <a class="brand" href="index.html"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-width="12" stroke-linecap="round"><path class="s-navy" d="M84 88 Q78 48 50 16"/><path class="s-choc" d="M16 88 Q22 48 50 16"/><path class="s-apri" d="M50 90 Q46 52 50 16"/></g></svg><span class="wordmark">Atelier</span></a>
+  <nav><a href="index.html">Brand</a><a href="web-session.html">Session</a><a href="web-fleet.html">Fleet</a><a href="web-management.html">Management</a><a href="slack.html">Slack mock</a><a href="mobile.html">Mobile</a><a href="desktop.html" aria-current="page">Desktop</a></nav>
+  <span class="spacer"></span>
+  <span class="mock-label">Desktop shell · tray popover</span>
+  <label for="theme" class="theme-toggle" title="Toggle light / dark">Theme <span class="track"></span></label>
+</header>
+
+<div class="canvas"><div class="frame-scale"><div class="desk">
+  <div class="menubar"><b>Atelier</b><span>File</span><span>Session</span><span>Fleet</span><span>View</span><span>Help</span>
+    <span class="tray"><span class="at"><svg viewBox="0 0 100 100" width="12" height="12" aria-hidden="true"><g fill="none" stroke-width="14" stroke-linecap="round"><path d="M84 88 Q78 48 50 16" stroke="#5B7390"/><path d="M16 88 Q22 48 50 16" stroke="#F6EEE4"/><path d="M50 90 Q46 52 50 16" stroke="#E2C4A6"/></g></svg><span class="n">2</span></span><span>Thu 2 Oct · 14:16</span></span>
+  </div>
+
+  <div class="popover" role="dialog" aria-label="Approvals pending">
+    <div class="card-head"><span class="t-label">2 approvals pending</span><a class="t-small" href="web-fleet.html">All approvals</a></div>
+    <div class="item"><div class="row between"><b>DELETE legacy_invoices</b><span class="chip chip-risk">irreversible</span></div><div class="t-small muted">Payments · billing-43 · Bo's agent · 1 of 2 drivers · you approved</div><div class="row"><button class="btn btn-sm btn-success" disabled>Approved</button><button class="btn btn-sm btn-outline-danger">Withdraw</button><span class="grow"></span><a class="t-small" href="#">Open session</a></div></div>
+    <div class="item"><div class="row between"><b>POST stripe/webhooks/replay</b><span class="chip chip-risk external">external</span></div><div class="t-small muted">Checkout · cart-12 · Bo's agent · needs driver · 3 min</div><div class="row"><button class="btn btn-sm btn-success">Approve</button><button class="btn btn-sm btn-outline-danger">Deny</button><span class="grow"></span><a class="t-small" href="#">Open session</a></div></div>
+    <div class="row" style="margin-top:10px;font-size:11px;color:var(--fg-faint)"><span>Also: 1 handoff offer to Bo · 1 contention waits on you</span></div>
+  </div>
+
+  <div class="window">
+    <div class="titlebar"><span class="dots"><i></i><i></i><i></i></span><span class="title">Atelier — billing-42 · Invoice PDF + tax lines</span><span class="pill pill-running">Running</span></div>
+    <div class="topbar">
+      <nav class="crumbs"><a href="web-fleet.html">Northwind</a><span class="sep">›</span><a href="web-fleet.html">Payments</a><span class="sep">›</span><span>Billing page</span><span class="sep">›</span><span class="cur">Invoice PDF + tax lines</span></nav>
+      <span class="grow"></span>
+      <span class="presence on-chrome"><span class="avatar ana sm avatar-driver">AN</span><span class="avatar bo sm">BO</span><span class="avatar cy sm">CY</span><span class="avatar dee sm">DE</span><span class="avatar agent sm">A</span></span>
+      <button class="btn btn-sm">Fork</button><button class="btn btn-sm">Pause</button><button class="btn btn-sm btn-accent">Hand off</button>
+    </div>
+    <div class="app">
+      <section class="main">
+        <div class="stream">
+          <div class="ev ev-human"><span class="avatar ana avatar-driver">AN</span><div><div class="meta"><span class="name">Ana</span><span class="tag">steer · goal</span></div><div class="body">Generate the invoice PDF with tax lines per jurisdiction. Keep the layout from the current template.</div></div><span class="time">14:02</span></div>
+          <div class="ev ev-agent"><span class="avatar agent">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">write · turn 39</span></div><div class="body">Added <code>taxLines(invoice)</code> grouping line items by jurisdiction.</div><div class="tool"><b>write</b> src/billing/tax/lines.ts · +64 −0 · risk: write</div></div><span class="time">14:05</span></div>
+          <div class="ev ev-system"><span class="sys-ico">○</span><div><div class="meta"><span class="name">System</span></div><div class="body">Checkpoint c7 recorded · fork point.</div></div><span class="time">14:05</span></div>
+          <div class="ev ev-human"><span class="avatar bo">BO</span><div><div class="meta"><span class="name">Bo</span><span class="tag">steer · tax</span></div><div class="body">Use the Stripe tax API for every jurisdiction.</div></div><span class="time">14:06</span></div>
+          <div class="ev ev-human"><span class="avatar cy">CY</span><div><div class="meta"><span class="name">Cy</span><span class="tag">steer · tax</span></div><div class="body">Use local tax tables. The PDF must render offline.</div></div><span class="time">14:06</span></div>
+          <div class="ev ev-alert"><span class="sys-ico">!</span><div><div class="meta"><span class="name">Contention</span><span class="tag">scope tax · frozen</span></div><div class="body">Stripe tax API vs local tax tables. The agent keeps working on every other scope until the driver picks.</div></div><span class="time">14:06</span></div>
+          <div class="ev ev-agent"><span class="avatar agent">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">turn 40</span></div><div class="body">Tax source under discussion; extended the PDF template to take either source.</div><div class="tool"><b>exec</b> pnpm test billing/pdf · 12 passed · approved by Bo</div></div><span class="time">14:09</span></div>
+          <div class="ev ev-approval"><span class="sys-ico">◍</span><div><div class="meta"><span class="name">Approval requested</span><span class="tag">irreversible · 2 of 2 drivers</span></div><div class="body">Bo's agent (billing-43) asks to <code>DELETE legacy_invoices</code>. You approved; waiting for Bo.</div></div><span class="time">14:11</span></div>
+          <div class="ev ev-human"><span class="avatar dee">DE</span><div><div class="meta"><span class="name">Dee</span><span class="tag">lead · all sessions</span></div><div class="body">Schema freeze until Thursday.</div></div><span class="time">14:12</span></div>
+          <div class="ev ev-agent"><span class="avatar agent">A</span><div><div class="meta"><span class="name">Ana's agent</span><span class="tag">turn 41 · running</span></div><div class="body">Writing jurisdiction tests (DE, FR, US-CA).</div></div><span class="time">14:14</span></div>
+        </div>
+        <div class="composer">
+          <div class="field"><select aria-label="Mode"><option>Steer</option><option>Constrain</option><option>Pause</option><option>Resume</option><option>Cancel</option></select><span class="input row">scope <span class="chip chip-scope">goal</span></span><span class="grow"></span><span class="switch"><span class="track"></span> Interrupt now</span></div>
+          <textarea aria-label="Directive" placeholder="Steer the goal…"></textarea>
+          <div class="field"><span class="t-small muted">As Ana · owner · driver</span><span class="grow"></span><button class="btn btn-primary">Send</button></div>
+        </div>
+      </section>
+      <aside class="side sidebar">
+        <div class="card card-hero"><div class="card-head"><span class="t-label">Intent</span><span class="t-small muted">epoch 41</span></div><dl class="kv"><dt>Goal</dt><dd>Invoice PDF with tax lines per jurisdiction</dd><dt>Constraints</dt><dd>No new external deps · Schema freeze until Thu</dd><dt>Discussion</dt><dd><span class="chip chip-claim contended">tax</span></dd></dl></div>
+        <div class="card card-brick"><div class="card-head"><span class="t-label">Contention</span><span class="chip chip-scope">tax</span></div><h3 class="t-h3">Stripe tax API vs local tax tables</h3><div style="margin-top:8px"><div class="option"><span class="avatar bo sm">BO</span><div class="grow">Stripe tax API</div><button class="btn btn-sm">Pick</button></div><div class="option"><span class="avatar cy sm">CY</span><div class="grow">Local tax tables</div><button class="btn btn-sm">Pick</button></div></div></div>
+        <div class="card card-amber"><div class="card-head"><span class="t-label">Approval</span><span class="chip chip-risk">irreversible</span></div><h3 class="t-h3">DELETE legacy_invoices</h3><div class="quorum" style="margin-top:6px"><span class="seat on"></span><span class="seat"></span> 1 of 2 drivers · needs Bo</div></div>
+        <div class="card handoff"><div class="card-head"><span class="t-label">Handoff</span><span class="badge badge-new">offered</span></div><div class="arrow"><span class="who"><span class="avatar ana sm avatar-driver">AN</span><span class="name">Ana</span></span><span class="line"></span><span class="who"><span class="avatar bo sm">BO</span><span class="name">Bo</span></span></div><p class="t-small muted" style="margin-top:8px">Brief computed · waiting for Bo to accept.</p></div>
+      </aside>
+    </div>
+  </div>
+</div></div></div>
+
+<footer class="foot page" style="padding-top:0"><span>Atelier · static mockup · no JavaScript</span><span>The desktop shell is the web client in a window plus a tray item for approvals, handoffs and contentions that need you.</span></footer>
+</body>
+</html>

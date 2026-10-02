@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — Fleet</title>
+<meta name="description" content="Atelier project fleet board: sessions, claims, contentions, directives, approvals and shared memory.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .app { min-height: 900px; }
+  .proj-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-3) var(--space-2); }
+  .proj-head .t-title { font-size: 32px; }
+  .board { display: grid; grid-template-columns: 1fr 420px; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); }
+  .sessions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  .sess .goal { font-size: var(--fs-2); margin: 8px 0 10px; }
+  .sess .meta { font-size: var(--fs-1); color: var(--fg-muted); }
+  .sess .blk { margin-top: 10px; font-size: var(--fs-1); padding: 6px 10px; border-radius: var(--radius-sm); background: var(--idle-soft); color: var(--fg-muted); }
+  .sess .blk.bad { background: var(--brick-soft); color: var(--brick); }
+  .sess .blk.warn { background: var(--amber-soft); color: var(--amber); }
+  .directive textarea { width: 100%; min-height: 64px; resize: none; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--fg); font-size: var(--fs-2); font-family: inherit; }
+  .feed .memory { padding: 10px 0; border-top: 1px solid var(--border); }
+  .feed .memory:first-child { border-top: 0; padding-top: 0; }
+</style>
+</head>
+<body>
+<input type="checkbox" id="theme" class="theme-input">
+<header class="site-head">
+  <a class="brand" href="index.html"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-width="12" stroke-linecap="round"><path class="s-navy" d="M84 88 Q78 48 50 16"/><path class="s-choc" d="M16 88 Q22 48 50 16"/><path class="s-apri" d="M50 90 Q46 52 50 16"/></g></svg><span class="wordmark">Atelier</span></a>
+  <nav><a href="index.html">Brand</a><a href="web-session.html">Session</a><a href="web-fleet.html" aria-current="page">Fleet</a><a href="web-management.html">Management</a><a href="slack.html">Slack mock</a><a href="mobile.html">Mobile</a><a href="desktop.html">Desktop</a></nav>
+  <span class="spacer"></span>
+  <span class="mock-label">Web · project fleet · 1440</span>
+  <label for="theme" class="theme-toggle" title="Toggle light / dark">Theme <span class="track"></span></label>
+</header>
+
+<div class="canvas"><div class="frame-scale"><div class="frame-desktop app">
+  <div class="topbar">
+    <span class="brand"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-width="12" stroke-linecap="round"><path d="M84 88 Q78 48 50 16" stroke="#5B7390"/><path d="M16 88 Q22 48 50 16" stroke="#F6EEE4"/><path d="M50 90 Q46 52 50 16" stroke="#E2C4A6"/></g></svg></span>
+    <nav class="crumbs"><a href="web-management.html">Northwind</a><span class="sep">›</span><span class="cur">Payments</span><span class="sep">›</span><span>Fleet</span></nav>
+    <span class="grow"></span>
+    <span class="presence on-chrome"><span class="avatar ana">AN</span><span class="avatar bo">BO</span><span class="avatar cy">CY</span><span class="avatar dee">DE</span></span>
+    <span class="t-small" style="color:var(--chrome-muted)">lead: Dee</span>
+    <button class="btn btn-sm">New session</button>
+  </div>
+
+  <div class="proj-head">
+    <div><p class="t-label">Project fleet</p><h1 class="t-title">Payments</h1></div>
+    <span class="grow"></span>
+    <div class="row wrap"><span class="pill pill-running">1 running</span><span class="pill pill-approval">1 awaiting approval</span><span class="pill pill-blocked">1 blocked</span><span class="pill pill-paused">1 paused</span></div>
+  </div>
+
+  <div class="board">
+    <div class="stack">
+      <div class="card card-hero directive">
+        <div class="card-head"><span class="t-label">Lead directive</span><span class="badge badge-all">applies to all sessions</span></div>
+        <textarea aria-label="Project directive">Schema freeze until Thursday. No migrations, no column drops; agents may stage SQL for review but not run it.</textarea>
+        <div class="row" style="margin-top:8px"><span class="chip chip-scope">schema</span><span class="chip chip-scope">constrain</span><span class="grow"></span><span class="t-small muted">As Dee · lead · rank owner on every session</span><button class="btn btn-primary">Post to fleet</button></div>
+        <div class="banner banner-slate" style="margin-top:12px"><span class="avatar dee sm">DE</span><span>In force since 14:12 · <b>Schema freeze until Thursday</b> · constrains 4 sessions · 0 shadowed directives</span></div>
+      </div>
+
+      <div class="sessions">
+        <div class="card sess card-olive">
+          <div class="card-head"><span class="who"><span class="avatar ana">AN</span><span><span class="name">Ana's agent</span><div class="meta">Ana · owner · driving</div></span></span><span class="pill pill-running">Running</span></div>
+          <p class="goal">Invoice PDF with tax lines per jurisdiction.</p>
+          <div class="row wrap"><span class="chip chip-claim">src/billing/**</span><span class="chip chip-claim">svc:pdf-render</span></div>
+          <div class="meta" style="margin-top:10px">turn 41 · billing-42 · 4 present · c7</div>
+          <div class="blk warn">Waiting on contention <b>tax</b> for one scope; working on the rest.</div>
+          <div class="card-foot"><a class="btn btn-sm" href="web-session.html">Open</a><button class="btn btn-sm btn-ghost">Brief</button></div>
+        </div>
+        <div class="card sess card-amber">
+          <div class="card-head"><span class="who"><span class="avatar bo">BO</span><span><span class="name">Bo's agent</span><div class="meta">Bo · owner · driving</div></span></span><span class="pill pill-approval">Awaiting approval</span></div>
+          <p class="goal">Retire legacy invoice table and backfill archive.</p>
+          <div class="row wrap"><span class="chip chip-claim">db:legacy_invoices</span><span class="chip chip-claim">scripts/archive/**</span></div>
+          <div class="meta" style="margin-top:10px">turn 17 · billing-43 · 2 present · c3</div>
+          <div class="blk warn"><b>DELETE legacy_invoices</b> · irreversible · 1 of 2 drivers</div>
+          <div class="card-foot"><button class="btn btn-sm">Open</button><button class="btn btn-sm btn-success">Approve</button><button class="btn btn-sm btn-outline-danger">Deny</button></div>
+        </div>
+        <div class="card sess card-brick">
+          <div class="card-head"><span class="who"><span class="avatar cy">CY</span><span><span class="name">Cy's agent</span><div class="meta">Cy · owner · driving</div></span></span><span class="pill pill-blocked">Blocked</span></div>
+          <p class="goal">Sync EU tax tables and validate rounding.</p>
+          <div class="row wrap"><span class="chip chip-claim">svc:tax-rates</span><span class="chip chip-claim contended">svc:stripe</span></div>
+          <div class="meta" style="margin-top:10px">turn 9 · billing-44 · 1 present · c1</div>
+          <div class="blk bad">Blocked by fleet contention: <b>svc:stripe</b> claimed by Bo's agent.</div>
+          <div class="card-foot"><button class="btn btn-sm">Open</button><button class="btn btn-sm btn-ghost">Resolve</button></div>
+        </div>
+        <div class="card sess card-slate">
+          <div class="card-head"><span class="who"><span class="avatar dee">DE</span><span><span class="name">Dee's agent</span><div class="meta">Dee · lead</div></span></span><span class="pill pill-paused">Paused</span></div>
+          <p class="goal">Audit billing migrations against the schema freeze.</p>
+          <div class="row wrap"><span class="chip chip-claim">migrations/**</span></div>
+          <div class="meta" style="margin-top:10px">turn 3 · billing-45 · 0 present · c0</div>
+          <div class="blk">Paused by Dee at 14:13 · resume needs driver.</div>
+          <div class="card-foot"><button class="btn btn-sm">Open</button><button class="btn btn-sm btn-ghost">Resume</button></div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="card-head" style="padding:14px 16px 0"><span class="t-label">Claims map</span><span class="t-small muted">files and services held by sessions · stale after 30 min idle</span></div>
+        <table class="table">
+          <thead><tr><th>Path / service</th><th>Holder</th><th>Since</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><code>src/billing/**</code></td><td><span class="who"><span class="avatar ana sm">AN</span>Ana's agent</span></td><td>14:02</td><td><span class="badge badge-ok">held</span></td></tr>
+            <tr><td><code>svc:pdf-render</code></td><td><span class="who"><span class="avatar ana sm">AN</span>Ana's agent</span></td><td>14:05</td><td><span class="badge badge-ok">held</span></td></tr>
+            <tr><td><code>db:legacy_invoices</code></td><td><span class="who"><span class="avatar bo sm">BO</span>Bo's agent</span></td><td>13:40</td><td><span class="badge badge-new">approval</span></td></tr>
+            <tr><td><code>svc:stripe</code></td><td><span class="who"><span class="avatar bo sm">BO</span>Bo's agent</span> <span class="muted">· wanted by Cy's agent</span></td><td>13:52</td><td><span class="badge badge-conflict">contended</span></td></tr>
+            <tr><td><code>svc:tax-rates</code></td><td><span class="who"><span class="avatar cy sm">CY</span>Cy's agent</span></td><td>14:00</td><td><span class="badge badge-ok">held</span></td></tr>
+            <tr><td><code>migrations/**</code></td><td><span class="who"><span class="avatar dee sm">DE</span>Dee's agent</span></td><td>14:10</td><td><span class="badge badge-all">frozen</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <div class="card-head"><span class="t-label">Open fleet contentions</span><span class="chip">2</span></div>
+        <ul class="list">
+          <li><div class="row between"><b class="t-small">svc:stripe</b><span class="chip chip-claim contended">claim</span></div><p class="t-small muted" style="margin:4px 0 8px">Bo's agent holds it for the archive job; Cy's agent needs it to compare Stripe tax against local tables.</p><div class="row"><span class="presence"><span class="avatar bo sm">BO</span><span class="avatar cy sm">CY</span></span><span class="grow"></span><button class="btn btn-sm">Resolve</button></div></li>
+          <li><div class="row between"><b class="t-small">Stripe tax API vs local tax tables</b><span class="chip chip-scope">tax</span></div><p class="t-small muted" style="margin:4px 0 8px">In billing-42. Driver Ana to pick. Agent is working around it.</p><div class="row"><span class="presence"><span class="avatar bo sm">BO</span><span class="avatar cy sm">CY</span></span><span class="grow"></span><button class="btn btn-sm">Resolve</button></div></li>
+        </ul>
+      </div>
+
+      <div class="card card-amber">
+        <div class="card-head"><span class="t-label">Approvals queue</span><span class="t-small muted">across sessions</span></div>
+        <ul class="list">
+          <li><div class="row between"><b class="t-small">DELETE legacy_invoices</b><span class="chip chip-risk">irreversible</span></div><div class="row" style="margin-top:6px"><span class="t-small muted">billing-43 · Bo's agent</span><span class="grow"></span><span class="quorum"><span class="seat on"></span><span class="seat"></span>1 of 2</span></div><div class="row" style="margin-top:8px"><button class="btn btn-sm btn-success">Approve</button><button class="btn btn-sm btn-outline-danger">Deny</button></div></li>
+          <li><div class="row between"><b class="t-small">POST stripe/tax_calculations</b><span class="chip chip-risk external">external</span></div><div class="row" style="margin-top:6px"><span class="t-small muted">billing-44 · Cy's agent · needs driver</span><span class="grow"></span><span class="quorum"><span class="seat"></span>0 of 1</span></div><div class="row" style="margin-top:8px"><button class="btn btn-sm btn-success">Approve</button><button class="btn btn-sm btn-outline-danger">Deny</button></div></li>
+          <li><div class="row between"><b class="t-small">pnpm tax:sync --write</b><span class="chip chip-risk exec">exec</span></div><div class="row" style="margin-top:6px"><span class="t-small muted">billing-44 · needs contributor</span><span class="grow"></span><span class="quorum"><span class="seat"></span>0 of 1</span></div><div class="row" style="margin-top:8px"><button class="btn btn-sm btn-success">Approve</button><button class="btn btn-sm btn-outline-danger">Deny</button></div></li>
+        </ul>
+      </div>
+
+      <div class="card feed">
+        <div class="card-head"><span class="t-label">Shared memory</span><span class="t-small muted">project · attributed</span></div>
+        <div class="memory"><p class="body">EU tax tables live in <code>tax/rates.ts</code>, regenerated by <code>pnpm tax:sync</code>; never hand-edit.</p><div class="attrib"><span class="avatar ana sm">AN</span><span>added by Ana</span><span class="dot">session billing-42</span><span class="dot"><code>commit 9f3c1a</code></span></div></div>
+        <div class="memory"><p class="body">Stripe tax is configured for checkout only; the invoice path has no Stripe credentials in prod.</p><div class="attrib"><span class="avatar bo sm">BO</span><span>added by Bo</span><span class="dot">session billing-43</span><span class="dot"><code>commit a12e07</code></span></div></div>
+        <div class="memory"><p class="body">PDF renderer runs in the nightly batch worker without egress; keep it offline.</p><div class="attrib"><span class="avatar cy sm">CY</span><span>added by Cy</span><span class="dot">session billing-40</span><span class="dot"><code>commit 77c0d9</code></span></div></div>
+        <div class="memory"><p class="body"><code>legacy_invoices</code> is still read by the finance export on the 1st of each month; archive before dropping.</p><div class="attrib"><span class="avatar dee sm">DE</span><span>added by Dee</span><span class="dot">session billing-45</span><span class="dot"><code>commit c3b911</code></span></div></div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+<footer class="foot page" style="padding-top:0"><span>Atelier · static mockup · no JavaScript</span><span>Frame rendered at 82%.</span></footer>
+</body>
+</html>
