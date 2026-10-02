@@ -19,6 +19,7 @@ import {
 import type { Model, ToolRegistry } from "@atelier/runner";
 import { type WebSocket, WebSocketServer } from "ws";
 import type { ClientLink, SessionHost } from "./host.js";
+import { Notifier, type PushSubscription } from "./notify.js";
 import { OrgRegistry } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
 import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
@@ -45,11 +46,13 @@ export class AtelierServer {
   readonly projects = new Map<string, ProjectHost>();
   readonly orgs: OrgRegistry;
   readonly memories = new Map<string, MemoryStore>();
+  readonly notifier: Notifier;
   private http: Server | null = null;
   private wss: WebSocketServer | null = null;
 
   constructor(private readonly opts: ServerOptions) {
     this.orgs = new OrgRegistry(opts.root);
+    this.notifier = new Notifier(opts.root, null, opts.log ?? (() => {}));
   }
 
   /** Get or create the host for a project known to the org registry (or "default"). */
@@ -71,6 +74,26 @@ export class AtelierServer {
     };
     p = new ProjectHost(this.opts.log ? { ...base, log: this.opts.log } : base);
     this.projects.set(projectId, p);
+    const host = p;
+    host.project.onEvent((e) => {
+      const leads = Object.values(host.state().members)
+        .filter((m) => m.role !== "member")
+        .map((m) => m.userId);
+      this.notifier.onProjectEvent(projectId, e, leads);
+    });
+    host.onSessionAttached((sessionId, sh) => {
+      sh.session.onEvent((e) => {
+        const st = sh.session.state(e.branch);
+        const participants = Object.values(st.participants).map((pp) => ({
+          id: pp.actor.id,
+          name: pp.actor.name,
+          role: pp.role,
+          isDriver: st.driver === pp.actor.id,
+          kind: pp.actor.kind,
+        }));
+        this.notifier.onSessionEvent(projectId, sessionId, e, participants);
+      });
+    });
     return p;
   }
 
@@ -180,6 +203,37 @@ export class AtelierServer {
         });
       }
       if (url.pathname === "/api/orgs") return json(200, this.orgs.orgs);
+      if (url.pathname === "/api/notifications") {
+        const user = url.searchParams.get("user") ?? "";
+        if (req.method === "POST") {
+          return (
+            void readBody(req).then((body) => {
+              const ids = (JSON.parse(body || "{}") as { read?: string[] }).read ?? [];
+              this.notifier.markRead(user, ids);
+              json(200, { ok: true });
+            }),
+            true
+          );
+        }
+        return json(200, {
+          notifications: this.notifier.list(user, url.searchParams.get("unread") === "1"),
+        });
+      }
+      if (url.pathname === "/api/push/subscribe" && req.method === "POST") {
+        return (
+          void readBody(req).then((body) => {
+            const sub = JSON.parse(body) as PushSubscription;
+            if (!sub.userId || !sub.platform || !sub.token)
+              return json(400, { error: "userId, platform and token are required" });
+            this.notifier.subscribe(sub);
+            return json(200, {
+              ok: true,
+              subscriptions: this.notifier.subscriptions(sub.userId).length,
+            });
+          }),
+          true
+        );
+      }
       const mm = url.pathname.match(/^\/api\/memory\/([^/]+)(?:\/(curate|context))?$/);
       if (mm) {
         const store = this.memory(mm[1] as string);
@@ -363,4 +417,13 @@ function isProjectMessage(m: AnyClientMessage): m is ProjectClientMessage {
     "project.subscribe",
     "project.unsubscribe",
   ].includes(m.type);
+}
+
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c: Buffer) => chunks.push(c));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("error", reject);
+  });
 }

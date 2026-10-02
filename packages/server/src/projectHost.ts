@@ -62,6 +62,7 @@ export class ProjectHost {
   readonly projectId: string;
   readonly hosts = new Map<string, SessionHost>();
   private readonly subscribers = new Set<ProjectSubscriber>();
+  private readonly attachListeners: ((sessionId: string, host: SessionHost) => void)[] = [];
   private readonly dir: string;
   private flushTimer: NodeJS.Timeout | null = null;
   private detecting = false;
@@ -135,6 +136,7 @@ export class ProjectHost {
     }
     syncDirectives(this.project.state(), sessionId, h.session);
     h.session.onEvent((e) => this.onSessionEvent(sessionId, e));
+    for (const fn of this.attachListeners) fn(sessionId, h);
     return h;
   }
 
@@ -144,6 +146,12 @@ export class ProjectHost {
     h.close();
     this.hosts.delete(sessionId);
     if (this.project.state().sessions[sessionId]?.open) this.project.closeSession(sessionId);
+  }
+
+  /** Called for every session host this project creates or reopens, including on construction. */
+  onSessionAttached(fn: (sessionId: string, host: SessionHost) => void): void {
+    this.attachListeners.push(fn);
+    for (const [id, h] of this.hosts) fn(id, h);
   }
 
   subscribe(sub: ProjectSubscriber): void {
