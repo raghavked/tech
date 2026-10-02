@@ -33,11 +33,22 @@
       "desktop": {
         "schemes": ["fold"]
       }
+    },
+    "updater": {
+      "pubkey": "REPLACE_WITH_FOLD_DESKTOP_MINISIGN_PUBLIC_KEY",
+      "endpoints": [
+        "https://github.com/raghavked/tech/releases/latest/download/latest.json",
+        "https://releases.fold.studio/desktop/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app", "dmg", "nsis", "appimage", "deb"],
+    "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
     "shortDescription": "Fold",
     "longDescription": "The shared, living session for a team's long-running agents.",
@@ -50,6 +61,7 @@
       "icons/icon.ico"
     ],
     "macOS": {
+      "hardenedRuntime": true,
       "minimumSystemVersion": "12.0",
       "entitlements": "entitlements.plist",
       "signingIdentity": null

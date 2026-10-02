@@ -56,9 +56,103 @@ interface TauriGlobal {
   event?: {
     listen: (name: string, cb: (e: { payload: unknown }) => void) => Promise<() => void>;
   };
+  // tauri-plugin-updater and tauri-plugin-process, injected under withGlobalTauri.
+  updater?: { check: () => Promise<TauriUpdate | null> };
+  process?: { relaunch: () => Promise<void> };
+}
+
+interface TauriUpdate {
+  version: string;
+  currentVersion: string;
+  body?: string | null;
+  download?: () => Promise<void>;
+  install?: () => Promise<void>;
+  downloadAndInstall: () => Promise<void>;
+}
+
+/**
+ * Auto-update (docs/16_desktop_release.md). The shell checks the signed manifest shortly
+ * after launch and every six hours, downloads a newer build silently, and then waits: the
+ * shell never relaunches on its own, because a session may be running for days under a
+ * driver with an approval open. The sidebar shows one quiet row, "Restart to update", and the
+ * person chooses when.
+ */
+export interface UpdateReady {
+  version: string;
+  downloaded: boolean;
+}
+
+let ready: UpdateReady | null = null;
+let pending: TauriUpdate | null = null;
+const listeners = new Set<(u: UpdateReady | null) => void>();
+
+export function subscribeUpdate(cb: (u: UpdateReady | null) => void): () => void {
+  listeners.add(cb);
+  cb(ready);
+  return () => {
+    listeners.delete(cb);
+  };
+}
+
+function setReady(u: UpdateReady | null): void {
+  ready = u;
+  for (const cb of listeners) cb(u);
+}
+
+const CHECK_DELAY_MS = 15_000;
+const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
+
+async function checkForUpdate(): Promise<void> {
+  const t = tauri();
+  if (!t?.updater || pending) return;
+  try {
+    const update = await t.updater.check();
+    if (!update) return;
+    pending = update;
+    if (update.download) {
+      await update.download();
+      setReady({ version: update.version, downloaded: true });
+    } else {
+      setReady({ version: update.version, downloaded: false });
+    }
+  } catch {
+    // offline, the manifest is unreachable, or the placeholder public key is still in place
+    pending = null;
+  }
+}
+
+/** Install the downloaded build and relaunch; only ever called from the person's click. */
+export async function restartToUpdate(): Promise<void> {
+  const t = tauri();
+  const update = pending;
+  if (!t || !update) return;
+  try {
+    if (update.install && ready?.downloaded) await update.install();
+    else await update.downloadAndInstall();
+    await t.process?.relaunch();
+  } catch {
+    // the installer itself reports failures; leave the row so the person can retry
+  }
+}
+
+function scheduleUpdateChecks(): void {
+  if (!tauri()?.updater) return;
+  setTimeout(() => {
+    void checkForUpdate();
+    setInterval(() => void checkForUpdate(), CHECK_EVERY_MS);
+  }, CHECK_DELAY_MS);
 }
 
 type Globals = { __FOLD_DESKTOP__?: FoldDesktop; __TAURI__?: TauriGlobal };
+
+/** The global Tauri API object (`withGlobalTauri`), or undefined in a browser. */
+function tauri(): TauriGlobal | undefined {
+  try {
+    return (window as unknown as Globals).__TAURI__;
+  } catch {
+    return undefined;
+  }
+}
 
 /** The bridge the shell injected, or one assembled from the global Tauri object, or nothing. */
 export function desktop(): FoldDesktop | undefined {
@@ -158,6 +252,7 @@ const isRoute = (p: unknown): p is string => typeof p === "string" && p.startsWi
  * shell; inside it, when the shell has said where the server is (or after a short wait).
  */
 export function connectShell(): Promise<void> {
+  scheduleUpdateChecks();
   const d = desktop();
   if (!d) return Promise.resolve();
   try {

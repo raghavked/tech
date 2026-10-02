@@ -14,6 +14,7 @@ import { isDesktop } from "./shell.js";
 import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
 import { type Theme, useTheme } from "./theme.js";
 import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
+import { UpdateRow } from "./update.js";
 import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
 import { Approvals } from "./views/Approvals.js";
 import { Home } from "./views/Home.js";
@@ -402,6 +403,8 @@ function Sidebar({
           {nothingMatches && <p className="item faint">No sessions match.</p>}
           {identity && <MemoryResults hits={memoryHits} needle={needle} />}
         </div>
+        {/* Desktop shell only: "Restart to update" once a newer build is downloaded. */}
+        <UpdateRow />
         <Account identity={identity} route={route} />
       </nav>
     </>

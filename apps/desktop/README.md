@@ -106,6 +106,17 @@ npm run build               # builds the client, then every bundle this OS can m
 `pnpm --filter @fold/web build` after client changes; `tauri build` does it for you.
 
 ### macOS
+## Release and auto-update
+
+Tagging `desktop-v<version>` runs `.github/workflows/desktop-release.yml`, which builds,
+signs and notarizes bundles for macOS, Windows and Linux and attaches them with `latest.json`
+to a draft GitHub release; publishing the draft is what installed shells pick up. The shell
+checks that manifest after launch and every six hours, downloads quietly, and shows one
+"Restart to update" row in the sidebar; it never relaunches on its own. The public key in
+`tauri.conf.json` is a placeholder until a key is generated. Everything, including the
+secrets and the changelog convention, is in `docs/16_desktop_release.md`.
+
+## Tray
 
 ```bash
 npm run build:mac                       # .app and .dmg for this architecture

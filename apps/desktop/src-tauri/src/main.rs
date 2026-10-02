@@ -437,6 +437,10 @@ fn main() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
+        // Auto-update (docs/16_desktop_release.md): the client drives the updater through the
+        // global API and relaunches with the process plugin once the person chooses to restart.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             shell_info,
             set_identity,

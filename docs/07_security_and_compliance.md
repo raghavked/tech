@@ -47,3 +47,11 @@
   the brief lets the newcomer act with full context.
 
 See `09_threat_model.md` for the attack-oriented treatment.
+
+## Desktop update signing
+
+The desktop shell accepts only updates signed by the minisign key whose public half is in
+`apps/desktop/src-tauri/tauri.conf.json`; the private key and the Apple and Azure signing
+material live on the GitHub `release` environment behind required reviewers, and the shell
+never relaunches without the person's click. Key generation, rotation and the compromise
+response are in `16_desktop_release.md`.

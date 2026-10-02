@@ -1,0 +1,156 @@
+# Desktop release: build, sign and publish the Tauri shell for macOS, Windows and Linux when a
+# `desktop-v<version>` tag is pushed. Not part of the regular CI (ci.yml never builds the shell).
+# The whole pipeline is explained in docs/16_desktop_release.md.
+#
+#   git tag desktop-v0.2.0 && git push origin desktop-v0.2.0
+#
+# The release is created as a draft with the CHANGELOG.md section as its body and latest.json
+# attached; publishing the draft is the promotion step that makes installed shells see it.
+name: desktop-release
+
+on:
+  push:
+    tags: ["desktop-v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  FOLD_OFFLINE: "1"
+
+jobs:
+  # Fails in seconds when the tag, tauri.conf.json, Cargo.toml and CHANGELOG.md disagree.
+  notes:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      notes: ${{ steps.v.outputs.notes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: v
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#desktop-v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          {
+            echo "notes<<FOLD_NOTES_EOF"
+            node scripts/desktop-release-notes.mjs "$version" --check
+            echo "FOLD_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: [notes]
+    # Required reviewers and the signing secrets live on this environment (docs/16).
+    environment: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin
+          - os: macos-14
+            target: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            args: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: ""
+    runs-on: ${{ matrix.os }}
+    env:
+      # Updater artifacts (.sig next to every bundle, latest.json) are signed with this key.
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      # macOS: Developer ID certificate for codesign, App Store Connect API key for notarytool.
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+      # Windows: Azure Trusted Signing, used by src-tauri/signing/windows.conf.json.
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse to build unsigned updater artifacts
+        shell: bash
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is not set on the release environment." >&2
+            echo "See docs/16_desktop_release.md, 'Keys and secrets'." >&2
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+          key: ${{ matrix.target }}
+
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      # The shell is outside the pnpm workspace on purpose (no Rust toolchain for `pnpm install`).
+      - name: Desktop shell dependencies and icons
+        working-directory: apps/desktop
+        run: |
+          npm install
+          npx tauri icon src-tauri/icons/icon.svg
+
+      - name: Apple notarization key
+        if: runner.os == 'macOS' && env.APPLE_API_KEY_CONTENT != ''
+        shell: bash
+        run: |
+          key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          printf '%s' "$APPLE_API_KEY_CONTENT" | base64 --decode > "$key_path"
+          echo "APPLE_API_KEY_PATH=$key_path" >> "$GITHUB_ENV"
+
+      - name: Windows code signing
+        if: runner.os == 'Windows' && env.AZURE_CLIENT_ID != ''
+        shell: bash
+        run: |
+          cargo install trusted-signing-cli --locked
+          echo "SIGN_ARGS=--config src-tauri/signing/windows.conf.json" >> "$GITHUB_ENV"
+
+      - name: Build, sign and attach to the draft release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: npx tauri
+          args: ${{ matrix.args }} ${{ env.SIGN_ARGS }}
+          tagName: ${{ github.ref_name }}
+          releaseName: Fold desktop ${{ needs.notes.outputs.version }}
+          releaseBody: ${{ needs.notes.outputs.notes }}
+          releaseDraft: true
+          prerelease: ${{ contains(needs.notes.outputs.version, '-') }}
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
