@@ -1,6 +1,14 @@
 import { describeRule, ruleFor, type SessionState } from "@fold/kernel";
 import type { Actor, DirectiveMode, PresenceEntry, SessionEvent } from "@fold/protocol";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, refOf, type SessionRow, useFetch } from "../api.js";
 import { FoldClient, wsUrl } from "../client.js";
@@ -32,6 +40,7 @@ import {
 } from "../ui.js";
 import { focusSoon } from "../useShortcuts.js";
 import { BranchCompare } from "./BranchCompare.js";
+import { ReplayScrubber, ReplayToggle, useReplay } from "./ReplayScrubber.js";
 import { sessionCommands } from "./sessionCommands.js";
 
 export function SessionView({
@@ -122,6 +131,11 @@ export function SessionView({
       [s, actor, client, details, setDetails],
     ),
   );
+  // replay-scrubber: `viewSeq` is the seq being looked at, null for now; a pure client-side fold.
+  const [viewSeq, setViewSeq] = useState<number | null>(null);
+  const [scrubber, setScrubber] = useState(false);
+  const view = useReplay(snap.events, s, viewSeq);
+  const past = viewSeq !== null;
 
   if (!s)
     return (
@@ -243,6 +257,7 @@ export function SessionView({
               setCompare(b);
               if (phone) setPanel("none");
             }}
+            replay={<ReplayToggle pinned={scrubber} onToggle={() => setScrubber((v) => !v)} />}
           />
         ) : panel === "team" ? (
           <TeamPanel
@@ -272,13 +287,37 @@ export function SessionView({
         />
       ) : (
         <>
-          <Stream events={snap.events} s={s} me={actor} client={client} showHandoff={!details} />
+          <ReplayScrubber
+            marks={view.marks}
+            viewSeq={viewSeq}
+            pinned={scrubber}
+            onView={setViewSeq}
+          />
+          <div className={past ? "past" : undefined}>
+            <Stream
+              events={view.events}
+              s={view.state ?? s}
+              me={actor}
+              client={client}
+              showHandoff={!details && !past}
+            />
+          </div>
           <Composer
             s={s}
             me={actor}
             client={client}
             connected={snap.connected}
             queued={snap.queued}
+            past={
+              past ? (
+                <>
+                  {copy.composer.viewingPast}
+                  <button type="button" className="linkish" onClick={() => setViewSeq(null)}>
+                    {copy.composer.returnToNow}
+                  </button>
+                </>
+              ) : null
+            }
           />
         </>
       )}
@@ -547,6 +586,7 @@ function Composer({
   client,
   connected,
   queued,
+  past = null,
 }: {
   s: SessionState;
   me: Actor;
@@ -554,6 +594,8 @@ function Composer({
   connected: boolean;
   /** Offline queue: what waits for the socket (see offlineQueue.ts). */
   queued: QueuedMessage[];
+  /** replay-scrubber: when set, the composer is disabled and this replaces the hint. */
+  past?: ReactNode;
 }) {
   const [text, setText] = useState("");
   const [scope, setScope] = useState("goal");
@@ -615,6 +657,7 @@ function Composer({
                 : copy.composer.placeholderFor(mode)
           }
           value={text}
+          disabled={past !== null}
           onChange={(e) => {
             setText(e.target.value);
             grow();
@@ -679,13 +722,13 @@ function Composer({
               type="submit"
               className="send"
               aria-label={copy.composer.send}
-              disabled={needsText && !text.trim()}
+              disabled={past !== null || (needsText && !text.trim())}
             >
               <Icon d={ICONS.send} />
             </button>
           </div>
         </div>
-        {more && to === "agent" && (
+        {more && to === "agent" && past === null && (
           <div className="popover">
             <div className="group">
               <span className="small muted">{copy.composer.mode}</span>
@@ -743,8 +786,12 @@ function Composer({
       )}
       {showQueue && <QueueList queued={queued} s={s} client={client} />}
       <p className="hint small faint">
-        {connected ? "" : copy.composer.reconnecting}
-        {copy.composer.hint(me.name, role, s.driver === me.id)}
+        {past ?? (
+          <>
+            {connected ? "" : copy.composer.reconnecting}
+            {copy.composer.hint(me.name, role, s.driver === me.id)}
+          </>
+        )}
       </p>
     </div>
   );
@@ -992,6 +1039,7 @@ function Drawer({
   projectId,
   onClose,
   onCompare,
+  replay = null,
 }: {
   s: SessionState;
   me: Actor;
@@ -1004,6 +1052,8 @@ function Drawer({
   onClose: () => void;
   /** Show a branch beside this one in the column (views/BranchCompare.tsx). */
   onCompare: (branch: string) => void;
+  /** replay-scrubber: the time-travel section, rendered after Intent. */
+  replay?: ReactNode;
 }) {
   const name = (id: string) => s.participants[id]?.actor.name ?? id;
   const humans = Object.values(s.participants).filter((p) => p.actor.kind === "human");
@@ -1085,6 +1135,7 @@ function Drawer({
             </button>
           </p>
         </section>
+        {replay}
         <section className="group">
           <h3>{copy.details.people}</h3>
           {humans.map((p) => (

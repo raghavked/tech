@@ -191,6 +191,8 @@ export const copy = {
     scope: "Scope",
     scopeDefault: "goal",
     interruptNow: "Interrupt now",
+    viewingPast: "Viewing the past · ",
+    returnToNow: "Return to now",
     reconnecting: "Reconnecting · ",
     hint: (name: string, role: string, driving: boolean) =>
       `Enter to send · Shift+Enter for a new line · ? for shortcuts · as ${name}, ${role}${driving ? ", driving" : ""}`,

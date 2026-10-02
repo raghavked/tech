@@ -1009,3 +1009,87 @@ kbd + kbd {
     grid-template-columns: 1fr;
   }
 }
+/* replay-scrubber: time travel, a thin row under the top row with one dot per turn */
+.scrubber {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  width: min(var(--col), 100%);
+  margin: 0 auto;
+  padding: 2px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--fg-3);
+  background: var(--bg);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.scrubber:hover,
+.scrubber:focus-within,
+.scrubber.on {
+  opacity: 1;
+}
+.scrubber .track {
+  flex: 1;
+  position: relative;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+.scrubber .track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--line);
+}
+.scrubber .tick {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-3);
+  opacity: 0.5;
+}
+.scrubber .tick.seen {
+  opacity: 1;
+}
+.scrubber .tick.at {
+  width: 10px;
+  height: 10px;
+  margin: -2px;
+  background: var(--fg);
+  opacity: 1;
+}
+.scrubber .label {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.linkish {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+.linkish:hover {
+  text-decoration: underline;
+}
+/* while viewing the past the stream is read-only: notices keep their words, lose their buttons */
+.past .notice .actions {
+  display: none;
+}
+@media (max-width: 640px) {
+  .scrubber {
+    padding-inline: 16px;
+  }
+}
