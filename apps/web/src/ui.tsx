@@ -74,6 +74,8 @@ export const ICONS = {
   down: "M8 3v10M4 9l4 4 4-4",
   inbox:
     "M2.5 9h3l1 2h3l1-2h3M2.5 9V4.5A1.5 1.5 0 0 1 4 3h8a1.5 1.5 0 0 1 1.5 1.5V9M2.5 9v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9",
+  back: "M13 8H3M7 4L3 8l4 4",
+  columns: "M2.5 3h11v10h-11zM8 3v10",
 };
 
 export function Avatar({

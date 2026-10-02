@@ -187,6 +187,21 @@ export function mergeFile(
   return { content: out.join("\n"), conflict };
 }
 
+/** Lines added and removed going from `a` to `b` (null is "no file"); what a +/- count shows. */
+export function lineDelta(a: string | null, b: string | null): { plus: number; minus: number } {
+  const al = a === null ? [] : a.split("\n");
+  const bl = b === null ? [] : b.split("\n");
+  let plus = 0;
+  let minus = 0;
+  for (const c of diff(al, bl)) {
+    if (c.kind === "change") {
+      plus += c.ins;
+      minus += c.del;
+    }
+  }
+  return { plus, minus };
+}
+
 interface Hunk {
   baseStart: number;
   baseEnd: number;

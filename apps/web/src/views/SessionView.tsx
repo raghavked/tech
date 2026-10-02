@@ -28,8 +28,10 @@ import {
   TeamPill,
   toast,
   useConnectionToasts,
+  useMediaQuery,
 } from "../ui.js";
 import { focusSoon } from "../useShortcuts.js";
+import { BranchCompare } from "./BranchCompare.js";
 import { sessionCommands } from "./sessionCommands.js";
 
 export function SessionView({
@@ -107,6 +109,9 @@ export function SessionView({
   const [panel, setPanel] = useState<"none" | "details" | "team">("none");
   const details = panel === "details";
   const setDetails = useCallback((v: boolean) => setPanel(v ? "details" : "none"), []);
+  // Branch compare (views/BranchCompare.tsx): the other branch shown beside this one, or null.
+  const [compare, setCompare] = useState<string | null>(null);
+  const phone = useMediaQuery("(max-width: 640px)");
   const rows = useFetch(() => api.sessions(projectId), `${projectId}:${s?.seq ?? -1}`);
   const mine = rows.data?.find((r) => r.sessionId === sessionId) ?? null;
   // hook point (command-palette): this page's actions, refreshed as the session changes
@@ -136,6 +141,10 @@ export function SessionView({
 
   const pendingApprovals = Object.values(s.approvals).filter((a) => a.status === "pending");
   reportPendingApprovals(pendingApprovals.length);
+  const comparing =
+    compare && compare !== s.branch && (compare === "main" || compare in s.branches)
+      ? compare
+      : null;
   const online = snap.presence.filter((p) => p.online);
   // Keyboard shortcuts (shortcuts.ts): what each key means on this page.
   const offered = Object.values(s.handoffs).find(
@@ -230,6 +239,10 @@ export function SessionView({
             teamId={ref.teamId}
             projectId={projectId}
             onClose={() => setPanel("none")}
+            onCompare={(b) => {
+              setCompare(b);
+              if (phone) setPanel("none");
+            }}
           />
         ) : panel === "team" ? (
           <TeamPanel
@@ -246,8 +259,29 @@ export function SessionView({
         ) : null
       }
     >
-      <Stream events={snap.events} s={s} me={actor} client={client} showHandoff={!details} />
-      <Composer s={s} me={actor} client={client} connected={snap.connected} queued={snap.queued} />
+      {comparing ? (
+        <BranchCompare
+          s={s}
+          me={actor}
+          client={client}
+          projectId={projectId}
+          other={comparing}
+          onOther={setCompare}
+          onClose={() => setCompare(null)}
+          errors={snap.errors}
+        />
+      ) : (
+        <>
+          <Stream events={snap.events} s={s} me={actor} client={client} showHandoff={!details} />
+          <Composer
+            s={s}
+            me={actor}
+            client={client}
+            connected={snap.connected}
+            queued={snap.queued}
+          />
+        </>
+      )}
     </Shell>
   );
 }
@@ -957,6 +991,7 @@ function Drawer({
   teamId,
   projectId,
   onClose,
+  onCompare,
 }: {
   s: SessionState;
   me: Actor;
@@ -967,6 +1002,8 @@ function Drawer({
   teamId: string;
   projectId: string;
   onClose: () => void;
+  /** Show a branch beside this one in the column (views/BranchCompare.tsx). */
+  onCompare: (branch: string) => void;
 }) {
   const name = (id: string) => s.participants[id]?.actor.name ?? id;
   const humans = Object.values(s.participants).filter((p) => p.actor.kind === "human");
@@ -1128,6 +1165,15 @@ function Drawer({
                     onClick={() => client.send({ type: "switch", branch: b })}
                   >
                     {copy.details.switch}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost icon sm"
+                    aria-label={`Compare ${b} with ${s.branch}`}
+                    title="Compare"
+                    onClick={() => onCompare(b)}
+                  >
+                    <Icon d={ICONS.columns} size={14} />
                   </button>
                   <button
                     type="button"

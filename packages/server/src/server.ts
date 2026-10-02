@@ -18,6 +18,7 @@ import {
 } from "@fold/protocol";
 import type { Model, ToolRegistry } from "@fold/runner";
 import { type WebSocket, WebSocketServer } from "ws";
+import { handleBranchApi } from "./branchApi.js";
 import type { ClientLink, SessionHost } from "./host.js";
 import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
 import { Notifier, type PushSubscription } from "./notify.js";
@@ -252,6 +253,8 @@ export class FoldServer {
         // memory-browser: optional ?level|team|project|status|q filters (memoryQuery.ts).
         return json(200, memoryFeed(store.state(), memoryQueryOf(url.searchParams)));
       }
+      // Branch compare and file read (branchApi.ts) sit under /api/projects/:p/sessions/:s/.
+      if (handleBranchApi(url, (id) => this.project(id), json)) return true;
       const m = url.pathname.match(/^\/api\/projects\/([^/]+)(?:\/(sessions|brief|state))?$/);
       if (m) {
         const p = this.project(m[1] as string);

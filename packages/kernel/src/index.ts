@@ -1,5 +1,6 @@
 export * from "./approvals.js";
 export * from "./brief.js";
+export * from "./compare.js";
 export * from "./hash.js";
 export * from "./intent.js";
 export * from "./log.js";
