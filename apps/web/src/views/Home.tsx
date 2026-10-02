@@ -1,21 +1,24 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
-import type { Me, ProjectRef } from "../api.js";
+import type { Me } from "../api.js";
 import { copy } from "../copy.js";
 import { type Identity, saveIdentity, slugify } from "../identity.js";
-import { navigate, paths } from "../router.js";
 import { Mark } from "../ui.js";
+import { FirstRun } from "./FirstRun.js";
 
 export function Home({
   me,
   meError,
   identity,
   ctx,
+  onRetry,
 }: {
   me: Me | null;
   meError: string | null;
   identity: Identity | null;
   ctx: ShellContext;
+  /** Reload /api/me; the offline state's one action. */
+  onRetry?: () => void;
 }) {
   const needsIdentity = ctx.route.name !== "home" && !identity;
   return (
@@ -29,8 +32,14 @@ export function Home({
             {needsIdentity && <p className="small danger">{copy.home.needsIdentity}</p>}
           </div>
         )}
-        <IdentityForm identity={identity} me={me} />
-        {identity && <Projects me={me} error={meError} />}
+        {/* onboarding-empty-states: the three-step first run owns the rest of the page. */}
+        <FirstRun
+          identity={identity}
+          me={me}
+          meError={meError}
+          onRetry={onRetry}
+          identityStep={<IdentityForm identity={identity} me={me} />}
+        />
       </div>
     </Shell>
   );
@@ -112,90 +121,4 @@ function IdentityForm({ identity, me }: { identity: Identity | null; me: Me | nu
       </div>
     </form>
   );
-}
-
-function Projects({ me, error }: { me: Me | null; error: string | null }) {
-  const teams = useMemo(() => groupByTeam(me?.projects ?? []), [me]);
-  const [sessionId, setSessionId] = useState("");
-  const [project, setProject] = useState("default");
-  const projects = me?.projects ?? [];
-  const pid = projects.some((p) => p.projectId === project)
-    ? project
-    : (projects[0]?.projectId ?? project);
-  return (
-    <>
-      <section className="group">
-        <h2>{copy.home.projects}</h2>
-        {error && <p className="small danger">{copy.home.meFailed(error)}</p>}
-        {!error && !me && <p className="muted">{copy.loading}</p>}
-        {me && teams.length === 0 && <p className="muted">{copy.home.noProjects}</p>}
-        {teams.map((t) => (
-          <div className="list" key={t.id}>
-            {t.projects.map((p) => (
-              <a className="rowitem" key={p.projectId} href={paths.fleet(p.projectId)}>
-                <span className="ellipsis">
-                  <span className="t">{p.name}</span>
-                  <span className="s">
-                    {p.orgName} · {p.teamName}
-                  </span>
-                </span>
-                <span className="small muted">{copy.home.open}</span>
-              </a>
-            ))}
-            <a className="rowitem" href={paths.management(t.id)}>
-              <span className="ellipsis">
-                <span className="t">{t.name}</span>
-                <span className="s">{copy.home.teamOverview}</span>
-              </span>
-              <span className="small muted">{copy.home.open}</span>
-            </a>
-          </div>
-        ))}
-      </section>
-      <form
-        className="row open-session"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const id = slugify(sessionId);
-          if (!id) return;
-          navigate(paths.session(pid, id));
-        }}
-      >
-        {projects.length > 1 ? (
-          <select
-            className="select"
-            aria-label={copy.home.project}
-            value={pid}
-            onChange={(e) => setProject(e.target.value)}
-          >
-            {projects.map((p) => (
-              <option key={p.projectId} value={p.projectId}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        ) : null}
-        <input
-          className="input mono grow"
-          aria-label={copy.home.sessionId}
-          placeholder={copy.home.sessionIdHint}
-          value={sessionId}
-          onChange={(e) => setSessionId(e.target.value)}
-        />
-        <button type="submit" className="btn sm">
-          {copy.home.openSession}
-        </button>
-      </form>
-    </>
-  );
-}
-
-function groupByTeam(projects: ProjectRef[]) {
-  const teams = new Map<string, { id: string; name: string; projects: ProjectRef[] }>();
-  for (const p of projects) {
-    const t = teams.get(p.teamId) ?? { id: p.teamId, name: p.teamName, projects: [] };
-    t.projects.push(p);
-    teams.set(p.teamId, t);
-  }
-  return [...teams.values()];
 }

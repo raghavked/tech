@@ -13,6 +13,7 @@ import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, refOf, type SessionRow, useFetch } from "../api.js";
 import { FoldClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
+import { EmptyState, OfflineState, useOffline, useOnline } from "../empty.js";
 import { actorOf, type Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
 import { describeQueued, type QueuedMessage } from "../offlineQueue.js";
@@ -70,19 +71,27 @@ export function SessionView({
     () => client.snapshot,
   );
   const actor = useMemo(() => actorOf(identity), [identity]);
+  // onboarding-empty-states: `join` is reused by the offline state's Retry.
+  const join = useCallback(
+    () =>
+      client.connect(wsUrl(), {
+        sessionId,
+        actor,
+        userId: identity.userId,
+        projectId,
+        title: title ?? sessionId,
+        ...(identity.token ? { token: identity.token } : {}),
+      }),
+    [client, sessionId, projectId, title, actor, identity.userId, identity.token],
+  );
   useEffect(() => {
-    client.connect(wsUrl(), {
-      sessionId,
-      actor,
-      userId: identity.userId,
-      projectId,
-      title: title ?? sessionId,
-      ...(identity.token ? { token: identity.token } : {}),
-    });
+    join();
     return () => client.disconnect();
-  }, [client, sessionId, projectId, title, actor, identity.userId, identity.token]);
+  }, [client, join]);
   // Hook point (error-boundary-toasts): server errors and a lost socket as quiet toasts.
   useConnectionToasts(snap.connected, snap.errors);
+  const offline = useOffline(snap.connected);
+  const netOnline = useOnline();
 
   // Notifications for things that need this person, only while the tab is hidden.
   useEffect(
@@ -152,13 +161,17 @@ export function SessionView({
       <Shell ctx={ctx} title={shownTitle}>
         <div className="column">
           <ErrorLine errors={snap.errors} />
-          <p className="muted">
-            {snap.reconnecting
-              ? copy.session.reconnecting
-              : snap.connected
-                ? copy.session.joining
-                : copy.session.connecting}
-          </p>
+          {offline ? (
+            <OfflineState online={netOnline} onRetry={join} />
+          ) : (
+            <p className="muted">
+              {snap.reconnecting
+                ? copy.session.reconnecting
+                : snap.connected
+                  ? copy.session.joining
+                  : copy.session.connecting}
+            </p>
+          )}
         </div>
       </Shell>
     );
@@ -1367,8 +1380,18 @@ function MemoryContext({ text, loading }: { text: string; loading: boolean }) {
         who: m ? (m[2] ?? "") : "",
       };
     });
+  if (lines.length === 0 && loading) return <p className="muted small">Loading…</p>;
   if (lines.length === 0)
-    return <p className="muted small">{loading ? copy.loading : copy.details.memoryEmpty}</p>;
+    return (
+      <EmptyState
+        className="small"
+        text={copy.details.memoryEmptyHint}
+        action={{
+          label: copy.details.writeToAgent,
+          onClick: () => document.querySelector<HTMLTextAreaElement>(".composer textarea")?.focus(),
+        }}
+      />
+    );
   return (
     <div className="memlist">
       {lines.map((l) => (

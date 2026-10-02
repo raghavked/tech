@@ -13,6 +13,7 @@ import {
 } from "../api.js";
 import { wsUrl } from "../client.js";
 import { copy } from "../copy.js";
+import { EmptyState } from "../empty.js";
 import type { Identity } from "../identity.js";
 import { ProjectClient } from "../projectClient.js";
 import { ReconnectLine } from "../reconnect.js";
@@ -73,6 +74,8 @@ export function Project({
   const open = Object.values(s?.contentions ?? {}).filter((c) => !c.resolved);
   const myRole = s?.members[identity.userId]?.role ?? "member";
   const lead = myRole === "lead" || myRole === "admin";
+  // onboarding-empty-states: the new-session row's open state lives here so empty states can open it.
+  const [newOpen, setNewOpen] = useState(() => location.hash.includes("new=1"));
 
   return (
     <Shell ctx={ctx} title={name} below={<ReconnectLine reconnecting={snap.reconnecting} />}>
@@ -93,7 +96,12 @@ export function Project({
         />
         <section className="group">
           <h2>{copy.project.agents}</h2>
-          {sessions.length === 0 && <p className="muted">{copy.project.noSessions}</p>}
+          {sessions.length === 0 && (
+            <EmptyState
+              text={copy.project.emptySessions}
+              action={{ label: copy.project.startOne, onClick: () => setNewOpen(true) }}
+            />
+          )}
           <div className="list">
             {groups.map(([crew, members]) => (
               <div key={crew ?? "_solo"}>
@@ -129,7 +137,8 @@ export function Project({
               </div>
             ))}
             <NewSessionRow
-              startOpen={location.hash.includes("new=1")}
+              open={newOpen}
+              onOpen={setNewOpen}
               onCreate={(id, title) => {
                 client.send({ type: "session.create", sessionId: id, title });
                 navigate(paths.session(projectId, id, title));
@@ -199,7 +208,13 @@ export function Project({
           nameOf={nameOf}
           onSay={(text) => client.send({ type: "project.note", text })}
         />
-        <TeamMemory orgId={orgId} teamId={teamId} projectId={projectId} seq={s?.seq ?? -1} />
+        <TeamMemory
+          orgId={orgId}
+          teamId={teamId}
+          projectId={projectId}
+          seq={s?.seq ?? -1}
+          onStart={() => setNewOpen(true)}
+        />
         {snap.brief && (
           <details className="group fold">
             <summary>
@@ -377,13 +392,14 @@ function TeamChat({
 }
 
 function NewSessionRow({
-  startOpen,
+  open,
+  onOpen: setOpen,
   onCreate,
 }: {
-  startOpen: boolean;
+  open: boolean;
+  onOpen: (open: boolean) => void;
   onCreate: (id: string, title: string) => void;
 }) {
-  const [open, setOpen] = useState(startOpen);
   const [id, setId] = useState(`s-${Date.now().toString(36)}`);
   const [title, setTitle] = useState("");
   if (!open)
@@ -513,11 +529,14 @@ function TeamMemory({
   teamId,
   projectId,
   seq,
+  onStart,
 }: {
   orgId: string;
   teamId: string;
   projectId: string;
   seq: number;
+  /** The empty state's one action: open the new-session row. */
+  onStart?: () => void;
 }) {
   const feed = useFetch(() => api.memory(orgId), `${orgId}:${seq}`);
   const entries = useMemo(() => {
@@ -558,8 +577,12 @@ function TeamMemory({
           })}
         </div>
       ))}
-      {rest.length === 0 && !feed.error && (
-        <p className="muted">{feed.loading ? copy.loading : copy.project.memoryEmpty}</p>
+      {rest.length === 0 && !feed.error && feed.loading && <p className="muted">{copy.loading}</p>}
+      {rest.length === 0 && !feed.error && !feed.loading && (
+        <EmptyState
+          text={copy.project.memoryEmptyHint}
+          action={onStart ? { label: copy.project.startSession, onClick: onStart } : null}
+        />
       )}
       <div className="memlist">
         {rest.map((e) => (

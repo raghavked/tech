@@ -65,7 +65,9 @@ function Page() {
   const me = useFetch<Me>(identity ? () => api.me(userId) : null, userId);
   const ctx: ShellContext = { route, identity, me: me.data };
   if (!identity || route.name === "home")
-    return <Home me={me.data} meError={me.error} identity={identity} ctx={ctx} />;
+    return (
+      <Home me={me.data} meError={me.error} identity={identity} ctx={ctx} onRetry={me.reload} />
+    );
   switch (route.name) {
     case "fleet":
       return <Project projectId={route.projectId} identity={identity} me={me.data} ctx={ctx} />;

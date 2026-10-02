@@ -11,7 +11,9 @@ import {
   type SessionRow,
 } from "../api.js";
 import { copy } from "../copy.js";
+import { EmptyState, openDemoSession } from "../empty.js";
 import type { Identity } from "../identity.js";
+import { notifyPermission, requestNotifications } from "../notify.js";
 import { paths } from "../router.js";
 import { Status, toast } from "../ui.js";
 
@@ -64,6 +66,8 @@ export function Team({
   const [data, setData] = useState<ProjectData[]>([]);
   const [inbox, setInbox] = useState<Notification[]>([]);
   const [tick, setTick] = useState(0);
+  // onboarding-empty-states: the inbox's empty state offers to turn notifications on.
+  const [perm, setPerm] = useState(notifyPermission());
   const key = projects.map((p) => p.projectId).join(",");
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the identity of `projects`; `tick` forces a refresh
   useEffect(() => {
@@ -184,6 +188,15 @@ export function Team({
         </section>
         <section className="group">
           <h2>{copy.team.projects}</h2>
+          {me && projects.length === 0 && (
+            <EmptyState
+              text={copy.team.noProjectsYet}
+              action={{
+                label: copy.team.tryDemo,
+                onClick: () => openDemoSession(identity.userId),
+              }}
+            />
+          )}
           <div className="list">
             {data.map((d) => {
               const c = countsOf(d.sessions);
@@ -216,7 +229,23 @@ export function Team({
         </section>
         <section className="group">
           <h2>{copy.team.recentHandoffs}</h2>
-          {handoffs.length === 0 && <p className="muted">{copy.team.noHandoffs}</p>}
+          {handoffs.length === 0 && (
+            <EmptyState
+              text={copy.team.noHandoffsYet}
+              action={
+                perm === "default"
+                  ? {
+                      label: copy.team.turnOnNotifications,
+                      onClick: () => {
+                        requestNotifications().then(setPerm);
+                      },
+                    }
+                  : first
+                    ? { label: copy.team.openProject, href: paths.fleet(first.projectId) }
+                    : null
+              }
+            />
+          )}
           <div className="list">
             {handoffs.map((n) => {
               const href = routeOfLink(n.link);
