@@ -27,6 +27,7 @@ import {
   TeamPill,
   useConnectionToasts,
 } from "../ui.js";
+import { InviteRow } from "./ShareSheet.js";
 
 export function Project({
   projectId,
@@ -136,6 +137,8 @@ export function Project({
             />
           </div>
         </section>
+        {/* share-invite: the project id and the users.json membership instruction. */}
+        <InviteRow projectId={projectId} state={s} me={identity.userId} />
         {open.length > 0 && (
           <section className="group">
             <h2>{copy.project.contentions}</h2>

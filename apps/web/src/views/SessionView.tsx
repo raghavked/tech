@@ -28,19 +28,18 @@ import { VirtualList } from "../stream/VirtualList.js";
 import {
   AgentCard,
   Avatar,
-  copyText,
   ErrorLine,
   ICONS,
   Icon,
   Status,
   TeamPill,
-  toast,
   useConnectionToasts,
   useMediaQuery,
 } from "../ui.js";
 import { focusSoon } from "../useShortcuts.js";
 import { BranchCompare } from "./BranchCompare.js";
 import { ReplayScrubber, ReplayToggle, useReplay } from "./ReplayScrubber.js";
+import { ShareSheet } from "./ShareSheet.js";
 import { sessionCommands } from "./sessionCommands.js";
 
 export function SessionView({
@@ -118,7 +117,8 @@ export function SessionView({
   useEffect(() => {
     rememberRecent({ projectId, sessionId, title: shownTitle });
   }, [projectId, sessionId, shownTitle]);
-  const [panel, setPanel] = useState<"none" | "details" | "team">("none");
+  // share-invite: "share" opens the ShareSheet drawer (views/ShareSheet.tsx).
+  const [panel, setPanel] = useState<"none" | "details" | "team" | "share">("none");
   const details = panel === "details";
   const setDetails = useCallback((v: boolean) => setPanel(v ? "details" : "none"), []);
   // Branch compare (views/BranchCompare.tsx): the other branch shown beside this one, or null.
@@ -186,10 +186,6 @@ export function SessionView({
     },
     details: () => setPanel((v) => (v === "details" ? "none" : "details")),
   };
-  const share = () => {
-    const url = `${location.origin}${location.pathname}${paths.session(projectId, sessionId)}`;
-    copyText(url).then((ok) => toast(ok ? copy.session.linkCopied : copy.session.copyFailed));
-  };
 
   return (
     <Shell
@@ -220,7 +216,12 @@ export function SessionView({
               <span className="avatar">{copy.session.more(online.length - 4)}</span>
             )}
           </fieldset>
-          <button type="button" className="btn ghost sm" onClick={share}>
+          <button
+            type="button"
+            className={`btn ghost sm${panel === "share" ? " on" : ""}`}
+            aria-pressed={panel === "share"}
+            onClick={() => setPanel((v) => (v === "share" ? "none" : "share"))}
+          >
             <Icon d={ICONS.link} size={14} />
             <span className="lbl">{copy.session.share}</span>
           </button>
@@ -261,6 +262,15 @@ export function SessionView({
               if (phone) setPanel("none");
             }}
             replay={<ReplayToggle pinned={scrubber} onToggle={() => setScrubber((v) => !v)} />}
+          />
+        ) : panel === "share" ? (
+          <ShareSheet
+            s={s}
+            me={actor}
+            client={client}
+            projectId={projectId}
+            errors={snap.errors}
+            onClose={() => setPanel("none")}
           />
         ) : panel === "team" ? (
           <TeamPanel
