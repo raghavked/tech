@@ -1,12 +1,12 @@
-/** Websocket client that folds events with the same reducer the server uses. */
-import { fold, type SessionState } from "@atelier/kernel";
+/** Websocket client for one session. It folds events with the same reducer the server uses. */
+import { fold, type SessionState } from "@fold/kernel";
 import type {
   Actor,
   ClientMessage,
   PresenceEntry,
   ServerMessage,
   SessionEvent,
-} from "@atelier/protocol";
+} from "@fold/protocol";
 
 export interface ClientSnapshot {
   state: SessionState | null;
@@ -17,36 +17,64 @@ export interface ClientSnapshot {
   connected: boolean;
 }
 
-export class AtelierClient {
+export interface JoinOptions {
+  sessionId: string;
+  actor: Actor;
+  token?: string;
+  branch?: string;
+  /** Identity in users.json; roles derive from memberships when the server knows it. */
+  userId: string;
+  /** Project to create the session in when it does not exist yet. */
+  projectId: string;
+  title: string;
+}
+
+const EMPTY: ClientSnapshot = {
+  state: null,
+  events: [],
+  presence: [],
+  errors: [],
+  brief: null,
+  connected: false,
+};
+
+export class FoldClient {
   private ws: WebSocket | null = null;
-  snapshot: ClientSnapshot = {
-    state: null,
-    events: [],
-    presence: [],
-    errors: [],
-    brief: null,
-    connected: false,
-  };
+  snapshot: ClientSnapshot = EMPTY;
   private listeners = new Set<() => void>();
+  private liveListeners = new Set<(e: SessionEvent) => void>();
 
   subscribe(fn: () => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
+  }
+  /** Events that arrive after the snapshot, one by one: what a notification should react to. */
+  onLiveEvent(fn: (e: SessionEvent) => void): () => void {
+    this.liveListeners.add(fn);
+    return () => this.liveListeners.delete(fn);
   }
   private emit(patch: Partial<ClientSnapshot>): void {
     this.snapshot = { ...this.snapshot, ...patch };
     for (const fn of this.listeners) fn();
   }
 
-  connect(url: string, sessionId: string, actor: Actor, token: string, branch = "main"): void {
-    this.ws?.close();
+  connect(url: string, opts: JoinOptions): void {
+    this.disconnect();
     const ws = new WebSocket(url);
     this.ws = ws;
+    this.emit({ ...EMPTY });
     ws.onopen = () => {
       this.emit({ connected: true, events: [], state: null });
-      const join: ClientMessage = token
-        ? { type: "join", sessionId, actor, token, branch }
-        : { type: "join", sessionId, actor, branch };
+      const join: ClientMessage = {
+        type: "join",
+        sessionId: opts.sessionId,
+        actor: opts.actor,
+        branch: opts.branch ?? "main",
+        userId: opts.userId,
+        projectId: opts.projectId,
+        title: opts.title,
+        ...(opts.token ? { token: opts.token } : {}),
+      };
       ws.send(JSON.stringify(join));
     };
     ws.onclose = () => this.emit({ connected: false });
@@ -59,6 +87,7 @@ export class AtelierClient {
         case "event": {
           const state = this.snapshot.state ? fold([msg.event], this.snapshot.state) : null;
           this.emit({ state, events: [...this.snapshot.events, msg.event] });
+          for (const fn of this.liveListeners) fn(msg.event);
           break;
         }
         case "presence":
@@ -76,7 +105,19 @@ export class AtelierClient {
     };
   }
 
+  disconnect(): void {
+    const ws = this.ws;
+    this.ws = null;
+    if (ws) {
+      ws.onclose = null;
+      ws.close();
+    }
+    this.emit({ connected: false });
+  }
+
   send(msg: ClientMessage): void {
     this.ws?.send(JSON.stringify(msg));
   }
 }
+
+export const wsUrl = () => `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;

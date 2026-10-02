@@ -11,10 +11,12 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "node ../../packages/cli/dist/main.js serve --port 7730 --dir ../../store-web-smoke",
+      // A fresh store every run: claims held by a previous run's sessions would refuse this run's writes.
+      command:
+        "rm -rf ../../store-web-smoke && node ../../packages/cli/dist/main.js serve --port 7730 --dir ../../store-web-smoke",
       url: "http://127.0.0.1:7730/health",
       reuseExistingServer: false,
-      env: { ATELIER_OFFLINE: "1" },
+      env: { FOLD_OFFLINE: "1" },
     },
     {
       command: "pnpm exec vite preview --port 4173 --strictPort",
