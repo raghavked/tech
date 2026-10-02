@@ -12,8 +12,10 @@ export default defineConfig({
   webServer: [
     {
       // A fresh store every run: claims held by a previous run's sessions would refuse this run's writes.
+      // The fixtures give each flow in test/flows.spec.ts its own project (claims are per project)
+      // and one users.json lead who may set project direction.
       command:
-        "rm -rf ../../store-web-smoke && node ../../packages/cli/dist/main.js serve --port 7730 --dir ../../store-web-smoke",
+        "rm -rf ../../store-web-smoke && mkdir -p ../../store-web-smoke && cp test/fixtures/orgs.json test/fixtures/users.json ../../store-web-smoke/ && node ../../packages/cli/dist/main.js serve --port 7730 --dir ../../store-web-smoke",
       url: "http://127.0.0.1:7730/health",
       reuseExistingServer: false,
       env: { FOLD_OFFLINE: "1" },

@@ -193,4 +193,93 @@ describe("project host", () => {
     await server.close();
     rmSync(root2, { recursive: true, force: true });
   });
+
+  it("a users.json team lead is a lead in the ledger over the front door: their project direction reaches a session", async () => {
+    const root3 = mkdtempSync(join(tmpdir(), "fold-srv3-"));
+    writeFileSync(
+      join(root3, "orgs.json"),
+      JSON.stringify({
+        orgs: [
+          {
+            id: "nw",
+            name: "Northwind",
+            teams: [
+              { id: "pay", name: "Payments", projects: [{ id: "billing", name: "Billing" }] },
+            ],
+          },
+        ],
+      }),
+    );
+    writeFileSync(
+      join(root3, "users.json"),
+      JSON.stringify({
+        users: [{ id: "dee", name: "Dee", teams: [{ teamId: "pay", role: "lead" }] }],
+      }),
+    );
+    const server = new FoldServer({
+      root: root3,
+      model: new ScriptedModel(),
+      tools: defaultTools(),
+    });
+    const port = await server.listen(0);
+    const { default: WebSocket } = await import("ws");
+    const connect = () =>
+      new Promise<{ ws: InstanceType<typeof WebSocket>; msgs: Record<string, unknown>[] }>(
+        (resolve) => {
+          const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+          const msgs: Record<string, unknown>[] = [];
+          ws.on("message", (raw) => msgs.push(JSON.parse(raw.toString())));
+          ws.on("open", () => resolve({ ws, msgs }));
+        },
+      );
+    const settle = () => new Promise((r) => setTimeout(r, 300));
+    // Ana is unknown to users.json: first in, she owns the session as a plain member.
+    const ana = await connect();
+    ana.ws.send(
+      JSON.stringify({
+        type: "join",
+        sessionId: "s1",
+        actor: { id: "ana", kind: "human", name: "Ana" },
+        branch: "main",
+        userId: "ana",
+        projectId: "billing",
+        title: "S1",
+      }),
+    );
+    await settle();
+    expect(server.project("billing").state().members.ana?.role).toBe("member");
+    // Dee only subscribes to the project page, as the web client does; she becomes its lead.
+    const dee = await connect();
+    dee.ws.send(JSON.stringify({ type: "project.subscribe", projectId: "billing", userId: "dee" }));
+    await settle();
+    expect(server.project("billing").state().members.dee?.role).toBe("lead");
+    dee.ws.send(
+      JSON.stringify({
+        type: "project.directive",
+        input: { text: "no external dependencies", mode: "constrain", scope: "goal" },
+        targets: "all",
+      }),
+    );
+    await settle();
+    expect(dee.msgs.some((m) => m.type === "error")).toBe(false);
+    const applied = ana.msgs.find(
+      (m) =>
+        m.type === "event" &&
+        (m.event as { kind: string; payload: { author: string; input: { text: string } } }).kind ===
+          "project.directive.applied",
+    ) as { event: { payload: { author: string; input: { text: string } } } } | undefined;
+    expect(applied?.event.payload.author).toBe("dee");
+    expect(applied?.event.payload.input.text).toBe("no external dependencies");
+    expect(
+      server
+        .project("billing")
+        .session("s1")
+        .session.state()
+        .intent.constraints.map((c) => [c.text, c.origin]),
+    ).toEqual([["no external dependencies", "project"]]);
+    ana.ws.close();
+    dee.ws.close();
+    await server.close();
+    rmSync(root3, { recursive: true, force: true });
+  });
 });

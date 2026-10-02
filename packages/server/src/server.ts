@@ -7,7 +7,12 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
-import { ProjectClientMessage, type ProjectEvent } from "@fold/fleet";
+import {
+  deriveProjectRole,
+  PROJECT_RANK,
+  ProjectClientMessage,
+  type ProjectEvent,
+} from "@fold/fleet";
 import { KernelError } from "@fold/kernel";
 import { Curator, MemoryStore, type SerializedMemory } from "@fold/memory";
 import {
@@ -108,6 +113,24 @@ export class FoldServer {
       });
     });
     return p;
+  }
+
+  /**
+   * Hook point (e2e-expansion): a user whose users.json membership makes them a lead or admin
+   * of a project is recorded in that project's ledger with the same role the first time they
+   * join one of its sessions or subscribe to it, so the project directives and fleet
+   * resolutions the web client offers them are accepted. Unknown users keep the member role
+   * they get when they join a session; a ledger role is never lowered here.
+   */
+  private ensureLedgerRole(projectHost: ProjectHost, userId: string | null): void {
+    const user = this.orgs.user(userId);
+    const ref = this.orgs.project(projectHost.projectId);
+    if (!user || !ref) return;
+    const role = deriveProjectRole(user, ref);
+    if (!role || role === "member") return;
+    const current = projectHost.state().members[user.id];
+    if (current && PROJECT_RANK[current.role] >= PROJECT_RANK[role]) return;
+    projectHost.project.join(user.id, user.name, role);
   }
 
   /** The organisation's memory store, persisted at store/memory/<org>.json and curated on a timer. */
@@ -358,6 +381,7 @@ export class FoldServer {
           userId = msg.userId ?? msg.actor.id;
           const pid = msg.projectId ?? this.projectOfSession(msg.sessionId);
           projectHost = this.project(pid);
+          this.ensureLedgerRole(projectHost, userId);
           const ref = this.orgs.project(pid);
           const existing = projectHost.hosts.get(msg.sessionId);
           const ownerForNew = existing ? null : userId;
@@ -375,6 +399,7 @@ export class FoldServer {
           if (subscriber && projectHost) projectHost.unsubscribe(subscriber);
           projectHost = this.project(msg.projectId);
           userId = msg.userId ?? userId;
+          this.ensureLedgerRole(projectHost, userId);
           subscriber = { userId, send };
           projectHost.subscribe(subscriber);
           return;

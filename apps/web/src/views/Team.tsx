@@ -148,7 +148,7 @@ export function Team({
       <div className="column page">
         <h1>{teamName}</h1>
         <p className="muted">{summary}</p>
-        <section className="group">
+        <section className="group" aria-label={copy.team.needsYou}>
           <h2>{copy.team.needsYou}</h2>
           {needs === 0 && <p className="muted">{copy.team.nothingWaiting}</p>}
           <div className="list">

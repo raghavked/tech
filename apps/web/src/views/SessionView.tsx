@@ -479,6 +479,7 @@ function Stream({
                     <button
                       type="button"
                       className="btn sm"
+                      aria-label={`Pick: ${d.input.text}`}
                       onClick={() =>
                         client.send({ type: "resolve", contentionId: c.id, winner: id })
                       }
@@ -490,6 +491,7 @@ function Stream({
                     <button
                       type="button"
                       className="btn ghost sm"
+                      aria-label={`Withdraw: ${d.input.text}`}
                       onClick={() => client.send({ type: "withdraw", directiveId: id })}
                     >
                       {copy.stream.withdraw}
@@ -1152,7 +1154,7 @@ function Drawer({
           </button>
         </div>
         <ErrorLine errors={errors} />
-        <section className="group">
+        <section className="group" aria-label={copy.details.intent}>
           <h3>{copy.details.intent}</h3>
           {s.intent.goal ? (
             <p>
@@ -1193,7 +1195,7 @@ function Drawer({
           </p>
         </section>
         {replay}
-        <section className="group">
+        <section className="group" aria-label={copy.details.people}>
           <h3>{copy.details.people}</h3>
           {humans.map((p) => (
             <div className="person" key={p.actor.id}>
@@ -1257,7 +1259,7 @@ function Drawer({
           ))}
           {humans.length <= 1 && <p className="muted small">{copy.details.alone}</p>}
         </section>
-        <section className="group">
+        <section className="group" aria-label={copy.details.branches}>
           <h3>{copy.details.branches}</h3>
           {branches.map((b) => (
             <div className="row" key={b}>
@@ -1338,7 +1340,7 @@ function Drawer({
             </div>
           ))}
         </section>
-        <section className="group">
+        <section className="group" aria-label={copy.details.memory}>
           <h3>{copy.details.memory}</h3>
           {ctxMem.error && <p className="small danger">{ctxMem.error}</p>}
           <MemoryContext text={ctxMem.data?.context ?? ""} loading={ctxMem.loading} />
@@ -1346,7 +1348,7 @@ function Drawer({
             {copy.details.refresh}
           </button>
         </section>
-        <section className="group">
+        <section className="group" aria-label={copy.details.catchUp}>
           <h3>{copy.details.catchUp}</h3>
           {brief ? (
             <pre className="brief">{brief}</pre>

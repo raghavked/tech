@@ -94,7 +94,7 @@ export function Project({
           }
           onWithdraw={(id) => client.send({ type: "project.withdraw", directiveId: id })}
         />
-        <section className="group">
+        <section className="group" aria-label={copy.project.agents}>
           <h2>{copy.project.agents}</h2>
           {sessions.length === 0 && (
             <EmptyState
@@ -557,7 +557,7 @@ function TeamMemory({
   const inConflict = new Set(conflicts.flatMap((c) => c.entryIds));
   const rest = entries.filter((e) => !inConflict.has(e.id));
   return (
-    <section className="group">
+    <section className="group" aria-label={copy.project.teamMemory}>
       <div className="row">
         <h2 className="grow">{copy.project.teamMemory}</h2>
         <a className="small" href={paths.memory(orgId, { team: teamId, project: projectId })}>
