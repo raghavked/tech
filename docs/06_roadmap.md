@@ -1,24 +1,58 @@
 # Roadmap
 
-| Phase | Scope | Exit criteria |
-|---|---|---|
-| **0. Offline vertical slice** (this repository) | Store, samples, synthetic world, standardization, nowcast with provider effects, supply stack and curve, six spread families, paper desk, desk report, Python SDK, CI | Everything runs offline in CI; e2e test green; live AWS connector demonstrated |
-| **1. Live nowcast** (listing day onward) | Daily scrapes of 3+ real sources beyond AWS (SF Compute, Vast, RunPod, Lambda, Shadeform); real published prints once available; calibration on real data; intraday refresh; hosted store | 60 live days with 90% interval coverage >= 0.85 and MAPE < 6% on at least one settlement index; nowcast feed delivered to two design partners |
-| **2. Analytics business** | Nowcast and curve API, desk report subscription, hedging analytics for neo-clouds (settlement estimate + spark spread + power hedge sizing); Parquet output and pyo3 bindings if latency demands; TypeScript dashboard | Two paying pilots; cost-stack inputs replaced by vendor quotes and colo contracts; contract specs verified |
-| **3. Proprietary desk** | Real capital in CME/ICE compute futures, clearing relationship, execution and risk infrastructure, CTA/CPO analysis complete | Six months of paper Sharpe > 1 net of fills; risk committee sign-off; counsel opinion on registration |
-| **4. Market making and power** | Two-sided quoting on compute futures; cross-hedging compute revenue with power at data-center hubs; optional public anchoring of nowcast history for auditability | Sustained share of open interest; hedging book with neo-cloud clients |
+## Phase 0: the kernel (this repository)
 
-## Hiring
+Done. Deterministic, branchable, hash-chained session log; intent arbitration with an
+order-independence property test; role lattice with a transferable driver token; approval
+policies with quorum; fork and three-way merge with directive carry-over; computed handoff
+brief; crash-resumable runner; websocket server with persistence; web and CLI clients; an
+offline demo and an end-to-end test that runs in CI with no network and no model API.
 
-Phase 1: one data engineer (scrapers, store, scheduling), one quant (calibration, provider
-effects, evaluation). Phase 2: one product engineer (API and dashboard), one energy-market
-analyst (cost stack, power hubs). Phase 3: a trader with commodity futures experience and
-a compliance lead.
+## Phase 1: design partners (months 1 to 4)
 
-## Model backlog (ordered)
+Goal: three engineering teams using Quorum weekly on real multi-hour agent runs.
 
-1. Real-print calibration and evaluation dashboards.
-2. Cross-price elasticities between GPU classes in the supply stack.
-3. Financing constraints and residual-value curves for the fleet.
-4. Intraday nowcast with recency weights (already parameterized).
-5. Options and volatility surface once listed.
+- **Harness adapters.** Host a Claude Agent SDK run as a Quorum session (the adapter maps
+  its hooks to turn, tool and approval events). Then LangGraph and the OpenAI Agents SDK.
+  The kernel does not change; the runner grows a `HarnessRunner`.
+- **Identity.** OIDC login, server-issued actor ids, per-event signatures. Per-participant
+  tool credentials through a server-side broker so an action runs with the authority of
+  those who approved it.
+- **Sandboxing.** Per-session container for tools; network off by default.
+- **Slack adapter.** A thread is a session view: presence from the thread, directives from
+  messages, approvals as buttons. This is where non-engineering teams first meet Quorum.
+- **Receiver synthesis on handoff.** The incoming driver restates the plan; the restatement
+  is journaled before authority moves.
+- **Log compaction and reconnect.** JSONL per branch, periodic snapshots, resume-from-seq
+  for clients, Merkle inclusion proofs so an observer can verify its prefix.
+- **Context merge.** When a branch merges, a journaled summariser call folds its decisions
+  into the target's context.
+
+## Phase 2: platform (months 5 to 9)
+
+- Hosted multi-tenant service on an actor-per-session substrate (Durable Objects or
+  equivalent), with the kernel unchanged.
+- Policy packs per industry: risk classes and approval rules for deploys, payments, legal
+  filings, outbound customer communication.
+- Scope inference: a classifier proposes a scope for each directive; the author confirms.
+- Session templates for sales, support, legal, finance and marketing, each with its tool
+  set and brief format.
+- Analytics: time-to-first-steer for newcomers, contention rate, approval latency, handoff
+  count, replay coverage.
+
+## Phase 3: standard (months 10 to 18)
+
+- Publish the session protocol and the log format; reference adapters maintained with
+  harness vendors.
+- Audit exports mapped to EU AI Act Articles 12 and 14 and to SOC 2 evidence requests.
+- Multi-agent sessions: several agents, one intent lattice, with agents as ranked
+  participants.
+
+## Milestones that would change the plan
+
+- A first-party harness ships native multi-human sessions with fork and quorum: compete on
+  neutrality and audit, or partner as their cross-vendor layer.
+- Slack Code becomes the default surface: ship the Slack adapter first and make the kernel
+  the state behind the channel.
+- Design partners value replay and audit over live collaboration: lead with the compliance
+  product and keep live steering as the on-ramp.

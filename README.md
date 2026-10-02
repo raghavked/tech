@@ -1,97 +1,101 @@
-# Basis
+# Quorum
 
-**The quant desk for GPU compute as a listed commodity.**
+**The multiplayer kernel for long-running agent sessions.**
 
-GPU compute futures list on CME (Silicon Data H100 and B200 rental indices) on 5 October
-2026 and on ICE (Ornn Compute Price Index, Asian-style settlement). Spot is fragmented and
-noisy, two rival indices will settle two rival contracts, and nobody has the fundamental
-model. Basis is the intelligence layer for that market: a supply stack and fair-value
-forward curve, a real-time settlement nowcast with calibrated uncertainty, a spread engine
-including the **compute spark spread** against power costs at data-center hubs, and a paper
-desk that trades the spreads under hard risk limits.
+Agents now run for hours, days and weeks. Work at that scale pulls in many people, but every
+agent product today gives the run to one person: everyone else gets a read-only link, or a
+Slack thread the model has to make sense of. Quorum makes the session itself the shared
+object. Anyone on the team drops in, watches, steers, approves, forks, merges and hands off,
+and the kernel decides what happens when two people steer at once.
 
-This repository is the phase-0 vertical slice: everything runs offline on committed
-samples and a deterministic synthetic world, with one live connector (the AWS price list).
-Docs are in [`docs/`](docs/), starting with the [one-pager](docs/00_thesis_one_pager.md).
+This repository is the phase-0 vertical slice: a deterministic session kernel, an agent
+runner that survives crashes, a websocket server, a web client, a CLI, tests, and an
+offline demo that exercises every primitive without a model API. Docs are in
+[`docs/`](docs/), starting with the [one-pager](docs/00_thesis_one_pager.md) and the
+[kernel design](docs/05_kernel_design.md).
 
-> Paper trading only. Nothing here sends orders or holds money. Backtests on synthetic
-> markets validate plumbing, not alpha. Contract specs are placeholders until verified.
+> Phase 0. Dev-server authentication only, scripted model by default, nothing here is
+> hosted. See `docs/07_security_and_compliance.md` before pointing it at anything real.
+
+## What is new here
+
+- **Session as a hash-chained, branchable log.** Model and tool outputs are recorded, so any
+  session replays deterministically and resumes from a snapshot. `quorum verify` proves it.
+- **Intent arbitration.** Concurrent directives from many humans compose into one intent by
+  explicit rules (authority, recency, scope). Peers who disagree in the same epoch produce a
+  *contention* the agent works around until a driver resolves it. Composition is independent
+  of arrival order; a 300-trial property test says so.
+- **Authority and approvals.** Observer < contributor < driver < owner, with the driver seat
+  as a transferable token. Tool calls carry a risk class; irreversible ones need a quorum of
+  distinct humans, and approvals are bound to the hash of the exact call.
+- **Fork and merge.** Branch at a checkpoint; merge with a three-way workspace merge and
+  directive carry-over that turns conflicting steers into contentions instead of overrides.
+- **Handoff with a computed brief.** The incoming driver gets situation, open items, what
+  the agent did, and what changed since they were last present, generated from the log.
+- **Crash-resumable runner.** A new runner finishes the tool calls a dead one left behind.
 
 ## Quickstart (five minutes, no network)
 
 ```bash
-cargo build --release -p basis-cli
-export BASIS_OFFLINE=1
-B=target/release/basis
-
-$B --store ./store pipeline --synth-days 400      # ingest samples, synthesize a world, standardize,
-                                                  # curve, nowcast (with evaluation), spreads, backtest, report
-cat store/reports/*/desk_report.md                # eight sections: nowcasts, settlements, curve, spreads,
-                                                  # spark spreads by hub, positions and P&L, signals, data quality
-$B --store ./store ledger --tail 20
-$B --store ./store store ls
+pnpm install
+pnpm build
+pnpm demo                                   # offline: four humans, one agent, every primitive
+cat store-demo/sessions/demo/narrative.md   # what happened and why
+cat store-demo/sessions/demo/brief.md       # the handoff brief Bo received
+node packages/cli/dist/main.js verify store-demo/sessions/demo/log.json
 ```
 
-Live AWS prices (needs egress to `pricing.us-east-1.amazonaws.com`; streams ~480 MB with
-bounded memory):
+Live, in two terminals plus a browser:
 
 ```bash
-unset BASIS_OFFLINE
-$B aws fetch --region us-east-1 --out aws_gpu.csv     # p5.48xlarge $55.04/h = $6.88 per H100-hour on 2026-09-25
-$B --store ./store ingest --source aws                # append the rows and derived observations
+pnpm serve                                   # ws://127.0.0.1:7700/ws, scripted model
+node packages/cli/dist/main.js join demo --as Ana      # first in: owner and driver
+node packages/cli/dist/main.js join demo --as Bo       # contributor
+pnpm --filter @quorum/web dev                # http://localhost:5173, join as a third person
 ```
 
-Python:
+In Ana's terminal type `Build a doubling helper and deploy it`; in Bo's type
+`/constrain no external dependencies`. Watch the approval prompts, `/approve <id>`, then
+`/handoff bo` and `/accept <id>` on the other side, and `/brief`.
 
-```bash
-cd python && uv sync --all-extras --dev
-uv run python -c "from basis_research import Store; s=Store('../store'); print(s.estimates().tail()); print(s.report()[:400])"
-```
+With `ANTHROPIC_API_KEY` set, `pnpm serve -- --model claude` runs a real model through the
+same kernel. `QUORUM_OFFLINE=1` blocks it.
 
 ## Commands
 
 | Command | Purpose |
 |---|---|
-| `basis ingest --source sample\|aws` | load committed samples or the AWS price list into the store |
-| `basis synth [--days N] [--tiny]` | deterministic synthetic providers, prints, power and futures |
-| `basis standardize` | move observations onto each index's reference spec, flag outliers |
-| `basis curve` | supply stack to fair-value forward curve |
-| `basis nowcast [--evaluate]` | index nowcasts with intervals, settlement forecasts, accuracy vs prints |
-| `basis spreads` | basis, calendar, cross-index, cross-GPU, spark and cross-hub spark spreads |
-| `basis backtest` | paper desk with risk limits, modelled fills and an exact ledger |
-| `basis ledger`, `basis report` | inspect the book; write the desk report |
-| `basis aws fetch`, `basis store ls\|verify`, `basis pipeline` | connector, store inspection, everything at once |
-
-Global flags: `--store`, `--config`, `--seed`, `-v`. Exit codes: 0 ok, 2 config, 3 data,
-4 network blocked. `BASIS_OFFLINE=1` blocks every live fetch.
+| `quorum serve [--port] [--dir] [--model scripted\|claude] [--token]` | host sessions over websockets |
+| `quorum demo [--dir]` | the offline multiplayer scenario; writes log, brief, report, narrative |
+| `quorum join <session> --as <name> [--url] [--token] [--branch]` | terminal participant |
+| `quorum replay <log.json> [--branch]` | fold a log and print the brief |
+| `quorum verify <log.json>` | hash chain and replay determinism for every branch |
+| `quorum report <log.json>` | markdown report of every branch |
 
 ## Repository map
 
 ```
-crates/basis-core        types, content-addressed CSV store, stats, PRNG, config
-crates/basis-connectors  sample loader, synthetic generator, streaming AWS parser, vendor stubs
-crates/basis-model       standardization, nowcast, supply stack, curve, spreads
-crates/basis-trade       strategies, risk, fills, Decimal ledger, backtest, metrics, report
-crates/basis-cli         the `basis` binary
-config/                  indices, contracts (TO VERIFY), cost stack, standardization, supply, risk, strategies
-data/samples/            committed synthetic samples (pinned by manifest); data/fixtures/ connector fixtures
-schemas/datasets.toml    column contract shared by Rust and Python tests
-python/                  basis-research: pandas access to the store
-scripts/                 gen_samples.py, e2e.sh, make_python_fixture.sh
-docs/                    thesis, market primer, landscape, product spec, architecture, methodology,
-                         roadmap, regulatory notes, business model, threat model, data sources, open questions
+packages/protocol   zod schemas: actors, roles, directives, tool calls, events, wire messages
+packages/kernel     pure core: hash, log, arbitration, approvals, reducer, merge, brief, replay, Session
+packages/runner     agent loop, tool registry, scripted model, Claude adapter
+packages/server     websocket server, session host, disk persistence
+packages/cli        the quorum binary
+apps/web            React client that folds the same events as the server
+scripts/            e2e.sh and the scripted websocket clients it drives
+docs/               thesis, market, landscape, product spec, architecture, kernel design,
+                    roadmap, security, business model, threat model, sources, open questions
 ```
 
 ## Development
 
 ```bash
-make ci        # fmt, clippy -D warnings, tests, python lint and tests, e2e
-make demo      # full pipeline into ./store
+pnpm check     # lint (biome), typecheck, unit and integration tests (vitest), build, e2e
+pnpm test      # 39 tests: kernel semantics, runner behaviour, websocket server
 ```
 
-Tests run offline; the one live test is `cargo test -p basis-connectors --features live -- --ignored aws_live`.
+Tests and e2e run offline. CI runs the same pipeline on every push.
 
 ## Status and licence
 
-Phase 0 complete (see `docs/06_roadmap.md`). Licence not yet chosen; all rights reserved
-until the founder decides.
+Phase 0 complete; see `docs/06_roadmap.md`. Licence not yet chosen; all rights reserved until
+the founder decides.

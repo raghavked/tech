@@ -1,76 +1,78 @@
-# Basis: the quant desk for GPU compute as a commodity
+# Quorum: the multiplayer kernel for long-running agents
 
-*One-pager. Working codename "Basis" (as in futures basis). Market facts are founder notes
-gathered 25-28 September 2026 and must be re-verified before external use; see
-`10_data_sources.md` for sources.*
+*One-pager. Working codename "Quorum" (the minimum set of people who can decide). Market
+facts are founder notes gathered 2 October 2026 and must be re-verified before external use;
+see `10_sources.md`.*
 
 ## The thesis in one line
 
-GPU compute is becoming a listed commodity in October 2026. Nobody has the fundamental
-supply/demand model, the real-time settlement nowcast, or the link to power markets that
-every other financialized commodity eventually got. Basis builds that intelligence layer
-first and trades on it second.
+Agent runs are becoming hours, days and weeks long, and work at that scale is done by teams.
+Every agent product still gives the run to one person. Quorum makes the session itself a
+shared, replayable object with defined semantics for many humans steering one agent, and
+sells that kernel to every surface and every vertical that needs it.
 
 ## What just changed
 
-- **CME Group lists compute futures on 5 October 2026**: Silicon Data H100 Rental Index
-  futures and B200 Rental Index futures, cash-settled on daily indices built from millions
-  of rental observations. **ICE lists futures on the Ornn Compute Price Index** (printed
-  transactions, Asian-style settlement). A third venue (Architect) is announced.
-- **Spot is chaotic.** H100 quotes ranged from $0.72 to $15.14 per GPU-hour across 24
-  marketplaces in a single day. Hyperscaler on-demand is $6.88 per H100-hour on AWS today
-  (p5.48xlarge, live price list) while boutique clouds quote $1.4-2.9. Two rival indices
-  will settle two rival contracts on the same physical market.
-- **The physical link to power is direct.** A GPU-hour costs `TDP x overhead x PUE x $/kWh`
-  in electricity plus depreciation, colocation and opex. PJM capacity prices went from
-  $28.92 to $333.44 per MW-day; ERCOT large-load requests exceed 230 GW, most of it data
-  centers. No product computes the resulting **compute spark spread**.
+- **Runs got long.** Cloud sessions that outlive a laptop, tasks that span a working day,
+  and autonomous runs that teams check on overnight are now ordinary across Claude Code,
+  Codex, Devin and Cursor. Task-horizon measurements have doubled roughly every seven months
+  for years (METR; re-verify the 2026 figure before citing).
+- **The demand is written down.** YC's Fall 2026 request for startups asks for "a
+  production-ready multiplayer AI workspace that lets a whole team collaborate with AI
+  agents in real time, the way Figma turned design into a shared, live experience." a16z's
+  Big Ideas 2026 says "the collaboration layer becomes the moat." An open Anthropic issue
+  (#60082, May 2026) asks for real-time multi-user Claude Code sessions.
+- **Vendors are improvising.** Cursor's Team Followups run a teammate's instruction under
+  the session creator's tokens. Claude Code share links do not update live. Devin serialises
+  everyone's messages into one queue. Slack Code puts a team around an agent in a channel
+  with no replay or fork. Nobody has a participant model, arbitration, or a replayable
+  record.
 
 ## The insight
 
-When power, gas and oil were financialized, the durable businesses were the ones that
-built physical intelligence (Genscape, Kpler, Yes Energy) and the trading desks that used
-it. Index providers publish prices; they do not model supply and demand, and as settlement
-agents they cannot trade. The gap is the same here, and it is open for roughly one year
-before incumbents notice.
+A multiplayer agent session is a distributed-systems object, not a chat with more people.
+Three things make it one, and none of them exists in any shipped product:
 
-## The product, three pillars
+1. **A deterministic, branchable session log** that records model and tool outputs, so a
+   session replays, resumes after a crash, forks at a checkpoint, and merges back.
+2. **Intent arbitration**: concurrent directives from many humans compose into one intent by
+   explicit, order-independent rules; peers who disagree produce a contention the agent
+   works around until someone with authority resolves it. The model never has to guess whose
+   instruction wins; the kernel has already decided, in the open.
+3. **Authority as data**: roles, a transferable driver seat, approvals bound to the hash of
+   the exact action, quorum for irreversible actions, and a handoff brief computed from the
+   log. "Who told the agent to do that" is a lookup.
 
-1. **Supply stack.** A bottom-up model of GPU-hour supply (installed fleet by class and
-   region, pipeline additions timed by interconnect delays, cash-cost and reservation-price
-   sellers) and demand (H100-equivalent work with growth and elasticity), cleared monthly
-   into a fair-value forward curve with a cash-cost floor and a scarcity ceiling.
-2. **Nowcast.** Every marketplace, cloud and colocation quote standardized onto each index's
-   reference spec, cleaned (MAD trim, winsorization, provider and tier caps), corrected for
-   persistent provider effects, calibrated to published prints without look-ahead, with
-   bootstrap uncertainty and settlement-window forecasts for Asian and final-day contracts.
-3. **Spread engine and paper desk.** Basis, calendar, cross-index (Silicon Data vs Ornn),
-   performance-adjusted cross-GPU (B200 vs H100), the compute spark spread by power hub, and
-   cross-hub spark spreads; two mean-reversion strategies run under hard risk limits in a
-   paper book with an exact ledger and a daily desk report.
+This is the join between durable execution (Temporal, valued at $12.55B this September) and
+realtime collaboration (Figma, Liveblocks), applied to agents. The two sides are separate
+vendors today; the first party harnesses have no reason to build it vendor-neutrally.
+
+## The product, three layers
+
+1. **Kernel.** Pure, tested semantics: log, arbitration, authority, fork and merge, replay,
+   brief. Runs in the server, the CLI and the browser identically.
+2. **Session service.** One authoritative actor per session, websockets for everyone else,
+   persistence, a runner that survives crashes, adapters so any harness runs inside it.
+3. **Surfaces.** Web, CLI, Slack thread, PR; then templates for sales, support, legal,
+   finance and marketing teams, who already crowd one problem and one agent.
 
 ## Why now and why us
 
-The contracts list in days; the data is public but ugly; the models are energy-market
-methods applied to a market that has no energy-market veterans yet. This repository is a
-runnable vertical slice of all three pillars with tests and CI.
+The runs got long this year; the RFS was published this quarter; the first-party vendors
+are each one feature deep and single-vendor. This repository is a runnable vertical slice of
+all three layers with 39 tests, a browser test, and an offline demo that walks a four-person
+team through contention, approval, fork, merge and handoff.
 
 ## Who pays
 
-- Neo-clouds and colocation operators hedging rental revenue (need settlement nowcasts and
-  spark-spread analytics).
-- AI labs and inference companies hedging compute cost (need the forward curve).
-- Futures market makers and prop desks (need the nowcast feed and cross-index gap).
-- Later: the desk itself, trading basis and cross-index spreads with proprietary capital.
+Engineering teams first (live co-presence and approvals on multi-hour runs); platform teams
+second (one session layer across harnesses, replay and policy); security and compliance
+third (attributed, replayable evidence of who authorised what); vertical teams through
+templates and partners. Pricing follows the premise that anyone can drop in: per active
+session-hour plus per approver seat, with the kernel and protocol open.
 
-## Twelve-month goal
+## What would kill it
 
-Three live data sources beyond AWS, a nowcast that covers 85%+ of published prints inside
-its 90% interval over 60 live days, two paying analytics pilots, and six months of paper
-trading with a Sharpe above 1 net of modelled fills before any real capital.
-
-## Moat
-
-Data assembly (dozens of scrapers with provider-effect history), the calibrated cost stack,
-and the track record of settlement nowcasts against real prints. None of it is a secret;
-all of it takes a year of daily grind that starts on listing day.
+A first party ships native multi-human sessions with fork and quorum, and Slack Code becomes
+the default cross-vendor surface. The answer to both is the same: be the neutral,
+replayable kernel those surfaces embed, which none of them is positioned to build.

@@ -1,37 +1,38 @@
 #!/usr/bin/env bash
-# Offline end-to-end run: samples + synthetic markets -> standardize -> curve -> nowcast
-# -> spreads -> backtest -> report, then the Python SDK reads the store back.
+# End-to-end: build, run the offline demo, verify its log, then exercise the live server with
+# two scripted websocket clients. No network beyond localhost; no model API.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-
-BASIS_BIN="${BASIS_BIN:-target/debug/basis}"
-STORE="${BASIS_E2E_STORE:-store-e2e}"
-DAYS="${BASIS_E2E_DAYS:-200}"
-export BASIS_OFFLINE=1
-
-if [ ! -x "$BASIS_BIN" ]; then
-  echo "building basis..."
-  cargo build -p basis-cli
-  BASIS_BIN=target/debug/basis
-fi
-
+export QUORUM_OFFLINE=1
+STORE="${STORE:-./store-e2e}"
 rm -rf "$STORE"
-"$BASIS_BIN" --store "$STORE" --seed 42 pipeline --synth-days "$DAYS"
+mkdir -p "$STORE"
 
-echo "--- checks"
-for f in standardized estimates settlements curve spreads ledger equity signals positions; do
-  test -s "$STORE/derived/$f.csv" || { echo "missing derived/$f.csv"; exit 1; }
+echo "== build"
+pnpm -s build >/dev/null
+
+echo "== offline demo"
+node packages/cli/dist/main.js demo --dir "$STORE/demo" > "$STORE/demo.out"
+grep -q "hash chain: ok; full replay == snapshot resume: true" "$STORE/demo.out"
+grep -q "contention" "$STORE/demo.out"
+grep -q "deploy \[irreversible\] -> granted" "$STORE/demo.out"
+
+echo "== verify + report"
+node packages/cli/dist/main.js verify "$STORE/demo/sessions/demo/log.json"
+node packages/cli/dist/main.js report "$STORE/demo/sessions/demo/log.json" > "$STORE/report.md"
+grep -q "Session report" "$STORE/report.md"
+node packages/cli/dist/main.js replay "$STORE/demo/sessions/demo/log.json" --branch python-spike | grep -q "Handoff brief"
+
+echo "== live server with two clients"
+PORT=7717
+node packages/cli/dist/main.js serve --port $PORT --dir "$STORE/live" --token e2e > "$STORE/server.out" 2>&1 &
+SERVER=$!
+trap 'kill $SERVER 2>/dev/null || true' EXIT
+for i in $(seq 1 50); do
+  if curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then break; fi
+  sleep 0.1
 done
-report=$(ls -d "$STORE"/reports/*/ | head -1)
-test -s "$report/desk_report.md" || { echo "missing desk report"; exit 1; }
-grep -q "Compute spark spreads" "$report/desk_report.md"
-"$BASIS_BIN" --store "$STORE" store verify | tail -1
-"$BASIS_BIN" --store "$STORE" aws fetch --from-file data/fixtures/aws/ec2_us-east-1_snippet.json | tail -5
-
-if command -v uv >/dev/null 2>&1; then
-  echo "--- python sdk"
-  (cd python && uv sync --all-extras --dev >/dev/null && BASIS_BIN="$(pwd)/../$BASIS_BIN" BASIS_E2E_STORE="$(pwd)/../$STORE" uv run pytest -q)
-else
-  echo "uv not installed; skipping python checks"
-fi
-echo "e2e ok: $STORE"
+node scripts/e2e-clients.mjs "ws://127.0.0.1:$PORT/ws" e2e
+kill $SERVER; wait $SERVER 2>/dev/null || true
+node packages/cli/dist/main.js verify "$STORE/live/sessions/e2e/log.json"
+echo "== ok"

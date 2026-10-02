@@ -1,83 +1,124 @@
 # Technical architecture
 
-## Crates
+*Phase 0 as built in this repository. Everything described here runs offline with the
+scripted model; the Claude adapter is a drop-in.*
+
+## The shape
+
+One **session** is one authoritative actor. It owns the write path, the log, the workspace
+blobs and the agent runner. Any number of humans attach over websockets; each receives the
+branch history once and every subsequent event as it is committed, and folds them with the
+same reducer the server uses. There is no second source of truth: presence is the only
+ephemeral state, and it is never written to the log.
 
 ```
-basis-core        domain types (types.rs), ids (keys.rs), content-addressed CSV store (store.rs),
-                  statistics (stats.rs), deterministic PRNG (rng.rs), TOML config (config.rs)
-basis-connectors  Source trait (fetch/parse split); sample loader; synthetic generator;
-                  streaming AWS price-list parser; vendor stubs (feature `vendors`); `live` feature
-basis-model       standardize.rs, nowcast.rs (aggregation, provider effects, calibration,
-                  bootstrap, settlement forecasts), supply.rs (cost stack, fleet, clearing),
-                  curve.rs, spreads.rs
-basis-trade       strategy.rs (Strategy trait, snapshot), strategies/{basis_mr,cross_index}.rs,
-                  risk.rs, fills.rs, ledger.rs (Decimal book), backtest.rs, metrics.rs, report.rs
-basis-cli         `basis` binary: ingest, synth, standardize, nowcast, curve, spreads, backtest,
-                  ledger, report, aws, store, pipeline
-python/           basis-research: pandas access to the store via the shared column contract
+                 humans (web, CLI, Slack adapter later)
+                        │  websocket: join / directive / vote / fork / merge / handoff
+                        ▼
+   ┌─────────────────────────────────────────────────────────────┐
+   │ SessionHost  (packages/server)                              │
+   │   Session (packages/kernel)                                 │
+   │     SessionLog: hash-chained, branchable, append-only       │
+   │     reduce(): events -> SessionState (pure, total)          │
+   │     arbitrate(): directives -> Intent (order-independent)   │
+   │     approvals, handoff brief, three-way workspace merge     │
+   │   Runner (packages/runner), one per branch                  │
+   │     turn loop: intent -> model -> tools, yielding at safe   │
+   │     points; records model/tool outputs; resumes from log    │
+   │   FileBlobStore + log.json (atomic writes)                  │
+   └─────────────────────────────────────────────────────────────┘
+                        │
+                        ▼
+                 model adapters: ScriptedModel (offline), ClaudeModel
 ```
 
-Dependency direction: `core <- connectors, model, trade <- cli`. Total direct dependencies
-stay around fifteen; no async runtime except transitively behind the `live` feature.
+This is the shape of a Cloudflare Durable Object, a PartyKit room, or a Temporal workflow
+worker: a single writer with many observers. Phase 1 moves the host into one such actor per
+session; nothing in the kernel changes because the kernel never does I/O.
 
-## Data flow
+## Packages
 
-```
-data/samples ──ingest──┐
-basis synth ───────────┼──> store/raw/<dataset>/part-<sha12>.csv  (immutable, hash-named)
-AWS price list ─aws────┘              │
-                                      ▼
-                          standardize ──> derived/standardized.csv
-                                      │
-      supply assumptions + power ──> curve ──> derived/curve.csv
-                                      │
-                          nowcast ──> derived/estimates.csv, derived/settlements.csv
-                                      │
-      futures + power + cost stack ──> spreads ──> derived/spreads.csv
-                                      │
-                          backtest ──> derived/{signals,positions,ledger,equity}.csv
-                                      │
-                          report ──> reports/<date>/{desk_report.md, summary.csv, ...}
-```
+| Package | Role | Depends on |
+|---|---|---|
+| `@quorum/protocol` | zod schemas for actors, roles, directives, tool calls, events, wire messages | zod |
+| `@quorum/kernel` | pure core: hashing, log, arbitration, approvals, reducer, merge, brief, replay, `Session` command layer | protocol |
+| `@quorum/runner` | the agent loop, tool registry, scripted and Claude models | kernel |
+| `@quorum/server` | websocket front door, session host, disk persistence | runner |
+| `@quorum/cli` | `quorum serve / demo / join / replay / verify / report` | server |
+| `@quorum/web` | React client that folds the same events as the server | kernel, protocol |
 
-## The store
+The kernel has **no Node dependency**: it ships its own SHA-256 so the browser, the CLI and
+the server hash identically. The web client imports the kernel directly and runs `reduce` on
+every event, which is why the e2e test can assert that two replicas are byte-identical.
 
-`store/manifest.json` lists datasets and parts with sha256, row counts and date ranges.
-Appending identical content produces the same part name and is skipped, so re-ingesting is
-idempotent and every raw input is reproducible by hash. Derived datasets are overwritten by
-the producing step. `basis store verify` re-hashes every part.
+## The event log
 
-## The column contract
+Every change to a session is an event: `{ id, prev, seq, branch, ts, actor, kind, payload }`.
+`id` is SHA-256 over the canonical JSON of everything else, including `prev`, so any edit
+to the past breaks the chain (`SessionLog.verify()`). `ts` is a per-branch logical clock.
 
-`schemas/datasets.toml` names every column of every dataset. `crates/basis-core/tests/schema.rs`
-serializes one record of each Rust type and asserts the CSV header equals the schema;
-`python/tests/test_store.py` loads the schema and the fixture store. A column change must
-touch both sides.
+Thirty event kinds cover the whole surface (see `packages/protocol/src/index.ts`):
+participants and roles; directives, withdrawals and contention resolutions; agent turn
+start, model completion, tool request and completion, turn end; approval request and vote;
+handoff request, accept, decline; checkpoint; workspace change; branch create and merge;
+notes. Model text and tool outputs are *in* the log, so replay never calls a model or a tool.
 
-## Numerics
+Branches share history: a branch is `(parent, forkPoint)` plus its own events, and
+`eventsOf(branch)` returns the linear history a reducer folds. Forks start only at
+checkpoints, which pin a content hash of the workspace tree.
 
-Model math is `f64`; cash, fees, P&L and notionals in the ledger are `rust_decimal::Decimal`.
-Fill prices are tick-rounded Decimals. The PRNG is xoshiro256** seeded through SplitMix64
-with labelled sub-streams, so any step is bit-reproducible for a seed and independent of
-unrelated code paths.
+## The reducer
 
-## Trust boundaries and no-look-ahead
+`reduce(state, event)` is pure and total; `fold(events)` is the state. Snapshots are plain
+JSON, so resuming a long session is `fold(tail, snapshot)`. `checkReplay()` asserts in tests
+and in the CLI that full replay and snapshot-plus-tail hash identically.
 
-- The nowcast for day t uses observations of day t, provider effects learned from days
-  before t, and calibration on prints strictly before t.
-- The backtester hands each strategy a snapshot of day t only; fills use day t settles with
-  modelled slippage; expiries settle on prints.
-- Synthetic futures include scripted mispricings; every output labels synthetic markets.
+State includes participants and the driver token, every directive with its arbitration
+status, open contentions, the composed intent, approvals with votes, handoffs, turns with
+their tool calls and results, the workspace tree (path to blob hash), checkpoints, branches,
+merges, notes, and a derived status: `idle | running | paused | awaiting_approval | blocked | cancelled`.
 
-## Live connectors
+## The runner
 
-`basis-connectors::aws` streams the regional price list (hundreds of MB) through a serde
-visitor with bounded memory and a byte cap, keeping only GPU instance products and their
-on-demand terms. Vendor parsers are fixture-tested and marked `SHAPE_UNVERIFIED`;
-`BASIS_OFFLINE=1` blocks every live fetch (set in CI).
+A turn is: start event, then up to N model calls, each followed by its tool calls. Before
+every model call and before every tool call the runner checks a yield condition: cancelled,
+paused, an unconsumed interrupting directive, a goal contention, or merge conflicts. If it
+must stop it records a result for every unexecuted call and ends the turn with the reason.
 
-## CI
+Approvals are a tool-call gate: the runner emits `approval.requested` and waits for the
+reducer to flip the approval to granted or denied. A denied call becomes a failed tool result
+the model sees; it does not throw.
 
-`.github/workflows/ci.yml`: `rust` (fmt, clippy `-D warnings` with all features, tests),
-`python` (uv sync, ruff, pytest), `e2e` (release build, `scripts/e2e.sh`, report artifact).
-Everything runs offline on committed samples and synthetic data.
+Resume is a first-class path. If a runner dies mid-turn, the next runner finds `currentTurn`
+in the state, executes the tool calls the model already decided on that have no result, and
+then continues. The runner test "resumes a half-finished turn from the log after a crash"
+covers it, and `SessionHost` does it on boot for every branch.
+
+The scripted model is a pure function of the request (intent, files, this turn's transcript,
+turn summaries), which is what makes the demo and tests reproducible. The Claude adapter maps
+the same request onto the Messages API with custom tools and records the response verbatim.
+
+## Persistence
+
+`store/sessions/<id>/log.json` is the serialized log (atomic temp-and-rename on every flush,
+debounced 20 ms) and `blobs/<sha256>` are workspace file contents. This is deliberately
+boring. Phase 1 replaces it with an append-only JSONL per branch and a snapshot every k
+events; Phase 2 moves it into the actor's storage.
+
+## Wire protocol
+
+Client to server: `join`, `directive`, `withdraw`, `resolve`, `vote`, `handoff.*`, `role`,
+`checkpoint`, `fork`, `merge`, `switch`, `note`, `presence`, `brief`, `leave`.
+Server to client: `joined`, `snapshot` (full branch history), `event`, `presence`, `brief`,
+`error`. Clients never receive derived state; they derive it. A reconnecting client can ask
+for events after a sequence number in phase 1 and verify the prefix it already holds against
+the chain.
+
+Authentication in phase 0 is a shared token and client-asserted identity, acceptable for a
+dev server and nothing else. See `07_security_and_compliance.md`.
+
+## What is not here yet
+
+Multi-process hosting, authentication, a Slack or GitHub adapter, LLM-assisted merge of
+context, Merkle inclusion proofs for observers, compaction of long logs, and adapters for
+third-party harnesses. All are on the roadmap with the reasoning in `06_roadmap.md`.

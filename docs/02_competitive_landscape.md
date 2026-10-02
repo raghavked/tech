@@ -1,34 +1,76 @@
 # Competitive landscape
 
-*Founder notes, September 2026; claims about third parties are from public reporting and
-must be re-verified before external use.*
+*Facts gathered 2026-10-02 from vendor docs and press; many vendor sites were reachable only
+through search snippets, so items marked (unverified) need a second look before external use.
+Sources in `10_sources.md`.*
 
-| Who | What they do | What they verify or model | Holds capital? | Gap for Basis |
-|---|---|---|---|---|
-| Silicon Data | Daily GPU rental indices (SDH100RT, SDB200RT), on Bloomberg; CME settlement agent | Standardized prices from ~3.5M observations | No | Publishes prices, not supply/demand; cannot forecast or trade its own settlement |
-| Ornn | Compute Price Index from printed transactions; ICE settlement agent; $5.7M seed (Oct 2025) | Transaction prices, methodology published | No | Same conflict; index is the product, not the model |
-| SF Compute | Spot exchange for compute, unbundled from software | Order book | No | Venue, not analytics |
-| Compute Exchange | Secondary GPU marketplace (H100/A100 demand) | Listings | No | Venue |
-| Vast.ai, RunPod, Akash, Shadeform | Marketplaces and aggregators | Listings | No | Data sources for Basis |
-| Exponential Industry style forecasters | Narrative H100 price outlooks | Trend commentary | No | No settlement nowcast, no cost stack, no uncertainty |
-| Polymarket | Event contracts on H100 rental price levels | Crowd probability | Traders | Signal source and a venue for the same edge |
-| Energy analogs: Genscape, Kpler, Yes Energy, EnAppSys | Physical intelligence and analytics for power, gas, oil, shipping | Supply, flows, outages, curves | No (some prop desks grew from them) | The playbook Basis copies for a new commodity |
-| Commodity trading houses and power desks | Will eventually trade compute futures | Their own models, later | Yes | They are the future customers and the eventual competition; they are not here in 2026 |
+## The short version
 
-## Positioning
+Everyone is bolting multi-user onto a single-user agent. Nobody has shipped the primitive:
+a framework-neutral session that several identified humans can watch, steer with attributed
+and authorised directives, approve, fork, merge and hand off, with a replayable record.
 
-Basis is the neutral intelligence layer that owns neither an index nor a venue. It sells
-what index publishers cannot (forecasts of their own settlement), what venues do not have
-(the supply stack), and what forecasters lack (calibrated uncertainty and a link to power).
-The paper desk is the proof that the models are tradable; real capital follows the track
-record, not the other way round.
+## First-party agent products
 
-## Defensibility over time
+| Vendor | What ships for multiple humans | Gap |
+|---|---|---|
+| Anthropic Claude Code | Team/Public share links that do not update live; one-way teleport of a cloud session to a terminal; anyone can queue a message into a cloud session from the CLI; Claude Tag makes a Slack thread the session | No presence, no participant identity in the transcript, no approvals routed to a second person; open feature request #60082 (May 2026) asks for exactly this |
+| OpenAI Codex | Shared cloud environments and task continuation across devices; Workspace Agents shared within an org | Task ownership is single; no concurrent steering |
+| Cursor | Team Followups: teammates can send follow-ups to another user's cloud agent, executing under the creator's integration tokens | Bearer-token-shaped sharing flagged on their own forum; no participant model, no fork |
+| Cognition Devin | Markets "Multiplayer Mode": shareable session links, input from multiple people, server-side follow-up queue | Serialises messages; single vendor; no branch or merge, no quorum approvals |
+| Slack Code (Salesforce, Aug 2026) | Code channels where a team watches a Claude Code, Devin, Copilot or Vercel agent, gives feedback and signs off | The substrate is a chat channel: no replay, fork, or framework-neutral state; Slack-locked |
+| GitHub Copilot | Teams-channel sessions anyone can steer, with changes gated on repo write access; local share is view-only | Copilot-only; no fork or replay |
+| Zed Delta (Aug 2026, private beta) | CRDT-synced conversation plus worktree; teammates comment, co-edit prompts, pick up work; syncs third-party harnesses starting with Claude Code | Editor-bound desktop app, coding only; fork and merge of threads unverified |
+| Replit | Per-collaborator agent tasks on a shared board, auto-merged | Tasks are single-owner |
+| Warp Oz | "Teammates can join running agent sessions" (depth unverified) | Warp-locked |
 
-1. Year one: data assembly and provider-effect history nobody else has collected daily.
-2. Year two: a public track record of settlement nowcasts against real prints, sold to
-   hedgers and market makers.
-3. Year three: the desk, with a cost of information far below any newcomer's.
+Devin and Zed are the two to watch. Devin is the proof that customers want it; Zed Delta is
+the closest technical analogue and is still an editor feature.
 
-What is not defensible: the formulas. They are standard energy-market methods; the docs say
-so. The moat is the data and the record.
+## Agent infrastructure and protocols
+
+LangGraph, Temporal, Inngest, Restate, Trigger.dev, DBOS, Mastra, the OpenAI Agents SDK,
+Microsoft Agent Framework, Google ADK, Claude Managed Agents: all offer a durable wait or
+an interrupt for *the* human. None has participants, roles, presence, or a transcript where
+two humans' interventions are attributed and ordered. Checkpoint history gives single-run
+time travel, not branch-and-merge across people. Letta's Conversations API shares one agent's
+memory across many users but not a live run. AG-UI, A2A and MCP elicitation all assume one
+user.
+
+## Realtime collaboration infrastructure
+
+Liveblocks treats agents as room participants but has no agent runtime or run history.
+Cloudflare's Agents SDK on Durable Objects is "multiplayer by default" at the websocket
+level and is the right hosting substrate; it is not a framework-neutral session protocol and
+has no fork or replay. ElectricSQL's Durable Streams (forkable, humans and agents attach to
+one stream) is the most thesis-adjacent infrastructure and is small and early. Temporal
+(valued at $12.55B in September 2026) and the collaboration vendors sit on opposite sides of
+exactly the join Quorum builds.
+
+## Startups and demand signals
+
+- YC's Fall 2026 request for startups asks for "a production-ready multiplayer AI workspace
+  that lets a whole team collaborate with AI agents in real time, the way Figma turned
+  design into a shared, live experience."
+- a16z Big Ideas 2026: "the collaboration layer becomes the moat."
+- Dust ($40M Series B, May 2026) and Stilla ($5M, Jan 2026) brand themselves multiplayer AI;
+  both are chat workspaces with shared agents, not session primitives.
+- Mosaic (YC S26) started as live multiplayer coding and pivoted to syncing Claude Code,
+  Codex and Cursor sessions into shared memory. Dock (YC S26) is multi-agent, not
+  multi-human.
+- HumanLayer routes single approvals to Slack; it is a gate, not a session.
+
+## Vertical players
+
+Harvey (legal) collaborates on matters and artifacts; Rogo and Hebbia (finance) are
+single-analyst; Spekit and Mutiny (sales) build buyer-seller rooms; Sierra, Decagon and
+Intercom (support) hand off agent to human with context; Jasper (marketing) has multiplayer
+canvases with agents as tools. In every vertical the agent run itself stays single-driver.
+
+## Where Quorum sits
+
+Quorum is the layer under all of the above: session state, arbitration, authority, fork and
+replay, exposed over a protocol any harness can speak. The main risk is not demand. It is
+that Anthropic, OpenAI or Cognition add native multi-user to their own harnesses (each has
+the pieces), and that Slack Code becomes the default cross-vendor surface. The defence is to
+be the vendor-neutral kernel those surfaces embed, which none of them has a reason to build.
