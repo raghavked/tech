@@ -177,7 +177,14 @@ export function isHuman(state: SessionState, actorId: string): boolean {
 
 /** Fold one event. Returns a new state; the input is not mutated. */
 export function reduce(prev: SessionState, e: SessionEvent): SessionState {
-  const s: SessionState = structuredClone(prev);
+  return reduceInto(structuredClone(prev), e);
+}
+
+/**
+ * Applies `e` to `s` in place. `reduce` clones first so it stays pure; `fold` clones once and
+ * walks a whole log with this, so folding n events costs one copy of the state, not n.
+ */
+function reduceInto(s: SessionState, e: SessionEvent): SessionState {
   s.head = e.id;
   s.seq = e.seq;
   s.branch = e.branch;
@@ -508,7 +515,7 @@ function deriveStatus(s: SessionState): SessionStatus {
 }
 
 export function fold(events: readonly SessionEvent[], from?: SessionState): SessionState {
-  let s = from ?? initialState(events[0]?.branch ?? MAIN_BRANCH);
-  for (const e of events) s = reduce(s, e);
+  const s = from ? structuredClone(from) : initialState(events[0]?.branch ?? MAIN_BRANCH);
+  for (const e of events) reduceInto(s, e);
   return s;
 }

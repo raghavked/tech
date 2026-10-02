@@ -1,6 +1,6 @@
 import { describeRule, ruleFor, type SessionState } from "@fold/kernel";
-import type { Actor, DirectiveMode, PresenceEntry, SessionEvent, ToolCall } from "@fold/protocol";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import type { Actor, DirectiveMode, PresenceEntry, SessionEvent } from "@fold/protocol";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, refOf, type SessionRow, useFetch } from "../api.js";
 import { FoldClient, wsUrl } from "../client.js";
@@ -12,6 +12,9 @@ import { rememberRecent } from "../recents.js";
 import { ReconnectLine } from "../reconnect.js";
 import { paths } from "../router.js";
 import { reportPendingApprovals } from "../shell.js";
+import { type Block, describeCall, estimateHeight, type Step } from "../stream/blocks.js";
+import { useBlocks } from "../stream/useBlocks.js";
+import { VirtualList } from "../stream/VirtualList.js";
 import {
   AgentCard,
   Avatar,
@@ -214,189 +217,8 @@ export function SessionView({
 
 // ---- stream ----------------------------------------------------------------------------
 
-interface Step {
-  id: string;
-  name: string;
-  doing: string;
-  done: string;
-  icon: string;
-  args: string;
-  ok: boolean | null;
-  output: string;
-}
-
-type Block =
-  | { kind: "human"; id: string; who: string; text: string; sub: string; team?: boolean }
-  | { kind: "agent"; id: string; text: string; steps: Step[] }
-  | { kind: "divider"; id: string; text: string; danger?: boolean }
-  | { kind: "approval"; id: string; approvalId: string };
-
-/** What a tool call does, in words (copy.steps): `ask` for the approval sentence, `doing`/`done` for the step. */
-function describeCall(call: ToolCall): { ask: string; doing: string; done: string; icon: string } {
-  const a = call.args as Record<string, unknown>;
-  const str = (k: string) => (typeof a[k] === "string" ? (a[k] as string) : "");
-  const list = (k: string) => (Array.isArray(a[k]) ? (a[k] as unknown[]).map(String) : []);
-  const w = copy.steps;
-  switch (call.name) {
-    case "workspace.read":
-      return { ...w.read(str("path")), icon: ICONS.file };
-    case "workspace.write":
-      return { ...w.write(str("path")), icon: ICONS.pen };
-    case "workspace.delete":
-      return { ...w.delete(str("path")), icon: ICONS.file };
-    case "workspace.list":
-      return { ...w.list, icon: ICONS.file };
-    case "shell.run":
-      return {
-        ...w.shell([str("command"), ...list("args")].join(" ").trim()),
-        icon: ICONS.terminal,
-      };
-    case "deploy":
-      return { ...w.deploy(str("env")), icon: ICONS.rocket };
-    case "memory.remember":
-      return { ...w.remember(str("key")), icon: ICONS.memory };
-    case "memory.recall":
-      return { ...w.recall, icon: ICONS.memory };
-    case "fleet.claim":
-      return { ...w.claim, icon: ICONS.tool };
-    case "fleet.release":
-      return { ...w.release, icon: ICONS.tool };
-    default:
-      return { ...w.other(call.name, JSON.stringify(call.args).slice(0, 60)), icon: ICONS.tool };
-  }
-}
-
-function blocksOf(events: SessionEvent[], s: SessionState, meId: string): Block[] {
-  const name = (id: string) => s.participants[id]?.actor.name ?? id;
-  const out: Block[] = [];
-  const steps = new Map<string, Step>();
-  let agent: Extract<Block, { kind: "agent" }> | null = null;
-  const divider = (e: SessionEvent, text: string, danger = false) =>
-    out.push({ kind: "divider", id: e.id, text, danger });
-  const human = (e: SessionEvent, text: string, sub = "", team = false) =>
-    out.push({ kind: "human", id: e.id, who: name(e.actor), text, sub, team });
-  for (const e of events) {
-    switch (e.kind) {
-      case "directive.submitted": {
-        const i = e.payload.input;
-        const parts = [
-          i.mode !== "steer" ? i.mode : "",
-          i.scope !== "goal" ? i.scope : "",
-          i.interrupt ? copy.stream.interrupt : "",
-        ];
-        human(e, i.text, parts.filter(Boolean).join(" · "));
-        agent = null;
-        break;
-      }
-      case "note.posted":
-        human(e, e.payload.text, "", true);
-        break;
-      case "agent.model.completed":
-        agent = { kind: "agent", id: e.id, text: e.payload.text, steps: [] };
-        out.push(agent);
-        break;
-      case "agent.tool.requested": {
-        const d = describeCall(e.payload.call);
-        const step: Step = {
-          id: e.payload.call.id,
-          name: e.payload.call.name,
-          doing: d.doing,
-          done: d.done,
-          icon: d.icon,
-          args: JSON.stringify(e.payload.call.args, null, 1),
-          ok: null,
-          output: "",
-        };
-        steps.set(step.id, step);
-        if (!agent) {
-          agent = { kind: "agent", id: e.id, text: "", steps: [] };
-          out.push(agent);
-        }
-        agent.steps.push(step);
-        break;
-      }
-      case "agent.tool.completed": {
-        const step = steps.get(e.payload.result.callId);
-        if (step) {
-          step.ok = e.payload.result.ok;
-          step.output = e.payload.result.output;
-        }
-        break;
-      }
-      case "agent.turn.ended":
-        if (e.payload.reason !== "done")
-          divider(e, copy.stream.turnEnded(e.payload.turn, e.payload.reason, e.payload.summary));
-        break;
-      case "approval.requested":
-        out.push({ kind: "approval", id: e.id, approvalId: e.payload.approvalId });
-        break;
-      case "project.directive.applied":
-        divider(e, copy.stream.projectDirection(name(e.payload.author), e.payload.input.text));
-        break;
-      case "contention.resolved":
-        divider(e, copy.stream.picked(name(e.actor)));
-        break;
-      case "directive.withdrawn":
-        divider(e, copy.stream.withdrew(name(e.actor)));
-        break;
-      case "handoff.requested":
-        divider(
-          e,
-          copy.stream.offered(
-            name(e.actor),
-            e.payload.to === meId ? copy.roles.you : name(e.payload.to),
-          ),
-        );
-        break;
-      case "handoff.accepted":
-        divider(e, copy.stream.hasTheFold(name(e.actor)));
-        break;
-      case "handoff.declined":
-        divider(e, copy.stream.declined(name(e.actor)));
-        break;
-      case "participant.joined":
-        divider(e, copy.stream.joined(e.payload.actor.name, e.payload.role));
-        break;
-      case "participant.left":
-        divider(e, copy.stream.left(name(e.actor)));
-        break;
-      case "role.changed":
-        divider(e, copy.stream.roleChanged(name(e.payload.actorId), e.payload.role));
-        break;
-      case "checkpoint.created":
-        divider(e, copy.stream.checkpoint(e.payload.label));
-        break;
-      case "branch.created":
-        divider(e, copy.stream.forked(e.payload.branch, e.payload.fromBranch));
-        break;
-      case "branch.merged":
-        divider(
-          e,
-          copy.stream.folded(e.payload.source, e.payload.base, e.payload.conflicts.length),
-          e.payload.conflicts.length > 0,
-        );
-        break;
-      case "workspace.blocked":
-        divider(e, copy.stream.writeRefused(e.payload.path, e.payload.holderSessionId), true);
-        break;
-      case "fleet.contention.mirrored":
-        divider(
-          e,
-          copy.stream.fleetContention(
-            e.payload.kind,
-            e.payload.resource,
-            e.payload.sessionIds.filter((id) => id !== s.sessionId),
-            e.payload.resolved,
-          ),
-          !e.payload.resolved,
-        );
-        break;
-      default:
-        break;
-    }
-  }
-  return out;
-}
+// Step, Block, describeCall and blocksOf moved to ../stream/blocks.ts (folded incrementally
+// there); the column is windowed by ../stream/VirtualList.tsx.
 
 function Stream({
   events,
@@ -411,13 +233,61 @@ function Stream({
   client: FoldClient;
   showHandoff: boolean;
 }) {
-  const endRef = useRef<HTMLDivElement>(null);
-  const blocks = useMemo(() => blocksOf(events, s, me.id), [events, s, me.id]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: keep the end in view as events arrive
-  useEffect(() => {
-    const scroller = endRef.current?.closest(".scroll");
-    if (scroller) scroller.scrollTo({ top: scroller.scrollHeight });
-  }, [events.length]);
+  const { blocks, version } = useBlocks(events, s, me.id);
+  // Which tool steps are expanded lives here, so a row keeps it when it is unmounted off-screen.
+  const [openSteps, setOpenSteps] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleStep = useCallback(
+    (id: string) =>
+      setOpenSteps((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      }),
+    [],
+  );
+  const renderBlock = useCallback(
+    (b: Block) => {
+      switch (b.kind) {
+        case "human":
+          return (
+            <div className={`msg human${b.team ? " team" : ""}`}>
+              <div className="meta">
+                <span className="who">{b.who}</span>
+                {b.team && <span className="to">to the team</span>}
+                {b.sub && <span className="faint">{b.sub}</span>}
+              </div>
+              <div className="text">{b.text}</div>
+            </div>
+          );
+        case "agent":
+          return (
+            <div className="msg agent">
+              {b.text && <div className="text">{b.text}</div>}
+              {b.steps.length > 0 && (
+                <div className="steps">
+                  {b.steps.map((st) => (
+                    <StepLine
+                      key={st.id}
+                      step={st}
+                      open={openSteps.has(st.id)}
+                      onToggle={toggleStep}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        case "divider":
+          return <div className={`divider${b.danger ? " danger" : ""}`}>{b.text}</div>;
+        case "approval":
+          return <ApprovalNotice s={s} id={b.approvalId} client={client} />;
+        default:
+          return null;
+      }
+    },
+    [s, client, openSteps, toggleStep],
+  );
   const name = (id: string) => s.participants[id]?.actor.name ?? id;
   const contentions = Object.values(s.contentions).filter((c) => !c.resolved);
   const handoffs = Object.values(s.handoffs).filter(
@@ -431,44 +301,13 @@ function Stream({
           {copy.stream.empty}
         </p>
       )}
-      {blocks.map((b) => {
-        switch (b.kind) {
-          case "human":
-            return (
-              <div className={`msg human${b.team ? " team" : ""}`} key={b.id}>
-                <div className="meta">
-                  <span className="who">{b.who}</span>
-                  {b.team && <span className="to">to the team</span>}
-                  {b.sub && <span className="faint">{b.sub}</span>}
-                </div>
-                <div className="text">{b.text}</div>
-              </div>
-            );
-          case "agent":
-            return (
-              <div className="msg agent" key={b.id}>
-                {b.text && <div className="text">{b.text}</div>}
-                {b.steps.length > 0 && (
-                  <div className="steps">
-                    {b.steps.map((st) => (
-                      <StepLine key={st.id} step={st} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          case "divider":
-            return (
-              <div className={`divider${b.danger ? " danger" : ""}`} key={b.id}>
-                {b.text}
-              </div>
-            );
-          case "approval":
-            return <ApprovalNotice key={b.id} s={s} id={b.approvalId} client={client} />;
-          default:
-            return null;
-        }
-      })}
+      <VirtualList
+        items={blocks}
+        version={version}
+        keyOf={blockKey}
+        estimate={estimateHeight}
+        render={renderBlock}
+      />
       {contentions.map((c) => (
         <div className="notice contention" key={c.id}>
           <span>
@@ -534,24 +373,31 @@ function Stream({
             </div>
           </div>
         ))}
-      <div ref={endRef} />
     </section>
   );
 }
 
-function StepLine({ step }: { step: Step }) {
-  const [open, setOpen] = useState(false);
+const blockKey = (b: Block) => b.id;
+
+function StepLine({
+  step,
+  open: openProp,
+  onToggle,
+}: {
+  step: Step;
+  /** Controlled when the stream owns the state; otherwise the line keeps its own. */
+  open?: boolean;
+  onToggle?: (id: string) => void;
+}) {
+  const [openOwn, setOpenOwn] = useState(false);
+  const open = openProp ?? openOwn;
+  const setOpen = () => (onToggle ? onToggle(step.id) : setOpenOwn((v) => !v));
   const shell = step.name === "shell.run";
   const suffix =
     step.ok === null ? "" : step.ok ? (shell ? copy.steps.exitOk : "") : copy.steps.failed;
   return (
     <div className={`step${step.ok === false ? " fail" : ""}`}>
-      <button
-        type="button"
-        className="step-head"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
+      <button type="button" className="step-head" aria-expanded={open} onClick={setOpen}>
         <Icon d={step.icon} size={14} />
         <span className="ellipsis">
           {step.ok === null ? step.doing : step.done}
