@@ -26,7 +26,9 @@ describe("notifications", () => {
     sh.session.join("main", { id: "bo", kind: "human", name: "Bo" }, "contributor");
     sh.session.join("main", { id: "ol", kind: "human", name: "Ollie" }, "observer");
     sh.session.directive("main", "ana", { text: "Build a doubling helper" });
-    await sh.drive("main"); // stops at the exec approval
+    void sh.drive("main"); // parks at the exec approval; do not await
+    for (let i = 0; i < 100 && !Object.values(sh.session.state().approvals).length; i++)
+      await new Promise((r) => setTimeout(r, 50));
     const ana = server.notifier.list("ana");
     const bo = server.notifier.list("bo");
     expect(ana.map((n) => n.kind)).toContain("approval");
