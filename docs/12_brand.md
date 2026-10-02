@@ -1,69 +1,68 @@
-# Brand: Tiller
+# Brand: Fold
 
-*The tiller is what a crew's hands rest on to steer. Several hands can hold it; one holds
-it at a time; handing it over is a deliberate act.*
+*Bring the team into the fold.*
 
 ## Name
 
-The product's verbs are the tiller's: watch the course, redirect, hand off. A fleet of
-agents started by different engineers is a fleet in the literal sense, and the lead who
-sets the project's direction sets its course. "Tiller" is one plain word, two syllables,
-easy to say in a meeting ("put it in Tiller", "who has the tiller on billing?"), and it
-is not a generic AI name. Dress Blues, the navy the founder chose, makes the nautical read
-natural without a single anchor or wave in the interface. Package scope `@tiller/*`, binary
-`tiller`, environment variables `TILLER_*`, deep links `tiller://`.
+A fold is where two things meet and become one. In this product that happens three ways:
+a branch merges back (fold), the kernel folds events into state (`fold(events)` is the
+reducer's actual name), and a teammate is brought into the fold of a running session. One
+syllable, a verb engineers already use, and no other company in the category owns it.
+Package scope `@fold/*`, binary `fold`, environment variables `FOLD_*`, deep links
+`fold://`.
 
 ## Mark
 
-A navy hull arc, a chocolate tiller bar rising from the stern post and angling toward the
-viewer's hand, and an apricot grip where the hand rests. Three strokes, each in one brand
-colour, with one meaning: the vessel the crew shares, the lever one person holds, the hand on
-it. Drawn as `design/mark.svg`; the wordmark pairs it with "Tiller" in Bricolage Grotesque
-(`design/logo.svg`); the favicon sets the mark on navy with linen strokes
-(`design/favicon.svg`). The mark survives at 16 px because its three shapes do not touch.
+A Dress Blues sheet with its top-right corner folded down. The corner shows Apricot
+Illusion on the folded face and Chocolate Fondant on the underside it reveals, with a linen
+crease between them. One shape, three brand colours, one meaning: something has been
+brought in. It survives at 16 px because the fold is a quarter of the sheet, and it sets on
+navy (favicon) by keeping the crease linen. Files: `design/mark.svg`, `design/logo.svg`
+(mark plus wordmark in Bricolage Grotesque), `design/favicon.svg`.
 
 ## Palette
 
 | Role | Pantone | Hex | Use |
 |---|---|---|---|
-| Dress Blues | 19-4024 TCX | `#2A3244` | Chrome: top bar, rails, dark-mode ground, the hull |
-| Chocolate Fondant | 19-1432 TCX | `#56352D` | Brand voice: primary buttons in light mode, the human stripe, the tiller bar |
-| Apricot Illusion | 14-1120 TCX | `#E2C4A6` | The single accent: course line, driver ring, selection, contention, the grip |
-| Linen | derived | `#F3EEE7` | Light-mode content ground (warm, not cream) |
+| Dress Blues | 19-4024 TCX | `#2A3244` | Chrome: top bar, rails, dark-mode ground, the sheet |
+| Chocolate Fondant | 19-1432 TCX | `#56352D` | Brand voice: primary buttons in light mode, the human stripe, the underside of the fold |
+| Apricot Illusion | 14-1120 TCX | `#E2C4A6` | The single accent: course line, driver ring, selection, contention, the folded corner |
+| Linen | derived | `#F3EEE7` | Light-mode content ground (warm, not cream); the crease |
 | Navy deep | derived | `#1B2130` | Dark-mode content ground |
 | Semantic | tuned | olive `#5F7F4B`, amber `#B9792E`, brick `#A8463A`, slate `#4F6A8C` | running, awaiting, blocked, paused; lightened for dark mode |
 
 The product is dark-first in its chrome and linen in its content, so both themes are
-designed rather than inverted. Apricot is used sparingly; when it appears, it means
-"a human's attention is here" (who is driving, what is contended, where the course is).
+designed rather than inverted. Apricot is used sparingly; when it appears it means "a
+human's attention is here": who is driving, what is contended, where the course is.
 
 ## Type
 
-Bricolage Grotesque for titles and the wordmark (characterful, slightly compressed at
-display sizes), Instrument Sans for interface text, JetBrains Mono for the event stream,
-keys, paths and every number. The event stream is monospace on purpose: it is a log, and it
-should read like one.
+Bricolage Grotesque for titles and the wordmark, Instrument Sans for interface text,
+JetBrains Mono for the event stream, keys, paths and every number. The stream is monospace
+on purpose: it is a log and should read like one.
 
 ## Signature elements
 
 - **Course line.** A 3 px apricot rule under the top bar with a dot per turn and a brighter
   dot per epoch; the catch-up brief points at it ("since you were last here").
-- **Driver ring.** The avatar holding the tiller carries a 2 px apricot ring; handoff moves
+- **Driver ring.** The avatar holding the session carries a 2 px apricot ring; handoff moves
   the ring.
 - **Status pills** with a leading dot: running (pulsing), awaiting approval, blocked,
   paused, idle. The same five words everywhere, in Slack too.
 - **Attribution line** on every memory entry: "added by Ana · session billing-42 · commit
   9f3c1a".
+- **The fold itself** as the merge affordance: the branch panel's merge button carries the
+  mark.
 
 ## Voice
 
-Calm, specific, maritime only in the verbs. "Ana has the tiller." "Bo is offered the
-tiller." "Course changed: schema freeze until Thursday." Never "AI-powered".
+Calm, specific. "Ana is driving." "Bo is offered the session." "Course changed: schema
+freeze until Thursday." "Folded pdf-layout into main." Never "AI-powered".
 
 ## Surfaces
 
 `design/index.html` (brand board and components), `web-session.html`, `web-fleet.html`,
 `web-management.html`, `slack.html`, `mobile.html`, `desktop.html`, all on
-`design/tokens.css`, which the web app copies verbatim. Desktop and mobile shells load the
-same client, so the three are one product the way Claude on the web, Claude Desktop and
+`design/tokens.css`, which the web app copies verbatim. The desktop and mobile shells load
+the same client, so the three are one product the way Claude on the web, Claude Desktop and
 Claude mobile are.

@@ -1,8 +1,8 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defaultTools, ScriptedModel } from "@tiller/runner";
-import { TillerServer } from "@tiller/server";
+import { defaultTools, ScriptedModel } from "@fold/runner";
+import { FoldServer } from "@fold/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SlackAdapter } from "../src/adapter.js";
 import { FakeSlackClient } from "../src/client.js";
@@ -17,9 +17,9 @@ function buttons(
 
 describe("slack adapter", () => {
   let root: string;
-  let server: TillerServer;
+  let server: FoldServer;
   beforeAll(() => {
-    root = mkdtempSync(join(tmpdir(), "tiller-slack-"));
+    root = mkdtempSync(join(tmpdir(), "fold-slack-"));
     writeFileSync(
       join(root, "orgs.json"),
       JSON.stringify({
@@ -44,7 +44,7 @@ describe("slack adapter", () => {
         ],
       }),
     );
-    server = new TillerServer({ root, model: new ScriptedModel(), tools: defaultTools() });
+    server = new FoldServer({ root, model: new ScriptedModel(), tools: defaultTools() });
   });
   afterAll(async () => {
     await server.close();
@@ -164,9 +164,9 @@ describe("slack adapter", () => {
     expect(memory.state().conflicts[r.conflictId ?? ""]?.resolved).toBe(true);
 
     // Slash commands.
-    const brief = await slack.slash("/tiller", "brief billing", "U_DEE", "C_MGMT");
+    const brief = await slack.slash("/fold", "brief billing", "U_DEE", "C_MGMT");
     expect(brief[0]).toContain("Fleet brief");
-    const sessions = await slack.slash("/tiller", "sessions billing", "U_DEE", "C_MGMT");
+    const sessions = await slack.slash("/fold", "sessions billing", "U_DEE", "C_MGMT");
     expect(sessions[0]).toContain("Ana: Doubling helper");
   });
 });

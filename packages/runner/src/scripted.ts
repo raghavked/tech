@@ -4,7 +4,7 @@
  * through the shell (which needs approval), and deploys only when told to. It is a pure
  * function of the request, so offline demos and tests are reproducible.
  */
-import { hashValue } from "@tiller/kernel";
+import { hashValue } from "@fold/kernel";
 import type { Model, ModelRequest, ModelResponse } from "./model.js";
 
 const PLAN = "PLAN.md";

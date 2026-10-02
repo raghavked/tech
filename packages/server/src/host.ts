@@ -4,7 +4,7 @@
  * the agent. This is the shape a Durable Object or a single-partition actor would have.
  */
 import { join } from "node:path";
-import { handoffBrief, KernelError, Session } from "@tiller/kernel";
+import { handoffBrief, KernelError, Session } from "@fold/kernel";
 import type {
   Actor,
   ClientMessage,
@@ -13,15 +13,15 @@ import type {
   ServerMessage,
   SessionEvent,
   SessionPolicy,
-} from "@tiller/protocol";
-import { MAIN_BRANCH, type ROLE_RANK } from "@tiller/protocol";
+} from "@fold/protocol";
+import { MAIN_BRANCH, type ROLE_RANK } from "@fold/protocol";
 import {
   type MemoryAccess,
   type Model,
   Runner,
   type ToolRegistry,
   type WorkspaceGuard,
-} from "@tiller/runner";
+} from "@fold/runner";
 import { FileBlobStore, readLog, sessionDir, writeLog } from "./storage.js";
 
 export interface ClientLink {

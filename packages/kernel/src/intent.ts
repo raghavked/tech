@@ -28,8 +28,8 @@ import type {
   DirectiveOrigin,
   DirectiveStatus,
   Role,
-} from "@tiller/protocol";
-import { GOAL_SCOPE, ROLE_RANK } from "@tiller/protocol";
+} from "@fold/protocol";
+import { GOAL_SCOPE, ROLE_RANK } from "@fold/protocol";
 import { shortId } from "./hash.js";
 
 export interface DirectiveRecord {

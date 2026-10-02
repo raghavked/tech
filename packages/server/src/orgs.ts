@@ -9,8 +9,8 @@ import {
   type ProjectRef,
   type User,
   UsersFile,
-} from "@tiller/fleet";
-import type { Role } from "@tiller/protocol";
+} from "@fold/fleet";
+import type { Role } from "@fold/protocol";
 
 export class OrgRegistry {
   readonly orgs: OrgsFile;

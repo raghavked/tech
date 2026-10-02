@@ -1,13 +1,13 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fold, type SessionState } from "@tiller/kernel";
-import type { Actor, ClientMessage, ServerMessage } from "@tiller/protocol";
-import { defaultTools, ScriptedModel } from "@tiller/runner";
+import { fold, type SessionState } from "@fold/kernel";
+import type { Actor, ClientMessage, ServerMessage } from "@fold/protocol";
+import { defaultTools, ScriptedModel } from "@fold/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { SessionHost } from "../src/host.js";
-import { TillerServer } from "../src/server.js";
+import { FoldServer } from "../src/server.js";
 
 class Client {
   ws: WebSocket;
@@ -51,11 +51,11 @@ const bo: Actor = { id: "bo", kind: "human", name: "Bo" };
 
 describe("websocket server", () => {
   let root: string;
-  let server: TillerServer;
+  let server: FoldServer;
   let url: string;
   beforeAll(async () => {
-    root = mkdtempSync(join(tmpdir(), "tiller-srv-"));
-    server = new TillerServer({
+    root = mkdtempSync(join(tmpdir(), "fold-srv-"));
+    server = new FoldServer({
       root,
       model: new ScriptedModel(),
       tools: defaultTools(),

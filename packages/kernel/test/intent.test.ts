@@ -1,4 +1,4 @@
-import { ROLE_RANK } from "@tiller/protocol";
+import { ROLE_RANK } from "@fold/protocol";
 import { describe, expect, it } from "vitest";
 import { type Arbiter, arbitrate, type DirectiveRecord, renderIntent } from "../src/intent.js";
 

@@ -4,8 +4,8 @@
  * approval, and records everything in the log. If the process dies mid-turn, a new runner
  * resumes from the log: the transcript of the current turn is the state.
  */
-import { renderIntent, type Session, type SessionState } from "@tiller/kernel";
-import type { Actor, ToolCall, ToolResult } from "@tiller/protocol";
+import { renderIntent, type Session, type SessionState } from "@fold/kernel";
+import type { Actor, ToolCall, ToolResult } from "@fold/protocol";
 import type { Model, ModelRequest, TranscriptEntry } from "./model.js";
 import type { MemoryAccess, ToolRegistry, WorkspaceGuard } from "./tools.js";
 

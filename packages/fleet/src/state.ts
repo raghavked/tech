@@ -1,7 +1,7 @@
 /** Project state: the fold of the project ledger. Pure and total, like the session reducer. */
 
-import type { DirectiveInput } from "@tiller/protocol";
-import { MAIN_BRANCH } from "@tiller/protocol";
+import type { DirectiveInput } from "@fold/protocol";
+import { MAIN_BRANCH } from "@fold/protocol";
 import type { ClaimRecord } from "./claims.js";
 import type {
   FleetContentionKind,

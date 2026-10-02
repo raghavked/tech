@@ -2,7 +2,7 @@
  * Identity, phase 0: a users.json with memberships. Session roles derive from project roles
  * so a lead opening any session in their project is its owner and a member is a contributor.
  */
-import type { Role } from "@tiller/protocol";
+import type { Role } from "@fold/protocol";
 import { z } from "zod";
 import { ProjectRole } from "./events.js";
 

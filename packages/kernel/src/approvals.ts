@@ -1,8 +1,8 @@
 /**
  * Approval gating for risky tool calls. Only humans vote. A deny by any eligible voter denies.
  */
-import type { ApprovalPolicy, ApprovalRule, RiskClass, ToolCall } from "@tiller/protocol";
-import { ROLE_RANK } from "@tiller/protocol";
+import type { ApprovalPolicy, ApprovalRule, RiskClass, ToolCall } from "@fold/protocol";
+import { ROLE_RANK } from "@fold/protocol";
 
 export type Vote = "approve" | "deny";
 

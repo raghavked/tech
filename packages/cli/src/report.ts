@@ -1,6 +1,6 @@
 /** Markdown session report rendered from the log: who did what, when, with what effect. */
-import type { Session } from "@tiller/kernel";
-import { handoffBrief } from "@tiller/kernel";
+import type { Session } from "@fold/kernel";
+import { handoffBrief } from "@fold/kernel";
 
 export function renderReport(s: Session): string {
   const out: string[] = [];

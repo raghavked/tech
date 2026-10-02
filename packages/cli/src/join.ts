@@ -1,13 +1,13 @@
 /** Interactive terminal client: a human participant in a live session. */
 import { createInterface } from "node:readline";
-import { fold, type SessionState } from "@tiller/kernel";
+import { fold, type SessionState } from "@fold/kernel";
 import type {
   Actor,
   ClientMessage,
   DirectiveInput,
   ServerMessage,
   SessionEvent,
-} from "@tiller/protocol";
+} from "@fold/protocol";
 import WebSocket from "ws";
 
 const HELP = `Type text to steer the goal. Commands:

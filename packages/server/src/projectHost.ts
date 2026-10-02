@@ -23,11 +23,11 @@ import {
   type SerializedLedger,
   syncDirectives,
   withdrawPropagated,
-} from "@tiller/fleet";
-import type { SessionState } from "@tiller/kernel";
-import type { MemoryStore } from "@tiller/memory";
-import { type Actor, MAIN_BRANCH, type SessionEvent, type SessionPolicy } from "@tiller/protocol";
-import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@tiller/runner";
+} from "@fold/fleet";
+import type { SessionState } from "@fold/kernel";
+import type { MemoryStore } from "@fold/memory";
+import { type Actor, MAIN_BRANCH, type SessionEvent, type SessionPolicy } from "@fold/protocol";
+import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@fold/runner";
 import { SessionHost } from "./host.js";
 import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
 

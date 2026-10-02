@@ -6,10 +6,10 @@
  * Slack is write-mostly here (no polling of threads) and updates coalesce per thread so a
  * busy fleet stays under the roughly one-message-per-second-per-channel limit.
  */
-import type { ProjectEvent } from "@tiller/fleet";
-import type { MemoryEvent, MemoryStore } from "@tiller/memory";
-import type { DirectiveInput, SessionEvent } from "@tiller/protocol";
-import type { ProjectHost, TillerServer } from "@tiller/server";
+import type { ProjectEvent } from "@fold/fleet";
+import type { MemoryEvent, MemoryStore } from "@fold/memory";
+import type { DirectiveInput, SessionEvent } from "@fold/protocol";
+import type { FoldServer, ProjectHost } from "@fold/server";
 import { z } from "zod";
 import type { Block, SlackClient } from "./client.js";
 
@@ -20,7 +20,7 @@ export const ChannelMap = z.object({
   projects: z.record(z.string()).default({}),
   /** channel id for leads and managers: digests, contentions, memory conflicts */
   management: z.string().optional(),
-  /** slack user id -> tiller user id */
+  /** slack user id -> fold user id */
   users: z.record(z.string()).default({}),
 });
 export type ChannelMap = z.infer<typeof ChannelMap>;
@@ -31,7 +31,7 @@ interface ThreadRef {
 }
 
 export interface SlackAdapterOptions {
-  server: TillerServer;
+  server: FoldServer;
   client: SlackClient;
   map: ChannelMap;
   /** Coalesce window for thread updates, ms. 0 = immediate (tests). */
@@ -51,7 +51,7 @@ export class SlackAdapter {
     const { client } = opts;
     client.onAction((e) => this.onAction(e));
     client.onMessage((e) => this.onMessage(e));
-    client.onSlash("/tiller", (e) => this.onSlash(e));
+    client.onSlash("/fold", (e) => this.onSlash(e));
   }
 
   /** Attach to a project host: existing sessions get threads; new ones are picked up as they register. */
@@ -108,7 +108,7 @@ export class SlackAdapter {
     void this.opts.client
       .post({
         channel,
-        text: `:tiller: *${owner}'s agent* started "${title}" in ${host.state().name}. Reply in this thread to steer it.`,
+        text: `:fold: *${owner}'s agent* started "${title}" in ${host.state().name}. Reply in this thread to steer it.`,
       })
       .then((posted) => {
         this.threads.set(sessionId, posted);
@@ -445,7 +445,7 @@ export class SlackAdapter {
             "team memory is empty",
         );
       } else {
-        await e.respond("usage: /tiller brief <project> | sessions <project> | memory <org>");
+        await e.respond("usage: /fold brief <project> | sessions <project> | memory <org>");
       }
     } catch (err) {
       await e.respond(`error: ${err instanceof Error ? err.message : String(err)}`);

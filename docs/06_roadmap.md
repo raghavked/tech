@@ -13,14 +13,14 @@ offline demo and an end-to-end test that runs in CI with no network and no model
 Done. Project ledger with claims, lead directives, cross-session contentions and a fleet
 brief; organisation memory with attribution, conflicts, compaction and a curator; Slack
 adapter with channels per team, project and management; identity from `users.json`;
-notifications with deep links; the Tiller brand, mockups of every surface, the rebuilt web
+notifications with deep links; the Fold brand, mockups of every surface, the rebuilt web
 app with fleet board and management views, and the desktop and mobile shells.
 
 ## Phase 1: design partners (months 1 to 4)
 
-Goal: three engineering teams using Tiller weekly on real multi-hour agent runs.
+Goal: three engineering teams using Fold weekly on real multi-hour agent runs.
 
-- **Harness adapters.** Host a Claude Agent SDK run as a Tiller session (the adapter maps
+- **Harness adapters.** Host a Claude Agent SDK run as a Fold session (the adapter maps
   its hooks to turn, tool and approval events). Then LangGraph and the OpenAI Agents SDK.
   The kernel does not change; the runner grows a `HarnessRunner`.
 - **Identity.** OIDC login, server-issued actor ids, per-event signatures. Per-participant

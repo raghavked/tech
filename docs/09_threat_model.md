@@ -19,7 +19,7 @@ the model context (confidentiality across participants), and the team's time.
 |---|---|---|
 | Observer steers | Rank check at submission; reducer shadows on replay | `Session.directive`, `arbitrate` |
 | Peer buries a peer's directive | Same-rank concurrent directives become a contention, visible to all | `arbitrate` rule 4 |
-| One person approves an irreversible action | Tiller rule: two distinct drivers or owners by default; agent cannot vote | `approvals.evaluate`, `Session.vote` |
+| One person approves an irreversible action | Fold rule: two distinct drivers or owners by default; agent cannot vote | `approvals.evaluate`, `Session.vote` |
 | Approval reused for a different action | Approval id derived from the call's content hash | `Session.requestApproval` |
 | Injected text claims authority | Only logged `directive.submitted` events from ranked participants affect intent; tool output is data in a `ToolResult` | runner, reducer |
 | Edit history | Hash chain; `verify` in CLI and CI; atomic writes | `SessionLog.verify` |

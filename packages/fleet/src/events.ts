@@ -3,8 +3,8 @@
  * Claims on shared ground, lead directives, cross-session contentions and status reports are
  * events, hash-chained like a session log, so the fleet replays and audits the same way.
  */
-import type { ChainEvent } from "@tiller/kernel";
-import { DirectiveInput } from "@tiller/protocol";
+import type { ChainEvent } from "@fold/kernel";
+import { DirectiveInput } from "@fold/protocol";
 import { z } from "zod";
 
 export const Resource = z.discriminatedUnion("type", [
