@@ -93,6 +93,8 @@ export const copy = {
     avatarTitle: (name: string, role: string, driving: boolean) =>
       `${name} · ${role}${driving ? " · driving" : ""}`,
     more: (n: number) => `+${n}`,
+    presentSummary: (summary: string) => `Present: ${summary}`,
+    writing: " · writing",
     share: "Share",
     copied: "Copied",
     details: "Details",

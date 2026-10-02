@@ -188,4 +188,37 @@ describe("websocket server", () => {
     expect(await (await fetch(`${base}/api/integrations`)).json()).toEqual({ slack: true });
     server.integrations.slack = false;
   });
+
+  it("relays a composing presence status to the others and clears it on demand", async () => {
+    const a = new Client(url);
+    const b = new Client(url);
+    await Promise.all([a.open(), b.open()]);
+    a.send({ type: "join", sessionId: "s1", actor: ana, token: "secret", branch: "main" });
+    await a.until((s) => s.participants.ana?.present === true);
+    b.send({ type: "join", sessionId: "s1", actor: bo, token: "secret", branch: "main" });
+    await b.until((s) => s.participants.bo?.present === true);
+    const statusOfBo = async (c: Client, want: string) => {
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        const m = [...c.events].reverse().find((e) => e.type === "presence");
+        const entry = m?.type === "presence" ? m.entries.find((e) => e.actor.id === "bo") : null;
+        if (entry && entry.status === want) return entry;
+        await Promise.race([c.next(), new Promise((r) => setTimeout(r, 100))]);
+      }
+      throw new Error(`timeout waiting for bo's status to be "${want}"`);
+    };
+    // Bo starts typing ("composing" is the web composer's status): Ana sees it, and nothing
+    // enters the log.
+    const seq = a.state?.seq ?? -1;
+    b.send({ type: "presence", status: "composing" });
+    const typing = await statusOfBo(a, "composing");
+    expect(typing.online).toBe(true);
+    expect(a.state?.seq).toBe(seq);
+    // Bo sends or blurs: the status clears for everyone.
+    b.send({ type: "presence", status: "" });
+    await statusOfBo(a, "");
+    await statusOfBo(b, "");
+    a.close();
+    b.close();
+  });
 });

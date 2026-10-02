@@ -17,6 +17,13 @@ import { actorOf, type Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
 import { describeQueued, type QueuedMessage } from "../offlineQueue.js";
 import { usePaletteActions } from "../palette.js";
+import {
+  composingLine,
+  isComposing,
+  PRESENCE_COMPOSING_TEAM,
+  presenceSummary,
+  useComposing,
+} from "../presence.js";
 import { rememberRecent } from "../recents.js";
 import { ReconnectLine } from "../reconnect.js";
 import { paths } from "../router.js";
@@ -201,7 +208,8 @@ export function SessionView({
         <>
           <fieldset
             className="stack"
-            aria-label={copy.session.present(online.map((p) => p.actor.name))}
+            aria-label={copy.session.presentSummary(presenceSummary(snap.presence, s.driver))}
+            title={presenceSummary(snap.presence, s.driver)}
           >
             {online.slice(0, 4).map((p) => (
               <Avatar
@@ -209,11 +217,16 @@ export function SessionView({
                 id={p.actor.id}
                 name={p.actor.name}
                 driver={s.driver === p.actor.id}
-                title={copy.session.avatarTitle(p.actor.name, p.role, s.driver === p.actor.id)}
+                title={
+                  copy.session.avatarTitle(p.actor.name, p.role, s.driver === p.actor.id) +
+                  (isComposing(p.status) ? copy.session.writing : "")
+                }
               />
             ))}
             {online.length > 4 && (
-              <span className="avatar">{copy.session.more(online.length - 4)}</span>
+              <span className="avatar" title={presenceSummary(snap.presence, s.driver)}>
+                {copy.session.more(online.length - 4)}
+              </span>
             )}
           </fieldset>
           <button
@@ -321,6 +334,7 @@ export function SessionView({
             client={client}
             connected={snap.connected}
             queued={snap.queued}
+            presence={snap.presence}
             past={
               past ? (
                 <>
@@ -600,6 +614,7 @@ function Composer({
   connected,
   queued,
   past = null,
+  presence,
 }: {
   s: SessionState;
   me: Actor;
@@ -609,6 +624,7 @@ function Composer({
   queued: QueuedMessage[];
   /** replay-scrubber: when set, the composer is disabled and this replaces the hint. */
   past?: ReactNode;
+  presence: PresenceEntry[];
 }) {
   const [text, setText] = useState("");
   const [scope, setScope] = useState("goal");
@@ -620,7 +636,15 @@ function Composer({
   const ta = useRef<HTMLTextAreaElement>(null);
   const role = s.participants[me.id]?.role ?? "observer";
   const needsText = to === "team" || mode === "steer" || mode === "constrain";
+  // presence-composing: tell the others while this person types; cleared on send, blur, idle.
+  const sendPresence = useCallback(
+    (status: string) => client.send({ type: "presence", status }),
+    [client],
+  );
+  const composing = useComposing(sendPresence);
+  const writing = composingLine(presence, me.id);
   const submit = () => {
+    composing.clear();
     if (needsText && !text.trim()) return;
     if (to === "team") {
       client.send({ type: "note", text: text.trim() });
@@ -650,6 +674,9 @@ function Composer({
   };
   return (
     <div className="composer-wrap">
+      <p className="composing small faint" aria-live="polite">
+        {writing ?? ""}
+      </p>
       <form
         className={`composer${to === "team" ? " to-team" : ""}`}
         aria-label={to === "team" ? copy.composer.labelTeam : copy.composer.label}
@@ -674,7 +701,11 @@ function Composer({
           onChange={(e) => {
             setText(e.target.value);
             grow();
+            if (e.target.value.trim())
+              composing.typing(to === "team" ? PRESENCE_COMPOSING_TEAM : undefined);
+            else composing.clear();
           }}
+          onBlur={composing.clear}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
