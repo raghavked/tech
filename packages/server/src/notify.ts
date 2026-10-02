@@ -18,6 +18,8 @@ export interface Notification {
   body: string;
   /** Deep link understood by every shell: fold://p/<project>/s/<session> */
   link: string;
+  /** What the shell acts on inline: the approvalId, handoffId or contentionId behind this item. */
+  ref?: string;
   at: number;
   read: boolean;
 }
@@ -119,6 +121,7 @@ export class Notifier {
             title: "Approval needed",
             body: `${e.payload.call.name} [${e.payload.call.risk}] in ${sessionId}`,
             link,
+            ref: e.payload.approvalId,
           });
         break;
       }
@@ -128,6 +131,7 @@ export class Notifier {
           title: "You are offered the driver seat",
           body: `${actorName} wants to hand off ${sessionId}`,
           link,
+          ref: e.payload.handoffId,
         });
         break;
       case "fleet.contention.mirrored":
@@ -138,6 +142,7 @@ export class Notifier {
               title: "Fleet contention",
               body: `${e.payload.kind} on ${e.payload.resource}`,
               link,
+              ref: e.payload.contentionId,
             });
         break;
       case "workspace.blocked":
@@ -172,6 +177,7 @@ export class Notifier {
         title: "Fleet contention",
         body: `${e.payload.kind} on ${e.payload.resource}: ${e.payload.detail.slice(0, 140)}`,
         link: `fold://p/${projectId}`,
+        ref: e.payload.contentionId,
       });
   }
 }

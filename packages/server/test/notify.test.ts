@@ -35,11 +35,18 @@ describe("notifications", () => {
     expect(bo.map((n) => n.kind)).toContain("approval");
     expect(server.notifier.list("ol")).toEqual([]);
     expect(ana[0]?.link).toBe("fold://p/default/s/s1");
+    // The inbox acts inline on the exact item: the approval id rides along as `ref`.
+    const pendingIds = Object.keys(sh.session.state().approvals);
+    expect(pendingIds).toContain(ana[0]?.ref);
     const h = sh.session.requestHandoff("main", "ana", "bo");
     expect(h.kind).toBe("handoff.requested");
     expect(
       server.notifier.list("bo").some((n) => n.kind === "handoff" && n.body.includes("Ana")),
     ).toBe(true);
+    if (h.kind === "handoff.requested")
+      expect(server.notifier.list("bo").find((n) => n.kind === "handoff")?.ref).toBe(
+        h.payload.handoffId,
+      );
 
     const res = await fetch(`http://127.0.0.1:${port}/api/push/subscribe`, {
       method: "POST",

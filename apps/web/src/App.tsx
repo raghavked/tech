@@ -3,6 +3,7 @@ import { api, type Me, type SessionRow, useFetch } from "./api.js";
 import { copy } from "./copy.js";
 import { ErrorBoundary, Recover } from "./ErrorBoundary.js";
 import { clearIdentity, type Identity, useIdentity } from "./identity.js";
+import { useInbox } from "./inbox.js";
 import { notifyPermission, requestNotifications } from "./notify.js";
 import { CommandPalette, hotkeyLabel, openPalette, publishSidebarSessions } from "./palette.js";
 import { useRecents } from "./recents.js";
@@ -12,6 +13,7 @@ import { type Theme, useTheme } from "./theme.js";
 import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
 import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
 import { Home } from "./views/Home.js";
+import { Inbox } from "./views/Inbox.js";
 import { Project } from "./views/Project.js";
 import { SessionView } from "./views/SessionView.js";
 import { Team } from "./views/Team.js";
@@ -76,6 +78,8 @@ function Page() {
       );
     case "management":
       return <Team teamId={route.teamId} identity={identity} me={me.data} ctx={ctx} />;
+    case "inbox":
+      return <Inbox identity={identity} me={me.data} ctx={ctx} />;
   }
 }
 
@@ -175,6 +179,7 @@ function Sidebar({
   const { route, identity, me } = ctx;
   const [q, setQ] = useState("");
   const recents = useRecents();
+  const inbox = useInbox(identity?.userId ?? null);
   const projects = me?.projects ?? [];
   const sessions = useProjectSessions(
     projects.map((p) => p.projectId),
@@ -232,6 +237,16 @@ function Sidebar({
             {hotkeyLabel()}
           </button>
         </label>
+        {identity && (
+          <a
+            className={`item inbox${route.name === "inbox" ? " active" : ""}`}
+            href={paths.inbox()}
+          >
+            <Icon d={ICONS.inbox} size={15} />
+            Inbox
+            {inbox.unread > 0 && <span className="count">{inbox.unread}</span>}
+          </a>
+        )}
         <div className="lists">
           {identity && teams.length > 0 && (
             <div className="section">

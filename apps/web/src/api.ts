@@ -49,6 +49,8 @@ export interface Notification {
   body: string;
   /** fold://p/<project>/s/<session> */
   link: string;
+  /** The approvalId, handoffId or contentionId behind the item, when there is one to act on. */
+  ref?: string;
   at: number;
   read: boolean;
 }
@@ -81,6 +83,14 @@ export const api = {
     getJson<{ notifications: Notification[] }>(
       `/api/notifications?user=${encodeURIComponent(user)}`,
     ),
+  markRead: async (user: string, ids: string[]): Promise<void> => {
+    const res = await fetch(`/api/notifications?user=${encodeURIComponent(user)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ read: ids }),
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText} for /api/notifications`);
+  },
 };
 
 /** Turn a fold:// deep link into the client's hash route, or null when it is not one. */

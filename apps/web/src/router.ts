@@ -1,11 +1,12 @@
-/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`. */
+/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/inbox`. */
 import { useSyncExternalStore } from "react";
 
 export type Route =
   | { name: "home" }
   | { name: "fleet"; projectId: string }
   | { name: "session"; projectId: string; sessionId: string; title: string | null }
-  | { name: "management"; teamId: string };
+  | { name: "management"; teamId: string }
+  | { name: "inbox" };
 
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#/, "") || "/";
@@ -23,6 +24,7 @@ export function parseHash(hash: string): Route {
     return { name: "fleet", projectId: parts[1] };
   }
   if (parts[0] === "m" && parts[1]) return { name: "management", teamId: parts[1] };
+  if (parts[0] === "inbox") return { name: "inbox" };
   return { name: "home" };
 }
 
@@ -34,6 +36,7 @@ export const paths = {
       title ? `?title=${encodeURIComponent(title)}` : ""
     }`,
   management: (teamId: string) => `#/m/${encodeURIComponent(teamId)}`,
+  inbox: () => "#/inbox",
 };
 
 export function navigate(href: string): void {
