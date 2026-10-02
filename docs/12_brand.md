@@ -37,9 +37,11 @@ human's attention is here": who is driving, what is contended, where the course 
 
 ## Type
 
-One typeface, Instrument Sans, at 15 px with a 1.6 line height, for everything including
-titles; JetBrains Mono only inside tool lines for paths and commands. The wordmark alone
-is set in Bricolage Grotesque.
+Instrument Sans at 15 px with a 1.6 line height for everything that is read; Instrument
+Serif, upright and regular, for everything that is named: page titles, session titles, the
+wordmark, people's names in the stream and the panel, crew names. JetBrains Mono only inside
+tool lines for paths and commands. The serif is what makes a Fold screen recognisable at a
+glance next to claude.ai and ChatGPT, which are sans-only; it is never used for body text.
 
 ## Interface register
 
@@ -54,6 +56,18 @@ that matters most is that the only strong colour on a screen is the send button.
 
 ## Signature elements
 
+Three things carry the brand on every screen; everything else is the quiet register above.
+
+- **The serif for names.** Titles, the wordmark, people and crews are set in Instrument
+  Serif; the serif marks what has a name, the sans says what happened.
+- **The folded corner.** The composer and every human message carry a small apricot turn at
+  the top-right (`.folded` and the built-in corners in `tokens.css`): the mark, repeated
+  where a person's words enter the session. Agent text is plain and has no corner.
+- **One crease.** A single hairline in Apricot Illusion between the sidebar and the content;
+  all other rules are grey.
+
+Smaller marks that follow from them:
+
 - **Driver ring.** The avatar holding the session carries a 2 px apricot ring; handoff moves
   the ring.
 - **Status words** with a small dot, never pills: running, awaiting approval, blocked,
@@ -62,6 +76,9 @@ that matters most is that the only strong colour on a screen is the send button.
   9f3c1a".
 - **The fold itself** as the merge affordance: the branch panel's merge button carries the
   mark.
+- **Solo / Team pill.** The one word on an agent card that says whether one person steers
+  it or several, with the avatars of who is in it and "with Bo, Dee". A crew header carries a
+  tiny folded square before its serif name.
 
 ## Voice
 

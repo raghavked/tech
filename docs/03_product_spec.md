@@ -37,7 +37,10 @@ the next person with a brief the system wrote.
 
 | Primitive | What the user does | What the system guarantees |
 |---|---|---|
-| **Fleet board** | Open a project | Every engineer's session as a card: status, goal, claims, blockers; one page, live |
+| **Agents rail** | Open the app | Every live agent in the sidebar as a card: status, what it is on, Solo or Team, who is in it and who with; crews grouped by name |
+| **Crew** | An owner or lead names the task two agents share ("Invoice rollout") | Crewmates appear in each other's model context and brief; the rail and the project page group them; `null` makes a session solo again |
+| **Team chat** | Say something to the people in a session, or to everyone on a project | Kept in the session log or the project ledger as a note, attributed and replayable; never sent to the agent; the composer's Agent / Team toggle keeps the two apart |
+| **Fleet board** | Open a project | Every engineer's session as a row under its crew: status, goal, claims, blockers; Team up and Leave crew inline; one page, live |
 | **Claim** | Agent or human claims a path, service or ticket | Deterministic verdict; a denied claim is a contention for both owners and the lead |
 | **Lead directive** | A lead steers or constrains the project | Enters every session above owner rank; visible as `[project]` in every intent |
 | **Fleet contention** | Two sessions collide | Both owners and the lead see it; the lead resolves; the loser's claims release |
@@ -47,8 +50,9 @@ the next person with a brief the system wrote.
 
 ## Surfaces
 
-- **Web client** (`apps/web`): event stream, intent panel, contention and approval cards,
-  team and roles, branches, workspace, brief. One page; folds the same events as the server.
+- **Web client** (`apps/web`): the agents rail, the event stream with team messages, the
+  Team panel (people, crew, chat), the Details drawer (intent, roles, branches, workspace,
+  brief), contention and approval notices. One page; folds the same events as the server.
 - **CLI** (`fold join`): the same session from a terminal, for people who live there.
 - **Server** (`fold serve`): hosts sessions, persists logs, runs the agent.
 - **Slack** (`packages/slack`): channels per team, project and management; a thread per

@@ -16,7 +16,10 @@ Three layers, all event-sourced, all replayable:
   merge, handoff with a computed brief. [`docs/05_kernel_design.md`](docs/05_kernel_design.md)
 - **Fleet**: many engineers' agents in one project. Claims on shared ground, lead directives
   above owner rank, cross-session contentions, a fleet brief for managers, Slack channels per
-  team, project and management. [`docs/13_fleet_collaboration.md`](docs/13_fleet_collaboration.md)
+  team, project and management. Crews: several agents named onto one task, briefed on each
+  other. The agents rail shows every live agent, what it is on, Solo or Team and who with;
+  team chat in a session or on a project never reaches the agent.
+  [`docs/13_fleet_collaboration.md`](docs/13_fleet_collaboration.md)
 - **Organisation memory**: what the fleet knows and who said so. Attributed, scoped, compacting,
   with explicit conflicts and a curator. [`docs/14_organisation_memory.md`](docs/14_organisation_memory.md)
 

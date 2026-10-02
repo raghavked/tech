@@ -47,6 +47,27 @@ Identity is a `users.json` with org, team and project memberships. Session roles
 them: the session's starter and any lead or admin are owners, members are contributors,
 everyone else observes. This replaces first-in-owns the moment identity is configured.
 
+### Crews and team chat
+
+Claims keep agents apart; crews bring them together on purpose. A crew is a name for one
+task several sessions work on ("Invoice rollout"). The owner of a session or a lead puts it
+in a crew with a `session.crewed` ledger event, and takes it out with `crew: null`. Nothing
+about authority changes: a crewmate's owner still cannot steer your session. What changes is
+what each agent is told. The fleet context an agent reads at every turn gains a "YOUR CREW"
+section listing its crewmates' goals, status and last summary before the usual "OTHER AGENTS"
+section, so a crewed agent plans around its mates rather than merely avoiding them. The
+fleet brief tags crewed sessions, the agents rail and the project page group them under the
+crew name, and the Team panel of a session shows its crewmates as cards.
+
+People talk to each other beside the agent, not through it. A note in a session
+(`note.posted`) or on a project (`project.note.posted`) is a short message between humans,
+kept in the log with its author and sequence so it replays and appears in the brief, and
+never rendered into the model's request. The composer keeps the two apart with an Agent /
+Team toggle; a team message is drawn as "Bo · to the team" in the stream. The sessions
+listing (`GET /api/projects/:id/sessions`) carries, per session, the people present with
+their role, whether they are online and who is driving, which is what the rail turns into
+Solo or Team and "with Bo, Dee".
+
 ## What is new relative to prior art
 
 Lease tools for coding agents exist (`dibs`, agent-fridge, agentroom and siblings): TTL globs,
