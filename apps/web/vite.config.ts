@@ -18,5 +18,22 @@ export default defineConfig({
     port: 4173,
     proxy: proxyFor(process.env.FOLD_WS ?? "ws://127.0.0.1:7730"),
   },
-  build: { outDir: "dist" },
+  build: {
+    outDir: "dist",
+    rollupOptions: {
+      output: {
+        // Perf: vendor code in chunks of its own, so an app change does not invalidate React or
+        // zod in the browser cache, and so the entry carries only what the first paint needs.
+        // The views are split by the dynamic imports in src/views/lazy.ts.
+        manualChunks: vendorChunk,
+      },
+    },
+  },
 });
+
+function vendorChunk(id: string): string | undefined {
+  if (!id.includes("/node_modules/")) return undefined;
+  if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
+  if (id.includes("/node_modules/zod/")) return "zod";
+  return "vendor";
+}

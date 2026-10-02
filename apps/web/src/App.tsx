@@ -1,4 +1,13 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { api, type Me, type SessionRow, useFetch } from "./api.js";
 import { pendingOf } from "./approvalsQueue.js";
 import { copy } from "./copy.js";
@@ -16,14 +25,18 @@ import { type Theme, useTheme } from "./theme.js";
 import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
 import { UpdateRow } from "./update.js";
 import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
-import { Approvals } from "./views/Approvals.js";
 import { Home } from "./views/Home.js";
-import { Inbox } from "./views/Inbox.js";
-import { Memory } from "./views/Memory.js";
-import { Project } from "./views/Project.js";
-import { SessionView } from "./views/SessionView.js";
-import { Settings } from "./views/Settings.js";
-import { Team } from "./views/Team.js";
+// Perf: the other views are separate chunks, loaded on first use and warmed once idle (views/lazy.ts).
+import {
+  Approvals,
+  Inbox,
+  Memory,
+  Project,
+  SessionView,
+  Settings,
+  Team,
+  warmViews,
+} from "./views/lazy.js";
 
 /**
  * Hook point (error-boundary-toasts): every view renders inside one error boundary that resets
@@ -66,13 +79,32 @@ function Page() {
   const userId = identity?.userId ?? "";
   const me = useFetch<Me>(identity ? () => api.me(userId) : null, userId);
   const ctx: ShellContext = { route, identity, me: me.data };
+  useEffect(warmViews, []);
   if (!identity || route.name === "home")
     return (
       <Home me={me.data} meError={me.error} identity={identity} ctx={ctx} onRetry={me.reload} />
     );
+  return (
+    <Suspense fallback={<Loading ctx={ctx} />}>
+      <View route={route} identity={identity} me={me.data} ctx={ctx} />
+    </Suspense>
+  );
+}
+
+function View({
+  route,
+  identity,
+  me,
+  ctx,
+}: {
+  route: Route;
+  identity: Identity;
+  me: Me | null;
+  ctx: ShellContext;
+}) {
   switch (route.name) {
     case "fleet":
-      return <Project projectId={route.projectId} identity={identity} me={me.data} ctx={ctx} />;
+      return <Project projectId={route.projectId} identity={identity} me={me} ctx={ctx} />;
     case "session":
       return (
         <SessionView
@@ -81,29 +113,36 @@ function Page() {
           sessionId={route.sessionId}
           title={route.title}
           identity={identity}
-          me={me.data}
+          me={me}
           ctx={ctx}
         />
       );
     case "management":
-      return <Team teamId={route.teamId} identity={identity} me={me.data} ctx={ctx} />;
+      return <Team teamId={route.teamId} identity={identity} me={me} ctx={ctx} />;
     case "inbox":
-      return <Inbox identity={identity} me={me.data} ctx={ctx} />;
+      return <Inbox identity={identity} me={me} ctx={ctx} />;
     case "memory":
       return (
-        <Memory
-          orgId={route.orgId}
-          team={route.team}
-          project={route.project}
-          me={me.data}
-          ctx={ctx}
-        />
+        <Memory orgId={route.orgId} team={route.team} project={route.project} me={me} ctx={ctx} />
       );
     case "settings":
-      return <Settings identity={identity} me={me.data} ctx={ctx} />;
+      return <Settings identity={identity} me={me} ctx={ctx} />;
     case "approvals": // hook: approvals-queue
-      return <Approvals identity={identity} me={me.data} ctx={ctx} />;
+      return <Approvals identity={identity} me={me} ctx={ctx} />;
+    default:
+      return null;
   }
+}
+
+/** The shell with an empty column while a view's chunk is on its way (rarely seen once warmed). */
+function Loading({ ctx }: { ctx: ShellContext }) {
+  return (
+    <Shell ctx={ctx} title="">
+      <div className="column">
+        <p className="muted">Loading…</p>
+      </div>
+    </Shell>
+  );
 }
 
 export interface ShellContext {
@@ -152,10 +191,12 @@ export function Shell({
     addEventListener("fold:shortcuts", open);
     return () => removeEventListener("fold:shortcuts", open);
   }, []);
+  // A stable handler keeps the memoised sidebar out of the stream's re-renders.
+  const closeNav = useCallback(() => setNavOpen(false), []);
   return (
     <div className="shell">
       {help && <ShortcutSheet onClose={() => setHelp(false)} />}
-      <Sidebar ctx={ctx} open={navOpen} onClose={() => setNavOpen(false)} />
+      <Sidebar ctx={ctx} open={navOpen} onClose={closeNav} />
       {/* hook point (command-palette): ⌘K / Ctrl+K opens the palette on every page */}
       <CommandPalette ctx={ctx} />
       <div className="main">
@@ -190,7 +231,8 @@ function stepTo(delta: 1 | -1): void {
   focusSoon(`.sidebar a[href="${href}"]`);
 }
 
-function Sidebar({
+/** Memoised: it polls on its own, so a stream event in the main column should not redraw the rail. */
+const Sidebar = memo(function Sidebar({
   ctx,
   open,
   onClose,
@@ -409,7 +451,7 @@ function Sidebar({
       </nav>
     </>
   );
-}
+});
 
 /** Crewed sessions first, grouped under their crew; solo sessions after, under no header. */
 function groupByCrew(rows: SessionRow[]): [string | null, SessionRow[]][] {

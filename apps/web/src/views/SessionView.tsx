@@ -1,6 +1,7 @@
 import { describeRule, ruleFor, type SessionState } from "@fold/kernel";
 import type { Actor, DirectiveMode, PresenceEntry, SessionEvent } from "@fold/protocol";
 import {
+  memo,
   type ReactNode,
   useCallback,
   useEffect,
@@ -567,7 +568,24 @@ function StepLine({
   );
 }
 
-function ApprovalNotice({ s, id, client }: { s: SessionState; id: string; client: FoldClient }) {
+/** What an approval row shows, as one string: the state is cloned on every event, so compare by value. */
+function approvalSig(s: SessionState, id: string): string {
+  const a = s.approvals[id];
+  if (!a) return "";
+  const name = (k: string) => s.participants[k]?.actor.name ?? k;
+  const votes = Object.entries(a.votes).map(([k, v]) => `${name(k)}=${v}`);
+  return [a.status, describeRule(ruleFor(s.policy.approvals, a.call.risk)), ...votes].join("|");
+}
+
+const ApprovalNotice = memo(ApprovalNoticeRow, (prev, next) => {
+  return (
+    prev.id === next.id &&
+    prev.client === next.client &&
+    approvalSig(prev.s, prev.id) === approvalSig(next.s, next.id)
+  );
+});
+
+function ApprovalNoticeRow({ s, id, client }: { s: SessionState; id: string; client: FoldClient }) {
   const a = s.approvals[id];
   if (!a) return null;
   const name = (k: string) => s.participants[k]?.actor.name ?? k;
