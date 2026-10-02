@@ -90,9 +90,7 @@ describe("slack adapter", () => {
       (p) => p.threadTs === root?.ts && (p.blocks ?? []).some((b) => b.type === "actions"),
     );
     expect(approval?.text).toContain("Approval needed");
-    const approveId = String(
-      (approval?.blocks?.[1] as { elements: { action_id: string }[] }).elements[0].action_id,
-    );
+    const approveId = String(buttons(approval)[0]?.action_id);
     await slack.click(approveId, "U_BO");
     await new Promise((r) => setTimeout(r, 400));
     const granted = Object.values(a.session.state().approvals).find((x) => x.call.risk === "exec");
@@ -104,9 +102,7 @@ describe("slack adapter", () => {
       .reverse()
       .find((p) => p.text.includes("deploy") && (p.blocks ?? []).some((b) => b.type === "actions"));
     expect(deploy?.broadcast).toBe(true);
-    const deployApprove = String(
-      (deploy?.blocks?.[1] as { elements: { action_id: string }[] }).elements[0].action_id,
-    );
+    const deployApprove = String(buttons(deploy)[0]?.action_id);
     await slack.click(deployApprove, "U_ANA");
     await slack.click(deployApprove, "U_DEE");
     await new Promise((r) => setTimeout(r, 500));
@@ -162,13 +158,7 @@ describe("slack adapter", () => {
       (p) => p.channel === "C_MGMT" && p.text.includes("memory conflict"),
     );
     expect(mc?.text).toContain("Ana says");
-    const winId = String(
-      (
-        (
-          mc?.blocks?.[1] as { elements: { action_id: string; text: { text: string } }[] }
-        ).elements.find((e) => e.text.text.startsWith("Ana")) ?? { action_id: "" }
-      ).action_id,
-    );
+    const winId = String(buttons(mc).find((e) => e.text.text.startsWith("Ana"))?.action_id);
     await slack.click(winId, "U_DEE");
     expect(memory.state().conflicts[r.conflictId ?? ""]?.winnerId).toBeDefined();
     expect(memory.state().conflicts[r.conflictId ?? ""]?.resolved).toBe(true);
