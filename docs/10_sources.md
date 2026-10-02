@@ -128,3 +128,13 @@ snippets from this environment; those are marked (snippet). Re-verify before ext
 - Mem0 (not fetched): arXiv 2504.19413
 - W3C PROV-O (not fetched): https://www.w3.org/TR/prov-o/
 - Mosaic (YC S26) review (snippet): https://wavect.io/blog/mosaic-yc-s26-shared-agent-sessions-review/
+
+## Interface register (research memo, 2026-10-02)
+
+- claude.ai canvas, surfaces and type (third-party token extractions; snippets): type.today, kombai.com, oppadu.com
+- ChatGPT 2025 rebrand, OpenAI Sans and palette (snippets): opendesigner.io, en.ain.ua, webdesignerdepot.com
+- ChatGPT sidebar behaviour (snippet): ai-toolbox.co
+- Cursor 3 Agents window (snippets): forum.cursor.com, codepick.dev
+- Linear design refresh and type discipline (snippets): opendesigner.io, linear.app blog
+- Notion AI sidebar and panel (fetched): https://www.notion.com/help/sidebar
+Pixel values in the memo are marked unverified; confirm in DevTools before using as spec.

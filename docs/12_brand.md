@@ -37,17 +37,26 @@ human's attention is here": who is driving, what is contended, where the course 
 
 ## Type
 
-Bricolage Grotesque for titles and the wordmark, Instrument Sans for interface text,
-JetBrains Mono for the event stream, keys, paths and every number. The stream is monospace
-on purpose: it is a log and should read like one.
+One typeface, Instrument Sans, at 15 px with a 1.6 line height, for everything including
+titles; JetBrains Mono only inside tool lines for paths and commands. The wordmark alone
+is set in Bricolage Grotesque.
+
+## Interface register
+
+Fold's interface is in the register of claude.ai and ChatGPT, on purpose: a quiet sidebar of
+sessions and projects, one centred conversation column (760 px), human directives as soft
+bubbles, the agent's words as plain text, tool calls as collapsed grey lines ("Ran pnpm
+vitest · 31 passed, 1 failed"), approvals and contentions as single quiet notices with two
+buttons, and one rounded composer at the bottom. No inspector, no dashboards of tiles, no
+chrome bars. The research behind this (claude.ai's warm canvas and type pairing, ChatGPT's
+sidebar and composer, Linear's single-accent discipline) is in `10_sources.md`; the rule
+that matters most is that the only strong colour on a screen is the send button.
 
 ## Signature elements
 
-- **Course line.** A 3 px apricot rule under the top bar with a dot per turn and a brighter
-  dot per epoch; the catch-up brief points at it ("since you were last here").
 - **Driver ring.** The avatar holding the session carries a 2 px apricot ring; handoff moves
   the ring.
-- **Status pills** with a leading dot: running (pulsing), awaiting approval, blocked,
+- **Status words** with a small dot, never pills: running, awaiting approval, blocked,
   paused, idle. The same five words everywhere, in Slack too.
 - **Attribution line** on every memory entry: "added by Ana · session billing-42 · commit
   9f3c1a".
