@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Settings</title>
+<meta name="description" content="Settings as one 760px column of rows: Profile, Notifications per kind, Appearance, Keyboard, Integrations (Slack) and Team policy, where each risk class is a row of plain radios.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet that holds the frame */
+.sheet { width: min(1240px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 56px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+.sheet > section { display: flex; flex-direction: column; gap: 22px; }
+.sheet > section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+.sheet > section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+.sheet > section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* a window: the full shell at desktop width; it grows with its content so nothing is cut */
+.frame { display: flex; min-height: 720px; }
+.frame .sidebar { width: 260px; padding: 12px 10px; }
+.frame .sidebar .brand { text-decoration: none; color: var(--fg); }
+.frame .sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--fg-3); font-size: 14px; }
+.frame .sidebar .search .ic { width: 14px; height: 14px; }
+.frame .sidebar .new .ic { width: 16px; height: 16px; color: var(--fg-2); }
+.frame .sidebar .lists { display: flex; flex-direction: column; gap: 2px; }
+.frame .sidebar .item.sub { padding-left: 22px; font-size: 13.5px; }
+.frame .sidebar .me { gap: 10px; }
+.frame .sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
+.frame .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.frame .sidebar .me .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.frame .main { background: var(--bg); }
+.frame .topbar .title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-weight: 400; }
+.frame .topbar .title .crumb { color: var(--fg-3); }
+.frame .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.frame .topbar .right .btn .ic { width: 14px; height: 14px; }
+
+/* the page: one 760px column, sections as plain headings, rows beneath */
+.page { width: min(var(--col), 100%); margin: 0 auto; padding: 40px 24px 72px; display: flex; flex-direction: column; gap: 48px; }
+.page .head { display: flex; flex-direction: column; gap: 12px; }
+.page .lead { color: var(--fg-2); max-width: 60ch; }
+.jump { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13.5px; }
+.jump a { color: var(--fg-2); }
+.jump a:hover { color: var(--fg); text-decoration: none; }
+.group { display: flex; flex-direction: column; gap: 4px; scroll-margin-top: 24px; }
+.group > h2 { display: flex; align-items: baseline; gap: 10px; font-size: 15px; font-weight: 500; padding-bottom: 8px; }
+.group > h2 .act { margin-left: auto; font-size: 13px; font-weight: 400; color: var(--fg-2); }
+.group > h2 .act:hover { color: var(--fg); }
+.group > .note { font-size: 13.5px; color: var(--fg-2); padding-bottom: 6px; max-width: 60ch; }
+.group > .note i { font-family: var(--serif); color: var(--fg-3); }
+.team-head { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid var(--crease); }
+.team-head h2 { font-family: var(--serif); font-weight: 400; font-size: 22px; letter-spacing: 0; padding-top: 18px; }
+.team-head p { font-size: 13.5px; color: var(--fg-2); }
+
+/* rows: a label and its second line on the left, the control on the right */
+.rows { display: flex; flex-direction: column; }
+.srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; padding: 12px 4px; border-top: 1px solid var(--line); min-height: 58px; }
+.srow:first-child { border-top: 0; }
+.srow .l { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.srow .t { font-size: 15px; font-weight: 500; line-height: 1.35; }
+.srow .t .mono { font-size: 13.5px; font-weight: 500; }
+.srow .s { font-size: 13.5px; color: var(--fg-2); max-width: 46ch; }
+.srow .s i { font-family: var(--serif); color: var(--fg-3); }
+.srow .r { display: flex; align-items: center; justify-content: flex-end; gap: 8px; white-space: nowrap; }
+.srow.wrap { grid-template-columns: 1fr; gap: 8px; }
+.srow.wrap .r { justify-content: flex-start; flex-wrap: wrap; white-space: normal; }
+
+/* controls: native inputs with the one accent, no shadows */
+input[type="text"], input[type="email"] { width: 260px; height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--fg); font: inherit; font-size: 14px; }
+input[type="text"]:hover, input[type="email"]:hover { border-color: var(--fg-3); }
+input[type="text"]:focus-visible, input[type="email"]:focus-visible { outline: 0; border-color: var(--accent); }
+input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; flex: none; }
+.opt { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--fg); cursor: pointer; }
+.opt .sub { color: var(--fg-3); }
+.opts { display: inline-flex; align-items: center; gap: 18px; }
+.opts.col { flex-direction: column; align-items: flex-start; gap: 8px; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { padding: 0; }
+.btn.quiet { border-color: transparent; color: var(--fg-2); padding-inline: 8px; }
+.btn.quiet:hover { color: var(--fg); }
+.srow .status { font-size: 13.5px; color: var(--fg); }
+.srow .status.on::before { background: var(--ok); }
+.srow .status.off::before { background: var(--fg-3); }
+
+/* notifications: a word per kind, three checkboxes per row under three column words */
+.channels { display: grid; grid-template-columns: repeat(3, 72px); justify-items: center; }
+.channels .ch { font-size: 12px; color: var(--fg-3); }
+.srow.heads { min-height: 0; padding: 0 4px 6px; border-top: 0; align-items: end; }
+.srow.heads .l { font-size: 12px; color: var(--fg-3); }
+.channels input { justify-self: center; }
+
+/* appearance: the three words in a row, the theme is a radio, and a small sample under each is not needed */
+.swatch { display: inline-grid; grid-template-columns: 1fr 1fr; width: 40px; height: 26px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+.swatch span { display: block; }
+
+/* keyboard: keycaps as in the shortcuts sheet, no border, no shadow */
+kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--bg-3); color: var(--fg); font: 500 12.5px/1 var(--font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.keys { display: inline-flex; gap: 4px; align-items: center; }
+.keys .plus { color: var(--fg-3); font-size: 12px; }
+
+/* integrations: the Slack row, the status is a word with a dot */
+.srow .r .status + .btn { margin-left: 6px; }
+
+/* team policy: each risk class is a row; the rule words are radios in a line beneath the class */
+.policy .srow { grid-template-columns: 1fr; gap: 8px; padding: 14px 4px; }
+.policy .srow .r { justify-content: flex-start; white-space: normal; flex-wrap: wrap; gap: 8px 20px; }
+.policy .srow .t .mono { margin-left: 4px; font-weight: 400; }
+.policy .srow .s { max-width: 64ch; }
+.policy .opt.default .sub::before { content: "default"; }
+
+/* quiet notice: the only bordered box, for the thing that changed beneath this person's feet */
+.notice { gap: 6px; }
+.notice .t { font-weight: 500; }
+.notice p { font-size: 14px; color: var(--fg-2); }
+.notice p i { font-family: var(--serif); color: var(--fg-3); }
+
+.saveline { font-size: 13.5px; color: var(--fg-3); padding-top: 4px; }
+.saveline i { font-family: var(--serif); }
+
+/* notes under the frame */
+.notes { width: min(var(--col), 100%); display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; font-size: 13.5px; color: var(--fg-2); }
+.notes b { display: block; font-weight: 500; color: var(--fg); margin-bottom: 2px; }
+
+@media (max-width: 860px) {
+  .frame .sidebar { display: none; }
+  .notes { grid-template-columns: 1fr; }
+  .srow { grid-template-columns: 1fr; gap: 8px; }
+  .srow .r { justify-content: flex-start; flex-wrap: wrap; white-space: normal; }
+  input[type="text"], input[type="email"] { width: 100%; }
+  .channels { grid-template-columns: repeat(3, 64px); }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-out" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+</svg>
+
+<div class="sheet">
+  <div class="intro">
+    <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Settings</div>
+    <h1>Settings</h1>
+    <p>One 760px column, six plain headings, rows beneath. The personal half (Profile, Notifications, Appearance, Keyboard) is what this person sees everywhere; the team half (Integrations, Team policy) sits under an apricot crease and says who may change it. Every control is native: text inputs with a hairline, radios and checkboxes carrying the one accent, no toggles, no save button. The only bordered box is a quiet notice for a policy that changed since this person last looked.</p>
+  </div>
+
+  <section>
+    <header><h2>As Dee, the lead of Payments</h2><p>Dee opens Settings from the sidebar. Her own rows come first. Because she leads Payments, the Team policy rows are live radios; Ana would see the same rows with the chosen word and the line "Dee sets these".</p></header>
+    <div class="frame">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="../../index.html"><svg viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search</div>
+        <div class="lists">
+          <div class="section">Projects</div>
+          <a class="item" href="#">Payments</a>
+          <a class="item sub" href="#">Billing page</a>
+          <a class="item sub" href="#">Checkout</a>
+          <a class="item sub" href="#">Dunning emails</a>
+          <div class="section">Recents</div>
+          <a class="item" href="#">Proration fix</a>
+          <a class="item" href="#">Invoice PDF + tax lines</a>
+          <a class="item" href="#">Tax rounding audit</a>
+          <a class="item" href="#">Checkout retries</a>
+          <a class="item" href="#">Refund ledger</a>
+        </div>
+        <a class="item active" href="#" aria-current="page">Settings</a>
+        <div class="me"><span class="avatar" title="Dee">D</span><div class="who">Dee Okafor<div class="small faint">Northwind · Payments</div></div><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></div>
+      </aside>
+      <div class="main">
+        <div class="topbar"><span class="title"><span class="crumb">Northwind ›</span><span>Settings</span></span><div class="right"><button class="btn sm icon" type="button" aria-label="Close settings"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+        <form class="page" action="#" method="get">
+          <div class="head">
+            <h1>Settings</h1>
+            <nav class="jump" aria-label="Sections"><a href="#s-profile">Profile</a><a href="#s-notify">Notifications</a><a href="#s-look">Appearance</a><a href="#s-keys">Keyboard</a><a href="#s-slack">Integrations</a><a href="#s-policy">Team policy</a></nav>
+          </div>
+
+          <section class="group" id="s-profile" aria-labelledby="h-profile">
+            <h2 id="h-profile">Profile</h2>
+            <div class="rows">
+              <div class="srow"><div class="l"><label class="t" for="f-name">Name</label><span class="s">How you appear in sessions, briefs and memory entries.</span></div><div class="r"><input type="text" id="f-name" name="name" value="Dee Okafor" autocomplete="name"></div></div>
+              <div class="srow"><div class="l"><label class="t" for="f-short">Short name</label><span class="s">What agents call you. <i>Dee's agent</i>, <i>Dee approved</i>.</span></div><div class="r"><input type="text" id="f-short" name="short" value="Dee" autocomplete="nickname"></div></div>
+              <div class="srow"><div class="l"><label class="t" for="f-email">Email</label><span class="s">Sign-in and the daily digest, if you want one.</span></div><div class="r"><input type="email" id="f-email" name="email" value="dee@northwind.example" autocomplete="email"></div></div>
+              <div class="srow"><div class="l"><span class="t">Role</span><span class="s">Set by the team's <span class="mono">users.json</span>. Lead of Payments, owner in Billing page and Checkout.</span></div><div class="r"><span class="status on">Lead</span></div></div>
+            </div>
+          </section>
+
+          <section class="group" id="s-notify" aria-labelledby="h-notify">
+            <h2 id="h-notify">Notifications</h2>
+            <p class="note">One row per kind. In-app is always on; choose where else each kind reaches you.</p>
+            <div class="rows">
+              <div class="srow heads" aria-hidden="true"><div class="l">Kind</div><div class="r"><div class="channels"><span class="ch">Desktop</span><span class="ch">Phone</span><span class="ch">Slack</span></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Approvals</span><span class="s">A tool call waits on you. <i>delete legacy_invoices, 1 of 2 drivers.</i></span></div><div class="r"><div class="channels"><input type="checkbox" name="n-approval-desktop" checked aria-label="Approvals on desktop"><input type="checkbox" name="n-approval-phone" checked aria-label="Approvals on phone"><input type="checkbox" name="n-approval-slack" checked aria-label="Approvals in Slack"></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Contentions</span><span class="s">Two sessions want the same path or decision. <i>Stripe Tax API or local tax tables.</i></span></div><div class="r"><div class="channels"><input type="checkbox" name="n-contention-desktop" checked aria-label="Contentions on desktop"><input type="checkbox" name="n-contention-phone" checked aria-label="Contentions on phone"><input type="checkbox" name="n-contention-slack" aria-label="Contentions in Slack"></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Handoffs</span><span class="s">A session is handed to you with its brief. <i>Ana → Bo</i> went to Bo only.</span></div><div class="r"><div class="channels"><input type="checkbox" name="n-handoff-desktop" checked aria-label="Handoffs on desktop"><input type="checkbox" name="n-handoff-phone" checked aria-label="Handoffs on phone"><input type="checkbox" name="n-handoff-slack" aria-label="Handoffs in Slack"></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Blocked</span><span class="s">An agent you are in cannot continue and says why.</span></div><div class="r"><div class="channels"><input type="checkbox" name="n-blocked-desktop" checked aria-label="Blocked on desktop"><input type="checkbox" name="n-blocked-phone" aria-label="Blocked on phone"><input type="checkbox" name="n-blocked-slack" aria-label="Blocked in Slack"></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Done</span><span class="s">A session you are in finished its turn or its task.</span></div><div class="r"><div class="channels"><input type="checkbox" name="n-done-desktop" aria-label="Done on desktop"><input type="checkbox" name="n-done-phone" aria-label="Done on phone"><input type="checkbox" name="n-done-slack" aria-label="Done in Slack"></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Quiet hours</span><span class="s">Phone stays silent; approvals for irreversible calls still come through.</span></div><div class="r"><div class="opts"><label class="opt"><input type="radio" name="quiet" value="off">Off</label><label class="opt"><input type="radio" name="quiet" value="night" checked>22:00 to 08:00</label><label class="opt"><input type="radio" name="quiet" value="weekend">Weekends too</label></div></div></div>
+            </div>
+          </section>
+
+          <section class="group" id="s-look" aria-labelledby="h-look">
+            <h2 id="h-look">Appearance</h2>
+            <div class="rows">
+              <div class="srow" role="group"><div class="l"><span class="t">Theme</span><span class="s">Auto follows the system.</span></div><div class="r"><div class="opts"><label class="opt"><input type="radio" name="theme" value="auto" checked>Auto</label><label class="opt"><input type="radio" name="theme" value="light">Light</label><label class="opt"><input type="radio" name="theme" value="dark">Dark</label></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Text size</span><span class="s">Agent text in the conversation. Everything else keeps its size.</span></div><div class="r"><div class="opts"><label class="opt"><input type="radio" name="size" value="s">Smaller</label><label class="opt"><input type="radio" name="size" value="m" checked>Default</label><label class="opt"><input type="radio" name="size" value="l">Larger</label></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Tool lines</span><span class="s">Each tool call is one collapsed line. Open them when the agent is running?</span></div><div class="r"><div class="opts"><label class="opt"><input type="radio" name="tools" value="collapsed" checked>Keep collapsed</label><label class="opt"><input type="radio" name="tools" value="open">Open while running</label></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Sidebar</span><span class="s">On narrow windows the sidebar becomes a rail.</span></div><div class="r"><div class="opts"><label class="opt"><input type="radio" name="side" value="auto" checked>Auto</label><label class="opt"><input type="radio" name="side" value="rail">Always a rail</label></div></div></div>
+            </div>
+          </section>
+
+          <section class="group" id="s-keys" aria-labelledby="h-keys">
+            <h2 id="h-keys">Keyboard <a class="act" href="../keyboard-shortcuts/index.html">All shortcuts</a></h2>
+            <div class="rows">
+              <div class="srow" role="group"><div class="l"><span class="t">Send with</span><span class="s">The other key adds a line.</span></div><div class="r"><div class="opts"><label class="opt"><input type="radio" name="send" value="enter" checked><span class="keys"><kbd>Enter</kbd></span></label><label class="opt"><input type="radio" name="send" value="cmd-enter"><span class="keys"><kbd>⌘</kbd><kbd>Enter</kbd></span></label></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Modifier names</span><span class="s">The desktop shell presets this; change it if the sheet shows the wrong keys.</span></div><div class="r"><div class="opts"><label class="opt"><input type="radio" name="mod" value="mac" checked>Mac</label><label class="opt"><input type="radio" name="mod" value="win">Windows and Linux</label></div></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Single-letter keys</span><span class="s"><kbd>A</kbd> approve, <kbd>D</kbd> deny, <kbd>F</kbd> fork, only while the composer is empty.</span></div><div class="r"><div class="opts"><label class="opt"><input type="radio" name="letters" value="on" checked>On</label><label class="opt"><input type="radio" name="letters" value="off">Off</label></div></div></div>
+              <div class="srow"><div class="l"><span class="t">Command palette</span><span class="s">Open from anywhere, including the tray.</span></div><div class="r"><span class="keys"><kbd>⌘</kbd><kbd>K</kbd></span></div></div>
+            </div>
+          </section>
+
+          <div class="team-head">
+            <h2>Payments</h2>
+            <p>Team settings. You lead Payments, so these are yours to change; everyone on the team can read them.</p>
+          </div>
+
+          <section class="group" id="s-slack" aria-labelledby="h-slack">
+            <h2 id="h-slack">Integrations</h2>
+            <div class="rows">
+              <div class="srow"><div class="l"><span class="t">Slack</span><span class="s">Northwind workspace · a channel per project, a thread per session, a management channel for contentions.</span></div><div class="r"><span class="status on">Connected</span><button class="btn sm quiet" type="button">Disconnect</button></div></div>
+              <div class="srow"><div class="l"><span class="t">Channels</span><span class="s"><span class="mono">#payments</span> for the team, <span class="mono">#payments-billing</span>, <span class="mono">#payments-checkout</span>, <span class="mono">#payments-mgmt</span>.</span></div><div class="r"><a class="btn sm quiet" href="#">Edit mapping</a></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">What is posted</span><span class="s">Turn summaries are coalesced to one reply per thread every 1.5 s.</span></div><div class="r"><div class="opts col"><label class="opt"><input type="checkbox" name="s-threads" checked>Open a thread when a session starts</label><label class="opt"><input type="checkbox" name="s-irrev" checked>Broadcast irreversible approvals to the project channel</label><label class="opt"><input type="checkbox" name="s-reply" checked>Treat thread replies as directives</label></div></div></div>
+              <div class="srow"><div class="l"><span class="t">Desktop app</span><span class="s">Tray icon, native notifications, global <kbd>⌘</kbd><kbd>K</kbd>. Installed on this machine.</span></div><div class="r"><span class="status on">Fold 0.4.2</span></div></div>
+            </div>
+          </section>
+
+          <section class="group policy" id="s-policy" aria-labelledby="h-policy">
+            <h2 id="h-policy">Team policy</h2>
+            <p class="note">Who approves a tool call, by risk class. Only humans vote; a deny by anyone eligible denies. Sessions in Payments inherit these unless a lead constrains one further.</p>
+            <div class="notice" role="status">
+              <span class="t">Irreversible calls now need two drivers or owners</span>
+              <p>You changed this on Monday. Since then one call has waited on it: <i>delete legacy_invoices</i> in Invoice PDF + tax lines, 1 of 2 drivers, Bo approved.</p>
+            </div>
+            <div class="rows">
+              <div class="srow" role="group"><div class="l"><span class="t">Read <span class="mono faint">read</span></span><span class="s">Reading files, logs and the ledger. Nothing leaves the sandbox.</span></div><div class="r"><label class="opt"><input type="radio" name="p-read" value="none" checked>None <span class="sub">default</span></label><label class="opt"><input type="radio" name="p-read" value="contrib">One contributor</label><label class="opt"><input type="radio" name="p-read" value="driver">The driver</label><label class="opt"><input type="radio" name="p-read" value="owner">One owner</label><label class="opt"><input type="radio" name="p-read" value="quorum">Two drivers or owners</label></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Write <span class="mono faint">write</span></span><span class="s">Editing files on the session's branch. Undone by folding the branch.</span></div><div class="r"><label class="opt"><input type="radio" name="p-write" value="none" checked>None <span class="sub">default</span></label><label class="opt"><input type="radio" name="p-write" value="contrib">One contributor</label><label class="opt"><input type="radio" name="p-write" value="driver">The driver</label><label class="opt"><input type="radio" name="p-write" value="owner">One owner</label><label class="opt"><input type="radio" name="p-write" value="quorum">Two drivers or owners</label></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Execute <span class="mono faint">exec</span></span><span class="s">Running commands, tests and migrations against the sandbox.</span></div><div class="r"><label class="opt"><input type="radio" name="p-exec" value="none">None</label><label class="opt"><input type="radio" name="p-exec" value="contrib" checked>One contributor <span class="sub">default</span></label><label class="opt"><input type="radio" name="p-exec" value="driver">The driver</label><label class="opt"><input type="radio" name="p-exec" value="owner">One owner</label><label class="opt"><input type="radio" name="p-exec" value="quorum">Two drivers or owners</label></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">External <span class="mono faint">external</span></span><span class="s">Calls that leave the sandbox: Stripe, email, webhooks.</span></div><div class="r"><label class="opt"><input type="radio" name="p-external" value="none">None</label><label class="opt"><input type="radio" name="p-external" value="contrib">One contributor</label><label class="opt"><input type="radio" name="p-external" value="driver" checked>The driver <span class="sub">default</span></label><label class="opt"><input type="radio" name="p-external" value="owner">One owner</label><label class="opt"><input type="radio" name="p-external" value="quorum">Two drivers or owners</label></div></div>
+              <div class="srow" role="group"><div class="l"><span class="t">Irreversible <span class="mono faint">irreversible</span></span><span class="s">Deletes, drops, force pushes, payments. The thing approved is the hash of the exact call.</span></div><div class="r"><label class="opt"><input type="radio" name="p-irrev" value="none">None</label><label class="opt"><input type="radio" name="p-irrev" value="contrib">One contributor</label><label class="opt"><input type="radio" name="p-irrev" value="driver">The driver</label><label class="opt"><input type="radio" name="p-irrev" value="owner">One owner</label><label class="opt"><input type="radio" name="p-irrev" value="quorum" checked>Two drivers or owners <span class="sub">default</span></label></div></div>
+            </div>
+            <p class="saveline">Each change is an event in the project's log, attributed to you. <i>Policy changed by Dee, Monday 09:14.</i></p>
+          </section>
+        </form>
+      </div>
+    </div>
+    <div class="notes">
+      <div><b>Rows, not panels</b>Every setting is a label with a one-line reason on the left and its control on the right; a section is a heading over rows. No tabs, no cards.</div>
+      <div><b>Words for rules</b>The approval rule for a risk class is a sentence fragment chosen by radio: None, One contributor, The driver, One owner, Two drivers or owners. The default is marked, not pre-styled.</div>
+      <div><b>Team under a crease</b>The apricot hairline that separates chrome from content also separates what is yours from what is the team's, with one line saying who may change it.</div>
+    </div>
+  </section>
+</div>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Home and onboarding: rationale
+
+**Decision.** First run is three screens drawn with nothing new. Sign in is one field and one button in an otherwise empty desktop window; the fine print says a code is sent and there is no password, and that desktop and web are one sign-in. Picking a team is two radio rows, the serif on the name and a status word with a dot ("3 live", "quiet"), with a button that names what it opens. The third screen is the product: the sidebar arrives with its apricot crease, the project home is a greeting line that says what needs Ana, the lead's course as one dotted line, and the live sessions as rows with the agent's last line beneath each title. The composer at the bottom is how a session is created, so "create" and "open" share one screen. The single accent moves from Continue to the send arrow and stays there.
+
+**Rejected.** A welcome tour or checklist (the sessions are the tour). A card grid of teams and sessions (rows read faster and carry the status word). A separate "New session" form (the composer already is one). Showing the pending approval as a notice on the home (it belongs in the session; the row says "Needs you").
+
+**Carry forward.** The project home as greeting, course line, session rows, composer. The session row shape: serif title, by-line, last agent line, status word on the right. The sign-in fine print as the pattern for stating consequences in Fold's voice.

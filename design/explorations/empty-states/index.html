@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Empty states</title>
+<meta name="description" content="Five empty states on the desktop, each one sentence and one action in the same shell: no sessions, no projects, no memory, no notifications, offline.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 18px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header h2 .n { color: var(--fg-3); margin-right: 10px; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+.after-frame { width: min(var(--col), 100%); font-size: 13px; color: var(--fg-3); }
+
+/* the desktop window: a plain Tauri shell, lights and a name, nothing else */
+.win { width: 1000px; height: 460px; border-radius: 12px; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; border: 1px solid var(--line); }
+.win .bar { height: 38px; flex: none; display: flex; align-items: center; padding: 0 14px; background: var(--bg-2); font-size: 13px; color: var(--fg-2); position: relative; }
+.win .bar .lights { display: flex; gap: 8px; }
+.win .bar .lights span { width: 12px; height: 12px; border-radius: 50%; background: var(--bg-3); border: 1px solid var(--line); }
+.win .bar .name { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; font-family: var(--serif); font-size: 15px; color: var(--fg); }
+.win .shell { flex: 1; min-height: 0; }
+.win .main { background: var(--bg); }
+
+/* sidebar, as everywhere else: brand, new, search, sections of plain rows, me */
+.win .sidebar { width: 272px; padding: 10px; gap: 1px; }
+.win .sidebar .brand { padding-bottom: 8px; text-decoration: none; color: var(--fg); }
+.win .sidebar .brand img { width: 20px; height: 20px; }
+.win .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.win .sidebar .search { display: flex; align-items: center; gap: 8px; padding: 7px 10px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); }
+.win .sidebar .search .ic { width: 14px; height: 14px; }
+.win .sidebar .section { padding: 10px 10px 4px; }
+.win .sidebar .section.first { padding-top: 6px; }
+.win .sidebar .none { padding: 2px 10px 6px; font-size: 13.5px; color: var(--fg-2); font-family: var(--serif); font-style: italic; }
+.win .sidebar .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; }
+.win .sidebar .item.plain { grid-template-columns: 1fr auto; }
+.win .sidebar .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.win .sidebar .item .t .by { color: var(--fg-3); font-size: 13px; }
+.win .sidebar .item .n { font-size: 12.5px; color: var(--fg-2); }
+.win .sidebar .item .dot { background: var(--fg-3); }
+.win .sidebar .item .dot.running { background: var(--ok); }
+.win .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.win .sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.win .sidebar .me .avatar { width: 26px; height: 26px; border: 0; }
+.win .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.win .sidebar .me .who .status { font-size: 12.5px; }
+.win .sidebar .me .who .status.offline::before { background: var(--fg-3); }
+.win .sidebar .me .who .status.online::before { background: var(--ok); }
+
+/* top bar: the crumb and nothing on the right */
+.win .topbar .title { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.win .topbar .title .crumb { color: var(--fg-3); font-weight: 400; }
+.win .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+
+/* the column: a title, one sentence, one action; the sentence is the empty state */
+.win .scroll { display: flex; flex-direction: column; overflow: hidden; }
+.win .column { padding-top: 24px; padding-bottom: 8px; gap: 24px; flex: 1; min-height: 0; }
+.empty { display: flex; flex-direction: column; gap: 8px; }
+.empty h1 { font-size: 30px; }
+.empty p { color: var(--fg-2); max-width: 56ch; }
+.empty .act { margin-top: 10px; align-self: flex-start; }
+.empty .act.btn { min-height: 36px; padding: 0 16px; font-size: 14.5px; }
+.empty .act.btn .ic { width: 15px; height: 15px; }
+.empty .act.link { font-size: 14.5px; color: var(--fg); display: inline-flex; align-items: center; gap: 6px; }
+.empty .act.link:hover { text-decoration: underline; }
+
+/* the composer, when it is the action */
+.win .composer-wrap { padding: 8px 20px 10px; background: var(--bg); }
+.win .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; }
+.win .composer .input::placeholder { color: var(--fg-3); }
+.win .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.win .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.win .hint { text-align: center; font-size: 12.5px; color: var(--fg-3); padding: 0 20px 12px; }
+
+/* offline: the one empty state that is a notice, since the page beneath it is not empty by choice */
+.notice.offline { gap: 6px; }
+.notice.offline p { color: var(--fg-2); }
+.notice.offline .head { display: flex; align-items: center; gap: 8px; color: var(--fg); font-weight: 500; }
+.notice.offline .head .status::before { background: var(--fg-3); }
+.notice.offline .actions { margin-top: 6px; }
+.win .composer.quiet .send { background: var(--bg-3); color: var(--fg-2); cursor: default; }
+.win .composer.quiet .input::placeholder { color: var(--fg-3); }
+
+/* the grammar, at the end */
+.grammar { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--fg-2); }
+.grammar h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; color: var(--fg); margin-bottom: 4px; }
+.grammar .r { display: grid; grid-template-columns: 150px 1fr; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.grammar .r:last-child { border-bottom: 0; }
+.grammar .r b { font-weight: 500; color: var(--fg); }
+
+@media (max-width: 1040px) {
+  .win { width: 100%; height: auto; min-height: 420px; }
+  .win .sidebar { display: none; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="M20 12.5l-7.8 7.8a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 17.9a1.6 1.6 0 0 1-2.3-2.3l7.4-7.4"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></symbol>
+</svg>
+
+<main class="sheet">
+
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Empty states</div>
+  <h1>Nothing here yet</h1>
+  <p>Five places a reader can land and find nothing: a project with no sessions, a team with no projects, a memory with no entries, an inbox with nothing addressed to them, and the app with no connection. Each is drawn in the same shell as everything else, with the title the page would have anyway, one sentence that says what will fill it, and one action that starts filling it. No illustrations, no tour, no tips. The sentence does the explaining; the action is the only strong colour on the screen.</p>
+</div>
+
+<!-- ===================== 1: no sessions ===================== -->
+<section id="no-sessions">
+  <header>
+    <h2><span class="n">1</span>No sessions</h2>
+    <p>Ana opens Billing page the morning it is created. The composer is the action: the first directive she sends is the session, so there is no "New session" button to find.</p>
+  </header>
+  <div class="win" aria-label="Fold desktop window, a project with no sessions">
+    <div class="bar"><div class="lights" aria-hidden="true"><span></span><span></span><span></span></div><div class="name">Fold</div></div>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="">Fold</a>
+        <button class="new" type="button"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
+        <div class="search" role="presentation"><svg class="ic"><use href="#i-search"/></svg>Search</div>
+        <div class="section">Payments</div>
+        <a class="item plain active" href="#"><span class="t">Billing page</span></a>
+        <div class="none">no sessions yet</div>
+        <div class="me"><span class="avatar">A</span><div class="who">Ana<br><span class="status online">online</span></div></div>
+      </nav>
+      <div class="main">
+        <div class="topbar"><div class="title"><span class="crumb">Northwind › Payments ›</span><span class="serif">Billing page</span></div></div>
+        <div class="scroll">
+          <div class="column">
+            <div class="empty">
+              <h1>Billing page</h1>
+              <p>No sessions here yet; the first directive you send starts one.</p>
+            </div>
+          </div>
+          <div class="composer-wrap">
+            <form class="composer" action="#" method="get">
+              <label class="sr-only" for="c1">Directive</label>
+              <input class="input" id="c1" name="d" type="text" placeholder="Tell the agent what to do in Billing page">
+              <div class="bar">
+                <button class="btn icon" type="button" aria-label="Attach"><svg class="ic"><use href="#i-clip"/></svg></button>
+                <div class="right"><button class="send" type="submit" aria-label="Send"><svg class="ic"><use href="#i-up"/></svg></button></div>
+              </div>
+            </form>
+          </div>
+          <div class="hint">Everyone in Payments can open what you start.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="after-frame">The sidebar says the same thing in three words under the project. Dee's direction, "schema freeze until Thursday", would sit above the sentence if it existed; a project can have a course before it has a session.</div>
+</section>
+
+<!-- ===================== 2: no projects ===================== -->
+<section id="no-projects">
+  <header>
+    <h2><span class="n">2</span>No projects</h2>
+    <p>Dee, the lead, has just made the Northwind team. The sidebar has nothing to list, so the column carries the one button, in the accent, that gives it something.</p>
+  </header>
+  <div class="win" aria-label="Fold desktop window, a team with no projects">
+    <div class="bar"><div class="lights" aria-hidden="true"><span></span><span></span><span></span></div><div class="name">Fold</div></div>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="">Fold</a>
+        <button class="new" type="button"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
+        <div class="search" role="presentation"><svg class="ic"><use href="#i-search"/></svg>Search</div>
+        <div class="section">Projects</div>
+        <div class="none">none yet</div>
+        <div class="me"><span class="avatar">D</span><div class="who">Dee<br><span class="status online">online</span></div></div>
+      </nav>
+      <div class="main">
+        <div class="topbar"><div class="title"><span class="serif">Northwind</span></div></div>
+        <div class="scroll">
+          <div class="column">
+            <div class="empty">
+              <h1>Northwind</h1>
+              <p>Northwind has no projects yet; a project is where sessions, claims and your direction live.</p>
+              <button class="act btn primary" type="button"><svg class="ic"><use href="#i-plus"/></svg>New project</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="after-frame">The composer is absent because there is nowhere for a directive to go. "New session" stays in the sidebar and, pressed, asks for the project first.</div>
+</section>
+
+<!-- ===================== 3: no memory ===================== -->
+<section id="no-memory">
+  <header>
+    <h2><span class="n">3</span>No memory</h2>
+    <p>Bo opens the team's memory on the first day. The sentence says where entries come from and how they are signed, so an empty page already teaches the attribution line.</p>
+  </header>
+  <div class="win" aria-label="Fold desktop window, team memory with no entries">
+    <div class="bar"><div class="lights" aria-hidden="true"><span></span><span></span><span></span></div><div class="name">Fold</div></div>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="">Fold</a>
+        <button class="new" type="button"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
+        <div class="search" role="presentation"><svg class="ic"><use href="#i-search"/></svg>Search</div>
+        <div class="section first">Northwind</div>
+        <a class="item plain active" href="#"><span class="t">Memory</span></a>
+        <div class="section">Payments</div>
+        <a class="item plain" href="#"><span class="t">Billing page</span><span class="n">1</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span></a>
+        <div class="me"><span class="avatar">B</span><div class="who">Bo<br><span class="status online">online</span></div></div>
+      </nav>
+      <div class="main">
+        <div class="topbar"><div class="title"><span class="crumb">Northwind ›</span><span class="serif">Memory</span></div></div>
+        <div class="scroll">
+          <div class="column">
+            <div class="empty">
+              <h1>Memory</h1>
+              <p>Nothing has been learned yet; what agents find out arrives here as they work, signed with the engineer, session and commit.</p>
+              <button class="act btn primary" type="button"><svg class="ic"><use href="#i-plus"/></svg>Write the first entry</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="after-frame">A human-written entry is signed the same way, "added by Bo", with no session or commit. Search, conflicts and compaction do not appear until there is something to search.</div>
+</section>
+
+<!-- ===================== 4: no notifications ===================== -->
+<section id="no-notifications">
+  <header>
+    <h2><span class="n">4</span>No notifications</h2>
+    <p>Cy opens the inbox and nothing is addressed to him. The sentence names the three things that would be, and the one action takes him to what is live instead.</p>
+  </header>
+  <div class="win" aria-label="Fold desktop window, inbox with nothing in it">
+    <div class="bar"><div class="lights" aria-hidden="true"><span></span><span></span><span></span></div><div class="name">Fold</div></div>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="">Fold</a>
+        <button class="new" type="button"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
+        <div class="search" role="presentation"><svg class="ic"><use href="#i-search"/></svg>Search</div>
+        <div class="section first">Northwind</div>
+        <a class="item plain active" href="#"><span class="t">Inbox</span></a>
+        <a class="item plain" href="#"><span class="t">Memory</span></a>
+        <div class="section">Payments</div>
+        <a class="item plain" href="#"><span class="t">Billing page</span><span class="n">1</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span></a>
+        <div class="me"><span class="avatar">C</span><div class="who">Cy<br><span class="status online">online</span></div></div>
+      </nav>
+      <div class="main">
+        <div class="topbar"><div class="title"><span class="crumb">Northwind ›</span><span class="serif">Inbox</span></div></div>
+        <div class="scroll">
+          <div class="column">
+            <div class="empty">
+              <h1>Inbox</h1>
+              <p>Nothing needs you; approvals, contentions and handoffs addressed to you will appear here.</p>
+              <a class="act link" href="#">Open Invoice PDF + tax lines, running now <svg class="ic"><use href="#i-arrow"/></svg></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="after-frame">No accent on this frame: the only action is a link into a session, so the strong colour is saved for the send arrow that waits there. "Needs you" is the inbox's word everywhere, on rows and in Slack.</div>
+</section>
+
+<!-- ===================== 5: offline ===================== -->
+<section id="offline">
+  <header>
+    <h2><span class="n">5</span>Offline</h2>
+    <p>Ana's laptop loses the network on the train. The page beneath is not empty by choice, so this is the one state drawn as a quiet notice rather than a title: the sidebar's status word turns, the notice says what still works, the send arrow steps back to ink.</p>
+  </header>
+  <div class="win" aria-label="Fold desktop window, offline">
+    <div class="bar"><div class="lights" aria-hidden="true"><span></span><span></span><span></span></div><div class="name">Fold</div></div>
+    <div class="shell">
+      <nav class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="">Fold</a>
+        <button class="new" type="button"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
+        <div class="search" role="presentation"><svg class="ic"><use href="#i-search"/></svg>Search</div>
+        <div class="section first">Payments</div>
+        <a class="item plain" href="#"><span class="t">Billing page</span><span class="n">1</span></a>
+        <a class="item active" href="#"><span class="dot"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span></a>
+        <div class="me"><span class="avatar driver">A</span><div class="who">Ana<br><span class="status offline">offline</span></div></div>
+      </nav>
+      <div class="main">
+        <div class="topbar"><div class="title"><span class="crumb">Billing page ›</span><span class="serif">Invoice PDF + tax lines</span></div></div>
+        <div class="scroll">
+          <div class="column">
+            <div class="notice offline" role="status">
+              <div class="head"><span class="status">offline</span></div>
+              <p>Fold cannot reach Northwind; what you already have of this session stays readable, and anything you send waits here until it can go.</p>
+              <div class="actions"><button class="btn primary" type="button"><svg class="ic"><use href="#i-refresh"/></svg>Try again</button></div>
+            </div>
+          </div>
+          <div class="composer-wrap">
+            <form class="composer quiet" action="#" method="get">
+              <label class="sr-only" for="c5">Directive</label>
+              <input class="input" id="c5" name="d" type="text" placeholder="Write a directive; it will send when you are back">
+              <div class="bar">
+                <button class="btn icon" type="button" aria-label="Attach"><svg class="ic"><use href="#i-clip"/></svg></button>
+                <div class="right"><button class="send" type="submit" aria-label="Send when back online"><svg class="ic"><use href="#i-up"/></svg></button></div>
+              </div>
+            </form>
+          </div>
+          <div class="hint">Last synced 2 minutes ago · event 1,284</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="after-frame">The log is replayable, so the stream Ana already loaded would be above this notice in the real session; the frame shows only the notice to keep the state legible. The hint carries the last event number so she knows exactly how far behind she is.</div>
+</section>
+
+<div class="grammar">
+  <h2>The grammar</h2>
+  <div class="r"><b>Title</b><span>The title the page would have anyway, in the serif. An empty page is still that page.</span></div>
+  <div class="r"><b>One sentence</b><span>Says what is missing, then what fills it, joined by a semicolon. Secondary ink, never bold, never a heading.</span></div>
+  <div class="r"><b>One action</b><span>The thing that fills it: the composer, a primary button, or a link onward. It carries the only strong colour on the screen.</span></div>
+  <div class="r"><b>Sidebar echo</b><span>The sidebar says the same thing in three italic serif words under the section, so the empty state is visible before the page is opened.</span></div>
+  <div class="r"><b>Offline is a notice</b><span>Not a page. The status word by your name turns, the notice sits where the next event would, the send arrow goes to ink.</span></div>
+</div>
+
+</main>
+
+<div class="theme-toggle" role="radiogroup" aria-label="Theme">
+  <input type="radio" name="theme" id="t-auto" checked><label for="t-auto">Auto</label>
+  <input type="radio" name="theme" id="t-light"><label for="t-light">Light</label>
+  <input type="radio" name="theme" id="t-dark"><label for="t-dark">Dark</label>
+</div>
+</body>
+</html>

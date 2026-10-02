@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Session view variants</title>
+<meta name="description" content="Three variants of the session conversation column: airy, compact, and with inline turn markers. Same two-hour, 60-event session in each.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* theme toggle: three radios; the checked one overrides the tokens */
+.theme-toggle { top: 16px; bottom: auto; }
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1; --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10); --accent: #56352D; --accent-fg: #FFFFFF; --highlight: #E2C4A6;
+  --highlight-soft: rgba(226, 196, 166, 0.28); --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080; color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748; --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10); --accent: #E2C4A6; --accent-fg: #1F2430; --highlight: #E2C4A6;
+  --highlight-soft: rgba(226, 196, 166, 0.14); --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC; color-scheme: dark;
+}
+
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the exploration page around the frames */
+.page { padding: 48px 30px 96px; max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+.page-head { max-width: 720px; display: flex; flex-direction: column; gap: 12px; }
+.page-head .jump { display: flex; gap: 20px; font-size: 14px; padding-top: 4px; }
+.variant { display: flex; flex-direction: column; gap: 16px; }
+.vhead { display: flex; flex-direction: column; gap: 4px; max-width: 720px; }
+.vhead h2 { font-size: 17px; font-weight: 500; }
+.vhead h2 .serif { font-size: 22px; margin-right: 6px; }
+.vhead p { font-size: 14px; }
+.app { width: 1440px; height: 900px; max-width: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.app .shell { height: 100%; }
+
+/* sidebar details */
+.sidebar .brand { text-decoration: none; color: var(--fg); }
+.sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); text-decoration: none; }
+.sidebar .search:hover { background: var(--bg-3); text-decoration: none; }
+.sidebar .search .ic { width: 14px; height: 14px; }
+.sidebar .new .ic { color: var(--fg-2); }
+.sidebar .lists { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+.sidebar .lists > * { flex: none; }
+.sidebar .item.team { color: var(--fg-3); font-size: 13px; padding-top: 4px; padding-bottom: 4px; }
+.sidebar .item.project { font-weight: 500; }
+.sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
+.sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.sidebar .me .btn.icon { width: 28px; min-height: 28px; color: var(--fg-3); }
+.sidebar .me .btn.icon .ic { width: 14px; height: 14px; }
+
+/* top bar */
+.topbar { border-bottom: 1px solid var(--line); }
+.topbar .title { display: inline-flex; align-items: baseline; gap: 12px; min-width: 0; }
+.topbar .crumbs { display: inline-flex; gap: 6px; font-size: 13px; }
+.topbar .crumbs .sep { color: var(--fg-3); }
+.topbar .title .serif { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px; }
+.topbar .right .btn { color: var(--fg-2); }
+.topbar .right .btn .ic { width: 14px; height: 14px; }
+
+/* the stream: anchored to the newest event, older ones clip above */
+.main { height: 100%; }
+.scroll { display: flex; flex-direction: column; overflow: hidden; }
+.stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.column { padding-top: 0; padding-bottom: 8px; }
+.msg { position: relative; }
+.msg .meta .time { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
+.msg .meta .faint { font-size: 12.5px; }
+.msg.human .text { max-width: 80%; }
+.msg.human.team .meta .to { font-size: 13.5px; }
+.msg.agent .text { max-width: 100%; }
+.msg.agent .text .mono { font-size: 13.5px; }
+.steps { gap: 0; }
+.step .mono { font-size: 12.5px; }
+.step.live { padding-top: 6px; }
+.steps-sum { display: none; align-items: center; gap: 6px; margin-top: 4px; padding: 3px 0; border: 0; background: transparent; color: var(--fg-2); font: 13.5px var(--font); cursor: pointer; text-align: left; }
+.steps-sum .ic { width: 13px; height: 13px; color: var(--fg-3); }
+.notice { position: relative; gap: 8px; }
+.notice p { margin: 0; }
+.notice .actions { gap: 6px; }
+.divider { position: relative; }
+.divider > span { white-space: nowrap; }
+.divider strong { font-weight: 500; color: var(--fg-2); }
+.divider.handoff a, .notice a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.gap { display: none; position: relative; justify-content: center; font-size: 12px; color: var(--fg-3); font-style: italic; font-family: var(--serif); font-size: 14px; }
+.mark { display: none; }
+
+/* composer */
+.composer-wrap { padding: 4px 20px 12px; background: var(--bg); }
+.composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; border-radius: 0; color: var(--fg); }
+.composer .input::placeholder { color: var(--fg-3); }
+.composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.hint { text-align: center; font-size: 12px; color: var(--fg-3); margin-top: 8px; }
+
+/* A: airy */
+.v-a .column { gap: 34px; padding-bottom: 0; }
+.v-a .composer-wrap { padding-top: 0; }
+.v-a .hint { margin-top: 4px; }
+.v-a .msg { gap: 8px; }
+.v-a .msg.agent .text { font-size: 16px; line-height: 1.7; }
+.v-a .msg.human .text { font-size: 15.5px; line-height: 1.65; padding: 14px 20px 14px 18px; }
+.v-a .steps { margin-top: 8px; }
+.v-a .step { padding: 4px 0; }
+
+/* B: compact */
+.v-b .column { gap: 16px; padding-bottom: 17px; }
+.v-b .msg { gap: 3px; }
+.v-b .msg .meta { font-size: 12.5px; gap: 6px; }
+.v-b .msg .meta .who { font-size: 14px; }
+.v-b .msg .meta .faint { font-size: 12px; }
+.v-b .msg.agent .text { font-size: 15px; line-height: 1.55; }
+.v-b .msg.human .text { font-size: 14.5px; line-height: 1.5; padding: 8px 16px 8px 14px; border-radius: 14px; max-width: 85%; }
+.v-b .steps { display: none; }
+.v-b .steps-sum { display: inline-flex; }
+.v-b .notice { padding: 10px 14px; border-radius: 14px; gap: 6px; font-size: 14px; }
+.v-b .notice .actions .btn { min-height: 26px; }
+.v-b .divider { font-size: 12px; }
+.v-b .composer { padding: 10px 12px 8px 16px; gap: 8px; }
+.v-b .hint { margin-top: 6px; }
+
+/* C: inline turn markers in a left gutter */
+.v-c .column { gap: 30px; padding-bottom: 0; }
+.v-c .composer-wrap { padding-top: 0; }
+.v-c .hint { margin-top: 4px; }
+.v-c .msg { gap: 6px; }
+.v-c .msg.agent .text { font-size: 15.5px; line-height: 1.65; }
+.v-c .msg.human .text { padding: 12px 18px 12px 16px; }
+.v-c .steps { margin-top: 6px; }
+.v-c .mark { display: flex; flex-direction: column; align-items: flex-end; position: absolute; left: -108px; top: 2px; width: 84px; font-size: 12px; line-height: 1.4; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.v-c .mark .n { font-size: 11.5px; }
+.v-c .msg .meta .time, .v-c .msg .meta .faint:not(.to) { display: none; }
+.v-c .msg.agent .meta { gap: 6px; }
+.v-c .divider .mark, .v-c .notice .mark { top: 0; }
+.v-c .gap { display: flex; }
+.v-c .gap .mark { display: none; }
+.v-c .gap::before, .v-c .gap::after { content: ""; flex: 1; height: 1px; background: var(--line); margin: 0 12px; }
+
+@media (max-width: 1500px) { .page { padding-inline: 16px; } }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+<symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16z"/></symbol>
+<symbol id="i-mem" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></symbol>
+<symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
+<symbol id="i-pr" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v10M18 17v-6a3 3 0 0 0-3-3h-4"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M7.5 16.5l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 7.5l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+<main class="page">
+  <header class="page-head">
+    <p class="faint small">Fold · design exploration</p>
+    <h1>Session view, three ways</h1>
+    <p class="muted">The same conversation column, the last stretch of a two-hour session with 60 events, laid out airy, compact, and with inline turn markers. Each frame is 1440 × 900. The column is anchored to the newest event, as it is when you open a running session.</p>
+    <nav class="jump" aria-label="Variants"><a href="#v-a">A · Airy</a><a href="#v-b">B · Compact</a><a href="#v-c">C · Turn markers</a></nav>
+  </header>
+<section class="variant" id="v-a">
+  <header class="vhead"><h2><span class="serif">A</span> Airy</h2><p class="muted">34 px between events, 16 px agent text, every tool call on its own line. Reads like a page; four events and the handoff fill the frame.</p></header>
+  <div class="app v-a"><div class="shell">
+<aside class="sidebar" aria-label="Sidebar">
+  <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+  <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+  <a class="search" href="#"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search sessions</a>
+  <div class="lists">
+    <div class="section">Agents<span class="n">4</span></div>
+    <a class="item team" href="#">Payments</a>
+    <a class="item project" href="#">Billing page</a>
+    <a class="agent active" href="#"><span class="head"><span class="dot awaiting_approval"></span><span class="t">Invoice PDF + tax lines</span></span><span class="doing"><i>waiting on</i> one more approval</span><span class="foot"><span class="with">Ana's agent · with Bo, Cy</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Tax rounding audit</span></span><span class="doing"><i>working on</i> per-line rounding across EU VAT rates</span><span class="foot"><span class="with">Cy's agent</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot blocked"></span><span class="t">Proration fix</span></span><span class="doing"><i>blocked on</i> migration 0042 on the prod snapshot</span><span class="foot"><span class="with">Dee's agent</span></span></a>
+    <a class="item project" href="#">Checkout</a>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Checkout retries</span></span><span class="doing"><i>working on</i> retry failed card auths with backoff</span><span class="foot"><span class="with">Bo's agent</span></span></a>
+    <div class="section">Recents</div>
+    <a class="item" href="#">Refund ledger</a>
+    <a class="item" href="#">Invoice numbering</a>
+  </div>
+  <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div><button class="btn icon ghost" type="button" aria-label="Account menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div>
+</aside>
+<div class="main">
+<div class="topbar">
+  <span class="title"><span class="crumbs faint"><span>Northwind</span><span class="sep">›</span><span>Payments</span><span class="sep">›</span><span>Billing page</span></span><span class="serif">Invoice PDF + tax lines</span><span class="status running">Running</span><span class="faint small">turn 34 · 60 events · 2 h 1 min</span></span>
+  <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar off" title="Dee">D</span></span><a class="btn ghost sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#">Team</a><a class="btn ghost sm" href="#">Details</a></div>
+</div>
+<div class="scroll"><div class="stream"><div class="column">
+<div class="divider direction"><span class="mark"><span class="t">14:20</span></span><span>Dee set the project direction · <strong>schema freeze until Thursday</strong></span></div><div class="msg human"><span class="mark"><span class="t">14:22</span></span><div class="meta"><span class="who">Ana</span><span class="faint">steer · driving</span><span class="time faint">14:22</span></div><div class="text">Add tax lines to the invoice PDF. Use the local tax tables in <span class="mono">tax/rates.ts</span> for now and keep the layout change on the <span class="mono">pdf-layout</span> branch.</div></div><div class="msg agent"><span class="mark"><span class="t">14:23</span><span class="n">turn 31</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 31</span><span class="time faint">14:23</span></div><div class="text">Tax lines fit under the subtotal without touching the page template. One rounding test failed because rates.ts rounds per line and the PDF rounded the total; the PDF now rounds the same way and all 32 pass.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>3 tool calls · read rates.ts, edited pdf.ts, ran vitest · 32 passed</span></button></div><div class="msg human"><span class="mark"><span class="t">14:31</span></span><div class="meta"><span class="who">Cy</span><span class="faint">suggest</span><span class="time faint">14:31</span></div><div class="text">Should this go through the Stripe Tax API instead? The local tables drift every quarter.</div></div><div class="notice contention"><span class="mark"><span class="t">14:31</span></span><p><span class="serif">Contention</span> · Stripe Tax API vs local tax tables. Cy's suggestion conflicts with Ana's directive from 14:22; Ana's stands while she drives. <a href="#">Ask Dee to rule</a></p></div><div class="msg agent"><span class="mark"><span class="t">14:33</span><span class="n">turn 32</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 32</span><span class="time faint">14:33</span></div><div class="text">Staying on the local tables per Ana's directive; I wrote Cy's point to team memory as an open question for the lead. Next I want to clear <span class="mono">legacy_invoices</span> so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-mem"/></svg><span>Wrote memory · <span class="mono">tax source</span> · open question, attributed to Cy</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-db"/></svg><span>Planned <span class="mono">DELETE legacy_invoices</span> · 41,208 rows · waiting</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>2 tool calls · wrote memory, planned a delete · waiting</span></button></div><div class="notice approval"><span class="mark"><span class="t">14:33</span></span><p>Delete 41,208 rows from <span class="mono">legacy_invoices</span>? <span class="muted">Irreversible · needs both drivers · Ana approved · 1 of 2.</span></p><div class="actions"><button class="btn sm" type="button">Approve</button><button class="btn sm ghost" type="button">Deny</button></div></div><div class="gap"><span class="mark"><span class="t"></span></span><span>15 quiet minutes</span></div><div class="divider handoff"><span class="mark"><span class="t">14:48</span></span><span>Ana handed off to Bo · brief computed from 18 turns · <a href="#">Read the brief</a></span></div><div class="msg human"><span class="mark"><span class="t">14:52</span></span><div class="meta"><span class="who">Bo</span><span class="faint">steer · driving</span><span class="time faint">14:52</span></div><div class="text">Hold the delete until the schema freeze lifts. Finish the PDF and open a draft PR.</div></div><div class="msg agent"><span class="mark"><span class="t">14:53</span><span class="n">turn 33</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 33</span><span class="time faint">14:53</span></div><div class="text">Holding the delete; the approval stays open for the second driver. Draft PR #412 is open against pdf-layout with the rounding fix and the tax lines, and the changelog names both.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-pr"/></svg><span>Ran <span class="mono">gh pr create --draft</span> · #412</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">CHANGELOG.md</span> · +3</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>2 tool calls · opened draft #412, edited CHANGELOG.md</span></button></div><div class="msg human team"><span class="mark"><span class="t">15:01</span></span><div class="meta"><span class="who">Cy</span><span class="to">to the team</span><span class="time faint">15:01</span></div><div class="text">Rounding audit is clean next door; rates.ts stays as it is until #412 lands.</div></div><div class="msg agent"><span class="mark"><span class="t">15:04</span><span class="n">turn 34</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 34</span><span class="time faint">15:04</span></div><div class="text">Checking #412 against the freeze: no migration files are touched and the schema is unchanged. I will summarise the review for Bo when it finishes.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">PR #412</span> · 6 files</span></div><div class="step live"><span class="status running">reading the diff of #412</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>1 tool call · reading PR #412</span></button></div>
+</div></div>
+<div class="composer-wrap">
+  <div class="composer">
+    <label class="sr-only" for="composer-a">Steer the agent</label><input class="input" id="composer-a" type="text" placeholder="Steer the agent">
+    <div class="bar"><div class="seg" role="group" aria-label="Send to"><button type="button" class="on">Agent</button><button type="button">Team</button></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+  </div>
+  <div class="hint">Enter to send · Shift+Enter for a new line</div>
+</div>
+</div>
+</div></div>
+</section>
+<section class="variant" id="v-b">
+  <header class="vhead"><h2><span class="serif">B</span> Compact</h2><p class="muted">16 px between events, tool calls folded into one summary line, smaller meta. Seven events fit, the approval among them; the eye finds less to rest on.</p></header>
+  <div class="app v-b"><div class="shell">
+<aside class="sidebar" aria-label="Sidebar">
+  <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+  <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+  <a class="search" href="#"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search sessions</a>
+  <div class="lists">
+    <div class="section">Agents<span class="n">4</span></div>
+    <a class="item team" href="#">Payments</a>
+    <a class="item project" href="#">Billing page</a>
+    <a class="agent active" href="#"><span class="head"><span class="dot awaiting_approval"></span><span class="t">Invoice PDF + tax lines</span></span><span class="doing"><i>waiting on</i> one more approval</span><span class="foot"><span class="with">Ana's agent · with Bo, Cy</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Tax rounding audit</span></span><span class="doing"><i>working on</i> per-line rounding across EU VAT rates</span><span class="foot"><span class="with">Cy's agent</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot blocked"></span><span class="t">Proration fix</span></span><span class="doing"><i>blocked on</i> migration 0042 on the prod snapshot</span><span class="foot"><span class="with">Dee's agent</span></span></a>
+    <a class="item project" href="#">Checkout</a>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Checkout retries</span></span><span class="doing"><i>working on</i> retry failed card auths with backoff</span><span class="foot"><span class="with">Bo's agent</span></span></a>
+    <div class="section">Recents</div>
+    <a class="item" href="#">Refund ledger</a>
+    <a class="item" href="#">Invoice numbering</a>
+  </div>
+  <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div><button class="btn icon ghost" type="button" aria-label="Account menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div>
+</aside>
+<div class="main">
+<div class="topbar">
+  <span class="title"><span class="crumbs faint"><span>Northwind</span><span class="sep">›</span><span>Payments</span><span class="sep">›</span><span>Billing page</span></span><span class="serif">Invoice PDF + tax lines</span><span class="status running">Running</span><span class="faint small">turn 34 · 60 events · 2 h 1 min</span></span>
+  <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar off" title="Dee">D</span></span><a class="btn ghost sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#">Team</a><a class="btn ghost sm" href="#">Details</a></div>
+</div>
+<div class="scroll"><div class="stream"><div class="column">
+<div class="divider direction"><span class="mark"><span class="t">14:20</span></span><span>Dee set the project direction · <strong>schema freeze until Thursday</strong></span></div><div class="msg human"><span class="mark"><span class="t">14:22</span></span><div class="meta"><span class="who">Ana</span><span class="faint">steer · driving</span><span class="time faint">14:22</span></div><div class="text">Add tax lines to the invoice PDF. Use the local tax tables in <span class="mono">tax/rates.ts</span> for now and keep the layout change on the <span class="mono">pdf-layout</span> branch.</div></div><div class="msg agent"><span class="mark"><span class="t">14:23</span><span class="n">turn 31</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 31</span><span class="time faint">14:23</span></div><div class="text">Tax lines fit under the subtotal without touching the page template. One rounding test failed because rates.ts rounds per line and the PDF rounded the total; the PDF now rounds the same way and all 32 pass.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>3 tool calls · read rates.ts, edited pdf.ts, ran vitest · 32 passed</span></button></div><div class="msg human"><span class="mark"><span class="t">14:31</span></span><div class="meta"><span class="who">Cy</span><span class="faint">suggest</span><span class="time faint">14:31</span></div><div class="text">Should this go through the Stripe Tax API instead? The local tables drift every quarter.</div></div><div class="notice contention"><span class="mark"><span class="t">14:31</span></span><p><span class="serif">Contention</span> · Stripe Tax API vs local tax tables. Cy's suggestion conflicts with Ana's directive from 14:22; Ana's stands while she drives. <a href="#">Ask Dee to rule</a></p></div><div class="msg agent"><span class="mark"><span class="t">14:33</span><span class="n">turn 32</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 32</span><span class="time faint">14:33</span></div><div class="text">Staying on the local tables per Ana's directive; I wrote Cy's point to team memory as an open question for the lead. Next I want to clear <span class="mono">legacy_invoices</span> so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-mem"/></svg><span>Wrote memory · <span class="mono">tax source</span> · open question, attributed to Cy</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-db"/></svg><span>Planned <span class="mono">DELETE legacy_invoices</span> · 41,208 rows · waiting</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>2 tool calls · wrote memory, planned a delete · waiting</span></button></div><div class="notice approval"><span class="mark"><span class="t">14:33</span></span><p>Delete 41,208 rows from <span class="mono">legacy_invoices</span>? <span class="muted">Irreversible · needs both drivers · Ana approved · 1 of 2.</span></p><div class="actions"><button class="btn sm" type="button">Approve</button><button class="btn sm ghost" type="button">Deny</button></div></div><div class="gap"><span class="mark"><span class="t"></span></span><span>15 quiet minutes</span></div><div class="divider handoff"><span class="mark"><span class="t">14:48</span></span><span>Ana handed off to Bo · brief computed from 18 turns · <a href="#">Read the brief</a></span></div><div class="msg human"><span class="mark"><span class="t">14:52</span></span><div class="meta"><span class="who">Bo</span><span class="faint">steer · driving</span><span class="time faint">14:52</span></div><div class="text">Hold the delete until the schema freeze lifts. Finish the PDF and open a draft PR.</div></div><div class="msg agent"><span class="mark"><span class="t">14:53</span><span class="n">turn 33</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 33</span><span class="time faint">14:53</span></div><div class="text">Holding the delete; the approval stays open for the second driver. Draft PR #412 is open against pdf-layout with the rounding fix and the tax lines, and the changelog names both.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-pr"/></svg><span>Ran <span class="mono">gh pr create --draft</span> · #412</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">CHANGELOG.md</span> · +3</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>2 tool calls · opened draft #412, edited CHANGELOG.md</span></button></div><div class="msg human team"><span class="mark"><span class="t">15:01</span></span><div class="meta"><span class="who">Cy</span><span class="to">to the team</span><span class="time faint">15:01</span></div><div class="text">Rounding audit is clean next door; rates.ts stays as it is until #412 lands.</div></div><div class="msg agent"><span class="mark"><span class="t">15:04</span><span class="n">turn 34</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 34</span><span class="time faint">15:04</span></div><div class="text">Checking #412 against the freeze: no migration files are touched and the schema is unchanged. I will summarise the review for Bo when it finishes.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">PR #412</span> · 6 files</span></div><div class="step live"><span class="status running">reading the diff of #412</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>1 tool call · reading PR #412</span></button></div>
+</div></div>
+<div class="composer-wrap">
+  <div class="composer">
+    <label class="sr-only" for="composer-b">Steer the agent</label><input class="input" id="composer-b" type="text" placeholder="Steer the agent">
+    <div class="bar"><div class="seg" role="group" aria-label="Send to"><button type="button" class="on">Agent</button><button type="button">Team</button></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+  </div>
+  <div class="hint">Enter to send · Shift+Enter for a new line</div>
+</div>
+</div>
+</div></div>
+</section>
+<section class="variant" id="v-c">
+  <header class="vhead"><h2><span class="serif">C</span> Turn markers</h2><p class="muted">Airy spacing, but time and turn number step out of the meta line into a quiet left gutter, and silences become a row. The column itself stays clean.</p></header>
+  <div class="app v-c"><div class="shell">
+<aside class="sidebar" aria-label="Sidebar">
+  <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+  <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+  <a class="search" href="#"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search sessions</a>
+  <div class="lists">
+    <div class="section">Agents<span class="n">4</span></div>
+    <a class="item team" href="#">Payments</a>
+    <a class="item project" href="#">Billing page</a>
+    <a class="agent active" href="#"><span class="head"><span class="dot awaiting_approval"></span><span class="t">Invoice PDF + tax lines</span></span><span class="doing"><i>waiting on</i> one more approval</span><span class="foot"><span class="with">Ana's agent · with Bo, Cy</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Tax rounding audit</span></span><span class="doing"><i>working on</i> per-line rounding across EU VAT rates</span><span class="foot"><span class="with">Cy's agent</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot blocked"></span><span class="t">Proration fix</span></span><span class="doing"><i>blocked on</i> migration 0042 on the prod snapshot</span><span class="foot"><span class="with">Dee's agent</span></span></a>
+    <a class="item project" href="#">Checkout</a>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Checkout retries</span></span><span class="doing"><i>working on</i> retry failed card auths with backoff</span><span class="foot"><span class="with">Bo's agent</span></span></a>
+    <div class="section">Recents</div>
+    <a class="item" href="#">Refund ledger</a>
+    <a class="item" href="#">Invoice numbering</a>
+  </div>
+  <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div><button class="btn icon ghost" type="button" aria-label="Account menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div>
+</aside>
+<div class="main">
+<div class="topbar">
+  <span class="title"><span class="crumbs faint"><span>Northwind</span><span class="sep">›</span><span>Payments</span><span class="sep">›</span><span>Billing page</span></span><span class="serif">Invoice PDF + tax lines</span><span class="status running">Running</span><span class="faint small">turn 34 · 60 events · 2 h 1 min</span></span>
+  <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar off" title="Dee">D</span></span><a class="btn ghost sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#">Team</a><a class="btn ghost sm" href="#">Details</a></div>
+</div>
+<div class="scroll"><div class="stream"><div class="column">
+<div class="divider direction"><span class="mark"><span class="t">14:20</span></span><span>Dee set the project direction · <strong>schema freeze until Thursday</strong></span></div><div class="msg human"><span class="mark"><span class="t">14:22</span></span><div class="meta"><span class="who">Ana</span><span class="faint">steer · driving</span><span class="time faint">14:22</span></div><div class="text">Add tax lines to the invoice PDF. Use the local tax tables in <span class="mono">tax/rates.ts</span> for now and keep the layout change on the <span class="mono">pdf-layout</span> branch.</div></div><div class="msg agent"><span class="mark"><span class="t">14:23</span><span class="n">turn 31</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 31</span><span class="time faint">14:23</span></div><div class="text">Tax lines fit under the subtotal without touching the page template. One rounding test failed because rates.ts rounds per line and the PDF rounded the total; the PDF now rounds the same way and all 32 pass.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>3 tool calls · read rates.ts, edited pdf.ts, ran vitest · 32 passed</span></button></div><div class="msg human"><span class="mark"><span class="t">14:31</span></span><div class="meta"><span class="who">Cy</span><span class="faint">suggest</span><span class="time faint">14:31</span></div><div class="text">Should this go through the Stripe Tax API instead? The local tables drift every quarter.</div></div><div class="notice contention"><span class="mark"><span class="t">14:31</span></span><p><span class="serif">Contention</span> · Stripe Tax API vs local tax tables. Cy's suggestion conflicts with Ana's directive from 14:22; Ana's stands while she drives. <a href="#">Ask Dee to rule</a></p></div><div class="msg agent"><span class="mark"><span class="t">14:33</span><span class="n">turn 32</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 32</span><span class="time faint">14:33</span></div><div class="text">Staying on the local tables per Ana's directive; I wrote Cy's point to team memory as an open question for the lead. Next I want to clear <span class="mono">legacy_invoices</span> so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-mem"/></svg><span>Wrote memory · <span class="mono">tax source</span> · open question, attributed to Cy</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-db"/></svg><span>Planned <span class="mono">DELETE legacy_invoices</span> · 41,208 rows · waiting</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>2 tool calls · wrote memory, planned a delete · waiting</span></button></div><div class="notice approval"><span class="mark"><span class="t">14:33</span></span><p>Delete 41,208 rows from <span class="mono">legacy_invoices</span>? <span class="muted">Irreversible · needs both drivers · Ana approved · 1 of 2.</span></p><div class="actions"><button class="btn sm" type="button">Approve</button><button class="btn sm ghost" type="button">Deny</button></div></div><div class="gap"><span class="mark"><span class="t"></span></span><span>15 quiet minutes</span></div><div class="divider handoff"><span class="mark"><span class="t">14:48</span></span><span>Ana handed off to Bo · brief computed from 18 turns · <a href="#">Read the brief</a></span></div><div class="msg human"><span class="mark"><span class="t">14:52</span></span><div class="meta"><span class="who">Bo</span><span class="faint">steer · driving</span><span class="time faint">14:52</span></div><div class="text">Hold the delete until the schema freeze lifts. Finish the PDF and open a draft PR.</div></div><div class="msg agent"><span class="mark"><span class="t">14:53</span><span class="n">turn 33</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 33</span><span class="time faint">14:53</span></div><div class="text">Holding the delete; the approval stays open for the second driver. Draft PR #412 is open against pdf-layout with the rounding fix and the tax lines, and the changelog names both.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-pr"/></svg><span>Ran <span class="mono">gh pr create --draft</span> · #412</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">CHANGELOG.md</span> · +3</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>2 tool calls · opened draft #412, edited CHANGELOG.md</span></button></div><div class="msg human team"><span class="mark"><span class="t">15:01</span></span><div class="meta"><span class="who">Cy</span><span class="to">to the team</span><span class="time faint">15:01</span></div><div class="text">Rounding audit is clean next door; rates.ts stays as it is until #412 lands.</div></div><div class="msg agent"><span class="mark"><span class="t">15:04</span><span class="n">turn 34</span></span><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 34</span><span class="time faint">15:04</span></div><div class="text">Checking #412 against the freeze: no migration files are touched and the schema is unchanged. I will summarise the review for Bo when it finishes.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">PR #412</span> · 6 files</span></div><div class="step live"><span class="status running">reading the diff of #412</span></div></div><button class="steps-sum" type="button" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>1 tool call · reading PR #412</span></button></div>
+</div></div>
+<div class="composer-wrap">
+  <div class="composer">
+    <label class="sr-only" for="composer-c">Steer the agent</label><input class="input" id="composer-c" type="text" placeholder="Steer the agent">
+    <div class="bar"><div class="seg" role="group" aria-label="Send to"><button type="button" class="on">Agent</button><button type="button">Team</button></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+  </div>
+  <div class="hint">Enter to send · Shift+Enter for a new line</div>
+</div>
+</div>
+</div></div>
+</section>
+</main>
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

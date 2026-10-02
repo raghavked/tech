@@ -1,0 +1,7 @@
+# Motion spec: rationale
+
+**Decision.** Fold's motion is a vocabulary of three durations (120, 200, 320 ms), three easings (arrive, leave, move) and one idle motion (the running dot's opacity pulse). Each of the five motions in the brief is expressed only in opacity and transform, plus one measured width for the drawer and the notice slot. The rule that makes reduced motion free is "the rest state is the end state": hidden starts live in keyframes with `fill: backwards`, so the global `animation: none` in tokens.css is the complete fallback, with two lines on top for the thinking dot and the pulse.
+
+**Rejected.** A typewriter reveal per character (reads as a toy and fights the 1.6 line height); a spring or overshoot on the handoff ring (the seat is passed, not thrown); a pulse on "awaiting approval" (it nags, and the notice already asks); animating the notice border from apricot to hairline (a contention must be apricot from its first frame); a sliding overlay drawer (it covers the conversation; the pane must give way instead).
+
+**Carry into the product.** The tokens as the only allowed motion values; the fill-backwards pattern as a lint rule for components; closing always faster than opening; staggers of 36 ms capped at eight siblings; the streaming dot as a 7 px circle at the live edge rather than a text caret. Anything that needs a fourth duration is decoration and should be cut.

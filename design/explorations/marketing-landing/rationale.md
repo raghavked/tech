@@ -1,0 +1,7 @@
+# Marketing landing: rationale
+
+**Decision.** The landing page is the product's own register stretched over a page: one serif sentence ("One agent, many humans. The same session for all of them."), one line under it, one accent button, then a session drawn in CSS at reduced scale instead of a grey placeholder. The frame shows Ana driving, Bo correcting a test, and an approval waiting on a second driver. The three sections are rows with a hairline above, prose on the left and the product's own grammar on the right: session events as dot-and-word lines, the lead's direction as one serif line, a contention and a memory conflict as the only boxed things, each on the apricot hairline. Pricing is three rows (session-hours, approvers, platform) with a hairline button; the primary button exists once, in the hero, and the frame's send arrow is drawn quiet so the screen keeps one accent.
+
+**Rejected.** A three-column feature grid of cards with icons. A hero screenshot as a grey box with bars. Two primary buttons (hero and pricing). Logos, testimonials, a stats strip. Gradient backgrounds behind the frame. Pills for status in the frame.
+
+**Carry forward.** The mark drawn with the sheet in the text colour and the crease in the ground, so it holds on both themes. The folded corner cut with clip-path, usable where gradients are refused. Marketing copy that is the kernel's own sentences ("Ana is driving", "Folded pdf-layout into main") rather than claims about them.

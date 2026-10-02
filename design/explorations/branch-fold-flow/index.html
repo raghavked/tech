@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Branch and fold</title>
+<meta name="description" content="Branches in four frames: Cy forks from a turn, two branches compared side by side, the fold into main with one file in conflict, and the resolved state.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 18px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header h2 .n { color: var(--fg-3); margin-right: 10px; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+.after-frame { display: flex; flex-direction: column; gap: 10px; width: min(var(--col), 100%); margin-top: 6px; }
+.after-frame .cap { font-size: 12px; color: var(--fg-3); }
+
+/* the notice: the only bordered box in the stream */
+.notice { gap: 8px; padding: 14px 16px 12px; }
+.notice .q { font-size: 15px; color: var(--fg); }
+.notice .q .serif { font-size: 16px; }
+.notice .q .mono { font-size: 13.5px; }
+.notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); flex-wrap: wrap; }
+.notice .actions { margin-top: 6px; align-items: center; flex-wrap: wrap; }
+.notice .actions .after { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+.btn.quiet { border-color: transparent; color: var(--fg-2); padding-inline: 8px; }
+.btn.quiet:hover { color: var(--fg); }
+.line-input { display: flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--fg); font: inherit; font-size: 14px; width: 100%; outline: none; }
+.line-input::placeholder { color: var(--fg-3); }
+.line-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lbl-line { font-size: 12.5px; color: var(--fg-3); margin-top: 4px; }
+
+/* the message hover rail: thin actions under a turn, visible on hover or focus; frame 1 pins it open */
+.msg { position: relative; }
+.msg .rail { display: flex; gap: 2px; margin-top: 2px; opacity: 0; }
+.msg:hover .rail, .msg:focus-within .rail, .msg.pinned .rail { opacity: 1; }
+.rail .btn { min-height: 26px; padding: 0 8px; font-size: 12.5px; color: var(--fg-3); border-color: transparent; gap: 5px; }
+.rail .btn .ic { width: 13px; height: 13px; }
+.rail .btn:hover, .rail .btn.on { color: var(--fg); background: var(--bg-2); }
+
+/* checkpoint marker: the turn the fork hangs from */
+.divider.cp { color: var(--fg-2); }
+.divider.cp .mono { font-size: 12px; color: var(--fg-3); }
+.divider.cp .who { color: var(--fg); font-family: var(--serif); font-size: 14.5px; }
+
+/* settled: once answered the notice becomes a line, like any tool step */
+.settled { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: var(--fg-2); padding: 3px 0; line-height: 1.5; }
+.settled .ic { width: 14px; height: 14px; margin-top: 4px; opacity: 0.8; }
+.settled .who { color: var(--fg); }
+.settled a { color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+
+/* file rows: the fold's result, one row per file, the conflict is the one that opens */
+.files { display: flex; flex-direction: column; margin: 2px 0; }
+.files .row { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.files .row:first-child { border-top: 0; }
+.files .row .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.files .row .path { font-family: var(--mono); font-size: 12.5px; color: var(--fg); }
+.files .row .how { font-size: 12.5px; color: var(--fg-3); }
+.files .row .how.conf { color: var(--fg); }
+.files .row .how.conf::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--highlight); margin-right: 7px; vertical-align: 1px; }
+.files details { border-top: 1px solid var(--line); }
+.files details summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; padding: 7px 0; font-size: 13.5px; }
+.files details summary::-webkit-details-marker { display: none; }
+.files details summary .path { font-family: var(--mono); font-size: 12.5px; color: var(--fg); }
+.files details summary .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.files details summary .how { font-size: 12.5px; color: var(--fg); display: inline-flex; align-items: center; gap: 7px; }
+.files details summary .how::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--highlight); }
+.files details summary .chev { width: 12px; height: 12px; color: var(--fg-3); margin-left: 6px; transition: transform .15s; }
+.files details[open] summary .chev { transform: rotate(90deg); }
+.sides { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; padding: 4px 0 10px 26px; }
+.sides .side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sides .side .h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--fg-3); }
+.sides .side .h .serif { font-size: 14px; color: var(--fg); }
+.sides pre { margin: 0; font: 12px/1.55 var(--mono); color: var(--fg-2); white-space: pre-wrap; padding: 8px 10px; background: var(--bg-2); border-radius: 8px; border-left: 2px solid transparent; }
+.sides .side.keep pre { border-left-color: var(--highlight); color: var(--fg); }
+.sides .pick { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); cursor: pointer; padding: 2px 0; }
+.sides .pick input { margin: 0; width: 14px; height: 14px; accent-color: var(--accent); }
+.sides .pick.on { color: var(--fg); }
+.third { padding: 0 0 4px 26px; font-size: 13px; color: var(--fg-3); }
+.third a { color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+
+/* carried directives: rows under the fold notice */
+.carried { display: grid; grid-template-columns: 112px 1fr; gap: 5px 16px; font-size: 13.5px; margin: 2px 0; }
+.carried dt { color: var(--fg-3); font-size: 12.5px; padding-top: 1px; }
+.carried dd { margin: 0; color: var(--fg); }
+.carried dd .faint { font-size: 13px; }
+.carried dd .status { font-size: 13px; }
+.carried dd .status.contention::before { background: var(--highlight); }
+
+.ctx { font-size: 15px; color: var(--fg); }
+.steps { gap: 0; }
+.step .mono { font-size: 12.5px; }
+
+/* in situ: the desktop frame */
+.app { width: 1000px; height: 640px; overflow: hidden; }
+.app .shell { height: 100%; }
+.app .sidebar { width: 272px; padding: 10px; gap: 1px; }
+.app .sidebar .brand { padding-bottom: 8px; }
+.app .sidebar .brand img { width: 20px; height: 20px; }
+.app .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.app .sidebar .section { padding: 10px 10px 4px; }
+.app .sidebar .dir { padding: 0 10px 8px; font-size: 13px; color: var(--fg-3); font-family: var(--serif); font-style: italic; }
+.app .sidebar .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; }
+.app .sidebar .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.app .sidebar .item .t .by { color: var(--fg-3); font-size: 13px; }
+.app .sidebar .item .n { font-size: 12.5px; color: var(--fg-2); }
+.app .sidebar .item .dot { background: var(--fg-3); }
+.app .sidebar .item .dot.running { background: var(--ok); }
+.app .sidebar .item .dot.awaiting { background: var(--warn); }
+.app .sidebar .item .dot.blocked { background: var(--danger); }
+.app .sidebar .item .dot.paused { background: var(--info); }
+.app .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.app .sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+/* a branch is a row indented under its session, with the fork glyph in place of the dot column */
+.app .sidebar .item.branch { padding-left: 26px; font-size: 13.5px; }
+.app .sidebar .item.branch .ic { width: 12px; height: 12px; color: var(--fg-3); margin-left: -2px; }
+.app .sidebar .item.branch.active::before { left: 14px; }
+.app .sidebar .me .avatar { width: 26px; height: 26px; border: 0; }
+.app .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.app .topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.app .topbar .title .crumb { color: var(--fg-3); font-weight: 400; }
+.app .topbar .title .crumb .ic { width: 13px; height: 13px; vertical-align: -2px; margin-right: 4px; }
+.app .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.app .topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.app .scroll { display: flex; flex-direction: column; overflow: hidden; }
+.app .stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.app .column { padding-top: 0; padding-bottom: 12px; gap: 22px; }
+.app .msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.app .composer-wrap { padding-top: 4px; padding-bottom: 14px; }
+.app .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; color: var(--fg-3); }
+.app .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.app .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+/* while a decision is pending, the accent moves to it: the send arrow goes to ink */
+.send.quiet { background: var(--bg-3); color: var(--fg-2); }
+
+/* compare: two streams from the same checkpoint, the chat narrows, nothing else changes */
+.compare { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.compare .from { padding: 4px 24px 14px; }
+.compare .panes { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; }
+.compare .pane { min-width: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0 24px; }
+.compare .pane + .pane { border-left: 1px solid var(--line); }
+.compare .pane .head { display: flex; flex-direction: column; gap: 3px; padding: 0 0 14px; }
+.compare .pane .head .nm { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.compare .pane .head .nm .serif { font-size: 17px; }
+.compare .pane .head .nm .status { margin-left: auto; }
+.compare .pane .head .facts { font-size: 12.5px; color: var(--fg-3); display: flex; gap: 6px; flex-wrap: wrap; }
+.compare .pane .head .facts .sep { color: var(--line); }
+.compare .pane .col { display: flex; flex-direction: column; gap: 18px; overflow: hidden; }
+.compare .pane .col .msg.agent .text { font-size: 14.5px; }
+.compare .pane .col .msg.human .text { padding: 9px 16px 9px 14px; font-size: 14.5px; }
+.compare .pane .col .step { font-size: 13px; }
+.compare .foot { display: flex; align-items: center; gap: 8px; padding: 12px 24px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--fg-3); }
+.compare .foot .right { margin-left: auto; display: flex; gap: 6px; }
+#compare .app, #fold .app { height: 720px; }
+#fold .column { padding-top: 10px; }
+
+@media (max-width: 1040px) {
+  .app { width: 100%; }
+  .sides, .carried { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-fork" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 4-12 2-12 7"/></symbol>
+  <symbol id="i-fold" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 7v10M16 12c-5 0-10 1-10-5"/></symbol>
+  <symbol id="i-cols" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 21V4h11l-2 4 2 4H6"/></symbol>
+</svg>
+
+<main class="sheet">
+
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Branch and fold</div>
+  <h1>Fork, compare, fold</h1>
+  <p>A branch is a pointer to a turn plus what happened after it. It costs nothing to make, so forking should be as light as replying: one action under a turn, one line of why. Compare is the only time the column splits, and it splits into two of the same column. Folding back is a quiet notice that lists files as rows; the one conflict is the row that opens, with both sides and a choice. When it settles, the whole thing becomes a line. No branch chrome, no graph, no diff viewer: the stream, twice.</p>
+</div>
+
+<!-- ===================== FRAME 1: Fork from here ===================== -->
+<section id="fork">
+  <header>
+    <h2><span class="n">1</span>Fork from here</h2>
+    <p>Cy disagrees with Ana's steer to use the Stripe Tax API and wants to try local tables without derailing her session. Under any agent turn a thin rail appears on hover: Fork from here, Copy link. Pressing it opens one notice at the bottom: a name, a line of why. The accent goes to Fork; the send arrow steps back.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="dir">schema freeze until Thursday · Dee</div>
+        <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="section">Billing page <span class="n">1</span></div>
+        <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n"></span></a>
+        <div class="me"><span class="avatar" title="Cy">C</span><div class="who">Cy Adair<div class="small faint">Northwind · contributor</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack" aria-label="Ana driving, with Bo and Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+        </div>
+        <div class="body" style="flex:1;min-height:0;display:flex">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">steer · tax source</span></div><div class="text">Use the Stripe Tax API for the lines. We already pay for it and it handles EU VAT edge cases.</div></div>
+              <div class="msg agent pinned"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 10</span></div><div class="text">Wired the tax lines to Stripe Tax. Each invoice now makes one <span class="mono">calculations.create</span> call per render, which adds about 180 ms and a dependency on their uptime in the PDF path. All 32 tests pass. Next I will cache the calculation on the invoice row.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/tax.ts</span> · +41 −9</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div>
+                <div class="rail"><button class="btn on" type="button"><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg>Fork from here</button><button class="btn" type="button">Copy link</button></div>
+              </div>
+              <form class="notice" aria-label="Fork from turn 10">
+                <p class="q">Fork from <span class="serif">turn 10</span> <span class="faint small">· checkpoint <span class="mono">c7a2</span></span></p>
+                <label class="lbl-line" for="bname">Name</label>
+                <input class="line-input" id="bname" type="text" value="local tax tables">
+                <label class="lbl-line" for="bwhy">A line for the others</label>
+                <input class="line-input" id="bwhy" type="text" value="Trying the local rate tables so the PDF path has no network call. Folding back if the EU cases pass.">
+                <div class="actions"><button class="btn sm primary" type="submit">Fork</button><button class="btn sm" type="button">Cancel</button><span class="after">Ana's session keeps running</span></div>
+              </form>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <label class="sr-only" for="steer1">Steer the agent</label>
+                <input class="input" id="steer1" type="text" placeholder="Steer the agent">
+                <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><button class="send quiet" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="after-frame">
+    <p class="cap">Once forked, main shows a line at turn 10 and the branch appears under the session in the sidebar. Cy lands in the branch with his own composer; its first turn is his steer.</p>
+    <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg><span><span class="who">Cy</span> forked <span class="who">local tax tables</span> from here · 14:12 · <a href="#">open</a> · <a href="#">compare</a></span></div>
+  </div>
+</section>
+
+<!-- ===================== FRAME 2: Compare ===================== -->
+<section id="compare">
+  <header>
+    <h2><span class="n">2</span>Compare side by side</h2>
+    <p>Compare does not add a view; it narrows the column and draws it twice from the shared checkpoint. Each pane has the branch name, its status word, who is there, and three facts. The composer gives way to one bar: close, or fold. Anyone can look; only the driver or an owner sees Fold enabled.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="dir">schema freeze until Thursday · Dee</div>
+        <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item branch" href="#"><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg><span class="t">local tax tables <span class="by">Cy</span></span><span class="n faint">turn 12</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="section">Billing page <span class="n">1</span></div>
+        <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n"></span></a>
+        <div class="me"><span class="avatar driver" title="Ana">A</span><div class="who">Ana Moreau<div class="small faint">Northwind · driving</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="crumb small"><svg class="ic" aria-hidden="true"><use href="#i-cols"/></svg>comparing with local tax tables</span></span>
+          <div class="right"><span class="stack" aria-label="Ana driving, with Bo and Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+        </div>
+        <div class="compare">
+          <div class="from"><div class="divider cp"><span>Both from <span class="who">turn 10</span> <span class="mono">c7a2</span> · forked by Cy at 14:12</span></div></div>
+          <div class="panes">
+            <div class="pane">
+              <div class="head">
+                <div class="nm"><span class="serif">main</span><span class="stack" aria-label="Ana and Bo"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span></span><span class="status awaiting">Awaiting approval</span></div>
+                <div class="facts"><span>turns 11–12</span><span class="sep">·</span><span>2 files</span><span class="sep">·</span><span>32 tests pass</span><span class="sep">·</span><span>Stripe Tax API</span></div>
+              </div>
+              <div class="col">
+                <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 11</span></div><div class="text">Cached the Stripe calculation on the invoice row so a re-render does not call out again. The first render still waits on the API.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/tax.ts</span> · +18 −4</span></div></div></div>
+                <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Make the footer say which tax source was used.</div></div>
+                <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 12</span></div><div class="text">Footer now reads "Tax by Stripe Tax". The delete of <span class="mono">legacy_invoices</span> is still waiting on a second driver.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +6 −1</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+              </div>
+            </div>
+            <div class="pane">
+              <div class="head">
+                <div class="nm"><span class="serif">local tax tables</span><span class="stack" aria-label="Cy"><span class="avatar driver" title="Cy, driving the branch">C</span></span><span class="status running">Running</span></div>
+                <div class="facts"><span>turns 11–12</span><span class="sep">·</span><span>3 files</span><span class="sep">·</span><span>34 tests pass</span><span class="sep">·</span><span>local tables</span></div>
+              </div>
+              <div class="col">
+                <div class="msg human"><div class="meta"><span class="who">Cy</span><span class="faint">steer · tax source</span></div><div class="text">Use the rate tables in <span class="mono">tax-rates.ts</span>. No network call in the PDF path.</div></div>
+                <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Cy's agent</span><span class="faint">turn 11</span></div><div class="text">Replaced the Stripe call with a lookup in the local table, keyed by country and VAT status. Added two EU reverse-charge cases to the suite; all 34 pass, render is 3 ms.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/tax.ts</span> · +22 −38</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span>Added <span class="mono">invoices/tax-rates.ts</span></span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 34 passed</span></div></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="foot"><span>Both branches changed <span class="mono">invoices/tax.ts</span></span><div class="right"><a class="btn sm" href="#">Close</a><button class="btn sm primary" type="button"><svg class="ic" aria-hidden="true"><use href="#i-fold"/></svg>Fold into main</button></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FRAME 3: Fold with one conflict ===================== -->
+<section id="fold">
+  <header>
+    <h2><span class="n">3</span>Fold into main, one conflict</h2>
+    <p>Ana presses Fold. The three-way merge runs against the tree at turn 10 and reports as a notice in main's stream: one row per file. Two merged cleanly, one was added, one is in conflict, and that row is the one that opens: both sides, three lines each, a choice. Beneath it, what the fold carries in: Dee's constraint by union, and Cy's steer, which meets Ana's on the same scope and so becomes a contention rather than a silent override. The agent is paused until the row closes.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="dir">schema freeze until Thursday · Dee</div>
+        <a class="item active" href="#"><span class="dot paused"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n">needs you</span></a>
+        <a class="item branch" href="#"><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg><span class="t">local tax tables <span class="by">Cy</span></span><span class="n faint">folding</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="section">Billing page <span class="n">1</span></div>
+        <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n"></span></a>
+        <div class="me"><span class="avatar driver" title="Ana">A</span><div class="who">Ana Moreau<div class="small faint">Northwind · driving</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status paused">Paused · 1 conflict</span></span>
+          <div class="right"><span class="stack" aria-label="Ana driving, with Bo and Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+        </div>
+        <div class="body" style="flex:1;min-height:0;display:flex">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <form class="notice contention" aria-label="Fold local tax tables into main">
+                <p class="q">Folding <span class="serif">local tax tables</span> into <span class="serif">main</span> <span class="faint small">· base turn 10 · Ana, 15:40</span></p>
+                <div class="files">
+                  <div class="row"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span class="path">invoices/pdf.ts</span><span class="how">merged · footer line kept</span></div>
+                  <div class="row"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="path">invoices/tax-rates.ts</span><span class="how">added from branch</span></div>
+                  <div class="row"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span class="path">invoices/tax.test.ts</span><span class="how">merged · 34 tests</span></div>
+                  <details open>
+                    <summary><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span class="path">invoices/tax.ts</span><span class="how">both changed lines 41–58<svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg></span></summary>
+                    <div class="sides" role="radiogroup" aria-label="Which side to keep for invoices/tax.ts">
+                      <div class="side">
+                        <div class="h"><span class="serif">main</span><span>Ana's agent · turn 11</span></div>
+<pre>const calc = await stripe.tax.calculations.create({…});
+invoice.taxCache = calc.id;
+return calc.tax_breakdown.map(toLine);</pre>
+                        <label class="pick"><input type="radio" name="keep" value="main"> Keep main's</label>
+                      </div>
+                      <div class="side keep">
+                        <div class="h"><span class="serif">local tax tables</span><span>Cy's agent · turn 11</span></div>
+<pre>const rate = lookupRate(RATES, invoice.country, vatStatus);
+if (!rate) throw new UnknownJurisdiction(invoice.country);
+return applyRate(invoice.subtotal, rate).map(toLine);</pre>
+                        <label class="pick on"><input type="radio" name="keep" value="branch" checked> Keep the branch's</label>
+                      </div>
+                    </div>
+                    <p class="third">or <a href="#">let the agent rewrite the file</a> with both in view</p>
+                  </details>
+                </div>
+                <dl class="carried">
+                  <dt>carries</dt><dd>schema freeze until Thursday <span class="faint">· Dee's constraint, already on main</span></dd>
+                  <dt>steer · tax source</dt><dd><span class="status contention">Contention</span> <span class="faint">· Cy's "local tables" meets Ana's "Stripe Tax API"; the agent will ask after the fold</span></dd>
+                </dl>
+                <div class="actions"><button class="btn sm primary" type="submit">Fold with the branch's <span class="mono">tax.ts</span></button><button class="btn sm" type="button">Cancel fold</button><span class="after">journaled as a merge of c7a2</span></div>
+              </form>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <label class="sr-only" for="steer3">Steer the agent</label>
+                <input class="input" id="steer3" type="text" placeholder="Paused until the conflict is resolved">
+                <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><button class="send quiet" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FRAME 4: Resolved ===================== -->
+<section id="resolved">
+  <header>
+    <h2><span class="n">4</span>Resolved</h2>
+    <p>Ana keeps the branch's file and folds. The notice collapses to one line that says what happened and who chose; the merge is a divider in the stream because, like a handoff, it changes what the session is. The branch row reads "folded" and will leave the sidebar on the next visit. The agent resumes, and its first turn after the fold is the contention the fold carried in, as a normal notice. The accent is back on the send arrow.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="dir">schema freeze until Thursday · Dee</div>
+        <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item branch" href="#"><svg class="ic" aria-hidden="true"><use href="#i-fold"/></svg><span class="t faint">local tax tables <span class="by">Cy</span></span><span class="n faint">folded</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="section">Billing page <span class="n">1</span></div>
+        <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n"></span></a>
+        <div class="me"><span class="avatar driver" title="Ana">A</span><div class="who">Ana Moreau<div class="small faint">Northwind · driving</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack" aria-label="Ana driving, with Bo and Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+        </div>
+        <div class="body" style="flex:1;min-height:0;display:flex">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-fold"/></svg><span><span class="who">Ana</span> folded <span class="who">local tax tables</span> into main · 4 files · <span class="mono">tax.ts</span> kept from the branch · <a href="#">see the merge</a></span></div>
+              <div class="divider cp"><span>Turn 13 continues from the fold · <span class="mono">m91e</span> · 15:42</span></div>
+              <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 13</span></div><div class="text">The workspace now has the local rate tables and the Stripe cache column from main; 34 tests pass. Before I touch the tax path again I need one answer: the fold brought in two steers on the same scope.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 34 passed</span></div></div></div>
+              <div class="notice contention">
+                <p class="q">Tax source: <span class="serif">Stripe Tax API</span> <span class="faint">(Ana, turn 9)</span> or <span class="serif">local tables</span> <span class="faint">(Cy, carried by the fold)</span></p>
+                <p class="st">Both are contributor steers on the same scope; the fold does not pick. Ana as driver, or Dee, settles it.</p>
+                <div class="actions"><button class="btn sm" type="button">Stripe Tax API</button><button class="btn sm" type="button">Local tables</button><button class="btn sm quiet" type="button">Ask the team</button><span class="after">1 of 2 drivers still needed for the delete</span></div>
+              </div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <label class="sr-only" for="steer4">Steer the agent</label>
+                <input class="input" id="steer4" type="text" placeholder="Steer the agent">
+                <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="after-frame">
+    <p class="cap">In the branch, the same event reads from the other side and the branch's composer is retired.</p>
+    <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-fold"/></svg><span>Folded into <span class="who">main</span> by Ana · 15:42 · this branch is read-only · <a href="#">go to main</a></span></div>
+  </div>
+</section>
+
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

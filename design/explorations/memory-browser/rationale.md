@@ -1,0 +1,7 @@
+# Memory browser: rationale
+
+**Decision.** Team memory is one 760px column of rows under the same shell as every other Fold page. The open conflict comes first and is the only boxed thing, drawn with the apricot hairline: both entries attributed, a quiet Keep beside each, and a status line saying both stay active and that Dee decides. Entries follow, grouped by scope from the project outward (Billing page, Payments, Northwind), each row key · text · engineer · session · commit, with an agent's write reading "Ana's agent" and a human's reading "Ana". Retracted and superseded rows stay in place, greyed, with the reason in words and who did it. The scope switch is three radios; it narrows the list to what an agent at that scope would be given and a sentence under it says so. The curator's report is four rows with a status word (Done Monday, Dee decides, Open above, Fits). The only accent is the send arrow on the Remember field.
+
+**Rejected.** A table with sortable columns and filter chips: a database view, not a conversation surface. Trust-tier pills on every row. A separate conflicts page. Hiding retracted entries behind a toggle, which would break the trail the ledger exists to keep. A primary "Resolve" button, which would be a second accent.
+
+**Carry forward.** Conflicts first, boxed in the crease colour; attribution as a right-aligned by-line in the same grammar everywhere; greyed rows that explain themselves; scope as "what a reader here sees"; the curator as rows with a status word and a named decider.

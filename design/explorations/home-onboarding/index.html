@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Home and onboarding</title>
+<meta name="description" content="First run on desktop in three frames: sign in, pick a team, open or create a session. Nothing is introduced that the product does not already have.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 18px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header h2 .n { color: var(--fg-3); margin-right: 10px; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* the desktop window: a plain Tauri shell, lights and a name, nothing else */
+.win { width: 1000px; height: 620px; border-radius: 12px; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; border: 1px solid var(--line); }
+.win .bar { height: 38px; flex: none; display: flex; align-items: center; padding: 0 14px; background: var(--bg-2); font-size: 13px; color: var(--fg-2); position: relative; }
+.win .bar .lights { display: flex; gap: 8px; }
+.win .bar .lights span { width: 12px; height: 12px; border-radius: 50%; background: var(--bg-3); border: 1px solid var(--line); }
+.win .bar .name { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; font-family: var(--serif); font-size: 15px; color: var(--fg); }
+.win .shell { flex: 1; min-height: 0; }
+.win.tall { height: 760px; }
+.win .main { background: var(--bg); }
+
+/* frames 1 and 2: one narrow column, centred in an otherwise empty window */
+.solo { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px 56px; position: relative; }
+.solo .foot { position: absolute; left: 20px; right: 20px; bottom: 16px; display: flex; justify-content: space-between; font-size: 12.5px; color: var(--fg-3); }
+.solo .foot a { color: var(--fg-3); }
+.narrow { width: min(400px, 100%); display: flex; flex-direction: column; gap: 24px; }
+.narrow .head { display: flex; flex-direction: column; gap: 10px; }
+.narrow .head img { width: 36px; height: 36px; margin-bottom: 10px; }
+.narrow .head h1 { font-size: 30px; }
+.narrow .head p { color: var(--fg-2); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; color: var(--fg-2); }
+.line-input { display: flex; align-items: center; min-height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--fg); font: inherit; font-size: 15px; width: 100%; outline: none; }
+.line-input::placeholder { color: var(--fg-3); }
+.line-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.form { display: flex; flex-direction: column; gap: 14px; }
+.form .btn { min-height: 38px; font-size: 14.5px; }
+.form .btn.primary { width: 100%; }
+.form .alts { display: flex; gap: 8px; }
+.form .alts .btn { flex: 1; }
+.form .divider { font-size: 12px; margin: 2px 0; }
+.narrow .fine { font-size: 13px; color: var(--fg-3); line-height: 1.5; }
+
+/* teams: rows with one radio each, the serif on the name */
+.teams { display: flex; flex-direction: column; }
+.teams label { display: grid; grid-template-columns: 16px 1fr auto; gap: 14px; align-items: center; padding: 12px 10px; margin: 0 -10px; border-radius: var(--radius); cursor: pointer; border-bottom: 1px solid var(--line); }
+.teams label:last-child { border-bottom: 0; }
+.teams label:hover { background: var(--bg-2); }
+.teams label:has(input:checked) { background: var(--bg-2); }
+.teams input { margin: 0; width: 14px; height: 14px; accent-color: var(--accent); }
+.teams input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.teams .name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.teams .name .serif { font-size: 17px; }
+.teams .name .s { font-size: 13px; color: var(--fg-2); }
+.teams .status { font-size: 13px; }
+.narrow .links { display: flex; gap: 16px; font-size: 13.5px; }
+.narrow .links a { color: var(--fg-2); }
+.narrow .links a:hover { color: var(--fg); }
+
+/* frame 3: the sidebar appears for the first time, with the crease */
+.win .sidebar { width: 272px; padding: 10px; gap: 1px; }
+.win .sidebar .brand { padding-bottom: 8px; text-decoration: none; color: var(--fg); }
+.win .sidebar .brand img { width: 20px; height: 20px; }
+.win .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.win .sidebar .search { display: flex; align-items: center; gap: 8px; padding: 7px 10px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); }
+.win .sidebar .search .ic { width: 14px; height: 14px; }
+.win .sidebar .section { padding: 10px 10px 4px; }
+.win .sidebar .dir { padding: 0 10px 8px; font-size: 13px; color: var(--fg-3); font-family: var(--serif); font-style: italic; }
+.win .sidebar .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; }
+.win .sidebar .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.win .sidebar .item .t .by { color: var(--fg-3); font-size: 13px; }
+.win .sidebar .item .n { font-size: 12.5px; color: var(--fg-2); }
+.win .sidebar .item .dot { background: var(--fg-3); }
+.win .sidebar .item .dot.running { background: var(--ok); }
+.win .sidebar .item .dot.awaiting { background: var(--warn); }
+.win .sidebar .item .dot.blocked { background: var(--danger); }
+.win .sidebar .item .dot.paused { background: var(--info); }
+.win .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.win .sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.win .sidebar .me .avatar { width: 26px; height: 26px; border: 0; }
+.win .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.win .topbar .title { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.win .topbar .title .crumb { color: var(--fg-3); font-weight: 400; }
+.win .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.win .scroll { display: flex; flex-direction: column; overflow: hidden; }
+.win .column { padding-top: 24px; padding-bottom: 8px; gap: 24px; flex: 1; min-height: 0; }
+.home .head { display: flex; flex-direction: column; gap: 8px; }
+.home .head h1 { font-size: 30px; }
+.home .head p { color: var(--fg-2); }
+.home .head .direction { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--fg-2); margin-top: 4px; }
+.home .head .direction::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--highlight); flex: none; }
+.home .head .direction .serif { color: var(--fg); font-size: 15px; }
+.home .label { font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; }
+.sessions { display: flex; flex-direction: column; }
+.sessions .rowitem { grid-template-columns: 1fr auto; padding: 11px 4px; }
+.sessions .rowitem .t { font-family: var(--serif); font-weight: 400; font-size: 16.5px; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.sessions .rowitem .t .by { font-family: var(--font); font-size: 13px; color: var(--fg-3); }
+.sessions .rowitem .s { margin-top: 1px; }
+.sessions .rowitem .s .mono { font-size: 12.5px; }
+.sessions .rowitem .st { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.sessions .rowitem .st .status { font-size: 13px; color: var(--fg); }
+.sessions .rowitem .st .status.needs::before { background: var(--warn); }
+.sessions .rowitem .st .status.contention::before { background: var(--highlight); }
+.sessions .rowitem .st .faint { font-size: 12.5px; }
+.sessions .rowitem:hover { text-decoration: none; }
+.win .composer-wrap { padding: 8px 20px 10px; background: var(--bg); }
+.win .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; color: var(--fg-3); }
+.win .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.win .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.win .composer .chip { height: 24px; font-size: 12.5px; }
+.win .hint { text-align: center; font-size: 12.5px; color: var(--fg-3); padding: 0 20px 14px; }
+
+/* after each frame: what carries forward */
+.after-frame { display: flex; flex-direction: column; gap: 6px; width: min(var(--col), 100%); margin-top: 4px; font-size: 13px; color: var(--fg-3); }
+
+@media (max-width: 1040px) {
+  .win, .win.tall { width: 100%; height: auto; min-height: 620px; }
+  .win .sidebar { display: none; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="M20 12.5l-7.8 7.8a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 17.9a1.6 1.6 0 0 1-2.3-2.3l7.4-7.4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+</svg>
+
+<main class="sheet">
+
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Home and onboarding</div>
+  <h1>First run on the desktop</h1>
+  <p>Three screens between opening the app and watching an agent: who you are, which team, which session. Each is the same empty window with one narrow column in it, and the third is the product itself with the sidebar arriving for the first time. There is no tour, no checklist, no welcome card. Signing in asks for one address; choosing a team is two rows; the home of a project is the list of what is live plus the composer, which is also how a session is created. The one accent moves from the Continue button to the send arrow and stays there.</p>
+</div>
+
+<!-- ===================== FRAME 1: sign in ===================== -->
+<section id="sign-in">
+  <header>
+    <h2><span class="n">1</span>Sign in</h2>
+    <p>The window opens empty. One field, one button, two quieter ways in. The copy says what will happen and what will not: a code is sent, there is no password. The mark sits above the title as the only picture on the screen.</p>
+  </header>
+  <div class="win" aria-label="Fold desktop window, sign in">
+    <div class="bar"><div class="lights" aria-hidden="true"><span></span><span></span><span></span></div><div class="name">Fold</div></div>
+    <div class="solo">
+      <div class="narrow">
+        <div class="head">
+          <img src="../../mark.svg" alt="">
+          <h1>Sign in to Fold</h1>
+          <p>One session, the whole team. Use the address your team knows you by.</p>
+        </div>
+        <form class="form" action="#" method="get">
+          <div class="field">
+            <label for="email">Work email</label>
+            <input class="line-input" id="email" name="email" type="email" autocomplete="email" placeholder="ana@northwind.dev">
+          </div>
+          <button class="btn primary" type="submit">Continue</button>
+          <div class="divider">or</div>
+          <div class="alts">
+            <a class="btn" href="#">Continue with GitHub</a>
+            <a class="btn" href="#">Continue with Google</a>
+          </div>
+        </form>
+        <p class="fine">We send a six-digit code to that address. There is no password to make up or remember. Signing in on the desktop signs you in on the web too; it is one product.</p>
+      </div>
+      <div class="foot"><span>Fold 0.4 · Desktop</span><span><a href="#">Terms</a> · <a href="#">Privacy</a></span></div>
+    </div>
+  </div>
+  <div class="after-frame">The Continue button is the only accent on the screen. GitHub and Google are hairline buttons so the primary path reads first.</div>
+</section>
+
+<!-- ===================== FRAME 2: pick a team ===================== -->
+<section id="team">
+  <header>
+    <h2><span class="n">2</span>Pick a team</h2>
+    <p>Ana is already in two: the one her company runs and the one she gets for herself. Rows with a radio, the serif on the name, status as a word with a dot. The button says which team it opens. Creating a team and pasting an invite are links, not a second form.</p>
+  </header>
+  <div class="win" aria-label="Fold desktop window, pick a team">
+    <div class="bar"><div class="lights" aria-hidden="true"><span></span><span></span><span></span></div><div class="name">Fold</div></div>
+    <div class="solo">
+      <div class="narrow">
+        <div class="head">
+          <h1>Welcome, Ana.</h1>
+          <p>You are in two teams. Each has its own projects, sessions and memory; you can switch any time from the sidebar.</p>
+        </div>
+        <form class="form" action="#" method="get">
+          <div class="teams" role="radiogroup" aria-label="Team">
+            <label><input type="radio" name="team" value="northwind" checked><span class="name"><span class="serif">Northwind</span><span class="s">Bo, Cy, Dee and 9 others · Payments, Billing page</span></span><span class="status running">3 live</span></label>
+            <label><input type="radio" name="team" value="personal"><span class="name"><span class="serif">Ana's workspace</span><span class="s">Just you · one project</span></span><span class="status">quiet</span></label>
+          </div>
+          <button class="btn primary" type="submit">Open Northwind</button>
+        </form>
+        <div class="links"><a href="#">Create a team</a><a href="#">Paste an invite link</a></div>
+      </div>
+      <div class="foot"><span>Signed in as ana@northwind.dev</span><span><a href="#">Not you?</a></span></div>
+    </div>
+  </div>
+  <div class="after-frame">One of two drivers on Invoice PDF is already Ana; the next screen says so instead of a welcome card.</div>
+</section>
+
+<!-- ===================== FRAME 3: open or create a session ===================== -->
+<section id="home">
+  <header>
+    <h2><span class="n">3</span>Open or create a session</h2>
+    <p>The product arrives: the sidebar with its one apricot crease, the project's sessions as rows, the lead's direction as one line, and the composer at the bottom. Typing into the composer starts a new session in Payments; the rows open the ones that are live. The accent is now the send arrow and nothing else.</p>
+  </header>
+  <div class="win tall" aria-label="Fold desktop window, Payments home">
+    <div class="bar"><div class="lights" aria-hidden="true"><span></span><span></span><span></span></div><div class="name">Fold — Northwind</div></div>
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search</div>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="dir">schema freeze until Thursday · Dee</div>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="section">Billing page <span class="n">1</span></div>
+        <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n"></span></a>
+        <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Moreau<div class="small faint">Northwind</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="crumb">Northwind ›</span><span class="serif">Payments</span></span>
+          <div class="right"><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Memory</a></div>
+        </div>
+        <div class="scroll">
+          <div class="column home">
+            <div class="head">
+              <h1>Good afternoon, Ana.</h1>
+              <p>Four sessions are live in Payments. Yours is waiting on you: <span class="serif">delete legacy_invoices</span> needs a second driver.</p>
+              <div class="direction"><span class="serif">Dee set the course</span> · schema freeze until Thursday</div>
+            </div>
+            <div>
+              <div class="label">Live in Payments</div>
+              <div class="sessions">
+                <a class="rowitem" href="#">
+                  <span><span class="t">Invoice PDF + tax lines <span class="by">Ana's agent · with Bo, Dee</span></span><span class="s">Asked to delete <span class="mono">legacy_invoices</span> · approved by Bo, waiting on you</span></span>
+                  <span class="st"><span class="status needs">Needs you</span><span class="faint">1 of 2 · 4 min ago</span></span>
+                </a>
+                <a class="rowitem" href="#">
+                  <span><span class="t">Rounding audit <span class="by">Cy's agent</span></span><span class="s">Ran <span class="mono">pnpm vitest</span> · 31 passed, 1 failed</span></span>
+                  <span class="st"><span class="status running">Running</span><span class="faint">just now</span></span>
+                </a>
+                <a class="rowitem" href="#">
+                  <span><span class="t">Refund ledger <span class="by">Bo's agent · with Cy</span></span><span class="s">Contention: Stripe Tax API vs local tax tables · working around it</span></span>
+                  <span class="st"><span class="status contention">Contended</span><span class="faint">12 min ago</span></span>
+                </a>
+                <a class="rowitem" href="#">
+                  <span><span class="t">Webhook retries <span class="by">Dee's agent</span></span><span class="s">Claim on <span class="mono">billing/schema/</span> refused · schema freeze</span></span>
+                  <span class="st"><span class="status blocked">Blocked</span><span class="faint">1 h ago</span></span>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="composer-wrap">
+            <form class="composer" action="#" method="get">
+              <label class="sr-only" for="start">Start a session in Payments</label>
+              <input class="input" id="start" name="q" type="text" placeholder="Start a session in Payments. What should your agent do?">
+              <div class="bar">
+                <button class="btn icon" type="button" aria-label="Attach files"><svg class="ic" aria-hidden="true"><use href="#i-clip"/></svg></button>
+                <span class="chip">Payments</span>
+                <div class="right">
+                  <button class="btn icon" type="button" aria-label="Session options"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button>
+                  <button class="send" type="submit" aria-label="Start session"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="hint">Your agent joins the Northwind fleet. Dee's course applies to it from the first turn.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="after-frame">Rows, not cards: title in the serif, the agent's last line beneath, status as a word with a dot on the right. The notice that needs Ana is one click away in the row, not repeated here.</div>
+</section>
+
+</main>
+
+<div class="theme-toggle" role="radiogroup" aria-label="Theme">
+  <input type="radio" name="theme" id="t-auto" checked><label for="t-auto">Auto</label>
+  <input type="radio" name="theme" id="t-light"><label for="t-light">Light</label>
+  <input type="radio" name="theme" id="t-dark"><label for="t-dark">Dark</label>
+</div>
+</body>
+</html>

@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Microcopy</title>
+<meta name="description" content="Every product string in Fold's voice: the ten rules, then statuses, notices, buttons, composer, empty states, errors, Slack messages and notifications, each with the phrasing it replaces.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet: one column, a little wider than the conversation so three-column tables breathe */
+.sheet { width: min(860px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+.intro .cast { font-size: 13.5px; color: var(--fg-3); }
+.toc { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13.5px; }
+.toc a { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 18px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header h2 .n { color: var(--fg-3); margin-right: 10px; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* the table: rows and hairlines, no fills */
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+th { text-align: left; font-weight: 500; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-3); padding: 0 20px 10px 0; border-bottom: 1px solid var(--line); }
+td { padding: 11px 20px 11px 0; vertical-align: top; border-bottom: 1px solid var(--line); }
+th:last-child, td:last-child { padding-right: 0; }
+td.when { width: 168px; color: var(--fg-2); font-size: 13.5px; }
+td.say { color: var(--fg); }
+td.say .then { color: var(--fg-3); }
+td.say .btns { display: block; margin-top: 4px; font-size: 13px; color: var(--fg-2); }
+td.not { width: 228px; color: var(--fg-3); font-size: 13.5px; }
+td.not::before { content: "not "; font-style: italic; }
+td.not.none::before { content: none; }
+td .n { color: var(--fg-3); font-variant-numeric: tabular-nums; width: 24px; display: inline-block; }
+tr.group td { padding-top: 22px; padding-bottom: 6px; border-bottom: 0; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-3); font-weight: 500; }
+code { font-family: var(--mono); font-size: 12.5px; background: var(--bg-2); padding: 1px 5px; border-radius: 4px; }
+td .status { font-size: 14.5px; color: var(--fg); }
+td .status.idle::before { background: var(--fg-3); }
+.who { font-family: var(--serif); font-size: 15.5px; }
+
+/* a few strings in place, so the table has a sound */
+.inplace { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 20px; }
+.inplace .notice p { margin: 0; }
+.inplace .notice .votes { font-size: 13px; color: var(--fg-2); }
+.inplace .msg.human .text { max-width: 100%; }
+.inplace .step .mono { font-size: 12.5px; }
+.rule-list { display: flex; flex-direction: column; }
+.rule-list .rule { display: grid; grid-template-columns: 28px 1fr; gap: 0 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.rule-list .rule .k { color: var(--fg-3); font-variant-numeric: tabular-nums; font-size: 13px; padding-top: 2px; }
+.rule-list .rule b { font-weight: 500; }
+.rule-list .rule .ex { display: block; color: var(--fg-2); font-size: 13.5px; margin-top: 2px; }
+.rule-list .rule .ex .not { color: var(--fg-3); font-style: italic; }
+
+@media (max-width: 700px) {
+  td.when, td.not { width: auto; }
+  table, thead, tbody, tr, td, th { display: block; }
+  thead { display: none; }
+  tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  td { border: 0; padding: 2px 0; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold</a> › <a href="../">Explorations</a> › Microcopy</div>
+  <h1>Microcopy</h1>
+  <p>Every string the product says, in one voice: calm, specific, naming the person and the act. The ten rules first, then each surface as a table, each row with the phrasing it replaces. The web app keeps these in <code>apps/web/src/copy.ts</code>; the Slack adapter and the shells say the same words.</p>
+  <p class="cast">Cast throughout: Northwind › Payments › Billing page › “Invoice PDF + tax lines”. Ana drives, Bo and Cy contribute, Dee leads. The agent is Ana’s agent.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#rules">Rules</a><a href="#status">Statuses</a><a href="#notices">Notices</a><a href="#inplace">In place</a><a href="#buttons">Buttons</a><a href="#composer">Composer</a><a href="#empty">Empty states</a><a href="#errors">Errors</a><a href="#slack">Slack</a><a href="#notify">Notifications</a>
+  </nav>
+</div>
+
+<section id="rules">
+  <header><h2><span class="n">1</span>Ten rules</h2><p>The voice is a small grammar. Everything below follows from it.</p></header>
+  <div class="rule-list">
+    <div class="rule"><span class="k">01</span><div><b>Name the person and the act.</b><span class="ex">Ana is driving. Bo joined as contributor. <span class="not">not: A user has joined the session.</span></span></div></div>
+    <div class="rule"><span class="k">02</span><div><b>Say the thing, not the technology.</b><span class="ex">The agent wants to run <code>pnpm vitest</code>. <span class="not">not: Your AI assistant would like to execute a command.</span></span></div></div>
+    <div class="rule"><span class="k">03</span><div><b>Status is one of five words.</b><span class="ex">running · awaiting approval · blocked · paused · idle, with a dot, never a pill, the same in the sidebar, the fleet and Slack. <span class="not">not: In progress, Pending review, Error.</span></span></div></div>
+    <div class="rule"><span class="k">04</span><div><b>Present tense for state, past tense for the log.</b><span class="ex">Nobody else here yet. Share the link. · Folded pdf-layout into main. <span class="not">not: The branch has been successfully merged.</span></span></div></div>
+    <div class="rule"><span class="k">05</span><div><b>Verbs on buttons, one or two words.</b><span class="ex">Approve · Deny · Pick · Withdraw · Hand off · Fold into main. <span class="not">not: Submit, OK, Yes, Confirm, Got it.</span></span></div></div>
+    <div class="rule"><span class="k">06</span><div><b>Fold’s own words for Fold’s own ideas.</b><span class="ex">A session is the fold; a person drives it; handing over offers the fold; a merge folds a branch in; steers and constraints are directions; two at once is a contention. <span class="not">not: ownership transfer, merge request, conflict of instructions.</span></span></div></div>
+    <div class="rule"><span class="k">07</span><div><b>Quiet errors: what failed, where, and the next move.</b><span class="ex">Could not load /api/me: 503. <span class="not">not: Oops, something went wrong.</span></span></div></div>
+    <div class="rule"><span class="k">08</span><div><b>Middle dots separate facts on a line.</b><span class="ex">Ana · contributor · away. Sentences end with a full stop; labels and buttons do not. <span class="not">not: Ana, contributor (away)</span></span></div></div>
+    <div class="rule"><span class="k">09</span><div><b>Count, then noun.</b><span class="ex">1 approval waiting · 3 conflicts · 2 of 2 drivers. <span class="not">not: You have three (3) new conflicts.</span></span></div></div>
+    <div class="rule"><span class="k">10</span><div><b>No emoji, no exclamation marks, no apology from the model.</b><span class="ex">An ellipsis only while something is in progress: Joining… · Loading…. <span class="not">not: Done! · Sorry, I can’t do that. · any emoji</span></span></div></div>
+  </div>
+</section>
+
+<section id="status">
+  <header><h2><span class="n">2</span>Statuses</h2><p>Five words for an agent, three more for a session or a client. A word and a dot; the dot is the only colour.</p></header>
+  <table>
+    <thead><tr><th scope="col">Word</th><th scope="col">Means</th><th scope="col">Not this</th></tr></thead>
+    <tbody>
+      <tr><td class="when"><span class="status running">running</span></td><td class="say">The agent is inside a turn. The sidebar dot pulses; the row reads what it is doing: <span class="muted">Writing packages/billing/pdf.ts</span>.</td><td class="not">In progress · Working on it</td></tr>
+      <tr><td class="when"><span class="status awaiting">awaiting approval</span></td><td class="say">A tool call waits on a person. Counted as <span class="muted">3 awaiting approval</span>; in a title, <span class="muted">1 approval waiting</span>.</td><td class="not">Pending · Needs review</td></tr>
+      <tr><td class="when"><span class="status blocked">blocked</span></td><td class="say">A write was refused, a scope is held by a contention, or a step failed and the agent cannot pass. Always followed by why: <span class="muted">blocked · write to schema.ts refused: held by Cy’s agent</span>.</td><td class="not">Error · Stuck · Failed</td></tr>
+      <tr><td class="when"><span class="status paused">paused</span></td><td class="say">A person paused it. Say who: <span class="muted">paused by Dee</span>.</td><td class="not">On hold · Suspended</td></tr>
+      <tr><td class="when"><span class="status idle">idle</span></td><td class="say">The turn ended and nothing is queued. The next directive starts it.</td><td class="not">Waiting for input · Ready</td></tr>
+      <tr><td class="when"><span class="status">cancelled</span></td><td class="say">The driver cancelled the turn. The log stays readable.</td><td class="not">Aborted · Killed</td></tr>
+      <tr><td class="when"><span class="status">closed</span></td><td class="say">The session is finished and folded; the fleet no longer counts it.</td><td class="not">Archived · Completed</td></tr>
+      <tr><td class="when"><span class="status">offline</span></td><td class="say">This client lost the server, not the agent. <span class="muted">Offline · last synced event 4 minutes ago.</span></td><td class="not">Connection lost! · Disconnected</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="notices">
+  <header><h2><span class="n">3</span>Notices</h2><p>One quiet notice per decision: a sentence that says who wants what, then two verbs. The notice is the only bordered box in the stream.</p></header>
+  <table>
+    <thead><tr><th scope="col">Notice</th><th scope="col">Text, then buttons</th><th scope="col">Not this</th></tr></thead>
+    <tbody>
+      <tr><td class="when">Approval, exec</td><td class="say">The agent wants to run <code>pnpm vitest</code> (exec); needs a contributor.<span class="btns">Approve · Deny</span></td><td class="not">The AI is requesting permission to execute a command. Allow?</td></tr>
+      <tr><td class="when">Approval, irreversible</td><td class="say">The agent wants to delete <code>legacy_invoices</code> (irreversible); needs two drivers. <span class="then">Ana approved · 1 of 2.</span><span class="btns">Approve · Deny</span></td><td class="not">Dangerous action requires quorum</td></tr>
+      <tr><td class="when">Approval, decided</td><td class="say">Approved by Ana and Bo. <span class="then">or</span> Denied by Dee: keep the table until the audit closes.</td><td class="not">Request has been approved successfully</td></tr>
+      <tr><td class="when">Contention</td><td class="say">Two directions for <b>tax</b>. The agent holds this scope until Ana picks one.<br><span class="who">Bo</span> · Use the Stripe Tax API<br><span class="who">Cy</span> · Keep the local tax tables<span class="btns">Pick · Withdraw</span></td><td class="not">Conflicting instructions detected. Please resolve.</td></tr>
+      <tr><td class="when">Contention, picked</td><td class="say">Ana picked Cy’s direction: keep the local tax tables. Bo’s was withdrawn.</td><td class="not">Conflict resolved</td></tr>
+      <tr><td class="when">Fleet contention</td><td class="say">Fleet contention: both want <code>packages/billing/schema.ts</code> with Cy’s agent. The write waits for Dee.<span class="btns">Ana’s agent wins · Cy’s agent wins</span></td><td class="not">Resource lock conflict between agents</td></tr>
+      <tr><td class="when">Handoff, to you</td><td class="say">Ana offers you the fold.<span class="btns">Accept · Decline</span></td><td class="not">Ownership transfer request received</td></tr>
+      <tr><td class="when">Handoff, in the log</td><td class="say">Ana offers the fold to Bo. <span class="then">then</span> Bo has the fold. <span class="then">or</span> Bo declined the fold.</td><td class="not">Session owner changed to Bo</td></tr>
+      <tr><td class="when">Project direction</td><td class="say">Dee set a project direction: schema freeze until Thursday. Every session in Payments follows it.<span class="btns">Withdraw <span class="then">(Dee only)</span></span></td><td class="not">New global policy applied by admin</td></tr>
+      <tr><td class="when">Memory conflict</td><td class="say">Two entries disagree on <b>tax.rounding</b>.<br><span class="who">Ana</span> · round per line · session billing-42 · commit 9f3c1a<br><span class="who">Cy</span> · round the total · session billing-47 · commit 2b7e0d<span class="btns">Ana is right · Cy is right</span></td><td class="not">Knowledge base inconsistency found</td></tr>
+      <tr><td class="when">Brief</td><td class="say">Since you were last here: Ana handed off to Bo; 2 turns; <code>pdf.ts</code> written; 1 approval waiting.<span class="btns">Return to now</span></td><td class="not">Here’s a quick AI summary of what you missed</td></tr>
+      <tr><td class="when">Offline</td><td class="say">Offline. The log is readable; the composer sends when the server is back.</td><td class="not">Connection lost. Please check your internet.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="inplace">
+  <header><h2><span class="n">4</span>In place</h2><p>The same strings in the stream, so the table has a sound. One primary button on the screen; everything else is ink.</p></header>
+  <div class="inplace">
+    <div class="msg human">
+      <div class="meta"><span class="who">Dee</span><span class="faint">lead · to every session in Payments</span></div>
+      <div class="text">Schema freeze until Thursday.</div>
+    </div>
+    <div class="msg agent">
+      <div class="meta"><span class="who">Ana’s agent</span><span class="status running">running</span></div>
+      <div class="text">The tax lines need a column the schema does not have. Under the freeze I will compute them at render time from the local tables and leave the migration as a note for Thursday.</div>
+      <div class="steps">
+        <div class="step"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Read <span class="mono">packages/billing/schema.ts</span></span></div>
+        <div class="step"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-5-6-5M12 19h8"/></svg><span>Ran shell: <span class="mono">pnpm vitest</span> · 31 passed, 1 failed</span></div>
+      </div>
+    </div>
+    <div class="notice" role="group" aria-label="Approval">
+      <p>The agent wants to delete <code>legacy_invoices</code> (irreversible); needs two drivers.</p>
+      <p class="votes">Ana approved · 1 of 2</p>
+      <div class="actions"><button class="btn primary sm" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div>
+    </div>
+    <div class="divider">Ana offers the fold to Bo · Bo has the fold</div>
+  </div>
+</section>
+
+<section id="buttons">
+  <header><h2><span class="n">5</span>Buttons and labels</h2><p>A verb, at most two words, no full stop. The primary button is the one thing that carries the accent.</p></header>
+  <table>
+    <thead><tr><th scope="col">Where</th><th scope="col">Label</th><th scope="col">Not this</th></tr></thead>
+    <tbody>
+      <tr><td class="when">Approval</td><td class="say">Approve · Deny</td><td class="not">Allow · Reject · Yes · No</td></tr>
+      <tr><td class="when">Handoff</td><td class="say">Hand off · Accept · Decline</td><td class="not">Transfer ownership · OK</td></tr>
+      <tr><td class="when">Contention</td><td class="say">Pick · Withdraw</td><td class="not">Resolve conflict · Choose this one</td></tr>
+      <tr><td class="when">Branches</td><td class="say">Fork · Switch · Fold into main</td><td class="not">Create branch · Merge · Checkout</td></tr>
+      <tr><td class="when">Control</td><td class="say">Pause · Resume · Cancel · Interrupt now</td><td class="not">Stop · Kill · Abort · Halt agent</td></tr>
+      <tr><td class="when">Direction</td><td class="say">Set direction · Withdraw</td><td class="not">Apply policy · Save settings</td></tr>
+      <tr><td class="when">Session</td><td class="say">New session · Open · Share · Copy link · Ask for brief · Details</td><td class="not">Create new · Launch · Get summary</td></tr>
+      <tr><td class="when">Memory</td><td class="say">Ana is right · Cy is right · Browse memory · Run <span class="then">(the curator)</span> · Run again</td><td class="not">Resolve · Mark as truth · Execute cleanup</td></tr>
+      <tr><td class="when">Account</td><td class="say">Sign in · Sign out · Change identity · Turn on <span class="then">(notifications)</span></td><td class="not">Log in · Logout · Enable</td></tr>
+      <tr><td class="when">Dismissal</td><td class="say">Dismiss · Close · Return to now</td><td class="not">Got it · Done · Okay</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="composer">
+  <header><h2><span class="n">6</span>Composer</h2><p>The placeholder says what sending does; the hint under it says who you are in this session.</p></header>
+  <table>
+    <thead><tr><th scope="col">Where</th><th scope="col">String</th><th scope="col">Not this</th></tr></thead>
+    <tbody>
+      <tr><td class="when">Placeholder, to agent</td><td class="say">Steer the agent</td><td class="not">Ask me anything… · Type a message</td></tr>
+      <tr><td class="when">Placeholder, to team</td><td class="say">Say something to the people in this session</td><td class="not">Chat with your team</td></tr>
+      <tr><td class="when">Placeholder, mode</td><td class="say">Send “constrain” · Send “interrupt”</td><td class="not">Enter constraint here</td></tr>
+      <tr><td class="when">Switch</td><td class="say">Agent · Team <span class="then">· Mode · Scope: goal</span></td><td class="not">AI / Humans</td></tr>
+      <tr><td class="when">Hint</td><td class="say">Enter to send · Shift+Enter for a new line · ? for shortcuts · as Ana, driver, driving</td><td class="not">Press Enter to send your message!</td></tr>
+      <tr><td class="when">Viewing the past</td><td class="say">Viewing the past · <span class="then">Return to now</span></td><td class="not">You are in history mode</td></tr>
+      <tr><td class="when">Observer</td><td class="say">You are watching as observer. Ask for a brief, or ask Dee for a role.</td><td class="not">You do not have permission to send messages.</td></tr>
+      <tr><td class="when">Reconnecting</td><td class="say">Reconnecting · <span class="then">your directive sends when the server is back</span></td><td class="not">Connection lost. Retrying…</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="empty">
+  <header><h2><span class="n">7</span>Empty states</h2><p>One sentence in secondary ink: what is missing, then what fills it. The action is the page’s own affordance, never a tour.</p></header>
+  <table>
+    <thead><tr><th scope="col">Page</th><th scope="col">Sentence</th><th scope="col">Not this</th></tr></thead>
+    <tbody>
+      <tr><td class="when">Stream, new session</td><td class="say">Set a goal to start the agent.</td><td class="not">Welcome! Let’s get started</td></tr>
+      <tr><td class="when">Project, no sessions</td><td class="say">No sessions yet. The first directive starts one.</td><td class="not">Nothing here yet. Create your first session!</td></tr>
+      <tr><td class="when">Home, no projects</td><td class="say">No projects for you yet. Ask a lead to add you.</td><td class="not">You don’t have access to any projects.</td></tr>
+      <tr><td class="when">People, alone</td><td class="say">Nobody else here yet. Share the link.</td><td class="not">Invite your teammates to collaborate</td></tr>
+      <tr><td class="when">Memory</td><td class="say">Nothing remembered for Payments yet. The first entry is usually a human’s.</td><td class="not">Your knowledge base is empty</td></tr>
+      <tr><td class="when">Needs you</td><td class="say">Nothing needs you right now.</td><td class="not">You’re all caught up!</td></tr>
+      <tr><td class="when">Handoffs</td><td class="say">None offered to you yet.</td><td class="not">No pending transfers</td></tr>
+      <tr><td class="when">Contentions</td><td class="say">No contentions. Directions in Payments agree.</td><td class="not">No conflicts detected</td></tr>
+      <tr><td class="when">Search</td><td class="say">Nothing for “tax lines” in Payments. Try the session title or a path.</td><td class="not">No results found</td></tr>
+      <tr><td class="when">Curator</td><td class="say">Nothing to tidy.</td><td class="not">Cleanup complete, no issues found</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="errors">
+  <header><h2><span class="n">8</span>Errors</h2><p>What failed, where, and the number if there is one. The next move is a second sentence, when there is one.</p></header>
+  <table>
+    <thead><tr><th scope="col">Failure</th><th scope="col">String</th><th scope="col">Not this</th></tr></thead>
+    <tbody>
+      <tr><td class="when">Request</td><td class="say">Could not load /api/me: 503.</td><td class="not">Oops! Something went wrong.</td></tr>
+      <tr><td class="when">Clipboard</td><td class="say">Could not copy the link.</td><td class="not">Copy failed, please try again!</td></tr>
+      <tr><td class="when">Refused write</td><td class="say">Write to <code>packages/billing/schema.ts</code> refused: held by Cy’s agent.</td><td class="not">Permission denied (EACCES)</td></tr>
+      <tr><td class="when">Failed step</td><td class="say">Ran shell: <code>pnpm vitest</code> · failed · 1 of 32</td><td class="not">Command exited with non-zero status</td></tr>
+      <tr><td class="when">Turn</td><td class="say">Turn 7 stopped: the model returned nothing after 3 tries. Resume to try again.</td><td class="not">The AI encountered an unexpected error.</td></tr>
+      <tr><td class="when">Stale vote</td><td class="say">Already decided by Dee: denied.</td><td class="not">This action is no longer available.</td></tr>
+      <tr><td class="when">Stale directive</td><td class="say">Sent after the turn ended; the agent reads it next turn.</td><td class="not">Message could not be delivered</td></tr>
+      <tr><td class="when">Role</td><td class="say">Only the driver can hand off. Ana is driving.</td><td class="not">You are not authorized to perform this action.</td></tr>
+      <tr><td class="when">Link</td><td class="say">This link no longer opens a session. Ask Ana for a new one.</td><td class="not">404 Not Found</td></tr>
+      <tr><td class="when">Log</td><td class="say">The log does not verify from event 1,204. Replay stops there; nothing after it is trusted.</td><td class="not">Integrity check failed</td></tr>
+      <tr><td class="when">Sign-in</td><td class="say">Signed in as Ana · unknown to the server; first in owns a session.</td><td class="not">Warning: user not found in directory</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="slack">
+  <header><h2><span class="n">9</span>Slack</h2><p>A thread per session in the project channel; one coalesced reply per 1.5 seconds; buttons vote as the person who clicked. Same words, plain text, no bold sentences.</p></header>
+  <table>
+    <thead><tr><th scope="col">Message</th><th scope="col">Text</th><th scope="col">Not this</th></tr></thead>
+    <tbody>
+      <tr><td class="when">Thread opened</td><td class="say">Ana’s agent started “Invoice PDF + tax lines”. Reply in this thread to steer it.</td><td class="not">New AI session launched by @ana, with a robot emoji</td></tr>
+      <tr><td class="when">Turn, coalesced</td><td class="say">Turn 6 ended · Wrote packages/billing/pdf.ts · pnpm vitest: 31 passed, 1 failed · Ana is driving.</td><td class="not">Update: the agent has completed another iteration</td></tr>
+      <tr><td class="when">Approval in thread</td><td class="say">The agent wants to run <code>pnpm vitest</code> (exec); needs a contributor. <span class="btns">Approve · Deny</span><span class="then">after the click:</span> Approved by Bo.</td><td class="not">Approval requested! Click below to allow.</td></tr>
+      <tr><td class="when">Irreversible, to channel</td><td class="say">Ana’s agent wants to delete <code>legacy_invoices</code> in “Invoice PDF + tax lines” (irreversible); needs two drivers. Ana approved · 1 of 2.<span class="btns">Approve · Deny</span></td><td class="not">@channel URGENT quorum needed</td></tr>
+      <tr><td class="when">Reply as directive</td><td class="say">[tax] use the local tables until the Stripe sandbox is back <span class="then">→</span> Sent to Ana’s agent as a steer on tax.</td><td class="not">Your instruction was received, with a tick</td></tr>
+      <tr><td class="when">Contention, management</td><td class="say">Contention in Billing page: Stripe Tax API (Bo) or local tax tables (Cy). Ana’s agent holds tax until a pick.<span class="btns">Bo wins · Cy wins</span></td><td class="not">Conflict alert in #payments, with a warning sign</td></tr>
+      <tr><td class="when">Fleet contention</td><td class="say">Ana’s agent and Cy’s agent both want packages/billing/schema.ts. The write waits for Dee.<span class="btns">Ana’s agent wins · Cy’s agent wins</span></td><td class="not">Lock contention detected between 2 agents</td></tr>
+      <tr><td class="when">Memory conflict</td><td class="say">tax.rounding: Ana (round per line) and Cy (round the total) disagree.<span class="btns">Ana is right · Cy is right</span></td><td class="not">Knowledge conflict needs admin review</td></tr>
+      <tr><td class="when">Handoff</td><td class="say">Ana offers the fold to Bo. <span class="then">then</span> Bo has the fold.</td><td class="not">Session ownership transferred</td></tr>
+      <tr><td class="when">Direction</td><td class="say">Dee set a project direction for Payments: schema freeze until Thursday.</td><td class="not">New rule from admin applied to all agents</td></tr>
+      <tr><td class="when"><code>/fold sessions payments</code></td><td class="say">4 open sessions in Payments: 2 running, 1 awaiting approval, 1 idle. 1 approval waiting in “Invoice PDF + tax lines”.</td><td class="not">Here are your sessions, with a pointing hand</td></tr>
+      <tr><td class="when"><code>/fold brief payments</code></td><td class="say">Payments, today: 4 sessions, 1 contention (tax), 1 memory conflict (tax.rounding), direction: schema freeze until Thursday.</td><td class="not">AI-generated summary of your project</td></tr>
+      <tr><td class="when">Unknown command</td><td class="say">Not a fold command. Try /fold brief, /fold sessions or /fold memory.</td><td class="not">Sorry, I didn’t understand that.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="notify">
+  <header><h2><span class="n">10</span>Notifications</h2><p>Desktop tray and mobile push: a title of two or three words, a body of facts with middle dots, and the tap opens the exact notice.</p></header>
+  <table>
+    <thead><tr><th scope="col">Event</th><th scope="col">Title · body</th><th scope="col">Not this</th></tr></thead>
+    <tbody>
+      <tr><td class="when">Approval</td><td class="say"><b>Approval needed</b><br>delete legacy_invoices [irreversible] in Invoice PDF + tax lines · 1 of 2</td><td class="not">Action required! Your AI needs you</td></tr>
+      <tr><td class="when">Handoff</td><td class="say"><b>You are offered the fold</b><br>Ana wants to hand off Invoice PDF + tax lines</td><td class="not">Ana sent you a session</td></tr>
+      <tr><td class="when">Contention</td><td class="say"><b>Two directions for tax</b><br>Bo and Cy · Invoice PDF + tax lines · you pick</td><td class="not">Conflict needs your attention!</td></tr>
+      <tr><td class="when">Fleet contention</td><td class="say"><b>Fleet contention</b><br>both want packages/billing/schema.ts · Ana’s and Cy’s agents · Dee decides</td><td class="not">Agents are fighting over a file</td></tr>
+      <tr><td class="when">Blocked</td><td class="say"><b>Invoice PDF + tax lines is blocked</b><br>write to schema.ts refused: held by Cy’s agent</td><td class="not">Your agent has stopped working</td></tr>
+      <tr><td class="when">Turn ended, away</td><td class="say"><b>Invoice PDF + tax lines · idle</b><br>Turn 6 · wrote pdf.ts · 31 passed, 1 failed</td><td class="not">Your task is complete</td></tr>
+      <tr><td class="when">Direction</td><td class="say"><b>Direction in Payments</b><br>Dee: schema freeze until Thursday</td><td class="not">New announcement from your team lead</td></tr>
+      <tr><td class="when">Grouped</td><td class="say"><b>2 things need you in Payments</b><br>1 approval · 1 contention</td><td class="not">You have multiple pending items</td></tr>
+      <tr><td class="when">Permission</td><td class="say">Notifications: on while this tab is hidden · blocked by the browser · not available here</td><td class="not">Enable notifications to never miss an update!</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Keyboard shortcuts: rationale
+
+**Decision.** One sheet, opened with ?, holding the whole map in four groups ordered as a working day goes: Session (new, fork, fold, hand off, pause, driver seat), Steering (send, team, recall, withdraw), Approvals (A, D, J/K, O, next in project), Navigation (⌘K, ⌘[ ], ⌘1–9, drawer, team chat, G-chords, sidebar). Each row is a verb in ink, grey context after a middle dot, keys on the right as soft keycaps with no border or shadow. The sheet is live: the approval row names the pending delete and its quorum, the fold row goes grey with Dee's "schema freeze until Thursday" as the reason, the fork row says the turn. Both modifiers are in the markup and a radio inside the sheet picks one, so no script decides what a key is called. While the sheet is open the send arrow beneath it turns to ink, keeping one accent per screen.
+
+**Rejected.** Bordered keycaps (a second hairline competing with the notice border). A searchable list with tabs per group (the palette already searches; this is a map). Hiding unavailable shortcuts (people learn a map by seeing it whole). Red for Deny and amber for pending (status is words with a dot). Tooltips on buttons without a sheet (no overview).
+
+**Carry forward.** The borderless keycap token (bg-3, 22px, 6px radius), the four-group order, the "row stays but says why" rule, single letters only when the composer is empty, and the mac/win pair preset by the Tauri shell.

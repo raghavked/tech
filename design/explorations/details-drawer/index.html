@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Details drawer</title>
+<meta name="description" content="The details drawer as five plain lists (Intent, People, Branches, Memory, Catch-up): open beside the column at 1440, and as a bottom sheet at 390.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.page { width: min(1440px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 22px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+.notes { display: flex; flex-direction: column; gap: 12px; font-size: 14px; color: var(--fg-2); }
+.notes p b { font-weight: 500; color: var(--fg); }
+
+/* ---------- the drawer itself: five plain lists ---------- */
+.drawer { width: 372px; padding: 14px 22px 24px; gap: 22px; font-size: 14px; }
+.drawer .drawer-head { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
+.drawer .drawer-head .t { font-weight: 500; font-size: 14px; }
+.drawer .drawer-head .btn.icon { width: 28px; min-height: 28px; border-color: transparent; color: var(--fg-2); }
+.drawer .drawer-head .btn.icon .ic { width: 14px; height: 14px; }
+.drawer h3 { font-size: 12px; color: var(--fg-3); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 2px; }
+.drawer .group { gap: 0; }
+.drawer .group .foot { display: flex; align-items: center; gap: 2px; margin-top: 4px; margin-left: -8px; }
+.drawer .group .note { font-size: 12.5px; color: var(--fg-3); padding: 4px 0 0; }
+.drawer .btn { white-space: nowrap; }
+.drawer .btn.quiet { border-color: transparent; color: var(--fg-2); min-height: 28px; padding: 0 8px; font-size: 13px; }
+.drawer .btn.quiet:hover { color: var(--fg); background: var(--bg-2); }
+
+/* a row: one line, meta on the right in grey; wraps rather than clips */
+.r { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: baseline; padding: 5px 0; line-height: 1.45; }
+.r .k { min-width: 0; }
+.r .k .lbl { color: var(--fg-3); }
+.r .k .mono { font-size: 12.5px; }
+.r .m { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; }
+.r .m .status { font-size: 12.5px; color: var(--fg-3); }
+.r .m .status::before { width: 6px; height: 6px; }
+.r .m .status.contention::before { background: var(--highlight); }
+.status.contention::before { background: var(--highlight); }
+.r .m .status.here::before { background: var(--ok); }
+.r .m .status.away::before { background: var(--fg-3); }
+.r .m .status.waiting::before { background: var(--warn); }
+.r .m .status.conflict::before { background: var(--danger); }
+.r.sub { padding-top: 0; padding-left: 12px; color: var(--fg-2); font-size: 13px; }
+.r.sub .k .mono { font-size: 12px; }
+.r.two .k { display: flex; flex-direction: column; gap: 1px; }
+.r .k .by { color: var(--fg-3); font-size: 12.5px; }
+.r .k .by .serif { font-style: italic; font-size: 13.5px; }
+.r .name { font-weight: 500; }
+.r .name .you { font-weight: 400; color: var(--fg-3); }
+.r .role { color: var(--fg-2); }
+
+/* contention and conflict: one apricot rule on the left, the way the notice draws it */
+.r.marked { padding-left: 10px; border-left: 2px solid var(--highlight); }
+
+/* catch-up: a computed brief as four short rows, then one plain line */
+.brief { display: flex; flex-direction: column; gap: 2px; }
+.brief .line { font-size: 13.5px; color: var(--fg-2); line-height: 1.5; padding: 2px 0; }
+.brief .line b { font-weight: 500; color: var(--fg); }
+
+/* ---------- desktop frame at 1440 ---------- */
+.app { width: 1440px; min-height: 960px; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); }
+.app .shell { height: auto; min-height: 960px; }
+.app .drawer { overflow: visible; }
+.app .sidebar { gap: 1px; }
+.app .sidebar .brand { padding-bottom: 8px; }
+.app .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.app .sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--fg-3); font-size: 14px; }
+.app .sidebar .search .ic { width: 14px; height: 14px; }
+.app .sidebar .section { padding: 12px 10px 4px; }
+.app .sidebar .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; }
+.app .sidebar .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.app .sidebar .item .n { font-size: 12.5px; color: var(--fg-3); }
+.app .sidebar .item .dot { background: var(--fg-3); }
+.app .sidebar .item .dot.running { background: var(--ok); }
+.app .sidebar .item .dot.awaiting { background: var(--warn); }
+.app .sidebar .item .dot.blocked { background: var(--danger); }
+.app .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.app .sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.app .sidebar .dir { padding: 2px 10px 8px; font-size: 13px; color: var(--fg-3); font-family: var(--serif); font-style: italic; }
+.app .sidebar .me .avatar { width: 26px; height: 26px; border: 0; }
+.app .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.app .topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.app .topbar .title .crumb { font-weight: 400; color: var(--fg-3); }
+.app .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.app .topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.app .topbar .right .btn .ic { width: 14px; height: 14px; }
+.app .body { flex: 1; min-height: 0; display: flex; }
+.app .scroll { display: flex; flex-direction: column; overflow: hidden; }
+.app .stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.app .column { padding-top: 0; padding-bottom: 12px; gap: 24px; }
+.app .msg .meta .faint { font-size: 12px; }
+.app .step .mono { font-size: 12.5px; }
+.app .notice { gap: 8px; padding: 14px 16px 12px; }
+.app .notice .q { font-size: 15px; }
+.app .notice .q .mono { font-size: 13.5px; }
+.app .notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); flex-wrap: wrap; }
+.app .notice .st .sep { color: var(--fg-3); }
+.app .notice .actions { margin-top: 2px; align-items: center; }
+.app .notice .actions .after { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+.app .btn.quiet { border-color: transparent; color: var(--fg-2); padding-inline: 8px; }
+.app .composer-wrap { padding-top: 4px; padding-bottom: 16px; }
+.app .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; color: var(--fg-3); }
+.app .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.app .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.app .hint { text-align: center; font-size: 12px; color: var(--fg-3); margin-top: 8px; }
+
+/* ---------- phones at 390 ---------- */
+.phones { display: grid; grid-template-columns: 390px 390px minmax(240px, 420px); gap: 48px; align-items: start; }
+.phones .cap { font-size: 12.5px; color: var(--fg-3); margin-top: 12px; }
+.phone { position: relative; border-width: 6px; }
+.phone .ptop { display: flex; align-items: center; gap: 8px; padding: 14px 12px 8px; min-height: 52px; }
+.phone .ptop .btn.icon { border-color: transparent; color: var(--fg-2); width: 32px; min-height: 32px; }
+.phone .ptop .btn.icon .ic { width: 16px; height: 16px; }
+.phone .ptop .t { flex: 1; min-width: 0; text-align: center; font-family: var(--serif); font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phone .pbody { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+.phone .column { padding: 0 16px 10px; gap: 20px; }
+.phone .msg.human .text { max-width: 92%; }
+.phone .composer-wrap { padding: 4px 12px 14px; }
+.phone .composer { padding: 10px 10px 8px 14px; }
+.phone .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; color: var(--fg-3); }
+.phone .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.phone .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.phone .notice { gap: 6px; padding: 12px 14px 10px; }
+.phone .notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); flex-wrap: wrap; }
+.phone .notice .st .sep { color: var(--fg-3); }
+
+/* the bottom sheet: the same drawer, pinned to the bottom edge, with a grab handle */
+.phone .scrim { position: absolute; inset: 0; background: var(--fg); opacity: 0.18; }
+.phone .sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 776px; background: var(--bg); border-top-left-radius: var(--radius-lg); border-top-right-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; }
+.phone .sheet .handle { width: 36px; height: 4px; border-radius: 2px; background: var(--bg-3); margin: 8px auto 0; flex: none; }
+.phone .sheet .drawer { width: 100%; border-left: 0; padding: 4px 20px 20px; gap: 18px; flex: 1; min-height: 0; overflow: hidden; }
+.phone .sheet .drawer .drawer-head { min-height: 32px; }
+.phone .sheet .r { padding: 4px 0; }
+.phone .sheet .r.sub { padding-top: 0; }
+
+@media (max-width: 1500px) {
+  .app { width: 100%; }
+}
+@media (max-width: 1200px) {
+  .phones { grid-template-columns: 1fr; justify-items: start; }
+  .page { width: min(1440px, 100% - 32px); }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16z"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.5"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M14.5 5v14"/></symbol>
+</svg>
+
+<main class="page">
+
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Details drawer</div>
+  <h1>The details drawer, as five plain lists</h1>
+  <p>Everything the log knows about a session that is not the conversation itself: what the agent is meant to do, who is here, which branches exist, what the team remembers, and what changed while you were away. It opens beside the column on a wide screen and rises as a bottom sheet on a phone. Both are the same five lists; nothing is a card, every row carries its author on the right, and the only colour is the crease.</p>
+</div>
+
+<section id="desktop">
+  <header>
+    <h2>Beside the column at 1440</h2>
+    <p>Ana has the drawer open while her approval waits on a second driver and her handoff to Bo waits on Bo. The column narrows to the drawer; nothing else moves.</p>
+  </header>
+
+  <div class="app"><div class="shell">
+  <aside class="sidebar" aria-label="Sidebar">
+    <a class="brand" href="../../index.html"><img src="../../mark.svg" alt="" width="22" height="22"><span class="serif">Fold</span></a>
+    <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+    <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search</div>
+    <div class="section">Billing page<span class="n">4</span></div>
+    <div class="dir">schema freeze until Thursday · Dee</div>
+    <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines</span><span class="n">1 of 2</span></a>
+    <a class="item" href="#"><span class="dot running"></span><span class="t">Tax rounding audit</span><span class="n">Cy</span></a>
+    <a class="item" href="#"><span class="dot blocked"></span><span class="t">Proration fix</span><span class="n">Dee</span></a>
+    <a class="item" href="#"><span class="dot running"></span><span class="t">Checkout retries</span><span class="n">Bo</span></a>
+    <div class="section">Recents</div>
+    <a class="item" href="#"><span class="dot"></span><span class="t">Refund ledger</span></a>
+    <a class="item" href="#"><span class="dot"></span><span class="t">Dunning emails</span></a>
+    <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <span class="title"><span class="crumb">Northwind › Payments › Billing page ›</span><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Needs a second driver</span></span>
+      <div class="right"><a class="btn sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><button class="btn sm on" type="button" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-panel"/></svg>Details</button></div>
+    </div>
+    <div class="body">
+      <div class="scroll">
+        <div class="stream"><div class="column">
+          <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">goal</span></div><div class="text">Add tax lines to the invoice PDF. Use the rates in tax/rates.ts for now and keep the layout change on the pdf-layout branch.</div></div>
+          <div class="msg agent"><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 7</span></div><div class="text">Tax lines fit under the subtotal without touching the page template. One rounding test failed because rates.ts rounds per line and the PDF rounded the total; the PDF now rounds the same way and all 32 pass. Next I want to clear legacy_invoices so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+          <div class="notice" role="group" aria-label="Approval waiting">
+            <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+            <p class="st"><span class="status awaiting">You approved · 1 of 2 drivers</span><span class="sep">·</span><span>cannot be undone</span></p>
+            <div class="actions"><button class="btn sm quiet" type="button">Withdraw my approval</button><span class="after">Expires in 26 min</span></div>
+          </div>
+          <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Use the Stripe Tax API for the rates instead of the local tables.</div></div>
+          <div class="msg human"><div class="meta"><span class="who">Cy</span><span class="faint">steer</span></div><div class="text">Keep the local tax tables; the audit next door depends on them.</div></div>
+          <div class="notice contention" role="group" aria-label="Contention">
+            <p class="q">Two steers on <span class="mono">tax source</span> arrived in the same turn. The agent keeps working on everything else.</p>
+            <p class="st"><span class="status contention">Contention · waiting on a driver</span><span class="sep">·</span><span>Bo and Cy, same rank</span></p>
+            <div class="actions"><button class="btn sm" type="button">Pick Bo's</button><button class="btn sm" type="button">Pick Cy's</button><button class="btn sm quiet" type="button">Write a replacement</button></div>
+          </div>
+        </div></div>
+        <div class="composer-wrap">
+          <div class="composer">
+            <label class="sr-only" for="steer-desktop">Steer the agent</label>
+            <input class="input" id="steer-desktop" type="text" placeholder="Steer the agent">
+            <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+          </div>
+          <div class="hint">Enter to send · Shift+Enter for a new line</div>
+        </div>
+      </div>
+
+      <aside class="drawer" aria-label="Details">
+        <div class="drawer-head"><span class="t">Details</span><button class="btn icon" type="button" aria-label="Close details"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+
+        <section class="group" aria-labelledby="h-intent"><h3 id="h-intent">Intent</h3>
+          <div class="r"><span class="k"><span class="lbl">Goal · </span>Tax lines on the invoice PDF</span><span class="m">Ana</span></div>
+          <div class="r"><span class="k"><span class="lbl">Direction · </span>Schema freeze until Thursday</span><span class="m">Dee · project</span></div>
+          <div class="r"><span class="k"><span class="lbl">Constraint · </span>Layout stays on pdf-layout</span><span class="m">Ana</span></div>
+          <div class="r"><span class="k"><span class="lbl">Steer · </span>Compute tax lines at render time</span><span class="m">Bo · turn 7</span></div>
+          <div class="r marked"><span class="k"><span class="lbl">Tax source · </span>Stripe Tax API or local tables</span><span class="m"><span class="status contention">Contention</span></span></div>
+          <div class="r"><span class="k"><span class="lbl">Control · </span>Running, turn 8</span><span class="m"><button class="btn quiet sm" type="button">Pause</button></span></div>
+        </section>
+
+        <section class="group" aria-labelledby="h-people"><h3 id="h-people">People</h3>
+          <div class="r"><span class="k"><span class="name">Ana <span class="you">you</span></span> <span class="role">· driver</span></span><span class="m"><span class="status here">Here</span></span></div>
+          <div class="r"><span class="k"><span class="name">Bo</span> <span class="role">· contributor</span></span><span class="m"><span class="status here">Here</span></span></div>
+          <div class="r sub"><span class="k">You offered Bo the seat</span><span class="m"><span class="status waiting">Waiting on Bo</span></span></div>
+          <div class="r"><span class="k"><span class="name">Cy</span> <span class="role">· contributor, on pdf-layout</span></span><span class="m"><span class="status here">Here</span></span></div>
+          <div class="r"><span class="k"><span class="name">Dee</span> <span class="role">· lead, observer</span></span><span class="m"><span class="status away">Away 2 h</span></span></div>
+          <p class="note">Irreversible calls need 2 of 2 drivers.</p>
+          <div class="foot"><button class="btn quiet sm" type="button">Withdraw offer</button><button class="btn quiet sm" type="button">Invite</button></div>
+        </section>
+
+        <section class="group" aria-labelledby="h-branches"><h3 id="h-branches">Branches</h3>
+          <div class="r"><span class="k"><span class="mono">main</span> <span class="role">· here</span></span><span class="m">turn 8 · 14 files</span></div>
+          <div class="r"><span class="k"><span class="mono">pdf-layout</span> <span class="role">· Cy</span></span><span class="m">3 turns ahead</span></div>
+          <div class="r sub marked"><span class="k"><span class="mono">invoices/pdf.ts</span> edited on both</span><span class="m"><span class="status conflict">1 conflict</span></span></div>
+          <div class="r sub"><span class="k">Checkpoint <span class="mono">3c1f9a</span> before the rounding fix</span><span class="m">turn 5</span></div>
+          <p class="note">Folding pdf-layout needs the conflict settled first.</p>
+          <div class="foot"><button class="btn quiet sm" type="button">Fork</button><button class="btn quiet sm" type="button">Checkpoint</button><button class="btn quiet sm" type="button">Fold pdf-layout</button></div>
+        </section>
+
+        <section class="group" aria-labelledby="h-memory"><h3 id="h-memory">Memory</h3>
+          <div class="r"><span class="k"><span class="mono">invoice.rounding</span> Round once, at the end</span><span class="m">Ana · billing-42</span></div>
+          <div class="r marked"><span class="k"><span class="mono">tax.source</span> Stripe Tax API</span><span class="m"><span class="status conflict">Conflict</span></span></div>
+          <div class="r sub marked"><span class="k">against local tables in <span class="mono">tax/rates.ts</span></span><span class="m">Bo · 51 vs Cy · 47</span></div>
+          <div class="r"><span class="k"><span class="mono">db.engine</span> Postgres 16 in prod</span><span class="m">Dee · billing-18</span></div>
+          <p class="note">Attributed to engineer, session and commit. Compacted 12 to 4 on Monday.</p>
+          <div class="foot"><button class="btn quiet sm" type="button">Resolve conflict</button><a class="btn quiet sm" href="#">All memory</a></div>
+        </section>
+
+        <section class="group" aria-labelledby="h-catchup"><h3 id="h-catchup">Catch-up</h3>
+          <div class="brief">
+            <p class="line">Since Tuesday 16:40, <b>2 new turns</b>. Rounding fixed, 32 tests pass. Changed invoices/pdf.ts and tax/rates.ts.</p>
+            <p class="line"><b>Open:</b> the delete waits on a second driver; tax source is contended; Bo has not answered your handoff.</p>
+          </div>
+          <p class="note">Computed from the log, turns 6 to 8.</p>
+          <div class="foot"><button class="btn quiet sm" type="button">Mark read</button><a class="btn quiet sm" href="#">Full brief</a></div>
+        </section>
+      </aside>
+    </div>
+  </div>
+  </div></div>
+</section>
+
+<section id="mobile">
+  <header>
+    <h2>As a bottom sheet at 390</h2>
+    <p>On a phone the same drawer rises from the bottom over a dimmed column. Same five lists, same order, same words; only the width changes.</p>
+  </header>
+
+  <div class="phones">
+    <div>
+      <div class="phone" aria-label="Phone, drawer closed">
+        <div class="ptop"><button class="btn icon" type="button" aria-label="Open sessions"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button><span class="t">Invoice PDF + tax lines</span><button class="btn icon" type="button" aria-label="Open details"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg></button></div>
+        <div class="pbody">
+          <div class="column">
+            <div class="msg agent"><div class="meta"><span class="who">Ana's agent</span><span class="faint">turn 7</span></div><div class="text">Tax lines fit under the subtotal without touching the page template. One rounding test failed because rates.ts rounds per line and the PDF rounded the total; the PDF now rounds the same way and all 32 pass. Next I want to clear legacy_invoices so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+            <div class="notice" role="group" aria-label="Approval waiting">
+              <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+              <p class="st"><span class="status awaiting">You approved · 1 of 2 drivers</span><span class="sep">·</span><span>cannot be undone</span></p>
+            </div>
+            <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Use the Stripe Tax API for the rates instead of the local tables.</div></div>
+            <div class="msg human"><div class="meta"><span class="who">Cy</span><span class="faint">steer</span></div><div class="text">Keep the local tax tables; the audit next door depends on them.</div></div>
+          </div>
+          <div class="composer-wrap">
+            <div class="composer">
+              <label class="sr-only" for="steer-phone-a">Steer the agent</label>
+              <input class="input" id="steer-phone-a" type="text" placeholder="Steer the agent">
+              <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">Closed. The drawer is the one icon on the right of the title.</p>
+    </div>
+
+    <div>
+      <div class="phone" aria-label="Phone, drawer open as a bottom sheet">
+        <div class="ptop"><button class="btn icon" type="button" aria-label="Open sessions"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button><span class="t">Invoice PDF + tax lines</span><button class="btn icon" type="button" aria-label="Close details"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg></button></div>
+        <div class="pbody">
+          <div class="column">
+            <div class="msg human"><div class="meta"><span class="who">Cy</span><span class="faint">steer</span></div><div class="text">Keep the local tax tables; the audit next door depends on them.</div></div>
+          </div>
+        </div>
+        <div class="scrim" aria-hidden="true"></div>
+        <div class="sheet" role="dialog" aria-label="Details">
+          <div class="handle" aria-hidden="true"></div>
+          <div class="drawer">
+            <div class="drawer-head"><span class="t">Details</span><button class="btn icon" type="button" aria-label="Close details"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+
+            <section class="group" aria-labelledby="m-intent"><h3 id="m-intent">Intent</h3>
+              <div class="r"><span class="k"><span class="lbl">Goal · </span>Tax lines on the invoice PDF</span><span class="m">Ana</span></div>
+              <div class="r"><span class="k"><span class="lbl">Direction · </span>Schema freeze until Thursday</span><span class="m">Dee · project</span></div>
+              <div class="r"><span class="k"><span class="lbl">Steer · </span>Compute tax lines at render time</span><span class="m">Bo · turn 7</span></div>
+              <div class="r marked"><span class="k"><span class="lbl">Tax source · </span>Stripe Tax API or local tables</span><span class="m"><span class="status contention">Contention</span></span></div>
+            </section>
+
+            <section class="group" aria-labelledby="m-people"><h3 id="m-people">People</h3>
+              <div class="r"><span class="k"><span class="name">Ana <span class="you">you</span></span> <span class="role">· driver</span></span><span class="m"><span class="status here">Here</span></span></div>
+              <div class="r"><span class="k"><span class="name">Bo</span> <span class="role">· contributor</span></span><span class="m"><span class="status waiting">Offered the seat</span></span></div>
+              <div class="r"><span class="k"><span class="name">Cy</span> <span class="role">· contributor</span></span><span class="m"><span class="status here">Here</span></span></div>
+              <div class="r"><span class="k"><span class="name">Dee</span> <span class="role">· lead</span></span><span class="m"><span class="status away">Away 2 h</span></span></div>
+            </section>
+
+            <section class="group" aria-labelledby="m-branches"><h3 id="m-branches">Branches</h3>
+              <div class="r"><span class="k"><span class="mono">main</span> <span class="role">· here</span></span><span class="m">turn 8 · 14 files</span></div>
+              <div class="r"><span class="k"><span class="mono">pdf-layout</span> <span class="role">· Cy</span></span><span class="m"><span class="status conflict">1 conflict</span></span></div>
+            </section>
+
+            <section class="group" aria-labelledby="m-memory"><h3 id="m-memory">Memory</h3>
+              <div class="r"><span class="k"><span class="mono">invoice.rounding</span> Round once at the end</span><span class="m">Ana</span></div>
+              <div class="r marked"><span class="k"><span class="mono">tax.source</span> Stripe API or local tables</span><span class="m"><span class="status conflict">Conflict</span></span></div>
+              <div class="r"><span class="k"><span class="mono">db.engine</span> Postgres 16 in prod</span><span class="m">Dee</span></div>
+            </section>
+
+            <section class="group" aria-labelledby="m-catchup"><h3 id="m-catchup">Catch-up</h3>
+              <div class="brief">
+                <p class="line">Since Tuesday 16:40, <b>2 new turns</b>. Rounding fixed, 32 tests pass.</p>
+                <p class="line"><b>Open:</b> delete waits on a second driver; tax source contended; Bo has not answered the handoff.</p>
+              </div>
+              <div class="foot"><button class="btn quiet sm" type="button">Mark read</button><a class="btn quiet sm" href="#">Full brief</a></div>
+            </section>
+          </div>
+        </div>
+      </div>
+      <p class="cap">Open. The sheet takes most of the height; the lists scroll inside it, the column stays where it was.</p>
+    </div>
+
+    <div class="notes">
+      <p><b>Same lists, same words.</b> The phone sheet is the desktop drawer at full width. Rows that carried two lines on desktop carry one here; the author moves into the right-hand meta or drops, never into a second font.</p>
+      <p><b>No tabs.</b> Five short lists fit one sheet; a tab bar would hide four of them and add chrome. The sheet scrolls, and the section labels are enough to find a place.</p>
+      <p><b>Status is a word with a dot.</b> Here, Away, Waiting, Contention, Conflict. Contention and the branch conflict also get the apricot rule on the left, the same mark the notice uses in the column, so the drawer and the stream agree.</p>
+      <p><b>One accent.</b> The send arrow is the only filled control on either screen. Drawer buttons are quiet text: Pause, Fork, Resolve, Mark read.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Inbox: rationale
+
+**Decision.** The inbox is rows under a project name, never cards, and every kind of item uses the same four parts: a kind icon, the ask as a sentence, a by-line with the agent, the session as a link, the state as a status word with a dot and the wait time, and the answer on the right with buttons that name the act. Grouping follows the project tree; the session is a word in the by-line, not a level. Rows that are not this person's to answer stay listed, greyed, with "not yours to answer", and never add to a count. Once settled, a row loses its answer and its hairline and becomes a grey line like a tool step, under a collapsible "Done today". The accent sits on the first undecided answer only, so a screen with six open items still has one strong colour. The tray popover is the same rows narrowed: the answer drops under the by-line and the project moves into it.
+
+**Rejected.** Cards with coloured left borders (chrome that teaches skimming). A badge on every project (one sidebar number is enough). Tabs per kind (the icon says the kind; people act by urgency). A confirmation modal after Approve (the row becoming a line is the confirmation). Hiding buttons on rows that need someone else.
+
+**Carry forward.** The four-part row as the one notification shape everywhere; "needs you" as the only counted state; row-to-line on settlement; the accent on the next decision.

@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Motion spec</title>
+<meta name="description" content="How Fold moves: five motions (streaming text, status pulse, drawer, notice, handoff ring), three durations, three easings, and what each becomes under reduced motion. Every demo is CSS only.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* motion tokens: three durations, three easings, one pulse. Nothing else is allowed. */
+:root {
+  --t-1: 120ms;   /* micro: hover, caret, chevron, crossfade of a word */
+  --t-2: 200ms;   /* appear and dismiss: notice, tool line, menu */
+  --t-3: 320ms;   /* move: drawer, driver ring, pane resize */
+  --t-pulse: 1600ms;
+  --stagger: 36ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);    /* arriving */
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);     /* leaving */
+  --ease-move: cubic-bezier(0.4, 0, 0.2, 1); /* moving in place */
+}
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 72px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 20px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header h2 .n { color: var(--fg-3); margin-right: 10px; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* rules and spec tables: rows, not cards */
+.rules { width: min(var(--col), 100%); margin: 0; padding: 0; list-style: none; counter-reset: r; display: flex; flex-direction: column; }
+.rules li { counter-increment: r; display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.rules li > div { min-width: 0; }
+.rules li::before { content: counter(r); color: var(--fg-3); font-variant-numeric: tabular-nums; font-size: 13px; padding-top: 2px; }
+.rules li b { font-weight: 500; }
+.rules li span { color: var(--fg-2); }
+table.spec { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.spec th { text-align: left; font-weight: 500; font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; padding: 0 12px 8px 0; border-bottom: 1px solid var(--line); }
+table.spec td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--fg); }
+table.spec td.k { color: var(--fg-2); }
+table.spec td .mono { font-size: 12.5px; }
+table.spec td:last-child, table.spec th:last-child { padding-right: 0; }
+table.spec.tokens td:first-child { width: 150px; }
+
+/* a stage: the demo sits on the canvas, the controls above it on one row */
+.stage { display: flex; flex-direction: column; gap: 14px; width: min(var(--col), 100%); }
+.stage.wide { width: 100%; }
+.stage .ctl { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fg-3); }
+.stage .ctl .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.tog { position: absolute; opacity: 0; width: 0; height: 0; }
+.tog:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tog + label.btn { gap: 8px; }
+.tog + label .on, .tog:checked + label .off { display: none; }
+.tog:checked + label .on { display: inline; }
+.demo { display: flex; flex-direction: column; gap: 20px; }
+.msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.msg .meta .faint { font-size: 12px; }
+.step .ic { width: 14px; height: 14px; }
+.step .mono { font-size: 12.5px; }
+.step .chev { margin-left: 2px; width: 12px; height: 12px; transition: transform var(--t-1) var(--ease-move); }
+
+/* 1. streaming text: each chunk arrives, nothing types. The rest state is the final state;
+   the hidden start lives in the keyframe (fill backwards), so animation:none under reduced motion shows the finished text. */
+.w { display: inline-block; max-width: 240px; margin-right: 0.3em; overflow: hidden; vertical-align: bottom; white-space: nowrap;
+  animation: reveal 180ms var(--ease-out) backwards; animation-delay: calc(var(--i) * var(--stagger) + 300ms); }
+/* in the product unreceived text takes no space; the demo imitates that by holding each word's width at 0 until it arrives */
+@keyframes reveal { from { opacity: 0; transform: translateY(2px); max-width: 0; margin-right: 0; } 40% { max-width: 240px; margin-right: 0.3em; } }
+@keyframes reveal-b { from { opacity: 0; transform: translateY(2px); max-width: 0; margin-right: 0; } 40% { max-width: 240px; margin-right: 0.3em; } }
+:root:has(#rp-stream:checked) .w { animation-name: reveal-b; }
+.caret { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--fg); vertical-align: middle; margin-left: 2px;
+  animation: blink 1s steps(2, start) infinite, caret-off var(--t-1) var(--ease-in) calc(56 * var(--stagger) + 800ms) forwards; }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes caret-off { to { opacity: 0; } }
+@keyframes caret-off-b { to { opacity: 0; } }
+:root:has(#rp-stream:checked) .caret { animation-name: blink, caret-off-b; }
+.w.done { animation: none; }
+
+/* 2. status dot: only "running" moves, and only in opacity. No scale, no glow, no second colour. */
+.statuses { display: flex; flex-direction: column; }
+.statuses .r { display: grid; grid-template-columns: 150px 1fr; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--line); align-items: center; font-size: 14px; }
+.statuses .r .status { font-size: 14px; color: var(--fg); }
+.statuses .r .d { font-size: 13px; color: var(--fg-2); }
+.status.contention::before { background: var(--highlight); }
+.status.frozen::before { animation: none; }
+
+/* 3. drawer: width moves, content fades after it has room. Closing is faster than opening. */
+.app { width: 100%; height: 400px; overflow: hidden; display: flex; }
+.app .sidebar { width: 200px; padding: 10px; gap: 1px; }
+.app .sidebar .brand { padding-bottom: 8px; font-size: 18px; }
+.app .sidebar .brand img { width: 18px; height: 18px; }
+.app .sidebar .item { font-size: 13.5px; display: grid; grid-template-columns: 6px 1fr; gap: 8px; }
+.app .sidebar .item .dot { background: var(--fg-3); }
+.app .sidebar .item .dot.running { background: var(--ok); animation: pulse var(--t-pulse) ease-in-out infinite; }
+.app .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.app .main { min-width: 0; }
+.app .topbar { padding-block: 8px; }
+.app .topbar .title .serif { font-size: 15px; }
+.app .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.app .topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.app .topbar .right .btn .ic { width: 14px; height: 14px; }
+.app .scroll { padding-top: 4px; }
+.app .column { padding: 0 20px 16px; gap: 18px; }
+.app .msg.agent .text { font-size: 14.5px; }
+.app .drawer { width: 0; padding: 20px 0; border-left-color: transparent; overflow: hidden; gap: 18px; font-size: 13.5px;
+  transition: width var(--t-2) var(--ease-in), padding var(--t-2) var(--ease-in), border-color var(--t-2) var(--ease-in); }
+.app .drawer > * { width: 240px; flex: none; opacity: 0; transition: opacity 80ms var(--ease-in); }
+.app .drawer h3 { font-size: 11.5px; margin-bottom: 6px; }
+.app .drawer .kv { grid-template-columns: 84px 1fr; font-size: 13.5px; }
+:root:has(#dr-open:checked) .app .drawer { width: 280px; padding: 20px; border-left-color: var(--line);
+  transition: width var(--t-3) var(--ease-out), padding var(--t-3) var(--ease-out), border-color var(--t-3) var(--ease-out); }
+:root:has(#dr-open:checked) .app .drawer > * { opacity: 1; transition: opacity 160ms var(--ease-out) 120ms; }
+:root:has(#dr-open:checked) .app .topbar .btn.details { background: var(--bg-3); color: var(--fg); }
+/* on load, the drawer opens once so the page shows the motion without a click */
+:root:has(#dr-open:checked) .app .drawer { animation: drawer-in var(--t-3) var(--ease-out) 500ms backwards; }
+:root:has(#dr-open:checked) .app .drawer > * { animation: fade-in 160ms var(--ease-out) 620ms backwards; }
+@keyframes drawer-in { from { width: 0; padding-inline: 0; border-left-color: transparent; } }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* 4. notice: the stream makes room first, then the notice fades in. Dismissed, it collapses to a line. */
+.slot { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--t-2) var(--ease-out); }
+.slot .clip { min-height: 0; overflow: hidden; }
+.slot .notice { margin: 1px; opacity: 1; transform: none; transition: opacity var(--t-2) var(--ease-out) 80ms, transform var(--t-2) var(--ease-out) 80ms; gap: 8px; padding: 14px 16px 12px; }
+.slot .notice .q { font-size: 15px; }
+.slot .notice .q .serif { font-size: 16px; }
+.slot .notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); flex-wrap: wrap; }
+.slot .notice .st .sep { color: var(--fg-3); }
+.slot .notice .actions { margin-top: 6px; align-items: center; }
+.slot .notice .actions .after { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+.btn.quiet { border-color: transparent; color: var(--fg-2); padding-inline: 8px; }
+:root:has(#nt-show:not(:checked)) .slot { grid-template-rows: 0fr; transition: grid-template-rows var(--t-2) var(--ease-in) 60ms; }
+:root:has(#nt-show:not(:checked)) .slot .notice { opacity: 0; transform: translateY(4px); transition: opacity var(--t-1) var(--ease-in), transform var(--t-1) var(--ease-in); }
+:root:has(#nt-show:checked) .slot { animation: slot-in var(--t-2) var(--ease-out) 700ms backwards; }
+:root:has(#nt-show:checked) .slot .notice { animation: notice-in var(--t-2) var(--ease-out) 780ms backwards; }
+@keyframes slot-in { from { grid-template-rows: 0fr; } }
+@keyframes notice-in { from { opacity: 0; transform: translateY(4px); } }
+.settled { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--fg-2); padding: 3px 0; opacity: 0; transition: opacity var(--t-1) var(--ease-in); }
+.settled .ic { width: 14px; height: 14px; opacity: 0.8; }
+:root:has(#nt-show:not(:checked)) .settled { opacity: 1; transition: opacity var(--t-2) var(--ease-out) 200ms; }
+.after-stream { font-size: 15.5px; opacity: 1; }
+
+/* 5. handoff ring: the ring travels, the names stay put. The word "driver" crossfades. */
+.seat { display: flex; align-items: center; gap: 28px; padding: 4px 0; }
+.seat .people { position: relative; display: flex; gap: 16px; }
+.seat .p { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 44px; font-size: 12.5px; color: var(--fg-2); }
+.seat .p .avatar { width: 30px; height: 30px; font-size: 12px; border: 0; }
+.seat .p.off .avatar { opacity: 0.45; }
+.seat .ring { position: absolute; left: 7px; top: -3px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--highlight); pointer-events: none;
+  transform: translateX(0); transition: transform var(--t-3) var(--ease-move); }
+:root:has(#hd-bo:checked) .seat .ring { transform: translateX(60px); animation: ring-in var(--t-3) var(--ease-move) 900ms backwards; }
+@keyframes ring-in { from { transform: translateX(0); } }
+.seat .who { position: relative; font-size: 14px; color: var(--fg-2); min-width: 150px; height: 24px; }
+.seat .who span { position: absolute; left: 0; top: 0; white-space: nowrap; }
+.seat .who span .serif { font-size: 15px; color: var(--fg); position: static; }
+.seat .who .a { opacity: 1; transition: opacity var(--t-1) var(--ease-out) var(--t-1); }
+.seat .who .b { opacity: 0; transition: opacity var(--t-1) var(--ease-in); }
+:root:has(#hd-bo:checked) .seat .who .a { opacity: 0; transition: opacity var(--t-1) var(--ease-in); animation: fade-out var(--t-1) var(--ease-in) 900ms backwards; }
+:root:has(#hd-bo:checked) .seat .who .b { opacity: 1; transition: opacity var(--t-1) var(--ease-out) var(--t-1); animation: fade-in var(--t-1) var(--ease-out) 1020ms backwards; }
+@keyframes fade-out { from { opacity: 1; } }
+
+/* 6. reduced motion: the global rule in tokens.css removes every transition and animation.
+   Because each element's rest state is its end state, nothing needs a second stylesheet. These three lines are the whole fallback. */
+@media (prefers-reduced-motion: reduce) {
+  .caret { opacity: 0; }
+  .status.running::before, .dot.running { opacity: 1; }
+}
+.rm { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 4px; }
+.rm .code { margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); font: 12.5px/1.6 var(--mono); color: var(--fg-2); white-space: pre; overflow: auto; }
+.rm .code b { font-weight: 500; color: var(--fg); }
+
+.closing { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 10px; color: var(--fg-2); font-size: 14px; }
+.closing .serif { font-size: 22px; color: var(--fg); }
+.msg.agent .text .serif.i { color: var(--fg-3); }
+@media (max-width: 760px) {
+  .sheet { width: 100%; padding-inline: 16px; }
+  .app { height: auto; } .app .sidebar { display: none; }
+  table.spec th:nth-child(4), table.spec td:nth-child(4) { display: none; }
+  .seat { flex-wrap: wrap; gap: 16px; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+  <div class="intro">
+    <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Motion spec</div>
+    <h1>How Fold moves</h1>
+    <p>Five motions, three durations, three easings. Motion in Fold tells you that something changed and where; it never decorates. Every demo on this page is CSS only, and every one of them collapses to its end state under <span class="mono">prefers-reduced-motion</span>.</p>
+  </div>
+
+  <section>
+    <header><h2><span class="n">0</span>Rules</h2><p>What the whole system fits in.</p></header>
+    <ol class="rules">
+      <li><div><b>Nothing moves unless it changed.</b> <span>No idle motion anywhere except one dot, and that dot means a process is alive.</span></div></li>
+      <li><div><b>Only opacity and transform, plus one measured width.</b> <span>Never colour alone, never blur, never scale above 1. The drawer and the notice slot are the only things that change size.</span></div></li>
+      <li><div><b>Three durations: 120, 200, 320 ms.</b> <span>Micro, appear, move. Nothing on screen lasts longer than 320 ms except the pulse. Staggers are 36 ms and stop after the eighth sibling.</span></div></li>
+      <li><div><b>Arriving decelerates, leaving accelerates, moving does both.</b> <span>Leaving is always shorter than arriving: the thing you asked to close should be gone before you look for it.</span></div></li>
+      <li><div><b>The rest state is the end state.</b> <span>Hidden starts live in keyframes with <span class="mono">fill: backwards</span>. Setting <span class="mono">animation: none</span> is the complete reduced-motion fallback.</span></div></li>
+    </ol>
+  </section>
+
+  <section>
+    <header><h2><span class="n">1</span>Tokens</h2><p>Declared once on <span class="mono">:root</span>; no literal durations in component CSS.</p></header>
+    <table class="spec tokens">
+      <thead><tr><th>Token</th><th>Value</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">--t-1</td><td class="mono">120ms</td><td class="k">Hover, chevron turn, caret fade, a word crossfading into another</td></tr>
+        <tr><td class="mono">--t-2</td><td class="mono">200ms</td><td class="k">Appear and dismiss: notice, tool line, menu, toast, a message chunk</td></tr>
+        <tr><td class="mono">--t-3</td><td class="mono">320ms</td><td class="k">Move: drawer, driver ring, pane resize, sidebar collapse</td></tr>
+        <tr><td class="mono">--t-pulse</td><td class="mono">1600ms</td><td class="k">The running dot, and nothing else</td></tr>
+        <tr><td class="mono">--stagger</td><td class="mono">36ms</td><td class="k">Between streamed chunks or list rows; capped at 8 × 36 = 288 ms</td></tr>
+        <tr><td class="mono">--ease-out</td><td class="mono">cubic-bezier(0.2, 0, 0, 1)</td><td class="k">Arriving: notice, drawer opening, text chunk</td></tr>
+        <tr><td class="mono">--ease-in</td><td class="mono">cubic-bezier(0.4, 0, 1, 1)</td><td class="k">Leaving: dismiss, drawer closing, caret off</td></tr>
+        <tr><td class="mono">--ease-move</td><td class="mono">cubic-bezier(0.4, 0, 0.2, 1)</td><td class="k">Moving in place: driver ring, chevron, segmented control thumb</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <header><h2><span class="n">2</span>Streaming text reveal</h2><p>Text arrives in chunks as the model sends them, never typed character by character. Each chunk fades up 2 px. A 7 px dot marks where the next chunk will land and blinks while the agent is thinking; it fades out when the turn ends.</p></header>
+    <div class="stage">
+      <div class="ctl"><span>Ana's agent, replying in Invoice PDF + tax lines</span>
+        <div class="right"><input class="tog" type="checkbox" id="rp-stream"><label class="btn sm" for="rp-stream"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 0 1 9.4-3.9L13.5 5.5M13.5 2v3.5H10"/><path d="M13.5 8a5.5 5.5 0 0 1-9.4 3.9L2.5 10.5M2.5 14v-3.5H6"/></svg>Replay</label></div>
+      </div>
+      <div class="demo">
+        <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">driver</span></div><div class="text">Which way do we go on tax: the Stripe Tax API or our local tables?</div></div>
+        <div class="msg agent"><div class="meta"><span class="avatar agent">A</span><span class="who">Ana's agent</span><span class="status running">running</span></div>
+          <div class="text"><p>
+<span class="w" style="--i:0">I</span><span class="w" style="--i:1">compared</span><span class="w" style="--i:2">the</span><span class="w" style="--i:3">two</span><span class="w" style="--i:4">paths.</span><span class="w" style="--i:5">Stripe</span><span class="w" style="--i:6">Tax</span><span class="w" style="--i:7">covers</span><span class="w" style="--i:8">the</span><span class="w" style="--i:9">EU</span><span class="w" style="--i:10">reverse-charge</span><span class="w" style="--i:11">cases</span><span class="w" style="--i:12">the</span><span class="w" style="--i:13">local</span><span class="w" style="--i:14">tables</span><span class="w" style="--i:15">miss,</span><span class="w" style="--i:16">but</span><span class="w" style="--i:17">it</span><span class="w" style="--i:18">adds</span><span class="w" style="--i:19">a</span><span class="w" style="--i:20">network</span><span class="w" style="--i:21">call</span><span class="w" style="--i:22">to</span><span class="w" style="--i:23">every</span><span class="w" style="--i:24">invoice</span><span class="w" style="--i:25">render.</span><span class="w" style="--i:26">For</span><span class="w" style="--i:27">the</span><span class="w" style="--i:28">Billing</span><span class="w" style="--i:29">page</span><span class="w" style="--i:30">I</span><span class="w" style="--i:31">would</span><span class="w" style="--i:32">keep</span><span class="w" style="--i:33">local</span><span class="w" style="--i:34">tables</span><span class="w" style="--i:35">for</span><span class="w" style="--i:36">display</span><span class="w" style="--i:37">and</span><span class="w" style="--i:38">call</span><span class="w" style="--i:39">Stripe</span><span class="w" style="--i:40">Tax</span><span class="w" style="--i:41">only</span><span class="w" style="--i:42">when</span><span class="w" style="--i:43">an</span><span class="w" style="--i:44">invoice</span><span class="w" style="--i:45">is</span><span class="w" style="--i:46">finalised,</span><span class="w" style="--i:47">so</span><span class="w" style="--i:48">the</span><span class="w" style="--i:49">PDF</span><span class="w" style="--i:50">and</span><span class="w" style="--i:51">the</span><span class="w" style="--i:52">tax</span><span class="w" style="--i:53">lines</span><span class="w" style="--i:54">always</span><span class="w" style="--i:55">agree.</span> <span class="caret" aria-hidden="true"></span></p></div></div>
+      </div>
+    </div>
+    <table class="spec">
+      <thead><tr><th>Element</th><th>Property</th><th>Duration</th><th>Easing</th><th>Reduced motion</th></tr></thead>
+      <tbody>
+        <tr><td>Chunk</td><td class="k">opacity 0 → 1, translateY 2px → 0</td><td class="mono">180ms, +36ms per chunk</td><td class="mono">--ease-out</td><td class="k">Chunks appear whole as they arrive</td></tr>
+        <tr><td>Thinking dot</td><td class="k">opacity 1 → 0 → 1</td><td class="mono">1000ms, steps(2)</td><td class="k">none</td><td class="k">Hidden; the status word "running" carries it</td></tr>
+        <tr><td>Dot leaving</td><td class="k">opacity 1 → 0</td><td class="mono">--t-1</td><td class="mono">--ease-in</td><td class="k">Removed</td></tr>
+        <tr><td>Code and lists</td><td class="k">arrive as one chunk per block</td><td class="mono">--t-2</td><td class="mono">--ease-out</td><td class="k">Same, with no fade</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <header><h2><span class="n">3</span>Status dot pulse</h2><p>Status is a word with a dot in front. Only the running dot breathes, in opacity alone, so a row of sessions reads as calm and the live ones are findable without a second colour.</p></header>
+    <div class="stage">
+      <div class="statuses">
+        <div class="r"><span class="status running">running</span><span class="d">Opacity 1 → 0.3 → 1 over 1.6 s, ease-in-out, forever. One pulse every breath, not every heartbeat.</span></div>
+        <div class="r"><span class="status awaiting">awaiting approval</span><span class="d">Static. A pulse would nag; the notice in the stream already asks.</span></div>
+        <div class="r"><span class="status blocked">blocked</span><span class="d">Static. Red that moves reads as an alarm.</span></div>
+        <div class="r"><span class="status paused">paused</span><span class="d">Static.</span></div>
+        <div class="r"><span class="status contention">contended</span><span class="d">Static apricot: attention is here, but the humans decide the pace.</span></div>
+        <div class="r"><span class="status running frozen">running, reduced motion</span><span class="d">The same dot at full opacity. The word does the work.</span></div>
+      </div>
+    </div>
+    <table class="spec">
+      <thead><tr><th>Element</th><th>Property</th><th>Duration</th><th>Easing</th><th>Reduced motion</th></tr></thead>
+      <tbody>
+        <tr><td>Running dot</td><td class="k">opacity 1 → 0.3 → 1</td><td class="mono">--t-pulse, infinite</td><td class="mono">ease-in-out</td><td class="k">Solid dot</td></tr>
+        <tr><td>Status change</td><td class="k">dot colour and word crossfade</td><td class="mono">--t-1</td><td class="mono">--ease-out</td><td class="k">Swap</td></tr>
+        <tr><td>Sidebar session dot</td><td class="k">same as the running dot, same phase</td><td class="mono">--t-pulse</td><td class="mono">ease-in-out</td><td class="k">Solid dot</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <header><h2><span class="n">4</span>Drawer open</h2><p>The details drawer is a pane, not a sheet: it widens from the right edge and the conversation column gives way, so nothing is covered. The contents fade in only once there is room for them. Closing is faster than opening.</p></header>
+    <div class="stage wide">
+      <div class="ctl"><span>Northwind › Payments › Billing page</span>
+        <div class="right"><input class="tog" type="checkbox" id="dr-open" checked><label class="btn sm" for="dr-open"><span class="off">Open details</span><span class="on">Close details</span></label></div>
+      </div>
+      <div class="frame app">
+        <nav class="sidebar" aria-label="Sessions">
+          <div class="brand"><img src="../../mark.svg" alt="">Fold</div>
+          <div class="section">Billing page</div>
+          <a class="item active" href="#"><span class="dot running"></span><span class="t">Invoice PDF + tax lines</span></a>
+          <a class="item" href="#"><span class="dot"></span><span class="t">Dunning emails</span></a>
+          <a class="item" href="#"><span class="dot"></span><span class="t">Proration rounding</span></a>
+        </nav>
+        <div class="main">
+          <div class="topbar"><div class="title"><span class="serif">Invoice PDF + tax lines</span></div>
+            <div class="right"><span class="status running">running</span><button class="btn icon details" type="button" aria-label="Toggle details"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="M10 3v10"/></svg></button></div></div>
+          <div class="scroll"><div class="column">
+            <div class="msg human"><div class="meta"><span class="who">Bo</span></div><div class="text">Does the PDF footer still show the VAT number for EU customers?</div></div>
+            <div class="msg agent"><div class="meta"><span class="avatar agent">A</span><span class="who">Ana's agent</span></div><div class="text">It does. The footer reads it from <span class="mono">account.tax_ids</span>, so the legacy table is not involved.</div>
+              <div class="steps"><div class="step"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h10v10H3z"/><path d="M6 8h4M8 6v4"/></svg><span>Ran <span class="mono">rg tax_ids src/billing</span></span><svg class="ic chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></div></div></div>
+          </div></div>
+        </div>
+        <aside class="drawer" aria-label="Details">
+          <div class="group"><h3>Session</h3><dl class="kv"><dt>Driver</dt><dd>Ana</dd><dt>Watching</dt><dd>Bo, Cy</dd><dt>Branch</dt><dd class="mono">tax-lines</dd><dt>Events</dt><dd class="mono">1 482</dd></dl></div>
+          <div class="group"><h3>Direction</h3><p>Schema freeze until Thursday <span class="faint">· Dee</span></p></div>
+          <div class="group"><h3>Claims</h3><p class="mono">src/billing/pdf/**</p><p class="mono">NW-2231</p></div>
+        </aside>
+      </div>
+    </div>
+    <table class="spec">
+      <thead><tr><th>Element</th><th>Property</th><th>Duration</th><th>Easing</th><th>Reduced motion</th></tr></thead>
+      <tbody>
+        <tr><td>Drawer opening</td><td class="k">width 0 → 320px, hairline fades in</td><td class="mono">--t-3</td><td class="mono">--ease-out</td><td class="k">Appears at full width</td></tr>
+        <tr><td>Drawer contents</td><td class="k">opacity 0 → 1, starts at 120 ms</td><td class="mono">160ms</td><td class="mono">--ease-out</td><td class="k">Visible at once</td></tr>
+        <tr><td>Drawer closing</td><td class="k">contents opacity → 0, then width → 0</td><td class="mono">80ms, then --t-2</td><td class="mono">--ease-in</td><td class="k">Gone at once</td></tr>
+        <tr><td>Conversation column</td><td class="k">reflows with the width; no transition of its own</td><td class="k">inherits</td><td class="k">inherits</td><td class="k">Reflows</td></tr>
+        <tr><td>Toggle button</td><td class="k">background to --bg-3</td><td class="mono">--t-1</td><td class="mono">--ease-out</td><td class="k">Swap</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <header><h2><span class="n">5</span>Notice appear</h2><p>An approval or a contention is a quiet bordered row inside the stream. The stream makes room first, then the notice fades up, so the text below it never jumps. Answered, it collapses to a single line like any tool step.</p></header>
+    <div class="stage">
+      <div class="ctl"><span>Ana's agent asks; Ana is 1 of 2 drivers needed</span>
+        <div class="right"><input class="tog" type="checkbox" id="nt-show" checked><label class="btn sm" for="nt-show"><span class="off">Ask again</span><span class="on">Settle</span></label></div>
+      </div>
+      <div class="demo">
+        <div class="msg agent"><div class="meta"><span class="avatar agent">A</span><span class="who">Ana's agent</span></div><div class="text">The legacy table is unreferenced since the PDF footer moved to <span class="mono">account.tax_ids</span>. Dropping it is irreversible, so I need two drivers to agree.</div></div>
+        <div class="slot"><div class="clip"><div class="notice">
+          <div class="q"><span class="serif">Ana's agent</span> wants to delete <span class="mono">legacy_invoices</span></div>
+          <div class="st"><span class="status awaiting">awaiting approval</span><span class="sep">·</span><span>irreversible, quorum of 2</span><span class="sep">·</span><span>1 of 2 drivers approved</span></div>
+          <div class="actions"><button class="btn primary sm" type="button">Approve</button><button class="btn sm" type="button">Decline</button><button class="btn quiet sm" type="button">Ask the agent</button><span class="after">Ana approved · waiting for Bo</span></div>
+        </div></div></div>
+        <div class="settled"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg><span>Deleted <span class="mono">legacy_invoices</span> · approved by Ana and Bo</span></div>
+      </div>
+    </div>
+    <table class="spec">
+      <thead><tr><th>Element</th><th>Property</th><th>Duration</th><th>Easing</th><th>Reduced motion</th></tr></thead>
+      <tbody>
+        <tr><td>Slot</td><td class="k">grid-template-rows 0fr → 1fr</td><td class="mono">--t-2</td><td class="mono">--ease-out</td><td class="k">Full height at once</td></tr>
+        <tr><td>Notice</td><td class="k">opacity 0 → 1, translateY 4px → 0, starts at 80 ms</td><td class="mono">--t-2</td><td class="mono">--ease-out</td><td class="k">Visible at once</td></tr>
+        <tr><td>Settling</td><td class="k">notice opacity → 0, slot → 0fr after 60 ms, line fades in after 200 ms</td><td class="mono">--t-1, --t-2, --t-2</td><td class="mono">--ease-in, then --ease-out</td><td class="k">Swap</td></tr>
+        <tr><td>Border</td><td class="k">never animates; a contention is apricot from the first frame</td><td class="k">0</td><td class="k">none</td><td class="k">Same</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <header><h2><span class="n">6</span>Handoff ring move</h2><p>The driver ring is the one piece of apricot that moves. When Bo accepts Ana's handoff, the ring travels from Ana to Bo along the row; the avatars stay where they are. The seat is passed, not thrown: one movement, no bounce, no flash.</p></header>
+    <div class="stage">
+      <div class="ctl"><span>Ana offered the seat to Bo with a computed brief</span>
+        <div class="right"><input class="tog" type="checkbox" id="hd-bo" checked><label class="btn sm" for="hd-bo"><span class="off">Bo accepts</span><span class="on">Back to Ana</span></label></div>
+      </div>
+      <div class="seat">
+        <div class="people">
+          <span class="ring" aria-hidden="true"></span>
+          <div class="p"><span class="avatar">AN</span>Ana</div>
+          <div class="p"><span class="avatar">BO</span>Bo</div>
+          <div class="p"><span class="avatar">CY</span>Cy</div>
+          <div class="p off"><span class="avatar">DE</span>Dee</div>
+        </div>
+        <div class="who" aria-live="polite"><span class="a">Driver <span class="serif">Ana</span></span><span class="b">Driver <span class="serif">Bo</span></span></div>
+      </div>
+    </div>
+    <table class="spec">
+      <thead><tr><th>Element</th><th>Property</th><th>Duration</th><th>Easing</th><th>Reduced motion</th></tr></thead>
+      <tbody>
+        <tr><td>Ring</td><td class="k">translateX from the old seat to the new one</td><td class="mono">--t-3</td><td class="mono">--ease-move</td><td class="k">Jumps</td></tr>
+        <tr><td>Driver name</td><td class="k">old name opacity → 0, new name → 1 after --t-1</td><td class="mono">--t-1 each</td><td class="mono">--ease-in, --ease-out</td><td class="k">Swap</td></tr>
+        <tr><td>Stream divider</td><td class="k">"Bo took the seat" appears as a notice would</td><td class="mono">--t-2</td><td class="mono">--ease-out</td><td class="k">Visible at once</td></tr>
+        <tr><td>Composer</td><td class="k">placeholder changes from "Steer" to "Watch"; no motion</td><td class="k">0</td><td class="k">none</td><td class="k">Same</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <header><h2><span class="n">7</span>Reduced motion</h2><p>Because every element rests in its end state and keeps its start in a keyframe, the fallback is three lines of CSS, two of which already live in <span class="mono">tokens.css</span>. Nothing on this page needs a second set of styles to be correct without motion.</p></header>
+    <div class="rm">
+<pre class="code"><b>@media (prefers-reduced-motion: reduce)</b> {
+  <span class="faint">/* tokens.css */</span>
+  * { transition: none !important; animation: none !important; }
+  <span class="faint">/* the thinking dot has no end state: hide it */</span>
+  .caret { opacity: 0; }
+  <span class="faint">/* the pulse rests solid */</span>
+  .status.running::before { opacity: 1; }
+}</pre>
+    </div>
+    <table class="spec">
+      <thead><tr><th>Motion</th><th>With motion</th><th>Without motion</th></tr></thead>
+      <tbody>
+        <tr><td>Streaming text</td><td class="k">chunks fade up, dot blinks</td><td class="k">chunks appear whole; the status word says "running"</td></tr>
+        <tr><td>Status dot</td><td class="k">running breathes</td><td class="k">solid dot, same colour</td></tr>
+        <tr><td>Drawer</td><td class="k">widens, contents fade in</td><td class="k">present at full width</td></tr>
+        <tr><td>Notice</td><td class="k">slot opens, notice fades up</td><td class="k">present; stream reflows once</td></tr>
+        <tr><td>Handoff ring</td><td class="k">ring travels</td><td class="k">ring is on the new driver; name swaps</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="closing">
+    <p class="serif">Motion is a sentence, not a flourish: this changed, it is here now.</p>
+    <p>Carry into the product: the three durations and three easings as the only motion tokens; the rest-state-is-end-state rule for every component; the pulse as the single idle motion. Anything that wants a fourth duration is probably decoration.</p>
+  </div>
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Presence and the driver</title>
+<meta name="description" content="How Fold shows who is here: the avatar at 16 and 24 px, the apricot driver ring, the stack, the words 'Ana is driving' and 'Bo is writing a directive', the observer count, and the handoff affordance.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 18px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header h2 .n { color: var(--fg-3); margin-right: 10px; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+.cap { font-size: 12.5px; color: var(--fg-3); }
+
+/* ---- the avatar, two sizes ----
+   24 px is the working size: top bar, people rows, the stack next to the title.
+   16 px is the inline size: a presence line, a sidebar agent card, a step in the log.
+   The ring is a second ring outside the avatar's own paper-coloured border, so it never
+   touches the initials and always reads as a ring, not a thicker edge. */
+.avatar { width: 24px; height: 24px; font-size: 10.5px; border-width: 2px; line-height: 1; }
+.avatar.driver { box-shadow: 0 0 0 2px var(--highlight); }
+.avatar.offered { box-shadow: none; outline: 1.5px dashed var(--highlight); outline-offset: 1px; }
+.avatar.agent { border-radius: 7px 7px 7px 2px; }
+.avatar.s16 { width: 16px; height: 16px; font-size: 8px; font-weight: 600; border-width: 1.5px; }
+.avatar.s16.driver { box-shadow: 0 0 0 1.5px var(--highlight); }
+.avatar.s16.offered { outline-width: 1px; outline-offset: 0.5px; }
+.avatar.s16.agent { border-radius: 5px 5px 5px 1.5px; }
+.stack .avatar + .avatar { margin-left: -7px; }
+.stack .avatar.s16 + .avatar.s16 { margin-left: -5px; }
+.stack .avatar.more { background: transparent; color: var(--fg-3); border-color: transparent; font-weight: 500; font-size: 11px; width: auto; padding-left: 3px; letter-spacing: 0.02em; }
+.stack .avatar.s16.more { font-size: 9.5px; padding-left: 2px; }
+
+/* the specimen rows: one line per state, label on the right */
+.spec { display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; width: min(var(--col), 100%); }
+.spec .row { display: grid; grid-template-columns: 56px 1fr; align-items: center; gap: 16px; min-height: 44px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.spec .row .sw { display: flex; align-items: center; justify-content: center; }
+.spec .row .l { color: var(--fg); }
+.spec .row .l .faint { display: block; font-size: 12.5px; }
+.spec h3 { font-size: 12px; color: var(--fg-3); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; padding-bottom: 8px; }
+.ruler { display: flex; align-items: center; gap: 32px; width: min(var(--col), 100%); padding: 14px 0 0; }
+.ruler .m { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12.5px; color: var(--fg-3); }
+.ruler .m .mono { font-size: 12px; }
+
+/* presence lines: a 16 px avatar and a sentence; the verb carries the state, not a colour */
+.pres { display: flex; flex-direction: column; width: min(var(--col), 100%); }
+.pres .pl { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 14px; border-bottom: 1px solid var(--line); }
+.pres .pl .who { font-family: var(--serif); font-size: 15.5px; color: var(--fg); }
+.pres .pl .what { color: var(--fg-2); }
+.pres .pl .where { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+.pres .pl.off .who { color: var(--fg-3); }
+.typing { display: inline-flex; gap: 3px; align-items: center; margin-left: 2px; }
+.typing i { width: 3px; height: 3px; border-radius: 50%; background: var(--fg-3); animation: pulse 1.4s ease-in-out infinite; }
+.typing i:nth-child(2) { animation-delay: 0.2s; } .typing i:nth-child(3) { animation-delay: 0.4s; }
+.watch { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-3); }
+.watch .ic { width: 14px; height: 14px; }
+
+/* the top bar as it appears in the session view: stack, one sentence, one button */
+.bar-demo { display: flex; flex-direction: column; gap: 10px; width: min(1000px, 100%); }
+.bar-demo .frame { height: 48px; }
+.bar-demo .topbar { padding: 8px 16px; height: 48px; }
+.bar-demo .topbar .title .faint { font-size: 13px; margin-left: 8px; }
+.pline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); white-space: nowrap; }
+.pline .sep { color: var(--fg-3); }
+.btn.sm .ic { width: 14px; height: 14px; }
+.bar-demo .frame + .cap { margin-top: -2px; }
+
+/* who is here: the popover under the stack, rows not cards */
+.here { width: 300px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg); padding: 8px 6px; display: flex; flex-direction: column; }
+.here .hd { display: flex; align-items: center; gap: 8px; padding: 4px 10px 8px; font-size: 12.5px; color: var(--fg-3); }
+.here .hd .n { margin-left: auto; }
+.here .person { padding: 6px 10px; border-radius: var(--radius); gap: 10px; }
+.here .person:hover { background: var(--bg-2); }
+.here .person .name { font-family: var(--serif); font-size: 15px; }
+.here .person .role { margin-left: auto; font-size: 12.5px; }
+.here .person .role .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--fg-3); margin-right: 6px; vertical-align: 1px; }
+.here .person .role .dot.on { background: var(--ok); }
+.here .person .role .dot.ring { background: var(--highlight); }
+.here .person.off .name { color: var(--fg-3); }
+.here .ft { display: flex; align-items: center; gap: 8px; padding: 8px 10px 4px; margin-top: 4px; border-top: 1px solid var(--line); font-size: 13.5px; }
+.here .ft a { color: var(--fg-2); }
+.here .ft a:hover { color: var(--fg); text-decoration: none; }
+.here .ft .ic { width: 14px; height: 14px; }
+.two { display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: start; width: min(var(--col), 100%); }
+.two .notes { display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--fg-2); padding-top: 4px; }
+.two .notes b { font-weight: 500; color: var(--fg); }
+
+/* handoff affordance in three seats */
+.seats { display: flex; flex-direction: column; gap: 14px; width: min(1000px, 100%); }
+.seat { display: grid; grid-template-columns: 640px 1fr; gap: 24px; align-items: center; }
+.seat .frame { height: 48px; }
+.seat .topbar { padding: 8px 14px; height: 48px; gap: 10px; }
+.seat .topbar .title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.seat .topbar .right { gap: 8px; flex: none; }
+.seat .cap b { font-weight: 500; color: var(--fg-2); }
+.btn.on { background: var(--bg-3); border-color: transparent; }
+.seat .pline { font-size: 12.5px; }
+
+/* the composer with a presence line above it */
+.comp-demo { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 8px; }
+.above { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); padding: 0 16px; min-height: 20px; }
+.above .who { color: var(--fg); }
+.above .watch { margin-left: auto; }
+.composer textarea { min-height: 44px; }
+.composer .bar .right .btn.icon { width: 30px; min-height: 30px; border-color: transparent; color: var(--fg-2); }
+
+/* in situ: the desktop frame */
+.app { width: 1000px; height: 660px; overflow: hidden; }
+.app .shell { height: 100%; }
+.app .sidebar { width: 272px; padding: 10px; gap: 1px; }
+.app .sidebar .brand { padding-bottom: 8px; }
+.app .sidebar .brand img { width: 20px; height: 20px; }
+.app .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.app .sidebar .section { padding: 10px 10px 4px; }
+.app .sidebar .dir { padding: 0 10px 8px; font-size: 13px; color: var(--fg-3); font-family: var(--serif); font-style: italic; }
+.app .sidebar .agent { padding: 7px 10px; gap: 3px; }
+.app .sidebar .agent .head { font-size: 13.5px; }
+.app .sidebar .agent .doing { font-size: 12.5px; -webkit-line-clamp: 1; }
+.app .sidebar .agent .foot { gap: 6px; }
+.app .sidebar .agent .foot .stack .avatar { width: 16px; height: 16px; font-size: 8px; border-width: 1.5px; }
+.app .sidebar .agent .foot .stack .avatar.driver { box-shadow: 0 0 0 1.5px var(--highlight); }
+.app .sidebar .agent .foot .stack .avatar + .avatar { margin-left: -5px; }
+.app .sidebar .me .who { font-size: 13.5px; line-height: 1.3; }
+.app .topbar { padding: 8px 16px; min-height: 48px; }
+.app .topbar .title { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.app .topbar .title .crumb { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; }
+.app .topbar .title .serif { font-size: 17px; white-space: nowrap; }
+.app .column { padding: 12px 20px 0; gap: 22px; }
+.app .msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.app .msg .text { font-size: 14.5px; }
+.app .msg.human .text { padding: 10px 18px 10px 14px; }
+.app .step { font-size: 13px; }
+.app .step .mono { font-size: 12px; }
+.app .composer-wrap { position: static; padding: 8px 20px 14px; background: none; }
+.app .scroll { overflow: hidden; }
+.app .composer { padding: 10px 10px 8px 14px; gap: 8px; }
+.app .composer textarea { min-height: 22px; font-size: 14px; }
+.app .scroll { display: flex; flex-direction: column; }
+.app .msg.human .meta .who { font-size: 14.5px; }
+.app .divider.handed { font-size: 12.5px; color: var(--fg-2); }
+.app .divider.handed .who { color: var(--fg); font-family: var(--serif); font-size: 14px; }
+
+@media (max-width: 760px) {
+  .sheet { width: min(1000px, 100% - 32px); }
+  .spec, .two, .seat { grid-template-columns: 1fr; }
+  .app { width: 100%; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M4 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5l4 4L8 20H4v-4z"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+</svg>
+
+<main class="sheet">
+  <div class="intro">
+    <div class="crumb"><a href="../../index.html">Fold design</a> › Explorations › Presence and the driver</div>
+    <h1>Presence and the driver</h1>
+    <p>One agent, many humans. Presence is the quiet answer to "who else is in here, and who has the wheel". It is never logged, so it never gets chrome: an avatar, a ring, a sentence. The driver is the one human who holds the seat; the apricot ring says so, and handing off is the ring moving. Everything below is built from the 24 px avatar, the 16 px avatar, five verbs and one button.</p>
+  </div>
+
+  <!-- 1. the two sizes -->
+  <section>
+    <header><h2><span class="n">1</span>Two sizes, four states</h2><p>24 px is the working avatar: the top bar, people rows, the stack by the title. 16 px is the inline avatar: a presence line, a sidebar agent card, a step in the log. The ring sits outside the avatar's own paper border, so it is always a ring and never a thicker edge. "Away" is opacity, not grey; "offered" is a dashed ring that becomes solid on acceptance.</p></header>
+    <div class="spec">
+      <div>
+        <h3>24 px</h3>
+        <div class="row"><span class="sw"><span class="avatar" title="Bo">B</span></span><span class="l">Here <span class="faint">contributor, present</span></span></div>
+        <div class="row"><span class="sw"><span class="avatar driver" title="Ana, driving">A</span></span><span class="l">Driving <span class="faint">2 px apricot ring, 2 px paper gap</span></span></div>
+        <div class="row"><span class="sw"><span class="avatar offered" title="Bo, offered the seat">B</span></span><span class="l">Offered the seat <span class="faint">1.5 px dashed, until Bo answers</span></span></div>
+        <div class="row"><span class="sw"><span class="avatar off" title="Dee, away">D</span></span><span class="l">Away <span class="faint">45% opacity, same tint</span></span></div>
+        <div class="row"><span class="sw"><span class="avatar agent" aria-hidden="true">F</span></span><span class="l">Ana's agent <span class="faint">ink tile with one square corner, never ringed</span></span></div>
+      </div>
+      <div>
+        <h3>16 px</h3>
+        <div class="row"><span class="sw"><span class="avatar s16" title="Bo">B</span></span><span class="l">Here <span class="faint">8 px initials, 1.5 px paper border</span></span></div>
+        <div class="row"><span class="sw"><span class="avatar s16 driver" title="Ana, driving">A</span></span><span class="l">Driving <span class="faint">1.5 px ring, 1.5 px gap</span></span></div>
+        <div class="row"><span class="sw"><span class="avatar s16 offered" title="Bo, offered the seat">B</span></span><span class="l">Offered the seat <span class="faint">1 px dashed</span></span></div>
+        <div class="row"><span class="sw"><span class="avatar s16 off" title="Dee, away">D</span></span><span class="l">Away</span></div>
+        <div class="row"><span class="sw"><span class="avatar s16 agent" aria-hidden="true">F</span></span><span class="l">Ana's agent <span class="faint">the same tile, inline</span></span></div>
+      </div>
+    </div>
+    <div class="ruler">
+      <div class="m"><span class="avatar driver" title="Ana">A</span><span class="mono">24 + 2 + 2</span></div>
+      <div class="m"><span class="avatar s16 driver" title="Ana">A</span><span class="mono">16 + 1.5 + 1.5</span></div>
+      <div class="m"><span class="stack" aria-label="Ana driving, Bo, Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span class="mono">overlap −7</span></div>
+      <div class="m"><span class="stack" aria-label="Ana driving, Bo, Cy"><span class="avatar s16 driver" title="Ana, driving">A</span><span class="avatar s16" title="Bo">B</span><span class="avatar s16" title="Cy">C</span></span><span class="mono">overlap −5</span></div>
+    </div>
+  </section>
+
+  <!-- 2. the stack -->
+  <section>
+    <header><h2><span class="n">2</span>The stack</h2><p>The driver is always first and always ringed, so the eye finds the seat before it counts heads. Then whoever is present, in order of joining; away people fall off the stack and into the count. Past four, the rest is a number, not a fifth face. The stack is one control: a button that opens "who is here".</p></header>
+    <div class="spec">
+      <div>
+        <h3>24 px, by the title</h3>
+        <div class="row"><span class="sw"><span class="stack" aria-label="Ana driving, alone"><span class="avatar driver" title="Ana, driving">A</span></span></span><span class="l">Alone <span class="faint">the ring still shows: someone holds the seat</span></span></div>
+        <div class="row"><span class="sw"><span class="stack" aria-label="Ana driving, with Bo"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span></span></span><span class="l">Two <span class="faint">Ana driving, Bo here</span></span></div>
+        <div class="row"><span class="sw"><span class="stack" aria-label="Ana driving, with Bo and Cy, 3 more watching"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar more" title="Dee, Eli, Fay">+3</span></span></span><span class="l">Six <span class="faint">three faces, then a number</span></span></div>
+        <div class="row"><span class="sw"><span class="stack" aria-label="Ana driving, Bo offered the seat, with Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar offered" title="Bo, offered the seat">B</span><span class="avatar" title="Cy">C</span></span></span><span class="l">Handoff pending <span class="faint">Bo's ring is dashed until he answers</span></span></div>
+      </div>
+      <div>
+        <h3>16 px, on an agent card</h3>
+        <div class="row"><span class="sw"><span class="stack" aria-label="Ana driving, alone"><span class="avatar s16 driver" title="Ana, driving">A</span></span></span><span class="l">Alone</span></div>
+        <div class="row"><span class="sw"><span class="stack" aria-label="Ana driving, with Bo"><span class="avatar s16 driver" title="Ana, driving">A</span><span class="avatar s16" title="Bo">B</span></span></span><span class="l">Two</span></div>
+        <div class="row"><span class="sw"><span class="stack" aria-label="Ana driving, with Bo and Cy, 3 more"><span class="avatar s16 driver" title="Ana, driving">A</span><span class="avatar s16" title="Bo">B</span><span class="avatar s16" title="Cy">C</span><span class="avatar s16 more" title="Dee, Eli, Fay">+3</span></span></span><span class="l">Six</span></div>
+        <div class="row"><span class="sw"><span class="stack" aria-label="Ana driving, Bo offered the seat, with Cy"><span class="avatar s16 driver" title="Ana, driving">A</span><span class="avatar s16 offered" title="Bo, offered the seat">B</span><span class="avatar s16" title="Cy">C</span></span></span><span class="l">Handoff pending</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. the words -->
+  <section>
+    <header><h2><span class="n">3</span>Five verbs</h2><p>Presence is a sentence in the voice of the brand: a name in the serif, a verb in the sans. The verb carries the state; colour does not. Only "driving" gets the ring, and only "writing" gets motion, three dots that pulse while a directive or a vote is being typed. Observers are a count with a thin eye, not a row of faces.</p></header>
+    <div class="pres">
+      <div class="pl"><span class="avatar s16 driver" title="Ana, driving">A</span><span class="who">Ana</span><span class="what">is driving</span><span class="where">top bar, people list</span></div>
+      <div class="pl"><span class="avatar s16" title="Bo">B</span><span class="who">Bo</span><span class="what">is writing a directive<span class="typing" aria-hidden="true"><i></i><i></i><i></i></span></span><span class="where">above the composer, for 10 s after the last keystroke</span></div>
+      <div class="pl"><span class="avatar s16" title="Cy">C</span><span class="who">Cy</span><span class="what">is reading turn 4</span><span class="where">people list only</span></div>
+      <div class="pl"><span class="avatar s16" title="Dee">D</span><span class="who">Dee</span><span class="what">is offered the seat</span><span class="where">top bar, until she answers</span></div>
+      <div class="pl off"><span class="avatar s16 off" title="Dee, away">D</span><span class="who">Dee</span><span class="what">away 2 h</span><span class="where">people list, folded into the count</span></div>
+      <div class="pl"><span class="watch"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg>3 watching</span><span class="where">next to the stack when observers outnumber faces</span></div>
+    </div>
+  </section>
+
+  <!-- 4. in the top bar -->
+  <section>
+    <header><h2><span class="n">4</span>In the top bar</h2><p>The 48 px bar keeps the title on the left and presence on the right: the stack, one sentence, the count. The sentence changes with the state, so the bar reads "Ana is driving" most of the day, "Bo is writing a directive" for a few seconds, and "Dee is offered the seat" during a handoff. Nothing is added; a word is swapped.</p></header>
+    <div class="bar-demo">
+      <div class="frame"><div class="topbar"><div class="title"><span class="serif">Invoice PDF + tax lines</span><span class="faint">Billing page</span></div><div class="right"><span class="pline"><span class="stack" aria-label="Ana driving, with Bo and Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span><span class="serif">Ana</span> is driving</span><span class="sep">·</span><span class="watch"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg>3</span></span><a class="btn sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-hand"/></svg>Hand off</a><a class="btn sm" href="#">Details</a></div></div></div>
+      <p class="cap">Steady state, as Ana sees it. She holds the seat, so "Hand off" is hers.</p>
+      <div class="frame"><div class="topbar"><div class="title"><span class="serif">Invoice PDF + tax lines</span><span class="faint">Billing page</span></div><div class="right"><span class="pline"><span class="stack" aria-label="Ana driving, with Bo and Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span><span class="serif">Bo</span> is writing a directive<span class="typing" aria-hidden="true"><i></i><i></i><i></i></span></span><span class="sep">·</span><span class="watch"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg>3</span></span><a class="btn sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-hand"/></svg>Hand off</a><a class="btn sm" href="#">Details</a></div></div></div>
+      <p class="cap">The sentence yields to the most recent human act for a few seconds, then returns to the driver.</p>
+      <div class="frame"><div class="topbar"><div class="title"><span class="serif">Invoice PDF + tax lines</span><span class="faint">Billing page</span></div><div class="right"><span class="pline"><span class="stack" aria-label="Ana driving, Bo offered the seat, with Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar offered" title="Bo, offered the seat">B</span><span class="avatar" title="Cy">C</span></span><span><span class="serif">Bo</span> is offered the seat</span><span class="sep">·</span><span class="watch"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg>3</span></span><a class="btn sm quiet" href="#">Withdraw</a><a class="btn sm" href="#">Details</a></div></div></div>
+      <p class="cap">Handoff pending. Bo's ring is dashed, "Hand off" becomes "Withdraw", and the ring itself does not move until Bo accepts.</p>
+    </div>
+  </section>
+
+  <!-- 5. who is here -->
+  <section>
+    <header><h2><span class="n">5</span>Who is here</h2><p>Pressing the stack opens one quiet list under it. Rows, not cards: a name, a verb, a lead's title where it matters. The driver's own row carries the ring and the only coloured dot; present people are green, away people fade. The one action lives at the foot, and only the driver sees it.</p></header>
+    <div class="two">
+      <div class="here" role="dialog" aria-label="Who is here">
+        <div class="hd"><span>In this session</span><span class="n">4 people · 3 here</span></div>
+        <div class="person"><span class="avatar driver" title="Ana, driving">A</span><span class="name">Ana <span class="faint small">you</span></span><span class="role"><span class="dot ring"></span>driving</span></div>
+        <div class="person"><span class="avatar" title="Bo">B</span><span class="name">Bo</span><span class="role"><span class="dot on"></span>writing a directive</span></div>
+        <div class="person"><span class="avatar" title="Cy">C</span><span class="name">Cy</span><span class="role"><span class="dot on"></span>reading turn 4</span></div>
+        <div class="person off"><span class="avatar off" title="Dee, away">D</span><span class="name">Dee <span class="faint small">lead</span></span><span class="role"><span class="dot"></span>away 2 h</span></div>
+        <div class="ft"><svg class="ic" aria-hidden="true"><use href="#i-hand"/></svg><a href="#">Hand off the seat…</a></div>
+      </div>
+      <div class="notes">
+        <p><b>Order.</b> Driver, then present people by joining, then away. The list never re-sorts while open.</p>
+        <p><b>Verbs.</b> driving · writing a directive · writing a vote · reading turn n · away n. Six words that any teammate, and Slack, can say.</p>
+        <p><b>What is not here.</b> No roles unless they explain authority (lead, owner). No "last seen" timestamps. No status pills; the dot and the word are enough.</p>
+        <p><b>Hand off.</b> Choosing it opens the offer notice in the stream, as in the handoff exploration. Non-drivers see "Ask to drive" instead, which posts a one-line request to the driver.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. the seat from three chairs -->
+  <section>
+    <header><h2><span class="n">6</span>The handoff affordance, from three chairs</h2><p>The same bar, three people. Only the driver can give the seat away; a contributor can ask; an observer can only watch and read the brief. The affordance is one small button whose label changes with the chair. It is never primary: the accent stays on the composer's send arrow.</p></header>
+    <div class="seats">
+      <div class="seat">
+        <div class="frame"><div class="topbar"><div class="title serif">Invoice PDF + tax lines</div><div class="right"><span class="pline"><span class="stack" aria-label="Ana driving, with Bo and Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span>You are driving</span></span><a class="btn sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-hand"/></svg>Hand off</a></div></div></div>
+        <p class="cap"><b>Ana, driver.</b> "You are driving"; "Hand off" opens the offer.</p>
+      </div>
+      <div class="seat">
+        <div class="frame"><div class="topbar"><div class="title serif">Invoice PDF + tax lines</div><div class="right"><span class="pline"><span class="stack" aria-label="Ana driving, with Bo and Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span><span class="serif">Ana</span> is driving</span></span><a class="btn sm quiet" href="#">Ask to drive</a></div></div></div>
+        <p class="cap"><b>Bo, contributor.</b> A quiet request; Ana gets a one-line notice.</p>
+      </div>
+      <div class="seat">
+        <div class="frame"><div class="topbar"><div class="title serif">Invoice PDF + tax lines</div><div class="right"><span class="pline"><span class="stack" aria-label="Ana driving, with Bo and Cy"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span><span class="serif">Ana</span> is driving</span></span><a class="btn sm quiet" href="#">Brief</a></div></div></div>
+        <p class="cap"><b>Dee, observer.</b> No seat affordance at all; the brief is what an observer can ask for.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. above the composer -->
+  <section>
+    <header><h2><span class="n">7</span>Above the composer</h2><p>"Bo is writing a directive" matters most where it changes what you are about to do: just above your own composer. One line in the gutter, 16 px avatar, no box, gone ten seconds after Bo stops. The observer count sits at the far end of the same line so a driver typing something risky knows who is watching.</p></header>
+    <div class="comp-demo">
+      <div class="above"><span class="avatar s16" title="Bo">B</span><span><span class="who">Bo</span> is writing a directive</span><span class="typing" aria-hidden="true"><i></i><i></i><i></i></span><span class="watch"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg>3 watching</span></div>
+      <form class="composer" onsubmit="return false">
+        <label class="sr-only" for="c1">Steer Ana's agent</label>
+        <textarea id="c1" placeholder="Steer the agent, or write to the team…"></textarea>
+        <div class="bar"><button class="btn icon" type="button" aria-label="Attach"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button><span class="seg" role="group" aria-label="Send to"><button type="button" class="on">Agent</button><button type="button">Team</button></span><div class="right"><button class="send" type="submit" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- 8. in situ -->
+  <section>
+    <header><h2><span class="n">8</span>In the session</h2><p>All of it at once, in the desktop shell at 1000 px: the 16 px stacks on the agents rail, the 24 px stack and sentence in the bar, the ring on Ana, the seat divider from this morning's handoff, and Bo's line above the composer. Count the apricot: one crease, two rings, one corner on each human message.</p></header>
+    <div class="frame app">
+      <div class="shell">
+        <aside class="sidebar">
+          <div class="brand"><img src="../../mark.svg" alt="">Fold</div>
+          <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+          <a class="item" href="#"><svg class="ic" aria-hidden="true" style="width:15px;height:15px;color:var(--fg-2)"><use href="#i-search"/></svg>Search</a>
+          <div class="section">Northwind › Payments <span class="n">4</span></div>
+          <div class="dir">schema freeze until Thursday · Dee</div>
+          <a class="agent active" href="#"><span class="head"><span class="dot running"></span><span class="t">Invoice PDF + tax lines</span></span><span class="doing"><i>working on</i> tax lines under the subtotal</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span class="with">with Bo, Cy</span></span></a>
+          <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Tax rounding audit</span></span><span class="doing"><i>working on</i> per-line rounding, EU rates</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar driver" title="Cy">C</span><span class="avatar" title="Dee">D</span></span><span class="with">with Dee</span></span></a>
+          <a class="agent" href="#"><span class="head"><span class="dot awaiting_approval"></span><span class="t">Proration fix</span></span><span class="doing"><i>waiting on</i> an approval</span><span class="foot"><span class="pill solo">Solo</span><span class="stack" aria-hidden="true"><span class="avatar driver" title="Dee">D</span></span><span class="with">Dee</span></span></a>
+          <a class="agent" href="#"><span class="head"><span class="dot paused"></span><span class="t">Checkout retries</span></span><span class="doing"><i>paused by</i> Bo</span><span class="foot"><span class="pill solo">Solo</span><span class="stack" aria-hidden="true"><span class="avatar driver" title="Bo">B</span></span><span class="with">Bo</span></span></a>
+          <div class="me"><span class="avatar driver" title="Ana">A</span><div class="who">Ana Moreau<div class="small faint">Northwind · driving</div></div></div>
+        </aside>
+        <div class="main">
+          <div class="topbar">
+            <div class="title"><span class="crumb">Billing page ›</span><span class="serif">Invoice PDF + tax lines</span></div>
+            <div class="right"><span class="pline"><button class="stack" type="button" style="border:0;background:none;padding:0;cursor:pointer" aria-label="Who is here: Ana driving, Bo, Cy, 3 watching"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></button><span>You are driving</span><span class="sep">·</span><span class="watch"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg>3</span></span><a class="btn sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-hand"/></svg>Hand off</a><a class="btn sm" href="#">Details</a></div>
+          </div>
+          <div class="scroll">
+            <div class="column">
+              <div class="divider handed"><span><span class="who">Bo</span> handed the seat to <span class="who">Ana</span> · 09:14</span></div>
+              <div class="msg human"><div class="meta"><span class="avatar s16 driver" title="Ana, driving">A</span><span class="who">Ana</span><span class="faint">steer · 09:16</span></div><div class="text">Keep the tax lines under the subtotal; the page template stays as it is.</div></div>
+              <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 7</span></div><div class="text">Tax lines fit under the subtotal without touching the page template; the PDF now rounds per line like rates.ts and all 32 tests pass.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+              <div class="msg human"><div class="meta"><span class="avatar s16" title="Cy">C</span><span class="who">Cy</span><span class="faint">suggestion · 09:31</span></div><div class="text">Could we try Stripe Tax for the EU rates instead of the local tables?</div></div>
+            </div>
+            <div class="composer-wrap" style="margin-top:auto">
+              <div class="above" style="width:min(var(--col),100%);margin:0 auto 6px"><span class="avatar s16" title="Bo">B</span><span><span class="who">Bo</span> is writing a directive</span><span class="typing" aria-hidden="true"><i></i><i></i><i></i></span></div>
+              <form class="composer" onsubmit="return false">
+                <label class="sr-only" for="c2">Steer Ana's agent</label>
+                <textarea id="c2" placeholder="Steer the agent, or write to the team…"></textarea>
+                <div class="bar"><button class="btn icon" type="button" aria-label="Attach"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button><span class="seg" role="group" aria-label="Send to"><button type="button" class="on">Agent</button><button type="button">Team</button></span><div class="right"><button class="send" type="submit" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Ana's chair. The bar says "You are driving"; the sidebar's own row repeats the ring so it is visible even with the top bar scrolled.</p>
+  </section>
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

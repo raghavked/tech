@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Session list states</title>
+<meta name="description" content="Session rows in the Fold sidebar and on the project page across every status, with the unread, needs-you and paused-by-direction markers, and the row's own hover, open and focus states.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1360px, 100% - 48px); margin: 0 auto; padding: 48px 0 120px; display: flex; flex-direction: column; gap: 72px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .nav { display: flex; gap: 16px; font-size: 13px; color: var(--fg-2); }
+.intro .nav a { color: var(--fg-2); } .intro .nav a:hover { color: var(--fg); }
+.intro p { color: var(--fg-2); }
+.block { display: flex; flex-direction: column; gap: 22px; }
+.block > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+.block > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+.block > header p { color: var(--fg-2); font-size: 14px; }
+.label { font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; }
+
+/* ---------- the sidebar row ---------- */
+.sb { width: 288px; flex: none; background: var(--bg-2); border-radius: var(--radius-lg); padding: 10px; display: flex; flex-direction: column; gap: 2px; min-height: 640px; }
+.sb .brand { display: flex; align-items: center; gap: 8px; padding: 6px 8px 10px; font-family: var(--serif); font-size: 21px; color: var(--fg); text-decoration: none; }
+.sb .brand .mark { width: 14px; height: 14px; border-radius: 3px 3px 3px 1px; background: var(--fg); flex: none; }
+.sb .new, .sb .search { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); color: var(--fg); background: transparent; border: 0; font: inherit; font-size: 14px; cursor: pointer; text-align: left; width: 100%; }
+.sb .search { color: var(--fg-3); cursor: text; }
+.sb .new:hover, .sb .search:hover { background: var(--bg-3); }
+.sb .new .ic, .sb .search .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.sb .section { padding: 14px 10px 4px; font-size: 12px; color: var(--fg-3); display: flex; align-items: center; gap: 8px; }
+.sb .section .n { margin-left: auto; font-variant-numeric: tabular-nums; }
+.sb .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 8px; font-size: 14px; }
+.sb .me .avatar { width: 28px; height: 28px; border: 0; }
+.sb .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.sb .me .who .role { display: block; font-size: 12px; color: var(--fg-3); }
+
+.row { position: relative; display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); color: var(--fg); font-size: 14px; text-decoration: none; min-width: 0; }
+.row:hover, .row.is-hover { background: var(--bg-3); text-decoration: none; }
+.row.active, .row.active:hover { background: var(--bg); }
+.row.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.row.is-focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.row .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--fg-3); flex: none; }
+.row .dot.running { background: var(--ok); }
+.row .dot.awaiting { background: var(--warn); }
+.row .dot.blocked { background: var(--danger); }
+.row .dot.paused { background: var(--info); }
+.row .dot.done { background: var(--fg-3); opacity: 0.55; }
+.row .dot.idle { background: transparent; border: 1px solid var(--fg-3); }
+/* paused by direction: the dot becomes a small pause glyph in the same ink */
+.row .dot.directive { width: 6px; height: 8px; border-radius: 0; background: transparent; border-left: 2px solid var(--info); border-right: 2px solid var(--info); }
+.row .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row.unread .t, .row.needs .t { font-weight: 500; }
+.row.archived .t, .row.archived .dot { color: var(--fg-3); }
+.row.archived .dot { background: transparent; }
+.row .mk { flex: none; font-size: 12px; color: var(--fg-2); line-height: 1; }
+.row .mk.u { width: 5px; height: 5px; border-radius: 50%; background: var(--fg); }
+.row .mk .ic { width: 12px; height: 12px; color: var(--fg-3); }
+.row .by { font-size: 12px; color: var(--fg-3); flex: none; }
+
+/* sidebar beside its key */
+.two { display: grid; grid-template-columns: 288px 1fr; gap: 56px; align-items: start; }
+.key { display: flex; flex-direction: column; width: min(760px, 100%); }
+.key .line { display: grid; grid-template-columns: 288px 1fr; gap: 28px; align-items: center; padding: 8px 0; }
+.key .line .sample { background: var(--bg-2); border-radius: var(--radius); padding: 3px; }
+.key .line .what { font-size: 14px; color: var(--fg-2); }
+.key .line .what b { font-weight: 500; color: var(--fg); }
+.key .line.head { padding-bottom: 4px; }
+
+/* ---------- the project page row ---------- */
+.page { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 22px; }
+.page .crumb { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--fg-2); }
+.page .crumb .here { font-family: var(--serif); font-size: 19px; color: var(--fg); }
+.page .crumb .ic { width: 12px; height: 12px; color: var(--fg-3); }
+.page .standing { display: flex; align-items: baseline; gap: 10px; font-size: 14px; color: var(--fg-2); flex-wrap: wrap; }
+.page .standing .q { font-family: var(--serif); font-size: 17px; color: var(--fg); }
+.page h2.sec { font-size: 15px; font-weight: 500; display: flex; align-items: baseline; gap: 8px; margin-top: 6px; }
+.page h2.sec .n { font-size: 13px; color: var(--fg-3); font-weight: 400; }
+.plist { display: flex; flex-direction: column; }
+.srow { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: start; padding: 13px 12px 13px 20px; margin-inline: -12px -12px; border-radius: var(--radius); }
+.srow + .srow::before { content: ""; position: absolute; left: 20px; right: 12px; top: 0; height: 1px; background: var(--line); }
+.srow:hover, .srow.is-hover { background: var(--bg-2); }
+.srow:hover::before, .srow.is-hover::before, .srow.is-hover + .srow::before, .srow:hover + .srow::before { opacity: 0; }
+.srow .u { position: absolute; left: 7px; top: 21px; width: 5px; height: 5px; border-radius: 50%; background: var(--fg); }
+.srow a { color: inherit; text-decoration: none; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.srow a:hover { text-decoration: none; }
+.srow .t { font-size: 15px; }
+.srow.unread .t, .srow.needs .t { font-weight: 500; }
+.srow .s { font-size: 13.5px; color: var(--fg-2); line-height: 1.5; }
+.srow .s i { font-family: var(--serif); font-style: italic; font-size: 14.5px; }
+.srow .s .mono { font-size: 12.5px; }
+.srow .r { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; white-space: nowrap; padding-top: 1px; }
+.srow .status { font-size: 13.5px; color: var(--fg); }
+.srow .status.needs::before { background: var(--warn); }
+.srow .status.done::before { background: var(--fg-3); opacity: 0.55; }
+.srow .status.idle::before { background: transparent; border: 1px solid var(--fg-3); width: 5px; height: 5px; }
+.srow .status.directive::before { width: 6px; height: 8px; border-radius: 0; background: transparent; border-left: 2px solid var(--info); border-right: 2px solid var(--info); }
+.srow .when { font-size: 12.5px; color: var(--fg-3); }
+.srow.archived .t, .srow.archived .status, .srow.archived .s { color: var(--fg-3); }
+.srow.archived .status::before { background: transparent; }
+.srow.archived .s i { color: var(--fg-3); }
+.srow .handed { display: inline-flex; align-items: center; gap: 4px; }
+.srow .handed .ic { width: 12px; height: 12px; color: var(--fg-3); }
+
+/* ---------- the three markers ---------- */
+.marks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; max-width: 1200px; }
+.mark { display: flex; flex-direction: column; gap: 14px; }
+.mark .sample { background: var(--bg-2); border-radius: var(--radius); padding: 3px; width: 288px; }
+.mark h3 { font-family: var(--serif); font-weight: 400; font-size: 19px; letter-spacing: 0; }
+.mark p { font-size: 14px; color: var(--fg-2); }
+.mark p b { font-weight: 500; color: var(--fg); }
+.rule { width: min(var(--col), 100%); font-size: 14px; color: var(--fg-2); }
+.rule b { font-weight: 500; color: var(--fg); }
+
+/* ---------- row states strip ---------- */
+.states { display: grid; grid-template-columns: repeat(4, 288px); gap: 24px; align-items: start; }
+.states .sample { background: var(--bg-2); border-radius: var(--radius); padding: 6px; display: flex; flex-direction: column; gap: 1px; margin-top: 8px; }
+
+.notes { width: min(var(--col), 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 20px 40px; font-size: 14px; color: var(--fg-2); }
+.notes b { display: block; font-weight: 500; color: var(--fg); margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+</svg>
+
+<main class="sheet">
+  <div class="intro">
+    <nav class="nav" aria-label="Explorations"><a href="../../index.html">Fold</a><a href="../sidebar-variants/index.html">Sidebar variants</a><a href="../project-page/index.html">Project page</a><span aria-current="page">Session list states</span></nav>
+    <h1>Session rows, every state</h1>
+    <p>A session row has to say four things without becoming a card: what the agent is doing, whether something changed since you looked, whether it is waiting on you, and whether someone stopped it. Status lives in a six-pixel dot and a word. Unread is weight. Needs you is one small word at the end. A pause ordered by project direction is the only dot that changes shape.</p>
+  </div>
+
+  <!-- ===================== sidebar ===================== -->
+  <section class="block" aria-labelledby="h-sidebar">
+    <header><h2 id="h-sidebar">In the sidebar</h2><p>Ana is signed in. Recents is a plain list of titles; the dot carries the status, the title's weight carries unread, and the only trailing marks are a word for "you" and a dot for "new". Nothing on the right edge counts anything.</p></header>
+    <div class="two">
+      <aside class="sb" aria-label="Sidebar">
+        <a class="brand" href="#"><span class="mark" aria-hidden="true"></span>Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <button class="search" type="button"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search</button>
+        <div class="section">Projects</div>
+        <a class="row" href="#"><span class="t">Northwind › Payments › Billing page</span></a>
+        <a class="row" href="#"><span class="t">Northwind › Checkout</span></a>
+        <div class="section">Recents<span class="n">2 need you</span></div>
+        <a class="row needs" href="#"><span class="dot awaiting" aria-hidden="true"></span><span class="t">Invoice PDF + tax lines</span><span class="mk">you</span><span class="sr-only">needs you</span></a>
+        <a class="row needs" href="#"><span class="dot awaiting" aria-hidden="true"></span><span class="t">Proration fix</span><span class="mk">you</span><span class="sr-only">needs you</span></a>
+        <a class="row active unread" href="#" aria-current="page"><span class="dot running" aria-hidden="true"></span><span class="t">Tax rounding audit</span><span class="mk u" aria-hidden="true"></span><span class="sr-only">unread</span></a>
+        <a class="row unread" href="#"><span class="dot running" aria-hidden="true"></span><span class="t">Checkout copy</span><span class="mk u" aria-hidden="true"></span><span class="sr-only">unread</span></a>
+        <a class="row" href="#"><span class="dot directive" aria-hidden="true"></span><span class="t">Refund ledger</span><span class="sr-only">paused by direction</span></a>
+        <a class="row unread" href="#"><span class="dot paused" aria-hidden="true"></span><span class="t">Webhook retries</span><span class="mk u" aria-hidden="true"></span><span class="sr-only">unread</span></a>
+        <a class="row" href="#"><span class="dot blocked" aria-hidden="true"></span><span class="t">Dunning emails</span><span class="sr-only">blocked</span></a>
+        <a class="row" href="#"><span class="dot done" aria-hidden="true"></span><span class="t">Tax ID validation</span></a>
+        <a class="row" href="#"><span class="dot idle" aria-hidden="true"></span><span class="t">Currency rounding spike</span></a>
+        <a class="row archived" href="#"><span class="dot" aria-hidden="true"></span><span class="t">Legacy invoice export</span></a>
+        <div class="me"><span class="avatar">AN</span><span class="who">Ana<span class="role">Northwind</span></span></div>
+      </aside>
+
+      <div class="key" aria-label="Row key">
+        <div class="line head"><span class="label">Row</span><span class="label">Reads as</span></div>
+        <div class="line"><div class="sample"><a class="row needs" href="#"><span class="dot awaiting" aria-hidden="true"></span><span class="t">Invoice PDF + tax lines</span><span class="mk">you</span></a></div><p class="what"><b>Needs you.</b> Ana's agent wants to delete <span class="mono">legacy_invoices</span>; 1 of 2 drivers has approved. Amber dot, weighted title, the word <i>you</i>.</p></div>
+        <div class="line"><div class="sample"><a class="row active unread" href="#"><span class="dot running" aria-hidden="true"></span><span class="t">Tax rounding audit</span><span class="mk u" aria-hidden="true"></span></a></div><p class="what"><b>Open, running, unread.</b> The session you are in. The apricot bar marks it; the new dot stays until you scroll to the end.</p></div>
+        <div class="line"><div class="sample"><a class="row unread" href="#"><span class="dot running" aria-hidden="true"></span><span class="t">Checkout copy</span><span class="mk u" aria-hidden="true"></span></a></div><p class="what"><b>Running, unread.</b> Bo took this over from Ana; the handoff brief is what is new.</p></div>
+        <div class="line"><div class="sample"><a class="row" href="#"><span class="dot directive" aria-hidden="true"></span><span class="t">Refund ledger</span></a></div><p class="what"><b>Paused by direction.</b> Dee's "schema freeze until Thursday" reached it. The dot becomes a pause glyph; nobody on the session can resume it.</p></div>
+        <div class="line"><div class="sample"><a class="row unread" href="#"><span class="dot paused" aria-hidden="true"></span><span class="t">Webhook retries</span><span class="mk u" aria-hidden="true"></span></a></div><p class="what"><b>Paused by a person.</b> Cy stopped it; a plain grey dot. Anyone on the session can resume.</p></div>
+        <div class="line"><div class="sample"><a class="row" href="#"><span class="dot blocked" aria-hidden="true"></span><span class="t">Dunning emails</span></a></div><p class="what"><b>Blocked.</b> In contention over <span class="mono">services/tax/</span>, Stripe Tax API against local tables. Dee decides, so it is not "you" for Ana.</p></div>
+        <div class="line"><div class="sample"><a class="row" href="#"><span class="dot done" aria-hidden="true"></span><span class="t">Tax ID validation</span></a></div><p class="what"><b>Done.</b> Folded into main. The dot fades; the title keeps its ink so it can still be found.</p></div>
+        <div class="line"><div class="sample"><a class="row" href="#"><span class="dot idle" aria-hidden="true"></span><span class="t">Currency rounding spike</span></a></div><p class="what"><b>Idle.</b> A fork with three turns and no agent at work. A hollow dot: nothing to report.</p></div>
+        <div class="line"><div class="sample"><a class="row archived" href="#"><span class="dot" aria-hidden="true"></span><span class="t">Legacy invoice export</span></a></div><p class="what"><b>Archived.</b> No dot, tertiary ink. It stays in search and in replay.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== project page ===================== -->
+  <section class="block" aria-labelledby="h-project">
+    <header><h2 id="h-project">On the project page</h2><p>The same sessions as rows with room for a second line in the agent's own grammar and a status word on the right. The markers do not change: unread is a dot in the gutter and a weighted title, needs-you is the status word itself, the direction pause keeps its glyph and names the direction.</p></header>
+    <div class="page">
+      <div class="crumb"><span>Northwind</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span>Payments</span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg><span class="here">Billing page</span></div>
+      <div class="standing"><span class="q">Schema freeze until Thursday.</span><span>Dee · Tuesday · reaches 3 sessions</span><a href="#">Withdraw</a></div>
+      <h2 class="sec">Sessions <span class="n">9 · 2 need you</span></h2>
+      <div class="plist">
+        <div class="srow needs unread"><span class="u" aria-hidden="true"></span><a href="#"><span class="t">Invoice PDF + tax lines</span><span class="s">Ana's agent · with Bo, Cy · <i>waiting on</i> delete <span class="mono">legacy_invoices</span>, 1 of 2 drivers approved</span></a><span class="r"><span class="status needs">Needs you</span><span class="when">4m</span></span></div>
+        <div class="srow needs"><a href="#"><span class="t">Proration fix</span><span class="s">Ana's agent · <i>handing off to</i> Bo · brief computed, waiting for Ana to confirm</span></a><span class="r"><span class="status needs">Needs you</span><span class="when">12m</span></span></div>
+        <div class="srow unread"><span class="u" aria-hidden="true"></span><a href="#"><span class="t">Tax rounding audit</span><span class="s">Cy's agent · <i>working on</i> per-line rounding across the EU VAT rates</span></a><span class="r"><span class="status running">Running</span><span class="when">now</span></span></div>
+        <div class="srow unread"><span class="u" aria-hidden="true"></span><a href="#"><span class="t">Checkout copy</span><span class="s">Bo's agent, <span class="handed">from Ana<svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg>Bo</span> at 10:12 · <i>reading</i> the handoff brief</span></a><span class="r"><span class="status running">Running</span><span class="when">20m</span></span></div>
+        <div class="srow"><a href="#"><span class="t">Refund ledger</span><span class="s">Bo's agent · <i>paused by direction</i> "schema freeze until Thursday" · Dee</span></a><span class="r"><span class="status directive">Paused by direction</span><span class="when">2h</span></span></div>
+        <div class="srow unread"><span class="u" aria-hidden="true"></span><a href="#"><span class="t">Webhook retries</span><span class="s">Cy's agent · <i>paused by</i> Cy · "back after standup"</span></a><span class="r"><span class="status paused">Paused</span><span class="when">1h</span></span></div>
+        <div class="srow"><a href="#"><span class="t">Dunning emails</span><span class="s">Dee's agent · <i>holding off on</i> <span class="mono">services/tax/</span> · Stripe Tax API vs local tables, Dee decides</span></a><span class="r"><span class="status blocked">Blocked</span><span class="when">38m</span></span></div>
+        <div class="srow"><a href="#"><span class="t">Tax ID validation</span><span class="s">Ana's agent · folded into main at <span class="mono">7a91d4</span></span></a><span class="r"><span class="status done">Done</span><span class="when">yesterday</span></span></div>
+        <div class="srow"><a href="#"><span class="t">Currency rounding spike</span><span class="s">Ana's agent · forked from Invoice PDF, 3 turns, no agent at work</span></a><span class="r"><span class="status idle">Idle</span><span class="when">3d</span></span></div>
+        <div class="srow archived"><a href="#"><span class="t">Legacy invoice export</span><span class="s">Bo's agent · archived by Dee · <i>still in</i> search and replay</span></a><span class="r"><span class="status">Archived</span><span class="when">Aug</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== markers ===================== -->
+  <section class="block" aria-labelledby="h-markers">
+    <header><h2 id="h-markers">The three markers</h2><p>Each row has one status dot on the left and at most one mark on the right. When two apply, the right slot shows the more urgent and the other survives in the title or the dot.</p></header>
+    <div class="marks">
+      <div class="mark">
+        <div class="sample"><a class="row unread" href="#"><span class="dot running" aria-hidden="true"></span><span class="t">Tax rounding audit</span><span class="mk u" aria-hidden="true"></span></a></div>
+        <h3>Unread</h3>
+        <p>The agent wrote, or a person steered, since you last reached the end. <b>Weight 500 on the title and a five-pixel ink dot on the right.</b> Not a count: a session is a conversation, not an inbox.</p>
+      </div>
+      <div class="mark">
+        <div class="sample"><a class="row needs" href="#"><span class="dot awaiting" aria-hidden="true"></span><span class="t">Invoice PDF + tax lines</span><span class="mk">you</span></a></div>
+        <h3>Needs you</h3>
+        <p>An approval, a handoff to confirm, or a contention you decide. <b>Amber dot and the word <i>you</i>.</b> It outranks unread in the right slot. Only on sessions where you are a driver or the lead; Bo's pending approval is not Ana's amber.</p>
+      </div>
+      <div class="mark">
+        <div class="sample"><a class="row" href="#"><span class="dot directive" aria-hidden="true"></span><span class="t">Refund ledger</span></a></div>
+        <h3>Paused by direction</h3>
+        <p>A lead's project directive stopped it, so no one on the session can resume. <b>The dot becomes two bars in the same grey.</b> A pause by a person stays a round dot; the difference is who can undo it.</p>
+      </div>
+    </div>
+    <p class="rule"><b>Precedence in the right slot:</b> <i>you</i>, then the new dot, then nothing. <b>In the left dot:</b> amber, red, green, grey, two bars, faded, hollow, none. The open session gets the apricot bar and nothing else changes.</p>
+  </section>
+
+  <!-- ===================== row states ===================== -->
+  <section class="block" aria-labelledby="h-states">
+    <header><h2 id="h-states">The row itself</h2><p>Rest, pointer, open and keyboard. Hover is one tint; open is the page colour with the apricot bar; focus is the ring, kept inside the row so the list never shifts.</p></header>
+    <div class="states">
+      <div><span class="label">Rest</span><div class="sample"><a class="row" href="#"><span class="dot running" aria-hidden="true"></span><span class="t">Tax rounding audit</span></a><a class="row needs" href="#"><span class="dot awaiting" aria-hidden="true"></span><span class="t">Invoice PDF + tax lines</span><span class="mk">you</span></a><a class="row" href="#"><span class="dot directive" aria-hidden="true"></span><span class="t">Refund ledger</span></a></div></div>
+      <div><span class="label">Hover</span><div class="sample"><a class="row" href="#"><span class="dot running" aria-hidden="true"></span><span class="t">Tax rounding audit</span></a><a class="row needs is-hover" href="#"><span class="dot awaiting" aria-hidden="true"></span><span class="t">Invoice PDF + tax lines</span><span class="mk">you</span></a><a class="row" href="#"><span class="dot directive" aria-hidden="true"></span><span class="t">Refund ledger</span></a></div></div>
+      <div><span class="label">Open</span><div class="sample"><a class="row" href="#"><span class="dot running" aria-hidden="true"></span><span class="t">Tax rounding audit</span></a><a class="row needs active" href="#" aria-current="page"><span class="dot awaiting" aria-hidden="true"></span><span class="t">Invoice PDF + tax lines</span><span class="mk">you</span></a><a class="row" href="#"><span class="dot directive" aria-hidden="true"></span><span class="t">Refund ledger</span></a></div></div>
+      <div><span class="label">Keyboard focus</span><div class="sample"><a class="row" href="#"><span class="dot running" aria-hidden="true"></span><span class="t">Tax rounding audit</span></a><a class="row needs is-focus" href="#"><span class="dot awaiting" aria-hidden="true"></span><span class="t">Invoice PDF + tax lines</span><span class="mk">you</span></a><a class="row" href="#"><span class="dot directive" aria-hidden="true"></span><span class="t">Refund ledger</span></a></div></div>
+    </div>
+    <div class="notes">
+      <div><b>Open clears unread</b>Opening a session and reaching its end removes the right dot; the title relaxes to 400. "You" clears only when the thing is done: approved, declined, confirmed or decided.</div>
+      <div><b>Sorting is by recency, not by marker</b>Recents stays chronological. The section line says "2 need you" so the eye knows what to look for without a separate list.</div>
+      <div><b>Colour budget</b>Status dots use the semantic greens, ambers and reds already in the tokens; the markers use ink only. The accent appears nowhere on this screen, which leaves it free for the send arrow.</div>
+      <div><b>Mobile</b>The same row at 16px in the drawer; the right slot is unchanged, the second line from the project page becomes the row's subtitle.</div>
+    </div>
+  </section>
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

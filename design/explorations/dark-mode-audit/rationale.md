@@ -1,0 +1,7 @@
+# Contrast audit: rationale
+
+**Decision.** The audit is a table of rows, one per pair that tokens.css actually produces, grouped by what the pair is for: text (4.5:1), dots and boundaries (3:1), tone (exempt and said so). The ratio is computed on the page from the hex values, and every failing row carries its replacement and the ratio that replacement reaches, so the fix is reviewed in the same line as the fault. Four values move: light `--fg-2` to #616676, light `--fg-3` to #6E727C, light `--warn` to #AD6F2A, dark `--fg-3` to #9298A6. One rule is added: tertiary text lives on the canvas; on bg-2 and bg-3 the 12px labels use fg-2. One block is added: `prefers-contrast: more` gives hairlines and the Apricot border a real edge only for people who asked.
+
+**Rejected.** Darkening hairlines for everyone to satisfy 1.4.11 on the composer (a grey frame in a register built on the absence of frames). Lifting fg-3 until it passes on bg-3 as well (it would land within a few points of fg-2 and the tiers would stop meaning anything). Red or amber pills for failures (status is a word with a dot here too). Listing only failures (an audit that hides what passes cannot be trusted next quarter).
+
+**Carry forward.** The four values and the on-canvas rule go into tokens.css v5; the high-contrast block goes in beside them. The specimen strips, painted in their own palette regardless of page theme, are the right way to review any future colour change.

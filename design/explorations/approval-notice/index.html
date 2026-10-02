@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Approval notice</title>
+<meta name="description" content="The approval notice in every state: pending for one of two drivers, you approved, denied, granted, expired; irreversible against exec; and how it shows in the sidebar session row.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 22px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* examples: a label on the left, the notice at the true column width on the right */
+.ex { display: grid; grid-template-columns: 200px minmax(0, var(--col)); gap: 32px; align-items: start; padding: 20px 0; border-top: 1px solid var(--line); }
+.ex:first-of-type { border-top: 0; }
+.ex .lbl { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--fg-2); padding-top: 2px; }
+.ex .lbl b { font-weight: 500; color: var(--fg); }
+.ex .lbl .faint { font-size: 12px; }
+.ex .body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* the notice: the only bordered box in the stream. the question is a sentence, the second line is the state in words. */
+.notice { gap: 8px; padding: 14px 16px 12px; }
+.notice .q { font-size: 15px; color: var(--fg); }
+.notice .q .mono { font-size: 13.5px; }
+.notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); flex-wrap: wrap; }
+.notice .st .status { font-size: 13px; }
+.notice .st .sep { color: var(--fg-3); }
+.notice .actions { margin-top: 4px; align-items: center; }
+.notice .actions .after { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+.btn.quiet { border-color: transparent; color: var(--fg-2); padding-inline: 8px; }
+.btn.quiet:hover { color: var(--fg); }
+
+/* settled: the box is the ask; once answered it becomes a line, like any tool step */
+.settled { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: var(--fg-2); padding: 3px 0; line-height: 1.5; }
+.settled .ic { width: 14px; height: 14px; margin-top: 4px; opacity: 0.8; }
+.settled .who { color: var(--fg); }
+.settled .mono { font-size: 12.5px; }
+
+/* agent context lines around the notice */
+.ctx { font-size: 15px; color: var(--fg); }
+.ctx + .notice, .ctx + .settled { margin-top: 2px; }
+.steps { gap: 0; }
+.step .mono { font-size: 12.5px; }
+
+/* side by side: exec against irreversible */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.pair .cap { font-size: 12px; color: var(--fg-3); margin-bottom: 8px; }
+
+/* sidebar fragment */
+.sidefrag { width: 288px; background: var(--bg-2); border-radius: 14px; border: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 1px; }
+.sidefrag .section { padding: 8px 10px 4px; font-size: 12px; color: var(--fg-3); display: flex; align-items: center; gap: 8px; }
+.sidefrag .section .n { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--fg-3); font-size: 12px; }
+.sidefrag .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; align-items: center; padding: 7px 10px; font-size: 14px; }
+.sidefrag .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidefrag .item .t .by { color: var(--fg-3); font-size: 13px; }
+.sidefrag .item .n { font-size: 12.5px; color: var(--fg-2); white-space: nowrap; }
+.sidefrag .item .n.faint { color: var(--fg-3); }
+.sidefrag .item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--fg-3); }
+.sidefrag .item .dot.running { background: var(--ok); }
+.sidefrag .item .dot.awaiting { background: var(--warn); }
+.sidefrag .item .dot.blocked { background: var(--danger); }
+.sidefrag .item .dot.paused { background: var(--info); }
+.sidefrag .item.active { background: var(--bg); font-weight: 500; }
+.sidefrag .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.sidefrag .dir { padding: 0 10px 8px; font-size: 13px; color: var(--fg-3); font-family: var(--serif); font-style: italic; }
+.sidefrag .footer-links { display: flex; flex-direction: column; gap: 1px; padding-top: 8px; margin-top: 6px; border-top: 1px solid var(--line); }
+.sidefrag .footer-links .item { grid-template-columns: 1fr auto; font-size: 13.5px; color: var(--fg-2); padding: 6px 10px; }
+.sidefrag .footer-links .n { font-size: 12px; }
+.siderow { display: grid; grid-template-columns: 288px 1fr; gap: 40px; align-items: start; }
+.siderow .notes { display: flex; flex-direction: column; gap: 14px; font-size: 14px; color: var(--fg-2); padding-top: 6px; }
+.siderow .notes p b { font-weight: 500; color: var(--fg); }
+
+/* in situ: the desktop frame */
+.app { width: 1000px; height: 620px; overflow: hidden; }
+.app .shell { height: 100%; }
+.app .sidebar { width: 272px; padding: 10px; gap: 1px; }
+.app .sidebar .brand { padding-bottom: 8px; }
+.app .sidebar .brand img { width: 20px; height: 20px; }
+.app .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.app .sidebar .section { padding: 10px 10px 4px; }
+.app .sidebar .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; }
+.app .sidebar .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.app .sidebar .item .t .by { color: var(--fg-3); font-size: 13px; }
+.app .sidebar .item .n { font-size: 12.5px; color: var(--fg-2); }
+.app .sidebar .item .dot { background: var(--fg-3); }
+.app .sidebar .item .dot.running { background: var(--ok); }
+.app .sidebar .item .dot.awaiting { background: var(--warn); }
+.app .sidebar .item .dot.blocked { background: var(--danger); }
+.app .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.app .sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.app .sidebar .me .avatar { width: 26px; height: 26px; border: 0; }
+.app .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.app .topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.app .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.app .scroll { display: flex; flex-direction: column; overflow: hidden; }
+.app .stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.app .column { padding-top: 0; padding-bottom: 12px; gap: 22px; }
+.app .msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.app .composer-wrap { padding-top: 4px; padding-bottom: 14px; }
+.app .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; color: var(--fg-3); }
+.app .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.app .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+/* while an approval is pending, the accent moves to the decision: the send arrow goes to ink */
+.send.quiet { background: var(--bg-3); color: var(--fg-2); }
+
+@media (max-width: 1040px) {
+  .ex { grid-template-columns: 1fr; gap: 10px; }
+  .pair { grid-template-columns: 1fr; }
+  .siderow { grid-template-columns: 1fr; }
+  .app { width: 100%; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+</svg>
+
+<main class="sheet">
+
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Approval notice</div>
+  <h1>The approval notice, in every state</h1>
+  <p>An approval is the one place a session stops and asks a person. The notice is the only bordered box in the stream, so it has to be the quietest one: a question in a sentence, the state in words with a dot, two buttons. Once answered it stops being a box and becomes a line, like any tool step. Irreversible and exec differ only in words, never in colour.</p>
+</div>
+
+<section id="pending">
+  <header>
+    <h2>Pending</h2>
+    <p>The agent asks in its own words first; the notice restates the exact call it wants approved, because what gets approved is the hash of that call.</p>
+  </header>
+
+  <div class="ex">
+    <div class="lbl"><b>Exec, one contributor</b><span>Ana is reading. Anyone on the session may answer.</span></div>
+    <div class="body">
+      <p class="ctx">The rounding test passes now. Before I touch the renderer I want the staging schema at the same migration as main.</p>
+      <div class="notice" role="group" aria-label="Approval needed">
+        <p class="q">Run <span class="mono">pnpm db:migrate</span> on staging?</p>
+        <p class="st"><span class="status awaiting">Needs one contributor</span><span class="sep">·</span><span>asked 2 min ago</span></p>
+        <div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button><span class="after">Expires in 28 min</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ex">
+    <div class="lbl"><b>Irreversible, 1 of 2 drivers</b><span>Dee is reading. Ana has voted; Dee can give the second.</span><span class="faint">The quietest difference: the count and the words "cannot be undone"; the button says what it does.</span></div>
+    <div class="body">
+      <p class="ctx">Next I want to clear <span class="mono">legacy_invoices</span> so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</p>
+      <div class="notice" role="group" aria-label="Approval needed">
+        <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+        <p class="st"><span class="status awaiting">Ana approved · 1 of 2 drivers</span><span class="sep">·</span><span>cannot be undone</span></p>
+        <div class="actions"><button class="btn sm primary" type="button">Approve delete</button><button class="btn sm" type="button">Deny</button><span class="after">Expires in 24 min</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ex">
+    <div class="lbl"><b>Pending, not yours to answer</b><span>Cy is a contributor; only drivers and owners vote on irreversible calls.</span></div>
+    <div class="body">
+      <div class="notice" role="group" aria-label="Approval pending">
+        <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+        <p class="st"><span class="status awaiting">Ana approved · 1 of 2 drivers</span><span class="sep">·</span><span>cannot be undone</span><span class="sep">·</span><span>waiting for Dee or Bo</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ex">
+    <div class="lbl"><b>You approved</b><span>Ana just voted. The notice stays a box until the second driver answers.</span></div>
+    <div class="body">
+      <div class="notice" role="group" aria-label="Approval pending">
+        <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+        <p class="st"><span class="status awaiting">You approved · 1 of 2 drivers</span><span class="sep">·</span><span>cannot be undone</span><span class="sep">·</span><span>waiting for Dee or Bo</span></p>
+        <div class="actions"><button class="btn sm quiet" type="button">Change to deny</button><span class="after">Expires in 24 min</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="settled">
+  <header>
+    <h2>Settled</h2>
+    <p>Granted, denied and expired are no longer asks, so they lose the box. Each becomes one grey line with a 14px icon, read in passing like "Ran pnpm vitest". The outcome is the first word; the people are in the text colour.</p>
+  </header>
+
+  <div class="ex">
+    <div class="lbl"><b>Granted</b><span>Quorum reached. The call runs and its step follows directly.</span></div>
+    <div class="body">
+      <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Approved by <span class="who">Ana</span> and <span class="who">Dee</span> · delete 41,208 rows from <span class="mono">legacy_invoices</span></span></div>
+      <div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-db"/></svg><span>Ran <span class="mono">DELETE FROM legacy_invoices</span> · 41,208 rows · 1.9 s</span></div></div>
+      <p class="ctx">Done. The renderer now reads only live invoices; all 32 tests still pass.</p>
+    </div>
+  </div>
+
+  <div class="ex">
+    <div class="lbl"><b>Denied</b><span>A deny by any eligible voter denies. The agent routes around it.</span></div>
+    <div class="body">
+      <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg><span>Denied by <span class="who">Bo</span> · delete 41,208 rows from <span class="mono">legacy_invoices</span> · "leave the table alone, filter at render time"</span></div>
+      <p class="ctx">Understood. I will leave <span class="mono">legacy_invoices</span> in place and filter archived rows in the renderer query instead.</p>
+    </div>
+  </div>
+
+  <div class="ex">
+    <div class="lbl"><b>Expired</b><span>Nobody answered within the policy window. Nothing ran; the agent carries on and can ask again.</span></div>
+    <div class="body">
+      <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span>Expired after 30 min, no second driver · delete 41,208 rows from <span class="mono">legacy_invoices</span> · <a href="#">ask again</a></span></div>
+      <p class="ctx">The delete expired without a second driver. I have parked it and moved on to the PDF layout; say the word and I will ask again.</p>
+    </div>
+  </div>
+</section>
+
+<section id="risk">
+  <header>
+    <h2>Exec against irreversible</h2>
+    <p>The same box, the same line. The difference is carried by what the words say: how many must agree, that it cannot be undone, and a button that names the action. No colour, no icon, no second border.</p>
+  </header>
+  <div class="pair">
+    <div>
+      <p class="cap">Exec · one contributor</p>
+      <div class="notice" role="group" aria-label="Approval needed">
+        <p class="q">Run <span class="mono">pnpm db:migrate</span> on staging?</p>
+        <p class="st"><span class="status awaiting">Needs one contributor</span></p>
+        <div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div>
+      </div>
+      <div class="settled" style="margin-top:12px"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Approved by <span class="who">Cy</span> · run <span class="mono">pnpm db:migrate</span> on staging</span></div>
+    </div>
+    <div>
+      <p class="cap">Irreversible · two drivers</p>
+      <div class="notice" role="group" aria-label="Approval needed">
+        <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+        <p class="st"><span class="status awaiting">Needs 2 drivers</span><span class="sep">·</span><span>cannot be undone</span></p>
+        <div class="actions"><button class="btn sm primary" type="button">Approve delete</button><button class="btn sm" type="button">Deny</button></div>
+      </div>
+      <div class="settled" style="margin-top:12px"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Approved by <span class="who">Ana</span> and <span class="who">Dee</span> · delete 41,208 rows from <span class="mono">legacy_invoices</span></span></div>
+    </div>
+  </div>
+</section>
+
+<section id="sidebar">
+  <header>
+    <h2>In the sidebar</h2>
+    <p>The session row keeps its grammar: dot, title, engineer, and one trailing word. An approval that is yours to give reads "needs you"; one you have already answered reads its count. The dot is the same amber as the status word in the stream.</p>
+  </header>
+  <div class="siderow">
+    <div class="sidefrag" aria-label="Sidebar fragment">
+      <div class="section">Payments <span class="n">4</span></div>
+      <div class="dir">schema freeze until Thursday · Dee</div>
+      <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n">needs you</span></a>
+      <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n faint"></span></a>
+      <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+      <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+      <div class="section">Billing page <span class="n">1</span></div>
+      <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n faint"></span></a>
+      <div class="footer-links">
+        <a class="item" href="#"><span>Fleet board</span><span class="n">2 to approve</span></a>
+        <a class="item" href="#"><span>Team memory</span><span class="n"></span></a>
+      </div>
+    </div>
+    <div class="notes">
+      <p><b>needs you</b> · an amber dot and two words. Shown only on rows where the reader is an eligible voter who has not voted. It is the one row word that is an imperative.</p>
+      <p><b>1 of 2</b> · the reader has voted, or cannot vote. The dot stays amber because the session is still waiting; the word is quiet because nothing is asked of them.</p>
+      <p><b>blocked</b> and <b>running</b> stay as they are. Approval never gets a badge, a count bubble or a second colour; the Fleet board line at the bottom carries the total.</p>
+    </div>
+  </div>
+</section>
+
+<section id="situ">
+  <header>
+    <h2>In place</h2>
+    <p>Dee opens Ana's session from the row that said "needs you". While a decision is pending the accent sits on the Approve button and the send arrow steps back to ink, so there is still one strong colour on the screen.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n">needs you</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="me"><span class="avatar" title="Dee">D</span><div class="who">Dee Okafor<div class="small faint">Northwind · lead</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Dee">D</span></span><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+        </div>
+        <div class="body" style="flex:1;min-height:0;display:flex">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Keep the layout change on the pdf-layout branch; main is frozen until Thursday.</div></div>
+              <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 9</span></div><div class="text">Tax lines fit under the subtotal without touching the page template; all 32 tests pass. Next I want to clear <span class="mono">legacy_invoices</span> so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+              <div class="notice" role="group" aria-label="Approval needed">
+                <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+                <p class="st"><span class="status awaiting">Ana approved · 1 of 2 drivers</span><span class="sep">·</span><span>cannot be undone</span></p>
+                <div class="actions"><button class="btn sm primary" type="button">Approve delete</button><button class="btn sm" type="button">Deny</button><span class="after">Expires in 24 min</span></div>
+              </div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <label class="sr-only" for="steer">Steer the agent</label>
+                <input class="input" id="steer" type="text" placeholder="Steer the agent">
+                <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><button class="send quiet" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

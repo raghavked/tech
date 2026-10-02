@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Keyboard shortcuts</title>
+<meta name="description" content="The ? sheet: Fold's shortcut map in four groups (session, steering, approvals, navigation), shown over the desktop app and at rest; keys follow the platform without JavaScript.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the page */
+.page { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 22px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* keys: a soft keycap, no border, no shadow; a pressed key reads like a chip */
+kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--bg-3); color: var(--fg); font: 500 12.5px/1 var(--font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+kbd.sym { font-size: 13.5px; }
+.keys { display: inline-flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.keys .then { font-size: 12px; color: var(--fg-3); padding: 0 2px; }
+.keys .or { font-size: 12px; color: var(--fg-3); padding: 0 3px; }
+/* platform: the sheet's own radios swap ⌘ for Ctrl and ⌥ for Alt; no script */
+.win-k { display: none; }
+.sheet:has(.plat #p-win:checked) .mac-k, .sheet:has(.plat #p-win2:checked) .mac-k { display: none; }
+.sheet:has(.plat #p-win:checked) .win-k, .sheet:has(.plat #p-win2:checked) .win-k { display: inline-flex; }
+.plat { display: inline-flex; background: var(--bg-3); border-radius: var(--radius-full); padding: 2px; margin-left: auto; }
+.plat input { position: absolute; opacity: 0; width: 0; height: 0; }
+.plat label { font: 500 12px/1 var(--font); color: var(--fg-2); padding: 5px 10px; border-radius: var(--radius-full); cursor: pointer; }
+.plat input:checked + label { background: var(--bg); color: var(--fg); }
+.plat input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* the sheet */
+.scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 62%, transparent); }
+.sheet { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 820px; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.sheet::after { content: ""; position: absolute; top: -1px; right: -1px; width: 18px; height: 18px; border-top-right-radius: var(--radius-lg); background: linear-gradient(225deg, var(--bg) 0 50%, var(--fold-under) 50% 56%, var(--fold-face) 56% 100%); }
+.sheet .head { display: flex; align-items: center; gap: 14px; padding: 18px 24px 14px; white-space: nowrap; }
+.sheet .head .where { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sheet .head h2 { font-family: var(--serif); font-weight: 400; font-size: 22px; letter-spacing: 0; }
+.sheet .head .where { font-size: 13px; color: var(--fg-3); }
+.sheet .head .where .serif { color: var(--fg-2); font-size: 14.5px; }
+.sheet .head .plat { margin-right: 26px; }
+.sheet .groups { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 40px; padding: 4px 24px 18px; }
+.group { display: flex; flex-direction: column; }
+.group h3 { padding: 12px 0 6px; font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-3); font-weight: 500; }
+.group dl { margin: 0; display: flex; flex-direction: column; }
+.group .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; min-height: 34px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.group .row:last-child { border-bottom: 0; }
+.group dt { font-size: 14px; color: var(--fg); min-width: 0; line-height: 1.4; }
+.group dt .ctx { color: var(--fg-3); font-size: 13px; }
+.group dd { margin: 0; }
+.group .row.off dt { color: var(--fg-3); }
+.group .row.off kbd { color: var(--fg-3); }
+.group .row.now dt .ctx { color: var(--fg-2); }
+.sheet .foot { display: flex; align-items: center; gap: 18px; padding: 10px 24px 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--fg-3); white-space: nowrap; }
+.sheet .foot span { display: inline-flex; align-items: center; gap: 5px; }
+.sheet .foot kbd { height: 18px; min-width: 18px; font-size: 11.5px; color: var(--fg-2); }
+.sheet .foot .right { margin-left: auto; }
+.sheet .foot .right a { color: var(--fg-2); }
+
+/* in situ: the desktop window */
+.win { position: relative; width: 1000px; height: 780px; border-radius: 14px; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; border: 1px solid var(--line); }
+.win .bar { height: 38px; flex: none; display: flex; align-items: center; padding: 0 14px; background: var(--bg-2); font-size: 13px; color: var(--fg-2); position: relative; border-bottom: 1px solid var(--crease); }
+.win .bar .lights { display: flex; gap: 8px; }
+.win .bar .lights span { width: 12px; height: 12px; border-radius: 50%; background: var(--bg-3); border: 1px solid var(--line); }
+.win .bar .name { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; font-family: var(--serif); font-size: 15px; }
+.win .shell { flex: 1; min-height: 0; }
+.win .sidebar { width: 272px; padding: 10px; gap: 1px; }
+.win .sidebar .brand { padding-bottom: 8px; text-decoration: none; color: var(--fg); }
+.win .sidebar .brand img { width: 20px; height: 20px; }
+.win .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.win .sidebar .section { padding: 10px 10px 4px; }
+.win .sidebar .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; }
+.win .sidebar .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.win .sidebar .item .t .by { color: var(--fg-3); font-size: 13px; }
+.win .sidebar .item .n { font-size: 12.5px; color: var(--fg-2); }
+.win .sidebar .item .n.faint { color: var(--fg-3); }
+.win .sidebar .item .dot { background: var(--fg-3); }
+.win .sidebar .item .dot.running { background: var(--ok); }
+.win .sidebar .item .dot.awaiting { background: var(--warn); }
+.win .sidebar .item .dot.blocked { background: var(--danger); }
+.win .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.win .sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.win .sidebar .me .avatar { width: 26px; height: 26px; border: 0; }
+.win .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.win .topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.win .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.win .body { flex: 1; min-height: 0; display: flex; }
+.win .scroll { display: flex; flex-direction: column; overflow: hidden; }
+.win .stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.win .column { padding-top: 0; padding-bottom: 12px; gap: 22px; }
+.win .msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.win .step .mono { font-size: 12.5px; }
+.win .notice { gap: 8px; padding: 14px 16px 12px; }
+.win .notice .q { font-size: 15px; }
+.win .notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); }
+.win .notice .actions { margin-top: 4px; align-items: center; }
+.win .notice .actions .after { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+.win .composer-wrap { padding-top: 4px; padding-bottom: 14px; }
+.win .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; color: var(--fg-3); }
+.win .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.win .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+/* while the sheet is open nothing beneath it carries the accent: the send arrow is ink */
+.win .send.quiet { background: var(--fg); color: var(--bg); }
+
+/* at rest: the sheet out of its window, notes beside it */
+.siderow { display: grid; grid-template-columns: 680px 1fr; gap: 40px; align-items: start; }
+.siderow .sheet { position: relative; top: auto; left: auto; transform: none; width: 680px; }
+.siderow .sheet .groups { grid-template-columns: 1fr; gap: 0; }
+.siderow .notes { display: flex; flex-direction: column; gap: 14px; font-size: 14px; color: var(--fg-2); padding-top: 6px; }
+.siderow .notes p b { font-weight: 500; color: var(--fg); }
+
+@media (max-width: 1060px) {
+  .win { width: 100%; }
+  .sheet { width: min(820px, 100% - 32px); }
+  .siderow { grid-template-columns: 1fr; }
+  .siderow .sheet { width: min(680px, 100%); }
+}
+@media (max-width: 720px) {
+  .sheet .groups { grid-template-columns: 1fr; }
+  .sheet .head .plat { margin-right: 18px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2"/><circle cx="10.5" cy="17" r="2"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M4 17l6-5-6-5M12 19h8"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
+
+<main class="page">
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Keyboard shortcuts</div>
+  <h1>Keyboard shortcuts</h1>
+  <p>Press <kbd>?</kbd> anywhere in the desktop or web app and the whole map appears on one sheet: four groups, one row per shortcut, the keys on the right. The sheet knows what is live in the session you are looking at, so "Approve what is waiting" names the delete and the fold row says why it is off. Keys follow the platform; nothing is a card.</p>
+</div>
+
+<section id="in-situ">
+  <header>
+    <h2>In the desktop app</h2>
+    <p>Dee presses ? in Ana's session. The sheet sits over the conversation, the scrim keeps the context readable, and the one strong colour on screen steps back to ink while it is open. Approvals is the group that knows the most: the pending delete is one key away.</p>
+  </header>
+  <div class="win">
+    <div class="bar" aria-hidden="true"><div class="lights"><span></span><span></span><span></span></div><div class="name">Fold</div></div>
+    <div class="shell" aria-hidden="true">
+      <aside class="sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button" tabindex="-1"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <a class="item active" href="#" tabindex="-1"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n">needs you</span></a>
+        <a class="item" href="#" tabindex="-1"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#" tabindex="-1"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#" tabindex="-1"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="me"><span class="avatar" title="Dee">D</span><div class="who">Dee Okafor<div class="small faint">Northwind · lead</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Dee">D</span></span><a class="btn sm" href="#" tabindex="-1">Team</a><a class="btn sm" href="#" tabindex="-1">Details</a></div>
+        </div>
+        <div class="body">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Keep the layout change on the pdf-layout branch; main is frozen until Thursday.</div></div>
+              <div class="msg agent"><div class="meta"><span class="avatar agent">F</span><span class="who">Ana's agent</span><span class="faint">turn 9</span></div><div class="text">Tax lines fit under the subtotal without touching the page template; all 32 tests pass. Next I want to clear <span class="mono">legacy_invoices</span> so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+              <div class="notice">
+                <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+                <p class="st"><span class="status awaiting">Ana approved · 1 of 2 drivers</span><span class="sep">·</span><span>cannot be undone</span></p>
+                <div class="actions"><button class="btn sm" type="button" tabindex="-1">Approve delete</button><button class="btn sm" type="button" tabindex="-1">Deny</button><span class="after">Expires in 24 min</span></div>
+              </div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <div class="input">Steer the agent</div>
+                <div class="bar"><div class="seg"><span class="on" style="padding:3px 10px">Agent</span><span style="padding:3px 10px">Team</span></div><span class="btn icon"><svg class="ic"><use href="#i-sliders"/></svg></span><div class="right"><span class="send quiet"><svg class="ic"><use href="#i-up"/></svg></span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="sheet" role="dialog" aria-labelledby="sheet-title-1">
+      <div class="head">
+        <h2 id="sheet-title-1">Keyboard shortcuts</h2>
+        <span class="where">in <span class="serif">Invoice PDF + tax lines</span></span>
+        <fieldset class="plat"><legend class="sr-only">Platform</legend><input type="radio" name="plat1" id="p-mac" checked><label for="p-mac">Mac</label><input type="radio" name="plat1" id="p-win"><label for="p-win">Windows / Linux</label></fieldset>
+        <button class="btn icon ghost sm" type="button" aria-label="Close shortcuts"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="groups">
+        <div class="group">
+          <h3>Session</h3>
+          <dl>
+            <div class="row"><dt>New session</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>N</kbd></span></dd></div>
+            <div class="row"><dt>Fork from here <span class="ctx">· turn 9</span></dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>F</kbd></span></dd></div>
+            <div class="row off"><dt>Fold branch into main <span class="ctx">· schema freeze until Thu</span></dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>M</kbd></span></dd></div>
+            <div class="row"><dt>Hand off <span class="ctx">· Ana → Bo, brief ready</span></dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>H</kbd></span></dd></div>
+            <div class="row"><dt>Pause or resume the agent</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>P</kbd></span></dd></div>
+            <div class="row"><dt>Take or release the driver seat</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>D</kbd></span></dd></div>
+          </dl>
+        </div>
+        <div class="group">
+          <h3>Steering</h3>
+          <dl>
+            <div class="row"><dt>Send directive to the agent</dt><dd><span class="keys"><kbd class="sym">↵</kbd></span></dd></div>
+            <div class="row"><dt>New line</dt><dd><span class="keys"><kbd class="sym">⇧</kbd><kbd class="sym">↵</kbd></span></dd></div>
+            <div class="row"><dt>Send to the team instead</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">↵</kbd></span></dd></div>
+            <div class="row"><dt>Switch composer to agent or team</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>.</kbd></span></dd></div>
+            <div class="row"><dt>Recall your last directive</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">↑</kbd></span></dd></div>
+            <div class="row"><dt>Withdraw a directive still being arbitrated</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>Z</kbd></span></dd></div>
+          </dl>
+        </div>
+        <div class="group">
+          <h3>Approvals</h3>
+          <dl>
+            <div class="row now"><dt>Approve what is waiting <span class="ctx">· delete legacy_invoices · 1 of 2</span></dt><dd><span class="keys"><kbd>A</kbd></span></dd></div>
+            <div class="row"><dt>Deny it</dt><dd><span class="keys"><kbd>D</kbd></span></dd></div>
+            <div class="row"><dt>Next or previous pending call</dt><dd><span class="keys"><kbd>J</kbd><span class="or">/</span><kbd>K</kbd></span></dd></div>
+            <div class="row"><dt>Open the call in full <span class="ctx">· arguments, who voted</span></dt><dd><span class="keys"><kbd>O</kbd></span></dd></div>
+            <div class="row"><dt>Next approval in Payments <span class="ctx">· 2 waiting</span></dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>A</kbd></span></dd></div>
+          </dl>
+        </div>
+        <div class="group">
+          <h3>Navigation</h3>
+          <dl>
+            <div class="row"><dt>Command palette</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>K</kbd></span></dd></div>
+            <div class="row"><dt>Previous or next session</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>[</kbd><span class="or">/</span><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>]</kbd></span></dd></div>
+            <div class="row"><dt>Session 1 to 9</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>1</kbd><span class="then">…</span><kbd>9</kbd></span></dd></div>
+            <div class="row"><dt>Details drawer</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>I</kbd></span></dd></div>
+            <div class="row"><dt>Team chat</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>T</kbd></span></dd></div>
+            <div class="row"><dt>Project, fleet, team memory</dt><dd><span class="keys"><kbd>G</kbd><span class="then">then</span><kbd>P</kbd><span class="or">/</span><kbd>F</kbd><span class="or">/</span><kbd>M</kbd></span></dd></div>
+            <div class="row"><dt>Hide or show the sidebar</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>\</kbd></span></dd></div>
+          </dl>
+        </div>
+      </div>
+      <div class="foot"><span><kbd>?</kbd> toggles this sheet</span><span><kbd>esc</kbd> closes anything</span><span>Letters work while the composer is empty</span><span class="right"><a href="#">Change shortcuts in Settings</a></span></div>
+    </div>
+  </div>
+</section>
+
+<section id="at-rest">
+  <header>
+    <h2>At rest, on Windows</h2>
+    <p>The same sheet out of its window, with the platform radio on Windows / Linux so the modifiers read as words. Beside it, the rules it keeps.</p>
+  </header>
+  <div class="siderow">
+    <div class="sheet" role="dialog" aria-labelledby="sheet-title-2">
+      <div class="head">
+        <h2 id="sheet-title-2">Keyboard shortcuts</h2>
+        <span class="where">in <span class="serif">Invoice PDF + tax lines</span></span>
+        <fieldset class="plat"><legend class="sr-only">Platform</legend><input type="radio" name="plat2" id="p-mac2"><label for="p-mac2">Mac</label><input type="radio" name="plat2" id="p-win2" checked><label for="p-win2">Windows / Linux</label></fieldset>
+        <button class="btn icon ghost sm" type="button" aria-label="Close shortcuts"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="groups">
+        <div class="group">
+          <h3>Session</h3>
+          <dl>
+            <div class="row"><dt>New session</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>N</kbd></span></dd></div>
+            <div class="row"><dt>Fork from here <span class="ctx">· turn 9</span></dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>F</kbd></span></dd></div>
+            <div class="row off"><dt>Fold branch into main <span class="ctx">· schema freeze until Thu</span></dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>M</kbd></span></dd></div>
+            <div class="row"><dt>Hand off <span class="ctx">· Ana → Bo, brief ready</span></dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">⇧</kbd><kbd>H</kbd></span></dd></div>
+          </dl>
+        </div>
+        <div class="group">
+          <h3>Steering</h3>
+          <dl>
+            <div class="row"><dt>Send directive to the agent</dt><dd><span class="keys"><kbd class="sym">↵</kbd></span></dd></div>
+            <div class="row"><dt>Send to the team instead</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd class="sym">↵</kbd></span></dd></div>
+            <div class="row"><dt>Withdraw a directive still being arbitrated</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>Z</kbd></span></dd></div>
+          </dl>
+        </div>
+        <div class="group">
+          <h3>Approvals</h3>
+          <dl>
+            <div class="row now"><dt>Approve what is waiting <span class="ctx">· delete legacy_invoices · 1 of 2</span></dt><dd><span class="keys"><kbd>A</kbd></span></dd></div>
+            <div class="row"><dt>Deny it</dt><dd><span class="keys"><kbd>D</kbd></span></dd></div>
+            <div class="row"><dt>Next or previous pending call</dt><dd><span class="keys"><kbd>J</kbd><span class="or">/</span><kbd>K</kbd></span></dd></div>
+          </dl>
+        </div>
+        <div class="group">
+          <h3>Navigation</h3>
+          <dl>
+            <div class="row"><dt>Command palette</dt><dd><span class="keys"><kbd class="sym mac-k">⌘</kbd><kbd class="win-k">Ctrl</kbd><kbd>K</kbd></span></dd></div>
+            <div class="row"><dt>Project, fleet, team memory</dt><dd><span class="keys"><kbd>G</kbd><span class="then">then</span><kbd>P</kbd><span class="or">/</span><kbd>F</kbd><span class="or">/</span><kbd>M</kbd></span></dd></div>
+          </dl>
+        </div>
+      </div>
+      <div class="foot"><span><kbd>?</kbd> toggles this sheet</span><span><kbd>esc</kbd> closes anything</span><span class="right"><a href="#">Change shortcuts in Settings</a></span></div>
+    </div>
+    <div class="notes">
+      <p><b>Four groups, in the order of a day.</b> Session is what you do to the thing; Steering is talking to the agent; Approvals is what it asks of you; Navigation is getting around. Nothing is listed twice and nothing is listed that has no key.</p>
+      <p><b>A row is words, then keys.</b> The verb on the left in ink, the keys on the right as soft keycaps with no border. Context in grey after a middle dot: the turn you would fork from, who the handoff goes to, what the pending call is.</p>
+      <p><b>The sheet is live.</b> A row that cannot run now stays on the map but goes grey and says why: "schema freeze until Thursday" is Dee's direction, not a disabled state. The approval row names the call so a lead never approves blind.</p>
+      <p><b>Single letters only when the composer is empty.</b> A, D, J, K, O and G chords behave like a mail client; the moment there is text in the composer they type. No letter is ever destructive on its own: A on an irreversible call still needs the second driver.</p>
+      <p><b>Platform is a word, not a detection.</b> ⌘ and Ctrl are both in the markup; a radio in the sheet picks one, and the app presets it from the shell. The one accent stays on the send arrow, which turns to ink while the sheet is open.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

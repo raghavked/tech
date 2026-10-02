@@ -1,0 +1,7 @@
+# Desktop window chrome: rationale
+
+**Decision.** No titlebar of our own on either platform. The window is undecorated (Tauri `titleBarStyle: "Overlay"` on macOS, `decorations: false` on Windows) and the sidebar runs up into the title region: the traffic lights sit inside it at (14, 20), the Fold wordmark beside them; on Windows, where nothing sits on the left, the mark takes that corner and the caption buttons sit at the top right at 46 wide by the row's height. The main column's first row carries the session title and is the drag region, on both platforms the same height as the sidebar's row (52px macOS, 40px Windows), so the apricot crease runs unbroken from the window's top edge. The OS keeps its radius and its shadow; the app draws a hairline and nothing else.
+
+**Rejected.** The native titlebar on both platforms. It stacks a system bar on top of the app's row, repeats the session title, and breaks the crease short of the edge, for one benefit (correct drag and double-click) that `data-tauri-drag-region` gives anyway. Also rejected: hiding the lights behind the sidebar toggle when the sidebar collapses; the lights stay and the row starts after them.
+
+**Carry forward.** The title row as the one drag region; the collapsed-sidebar row (lights, toggle, crumb, title); the fullscreen collapse from 52 to 40px; inactive windows dimming only title and controls; `HTMAXBUTTON` hit-testing so Snap Layouts work; the same shell on the web with a 48px row and no inset.

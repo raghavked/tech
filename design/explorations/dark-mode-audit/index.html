@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Contrast audit</title>
+<meta name="description" content="Every text and background pair in tokens.css, light and dark, with its WCAG contrast ratio computed on this page, failures named, and the replacement values proposed.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1040px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); display: flex; align-items: center; gap: 6px; }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 20px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* the summary: counts as words, one dot each */
+.sum { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 14px; color: var(--fg-2); }
+.sum b { font-weight: 500; color: var(--fg); }
+.status.fail::before { background: var(--danger); } .status.pass::before { background: var(--ok); } .status.note::before { background: var(--fg-3); }
+
+/* the audit: rows, not cards. one grid for the header and every row */
+.audit { display: flex; flex-direction: column; font-size: 14px; }
+.audit .r { display: grid; grid-template-columns: 64px 184px minmax(0, 1fr) 84px 64px 92px 224px; gap: 16px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--line); min-height: 48px; }
+.audit .r.h { font-size: 12px; color: var(--fg-3); padding: 0 4px 8px; min-height: 0; align-items: end; }
+.audit .r.sub { display: block; padding: 22px 4px 6px; font-size: 12px; color: var(--fg-3); border-bottom: 1px solid var(--line); min-height: 0; }
+.audit .pair { font-family: var(--mono); font-size: 12.5px; color: var(--fg); white-space: nowrap; }
+.audit .where { color: var(--fg-2); font-size: 13px; min-width: 0; }
+.audit .where .faint { font-size: 12px; }
+.audit .tgt { color: var(--fg-2); font-size: 13px; }
+.audit .ratio { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
+.audit .fix { font-size: 13px; color: var(--fg-2); min-width: 0; }
+.audit .fix .mono { font-size: 12.5px; color: var(--fg); }
+.audit .fix .arrow { color: var(--fg-3); padding: 0 4px; }
+/* sample: the real colours, rendered, never the theme's */
+.sw { width: 64px; height: 36px; border-radius: 8px; display: grid; place-items: center; font-size: 15px; font-weight: 500; line-height: 1; border: 1px solid var(--line); }
+.sw.sm { font-size: 12px; }
+.sw .dot { width: 8px; height: 8px; border-radius: 50%; }
+.sw .ln { width: 36px; height: 0; border-top: 1px solid; }
+.sw .box { width: 28px; height: 18px; border-radius: 5px; border: 1px solid; }
+
+/* specimen strips: the tertiary tier in context, current against proposed, each in its own palette */
+.spec { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+.strip { border-radius: var(--radius-lg); padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.strip .cap { font-size: 12px; margin-bottom: 4px; display: flex; gap: 10px; }
+.strip .cap b { font-weight: 500; }
+.strip .cap .which { margin-left: auto; }
+.strip .sec { font-size: 12px; display: flex; gap: 8px; padding: 4px 0 0; }
+.strip .sec .n { margin-left: auto; font-variant-numeric: tabular-nums; }
+.strip .item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 12px; font-size: 14px; }
+.strip .item .d { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.strip .foot { font-size: 12px; display: flex; gap: 6px; padding: 0 10px; }
+.strip .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.strip .meta .who { font-family: var(--serif); font-size: 15px; }
+.strip .pills { display: flex; gap: 8px; align-items: center; }
+.strip .pl { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em; }
+.strip .st { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.strip .st i { width: 7px; height: 7px; border-radius: 50%; }
+
+/* the diff: the lines to change in tokens.css */
+pre { margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.7; color: var(--fg-2); background: var(--bg-2); border-radius: var(--radius); padding: 16px 20px; overflow: auto; }
+pre b { font-weight: 500; color: var(--fg); }
+pre .c { color: var(--fg-3); }
+.notes { display: flex; flex-direction: column; gap: 10px; width: min(var(--col), 100%); font-size: 14px; color: var(--fg-2); }
+.notes p b { font-weight: 500; color: var(--fg); }
+.sync { font-size: 13px; }
+
+@media (max-width: 900px) {
+  .audit .r { grid-template-columns: 56px 1fr 64px 80px; gap: 10px; }
+  .audit .where, .audit .tgt, .audit .r.h .tgt, .audit .r.h .where { display: none; }
+  .audit .fix { grid-column: 2 / -1; }
+  .spec { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+  <div class="intro">
+    <div class="crumb"><a href="../../index.html">Design</a><span>›</span><a href="../">Explorations</a><span>›</span><span>Contrast audit</span></div>
+    <h1>Contrast audit, light and dark</h1>
+    <p>Every text and background pair that tokens.css actually produces, with its WCAG contrast ratio computed on this page from the hex values. Text is held to 4.5:1, dots and boundaries to 3:1. A failing row carries its proposed replacement and the ratio that replacement would reach. Tonal pairs that carry no meaning are listed and marked exempt rather than left out.</p>
+    <p class="sum" id="summary"></p>
+    <p class="sync faint" id="sync"></p>
+  </div>
+
+  <section id="light">
+    <header><h2>Light</h2><p>Paper canvas #FAF8F4 with Dress Blues ink. The tertiary tier and the amber dot are the problems.</p></header>
+    <div class="audit" data-theme="light"></div>
+  </section>
+
+  <section id="dark">
+    <header><h2>Dark</h2><p>#1F2430 canvas with warm off-white ink and Apricot as the accent. One real failure: the tertiary tier.</p></header>
+    <div class="audit" data-theme="dark"></div>
+  </section>
+
+  <section id="specimen">
+    <header><h2>The tertiary tier, before and after</h2><p>The one change people will see. Each strip is painted in its own palette regardless of the page theme, so the four read true side by side.</p></header>
+    <div class="spec" id="spec"></div>
+  </section>
+
+  <section id="diff">
+    <header><h2>Changes to tokens.css</h2><p>Four values move, one rule is added, and a high-contrast block gives the hairlines a real edge only for people who asked for one.</p></header>
+<pre>:root {
+  --fg-2: <s class="c">#6B7080</s> <b>#616676</b>;   <span class="c">/* 5.39 on bg, 4.69 on bg-3: pills, chips and the segmented control pass */</span>
+  --fg-3: <s class="c">#9A9EA9</s> <b>#6E727C</b>;   <span class="c">/* 4.54 on bg: timestamps, roles, dividers pass on the canvas */</span>
+  --warn: <s class="c">#B9792E</s> <b>#AD6F2A</b>;   <span class="c">/* 3.38 on bg-3: the amber dot passes on the active row */</span>
+  --info: <s class="c">#6B7080</s> <b>#616676</b>;   <span class="c">/* follows fg-2 */</span>
+}
+<span class="c">/* dark, both the media block and [data-theme="dark"] */</span>
+  --fg-3: <s class="c">#7C8290</s> <b>#9298A6</b>;   <span class="c">/* 5.37 on bg, 4.83 on bg-2 */</span>
+
+<span class="c">/* rule: tertiary text lives on the canvas. on bg-2 and bg-3 the 12px labels use fg-2. */</span>
+.sidebar .section, .agent .foot, .agent:hover .foot { color: var(--fg-2); }
+
+<span class="c">/* people who ask for more contrast get a real boundary on the composer and the notice */</span>
+@media (prefers-contrast: more) {
+  :root { --line: rgba(42, 50, 68, 0.45); --highlight: #A87E55; }
+  :root[data-theme="dark"], :root:not([data-theme="light"]) { --line: rgba(236, 232, 225, 0.40); }
+}</pre>
+  </section>
+
+  <section id="notes">
+    <header><h2>Exemptions and what stays</h2></header>
+    <div class="notes">
+      <p><b>Hairlines stay at 10%.</b> Row dividers and the crease are decorative, and WCAG 1.4.11 does not apply to them. The composer boundary is the one that technically fails: its fill, placeholder and send arrow identify the field, and the high-contrast block above answers the strict reading.</p>
+      <p><b>The Apricot border carries a word.</b> The contention notice and the driver ring sit at 1.56:1 on paper. Both are redundant with text ("contention", "driver"), which is why they are exempt and why that text must never be removed.</p>
+      <p><b>Status dots are never the only signal.</b> They sit next to the status word everywhere, so 3:1 is the target and the only amber failure is on the active sidebar row.</p>
+      <p><b>The tiers compress a little.</b> Light fg-3 moves from 60% to 45% lightness. The specimen shows it still reads as quieter than fg-2 because it is also smaller; that is the trade accepted here.</p>
+    </div>
+  </section>
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+
+<script>
+/* The only script in this exploration: WCAG 2.x relative luminance and contrast, nothing else. */
+(function () {
+  var P = {
+    light: { bg:'#FAF8F4', bg2:'#F3F0EA', bg3:'#ECE8E1', fg:'#2A3244', fg2:'#6B7080', fg3:'#9A9EA9', accent:'#56352D', accentFg:'#FFFFFF', hl:'#E2C4A6', hlA:0.28, lineA:0.10, foldUnder:'#56352D', ok:'#5F7F4B', warn:'#B9792E', danger:'#A8463A', info:'#6B7080',
+             fix: { fg2:'#616676', fg3:'#6E727C', warn:'#AD6F2A', info:'#616676' } },
+    dark:  { bg:'#1F2430', bg2:'#262C3A', bg3:'#303748', fg:'#ECE8E1', fg2:'#AAB0BC', fg3:'#7C8290', accent:'#E2C4A6', accentFg:'#1F2430', hl:'#E2C4A6', hlA:0.14, lineA:0.10, foldUnder:'#56352D', ok:'#8FB07A', warn:'#DDA363', danger:'#D9826F', info:'#AAB0BC',
+             fix: { fg3:'#9298A6' } }
+  };
+  function rgb(h) { h = h.replace('#', ''); return [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16); }); }
+  function hex(c) { return '#' + c.map(function (v) { return Math.round(v).toString(16).padStart(2, '0'); }).join('').toUpperCase(); }
+  function mix(top, a, under) { var t = rgb(top), u = rgb(under); return hex(t.map(function (v, i) { return v * a + u[i] * (1 - a); })); }
+  function lum(h) { var c = rgb(h).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+  function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  function fmt(r) { return r.toFixed(2); }
+
+  /* the pairs tokens.css produces. kind: text (4.5), ui (3.0), tone (exempt). fix: a token key in P[t].fix, or a note. */
+  function pairs(t) {
+    var p = P[t];
+    var hs = mix(p.hl, p.hlA, p.bg), line = mix(p.fg, p.lineA, p.bg), crease = t === 'dark' ? mix(p.hl, 0.55, p.bg) : p.hl;
+    return [
+      { sub: 'Text, 4.5:1' },
+      { n: 'fg on bg', fg: p.fg, bg: p.bg, where: 'agent text, titles, the whole column', kind: 'text' },
+      { n: 'fg on bg-2', fg: p.fg, bg: p.bg2, where: 'sidebar items, human bubbles, the composer', kind: 'text' },
+      { n: 'fg on bg-3', fg: p.fg, bg: p.bg3, where: 'active row, avatar initials, pressed button', kind: 'text' },
+      { n: 'fg on highlight-soft', fg: p.fg, bg: hs, where: 'selected chip, the team pill', kind: 'text', bgName: hs },
+      { n: 'fg-2 on bg', fg: p.fg2, bg: p.bg, where: 'message meta, tool steps, status words', kind: 'text', fix: 'fg2' },
+      { n: 'fg-2 on bg-2', fg: p.fg2, bg: p.bg2, where: 'agent card "doing" line, composer bar labels', kind: 'text', fix: 'fg2' },
+      { n: 'fg-2 on bg-3', fg: p.fg2, bg: p.bg3, where: 'pill, chip, segmented control', kind: 'text', small: true, fix: 'fg2' },
+      { n: 'fg-2 on highlight-soft', fg: p.fg2, bg: hs, where: 'secondary text inside a selected chip', kind: 'text', fix: 'fg2' },
+      { n: 'fg-3 on bg', fg: p.fg3, bg: p.bg, where: 'timestamps, roles, dividers, drawer headings', kind: 'text', small: true, fix: 'fg3' },
+      { n: 'fg-3 on bg-2', fg: p.fg3, bg: p.bg2, where: 'sidebar section labels, agent card footer', kind: 'text', small: true, fix: 'fg3', fixNote: 'use fg-2 here' },
+      { n: 'fg-3 on bg-3', fg: p.fg3, bg: p.bg3, where: 'agent card footer on hover', kind: 'text', small: true, fix: 'fg3', fixNote: 'use fg-2 here' },
+      { n: 'accent on bg', fg: p.accent, bg: p.bg, where: 'links in agent text', kind: 'text' },
+      { n: 'accent on bg-2', fg: p.accent, bg: p.bg2, where: 'links inside a human bubble', kind: 'text' },
+      { n: 'accent-fg on accent', fg: p.accentFg, bg: p.accent, where: 'primary button, send arrow', kind: 'text' },
+      { n: 'bg on fg', fg: p.bg, bg: p.fg, where: 'agent avatar initials', kind: 'text', small: true },
+      { n: 'danger on bg', fg: p.danger, bg: p.bg, where: 'failed tool step', kind: 'text' },
+      { n: 'danger on bg-3', fg: p.danger, bg: p.bg3, where: 'not used as text today; keep it that way', kind: 'text', soft: true },
+      { sub: 'Dots and boundaries, 3:1' },
+      { n: 'ok on bg-2', fg: p.ok, bg: p.bg2, where: 'running dot in the sidebar', kind: 'ui', shape: 'dot' },
+      { n: 'ok on bg-3', fg: p.ok, bg: p.bg3, where: 'running dot on the active row', kind: 'ui', shape: 'dot' },
+      { n: 'warn on bg-2', fg: p.warn, bg: p.bg2, where: 'awaiting-approval dot in the sidebar', kind: 'ui', shape: 'dot', fix: 'warn' },
+      { n: 'warn on bg-3', fg: p.warn, bg: p.bg3, where: 'awaiting-approval dot on the active row', kind: 'ui', shape: 'dot', fix: 'warn' },
+      { n: 'danger on bg-3', fg: p.danger, bg: p.bg3, where: 'blocked dot on the active row', kind: 'ui', shape: 'dot' },
+      { n: 'info on bg-3', fg: p.info, bg: p.bg3, where: 'paused dot on the active row', kind: 'ui', shape: 'dot', fix: 'info' },
+      { n: 'highlight on bg', fg: p.hl, bg: p.bg, where: 'contention border, driver ring, to-team composer', kind: 'ui', shape: 'box', exempt: 'carries a word' },
+      { n: 'crease on bg-2', fg: crease, bg: p.bg2, where: 'the hairline between sidebar and column', kind: 'ui', shape: 'line', exempt: 'decorative' },
+      { n: 'line on bg', fg: line, bg: p.bg, where: 'composer and notice border, row dividers', kind: 'ui', shape: 'line', exempt: 'prefers-contrast block' },
+      { n: 'fold-face on fold-under', fg: p.hl, bg: p.foldUnder, where: 'the folded corner', kind: 'ui', shape: 'box', },
+      { sub: 'Tone, exempt' },
+      { n: 'bg-2 on bg', fg: p.bg2, bg: p.bg, where: 'bubble and composer fill against the canvas', kind: 'tone', shape: 'box' },
+      { n: 'highlight-soft on bg', fg: hs, bg: p.bg, where: 'selected chip fill', kind: 'tone', shape: 'box' }
+    ];
+  }
+
+  var totals = {};
+  function render(t) {
+    var host = document.querySelector('.audit[data-theme="' + t + '"]');
+    var p = P[t], rows = pairs(t), fails = 0, count = 0;
+    var h = '<div class="r h"><span>sample</span><span>pair</span><span class="where">where it occurs</span><span class="tgt">target</span><span class="ratio">ratio</span><span>result</span><span>proposed</span></div>';
+    rows.forEach(function (r) {
+      if (r.sub) { h += '<div class="r sub">' + r.sub + '</div>'; return; }
+      var ratioV = ratio(r.fg, r.bg), target = r.kind === 'text' ? 4.5 : r.kind === 'ui' ? 3 : 0;
+      var pass = r.kind === 'tone' || ratioV >= target;
+      var verdict, cls;
+      if (r.kind === 'tone') { verdict = 'exempt'; cls = 'note'; }
+      else if (pass) { verdict = 'passes'; cls = 'pass'; }
+      else if (r.exempt) { verdict = 'exempt'; cls = 'note'; }
+      else if (r.soft) { verdict = 'unused'; cls = 'note'; }
+      else { verdict = 'fails'; cls = 'fail'; fails++; }
+      if (r.kind !== 'tone') count++;
+      var sample;
+      if (r.shape === 'dot') sample = '<span class="dot" style="background:' + r.fg + '"></span>';
+      else if (r.shape === 'line') sample = '<span class="ln" style="border-color:' + r.fg + '"></span>';
+      else if (r.shape === 'box') sample = '<span class="box" style="border-color:' + r.fg + ';background:' + r.fg + '"></span>';
+      else sample = 'Aa';
+      var fix = '<span class="faint">—</span>';
+      if (!pass && r.kind !== 'tone') {
+        if (r.exempt) fix = '<span>' + r.exempt + '</span>';
+        else if (r.soft) fix = '<span>no change</span>';
+        else if (r.fix && p.fix[r.fix]) {
+          var nv = p.fix[r.fix], nr = ratio(nv, r.bg), nPass = nr >= target;
+          fix = '<span class="mono">' + nv + '</span><span class="arrow">→</span><span class="mono">' + fmt(nr) + '</span>';
+          if (!nPass && r.fixNote) {
+            var alt = ratio(p.fix.fg2 || p.fg2, r.bg);
+            fix += '<span class="faint">, ' + r.fixNote + ', ' + fmt(alt) + '</span>';
+          }
+        }
+      } else if (pass && r.fix && p.fix[r.fix] && r.kind !== 'tone') {
+        fix = '<span class="faint">follows, ' + fmt(ratio(p.fix[r.fix], r.bg)) + '</span>';
+      }
+      h += '<div class="r">'
+        + '<span class="sw' + (r.small ? ' sm' : '') + '" style="background:' + r.bg + ';color:' + r.fg + '">' + sample + '</span>'
+        + '<span class="pair">' + r.n + '</span>'
+        + '<span class="where">' + r.where + (r.small ? ' <span class="faint">· 11–13px</span>' : '') + '</span>'
+        + '<span class="tgt">' + (target ? target.toFixed(1) + ':1' : '—') + '</span>'
+        + '<span class="ratio">' + fmt(ratioV) + '</span>'
+        + '<span class="status ' + cls + '">' + verdict + '</span>'
+        + '<span class="fix">' + fix + '</span>'
+        + '</div>';
+    });
+    host.innerHTML = h;
+    totals[t] = { fails: fails, count: count };
+  }
+  render('light'); render('dark');
+
+  document.getElementById('summary').innerHTML =
+    '<span class="status fail"><b>Light</b>&nbsp;' + totals.light.fails + ' of ' + totals.light.count + ' pairs fail</span>'
+    + '<span class="status fail"><b>Dark</b>&nbsp;' + totals.dark.fails + ' of ' + totals.dark.count + ' pairs fail</span>'
+    + '<span class="status pass">All proposed values pass</span>';
+
+  /* does tokens.css still match the table? read the live --fg for the theme in force */
+  var cs = getComputedStyle(document.documentElement);
+  var scheme = (cs.colorScheme || '').indexOf('dark') >= 0 ? 'dark' : 'light';
+  var live = cs.getPropertyValue('--fg').trim().toUpperCase();
+  document.getElementById('sync').textContent = live === P[scheme].fg
+    ? 'Live tokens.css matches this table for the ' + scheme + ' theme.'
+    : 'tokens.css has drifted from this table: live --fg is ' + live + ', table has ' + P[scheme].fg + '.';
+
+  /* specimen strips: the sidebar section label, an agent card footer, message meta, a pill and a status, current against proposed */
+  function strip(t, proposed) {
+    var p = P[t], f = proposed ? Object.assign({}, p, p.fix) : p;
+    var fg3onBg2 = proposed ? f.fg2 : f.fg3; /* the rule: tertiary on bg-2 becomes fg-2 */
+    return '<div class="strip" style="background:' + p.bg2 + ';color:' + f.fg + '">'
+      + '<div class="cap" style="color:' + f.fg2 + '"><b style="color:' + f.fg + '">' + (t === 'light' ? 'Light' : 'Dark') + '</b><span>' + (proposed ? 'proposed' : 'current') + '</span>'
+      + '<span class="which">fg-2 ' + f.fg2 + ' · fg-3 ' + f.fg3 + '</span></div>'
+      + '<div class="sec" style="color:' + fg3onBg2 + '"><span>Sessions</span><span class="n">12</span></div>'
+      + '<div class="item" style="background:' + p.bg3 + '"><span class="d" style="background:' + f.warn + '"></span><span>Invoice PDF + tax lines</span><span style="margin-left:auto;font-size:12px;color:' + f.fg2 + '">1 of 2</span></div>'
+      + '<div class="foot" style="color:' + fg3onBg2 + '"><span>with Bo, Cy</span><span>·</span><span>14:02</span></div>'
+      + '<div class="meta" style="color:' + f.fg2 + ';padding-top:4px"><span class="who" style="color:' + f.fg + '">Ana’s agent</span><span style="color:' + f.fg3 + '">14:02</span><span style="color:' + f.fg3 + '">·</span><span>ran pnpm vitest</span></div>'
+      + '<div class="pills"><span class="pl" style="background:' + p.bg3 + ';color:' + f.fg2 + '">solo</span><span class="pl" style="background:' + mix(p.hl, p.hlA, p.bg2) + ';color:' + f.fg + '">team</span>'
+      + '<span class="st" style="color:' + f.fg2 + '"><i style="background:' + f.warn + '"></i>awaiting approval</span></div>'
+      + '</div>';
+  }
+  document.getElementById('spec').innerHTML = strip('light', false) + strip('light', true) + strip('dark', false) + strip('dark', true);
+})();
+</script>
+</body>
+</html>

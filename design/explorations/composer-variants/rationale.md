@@ -1,0 +1,7 @@
+# Composer variants: rationale
+
+**Decision.** One sheet, six states, and everything that changes between them is a word inside the sheet rather than new chrome around it. Mode is a chip that the plus or a leading slash opens into five rows; scope is a chip that opens into a short field with the session's known scopes beneath it as words, the contended one struck through; interrupt is a checkbox beside the chips that turns the hairline apricot when checked; waiting for an approval turns the hairline dashed, disables the text and the arrow, and keeps the Team side live with a sentence saying what unblocks it. The hint line below the sheet is the only place keys are taught; it says two or three things for the state it is in.
+
+**Rejected.** A toolbar of mode buttons (five icons to learn; reads as an IDE); a slash-command palette as the only entry (fine for the CLI, invisible to Bo on the web); a red Stop button for interrupt (it is a modifier on a directive, not a separate action, and it would be the second strong colour on the screen); greying the whole composer while awaiting approval (it hid the one thing Ana can still do: talk to Bo).
+
+**Carry forward.** The chip grammar (mode word, `scope` word plus value), rows with meaning and authority in the popover, struck-through frozen scopes, the apricot hairline for interrupt, the dashed hairline plus a sentence for waiting, and the per-state hint line.

@@ -1,0 +1,7 @@
+# Approvals queue, desktop: rationale
+
+**Decision.** The queue reuses the approval row from the stream rather than inventing a table. Rows are grouped under a serif project header that repeats the lead's standing direction ("schema freeze until Thursday"), so each call is read against it. A row is two lines: the exact call as a sentence (the thing the hash binds), then requester agent, session, and the state as words with one small dot ("needs you", "you approved", "Ana's to answer", "against your direction"), the quorum as a count ("Ana approved, 1 of 2 drivers") and the time left in grey. Buttons name the act. The cursor is a whole row, moved with j/k and acted on with a/d; only the cursor row has the filled Approve button and shows its keys, so the screen keeps one accent. Decided calls drop to a grey line under "Decided today".
+
+**Rejected.** A dense data table with columns for risk, requester, votes (reads like an admin panel, not a conversation). Risk badges and coloured left borders for irreversible calls (a second colour that teaches skimming). Avatar pairs for the quorum (chrome where a count suffices). Tabs per project (a lead wants one scroll). Any JavaScript, modal confirmation, or toast.
+
+**Carry forward.** Accent follows the cursor; the direction line in the group header; status words with a dot; the "against your direction" state; row-to-line on settlement; and the sidebar's single trailing phrase, "3 need you".

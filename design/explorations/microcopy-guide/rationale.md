@@ -1,0 +1,7 @@
+# Microcopy guide: rationale
+
+**Decision.** The guide is a grammar first and a list second. Ten rules open the page, each with one example in the cast and the phrasing it replaces; every table after that is a consequence of them. Each table has the same three columns, where, Fold says, not this, so a reader learns the voice by contrast: the rejected string sits in tertiary ink beside the kept one and the difference is the lesson. One section, In place, renders a few strings inside the real stream components (a human bubble, agent text, two collapsed steps, the quorum notice), so the table has a sound and the page carries exactly one accent, the Approve button. Slack and notifications get their own tables because they are the surfaces most likely to drift into bot-speak, and they say the same sentences as the stream.
+
+**Rejected.** A prose style guide (nobody reads it while writing a string). Grouping by component (writers look for a situation, not a widget). A tone persona (the voice is rules, not a character). Colour-coding good and bad (muted ink does the job). Emoji even on the rejected side (described in words instead).
+
+**Carry forward.** The three-column table as the review format for `copy.ts`; the not-this entries as lint examples for a copy test; the five status words, the quorum line "Ana approved · 1 of 2" and "offers the fold" as fixed strings across web, Slack and push.

@@ -1,0 +1,7 @@
+# Settings: rationale
+
+**Decision.** Settings is one 760px column of rows under six plain headings, in the same shape as every other list in Fold: a label and a one-line reason on the left, the control on the right, a hairline between rows. The personal half (Profile, Notifications, Appearance, Keyboard) comes first; an apricot crease, then marks the team's half (Integrations, Team policy) with one line saying who may change it. Every control is native: text inputs with a hairline, radios and checkboxes carrying the one accent, so the page has no primary button and still has exactly one colour. Notifications are one row per kind with three checkboxes under three faint column words; each kind quotes the cast so the setting is legible ("delete legacy_invoices, 1 of 2 drivers"). Team policy is one row per risk class, the rule chosen by radio from five sentence fragments, the default marked by a faint word rather than styling. The only bordered box is a quiet notice reporting what the last policy change did.
+
+**Rejected.** A modal with a left nav. Tabs per section. Toggle switches. A Save bar. Panels per section. A rules matrix with radios in a grid. Disabled radios for non-leads; they get the chosen word and "Dee sets these" instead.
+
+**Carry forward.** The row shape for settings, the crease as the yours/team boundary, rule words as radios with a marked default, the policy-change notice, and changes as attributed events, never a form submit.

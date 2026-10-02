@@ -1,0 +1,7 @@
+# Desktop tray and notifications: rationale
+
+**Decision.** The desktop shell adds exactly two things to the web client: the operating system's own notifications and a tray menu, both drawn by the OS, nothing custom painted. Every notification has one shape: the ask as the title with the object in it ("Approve delete legacy_invoices?", "Ana handed you Invoice PDF + tax lines"), a body naming who and where plus the one fact that changes the answer, and at most two actions that name the act. Irreversible calls are never one tap from a banner: they offer Review (deep link to the notice) and Deny; only reversible calls get Approve inline. Handoffs have no buttons, because driving is taken in the session with the brief in view. The tray menu is four plain rows: Open Fold, approvals pending with the count, sessions I am driving with a status word and dot, Quit. The menu bar item carries the same single number as the sidebar: things that need this person.
+
+**Rejected.** A custom popover window from the tray (duplicates the inbox and breaks OS conventions). Approve on the banner for quorum deletions (the second driver would sign without seeing the diff). Counts or project paths in toast titles. Notifying on tool steps or progress. A dismiss that also denies.
+
+**Carry forward.** Title-as-ask copy written once in the kernel; Review versus Approve by reversibility; the one counted state "needs you" shared by sidebar, tray and badge; deep links that replay from the log when the window was closed.

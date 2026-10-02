@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Command palette</title>
+<meta name="description" content="The ⌘K palette: actions for this session (steer, approve, hand off, fork, fold, switch, open project), then sessions and team memory in one list; shown empty and with a typed query.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+.intro kbd, section kbd { font: inherit; }
+section { display: flex; flex-direction: column; gap: 22px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* the palette */
+.scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 70%, transparent); }
+.palette { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); width: 640px; max-height: calc(100% - 88px); display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.palette::after { content: ""; position: absolute; top: -1px; right: -1px; width: 18px; height: 18px; border-top-right-radius: var(--radius-lg); background: linear-gradient(225deg, var(--bg) 0 50%, var(--fold-under) 50% 56%, var(--fold-face) 56% 100%); }
+.palette .ask { display: flex; align-items: center; gap: 12px; padding: 0 18px; min-height: 52px; border-bottom: 1px solid var(--line); }
+.palette .ask .ic { color: var(--fg-3); }
+.palette .ask input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: 16px/1.5 var(--font); outline: none; padding: 0; }
+.palette .ask input::placeholder { color: var(--fg-3); }
+.palette .ask .where { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; }
+.palette .ask .where .serif { font-size: 14px; color: var(--fg-2); }
+.palette .results { flex: 1; min-height: 0; overflow: auto; padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 2px; }
+.palette .group { padding: 12px 12px 4px; font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-3); font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.palette .group .n { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 400; font-variant-numeric: tabular-nums; }
+.palette ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.prow { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%; min-height: 36px; padding: 0 12px; border: 0; border-radius: var(--radius); background: transparent; color: var(--fg); font: 15px/1.4 var(--font); text-align: left; cursor: pointer; }
+.prow:hover { background: var(--bg-2); }
+.prow .ic { color: var(--fg-2); }
+.prow .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prow .t .serif { font-size: 15.5px; }
+.prow .t .by { color: var(--fg-3); font-size: 13.5px; }
+.prow .t .q { font-family: var(--serif); font-style: italic; }
+.prow .r { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.prow .r .status { font-size: 12.5px; color: var(--fg-3); }
+.prow .r .status.needs { color: var(--fg-2); }
+.prow .r .status.contention::before { background: var(--highlight); }
+li[aria-selected="true"] .prow { background: var(--bg-2); }
+li[aria-selected="true"] .prow::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+mark { background: transparent; color: inherit; text-decoration: underline; text-decoration-color: var(--highlight); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+.palette .foot { display: flex; align-items: center; gap: 16px; padding: 8px 18px 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--fg-3); }
+.palette .foot .k { color: var(--fg-2); }
+.palette .foot .right { margin-left: auto; }
+
+/* anatomy: one palette at rest, notes beside it */
+.siderow { display: grid; grid-template-columns: 640px 1fr; gap: 40px; align-items: start; }
+.siderow .palette { position: relative; top: auto; left: auto; transform: none; max-height: none; }
+.siderow .notes { display: flex; flex-direction: column; gap: 14px; font-size: 14px; color: var(--fg-2); padding-top: 6px; }
+.siderow .notes p b { font-weight: 500; color: var(--fg); }
+
+/* in situ: the desktop frame */
+.app { position: relative; width: 1000px; height: 720px; overflow: hidden; }
+.app .shell { height: 100%; }
+.app .sidebar { width: 272px; padding: 10px; gap: 1px; }
+.app .sidebar .brand { padding-bottom: 8px; text-decoration: none; color: var(--fg); }
+.app .sidebar .brand img { width: 20px; height: 20px; }
+.app .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.app .sidebar .section { padding: 10px 10px 4px; }
+.app .sidebar .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; }
+.app .sidebar .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.app .sidebar .item .t .by { color: var(--fg-3); font-size: 13px; }
+.app .sidebar .item .n { font-size: 12.5px; color: var(--fg-2); }
+.app .sidebar .item .n.faint { color: var(--fg-3); }
+.app .sidebar .item .dot { background: var(--fg-3); }
+.app .sidebar .item .dot.running { background: var(--ok); }
+.app .sidebar .item .dot.awaiting { background: var(--warn); }
+.app .sidebar .item .dot.blocked { background: var(--danger); }
+.app .sidebar .item .dot.paused { background: var(--info); }
+.app .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.app .sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.app .sidebar .me .avatar { width: 26px; height: 26px; border: 0; }
+.app .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.app .topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.app .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.app .body { flex: 1; min-height: 0; display: flex; }
+.app .scroll { display: flex; flex-direction: column; overflow: hidden; }
+.app .stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.app .column { padding-top: 0; padding-bottom: 12px; gap: 22px; }
+.app .msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.app .step .mono { font-size: 12.5px; }
+.app .notice { gap: 8px; padding: 14px 16px 12px; }
+.app .notice .q { font-size: 15px; }
+.app .notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); }
+.app .notice .actions { margin-top: 4px; align-items: center; }
+.app .notice .actions .after { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+.app .composer-wrap { padding-top: 4px; padding-bottom: 14px; }
+.app .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; color: var(--fg-3); }
+.app .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.app .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+/* while the palette is open, nothing beneath it carries the accent: the send arrow is ink */
+.app .send.quiet { background: var(--fg); color: var(--bg); }
+
+@media (max-width: 1060px) {
+  .siderow { grid-template-columns: 1fr; }
+  .siderow .palette { width: min(640px, 100%); }
+  .app { width: 100%; }
+  .palette { width: min(640px, 100% - 32px); }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h4M13 17h7"/><circle cx="15.5" cy="7" r="2"/><circle cx="10.5" cy="17" r="2"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M4 17l6-5-6-5M12 19h8"/></symbol>
+  <symbol id="i-steer" viewBox="0 0 24 24"><path d="M4 19c0-7 4-11 11-11h5M16 4l4 4-4 4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-handoff" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-fork" viewBox="0 0 24 24"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol>
+  <symbol id="i-fold" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></symbol>
+  <symbol id="i-switch" viewBox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.2L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+  <symbol id="i-split" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></symbol>
+</svg>
+
+<main class="sheet">
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Command palette</div>
+  <h1>Command palette</h1>
+  <p>One field, opened with <kbd>⌘K</kbd> from anywhere in the desktop or web app. Empty, it lists what you can do in the session you are looking at, then where you were. Typed, it answers from three places in one list: an action, the sessions in the project, and what the team already knows. Nothing in it is a card; every line is a row with a verb or a name on the left and its context in grey on the right.</p>
+</div>
+
+<section id="empty">
+  <header>
+    <h2>Empty</h2>
+    <p>Dee presses ⌘K in Ana's session. The first group is the verbs of this session, ordered by what is waiting; the approval she owes is the second row and says so in words. Below it, the sessions she was in last.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell" aria-hidden="true">
+      <aside class="sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button" tabindex="-1"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <a class="item active" href="#" tabindex="-1"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n">needs you</span></a>
+        <a class="item" href="#" tabindex="-1"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#" tabindex="-1"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#" tabindex="-1"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="me"><span class="avatar" title="Dee">D</span><div class="who">Dee Okafor<div class="small faint">Northwind · lead</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Dee">D</span></span><a class="btn sm" href="#" tabindex="-1">Team</a><a class="btn sm" href="#" tabindex="-1">Details</a></div>
+        </div>
+        <div class="body">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Keep the layout change on the pdf-layout branch; main is frozen until Thursday.</div></div>
+              <div class="msg agent"><div class="meta"><span class="avatar agent">F</span><span class="who">Ana's agent</span><span class="faint">turn 9</span></div><div class="text">Tax lines fit under the subtotal without touching the page template; all 32 tests pass. Next I want to clear <span class="mono">legacy_invoices</span> so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+              <div class="notice">
+                <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+                <p class="st"><span class="status awaiting">Ana approved · 1 of 2 drivers</span><span class="sep">·</span><span>cannot be undone</span></p>
+                <div class="actions"><button class="btn sm" type="button" tabindex="-1">Approve delete</button><button class="btn sm" type="button" tabindex="-1">Deny</button><span class="after">Expires in 24 min</span></div>
+              </div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <div class="input">Steer the agent</div>
+                <div class="bar"><div class="seg"><span class="on" style="padding:3px 10px">Agent</span><span style="padding:3px 10px">Team</span></div><span class="btn icon"><svg class="ic"><use href="#i-sliders"/></svg></span><div class="right"><span class="send quiet"><svg class="ic"><use href="#i-up"/></svg></span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="palette folded" role="dialog" aria-label="Command palette">
+      <div class="ask">
+        <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+        <label class="sr-only" for="q-empty">Type an action, a session or something the team knows</label>
+        <input id="q-empty" type="text" placeholder="Steer, approve, hand off, or search" autocomplete="off">
+        <span class="where">in <span class="serif">Invoice PDF + tax lines</span></span>
+      </div>
+      <div class="results">
+        <div class="group">This session</div>
+        <ul role="listbox" aria-label="Actions">
+          <li role="option" aria-selected="true"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-steer"/></svg><span class="t">Steer Ana's agent</span><span class="r">directive, arbitrated with Ana and Bo</span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span class="t">Approve delete <span class="mono">legacy_invoices</span></span><span class="r"><span class="status awaiting needs">needs you · 1 of 2 drivers</span><span>· cannot be undone</span></span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-handoff"/></svg><span class="t">Hand off to Bo</span><span class="r">from Ana · brief ready</span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-fork"/></svg><span class="t">Fork from here</span><span class="r">turn 9</span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-fold"/></svg><span class="t">Fold <span class="mono">pdf-layout</span> into main</span><span class="r">schema freeze until Thursday · Dee</span></button></li>
+        </ul>
+        <div class="group">Go to</div>
+        <ul role="listbox" aria-label="Go to">
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-switch"/></svg><span class="t">Switch session</span><span class="r">4 in Payments</span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-folder"/></svg><span class="t">Open project <span class="serif">Payments</span></span><span class="r">Northwind · 2 to approve</span></button></li>
+        </ul>
+        <div class="group">Recent</div>
+        <ul role="listbox" aria-label="Recent sessions">
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span class="t"><span class="serif">Rounding audit</span> <span class="by">Cy</span></span><span class="r"><span class="status running">running</span></span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span class="t"><span class="serif">Refund ledger</span> <span class="by">Bo</span></span><span class="r"><span class="status awaiting">1 of 2</span></span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span class="t"><span class="serif">Webhook retries</span> <span class="by">Dee</span></span><span class="r"><span class="status blocked">blocked</span></span></button></li>
+        </ul>
+      </div>
+      <div class="foot"><span><span class="k">↑↓</span> move</span><span><span class="k">↵</span> run</span><span><span class="k">esc</span> close</span><span class="right">Type to search sessions and team memory</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="typed">
+  <header>
+    <h2>Typed</h2>
+    <p>Dee types <i>tax</i>. The first row offers the words as a directive, so a steer never needs a form. Then the one session that matches, then what the team knows about tax in Payments, with the open conflict first and its attribution on every line. She arrows down to the contention.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell" aria-hidden="true">
+      <aside class="sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button" tabindex="-1"><svg class="ic"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <a class="item active" href="#" tabindex="-1"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n">needs you</span></a>
+        <a class="item" href="#" tabindex="-1"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#" tabindex="-1"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#" tabindex="-1"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="me"><span class="avatar" title="Dee">D</span><div class="who">Dee Okafor<div class="small faint">Northwind · lead</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Dee">D</span></span><a class="btn sm" href="#" tabindex="-1">Team</a><a class="btn sm" href="#" tabindex="-1">Details</a></div>
+        </div>
+        <div class="body">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Keep the layout change on the pdf-layout branch; main is frozen until Thursday.</div></div>
+              <div class="msg agent"><div class="meta"><span class="avatar agent">F</span><span class="who">Ana's agent</span><span class="faint">turn 9</span></div><div class="text">Tax lines fit under the subtotal without touching the page template; all 32 tests pass. Next I want to clear <span class="mono">legacy_invoices</span> so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+              <div class="notice">
+                <p class="q">Delete 41,208 rows from <span class="mono">legacy_invoices</span>?</p>
+                <p class="st"><span class="status awaiting">Ana approved · 1 of 2 drivers</span><span class="sep">·</span><span>cannot be undone</span></p>
+                <div class="actions"><button class="btn sm" type="button" tabindex="-1">Approve delete</button><button class="btn sm" type="button" tabindex="-1">Deny</button><span class="after">Expires in 24 min</span></div>
+              </div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <div class="input">Steer the agent</div>
+                <div class="bar"><div class="seg"><span class="on" style="padding:3px 10px">Agent</span><span style="padding:3px 10px">Team</span></div><span class="btn icon"><svg class="ic"><use href="#i-sliders"/></svg></span><div class="right"><span class="send quiet"><svg class="ic"><use href="#i-up"/></svg></span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="palette folded" role="dialog" aria-label="Command palette">
+      <div class="ask">
+        <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+        <label class="sr-only" for="q-typed">Type an action, a session or something the team knows</label>
+        <input id="q-typed" type="text" value="tax" autocomplete="off">
+        <span class="where">in <span class="serif">Payments</span></span>
+      </div>
+      <div class="results">
+        <div class="group">Action</div>
+        <ul role="listbox" aria-label="Actions">
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-steer"/></svg><span class="t">Steer Ana's agent: <span class="q">tax</span>…</span><span class="r">send as written</span></button></li>
+        </ul>
+        <div class="group">Sessions <span class="n">1 of 4</span></div>
+        <ul role="listbox" aria-label="Sessions">
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span class="t"><span class="serif">Invoice PDF + <mark>tax</mark> lines</span> <span class="by">Ana</span></span><span class="r"><span class="status awaiting">awaiting approval</span><span>· here</span></span></button></li>
+        </ul>
+        <div class="group">Team memory <span class="n">3 in Payments</span></div>
+        <ul role="listbox" aria-label="Team memory">
+          <li role="option" aria-selected="true"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span class="t">Stripe <mark>Tax</mark> API vs local <mark>tax</mark> tables</span><span class="r"><span class="status contention">contention</span><span>· Ana, Cy · open</span></span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="t"><mark>Tax</mark> lines sit under the subtotal, not in the template</span><span class="r">Ana · billing-42 · <span class="mono" style="font-size:12px">9f3c1a</span></span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="t">Local <mark>tax</mark> tables are stale after July 2024</span><span class="r">Cy · rounding-17 · <span class="mono" style="font-size:12px">4b21e0</span></span></button></li>
+        </ul>
+      </div>
+      <div class="foot"><span><span class="k">↑↓</span> move</span><span><span class="k">↵</span> open</span><span><span class="k">esc</span> close</span><span class="right">Open shows the conflict with both sides and who said what</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="grammar">
+  <header>
+    <h2>Grammar</h2>
+    <p>The palette at rest, out of its frame, with the rules it keeps.</p>
+  </header>
+  <div class="siderow">
+    <div class="palette folded" role="dialog" aria-label="Command palette, at rest">
+      <div class="ask">
+        <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+        <label class="sr-only" for="q-rest">Type an action, a session or something the team knows</label>
+        <input id="q-rest" type="text" placeholder="Steer, approve, hand off, or search" autocomplete="off">
+      </div>
+      <div class="results">
+        <div class="group">This session</div>
+        <ul role="listbox" aria-label="Actions">
+          <li role="option" aria-selected="true"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-steer"/></svg><span class="t">Steer Ana's agent</span><span class="r">directive, arbitrated with Ana and Bo</span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span class="t">Approve delete <span class="mono">legacy_invoices</span></span><span class="r"><span class="status awaiting needs">needs you · 1 of 2 drivers</span><span>· cannot be undone</span></span></button></li>
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-handoff"/></svg><span class="t">Hand off to Bo</span><span class="r">from Ana · brief ready</span></button></li>
+        </ul>
+        <div class="group">Team memory</div>
+        <ul role="listbox" aria-label="Team memory">
+          <li role="option"><button class="prow" type="button"><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span class="t">Stripe <mark>Tax</mark> API vs local <mark>tax</mark> tables</span><span class="r"><span class="status contention">contention</span><span>· Ana, Cy · open</span></span></button></li>
+        </ul>
+      </div>
+      <div class="foot"><span><span class="k">↑↓</span> move</span><span><span class="k">↵</span> run</span><span><span class="k">esc</span> close</span></div>
+    </div>
+    <div class="notes">
+      <p><b>One list, groups as words.</b> "This session", "Go to", "Recent"; typed, "Action", "Sessions", "Team memory" with a count. No tabs, no filters, no sidebar inside the palette.</p>
+      <p><b>A row is icon, words, context.</b> A 16px line icon, the verb or the name, then grey context on the right: who it goes to, what state it is in, who said it and in which commit. Status is a word with a dot, never a pill.</p>
+      <p><b>Verb first, consequence in words.</b> "Approve delete legacy_invoices · needs you · 1 of 2 drivers · cannot be undone". The irreversible one has no red; it has a sentence.</p>
+      <p><b>Selection is the apricot bar</b>, the same two pixels the sidebar uses for the open session. Matches are underlined in apricot, not highlighted. The palette carries no accent of its own; while it is open the send arrow beneath it is ink.</p>
+      <p><b>Any text is a steer.</b> Words that match no command are offered back as a directive to the agent in view, so ⌘K is also the fastest way to talk to it.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

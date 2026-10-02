@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Sidebar variants</title>
+<meta name="description" content="Three sidebar explorations for the Fold desktop app: projects with nested sessions, recents first with a project switcher, and a collapsible icon rail. Hover and active states for each.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1360px, 100% - 48px); margin: 0 auto; padding: 48px 0 120px; display: flex; flex-direction: column; gap: 56px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .nav { display: flex; gap: 16px; font-size: 13px; color: var(--fg-2); }
+.intro .nav a { color: var(--fg-2); } .intro .nav a:hover { color: var(--fg); }
+.variant { display: flex; flex-direction: column; gap: 18px; }
+.variant .head { display: flex; align-items: baseline; gap: 14px; width: min(var(--col), 100%); }
+.variant .head .letter { font-family: var(--serif); font-size: 26px; line-height: 1; color: var(--fg-3); }
+.variant .head h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+.variant .head p { color: var(--fg-2); font-size: 14px; }
+.frame { width: 1360px; height: 700px; display: flex; }
+.frame .shell { height: 100%; width: 100%; }
+
+/* sidebar, tightened for the frame */
+.sidebar { padding: 10px; gap: 2px; }
+.sidebar .brand { text-decoration: none; color: var(--fg); padding-bottom: 10px; }
+.sidebar .new .ic, .sidebar .search .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.sidebar .search { display: flex; align-items: center; gap: 8px; padding: 7px 10px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); cursor: text; }
+.sidebar .search:hover { background: var(--bg-3); }
+.sidebar .lists { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 1px; }
+.sidebar .item { position: relative; }
+.sidebar .item .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sidebar .item .n { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.sidebar .item .dot { background: var(--fg-3); }
+.sidebar .item .dot.running { background: var(--ok); }
+.sidebar .item .dot.awaiting { background: var(--warn); }
+.sidebar .item .dot.blocked { background: var(--danger); }
+.sidebar .item .dot.paused { background: var(--info); }
+.sidebar .item:hover, .sidebar .item.is-hover { background: var(--bg-3); }
+.sidebar .item.active, .sidebar .item.active:hover { background: var(--bg); font-weight: 500; }
+.sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.sidebar .me { padding: 8px 8px; }
+.sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
+.sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.sidebar .me .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.sidebar .footer-links { display: flex; flex-direction: column; gap: 1px; padding-top: 8px; margin-top: 4px; border-top: 1px solid var(--line); }
+.sidebar .footer-links .item { font-size: 13.5px; color: var(--fg-2); padding: 6px 10px; }
+.sidebar .footer-links .item .ic { width: 15px; height: 15px; }
+
+/* A: projects with nested sessions */
+.va details { display: flex; flex-direction: column; gap: 1px; }
+.va summary { list-style: none; cursor: pointer; }
+.va summary::-webkit-details-marker { display: none; }
+.va summary .chev { width: 14px; height: 14px; color: var(--fg-3); transition: transform .15s; margin-left: -2px; }
+.va details[open] > summary .chev { transform: rotate(90deg); }
+.va .item.project { font-weight: 500; font-size: 14px; }
+.va .item.sess { padding-left: 30px; font-size: 14px; }
+.va .item.sess .by { font-size: 12px; color: var(--fg-3); }
+.va .item.sess.active .by { font-weight: 400; }
+.va .item.sess.active::before { left: 14px; }
+.va .lead { padding: 4px 10px 6px 30px; font-size: 12.5px; color: var(--fg-3); font-style: italic; font-family: var(--serif); font-size: 13.5px; }
+
+/* B: recents first, project switcher on top */
+.vb .switcher { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 6px; border-radius: var(--radius); background: transparent; border: 0; font: inherit; color: var(--fg); text-align: left; cursor: pointer; width: 100%; }
+.vb .switcher:hover { background: var(--bg-3); }
+.vb .switcher .mark { flex: none; }
+.vb .switcher .who { flex: 1; min-width: 0; line-height: 1.25; }
+.vb .switcher .who b { display: block; font-weight: 500; font-size: 14.5px; }
+.vb .switcher .who span { display: block; font-size: 12px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vb .switcher .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.vb .item.recent { font-size: 14px; }
+.vb .item.recent .where { font-size: 12px; color: var(--fg-3); }
+.vb .pinned { padding-top: 6px; }
+
+/* C: collapsible icon rail */
+.vc .rail { width: 56px; flex: none; background: var(--bg-2); border-right: 1px solid var(--crease); display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 2px; }
+.vc .rail .brand { padding: 4px 0 12px; display: grid; place-items: center; }
+.vc .rail .rb { position: relative; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: var(--fg-2); background: transparent; border: 0; cursor: pointer; text-decoration: none; }
+.vc .rail .rb .ic { width: 18px; height: 18px; }
+.vc .rail .rb:hover, .vc .rail .rb.is-hover { background: var(--bg-3); color: var(--fg); }
+.vc .rail .rb.active { background: var(--bg); color: var(--fg); }
+.vc .rail .rb.active::before { content: ""; position: absolute; left: -10px; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.vc .rail .rb .badge { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.vc .rail .rb .tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 13px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px; opacity: 0; pointer-events: none; z-index: 2; }
+.vc .rail .rb:hover .tip, .vc .rail .rb.is-hover .tip, .vc .rail .rb:focus-visible .tip { opacity: 1; }
+.vc .rail .gap { flex: 1; }
+.vc .rail .me { margin-top: 0; padding: 6px 0 0; }
+.vc .rail .me .avatar { width: 28px; height: 28px; border: 0; }
+/* C expanded: the same rail, labels shown */
+.vc.expanded .rail { width: 232px; align-items: stretch; padding: 10px 10px; }
+.vc.expanded .rail .brand { justify-items: start; padding-left: 8px; display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 21px; color: var(--fg); text-decoration: none; }
+.vc.expanded .rail .rb { width: auto; height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 9px; font-size: 14px; }
+.vc.expanded .rail .rb .tip { position: static; transform: none; opacity: 1; border: 0; padding: 0; background: transparent; }
+.vc.expanded .rail .rb .badge { position: static; margin-left: auto; }
+.vc.expanded .rail .rb.active::before { left: 0; }
+.vc.expanded .rail .me { display: flex; align-items: center; gap: 10px; padding: 8px; font-size: 14px; }
+
+/* main area of each frame */
+.topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.topbar .title .serif { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .crumb { font-size: 13px; color: var(--fg-3); white-space: nowrap; }
+.topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.topbar .right .btn .ic { width: 14px; height: 14px; }
+.topbar .btn.icon.collapse { width: 30px; min-height: 30px; }
+.main .body { flex: 1; min-height: 0; display: flex; }
+.scroll { display: flex; flex-direction: column; overflow: hidden; }
+.stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.column { padding-top: 0; padding-bottom: 12px; gap: 24px; }
+.msg .meta .faint { font-size: 12px; }
+.msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.step .ic { width: 14px; height: 14px; }
+.step .mono { font-size: 12.5px; }
+.notice p { margin: 0; }
+.composer-wrap { padding-top: 4px; padding-bottom: 12px; }
+.composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; width: 100%; color: var(--fg); font: inherit; outline: none; }
+.composer .input::placeholder { color: var(--fg-3); }
+.composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.hint { text-align: center; font-size: 12px; color: var(--fg-3); margin-top: 8px; }
+
+/* states strip under each frame: the same rows, frozen */
+.states { display: grid; grid-template-columns: repeat(4, 288px); gap: 24px; align-items: start; }
+.states .label { font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; margin-bottom: 8px; }
+.states .sample { background: var(--bg-2); border-radius: var(--radius); padding: 6px; display: flex; flex-direction: column; gap: 1px; }
+.states .sample.rail-sample { width: 56px; align-items: center; padding: 8px 0; }
+.states .note { grid-column: 1 / -1; width: min(var(--col), 100%); font-size: 14px; color: var(--fg-2); }
+.states .sample .item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); color: var(--fg); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; position: relative; }
+.states .sample .item .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--fg-3); }
+.states .sample .item .dot.awaiting { background: var(--warn); } .states .sample .item .dot.running { background: var(--ok); }
+.states .sample .item .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.states .sample .item .by { font-size: 12px; color: var(--fg-3); }
+.states .sample .item.is-hover { background: var(--bg-3); }
+.states .sample .item.active { background: var(--bg); font-weight: 500; }
+.states .sample .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.states .sample .item .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.states .sample .item.sess { padding-left: 30px; } .states .sample .item.sess.active::before { left: 14px; }
+.states .sample .item.project { font-weight: 500; }
+.states .sample .item.project .chev { width: 14px; height: 14px; color: var(--fg-3); }
+
+/* rail samples inside the states strip reuse the rail button */
+.states .rb { position: relative; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: var(--fg-2); text-decoration: none; }
+.states .rb .ic { width: 18px; height: 18px; }
+.states .rb.is-hover { background: var(--bg-3); color: var(--fg); }
+.states .rb.active { background: var(--bg); color: var(--fg); }
+.states .rb.active::before { content: ""; position: absolute; left: -10px; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.states .rb .badge { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.states .rb .tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 13px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px; z-index: 2; }
+.states .railrow { display: flex; align-items: flex-start; gap: 0; }
+
+.compare { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 12px; }
+.compare .rowitem { grid-template-columns: 150px 1fr; }
+.compare .rowitem:hover { background: transparent; padding-inline: 4px; margin-inline: 0; }
+.compare .rowitem .t { font-weight: 500; font-size: 14px; }
+.compare .rowitem .s { font-size: 14px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+<symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16z"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M7.5 16.5l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 7.5l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-updown" viewBox="0 0 24 24"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></symbol>
+<symbol id="i-fleet" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 1 2-2h14"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></symbol>
+</svg>
+
+<div class="sheet">
+
+<header class="intro">
+  <nav class="nav" aria-label="Explorations"><a href="../../index.html">Brand</a><a href="../../desktop.html">Desktop</a><span class="faint">Sidebar variants</span></nav>
+  <h1>Three sidebars for the desktop app</h1>
+  <p class="muted">One agent, many humans. The sidebar is where Ana finds her own sessions, the fleet's, and the project they belong to. Three shapes of the same list: nested under projects, flat by recency, or folded into a rail. Hover a row to see the hover state; the active row is Ana's session.</p>
+</header>
+
+<!-- ============================ A ============================ -->
+<section class="variant" id="a">
+  <div class="head"><span class="letter">A</span><div><h2>Projects with nested sessions</h2><p>The project is the unit. Sessions sit under it, the lead's direction sits with the project, other engineers' sessions are visible at a glance.</p></div></div>
+  <div class="frame"><div class="shell">
+    <aside class="sidebar va" aria-label="Sidebar">
+      <a class="brand" href="#a"><svg class="mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+      <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+      <label class="search" for="search-a"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>Search sessions</span><input id="search-a" class="sr-only" type="search" name="q"></label>
+      <div class="lists">
+        <div class="section">Northwind › Payments<span class="n">3 projects</span></div>
+        <details open>
+          <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Billing page</span><span class="n">3</span></summary>
+          <div class="lead">Dee: schema freeze until Thursday</div>
+          <a class="item sess active" href="#a" aria-current="page"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines</span><span class="by">Ana</span></a>
+          <a class="item sess" href="#a"><span class="dot running"></span><span class="t">Tax rounding audit</span><span class="by">Cy</span></a>
+          <a class="item sess" href="#a"><span class="dot blocked"></span><span class="t">Proration fix</span><span class="by">Dee</span></a>
+        </details>
+        <details>
+          <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Checkout</span><span class="n">2</span></summary>
+          <a class="item sess" href="#a"><span class="dot running"></span><span class="t">Checkout retries</span><span class="by">Bo</span></a>
+          <a class="item sess" href="#a"><span class="dot"></span><span class="t">Apple Pay sheet</span><span class="by">Bo</span></a>
+        </details>
+        <details>
+          <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Ledger</span><span class="n">1</span></summary>
+          <a class="item sess" href="#a"><span class="dot paused"></span><span class="t">Nightly reconciliation</span><span class="by">Dee</span></a>
+        </details>
+      </div>
+      <div class="footer-links">
+        <a class="item" href="#a"><svg class="ic" aria-hidden="true"><use href="#i-fleet"/></svg><span class="t">Fleet board</span><span class="n">1 contention</span></a>
+        <a class="item" href="#a"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="t">Team memory</span></a>
+      </div>
+      <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Payments</div></div><button class="btn ghost icon sm" type="button" aria-label="Account menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Needs approval</span></span>
+        <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn ghost sm" href="#a"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#a">Team</a><a class="btn ghost sm" href="#a">Details</a></div>
+      </div>
+      <div class="body"><div class="scroll">
+        <div class="stream"><div class="column">
+          <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">goal</span></div><div class="text">Add tax lines to the invoice PDF. Use the rates in tax/rates.ts for now and keep the layout change on the pdf-layout branch.</div></div>
+          <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 7</span></div><div class="text">Tax lines fit under the subtotal without touching the page template. One rounding test failed because rates.ts rounds per line and the PDF rounded the total; the PDF now rounds the same way and all 32 pass. Next I want to clear legacy_invoices so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+          <div class="notice"><p>Delete 41,208 rows from legacy_invoices? <span class="muted">Ana approved · 1 of 2 drivers.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
+        </div></div>
+        <div class="composer-wrap"><div class="composer">
+          <label class="sr-only" for="c-a">Steer the agent</label><input class="input" id="c-a" type="text" placeholder="Steer the agent">
+          <div class="bar"><div class="seg"><button type="button" class="on">Agent</button><button type="button">Team</button></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+        </div><div class="hint">Enter to send · Shift+Enter for a new line</div></div>
+      </div></div>
+    </div>
+  </div></div>
+  <div class="states">
+    <div><div class="label">Rest</div><div class="sample"><a class="item sess" href="#a"><span class="dot running"></span><span class="t">Tax rounding audit</span><span class="by">Cy</span></a></div></div>
+    <div><div class="label">Hover</div><div class="sample"><a class="item sess is-hover" href="#a"><span class="dot running"></span><span class="t">Tax rounding audit</span><span class="by">Cy</span></a></div></div>
+    <div><div class="label">Active</div><div class="sample"><a class="item sess active" href="#a"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines</span><span class="by">Ana</span></a></div></div>
+    <div><div class="label">Project, collapsed</div><div class="sample"><a class="item project" href="#a"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Checkout</span><span class="by">2</span></a></div></div>
+    <p class="note">Hover is one tint darker; active is the paper colour with a two-pixel apricot mark on the left, so the selected row reads as part of the content, not the chrome. Status is a six-pixel dot before the title and the engineer's name after it. The lead's direction is one italic line under the project, not a pill.</p>
+  </div>
+</section>
+
+<!-- ============================ B ============================ -->
+<section class="variant" id="b">
+  <div class="head"><span class="letter">B</span><div><h2>Recents first, project switcher on top</h2><p>The claude.ai shape. One project at a time, chosen at the top; below it a flat list of sessions by recency, the fleet's included.</p></div></div>
+  <div class="frame"><div class="shell">
+    <aside class="sidebar vb" aria-label="Sidebar">
+      <button class="switcher" type="button" aria-haspopup="listbox" aria-expanded="false"><svg class="mark" viewBox="0 0 96 96" width="24" height="24" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="who"><b>Billing page</b><span>Northwind › Payments</span></span><svg class="ic" aria-hidden="true"><use href="#i-updown"/></svg></button>
+      <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+      <label class="search" for="search-b"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>Search</span><input id="search-b" class="sr-only" type="search" name="q"></label>
+      <div class="lists">
+        <div class="section">Today</div>
+        <a class="item recent active" href="#b" aria-current="page"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines</span></a>
+        <a class="item recent" href="#b"><span class="dot running"></span><span class="t">Tax rounding audit</span><span class="where">Cy</span></a>
+        <a class="item recent" href="#b"><span class="dot blocked"></span><span class="t">Proration fix</span><span class="where">Dee</span></a>
+        <div class="section">Yesterday</div>
+        <a class="item recent" href="#b"><span class="dot"></span><span class="t">Invoice numbering gaps</span></a>
+        <a class="item recent" href="#b"><span class="dot"></span><span class="t">PDF font embedding</span><span class="where">Bo</span></a>
+        <div class="section">Last week</div>
+        <a class="item recent" href="#b"><span class="dot"></span><span class="t">Credit note layout</span></a>
+        <a class="item recent" href="#b"><span class="dot"></span><span class="t">Tax ID validation</span><span class="where">Cy</span></a>
+        <a class="item recent" href="#b"><span class="dot"></span><span class="t">Rounding spike</span></a>
+      </div>
+      <div class="footer-links">
+        <a class="item" href="#b"><svg class="ic" aria-hidden="true"><use href="#i-fleet"/></svg><span class="t">Fleet board</span><span class="n">1 contention</span></a>
+        <a class="item" href="#b"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="t">Team memory</span></a>
+      </div>
+      <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Payments</div></div><button class="btn ghost icon sm" type="button" aria-label="Account menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Needs approval</span></span>
+        <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn ghost sm" href="#b"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#b">Team</a><a class="btn ghost sm" href="#b">Details</a></div>
+      </div>
+      <div class="body"><div class="scroll">
+        <div class="stream"><div class="column">
+          <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Leave the invoices table alone. Compute the tax lines at render time.</div></div>
+          <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 8</span></div><div class="text">Understood. The render path now computes tax lines from rates.ts on the way out and the table is untouched. Cy's rounding audit holds tax/rates.ts next door, so I am reading it and not writing to it. Two options for the tax source remain open: the Stripe Tax API or the local tables. I have left both behind a flag until the team decides.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/render.ts</span> · +22 −3</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 34 passed</span></div></div></div>
+          <div class="notice contention"><p>Contention: Stripe Tax API vs local tax tables. <span class="muted">Ana and Cy disagree; Dee can resolve.</span></p><div class="actions"><button class="btn sm" type="button">Open thread</button></div></div>
+        </div></div>
+        <div class="composer-wrap"><div class="composer">
+          <label class="sr-only" for="c-b">Steer the agent</label><input class="input" id="c-b" type="text" placeholder="Steer the agent">
+          <div class="bar"><div class="seg"><button type="button" class="on">Agent</button><button type="button">Team</button></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+        </div><div class="hint">Enter to send · Shift+Enter for a new line</div></div>
+      </div></div>
+    </div>
+  </div></div>
+  <div class="states">
+    <div><div class="label">Rest</div><div class="sample"><a class="item" href="#b"><span class="dot"></span><span class="t">PDF font embedding</span><span class="by">Bo</span></a></div></div>
+    <div><div class="label">Hover</div><div class="sample"><a class="item is-hover" href="#b"><span class="dot"></span><span class="t">PDF font embedding</span><span class="by">Bo</span></a></div></div>
+    <div><div class="label">Active</div><div class="sample"><a class="item active" href="#b"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines</span></a></div></div>
+    <div><div class="label">Switcher, hover</div><div class="sample"><a class="item is-hover" href="#b"><span class="t">Billing page</span><span class="by">Northwind › Payments</span><svg class="ic" aria-hidden="true"><use href="#i-updown"/></svg></a></div></div>
+    <p class="note">Recents carry no icon, only the status dot (grey when the session is closed) and, for other engineers' sessions, the name. Ana's own sessions carry nothing after the title. The switcher is the only two-line row and the only place the organisation and team are written.</p>
+  </div>
+</section>
+
+<!-- ============================ C ============================ -->
+<section class="variant" id="c">
+  <div class="head"><span class="letter">C</span><div><h2>Collapsible rail with icons</h2><p>Fifty-six pixels of chrome. Six destinations, a tooltip on hover, the full list only when you ask for it. The conversation gets the room.</p></div></div>
+  <div class="frame"><div class="shell vc">
+    <nav class="rail" aria-label="Rail">
+      <a class="brand" href="#c" aria-label="Fold"><svg viewBox="0 0 96 96" width="24" height="24" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg></a>
+      <button class="rb" type="button" aria-label="New session"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="tip" aria-hidden="true">New session</span></button>
+      <button class="rb" type="button" aria-label="Search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="tip" aria-hidden="true">Search</span></button>
+      <a class="rb active" href="#c" aria-label="Sessions" aria-current="page"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span class="badge" aria-hidden="true"></span><span class="tip" aria-hidden="true">Sessions · 1 needs approval</span></a>
+      <a class="rb" href="#c" aria-label="Projects"><svg class="ic" aria-hidden="true"><use href="#i-folder"/></svg><span class="tip" aria-hidden="true">Projects</span></a>
+      <a class="rb" href="#c" aria-label="Fleet board"><svg class="ic" aria-hidden="true"><use href="#i-fleet"/></svg><span class="tip" aria-hidden="true">Fleet board · 1 contention</span></a>
+      <a class="rb" href="#c" aria-label="Team memory"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="tip" aria-hidden="true">Team memory</span></a>
+      <span class="gap"></span>
+      <button class="rb" type="button" aria-label="Expand sidebar"><svg class="ic" aria-hidden="true"><use href="#i-panel"/></svg><span class="tip" aria-hidden="true">Expand</span></button>
+      <div class="me"><button class="rb" type="button" aria-label="Ana Novak, account"><span class="avatar" aria-hidden="true">A</span><span class="tip" aria-hidden="true">Ana Novak · Payments</span></button></div>
+    </nav>
+    <div class="main">
+      <div class="topbar">
+        <span class="title"><span class="crumb">Billing page ›</span><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Needs approval</span></span>
+        <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn ghost sm" href="#c"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#c">Team</a><a class="btn ghost sm" href="#c">Details</a></div>
+      </div>
+      <div class="body"><div class="scroll">
+        <div class="stream"><div class="column">
+          <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">handoff to Bo</span></div><div class="text">Taking the afternoon off. Bo, you have the wheel; the brief is below.</div></div>
+          <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">brief · turn 9</span></div><div class="text">Handing off to Bo. Goal: tax lines on the invoice PDF, computed at render time, table untouched. Done: lines render, rounding matches rates.ts, 34 tests pass. Open: the legacy_invoices delete needs a second driver; Stripe Tax API versus local tables is contended and waits on Dee; schema freeze holds until Thursday. Next: wire the flag to the decision once it lands.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Wrote brief · 6 lines · attributed to Ana, session 0b3f, commit 7e21a</span></div></div></div>
+          <div class="notice"><p>Bo is now driving. <span class="muted">Ana stepped back; approvals still need 2 drivers.</span></p></div>
+        </div></div>
+        <div class="composer-wrap"><div class="composer">
+          <label class="sr-only" for="c-c">Steer the agent</label><input class="input" id="c-c" type="text" placeholder="Steer the agent">
+          <div class="bar"><div class="seg"><button type="button" class="on">Agent</button><button type="button">Team</button></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+        </div><div class="hint">Enter to send · Shift+Enter for a new line</div></div>
+      </div></div>
+    </div>
+  </div></div>
+  <div class="states">
+    <div><div class="label">Rest</div><div class="railrow"><div class="sample rail-sample"><a class="rb" href="#c" aria-label="Projects"><svg class="ic" aria-hidden="true"><use href="#i-folder"/></svg></a></div></div></div>
+    <div><div class="label">Hover, with tooltip</div><div class="railrow"><div class="sample rail-sample"><a class="rb is-hover" href="#c" aria-label="Fleet board"><svg class="ic" aria-hidden="true"><use href="#i-fleet"/></svg><span class="tip" aria-hidden="true">Fleet board · 1 contention</span></a></div></div></div>
+    <div><div class="label">Active, with badge</div><div class="railrow"><div class="sample rail-sample"><a class="rb active" href="#c" aria-label="Sessions"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span class="badge" aria-hidden="true"></span></a></div></div></div>
+    <div><div class="label">Expanded</div><div class="sample"><a class="item" href="#c"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="t">New session</span></a><a class="item active" href="#c"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span class="t">Sessions</span><span class="dot awaiting"></span></a><a class="item" href="#c"><svg class="ic" aria-hidden="true"><use href="#i-folder"/></svg><span class="t">Projects</span></a><a class="item" href="#c"><svg class="ic" aria-hidden="true"><use href="#i-fleet"/></svg><span class="t">Fleet board</span></a></div></div>
+    <p class="note">The rail keeps the same six destinations in both widths; expanding adds the label, nothing else. The badge is the warn dot, the same one the status word uses. Because the session list is a click away, the project name moves into the top bar as a crumb.</p>
+  </div>
+</section>
+
+<section class="compare">
+  <h2 class="serif" style="font-size:24px">What to carry forward</h2>
+  <div class="list">
+    <div class="rowitem"><span class="t">Recommended</span><span class="s">A, projects with nested sessions. Fold's sidebar lists other people's agents, not only your own chats; the project is the thing they share, so it has to be visible without a switcher.</span></div>
+    <div class="rowitem"><span class="t">Borrow from B</span><span class="s">The recency groups for a project with many closed sessions, inside the project's own page rather than the sidebar.</span></div>
+    <div class="rowitem"><span class="t">Borrow from C</span><span class="s">The collapse: A folds to C's rail with one keystroke, and the project crumb appears in the top bar when it does.</span></div>
+    <div class="rowitem"><span class="t">Shared states</span><span class="s">Hover one tint darker, active in the paper colour with the two-pixel apricot mark, status as a dot and a word, the engineer's name in the tertiary colour.</span></div>
+  </div>
+</section>
+
+</div>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

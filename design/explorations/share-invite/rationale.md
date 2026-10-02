@@ -1,0 +1,7 @@
+# Share and invite: rationale
+
+**Decision.** Sharing is a popover under the Share button, not a modal: one hairline sheet, no scrim, no shadow, anchored to its button. Four groups in the order people need them: the link as a read-only field beside the one accent button (Copy link); "who can open it" as three radio rows, where the wider scopes always say "opens as observer"; people as rows with a presence word ("here · driving", "away", "invited") and a role per person that is a plain word with a chevron, boxed only on hover; and a field to add someone. Roles that follow from the project (Dee is lead, so owner) are static words with a reason and no remove button. The driver is shown as presence, not as a role, because the seat moves by handoff. A footnote names the live approval rule: "two owners or drivers: you and Dee". The invite-to-project popover shares the skeleton, with project roles explained by what they become on sessions and the join link as a quiet button with its expiry. A share is an event, so it reappears as a quiet notice for the recipient and a settled line in the stream.
+
+**Rejected.** A modal with a scrim. Role pills and coloured badges. A driver option in the role select. A separate access page.
+
+**Carry forward.** The popover for every button-anchored form; the people row with presence word and role word; "opens as observer" on every public scope; the settled line for every authority change.

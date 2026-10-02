@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Memory browser</title>
+<meta name="description" content="The team memory browser: attributed entries as rows (key, text, added by, session, commit), the one open conflict first, retracted and superseded entries greyed, a scope switch that narrows what a reader sees, and the curator's report beneath.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet that holds the frame */
+.sheet { width: min(1240px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section.ex { display: flex; flex-direction: column; gap: 22px; }
+section.ex > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section.ex > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section.ex > header p { color: var(--fg-2); font-size: 14px; }
+
+/* the window: the full shell at desktop width; it grows with its content */
+.frame { display: flex; min-height: 720px; }
+.frame .sidebar { width: 260px; padding: 12px 10px; }
+.frame .sidebar .brand { text-decoration: none; color: var(--fg); }
+.frame .sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--fg-3); font-size: 14px; }
+.frame .sidebar .search .ic { width: 14px; height: 14px; }
+.frame .sidebar .new .ic { width: 16px; height: 16px; color: var(--fg-2); }
+.frame .sidebar .lists { display: flex; flex-direction: column; gap: 2px; }
+.frame .sidebar .item.sub { padding-left: 22px; font-size: 13.5px; }
+.frame .sidebar .item.dim { color: var(--fg-2); }
+.frame .sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
+.frame .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.frame .sidebar .me .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.frame .main { background: var(--bg); }
+.frame .topbar .title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-weight: 400; }
+.frame .topbar .title .crumb { color: var(--fg-3); }
+.frame .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.frame .topbar .right .btn .ic { width: 14px; height: 14px; }
+
+/* the page: one 760px column */
+.page { width: min(var(--col), 100%); margin: 0 auto; padding: 40px 24px 72px; display: flex; flex-direction: column; gap: 40px; }
+.page .head { display: flex; flex-direction: column; gap: 8px; }
+.page .lead { color: var(--fg-2); }
+
+/* controls: the scope switch is three radios in a segment; the search is a quiet field */
+.controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.controls .reading { width: 100%; margin-top: -2px; }
+.controls .seg input { position: absolute; opacity: 0; width: 0; height: 0; }
+.controls .seg label { padding: 5px 12px; font-size: 13.5px; }
+.controls .seg input:checked + label { background: var(--bg); color: var(--fg); }
+.controls .seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.controls .find { margin-left: auto; display: flex; align-items: center; gap: 8px; background: var(--bg-2); border-radius: var(--radius-full); padding: 0 14px; min-height: 32px; width: 240px; color: var(--fg-3); }
+.controls .find .ic { width: 14px; height: 14px; }
+.controls .find input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: inherit; font-size: 14px; outline: none; }
+.controls .find input::placeholder { color: var(--fg-3); }
+.reading { font-size: 13.5px; color: var(--fg-3); }
+.reading i { font-family: var(--serif); font-style: italic; }
+.reading .p, .reading .t, .reading .o { display: none; }
+:root:has(#s-project:checked) .reading .p { display: inline; }
+:root:has(#s-team:checked) .reading .t { display: inline; }
+:root:has(#s-org:checked) .reading .o { display: inline; }
+
+/* groups: plain headings, rows beneath */
+.group { display: flex; flex-direction: column; gap: 6px; }
+.group > h2 { display: flex; align-items: baseline; gap: 10px; font-size: 15px; font-weight: 500; padding-bottom: 6px; }
+.group > h2 .n { font-size: 13px; font-weight: 400; color: var(--fg-3); }
+.group > h2 .act { margin-left: auto; font-size: 13px; font-weight: 400; color: var(--fg-2); }
+
+/* the scope switch narrows what the reader sees: org shows org only; team shows team and org; project shows all three */
+:root:has(#s-org:checked) [data-scope="team"], :root:has(#s-org:checked) [data-scope="project"] { display: none; }
+:root:has(#s-team:checked) [data-scope="project"] { display: none; }
+:root:has(#s-org:checked) .shadowed { display: none; }
+
+/* entries: rows, not cards. key | text | who */
+.rows { display: flex; flex-direction: column; }
+.entry { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; padding: 11px 4px; border-top: 1px solid var(--line); font-size: 14.5px; }
+.entry:first-child { border-top: 0; }
+.entry .k { font-family: var(--mono); font-size: 12px; color: var(--fg-2); overflow-wrap: anywhere; }
+.entry .v { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.entry .v .note { font-size: 12.5px; color: var(--fg-3); }
+.entry .v .note i { font-family: var(--serif); }
+.entry .by { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; text-align: right; }
+.entry .by b { font-weight: 400; color: var(--fg-2); }
+.entry .by .mono { font-size: 12px; }
+.entry .by a { color: var(--fg-3); }
+/* retracted and superseded: greyed, the reason said in words */
+.entry.gone { color: var(--fg-3); }
+.entry.gone .k, .entry.gone .by b { color: var(--fg-3); }
+.entry.gone .state { display: inline-flex; align-items: center; gap: 6px; }
+.entry.gone .state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--bg-3); border: 1px solid var(--fg-3); }
+/* a level-1 summary written by the curator: the same row, the key says so */
+.entry.fold .k { color: var(--fg-3); }
+
+/* the one open conflict: the only boxed thing, in the crease colour */
+.notice.contention { gap: 6px; padding: 12px 16px; }
+.notice .q { font-size: 15px; }
+.notice .q .mono { font-size: 13.5px; }
+.notice .entry { grid-template-columns: minmax(0, 1fr) auto; padding: 7px 0; }
+.notice .entry:first-of-type { border-top: 0; }
+.notice .entry .pick { margin-left: 10px; }
+.notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); padding-top: 6px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.notice .st .status { font-size: 13px; } .notice .st .status::before { background: var(--highlight); }
+.notice .st .sep { color: var(--fg-3); }
+.btn.quiet { border-color: transparent; color: var(--fg-2); padding-inline: 8px; }
+.btn.quiet:hover { color: var(--fg); }
+
+/* curator report: lines with a status word, who acts on the right */
+.report { display: flex; flex-direction: column; }
+.crow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: baseline; padding: 11px 4px; border-top: 1px solid var(--line); font-size: 14.5px; }
+.crow:first-child { border-top: 0; }
+.crow .what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.crow .what .sub { font-size: 13px; color: var(--fg-2); }
+.crow .what .sub .mono { font-size: 12.5px; }
+.crow .status { font-size: 13px; white-space: nowrap; }
+.crow .status.done::before { background: var(--fg-3); }
+.crow .status.waits::before { background: var(--warn); }
+.crow .status.open::before { background: var(--highlight); }
+.crow .r { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.crow .r .btn { margin-left: 4px; }
+
+/* remember: one rounded field with the folded corner and the one accent on the page */
+.remember { display: flex; flex-direction: column; gap: 8px; }
+.remember .field { display: flex; align-items: center; gap: 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 6px 8px 6px 16px; position: relative; }
+.remember .field::after { content: ""; position: absolute; top: -1px; right: -1px; width: 18px; height: 18px; border-top-right-radius: var(--radius-lg); background: linear-gradient(225deg, var(--bg) 0 50%, var(--fold-under) 50% 56%, var(--fold-face) 56% 100%); }
+.remember .field input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: inherit; min-height: 32px; outline: none; }
+.remember .field input::placeholder { color: var(--fg-3); }
+.remember .field .send { width: 30px; height: 30px; flex: none; }
+.remember .how { font-size: 13px; color: var(--fg-3); padding-left: 4px; }
+
+/* notes under the frame */
+.notes { width: min(var(--col), 100%); display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; font-size: 13.5px; color: var(--fg-2); }
+.notes b { display: block; font-weight: 500; color: var(--fg); margin-bottom: 2px; }
+
+@media (max-width: 860px) {
+  .frame .sidebar { display: none; }
+  .notes { grid-template-columns: 1fr; }
+  .entry { grid-template-columns: 1fr; gap: 3px; }
+  .entry .by { text-align: left; white-space: normal; }
+  .crow { grid-template-columns: 1fr; gap: 6px; }
+  .crow .r { justify-content: flex-start; }
+  .controls .find { margin-left: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M7.5 16.5l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 7.5l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></symbol>
+</svg>
+
+<div class="sheet">
+  <div class="intro">
+    <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Memory browser</div>
+    <h1>Memory browser</h1>
+    <p>Team memory is what every agent on Billing page already knows, with the engineer, session and commit it came from on every line. The browser is one column of rows: the open conflict first, then entries grouped by scope from the project outward, then the curator's report. A scope switch narrows the list to what a reader at that scope would be given; retracted and superseded entries stay in the list, greyed, with the reason said in words.</p>
+  </div>
+
+  <section class="ex">
+    <header><h2>Billing page, project scope</h2><p>Ana opens memory from the project. One conflict on <span class="mono">tax.source</span> is open. The project's <span class="mono">api.style</span> shadows the organisation's. The curator folded Payments on Monday and proposes two retractions for Dee.</p></header>
+    <div class="frame">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="../../index.html"><svg viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search</div>
+        <div class="lists">
+          <div class="section">Projects</div>
+          <a class="item dim" href="#">Payments</a>
+          <a class="item sub active" href="#" aria-current="page">Billing page</a>
+          <a class="item sub" href="#">Checkout</a>
+          <a class="item sub" href="#">Refunds</a>
+          <div class="section">Recents</div>
+          <a class="item" href="#">Invoice PDF + tax lines</a>
+          <a class="item" href="#">Tax rounding audit</a>
+          <a class="item" href="#">Proration fix</a>
+          <a class="item" href="#">Checkout retries</a>
+          <a class="item" href="#">Refund ledger</a>
+        </div>
+        <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></div>
+      </aside>
+      <div class="main">
+        <div class="topbar"><span class="title"><span class="crumb">Payments › Billing page ›</span><span>Memory</span></span><div class="right"><button class="btn sm" type="button"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg>History</button><button class="btn sm icon" type="button" aria-label="More"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div></div>
+        <div class="page">
+          <div class="head">
+            <h1>Team memory</h1>
+            <p class="lead">What every agent on Billing page knows, and who said so.</p>
+          </div>
+
+          <div class="controls">
+            <fieldset class="seg" aria-label="Scope"><legend class="sr-only">Scope</legend>
+              <input type="radio" name="scope" id="s-org"><label for="s-org">Org</label>
+              <input type="radio" name="scope" id="s-team"><label for="s-team">Team</label>
+              <input type="radio" name="scope" id="s-project" checked><label for="s-project">Project</label>
+            </fieldset>
+            <form class="find" action="#"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><label class="sr-only" for="q">Search memory</label><input id="q" type="search" placeholder="Search keys and text"></form>
+            <p class="reading"><span class="p">Reading as an agent in <i>Billing page</i>: project entries, then Payments, then Northwind.</span><span class="t">Reading as an agent in <i>Payments</i>: team entries, then Northwind.</span><span class="o">Reading as any agent at <i>Northwind</i>: organisation entries only.</span></p>
+          </div>
+
+          <section class="group" data-scope="project" aria-labelledby="h-conf">
+            <h2 id="h-conf">Conflicts <span class="n">1 open</span></h2>
+            <div class="notice contention">
+              <p class="q">Two entries disagree on <span class="mono">tax.source</span>.</p>
+              <div class="entry"><span class="v"><span>rates.ts is the source for EU VAT until Stripe Tax lands<button class="btn sm quiet pick" type="button">Keep</button></span></span><span class="by"><b>Cy</b> · tax-audit · <span class="mono">41be0d</span></span></div>
+              <div class="entry"><span class="v"><span>Stripe Tax computes VAT at invoice time; rates.ts is display only<button class="btn sm quiet pick" type="button">Keep</button></span></span><span class="by"><b>Ana's agent</b> · billing-42 · <span class="mono">9f3c1a</span></span></div>
+              <div class="st"><span class="status">Both stay active</span><span class="sep">·</span><span>agents are told to ask before relying on either</span><span class="sep">·</span><span>Dee decides</span></div>
+            </div>
+          </section>
+
+          <section class="group" data-scope="project" aria-labelledby="h-proj">
+            <h2 id="h-proj">Billing page <span class="n">6 entries · project</span></h2>
+            <div class="rows">
+              <div class="entry"><span class="k">invoice.rounding</span><span class="v"><span>Totals round once, at the end; line items keep four decimals</span></span><span class="by"><b>Ana's agent</b> · billing-42 · <span class="mono">9f3c1a</span></span></div>
+              <div class="entry"><span class="k">api.style</span><span class="v"><span>Billing endpoints return money as integer minor units, never floats</span><span class="note">Shadows the Northwind entry on this key, here only</span></span><span class="by"><b>Ana</b> · billing-42</span></div>
+              <div class="entry"><span class="k">pdf.versioning</span><span class="v"><span>Never regenerate a PDF that has been emailed; version it</span></span><span class="by"><b>Bo</b> · billing-18 · <span class="mono">7a91d4</span></span></div>
+              <div class="entry"><span class="k">proration.tz</span><span class="v"><span>Proration runs in UTC; customer time zones only affect display</span></span><span class="by"><b>Dee</b> · billing-29 · <span class="mono">c02e77</span></span></div>
+              <div class="entry gone"><span class="k">invoice.rounding</span><span class="v"><span>Round every line item to two decimals</span><span class="note state">Superseded by Ana's newer entry on the same key</span></span><span class="by"><b>Ana's agent</b> · billing-37 · <span class="mono">b1d8e4</span></span></div>
+              <div class="entry gone"><span class="k">legacy.invoices</span><span class="v"><span>legacy_invoices is read by the monthly export</span><span class="note state">Retracted by Dee, Monday: <i>table removed in 0041</i></span></span><span class="by"><b>Cy's agent</b> · billing-22 · <span class="mono">3e7c90</span></span></div>
+            </div>
+          </section>
+
+          <section class="group" data-scope="team" aria-labelledby="h-team">
+            <h2 id="h-team">Payments <span class="n">5 entries · team · compacted Monday</span></h2>
+            <div class="rows">
+              <div class="entry fold"><span class="k">summary · level 1</span><span class="v"><span>Fourteen entries before September, folded: Stripe webhooks, the ledger schema, the refund window and the prod snapshot cadence</span><span class="note">Cites every entry and author it folded · <a href="#">Open the fourteen</a></span></span><span class="by"><b>curator</b> · by Ana, Bo, Cy</span></div>
+              <div class="entry"><span class="k">webhooks.idempotent</span><span class="v"><span>Webhooks can arrive twice; handlers are idempotent on the event id</span></span><span class="by"><b>Ana's agent</b> · billing-11 · <span class="mono">e5f20b</span></span></div>
+              <div class="entry"><span class="k">db.snapshot</span><span class="v"><span>The prod snapshot refreshes Sundays 02:00 UTC; migrations test against it</span></span><span class="by"><b>Dee</b> · proration-7 · <span class="mono">a40f31</span></span></div>
+              <div class="entry"><span class="k">refund.window</span><span class="v"><span>Refunds past 90 days go through Finance, not the API</span></span><span class="by"><b>Bo</b> · refunds-3</span></div>
+              <div class="entry gone"><span class="k">stripe.version</span><span class="v"><span>Pin the Stripe API to 2024-06-20</span><span class="note state">Retracted by Bo: <i>upgraded to 2026-03-01 in</i> <span class="mono">d7e2c5</span></span></span><span class="by"><b>Bo's agent</b> · checkout-9 · <span class="mono">8c21fa</span></span></div>
+            </div>
+          </section>
+
+          <section class="group" data-scope="org" aria-labelledby="h-org">
+            <h2 id="h-org">Northwind <span class="n">3 entries · organisation</span></h2>
+            <div class="rows">
+              <div class="entry"><span class="k">api.style</span><span class="v"><span>JSON APIs use snake_case keys and ISO 8601 timestamps with offsets</span><span class="note shadowed">Shadowed in Billing page by Ana's entry</span></span><span class="by"><b>Dee</b> · platform-2 · <span class="mono">02aa9e</span></span></div>
+              <div class="entry"><span class="k">pii.logging</span><span class="v"><span>Never log card numbers, addresses or full names; hash the customer id</span></span><span class="by"><b>Dee</b> · platform-2 · <span class="mono">02aa9e</span></span></div>
+              <div class="entry"><span class="k">ci.required</span><span class="v"><span>Every branch runs lint, typecheck and the contract tests before fold</span></span><span class="by"><b>Bo</b> · platform-5 · <span class="mono">f61b08</span></span></div>
+            </div>
+          </section>
+
+          <section class="group" aria-labelledby="h-cur">
+            <h2 id="h-cur">Curator report <span class="n">ran today 06:10</span><a class="act" href="#">Every run</a></h2>
+            <div class="report">
+              <div class="crow"><span class="what"><span>Folded Payments: fourteen level-0 entries into one summary</span><span class="sub">Cites Ana, Bo and Cy · inherits the human trust tier · the fourteen stay readable in the ledger</span></span><span class="status done">Done Monday</span></div>
+              <div class="crow"><span class="what"><span>Two agent-written entries unread for 30 days, proposed for retraction</span><span class="sub"><span class="mono">pdf.fonts</span> by Cy's agent · <span class="mono">export.cron</span> by Ana's agent · human and commit-backed entries are never proposed</span></span><span class="r"><span class="status waits">Dee decides</span><button class="btn sm quiet" type="button">Retract both</button><button class="btn sm quiet" type="button">Keep</button></span></div>
+              <div class="crow"><span class="what"><span>One conflict open on <span class="mono">tax.source</span>, one resolved</span><span class="sub">Dee kept Bo's <span class="mono">pdf.versioning</span> on Monday; Ana's entry was superseded with a note</span></span><span class="status open">Open above</span></div>
+              <div class="crow"><span class="what"><span>Injection for a Billing page session: 11 entries fit the 24 kB budget</span><span class="sub">The conflict first, then project, team and organisation entries, one per key</span></span><span class="status done">Fits</span></div>
+            </div>
+          </section>
+
+          <div class="remember">
+            <form class="field" action="#"><label class="sr-only" for="rem">Remember something for Billing page</label><input id="rem" type="text" placeholder="Remember something for Billing page, as Ana"><button class="send" type="submit" aria-label="Remember"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></form>
+            <p class="how">Written entries are yours, at project scope, with this session and the current commit attached.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><b>Conflicts first</b>The conflict is the only boxed thing, in the crease colour, with both entries attributed and a Keep beside each. The status line says both stay active and who decides, so nothing on the page shouts.</div>
+      <div><b>Rows carry the attribution</b>Key, text, then engineer · session · commit on the right. An agent's write reads "Ana's agent"; a human's reads "Ana". Greyed rows say in words why they are grey: superseded, retracted, by whom.</div>
+      <div><b>Scope is what a reader sees</b>Org, Team, Project narrow the list to what an agent at that scope would be given, in that order, and the sentence under the switch says so. The org entry that the project shadows says so on its own row.</div>
+    </div>
+  </section>
+</div>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

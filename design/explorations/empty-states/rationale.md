@@ -1,0 +1,7 @@
+# Empty states: rationale
+
+**Decision.** An empty page is still that page. Each of the five states keeps the shell, the sidebar and the serif title it would have when full, and adds exactly two things: one sentence in secondary ink that says what is missing and what fills it, joined by a semicolon, and one action that starts filling it. The action is the page's real affordance: the empty project's is the composer itself (the first directive is the session), the empty team's is a New project button, the empty memory's is a human-written first entry, the empty inbox's is a plain link onward to what is running. The sidebar echoes the state in three italic serif words under its section, so "no sessions yet" is visible before the page opens. Offline is the exception: the page beneath it is not empty by choice, so it is the quiet notice pattern: the status word by the name turns to "offline", the send arrow steps back to ink, a hint gives the last synced event.
+
+**Rejected.** Illustrations or the mark as a hero. Centred placement (the title belongs where it sits when full). Tips, tours and sample rows (fake content misleads about what is live). A full-page offline screen (it hides the readable log).
+
+**Carry forward.** The title, sentence, action grammar for every list that can be empty, including claims, branches and contentions; the sidebar's italic "none yet" line; offline as a notice plus a status word, never a blocking screen.

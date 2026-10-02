@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Handoff flow</title>
+<meta name="description" content="The handoff of the driver's seat in four frames: Ana offers, Bo receives the offer with the computed brief, Bo accepts and the ring moves, Bo declines.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 18px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header h2 .n { color: var(--fg-3); margin-right: 10px; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+.after-frame { display: flex; flex-direction: column; gap: 10px; width: min(var(--col), 100%); margin-top: 6px; }
+.after-frame .cap { font-size: 12px; color: var(--fg-3); }
+
+/* the notice: the only bordered box in the stream */
+.notice { gap: 8px; padding: 14px 16px 12px; }
+.notice .q { font-size: 15px; color: var(--fg); }
+.notice .q .serif { font-size: 16px; }
+.notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); flex-wrap: wrap; }
+.notice .st .status { font-size: 13px; }
+.notice .st .sep { color: var(--fg-3); }
+.notice .actions { margin-top: 6px; align-items: center; flex-wrap: wrap; }
+.notice .actions .after { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+.btn.quiet { border-color: transparent; color: var(--fg-2); padding-inline: 8px; }
+.btn.quiet:hover { color: var(--fg); }
+.notice .note { font-size: 14.5px; color: var(--fg); padding-left: 12px; border-left: 2px solid var(--highlight); line-height: 1.5; }
+
+/* the offer form: a list of people as rows, one radio each, one line of text */
+.people { display: flex; flex-direction: column; margin-top: 2px; }
+.people label { display: grid; grid-template-columns: 16px 26px 1fr auto; gap: 10px; align-items: center; padding: 7px 8px; margin: 0 -8px; border-radius: var(--radius); font-size: 14px; cursor: pointer; }
+.people label:hover { background: var(--bg-2); }
+.people label.on { background: var(--bg-2); }
+.people input { margin: 0; width: 14px; height: 14px; accent-color: var(--accent); }
+.people .avatar { border: 0; }
+.people .name { min-width: 0; }
+.people .name .serif { font-size: 15px; }
+.people .role { font-size: 12.5px; color: var(--fg-3); }
+.people .pres { font-size: 12.5px; color: var(--fg-3); display: inline-flex; align-items: center; gap: 6px; }
+.people .pres::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--fg-3); }
+.people .pres.here::before { background: var(--ok); }
+.line-input { display: flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--fg); font: inherit; font-size: 14px; width: 100%; outline: none; }
+.line-input::placeholder { color: var(--fg-3); }
+.line-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lbl-line { font-size: 12.5px; color: var(--fg-3); margin-top: 4px; }
+
+/* the brief preview: the computed brief in I-PASS order, as rows, not cards */
+.brief { display: grid; grid-template-columns: 112px 1fr; gap: 6px 16px; font-size: 14px; margin: 4px 0 2px; }
+.brief dt { color: var(--fg-3); font-size: 12.5px; padding-top: 2px; }
+.brief dd { margin: 0; color: var(--fg); display: flex; flex-direction: column; gap: 2px; }
+.brief dd .faint, .brief dd .muted { font-size: 13px; }
+.brief .new { color: var(--fg-2); font-size: 12.5px; font-family: var(--serif); font-style: italic; margin-left: 6px; }
+.brief .mono { font-size: 12.5px; }
+.brief .status { font-size: 13.5px; color: var(--fg); }
+.brief .status.contention::before { background: var(--highlight); }
+.brief a { color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.brief a:hover { color: var(--fg); }
+.brief .more { font-size: 13px; }
+
+/* settled: once answered the notice becomes a line, like any tool step */
+.settled { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: var(--fg-2); padding: 3px 0; line-height: 1.5; }
+.settled .ic { width: 14px; height: 14px; margin-top: 4px; opacity: 0.8; }
+.settled .who { color: var(--fg); }
+.settled a { color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+
+/* the seat moving: the divider carries the fact, the ring carries the state */
+.divider.seat { color: var(--fg-2); font-size: 13px; }
+.divider.seat .who { color: var(--fg); font-family: var(--serif); font-size: 14.5px; }
+.msg.human.ack .meta .faint { font-style: italic; font-family: var(--serif); font-size: 13.5px; }
+
+.ctx { font-size: 15px; color: var(--fg); }
+.steps { gap: 0; }
+.step .mono { font-size: 12.5px; }
+
+/* in situ: the desktop frame */
+.app { width: 1000px; height: 640px; overflow: hidden; }
+.app .shell { height: 100%; }
+.app .sidebar { width: 272px; padding: 10px; gap: 1px; }
+.app .sidebar .brand { padding-bottom: 8px; }
+.app .sidebar .brand img { width: 20px; height: 20px; }
+.app .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.app .sidebar .section { padding: 10px 10px 4px; }
+.app .sidebar .dir { padding: 0 10px 8px; font-size: 13px; color: var(--fg-3); font-family: var(--serif); font-style: italic; }
+.app .sidebar .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; }
+.app .sidebar .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.app .sidebar .item .t .by { color: var(--fg-3); font-size: 13px; }
+.app .sidebar .item .n { font-size: 12.5px; color: var(--fg-2); }
+.app .sidebar .item .dot { background: var(--fg-3); }
+.app .sidebar .item .dot.running { background: var(--ok); }
+.app .sidebar .item .dot.awaiting { background: var(--warn); }
+.app .sidebar .item .dot.blocked { background: var(--danger); }
+.app .sidebar .item .dot.paused { background: var(--info); }
+.app .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.app .sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.app .sidebar .me .avatar { width: 26px; height: 26px; border: 0; }
+.app .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.app .topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.app .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.app .topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.app .topbar .seat { font-size: 12.5px; color: var(--fg-3); margin-right: 2px; }
+.app .scroll { display: flex; flex-direction: column; overflow: hidden; }
+.app .stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.app .column { padding-top: 0; padding-bottom: 12px; gap: 22px; }
+.app .msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.app .composer-wrap { padding-top: 4px; padding-bottom: 14px; }
+.app .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; color: var(--fg-3); }
+.app .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.app .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+/* while a decision is pending, the accent moves to it: the send arrow goes to ink */
+.send.quiet { background: var(--bg-3); color: var(--fg-2); }
+
+@media (max-width: 1040px) {
+  .app { width: 100%; }
+  .brief { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+</svg>
+
+<main class="sheet">
+
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Handoff flow</div>
+  <h1>Handing off the seat</h1>
+  <p>The driver is a token one human holds. Handing it off is an offer, a brief, and an answer. The offer and the reply are quiet notices in the stream like any other ask; the brief is computed from the log, so it is shown as rows the recipient can read in twenty seconds; the moment of transfer is one divider line and the apricot ring moving from one avatar to the next. Nothing on these screens is new chrome: the same box, the same line, the same ring.</p>
+</div>
+
+<!-- ===================== FRAME 1: Ana offers ===================== -->
+<section id="offer">
+  <header>
+    <h2><span class="n">1</span>Ana offers</h2>
+    <p>Ana holds the seat and is leaving for the day. "Hand off" sits in the top bar only for the driver; pressing it opens one notice in the stream: who, and one line of why. The people are rows with presence, not a picker. The accent sits on the Offer button, so the send arrow steps back.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="dir">schema freeze until Thursday · Dee</div>
+        <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="section">Billing page <span class="n">1</span></div>
+        <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n"></span></a>
+        <div class="me"><span class="avatar driver" title="Ana">A</span><div class="who">Ana Moreau<div class="small faint">Northwind · driving</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack" aria-label="Ana driving, with Bo and Dee"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Dee">D</span></span><a class="btn sm on" href="#" aria-current="true">Hand off</a><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+        </div>
+        <div class="body" style="flex:1;min-height:0;display:flex">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 10</span></div><div class="text">Tax lines fit under the subtotal without touching the page template; all 32 tests pass. The delete of <span class="mono">legacy_invoices</span> is still waiting for a second driver, so I have parked it and started on the PDF footer.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+              <form class="notice" aria-label="Hand off the seat">
+                <p class="q">Hand the seat to</p>
+                <div class="people" role="radiogroup" aria-label="Who takes the seat">
+                  <label class="on"><input type="radio" name="to" value="bo" checked><span class="avatar" aria-hidden="true">B</span><span class="name"><span class="serif">Bo Lindqvist</span> <span class="role">contributor</span></span><span class="pres here">here</span></label>
+                  <label><input type="radio" name="to" value="cy"><span class="avatar" aria-hidden="true">C</span><span class="name"><span class="serif">Cy Adair</span> <span class="role">contributor</span></span><span class="pres here">here · in Rounding audit</span></label>
+                  <label><input type="radio" name="to" value="dee"><span class="avatar" aria-hidden="true">D</span><span class="name"><span class="serif">Dee Okafor</span> <span class="role">lead</span></span><span class="pres">away 40 min</span></label>
+                </div>
+                <label class="lbl-line" for="why">A line for Bo</label>
+                <input class="line-input" id="why" type="text" value="Off at five. Delete needs a second driver; Cy and I still disagree on the tax source.">
+                <div class="actions"><button class="btn sm primary" type="submit">Offer the seat to Bo</button><button class="btn sm" type="button">Cancel</button><span class="after">Bo sees the brief with this</span></div>
+              </form>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <label class="sr-only" for="steer1">Steer the agent</label>
+                <input class="input" id="steer1" type="text" placeholder="Steer the agent">
+                <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><button class="send quiet" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="after-frame">
+    <p class="cap">Once sent, the box becomes a line for Ana. She keeps the seat until Bo answers; the agent never stops.</p>
+    <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg><span>You offered the seat to <span class="who">Bo</span> · waiting · <a href="#">withdraw</a></span></div>
+  </div>
+</section>
+
+<!-- ===================== FRAME 2: Bo receives ===================== -->
+<section id="receive">
+  <header>
+    <h2><span class="n">2</span>Bo receives</h2>
+    <p>Bo opens the session from the row that says "offered". The notice carries Ana's line and the brief computed from the log in I-PASS order: situation, open items, recent turns with the new ones marked, what changed since Bo was last here, the workspace. Before the seat moves Bo restates the plan in one line; that line is journaled with the acceptance.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="dir">schema freeze until Thursday · Dee</div>
+        <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n">offered</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="section">Billing page <span class="n">1</span></div>
+        <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n"></span></a>
+        <div class="me"><span class="avatar" title="Bo">B</span><div class="who">Bo Lindqvist<div class="small faint">Northwind · contributor</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack" aria-label="Ana driving, with Bo and Dee"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Dee">D</span></span><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+        </div>
+        <div class="body" style="flex:1;min-height:0;display:flex">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <form class="notice" aria-label="Ana offers you the seat">
+                <p class="q"><span class="serif">Ana</span> offers you the seat</p>
+                <p class="note">Off at five. Delete needs a second driver; Cy and I still disagree on the tax source.</p>
+                <dl class="brief" aria-label="Brief">
+                  <dt>Situation</dt><dd><span>Invoice PDF with tax lines under the subtotal, on <span class="mono">pdf-layout</span></span><span class="muted">direction: schema freeze until Thursday · Dee</span></dd>
+                  <dt>Open</dt><dd><span class="status awaiting">Delete <span class="mono">legacy_invoices</span> · Ana approved · 1 of 2 drivers · 24 min left</span><span class="status contention">Contention on tax source · Stripe Tax API (Ana) vs local tables (Cy) · since turn 7</span></dd>
+                  <dt>Recent turns</dt><dd><span>8 · found the rounding bug in <span class="mono">tax/lines.ts</span></span><span>9 · tax lines fit under the subtotal, 32 passing<span class="new">new to you</span></span><span>10 · asked for the delete, parked it, started the footer<span class="new">new to you</span></span></dd>
+                  <dt>Since turn 7</dt><dd><span><span class="mono">invoices/pdf.ts</span> +14 −6 · <span class="mono">tax/lines.ts</span> +41 · <span class="mono">test/pdf.test.ts</span> +12</span><span class="muted">one decision: layout changes stay on the branch · Bo, turn 8</span></dd>
+                  <dt>Workspace</dt><dd><span><span class="mono">pdf-layout</span> · 3 files changed · 32 tests passing · <a class="more" href="#">read the full brief</a></span></dd>
+                </dl>
+                <label class="lbl-line" for="plan">Before the seat moves, the plan in your words</label>
+                <input class="line-input" id="plan" type="text" value="Hold the delete for Dee, settle the tax source with Cy, ship the PDF on the branch.">
+                <div class="actions"><button class="btn sm primary" type="submit">Accept the seat</button><button class="btn sm" type="button">Decline</button><span class="after">Ana keeps the seat until you answer</span></div>
+              </form>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <label class="sr-only" for="steer2">Steer the agent</label>
+                <input class="input" id="steer2" type="text" placeholder="Steer the agent">
+                <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><button class="send quiet" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FRAME 3: Bo accepts ===================== -->
+<section id="accept">
+  <header>
+    <h2><span class="n">3</span>Bo accepts</h2>
+    <p>Acceptance is the authority-transfer event, so it is drawn as the one thing the stream uses for a change of state: a divider line. The ring moves from A to B in the top bar and in Bo's own corner; the sidebar by-line now reads Bo. Bo's restatement is the first human message after the line. With no decision pending, the accent returns to the send arrow.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="dir">schema freeze until Thursday · Dee</div>
+        <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="section">Billing page <span class="n">1</span></div>
+        <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n"></span></a>
+        <div class="me"><span class="avatar driver" title="Bo">B</span><div class="who">Bo Lindqvist<div class="small faint">Northwind · driving</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack" aria-label="Bo driving, with Ana and Dee"><span class="avatar driver" title="Bo, driving">B</span><span class="avatar off" title="Ana, away">A</span><span class="avatar" title="Dee">D</span></span><a class="btn sm" href="#">Hand off</a><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+        </div>
+        <div class="body" style="flex:1;min-height:0;display:flex">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 10</span></div><div class="text">Tax lines fit under the subtotal without touching the page template; all 32 tests pass. The delete of <span class="mono">legacy_invoices</span> is still waiting for a second driver, so I have parked it and started on the PDF footer.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+              <div class="divider seat" role="separator" aria-label="Bo took the seat from Ana"><span><span class="who">Bo</span> took the seat from <span class="who">Ana</span> · 17:02 · turn 10</span></div>
+              <div class="msg human ack"><div class="meta"><span class="who">Bo</span><span class="faint">on taking the seat</span></div><div class="text">Hold the delete for Dee, settle the tax source with Cy, ship the PDF on the branch.</div></div>
+              <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 11</span></div><div class="text">Noted. I will leave the delete parked for Dee and keep the footer work on <span class="mono">pdf-layout</span>. The tax-source contention still blocks <span class="mono">tax/lines.ts</span>; when you and Cy settle it I can finish the rounding path either way.</div></div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <label class="sr-only" for="steer3">Steer the agent</label>
+                <input class="input" id="steer3" type="text" placeholder="Steer the agent">
+                <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FRAME 4: Bo declines ===================== -->
+<section id="decline">
+  <header>
+    <h2><span class="n">4</span>Bo declines</h2>
+    <p>A decline is not a state the stream needs to hold, so it is a grey line with Bo's reason, seen here from Ana's side. The ring stays on A, the row word is gone, and the only thing the line offers is the next person. Nothing happened to the agent.</p>
+  </header>
+  <div class="frame app">
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="#"><img src="../../mark.svg" alt="" width="20" height="20"> Fold</a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="dir">schema freeze until Thursday · Dee</div>
+        <a class="item active" href="#"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines <span class="by">Ana</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot running"></span><span class="t">Rounding audit <span class="by">Cy</span></span><span class="n"></span></a>
+        <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund ledger <span class="by">Bo</span></span><span class="n faint">1 of 2</span></a>
+        <a class="item" href="#"><span class="dot blocked"></span><span class="t">Webhook retries <span class="by">Dee</span></span><span class="n faint">blocked</span></a>
+        <div class="section">Billing page <span class="n">1</span></div>
+        <a class="item" href="#"><span class="dot paused"></span><span class="t">Plan picker copy <span class="by">Bo</span></span><span class="n"></span></a>
+        <div class="me"><span class="avatar driver" title="Ana">A</span><div class="who">Ana Moreau<div class="small faint">Northwind · driving</div></div></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Awaiting approval</span></span>
+          <div class="right"><span class="stack" aria-label="Ana driving, with Bo and Dee"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Dee">D</span></span><a class="btn sm" href="#">Hand off</a><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+        </div>
+        <div class="body" style="flex:1;min-height:0;display:flex">
+          <div class="scroll">
+            <div class="stream"><div class="column">
+              <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 10</span></div><div class="text">Tax lines fit under the subtotal without touching the page template; all 32 tests pass. The delete of <span class="mono">legacy_invoices</span> is still waiting for a second driver, so I have parked it and started on the PDF footer.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+              <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg><span>You offered the seat to <span class="who">Bo</span> · 16:58</span></div>
+              <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg><span><span class="who">Bo</span> declined · "in the webhook incident until three, Cy knows the tax lines" · <a href="#">offer to Cy</a></span></div>
+              <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 11</span></div><div class="text">Footer renders with the page number and the tax registration line; 33 tests pass. I still need a second driver on the delete before the renderer can drop its archived-row filter.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/footer.ts</span> · +22</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 33 passed</span></div></div></div>
+            </div></div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <label class="sr-only" for="steer4">Steer the agent</label>
+                <input class="input" id="steer4" type="text" placeholder="Steer the agent">
+                <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Presence and the driver — rationale
+
+**Decision.** Presence is a sentence, not a widget. Everything is built from two avatar sizes (24 px working, 16 px inline), one 2 px apricot ring that means "holds the seat", and five verbs in the brand's voice: driving, writing a directive, reading turn n, offered the seat, away. The stack is the driver first and ringed, then present people, then a number; pressing it opens a plain row list. The handoff affordance is one small secondary button whose label changes with the chair (Hand off / Ask to drive / Brief), so the accent stays on the send arrow. A pending offer is a dashed ring that turns solid on acceptance; the ring never moves early.
+
+**Rejected.** Coloured status rings per person (green/amber) — they compete with the driver ring. A "Driver" pill next to the name — the ring already says it, and the register bans pills. Typing indicators inside the stack — motion belongs on one line above the composer, where it changes what you are about to send. Showing observers as faces — a count with a thin eye is calmer.
+
+**Carry into the product.** The 16/24 avatar spec with ring-outside-border gaps; `.avatar.offered` for the pending state; the top-bar sentence that yields to the latest human act for ten seconds; the "who is here" list ordering (driver, present by join, away); and the chair rule: driver sees Hand off, contributor Ask to drive, observer Brief.

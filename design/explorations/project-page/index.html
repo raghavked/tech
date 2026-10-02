@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Project page</title>
+<meta name="description" content="The project page as claude.ai does Projects: one direction field at the top, the sessions as rows with a status word, team memory with its one open conflict, and the page before any session exists.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet that holds the two frames */
+.sheet { width: min(1240px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 22px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* a window: the full shell at desktop width; it grows with its content so nothing is cut */
+.frame { display: flex; min-height: 720px; }
+.frame .sidebar { width: 260px; padding: 12px 10px; }
+.frame .sidebar .brand { text-decoration: none; color: var(--fg); }
+.frame .sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--fg-3); font-size: 14px; }
+.frame .sidebar .search .ic { width: 14px; height: 14px; }
+.frame .sidebar .new .ic { width: 16px; height: 16px; color: var(--fg-2); }
+.frame .sidebar .lists { display: flex; flex-direction: column; gap: 2px; }
+.frame .sidebar .item.sub { padding-left: 22px; font-size: 13.5px; }
+.frame .sidebar .item.dim { color: var(--fg-2); }
+.frame .sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
+.frame .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.frame .sidebar .me .ic { width: 14px; height: 14px; color: var(--fg-3); }
+.frame .main { background: var(--bg); }
+.frame .topbar .title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-weight: 400; }
+.frame .topbar .title .crumb { color: var(--fg-3); }
+.frame .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.frame .topbar .right .btn .ic { width: 14px; height: 14px; }
+
+/* the page itself: one 760px column, sections as plain headings, rows beneath */
+.page { width: min(var(--col), 100%); margin: 0 auto; padding: 40px 24px 72px; display: flex; flex-direction: column; gap: 44px; }
+.page .head { display: flex; flex-direction: column; gap: 8px; }
+.page .head .people { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--fg-2); }
+.page .head .people .stack .avatar { width: 22px; height: 22px; font-size: 9.5px; }
+.page .lead { color: var(--fg-2); }
+.group { display: flex; flex-direction: column; gap: 6px; }
+.group > h2 { display: flex; align-items: baseline; gap: 10px; font-size: 15px; font-weight: 500; padding-bottom: 6px; }
+.group > h2 .n { font-size: 13px; font-weight: 400; color: var(--fg-3); }
+.group > h2 .act { margin-left: auto; font-size: 13px; font-weight: 400; color: var(--fg-2); }
+
+/* direction: one rounded field with the folded corner; what stands is a line beneath it */
+.direction { display: flex; flex-direction: column; gap: 10px; }
+.direction .field { display: flex; align-items: center; gap: 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 6px 8px 6px 16px; position: relative; }
+.direction .field::after { content: ""; position: absolute; top: -1px; right: -1px; width: 18px; height: 18px; border-top-right-radius: var(--radius-lg); background: linear-gradient(225deg, var(--bg) 0 50%, var(--fold-under) 50% 56%, var(--fold-face) 56% 100%); }
+.direction .field input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: inherit; min-height: 32px; outline: none; }
+.direction .field input::placeholder { color: var(--fg-3); }
+.direction .field .send { width: 30px; height: 30px; flex: none; }
+.direction .standing { display: flex; align-items: baseline; gap: 10px; padding: 4px 4px 0; font-size: 14.5px; flex-wrap: wrap; }
+.direction .standing::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--highlight); flex: none; align-self: center; }
+.direction .standing .q { font-family: var(--serif); font-size: 16.5px; }
+.direction .standing .by { font-size: 13px; color: var(--fg-3); }
+.direction .standing .by a { color: var(--fg-3); margin-left: 8px; }
+.direction .standing.none { color: var(--fg-3); font-size: 13.5px; }
+.direction .standing.none::before { background: var(--bg-3); }
+
+/* sessions: rows, a status word with a dot on the right */
+.rows { display: flex; flex-direction: column; }
+.srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 12px 4px; border-top: 1px solid var(--line); min-height: 60px; }
+.srow:first-child { border-top: 0; }
+.srow > a { display: flex; flex-direction: column; gap: 1px; min-width: 0; color: var(--fg); }
+.srow > a:hover { text-decoration: none; }
+.srow > a:hover .t { text-decoration: underline; text-decoration-color: var(--fg-3); text-underline-offset: 3px; }
+.srow .t { font-family: var(--serif); font-size: 17.5px; line-height: 1.3; }
+.srow .s { font-size: 13.5px; color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.srow .s .mono { font-size: 12.5px; }
+.srow .s i { font-family: var(--serif); color: var(--fg-3); }
+.srow .r { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; white-space: nowrap; }
+.srow .r .when { font-size: 12.5px; color: var(--fg-3); }
+.srow .status { font-size: 13.5px; color: var(--fg); }
+.srow .status.needs { color: var(--fg); } .srow .status.needs::before { background: var(--warn); }
+.srow .status.done::before { background: var(--fg-3); }
+.srow.new { grid-template-columns: 1fr; padding: 12px 4px; }
+.srow.new .btn { justify-self: start; }
+
+/* the one contention on the project: a quiet notice in the crease colour, words inside */
+.notice.contention { gap: 8px; padding: 12px 16px; }
+.notice .q { font-size: 15px; }
+.notice .q .mono { font-size: 13.5px; }
+.notice .sides { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--fg-2); }
+.notice .sides .who { font-family: var(--serif); font-size: 15px; color: var(--fg); }
+.notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); flex-wrap: wrap; }
+.notice .st .status { font-size: 13px; } .notice .st .status::before { background: var(--highlight); }
+.notice .st .sep { color: var(--fg-3); }
+.notice .st .act { margin-left: auto; display: flex; gap: 6px; }
+
+/* team memory: attributed lines; the conflict is the only boxed thing and it uses the crease */
+.mem { display: flex; flex-direction: column; }
+.mline { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: baseline; padding: 9px 4px; border-top: 1px solid var(--line); font-size: 14.5px; }
+.mline:first-child { border-top: 0; }
+.mline .k { font-family: var(--mono); font-size: 12.5px; color: var(--fg-3); margin-right: 8px; }
+.mline .by { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; }
+.mline .by b { font-weight: 400; color: var(--fg-2); }
+.notice.mem-conflict { gap: 6px; padding: 12px 16px; margin-bottom: 8px; }
+.notice.mem-conflict .q { font-size: 15px; }
+.notice.mem-conflict .mline { padding: 7px 0; }
+.notice.mem-conflict .mline:first-of-type { border-top: 0; }
+.notice.mem-conflict .mline .v { font-size: 14.5px; }
+.notice.mem-conflict .mline .pick { margin-left: 10px; }
+.notice.mem-conflict .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); padding-top: 6px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.notice.mem-conflict .st .status::before { background: var(--highlight); }
+.notice.mem-conflict .st .sep { color: var(--fg-3); }
+.btn.quiet { border-color: transparent; color: var(--fg-2); padding-inline: 8px; }
+.btn.quiet:hover { color: var(--fg); }
+
+/* empty: the same page with nothing in it yet; one sentence per section, no illustration */
+.empty { display: flex; flex-direction: column; gap: 14px; padding: 8px 4px 4px; }
+.empty .say { font-family: var(--serif); font-size: 20px; line-height: 1.35; color: var(--fg); max-width: 36ch; }
+.empty .how { font-size: 14.5px; color: var(--fg-2); max-width: 56ch; }
+.empty .row { display: flex; align-items: center; gap: 12px; }
+.empty .row .faint { font-size: 13px; }
+.quiet-line { font-size: 14px; color: var(--fg-3); padding: 8px 4px; }
+.quiet-line i { font-family: var(--serif); }
+
+/* notes under each frame */
+.notes { width: min(var(--col), 100%); display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; font-size: 13.5px; color: var(--fg-2); }
+.notes b { display: block; font-weight: 500; color: var(--fg); margin-bottom: 2px; }
+
+@media (max-width: 860px) {
+  .frame .sidebar { display: none; }
+  .notes { grid-template-columns: 1fr; }
+  .srow { grid-template-columns: 1fr; gap: 4px; }
+  .srow .r { align-items: flex-start; flex-direction: row; gap: 10px; }
+  .mline { grid-template-columns: 1fr; gap: 2px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M7.5 16.5l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 7.5l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+</svg>
+
+<div class="sheet">
+  <div class="intro">
+    <div class="crumb"><a href="../../index.html">Fold</a> › Explorations › Project page</div>
+    <h1>Project page</h1>
+    <p>A project is where a team's sessions live together: Northwind › Payments › Billing page. The page follows claude.ai Projects: a direction field where the instructions would be, the sessions as plain rows with a status word, and team memory beneath. Nothing on it is a card except the two quiet notices, a contention and a memory conflict, and both are drawn in the crease colour rather than a new one.</p>
+  </div>
+
+  <section>
+    <header><h2>With sessions</h2><p>Dee leads. Ana's agent is waiting on an approval, Cy's is running, Dee's is blocked, Bo's finished. One direction stands. One path is contended. Memory has one open conflict and the rest is attributed lines.</p></header>
+    <div class="frame">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="../../index.html"><svg viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search</div>
+        <div class="lists">
+          <div class="section">Projects</div>
+          <a class="item dim" href="#">Payments</a>
+          <a class="item sub active" href="#" aria-current="page">Billing page</a>
+          <a class="item sub" href="#">Checkout</a>
+          <a class="item sub" href="#">Refunds</a>
+          <div class="section">Recents</div>
+          <a class="item" href="#">Invoice PDF + tax lines</a>
+          <a class="item" href="#">Tax rounding audit</a>
+          <a class="item" href="#">Proration fix</a>
+          <a class="item" href="#">Checkout retries</a>
+          <a class="item" href="#">Refund ledger</a>
+        </div>
+        <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></div>
+      </aside>
+      <div class="main">
+        <div class="topbar"><span class="title"><span class="crumb">Payments ›</span><span>Billing page</span></span><div class="right"><button class="btn sm" type="button"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</button><button class="btn sm icon" type="button" aria-label="More"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div></div>
+        <div class="page">
+          <div class="head">
+            <h1>Billing page</h1>
+            <p class="lead">Invoices, tax, proration and the PDF customers download.</p>
+            <div class="people"><span class="stack" aria-hidden="true"><span class="avatar" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span><span class="avatar" title="Dee">D</span></span><span>Ana, Bo, Cy and Dee · Dee leads</span></div>
+          </div>
+
+          <div class="direction">
+            <form class="field" action="#"><label class="sr-only" for="dir-1">Direction for every session in this project</label><input id="dir-1" type="text" placeholder="Direction for every session in this project"><button class="send" type="submit" aria-label="Set direction"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></form>
+            <div class="standing"><span class="q">Schema freeze until Thursday.</span><span class="by">Dee · Tuesday · reaches 3 sessions<a href="#">Withdraw</a></span></div>
+          </div>
+
+          <section class="group" aria-labelledby="h-sessions">
+            <h2 id="h-sessions">Sessions <span class="n">4</span></h2>
+            <div class="rows">
+              <div class="srow"><a href="#"><span class="t">Invoice PDF + tax lines</span><span class="s">Ana's agent · with Bo, Cy · <i>waiting on</i> delete <span class="mono">legacy_invoices</span>, 1 of 2 drivers approved</span></a><span class="r"><span class="status needs">Needs approval</span><span class="when">handing off to Bo · 4m</span></span></div>
+              <div class="srow"><a href="#"><span class="t">Tax rounding audit</span><span class="s">Cy's agent · <i>working on</i> per-line rounding across the EU VAT rates</span></a><span class="r"><span class="status running">Running</span><span class="when">now</span></span></div>
+              <div class="srow"><a href="#"><span class="t">Proration fix</span><span class="s">Dee's agent · <i>blocked on</i> migration 0042 on the prod snapshot</span></a><span class="r"><span class="status blocked">Blocked</span><span class="when">38m</span></span></div>
+              <div class="srow"><a href="#"><span class="t">Refund ledger</span><span class="s">Bo's agent · folded into main at <span class="mono">7a91d4</span></span></a><span class="r"><span class="status done">Done</span><span class="when">yesterday</span></span></div>
+              <div class="srow new"><button class="btn sm" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button></div>
+            </div>
+          </section>
+
+          <section class="group" aria-labelledby="h-cont">
+            <h2 id="h-cont">Contention <span class="n">1</span></h2>
+            <div class="notice contention">
+              <p class="q">Two sessions want <span class="mono">services/tax/</span> for different answers.</p>
+              <div class="sides"><span><span class="who">Ana's agent</span> · use the Stripe Tax API at invoice time</span><span><span class="who">Cy's agent</span> · keep the local tax tables in <span class="mono">rates.ts</span></span></div>
+              <div class="st"><span class="status">Both hold off</span><span class="sep">·</span><span>Dee decides</span><span class="act"><button class="btn sm quiet" type="button">Stripe Tax</button><button class="btn sm quiet" type="button">Local tables</button></span></div>
+            </div>
+          </section>
+
+          <section class="group" aria-labelledby="h-mem">
+            <h2 id="h-mem">Team memory <span class="n">6 entries · compacted Monday</span><a class="act" href="#">Open all</a></h2>
+            <div class="notice contention mem-conflict">
+              <p class="q">Two entries disagree on <span class="mono">tax.source</span>.</p>
+              <div class="mline"><span class="v">rates.ts is the source for EU VAT until Stripe Tax lands<button class="btn sm quiet pick" type="button">Keep</button></span><span class="by"><b>Cy</b> · tax-audit · 41be0d</span></div>
+              <div class="mline"><span class="v">Stripe Tax computes VAT at invoice time; rates.ts is display only<button class="btn sm quiet pick" type="button">Keep</button></span><span class="by"><b>Ana</b> · billing-42 · 9f3c1a</span></div>
+              <div class="st"><span class="status">Both stay active</span><span class="sep">·</span><span>agents see both until a lead keeps one</span></div>
+            </div>
+            <div class="mem">
+              <div class="mline"><span><span class="k">invoice.rounding</span>Totals round once, at the end</span><span class="by"><b>Ana</b> · billing-42 · 9f3c1a</span></div>
+              <div class="mline"><span><span class="k">proration.tz</span>Proration runs in UTC; customer time zones only affect display</span><span class="by"><b>Dee</b> · billing-29 · c02e77</span></div>
+              <div class="mline"><span><span class="k">pdf.versioning</span>Never regenerate a PDF that has been emailed; version it</span><span class="by"><b>Bo</b> · billing-18 · 7a91d4</span></div>
+              <div class="mline"><span><span class="k">webhooks.idempotent</span>Webhooks can arrive twice; handlers are idempotent</span><span class="by"><b>Ana</b> · billing-11 · e5f20b</span></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><b>Direction where instructions go</b>claude.ai puts a project's instructions at the top; Fold's equivalent is the direction field. What stands is one serif line beneath it with who set it and how far it reaches.</div>
+      <div><b>Status is a word</b>Needs approval, Running, Blocked, Done: a dot and a word on the right of each row, the second line saying what the agent is doing in the agent's own grammar.</div>
+      <div><b>Conflicts are not alarms</b>A contention and a memory conflict are the only boxed things. Both use the apricot hairline, neither has a primary button, and both carry a status line so the reader knows who acts.</div>
+    </div>
+  </section>
+
+  <section>
+    <header><h2>Empty</h2><p>The same page before any session exists. Direction can be set first, so a lead can shape the project before anyone starts. Memory says plainly that nothing has been learned here yet.</p></header>
+    <div class="frame">
+      <aside class="sidebar" aria-label="Sidebar">
+        <a class="brand" href="../../index.html"><svg viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+        <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+        <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search</div>
+        <div class="lists">
+          <div class="section">Projects</div>
+          <a class="item dim" href="#">Payments</a>
+          <a class="item sub" href="#">Billing page</a>
+          <a class="item sub" href="#">Checkout</a>
+          <a class="item sub active" href="#" aria-current="page">Dunning emails</a>
+          <div class="section">Recents</div>
+          <a class="item" href="#">Invoice PDF + tax lines</a>
+          <a class="item" href="#">Tax rounding audit</a>
+          <a class="item" href="#">Refund ledger</a>
+        </div>
+        <div class="me"><span class="avatar" title="Dee">D</span><div class="who">Dee Okafor<div class="small faint">Northwind · Payments</div></div><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></div>
+      </aside>
+      <div class="main">
+        <div class="topbar"><span class="title"><span class="crumb">Payments ›</span><span>Dunning emails</span></span><div class="right"><button class="btn sm" type="button"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</button><button class="btn sm icon" type="button" aria-label="More"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div></div>
+        <div class="page">
+          <div class="head">
+            <h1>Dunning emails</h1>
+            <p class="lead">Reminders and retries for failed renewals.</p>
+            <div class="people"><span class="stack" aria-hidden="true"><span class="avatar" title="Dee">D</span></span><span>Dee · <a href="#">Invite the team</a></span></div>
+          </div>
+
+          <div class="direction">
+            <form class="field" action="#"><label class="sr-only" for="dir-2">Direction for every session in this project</label><input id="dir-2" type="text" placeholder="Direction for every session in this project"><button class="send" type="submit" aria-label="Set direction"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></form>
+            <div class="standing none">No direction yet. Whatever you set here reaches every session that starts in this project.</div>
+          </div>
+
+          <section class="group" aria-labelledby="h-sessions-2">
+            <h2 id="h-sessions-2">Sessions <span class="n">none yet</span></h2>
+            <div class="empty">
+              <p class="say">No one has started a session in this project.</p>
+              <p class="how">Start one and your agent works here; anyone on Payments can open it, watch, steer, or approve as it goes.</p>
+              <div class="row"><button class="btn" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button><span class="faint">or <a href="#">move an existing session</a> into this project</span></div>
+            </div>
+          </section>
+
+          <section class="group" aria-labelledby="h-mem-2">
+            <h2 id="h-mem-2">Team memory <span class="n">nothing yet</span></h2>
+            <p class="quiet-line">The first session's agent will write here; entries from <i>Payments</i> already apply.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><b>No illustration</b>An empty project is one serif sentence, one plain sentence and a hairline button. The page keeps its shape so the populated version is no surprise.</div>
+      <div><b>Direction before sessions</b>The field is live even when nothing runs. A lead can write "schema freeze" on day one and every later session inherits it.</div>
+      <div><b>Memory is never blank</b>Parent-scope entries from Payments already reach this project, and the line says so instead of showing an empty table.</div>
+    </div>
+  </section>
+</div>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

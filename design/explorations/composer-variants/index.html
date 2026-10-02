@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Composer variants</title>
+<meta name="description" content="The Fold composer in its six states: default, the mode popover, scope editing, interrupt now, disabled while an approval is pending, and the keyboard hint line.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet: one conversation column, states stacked like a long page */
+.sheet { width: min(var(--col), 100% - 48px); margin: 0 auto; padding: 56px 0 140px; display: flex; flex-direction: column; gap: 72px; }
+.nav { display: flex; gap: 16px; font-size: 14px; }
+.nav a { color: var(--fg-2); } .nav a:hover { color: var(--fg); }
+.head { display: flex; flex-direction: column; gap: 14px; }
+.head p { max-width: 60ch; color: var(--fg-2); }
+.state { display: flex; flex-direction: column; gap: 18px; }
+.state > header { display: flex; flex-direction: column; gap: 4px; }
+.state > header .n { font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; }
+.state > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+.state > header p { color: var(--fg-2); max-width: 62ch; }
+
+/* a slice of the stream above each composer so the state has context */
+.slice { display: flex; flex-direction: column; gap: 20px; padding: 8px 0 4px; }
+.msg.agent .text { max-width: 62ch; }
+.msg .meta .who { font-size: 15px; }
+.step .mono { font-size: 12.5px; }
+.notice p { margin: 0; }
+.notice .actions .btn.sm { min-height: 30px; }
+.notice .count { font-size: 13px; color: var(--fg-2); }
+
+/* the composer, built on the token sheet */
+.mock { position: relative; display: flex; flex-direction: column; gap: 8px; }
+.composer { padding: 12px 12px 10px 16px; }
+.composer textarea { display: block; font-size: 15px; line-height: 1.6; padding: 0; margin: 0; }
+.composer textarea::placeholder { color: var(--fg-3); }
+.composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.composer .bar .btn.icon.open { background: var(--bg-3); color: var(--fg); }
+.composer .bar .seg { margin-left: 2px; }
+.chip { height: 26px; }
+.chip .ic { width: 12px; height: 12px; opacity: 0.8; }
+.chip.scope { background: transparent; border: 1px solid var(--line); }
+.chip.scope .k { color: var(--fg-3); }
+.hint { text-align: center; font-size: 12.5px; color: var(--fg-2); }
+/* state 2 leaves room above the composer so the open popover covers stream, not prose */
+.state.popped .slice { min-height: 480px; justify-content: flex-start; }
+.hint kbd { font: inherit; }
+
+/* the mode popover: rows above the plus */
+.pop { position: absolute; left: 8px; bottom: calc(100% + 8px); width: 320px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px; display: flex; flex-direction: column; gap: 1px; z-index: 2; }
+.pop .mode { display: grid; grid-template-columns: 16px 1fr auto; column-gap: 10px; align-items: start; padding: 8px 10px; border-radius: 8px; border: 0; background: transparent; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.pop .mode:hover { background: var(--bg-2); }
+.pop .mode[aria-checked="true"] { background: var(--bg-2); }
+.pop .mode .ic { margin-top: 4px; }
+.pop .mode b { display: block; font-weight: 500; font-size: 14px; line-height: 1.5; }
+.pop .mode span { display: block; font-size: 12.5px; color: var(--fg-2); line-height: 1.4; }
+.pop .mode .key { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.pop .mode .key .ic { width: 14px; height: 14px; margin: 0; }
+.pop .sep { height: 1px; background: var(--line); margin: 4px 6px; }
+.pop .mode.quiet b { color: var(--fg-2); font-weight: 400; }
+
+/* scope editing: the chip opens into a field, and the known scopes sit beneath it as words */
+.scope-edit { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--radius-full); border: 1px solid var(--fg-2); font-size: 13px; color: var(--fg); }
+.scope-edit label { color: var(--fg-3); }
+.scope-edit input { border: 0; background: transparent; color: var(--fg); font: inherit; width: 9ch; outline: none; padding: 0; }
+.scope-edit input:focus-visible { outline: none; }
+.scopes { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 13px; color: var(--fg-2); padding: 2px 0 0 2px; }
+.scopes .lead { color: var(--fg-3); }
+.scopes a { color: var(--fg-2); } .scopes a:hover { color: var(--fg); }
+.scopes a.frozen { color: var(--fg-3); text-decoration: line-through; }
+.scopes a.new { color: var(--fg); }
+
+/* interrupt now: a word, a checkbox, a different hint */
+.interrupt { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px 0 8px; border-radius: var(--radius-full); font-size: 13px; color: var(--fg-2); cursor: pointer; }
+.interrupt input { margin: 0; width: 13px; height: 13px; accent-color: var(--fg); }
+.interrupt:has(input:checked) { background: var(--highlight-soft); color: var(--fg); }
+.composer.interrupting { border-color: var(--highlight); }
+.composer .above { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); }
+
+/* disabled while awaiting approval: the sheet stays, the words go quiet, the arrow loses its colour */
+.composer.waiting { border-style: dashed; }
+.composer.waiting textarea:disabled { color: var(--fg-3); }
+.composer.waiting .btn:disabled, .composer.waiting .seg label.off { color: var(--fg-3); cursor: default; }
+.composer.waiting .send:disabled { background: var(--bg-3); color: var(--fg-3); cursor: default; }
+.composer.waiting .chip { color: var(--fg-3); }
+.composer .why { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); }
+.composer .why a { color: var(--fg); }
+
+/* the hint line as a table of rows */
+.hints { display: flex; flex-direction: column; }
+.hints .rowitem { grid-template-columns: 180px 1fr; padding: 10px 4px; }
+.hints .rowitem:hover { background: transparent; padding-inline: 4px; margin-inline: 0; }
+.hints .rowitem .t { font-weight: 400; color: var(--fg-2); font-size: 14px; }
+.hints .rowitem .h { font-size: 13px; color: var(--fg); }
+.hints .rowitem .h .faint { margin-left: 6px; }
+.hints .rowitem:first-child { border-top: 1px solid var(--line); }
+kbd { font-family: var(--font); font-size: 12px; padding: 1px 5px; border: 1px solid var(--line); border-radius: 5px; color: var(--fg-2); }
+
+@media (max-width: 720px) {
+  .sheet { width: min(100% - 32px, var(--col)); padding-top: 32px; gap: 56px; }
+  .pop { width: min(320px, calc(100vw - 48px)); }
+  .hints .rowitem { grid-template-columns: 1fr; gap: 4px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-steer" viewBox="0 0 24 24"><path d="M4 18c0-6 4-10 10-10h6M16 4l4 4-4 4"/></symbol>
+  <symbol id="i-constrain" viewBox="0 0 24 24"><path d="M8 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h3M16 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3M9 12h6"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+  <symbol id="i-resume" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol>
+  <symbol id="i-cancel" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+  <symbol id="i-scope" viewBox="0 0 24 24"><path d="M3 12h3M18 12h3M12 3v3M12 18v3"/><circle cx="12" cy="12" r="5"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4-1L19 8l-3-3L5 16z"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+  <symbol id="i-fork" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><path d="M6 7v2a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V7M12 13v4"/></symbol>
+</svg>
+
+<main class="sheet">
+  <nav class="nav"><a href="../../index.html">Brand</a><a href="../../web-session.html">Session</a><a href="../sidebar-variants/index.html">Sidebar variants</a><a href="../session-view-variants/index.html">Session view variants</a></nav>
+
+  <div class="head">
+    <h1>Composer variants</h1>
+    <p>One sheet with a folded corner, the same in every state. The mode, the scope, the audience and the interrupt live as words inside it; the only colour is the arrow. Below, the composer at the bottom of Northwind › Payments › Billing page › <span class="serif i">Invoice PDF + tax lines</span>, with Ana driving.</p>
+  </div>
+
+  <!-- 1 · default -->
+  <section class="state" aria-labelledby="s1">
+    <header><span class="n">1 · Default</span><h2 id="s1">Nothing typed, nothing chosen</h2><p>The placeholder names the agent. Mode defaults to steer, scope to goal; both are chips a reader can skim past. Agent and Team is one segmented word so a message never goes to the wrong room.</p></header>
+    <div class="slice">
+      <div class="msg agent"><div class="meta"><span class="who">Ana's agent</span><span class="faint">just now</span></div><div class="text">Tax lines now come from the local tables for GB and the EU set. The PDF renders them under the subtotal, one row per rate. I will wire the Stripe Tax fallback next unless you want it the other way round.</div></div>
+    </div>
+    <div class="mock">
+      <form class="composer" aria-label="Steer Ana's agent">
+        <label class="sr-only" for="c1">Message</label>
+        <textarea id="c1" rows="1" placeholder="Steer Ana's agent"></textarea>
+        <div class="bar">
+          <button class="btn icon" type="button" aria-label="Mode: steer, constrain, pause, resume or cancel" aria-haspopup="menu"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+          <span class="chip">steer</span>
+          <span class="chip scope"><span class="k">scope</span> goal</span>
+          <div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div>
+          <div class="right"><button class="send" type="submit" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div>
+        </div>
+      </form>
+      <p class="hint">Enter to send · Shift+Enter for a new line · / for mode</p>
+    </div>
+  </section>
+
+  <!-- 2 · mode popover -->
+  <section class="state popped" aria-labelledby="s2">
+    <header><span class="n">2 · Expanded, mode popover open</span><h2 id="s2">The plus opens five words</h2><p>Typed text grows the sheet to eight lines. The plus (or a leading slash) opens the directive modes as rows: the one in use is marked, each has a one-line meaning and the authority it needs. Resume and cancel are greyed for a contributor; Ana is driver so all five are live.</p></header>
+    <div class="slice">
+      <div class="msg agent"><div class="meta"><span class="who">Ana's agent</span><span class="faint">2 min ago</span></div><div class="text">Stripe Tax returned a different rate for the Irish lines than the local table. I have kept both results in the fixture and stopped short of picking one.</div></div>
+    </div>
+    <div class="mock">
+      <form class="composer" aria-label="Steer Ana's agent">
+      <div class="pop" role="menu" aria-label="Mode">
+          <button class="mode" role="menuitemradio" aria-checked="true" type="button"><svg class="ic" aria-hidden="true"><use href="#i-steer"/></svg><span><b>Steer</b><span>Change direction on one scope. Arbitrated with the team's other steers.</span></span><span class="key"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></button>
+          <button class="mode" role="menuitemradio" aria-checked="false" type="button"><svg class="ic" aria-hidden="true"><use href="#i-constrain"/></svg><span><b>Constrain</b><span>A rule the agent keeps until it is lifted. Never conflicts; constraints add up.</span></span><span class="key">/c</span></button>
+          <div class="sep" role="separator"></div>
+          <button class="mode" role="menuitemradio" aria-checked="false" type="button"><svg class="ic" aria-hidden="true"><use href="#i-pause"/></svg><span><b>Pause</b><span>Stop after the current tool call. Anyone contributing can pause.</span></span><span class="key">/p</span></button>
+          <button class="mode" role="menuitemradio" aria-checked="false" type="button"><svg class="ic" aria-hidden="true"><use href="#i-resume"/></svg><span><b>Resume</b><span>Pick up where it paused. Driver or owner.</span></span><span class="key">/r</span></button>
+          <button class="mode" role="menuitemradio" aria-checked="false" type="button"><svg class="ic" aria-hidden="true"><use href="#i-cancel"/></svg><span><b>Cancel</b><span>End the turn and discard its plan. Driver or owner; recorded in the log.</span></span><span class="key">/x</span></button>
+        </div>
+        <label class="sr-only" for="c2">Message</label>
+        <textarea id="c2" rows="3">Use Stripe Tax for EU lines and keep the local tables for GB only. Treat the Irish mismatch as a Stripe-side bug, not ours, and leave a note in the fixture.</textarea>
+        <div class="bar">
+          <button class="btn icon open" type="button" aria-label="Mode: steer, constrain, pause, resume or cancel" aria-haspopup="menu" aria-expanded="true"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+          <span class="chip">steer</span>
+          <span class="chip scope"><span class="k">scope</span> tax-rules</span>
+          <div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div>
+          <div class="right"><button class="send" type="submit" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div>
+        </div>
+      </form>
+      <p class="hint">Esc closes · ↑↓ to choose · Enter picks the mode</p>
+    </div>
+  </section>
+
+  <!-- 3 · scope chip editing -->
+  <section class="state" aria-labelledby="s3">
+    <header><span class="n">3 · Scope chip editing</span><h2 id="s3">The scope is a word you can type</h2><p>Clicking the chip turns it into a short field. The scopes this session already knows appear beneath as plain words: the contended one is struck through because it is frozen until the team settles it, and a new word simply becomes a new scope. Here Ana is constraining, so the chip reads constrain and the hint changes with it.</p></header>
+    <div class="slice">
+      <div class="notice contention"><p><span class="serif">Contention on tax-rules.</span> Bo steered toward Stripe Tax API and Cy toward local tax tables in the same turn. The agent is working around it. <a href="#">Pick a winner</a> or <a href="#">write a replacement</a>.</p></div>
+    </div>
+    <div class="mock">
+      <form class="composer" aria-label="Constrain Ana's agent">
+        <label class="sr-only" for="c3">Message</label>
+        <textarea id="c3" rows="2">Do not change the invoices schema before Thursday. Dee's freeze stands; add columns in a migration file but do not run it.</textarea>
+        <div class="bar">
+          <button class="btn icon" type="button" aria-label="Mode: steer, constrain, pause, resume or cancel" aria-haspopup="menu"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+          <span class="chip">constrain</span>
+          <span class="scope-edit"><label for="scope">scope</label><input id="scope" type="text" value="schema" autocomplete="off" spellcheck="false"></span>
+          <div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div>
+          <div class="right"><button class="send" type="submit" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div>
+        </div>
+        <div class="scopes" aria-label="Known scopes"><span class="lead">In this session</span><a href="#">goal</a><a href="#">invoice-pdf</a><a href="#" class="frozen" aria-label="tax-rules, frozen by a contention">tax-rules</a><a href="#">rounding</a><a href="#" class="new">schema · new</a></div>
+      </form>
+      <p class="hint">Tab back to the message · Enter to send · Constraints add; they never replace</p>
+    </div>
+  </section>
+
+  <!-- 4 · interrupt now -->
+  <section class="state" aria-labelledby="s4">
+    <header><span class="n">4 · Interrupt now</span><h2 id="s4">A checkbox, not a red button</h2><p>While the agent is mid-turn the composer shows what it is doing on a line above the text and offers interrupt now as a checkbox beside the chips. Checked, the hairline turns apricot (a human's attention is here) and Enter stops the agent after the running tool call. Unchecked, the directive waits for the turn to end.</p></header>
+    <div class="slice">
+      <div class="msg agent"><div class="meta"><span class="who">Ana's agent</span><span class="status running">running</span></div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Read <span class="mono">src/billing/tax/rates.ts</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg>Editing <span class="mono">src/billing/tax/stripe.ts</span></div></div></div>
+    </div>
+    <div class="mock">
+      <form class="composer interrupting" aria-label="Steer Ana's agent, interrupting">
+        <div class="above"><svg class="ic" aria-hidden="true" style="width:14px;height:14px"><use href="#i-bolt"/></svg>Will stop after the current edit, then read this.</div>
+        <label class="sr-only" for="c4">Message</label>
+        <textarea id="c4" rows="2">Stop. The EU rates in rates.ts are from last quarter; do not write against them. Use Stripe Tax for every EU line.</textarea>
+        <div class="bar">
+          <button class="btn icon" type="button" aria-label="Mode: steer, constrain, pause, resume or cancel" aria-haspopup="menu"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+          <span class="chip">steer</span>
+          <span class="chip scope"><span class="k">scope</span> tax-rules</span>
+          <label class="interrupt"><input type="checkbox" checked>Interrupt now</label>
+          <div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div>
+          <div class="right"><button class="send" type="submit" aria-label="Send and interrupt"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div>
+        </div>
+      </form>
+      <p class="hint">Enter sends and interrupts · ⌘Enter sends and waits for the turn · ⌘I toggles</p>
+    </div>
+  </section>
+
+  <!-- 5 · disabled while awaiting approval -->
+  <section class="state" aria-labelledby="s5">
+    <header><span class="n">5 · Disabled while awaiting approval</span><h2 id="s5">The sheet goes dashed and says why</h2><p>An irreversible call needs two drivers. Ana has approved; Bo has not. The agent cannot act and steering it would be theatre, so the text and the arrow are disabled and a sentence inside the sheet says what unblocks it. The Team side stays live: the words Ana needs to say now are for Bo.</p></header>
+    <div class="slice">
+      <div class="notice"><p><span class="serif">Approval needed.</span> Ana's agent wants to run <span class="mono">DROP TABLE legacy_invoices</span>. Irreversible: two drivers must agree.</p><p class="count">1 of 2 drivers approved · you, 4 min ago · waiting for Bo</p><div class="actions"><button class="btn sm" type="button">Withdraw my approval</button><button class="btn ghost sm" type="button">Show the plan</button></div></div>
+    </div>
+    <div class="mock">
+      <form class="composer waiting" aria-label="Composer, waiting for approval">
+        <label class="sr-only" for="c5">Message</label>
+        <textarea id="c5" rows="1" disabled placeholder="Waiting for Bo's approval before the agent can take a directive"></textarea>
+        <div class="bar">
+          <button class="btn icon" type="button" disabled aria-label="Mode, unavailable while waiting"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+          <span class="chip">steer</span>
+          <span class="chip scope"><span class="k">scope</span> goal</span>
+          <div class="seg" role="radiogroup" aria-label="Send to"><label class="off">Agent</label><label class="on">Team</label></div>
+          <div class="right"><button class="send" type="submit" disabled aria-label="Send, unavailable while waiting"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div>
+        </div>
+        <div class="why"><svg class="ic" aria-hidden="true" style="width:14px;height:14px"><use href="#i-clock"/></svg><span>Steering resumes when the approval settles. <a href="#">Write to the team</a> or <a href="#">pause the agent</a> instead.</span></div>
+      </form>
+      <p class="hint">Steering is paused · Team messages still send · ⌘⇧A to open the approval</p>
+    </div>
+  </section>
+
+  <!-- 6 · the keyboard hint line -->
+  <section class="state" aria-labelledby="s6">
+    <header><span class="n">6 · The keyboard hint line</span><h2 id="s6">One line under the sheet, always the same place</h2><p>Twelve and a half pixels, secondary grey, centred. It never explains the interface; it names the two or three keys that matter in the state the composer is in, so nobody reads a shortcut sheet. On the phone it is dropped.</p></header>
+    <div class="hints" role="list">
+      <div class="rowitem" role="listitem"><span class="t">Default</span><span class="h"><kbd>Enter</kbd> to send <span class="faint">·</span> <kbd>Shift</kbd><kbd>Enter</kbd> for a new line <span class="faint">·</span> <kbd>/</kbd> for mode</span></div>
+      <div class="rowitem" role="listitem"><span class="t">Mode popover open</span><span class="h"><kbd>Esc</kbd> closes <span class="faint">·</span> <kbd>↑</kbd><kbd>↓</kbd> to choose <span class="faint">·</span> <kbd>Enter</kbd> picks the mode</span></div>
+      <div class="rowitem" role="listitem"><span class="t">Editing the scope</span><span class="h"><kbd>Tab</kbd> back to the message <span class="faint">·</span> <kbd>Enter</kbd> to send</span></div>
+      <div class="rowitem" role="listitem"><span class="t">Agent running</span><span class="h"><kbd>Enter</kbd> sends after this turn <span class="faint">·</span> <kbd>⌘</kbd><kbd>Enter</kbd> sends and interrupts <span class="faint">·</span> <kbd>⌘</kbd><kbd>I</kbd> toggles</span></div>
+      <div class="rowitem" role="listitem"><span class="t">Interrupt checked</span><span class="h"><kbd>Enter</kbd> sends and interrupts <span class="faint">·</span> <kbd>⌘</kbd><kbd>Enter</kbd> sends and waits for the turn</span></div>
+      <div class="rowitem" role="listitem"><span class="t">Awaiting approval</span><span class="h">Steering is paused <span class="faint">·</span> Team messages still send <span class="faint">·</span> <kbd>⌘</kbd><kbd>⇧</kbd><kbd>A</kbd> to open the approval</span></div>
+      <div class="rowitem" role="listitem"><span class="t">Sending to Team</span><span class="h"><kbd>Enter</kbd> to send <span class="faint">·</span> <kbd>⌘</kbd><kbd>J</kbd> back to the agent</span></div>
+    </div>
+  </section>
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

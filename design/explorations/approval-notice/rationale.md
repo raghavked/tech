@@ -1,0 +1,7 @@
+# Approval notice: rationale
+
+**Decision.** The notice is a box only while it is a question. Pending states (one contributor, one of two drivers, you approved, not yours to answer) share one shape: the exact call as a sentence, the state as a status word with an amber dot, two small buttons, the expiry in grey on the right. The moment it is granted, denied or expired it loses the border and becomes a grey line with a 14px icon, read like "Ran pnpm vitest". Irreversible and exec differ only in words: "Needs 2 drivers · cannot be undone" against "Needs one contributor", and a button that names the act, "Approve delete". While a decision is pending the accent sits on Approve and the send arrow steps back to ink, so a screen still has one strong colour. In the sidebar the row keeps its grammar and gains one trailing word: "needs you" for an eligible voter who has not voted, "1 of 2" otherwise.
+
+**Rejected.** A red or amber border for irreversible calls (a second colour that teaches people to skim the words). A progress pair of avatars for the quorum (chrome where a count does the job). Keeping settled approvals as boxes (the stream filled with dead cards). A count bubble on the sidebar row (a badge; the Fleet board line carries the total).
+
+**Carry forward.** Box-to-line on settlement, the status-word-and-dot line, verb-named approve buttons, the quiet send during a pending decision, and "needs you" as the only imperative row word.

@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Icon set</title>
+<meta name="description" content="The 28 line icons Fold uses: one inline SVG sprite on a 20px grid with a 1.5px stroke, shown on light and dark, at four sizes and in the rows where they live.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+
+/* the icon class: every size inherits colour, the stroke stays 1.5 user units so it scales with the glyph */
+.ic { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: middle; }
+.ic.s14 { width: 14px; height: 14px; } .ic.s16 { width: 16px; height: 16px; } .ic.s24 { width: 24px; height: 24px; }
+.ic.r90 { transform: rotate(-90deg); } .ic.r180 { transform: rotate(180deg); } .ic.r270 { transform: rotate(90deg); }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 22px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* the set: a grid of quiet tiles, no borders, the name under each glyph */
+.set { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px 12px; }
+.set .t { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 8px 14px; border-radius: var(--radius); color: var(--fg); }
+.set .t:hover { background: var(--bg-2); }
+.set .t .n { font-size: 13px; color: var(--fg-2); }
+
+/* on light and on dark: two fixed surfaces, so both readings show whatever the page theme is */
+.surfaces { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.surface { border-radius: var(--radius-lg); padding: 22px 24px 20px; display: flex; flex-direction: column; gap: 14px; }
+.surface.light { background: #F3F0EA; color: #2A3244; }
+.surface.dark { background: #262C3A; color: #ECE8E1; }
+.surface .cap { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.55; }
+.surface .row { display: flex; flex-wrap: wrap; gap: 14px 18px; }
+.surface .sub { font-size: 13px; opacity: 0.6; }
+
+/* construction: one glyph enlarged on its grid */
+.build { display: grid; grid-template-columns: 240px 1fr; gap: 40px; align-items: start; }
+.build .big { width: 240px; height: 240px; display: block; }
+.build dl { margin: 0; display: grid; grid-template-columns: 150px 1fr; gap: 8px 16px; font-size: 14px; align-content: start; }
+.build dt { color: var(--fg-2); } .build dd { margin: 0; }
+
+/* sizes and chevrons: a row of specimens with the size in grey under each */
+.specimens { display: flex; gap: 40px; align-items: flex-end; flex-wrap: wrap; }
+.specimens .sp { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 56px; }
+.specimens .sp .n { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+
+/* in context: rows at the true column width, a label on the left */
+.ex { display: grid; grid-template-columns: 200px minmax(0, var(--col)); gap: 32px; align-items: start; padding: 20px 0; border-top: 1px solid var(--line); }
+.ex:first-of-type { border-top: 0; }
+.ex .lbl { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--fg-2); padding-top: 2px; }
+.ex .lbl b { font-weight: 500; color: var(--fg); }
+.ex .lbl .faint { font-size: 12px; }
+.ex .body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ex .bar { display: flex; align-items: center; gap: 8px; }
+.ex .bar .right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.nav { display: flex; flex-direction: column; gap: 2px; width: 260px; background: var(--bg-2); border-radius: var(--radius); padding: 8px; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--radius); color: var(--fg); font-size: 14px; }
+.nav a:hover { background: var(--bg-3); text-decoration: none; }
+.nav a .ic { color: var(--fg-2); }
+.step { font-size: 14px; }
+.step .ic { color: var(--fg-3); }
+.model { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; color: var(--fg-2); font: 500 13px var(--font); padding: 4px 6px; border-radius: var(--radius); cursor: pointer; }
+.model:hover { background: var(--bg-3); }
+.notice .q { font-size: 15px; }
+.notice .actions .btn .ic { width: 16px; height: 16px; }
+
+@media (max-width: 900px) {
+  .set { grid-template-columns: repeat(4, 1fr); }
+  .surfaces, .build { grid-template-columns: 1fr; }
+  .ex { grid-template-columns: 1fr; gap: 12px; }
+}
+@media (max-width: 560px) {
+  .sheet { width: min(1000px, 100% - 32px); }
+  .set { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- the sprite: 28 symbols, 20px grid, 1.5px stroke, 2px safe inset. colour and stroke come from the .ic class on the <svg> that uses them -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-session" viewBox="0 0 20 20"><path d="M11.5 3.5H6A2.5 2.5 0 0 0 3.5 6v8A2.5 2.5 0 0 0 6 16.5h8a2.5 2.5 0 0 0 2.5-2.5V8.5l-5-5z"/><path d="M11.5 3.5v5h5"/></symbol>
+  <symbol id="i-project" viewBox="0 0 20 20"><path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h3.5l2 2H15a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 15 16H5a1.5 1.5 0 0 1-1.5-1.5z"/></symbol>
+  <symbol id="i-team" viewBox="0 0 20 20"><circle cx="10" cy="6.5" r="2.5"/><path d="M5.25 16.5a4.75 4.75 0 0 1 9.5 0"/><circle cx="3.75" cy="9.5" r="1.5"/><circle cx="16.25" cy="9.5" r="1.5"/></symbol>
+  <symbol id="i-memory" viewBox="0 0 20 20"><path d="M10 6.5C8.5 5.3 6.3 5 3.5 5.3v10.2c2.8-.3 5 0 6.5 1.2 1.5-1.2 3.7-1.5 6.5-1.2V5.3C13.7 5 11.5 5.3 10 6.5z"/><path d="M10 6.5v10.2"/></symbol>
+  <symbol id="i-approve" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M6.75 10.25l2.25 2.25L13.5 8"/></symbol>
+  <symbol id="i-deny" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M5.05 5.05l9.9 9.9"/></symbol>
+  <symbol id="i-fork" viewBox="0 0 20 20"><path d="M10 17v-6.5M10 10.5L6.4 6.9M10 10.5l3.6-3.6"/><circle cx="5.25" cy="5.75" r="1.75"/><circle cx="14.75" cy="5.75" r="1.75"/></symbol>
+  <symbol id="i-fold" viewBox="0 0 20 20"><path d="M5.25 3.5l4.75 4.75 4.75-4.75M10 8.25V16.5"/><path d="M6.75 13.25L10 16.5l3.25-3.25"/></symbol>
+  <symbol id="i-handoff" viewBox="0 0 20 20"><circle cx="4.25" cy="10" r="1.75"/><circle cx="15.75" cy="10" r="1.75"/><path d="M7.5 10h5M10.75 8.25L12.5 10l-1.75 1.75"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 20 20"><path d="M7.25 4.5v11M12.75 4.5v11"/></symbol>
+  <symbol id="i-resume" viewBox="0 0 20 20"><path d="M6.5 4.5v11l9-5.5z"/></symbol>
+  <symbol id="i-interrupt" viewBox="0 0 20 20"><rect x="5" y="5" width="10" height="10" rx="1.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.5"/><path d="M13 13l4 4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 20 20"><path d="M3.5 6.5h6M13.5 6.5h3M3.5 13.5h3M10.5 13.5h6"/><circle cx="11.5" cy="6.5" r="2"/><circle cx="8.5" cy="13.5" r="2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 20 20"><path d="M10 12.5V3.5M6.5 7l3.5-3.5L13.5 7"/><path d="M4.5 11v4a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5v-4"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 20 20"><path d="M10 3.5c-2.9 0-5 2.1-5 5v2.75L3.5 14h13L15 11.25V8.5c0-2.9-2.1-5-5-5z"/><path d="M8.25 16.5a1.75 1.75 0 0 0 3.5 0"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 20 20"><path d="M10 4.5v11M4.5 10h11"/></symbol>
+  <symbol id="i-send" viewBox="0 0 20 20"><path d="M10 16V4.5M5.25 9.25L10 4.5l4.75 4.75"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 20 20"><path d="M5.5 7.75L10 12.25l4.5-4.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 20 20"><path d="M4.5 10.5l3.5 3.5L15.5 6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 20 20"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></symbol>
+  <symbol id="i-user" viewBox="0 0 20 20"><circle cx="10" cy="7" r="3"/><path d="M4.5 17c0-3 2.5-5.25 5.5-5.25S15.5 14 15.5 17"/></symbol>
+  <symbol id="i-users" viewBox="0 0 20 20"><circle cx="7.5" cy="7" r="2.75"/><path d="M2.5 16.5c0-2.9 2.2-5 5-5s5 2.1 5 5"/><path d="M13.25 4.4a2.75 2.75 0 0 1 0 5.2M14.75 11.75c1.7.6 2.75 2.4 2.75 4.75"/></symbol>
+  <symbol id="i-agent" viewBox="0 0 20 20"><path d="M6.5 4h7A2.5 2.5 0 0 1 16 6.5v7a2.5 2.5 0 0 1-2.5 2.5H4V6.5A2.5 2.5 0 0 1 6.5 4z"/><path d="M7.75 10v.5M12.25 10v.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 6v4.25l2.75 1.75"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 20 20"><circle cx="6" cy="5" r="1.75"/><circle cx="6" cy="15" r="1.75"/><circle cx="14" cy="7" r="1.75"/><path d="M6 6.75v6.5M14 8.75a4.25 4.25 0 0 1-4.25 4.25H6"/></symbol>
+  <symbol id="i-conflict" viewBox="0 0 20 20"><path d="M10 3l7 7-7 7-7-7z"/><path d="M10 7.25v3.5M10 13.25v.5"/></symbol>
+  <symbol id="i-claim" viewBox="0 0 20 20"><path d="M5.5 17V3.5"/><path d="M5.5 4.25h9l-2.5 3.5 2.5 3.5h-9"/></symbol>
+</svg>
+
+<main class="sheet">
+  <div class="intro">
+    <div class="crumb"><a href="../../index.html">Fold design</a> › Explorations › Icon set</div>
+    <h1>Icon set</h1>
+    <p>Twenty-eight line icons, one inline sprite. A 20px grid, a 1.5px stroke with round caps and joins, a 2px safe inset on every side. They inherit <span class="mono">currentColor</span>, so an icon is never a colour on its own: grey beside a tool line, ink in a button, and the accent only where the send arrow sits on it.</p>
+  </div>
+
+  <section aria-labelledby="h-set">
+    <header><h2 id="h-set">The set</h2><p>Nouns first (where you are and who is here), then the verbs people do to a session, then the chrome every app needs. Fork and fold are a mirrored pair: two new ends, one way back.</p></header>
+    <div class="set">
+      <div class="t"><svg class="ic"><use href="#i-session"/></svg><span class="n">session</span></div>
+      <div class="t"><svg class="ic"><use href="#i-project"/></svg><span class="n">project</span></div>
+      <div class="t"><svg class="ic"><use href="#i-team"/></svg><span class="n">team</span></div>
+      <div class="t"><svg class="ic"><use href="#i-memory"/></svg><span class="n">memory</span></div>
+      <div class="t"><svg class="ic"><use href="#i-agent"/></svg><span class="n">agent</span></div>
+      <div class="t"><svg class="ic"><use href="#i-user"/></svg><span class="n">user</span></div>
+      <div class="t"><svg class="ic"><use href="#i-users"/></svg><span class="n">users</span></div>
+
+      <div class="t"><svg class="ic"><use href="#i-approve"/></svg><span class="n">approve</span></div>
+      <div class="t"><svg class="ic"><use href="#i-deny"/></svg><span class="n">deny</span></div>
+      <div class="t"><svg class="ic"><use href="#i-fork"/></svg><span class="n">fork</span></div>
+      <div class="t"><svg class="ic"><use href="#i-fold"/></svg><span class="n">fold</span></div>
+      <div class="t"><svg class="ic"><use href="#i-handoff"/></svg><span class="n">hand off</span></div>
+      <div class="t"><svg class="ic"><use href="#i-branch"/></svg><span class="n">branch</span></div>
+      <div class="t"><svg class="ic"><use href="#i-claim"/></svg><span class="n">claim</span></div>
+
+      <div class="t"><svg class="ic"><use href="#i-pause"/></svg><span class="n">pause</span></div>
+      <div class="t"><svg class="ic"><use href="#i-resume"/></svg><span class="n">resume</span></div>
+      <div class="t"><svg class="ic"><use href="#i-interrupt"/></svg><span class="n">interrupt</span></div>
+      <div class="t"><svg class="ic"><use href="#i-conflict"/></svg><span class="n">conflict</span></div>
+      <div class="t"><svg class="ic"><use href="#i-clock"/></svg><span class="n">clock</span></div>
+      <div class="t"><svg class="ic"><use href="#i-check"/></svg><span class="n">check</span></div>
+      <div class="t"><svg class="ic"><use href="#i-x"/></svg><span class="n">x</span></div>
+
+      <div class="t"><svg class="ic"><use href="#i-search"/></svg><span class="n">search</span></div>
+      <div class="t"><svg class="ic"><use href="#i-settings"/></svg><span class="n">settings</span></div>
+      <div class="t"><svg class="ic"><use href="#i-share"/></svg><span class="n">share</span></div>
+      <div class="t"><svg class="ic"><use href="#i-bell"/></svg><span class="n">bell</span></div>
+      <div class="t"><svg class="ic"><use href="#i-plus"/></svg><span class="n">plus</span></div>
+      <div class="t"><svg class="ic"><use href="#i-send"/></svg><span class="n">send</span></div>
+      <div class="t"><svg class="ic"><use href="#i-chevron"/></svg><span class="n">chevron</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-surf">
+    <header><h2 id="h-surf">On light and on dark</h2><p>The same sprite on both surfaces at the 16px it has in rows. Nothing changes but the colour it inherits.</p></header>
+    <div class="surfaces">
+      <div class="surface light">
+        <div class="cap">Light · ink #2A3244 on the sidebar tint</div>
+        <div class="row">
+          <svg class="ic s16"><use href="#i-session"/></svg><svg class="ic s16"><use href="#i-project"/></svg><svg class="ic s16"><use href="#i-team"/></svg><svg class="ic s16"><use href="#i-memory"/></svg><svg class="ic s16"><use href="#i-agent"/></svg><svg class="ic s16"><use href="#i-user"/></svg><svg class="ic s16"><use href="#i-users"/></svg>
+          <svg class="ic s16"><use href="#i-approve"/></svg><svg class="ic s16"><use href="#i-deny"/></svg><svg class="ic s16"><use href="#i-fork"/></svg><svg class="ic s16"><use href="#i-fold"/></svg><svg class="ic s16"><use href="#i-handoff"/></svg><svg class="ic s16"><use href="#i-branch"/></svg><svg class="ic s16"><use href="#i-claim"/></svg>
+          <svg class="ic s16"><use href="#i-pause"/></svg><svg class="ic s16"><use href="#i-resume"/></svg><svg class="ic s16"><use href="#i-interrupt"/></svg><svg class="ic s16"><use href="#i-conflict"/></svg><svg class="ic s16"><use href="#i-clock"/></svg><svg class="ic s16"><use href="#i-check"/></svg><svg class="ic s16"><use href="#i-x"/></svg>
+          <svg class="ic s16"><use href="#i-search"/></svg><svg class="ic s16"><use href="#i-settings"/></svg><svg class="ic s16"><use href="#i-share"/></svg><svg class="ic s16"><use href="#i-bell"/></svg><svg class="ic s16"><use href="#i-plus"/></svg><svg class="ic s16"><use href="#i-send"/></svg><svg class="ic s16"><use href="#i-chevron"/></svg>
+        </div>
+        <div class="sub">Secondary, as beside a tool line: <span style="color:#6B7080"><svg class="ic s16"><use href="#i-fork"/></svg> Forked at turn 6 <svg class="ic s16"><use href="#i-clock"/></svg> 2 min ago</span></div>
+      </div>
+      <div class="surface dark">
+        <div class="cap">Dark · linen #ECE8E1 on the sidebar tint</div>
+        <div class="row">
+          <svg class="ic s16"><use href="#i-session"/></svg><svg class="ic s16"><use href="#i-project"/></svg><svg class="ic s16"><use href="#i-team"/></svg><svg class="ic s16"><use href="#i-memory"/></svg><svg class="ic s16"><use href="#i-agent"/></svg><svg class="ic s16"><use href="#i-user"/></svg><svg class="ic s16"><use href="#i-users"/></svg>
+          <svg class="ic s16"><use href="#i-approve"/></svg><svg class="ic s16"><use href="#i-deny"/></svg><svg class="ic s16"><use href="#i-fork"/></svg><svg class="ic s16"><use href="#i-fold"/></svg><svg class="ic s16"><use href="#i-handoff"/></svg><svg class="ic s16"><use href="#i-branch"/></svg><svg class="ic s16"><use href="#i-claim"/></svg>
+          <svg class="ic s16"><use href="#i-pause"/></svg><svg class="ic s16"><use href="#i-resume"/></svg><svg class="ic s16"><use href="#i-interrupt"/></svg><svg class="ic s16"><use href="#i-conflict"/></svg><svg class="ic s16"><use href="#i-clock"/></svg><svg class="ic s16"><use href="#i-check"/></svg><svg class="ic s16"><use href="#i-x"/></svg>
+          <svg class="ic s16"><use href="#i-search"/></svg><svg class="ic s16"><use href="#i-settings"/></svg><svg class="ic s16"><use href="#i-share"/></svg><svg class="ic s16"><use href="#i-bell"/></svg><svg class="ic s16"><use href="#i-plus"/></svg><svg class="ic s16"><use href="#i-send"/></svg><svg class="ic s16"><use href="#i-chevron"/></svg>
+        </div>
+        <div class="sub">Secondary, as beside a tool line: <span style="color:#AAB0BC"><svg class="ic s16"><use href="#i-fork"/></svg> Forked at turn 6 <svg class="ic s16"><use href="#i-clock"/></svg> 2 min ago</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-build">
+    <header><h2 id="h-build">Construction</h2><p>The session glyph on its grid: the brand mark's turned corner, drawn as a line.</p></header>
+    <div class="build">
+      <svg class="big" viewBox="0 0 20 20" role="img" aria-label="The session icon enlarged on a 20 by 20 grid with the 2px safe inset marked">
+        <defs><pattern id="g" width="1" height="1" patternUnits="userSpaceOnUse"><path d="M1 0H0v1" fill="none" stroke="var(--line)" stroke-width="0.06"/></pattern></defs>
+        <rect width="20" height="20" fill="url(#g)"/>
+        <rect x="2" y="2" width="16" height="16" fill="none" stroke="var(--highlight)" stroke-width="0.08" stroke-dasharray="0.4 0.3"/>
+        <g fill="none" stroke="var(--fg)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 3.5H6A2.5 2.5 0 0 0 3.5 6v8A2.5 2.5 0 0 0 6 16.5h8a2.5 2.5 0 0 0 2.5-2.5V8.5l-5-5z"/><path d="M11.5 3.5v5h5"/></g>
+      </svg>
+      <dl>
+        <dt>Grid</dt><dd>20 × 20 units, drawn at 20px; 1 unit = 1px</dd>
+        <dt>Stroke</dt><dd>1.5 units, round caps, round joins, no fills</dd>
+        <dt>Safe inset</dt><dd>2 units on every side; the apricot dash marks it</dd>
+        <dt>Corners</dt><dd>2.5 radius on sheets and squares, 1.5 on small boxes</dd>
+        <dt>Sizes</dt><dd>16 in rows and the sidebar, 20 in icon buttons, 24 in empty states, 14 in tool lines</dd>
+        <dt>Colour</dt><dd><span class="mono">currentColor</span> only; set it on the row, never on the icon</dd>
+        <dt>Alignment</dt><dd>optical centre; the chevron sits 0.5 low, the send arrow 0.25 high</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-sizes">
+    <header><h2 id="h-sizes">Sizes and turns</h2><p>One drawing holds at every size. The chevron is one symbol turned by a class; its four directions are the only rotations in the set.</p></header>
+    <div class="specimens">
+      <div class="sp"><svg class="ic s14"><use href="#i-search"/></svg><span class="n">14</span></div>
+      <div class="sp"><svg class="ic s16"><use href="#i-search"/></svg><span class="n">16</span></div>
+      <div class="sp"><svg class="ic"><use href="#i-search"/></svg><span class="n">20</span></div>
+      <div class="sp"><svg class="ic s24"><use href="#i-search"/></svg><span class="n">24</span></div>
+      <div class="sp" style="margin-left:24px"><svg class="ic"><use href="#i-chevron"/></svg><span class="n">down</span></div>
+      <div class="sp"><svg class="ic r90"><use href="#i-chevron"/></svg><span class="n">right</span></div>
+      <div class="sp"><svg class="ic r180"><use href="#i-chevron"/></svg><span class="n">up</span></div>
+      <div class="sp"><svg class="ic r270"><use href="#i-chevron"/></svg><span class="n">left</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-ctx">
+    <header><h2 id="h-ctx">In context</h2><p>Where each one lives. Status stays a word with a dot; icons mark kinds of things, never states.</p></header>
+
+    <div class="ex">
+      <div class="lbl"><b>Sidebar</b><span>16px, secondary grey</span><span class="faint">Recents carry no icon</span></div>
+      <div class="body">
+        <nav class="nav" aria-label="Sidebar">
+          <a href="#"><svg class="ic s16" aria-hidden="true"><use href="#i-plus"/></svg>New session</a>
+          <a href="#"><svg class="ic s16" aria-hidden="true"><use href="#i-search"/></svg>Search</a>
+          <a href="#"><svg class="ic s16" aria-hidden="true"><use href="#i-project"/></svg>Projects</a>
+          <a href="#"><svg class="ic s16" aria-hidden="true"><use href="#i-team"/></svg>Team</a>
+          <a href="#"><svg class="ic s16" aria-hidden="true"><use href="#i-memory"/></svg>Memory</a>
+        </nav>
+      </div>
+    </div>
+
+    <div class="ex">
+      <div class="lbl"><b>Top bar</b><span>20px in 34px icon buttons</span><span class="faint">every one has a name</span></div>
+      <div class="body">
+        <div class="bar">
+          <span class="serif" style="font-size:17px">Invoice PDF + tax lines</span>
+          <span class="status running">running</span>
+          <div class="right">
+            <button class="btn icon ghost" type="button" aria-label="Search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg></button>
+            <button class="btn icon ghost" type="button" aria-label="Share"><svg class="ic" aria-hidden="true"><use href="#i-share"/></svg></button>
+            <button class="btn icon ghost" type="button" aria-label="Notifications"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg></button>
+            <button class="btn icon ghost" type="button" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ex">
+      <div class="lbl"><b>Event lines</b><span>14px, tertiary grey</span><span class="faint">the verbs of a session</span></div>
+      <div class="body">
+        <div class="steps">
+          <div class="step"><svg class="ic s14" aria-hidden="true"><use href="#i-fork"/></svg><span>Ana forked at turn 6 · <span class="mono">tax-tables</span></span></div>
+          <div class="step"><svg class="ic s14" aria-hidden="true"><use href="#i-claim"/></svg><span>Ana claimed <span class="mono">billing/</span> and PAY-412</span></div>
+          <div class="step"><svg class="ic s14" aria-hidden="true"><use href="#i-conflict"/></svg><span>Contention with Cy's agent: Stripe Tax API vs local tax tables</span></div>
+          <div class="step"><svg class="ic s14" aria-hidden="true"><use href="#i-approve"/></svg><span>Ana approved <span class="mono">delete legacy_invoices</span> · 1 of 2 drivers</span></div>
+          <div class="step"><svg class="ic s14" aria-hidden="true"><use href="#i-pause"/></svg><span>Dee paused the session · "schema freeze until Thursday"</span></div>
+          <div class="step"><svg class="ic s14" aria-hidden="true"><use href="#i-handoff"/></svg><span>Ana handed off to Bo · brief computed</span></div>
+          <div class="step"><svg class="ic s14" aria-hidden="true"><use href="#i-fold"/></svg><span>Bo folded <span class="mono">tax-tables</span> into main</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ex">
+      <div class="lbl"><b>Approval notice</b><span>16px in small buttons</span><span class="faint">the icon names the act, the word carries it</span></div>
+      <div class="body">
+        <div class="notice">
+          <div class="q">Delete <span class="mono">legacy_invoices</span> and its 3 indexes?</div>
+          <div class="status awaiting">needs 2 drivers · cannot be undone · Ana approved</div>
+          <div class="actions">
+            <button class="btn sm" type="button"><svg class="ic" aria-hidden="true"><use href="#i-approve"/></svg>Approve delete</button>
+            <button class="btn sm ghost" type="button"><svg class="ic" aria-hidden="true"><use href="#i-deny"/></svg>Deny</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ex">
+      <div class="lbl"><b>Composer</b><span>the one accent</span><span class="faint">send is the only coloured icon</span></div>
+      <div class="body">
+        <div class="composer">
+          <label class="sr-only" for="say">Message</label>
+          <input class="input" id="say" type="text" placeholder="Steer Ana's agent">
+          <div class="bar">
+            <button class="btn icon ghost" type="button" aria-label="Attach"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+            <button class="model" type="button" aria-haspopup="listbox">Claude Opus <svg class="ic s14" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+            <div class="right">
+              <button class="btn icon ghost" type="button" aria-label="Interrupt the agent"><svg class="ic" aria-hidden="true"><use href="#i-interrupt"/></svg></button>
+              <button class="send" type="button" aria-label="Send"><svg class="ic s16" aria-hidden="true"><use href="#i-send"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

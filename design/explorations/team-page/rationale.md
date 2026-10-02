@@ -1,0 +1,7 @@
+# Team page: rationale
+
+**Decision.** The team page is one sentence and four lists of rows. The sentence says where Payments stands ("Five sessions open across three projects, two of them running. Three things need you.") in place of a stat row. Needs you, Projects and Recent handoffs share one row shape: a title, a second line in the agent's own grammar ("both hold off until you decide", "blocked on migration 0042"), and on the right a status word with a dot or one quiet action. The lead gets a fourth list, Memory housekeeping, which is the curator's report in the same shape: the `tax.source` conflict, three stale agent-written entries proposed for retraction, a compaction ready for Checkout and one done for Billing page, with a line saying when the curator ran. One accent per page: Decide for Dee, Approve for Ana, each the thing only that person can do. The quorum is words ("Bo approved, yours makes two") and a contention Ana cannot resolve shows as a state, Held for Dee, not a disabled button.
+
+**Rejected.** Four stat tiles above the lists. Primary buttons on every actionable row. A separate "Memory" tab or an alert banner for the curator. Crew cards and Solo/Team pills from the current web-team page. Hiding the contention from non-leads.
+
+**Carry forward.** The summary as a sentence; the row shape across every list; one accent for the one personal action; the curator speaking in rows with kind, finding and citations; the page keeping its shape per role, only the rows change.

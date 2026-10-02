@@ -1,0 +1,7 @@
+# Search: rationale
+
+**Decision.** Search is a page in the sidebar, not a second popover. One field at the top of the 760px column, the scope as three plain words beneath it (In Payments · All of Northwind · Only mine, the chosen one underlined in apricot), and the answer grouped under three small headings with counts: Sessions, Memory, People. A session row is its title in the serif, its state in words, who is driving, and the one line that matched. A memory row is the entry itself with attribution beneath (Ana · session · 9f3c1a · scope · when); a contention is drawn once, as the pair of entries under one apricot bar, with "Ask Dee to resolve" on the heading. People rows say what the person is driving and whether they are here. Matches are underlined, not highlighted. The results screen has no accent at all; the empty state has exactly one, the button that turns the unfound words into a directive for the running agent.
+
+**Rejected.** Tabs over the groups (the headings already sort). A sidebar of facets (counts, dates, authors: chrome the register forbids). Highlighted matches (yellow fights the one-colour rule). Hiding conflicts behind a badge (the disagreement is the finding).
+
+**Carry forward.** Headings with counts instead of tabs. Attribution on every memory line. Conflicts as pairs, never as a single winner. Empty states that offer the next place in the same row grammar, and a search that can become a steer.

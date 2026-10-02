@@ -1,0 +1,7 @@
+# Sidebar variants: rationale
+
+**Decision.** Carry variant A, projects with nested sessions, into the product, with C's rail as its collapsed form. Fold's sidebar is not a list of one person's chats; it lists the fleet's sessions, and what those sessions share is the project. Showing the project as a group (with the lead's direction as one italic line beneath it) lets Ana see that Cy's rounding audit sits next to her own session, and that Dee's session is blocked, without opening a board. The states are deliberately quiet: hover is one tint darker, active is the paper colour with a two-pixel apricot mark, status is a dot before the title and the engineer's name after it. One accent on the screen, the send arrow.
+
+**Rejected.** B, recents first with a switcher, is the claude.ai shape and reads well, but it hides every other project behind a menu and turns the fleet into a flat stream; recency is a poor ordering when three engineers share one project. Its recency groups are worth keeping on the project page. C alone gives the conversation the most room, but a rail cannot show who is blocked or waiting; it works as a collapse, not as the default.
+
+**Carry forward.** The row grammar (dot, title, name, count), the two-pixel active mark, `<details>` for collapsible groups with no script, the crumb in the top bar when the rail is collapsed, and the footer pair Fleet board and Team memory.

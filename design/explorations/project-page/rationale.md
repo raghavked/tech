@@ -1,0 +1,7 @@
+# Project page: rationale
+
+**Decision.** The project page is laid out as claude.ai lays out a Project: a field at the top where the instructions would go (in Fold, the lead's direction), then the sessions as rows, then team memory. What stands as direction is one serif line under the field ("Schema freeze until Thursday." · Dee · reaches 3 sessions · Withdraw). Each session row has the title in the serif, a second line in the agent's own grammar, and a status word with a dot on the right: Needs approval, Running, Blocked, Done. The only boxed things are the contention (Stripe Tax API vs local tables, both hold off, Dee decides) and the memory conflict on `tax.source`; both use the apricot hairline and neither has a primary button. The empty state keeps the skeleton: direction is settable first, sessions is one serif sentence and a hairline button, memory says parent-scope entries already apply.
+
+**Rejected.** Agent cards grouped by crew (the current web-project page): busy, and crews are a session concern. Team/Solo pills on each row. A separate contentions board. An illustration for the empty state. A primary "New session" in the empty state, which would be a second accent beside the send arrow.
+
+**Carry forward.** Direction-as-instructions at the top of every project; status as word plus dot; the second line in the agent's grammar; conflicts as crease-coloured notices whose status line names who acts; an empty state that is the populated page with sentences where the rows would be.

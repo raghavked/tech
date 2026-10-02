@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Desktop window chrome</title>
+<meta name="description" content="The Fold desktop app inside macOS and Windows window chrome: custom titlebars with the sidebar running up into the title region, traffic lights and caption buttons, the native titlebar alternative, and the fullscreen, collapsed, maximized and inactive states.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1360px, 100% - 48px); margin: 0 auto; padding: 48px 0 120px; display: flex; flex-direction: column; gap: 56px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .nav { display: flex; gap: 16px; font-size: 13px; color: var(--fg-2); }
+.intro .nav a { color: var(--fg-2); } .intro .nav a:hover { color: var(--fg); }
+.variant { display: flex; flex-direction: column; gap: 18px; }
+.variant .head { display: flex; align-items: baseline; gap: 14px; width: min(var(--col), 100%); }
+.variant .head .letter { font-family: var(--serif); font-size: 26px; line-height: 1; color: var(--fg-3); }
+.variant .head h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+.variant .head p { color: var(--fg-2); font-size: 14px; }
+.legend { width: min(var(--col), 100%); font-size: 14px; color: var(--fg-2); }
+
+/* the window: a hairline, a radius, nothing else. The desktop's own shadow is not drawn here. */
+.win { width: 1360px; height: 720px; border: 1px solid var(--line); overflow: hidden; background: var(--bg); display: flex; }
+.win.mac { border-radius: 11px; }
+.win.windows { border-radius: 8px; }
+.win.short { height: 320px; }
+.win .shell { height: 100%; width: 100%; }
+
+/* sidebar, with the title row inside it */
+.sidebar { padding: 0; gap: 0; }
+.sidebar .tbar { flex: none; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 14px; }
+.mac .sidebar .tbar { height: 52px; }
+.windows .sidebar .tbar { height: 40px; padding-left: 12px; }
+.sidebar .tbar .brand { padding: 0; font-size: 19px; gap: 8px; text-decoration: none; color: var(--fg); }
+.sidebar .tbar .brand .mark { flex: none; }
+.mac .sidebar .tbar .brand { margin-left: 10px; }
+.sidebar .tbar .btn.icon { margin-left: auto; width: 28px; min-height: 28px; border-color: transparent; color: var(--fg-3); }
+.sidebar .tbar .btn.icon .ic { width: 15px; height: 15px; }
+.sidebar .side { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px; padding: 2px 10px 10px; }
+.sidebar .new .ic, .sidebar .search .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.sidebar .search { display: flex; align-items: center; gap: 8px; padding: 7px 10px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); cursor: text; }
+.sidebar .search:hover { background: var(--bg-3); }
+.sidebar .lists { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 1px; }
+.sidebar .item { position: relative; }
+.sidebar .item .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sidebar .item .n { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.sidebar .item .dot { background: var(--fg-3); }
+.sidebar .item .dot.running { background: var(--ok); }
+.sidebar .item .dot.awaiting { background: var(--warn); }
+.sidebar .item .dot.blocked { background: var(--danger); }
+.sidebar .item .dot.paused { background: var(--info); }
+.sidebar .item.active, .sidebar .item.active:hover { background: var(--bg); font-weight: 500; }
+.sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.sidebar details { display: flex; flex-direction: column; gap: 1px; }
+.sidebar summary { list-style: none; cursor: pointer; }
+.sidebar summary::-webkit-details-marker { display: none; }
+.sidebar summary .chev { width: 14px; height: 14px; color: var(--fg-3); transition: transform .15s; margin-left: -2px; }
+.sidebar details[open] > summary .chev { transform: rotate(90deg); }
+.sidebar .item.project { font-weight: 500; font-size: 14px; }
+.sidebar .item.sess { padding-left: 30px; font-size: 14px; }
+.sidebar .item.sess .by { font-size: 12px; color: var(--fg-3); }
+.sidebar .item.sess.active .by { font-weight: 400; }
+.sidebar .item.sess.active::before { left: 14px; }
+.sidebar .lead { padding: 4px 10px 6px 30px; color: var(--fg-3); font-style: italic; font-family: var(--serif); font-size: 13.5px; }
+.sidebar .footer-links { display: flex; flex-direction: column; gap: 1px; padding-top: 8px; margin-top: 4px; border-top: 1px solid var(--line); }
+.sidebar .footer-links .item { font-size: 13.5px; color: var(--fg-2); padding: 6px 10px; }
+.sidebar .footer-links .item .ic { width: 15px; height: 15px; }
+.sidebar .me { padding: 8px 8px 0; }
+.sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
+.sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.sidebar .me .ic { width: 14px; height: 14px; color: var(--fg-3); }
+
+/* macOS traffic lights: the OS's colours, the only ones on the screen outside the palette */
+.lights { display: inline-flex; gap: 8px; flex: none; }
+.lights span { width: 12px; height: 12px; border-radius: 50%; }
+.lights .c { background: #FF5F57; } .lights .m { background: #FEBC2E; } .lights .z { background: #28C840; }
+.lights.off span { background: var(--bg-3); border: 1px solid var(--line); }
+
+/* Windows caption buttons: 46 wide, the height of the title row, drawn by the app */
+.caption { display: flex; flex: none; align-self: flex-start; height: 40px; }
+.caption span { width: 46px; height: 100%; display: grid; place-items: center; color: var(--fg-2); }
+.caption span svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1; }
+.caption.off span { color: var(--fg-3); }
+
+/* main area: the title row is the drag region, so it is tall enough to grab */
+.topbar { padding: 0 12px 0 20px; }
+.mac .topbar { min-height: 52px; }
+.windows .topbar { min-height: 40px; padding-right: 0; }
+.windows .topbar .right { margin-right: 6px; }
+.topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.topbar .title .serif { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .crumb { font-size: 13px; color: var(--fg-3); white-space: nowrap; }
+.topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.topbar .right .btn .ic { width: 14px; height: 14px; }
+.topbar .btn.icon.collapse { width: 28px; min-height: 28px; border-color: transparent; color: var(--fg-3); }
+.main .body { flex: 1; min-height: 0; display: flex; }
+.scroll { display: flex; flex-direction: column; overflow: hidden; }
+.stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.column { padding-top: 0; padding-bottom: 12px; gap: 24px; }
+.msg .meta .faint { font-size: 12px; }
+.msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.step .ic { width: 14px; height: 14px; }
+.step .mono { font-size: 12.5px; }
+.notice p { margin: 0; }
+.composer-wrap { padding-top: 4px; padding-bottom: 12px; }
+.composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; width: 100%; color: var(--fg); font: inherit; outline: none; }
+.composer .input::placeholder { color: var(--fg-3); }
+.composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.hint { text-align: center; font-size: 12px; color: var(--fg-3); margin-top: 8px; }
+
+/* the native titlebar alternative: one OS bar across the whole window, the app below it */
+.win.native { flex-direction: column; }
+.win.native .shell { flex: 1; min-height: 0; }
+.osbar { flex: none; display: flex; align-items: center; position: relative; }
+.osbar.macos { height: 28px; background: var(--bg-3); padding: 0 8px; justify-content: center; font-size: 13px; color: var(--fg-2); }
+.osbar.macos .lights { position: absolute; left: 8px; top: 8px; }
+.osbar.macos .lights span { width: 12px; height: 12px; }
+.osbar.win11 { height: 32px; background: var(--bg); border-bottom: 1px solid var(--line); padding: 0 0 0 10px; gap: 8px; font-size: 12px; color: var(--fg-2); }
+.osbar.win11 .caption { margin-left: auto; height: 32px; }
+.win.native .sidebar .tbar { height: 44px; }
+.win.native .topbar { min-height: 44px; }
+
+/* states: the top-left and top-right corners of the window in other states */
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.states .label { font-size: 12px; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; margin-bottom: 8px; }
+.states .note { grid-column: 1 / -1; width: min(var(--col), 100%); font-size: 14px; color: var(--fg-2); }
+.corner { height: 104px; border: 1px solid var(--line); border-bottom: 0; border-radius: 11px 11px 0 0; overflow: hidden; background: var(--bg); display: flex; }
+.corner.sq { border-radius: 0; }
+.corner .cs { width: 140px; flex: none; background: var(--bg-2); border-right: 1px solid var(--crease); }
+.corner .cs .tbar, .corner .cm .tbar { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 14px; }
+.corner .cs .tbar.w, .corner .cm .tbar.w { height: 40px; padding-left: 12px; }
+.corner .cs .tbar.fs { height: 40px; }
+.corner .cm { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.corner .cm .tbar { padding-left: 16px; }
+.corner .crumb { font-size: 13px; color: var(--fg-3); white-space: nowrap; flex: none; }
+.corner .btn.icon.collapse { width: 28px; min-height: 28px; border-color: transparent; color: var(--fg-3); flex: none; }
+.corner .cm .tbar .serif { min-width: 0; }
+.corner .cm .tbar .serif { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.corner .cm .tbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.corner .brand { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 19px; color: var(--fg); }
+.corner .row2 { padding: 2px 8px; display: flex; flex-direction: column; gap: 1px; }
+.corner .row2 .item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius); font-size: 13.5px; color: var(--fg); }
+.corner .row2 .item .ic { width: 14px; height: 14px; color: var(--fg-2); }
+.corner .msgline { padding: 6px 20px; font-size: 14px; color: var(--fg-2); }
+.corner .drag { background: var(--highlight-soft); }
+.corner.off .brand, .corner.off .serif, .corner.off .msgline { color: var(--fg-3); }
+
+.compare { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 12px; }
+.compare .rowitem { grid-template-columns: 160px 1fr; }
+.compare .rowitem:hover { background: transparent; padding-inline: 4px; margin-inline: 0; }
+.compare .rowitem .t { font-weight: 500; font-size: 14px; }
+.compare .rowitem .s { font-size: 14px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+<symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16z"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M7.5 16.5l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 7.5l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-fleet" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 1 2-2h14"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14"/></symbol>
+<symbol id="i-min" viewBox="0 0 10 10"><path d="M0 5h10"/></symbol>
+<symbol id="i-max" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9"/></symbol>
+<symbol id="i-restore" viewBox="0 0 10 10"><rect x="0.5" y="2.5" width="7" height="7"/><path d="M2.5 2.5v-2h7v7h-2"/></symbol>
+<symbol id="i-close" viewBox="0 0 10 10"><path d="M0.5 0.5l9 9M9.5 0.5l-9 9"/></symbol>
+</svg>
+
+<div class="sheet">
+
+<header class="intro">
+  <nav class="nav" aria-label="Explorations"><a href="../../index.html">Brand</a><a href="../../desktop.html">Desktop</a><a href="../sidebar-variants/index.html">Sidebar variants</a><span class="faint">Desktop window chrome</span></nav>
+  <h1>The app inside the window</h1>
+  <p class="muted">Fold's desktop shell is Tauri around the same web client. The question is where the operating system's chrome stops and ours begins. One answer for both platforms: the window has no titlebar of its own; the sidebar runs up into the title region and holds the system's controls, and the main column's title row is the drag region. The native titlebar alternative is shown below it, then the states that make or break a custom titlebar.</p>
+</header>
+
+<!-- ============================ A: macOS ============================ -->
+<section class="variant" id="mac">
+  <div class="head"><span class="letter">A</span><div><h2>macOS, custom titlebar</h2><p>Traffic lights inset in the sidebar's top row; the wordmark beside them; the session title in the main column's first row. The whole top band is draggable.</p></div></div>
+  <div class="win mac"><div class="shell">
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="tbar">
+        <span class="lights" role="img" aria-label="macOS window controls: close, minimise, zoom"><span class="c"></span><span class="m"></span><span class="z"></span></span>
+        <a class="brand" href="#mac"><svg class="mark" viewBox="0 0 96 96" width="20" height="20" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+        <button class="btn icon" type="button" aria-label="Collapse sidebar"><svg class="ic" aria-hidden="true"><use href="#i-panel"/></svg></button>
+      </div>
+      <div class="side">
+      <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+      <label class="search" for="search-a"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>Search sessions</span><input id="search-a" class="sr-only" type="search" name="q"></label>
+      <div class="lists">
+        <div class="section">Northwind › Payments<span class="n">3 projects</span></div>
+        <details open>
+          <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Billing page</span><span class="n">3</span></summary>
+          <div class="lead">Dee: schema freeze until Thursday</div>
+          <a class="item sess active" href="#mac" aria-current="page"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines</span><span class="by">Ana</span></a>
+          <a class="item sess" href="#mac"><span class="dot running"></span><span class="t">Tax rounding audit</span><span class="by">Cy</span></a>
+          <a class="item sess" href="#mac"><span class="dot blocked"></span><span class="t">Proration fix</span><span class="by">Dee</span></a>
+        </details>
+        <details>
+          <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Checkout</span><span class="n">2</span></summary>
+          <a class="item sess" href="#mac"><span class="dot running"></span><span class="t">Checkout retries</span><span class="by">Bo</span></a>
+          <a class="item sess" href="#mac"><span class="dot"></span><span class="t">Apple Pay sheet</span><span class="by">Bo</span></a>
+        </details>
+        <details>
+          <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Ledger</span><span class="n">1</span></summary>
+          <a class="item sess" href="#mac"><span class="dot paused"></span><span class="t">Nightly reconciliation</span><span class="by">Dee</span></a>
+        </details>
+      </div>
+      <div class="footer-links">
+        <a class="item" href="#mac"><svg class="ic" aria-hidden="true"><use href="#i-fleet"/></svg><span class="t">Fleet board</span><span class="n">1 contention</span></a>
+        <a class="item" href="#mac"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="t">Team memory</span></a>
+      </div>
+      <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Payments</div></div><button class="btn ghost icon sm" type="button" aria-label="Account menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Needs approval</span></span>
+        <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn ghost sm" href="#mac"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#mac">Team</a><a class="btn ghost sm" href="#mac">Details</a></div>
+      </div>
+      <div class="body"><div class="scroll">
+        <div class="stream"><div class="column">
+          <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">goal</span></div><div class="text">Add tax lines to the invoice PDF. Use the rates in tax/rates.ts for now and keep the layout change on the pdf-layout branch.</div></div>
+          <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 7</span></div><div class="text">Tax lines fit under the subtotal without touching the page template. One rounding test failed because rates.ts rounds per line and the PDF rounded the total; the PDF now rounds the same way and all 32 pass. Next I want to clear legacy_invoices so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+          <div class="notice"><p>Delete 41,208 rows from legacy_invoices? <span class="muted">Ana approved · 1 of 2 drivers.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
+        </div></div>
+        <div class="composer-wrap"><div class="composer">
+          <label class="sr-only" for="c-a">Steer the agent</label><input class="input" id="c-a" type="text" placeholder="Steer the agent">
+          <div class="bar"><div class="seg"><button type="button" class="on">Agent</button><button type="button">Team</button></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+        </div><div class="hint">Enter to send · Shift+Enter for a new line</div></div>
+      </div></div>
+    </div>
+  </div></div>
+  <p class="legend">Tauri window: <span class="mono">titleBarStyle: "Overlay"</span>, <span class="mono">hiddenTitle: true</span>, traffic lights at (14, 20) so they centre in a 52px row. The row is <span class="mono">data-tauri-drag-region</span> across the sidebar and the main column; buttons inside it are not. Double-click on the band zooms the window, as the system expects. Corner radius 11px is the system's; the app draws nothing over it.</p>
+</section>
+
+<!-- ============================ B: Windows ============================ -->
+<section class="variant" id="windows">
+  <div class="head"><span class="letter">B</span><div><h2>Windows 11, custom titlebar</h2><p>No controls on the left, so the app's own mark takes the top-left where the system's icon would sit. Caption buttons at the top right, 46px wide, the height of the title row.</p></div></div>
+  <div class="win windows"><div class="shell">
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="tbar">
+        <a class="brand" href="#windows"><svg class="mark" viewBox="0 0 96 96" width="20" height="20" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a>
+        <button class="btn icon" type="button" aria-label="Collapse sidebar"><svg class="ic" aria-hidden="true"><use href="#i-panel"/></svg></button>
+      </div>
+      <div class="side">
+      <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+      <label class="search" for="search-b"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>Search sessions</span><input id="search-b" class="sr-only" type="search" name="q"></label>
+      <div class="lists">
+        <div class="section">Northwind › Payments<span class="n">3 projects</span></div>
+        <details open>
+          <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Billing page</span><span class="n">3</span></summary>
+          <div class="lead">Dee: schema freeze until Thursday</div>
+          <a class="item sess active" href="#windows" aria-current="page"><span class="dot running"></span><span class="t">Invoice PDF + tax lines</span><span class="by">Bo</span></a>
+          <a class="item sess" href="#windows"><span class="dot running"></span><span class="t">Tax rounding audit</span><span class="by">Cy</span></a>
+          <a class="item sess" href="#windows"><span class="dot blocked"></span><span class="t">Proration fix</span><span class="by">Dee</span></a>
+        </details>
+        <details>
+          <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Checkout</span><span class="n">2</span></summary>
+          <a class="item sess" href="#windows"><span class="dot running"></span><span class="t">Checkout retries</span><span class="by">Bo</span></a>
+          <a class="item sess" href="#windows"><span class="dot"></span><span class="t">Apple Pay sheet</span><span class="by">Bo</span></a>
+        </details>
+        <details>
+          <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Ledger</span><span class="n">1</span></summary>
+          <a class="item sess" href="#windows"><span class="dot paused"></span><span class="t">Nightly reconciliation</span><span class="by">Dee</span></a>
+        </details>
+      </div>
+      <div class="footer-links">
+        <a class="item" href="#windows"><svg class="ic" aria-hidden="true"><use href="#i-fleet"/></svg><span class="t">Fleet board</span><span class="n">1 contention</span></a>
+        <a class="item" href="#windows"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="t">Team memory</span></a>
+      </div>
+      <div class="me"><span class="avatar" title="Bo">B</span><div class="who">Bo Lindqvist<div class="small faint">Payments</div></div><button class="btn ghost icon sm" type="button" aria-label="Account menu"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status running">Running</span></span>
+        <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Ana">A</span><span class="avatar" title="Cy">C</span></span><a class="btn ghost sm" href="#windows"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#windows">Team</a><a class="btn ghost sm" href="#windows">Details</a></div>
+        <span class="caption" role="img" aria-label="Windows window controls: minimise, maximise, close"><span><svg aria-hidden="true"><use href="#i-min"/></svg></span><span><svg aria-hidden="true"><use href="#i-max"/></svg></span><span><svg aria-hidden="true"><use href="#i-close"/></svg></span></span>
+      </div>
+      <div class="body"><div class="scroll">
+        <div class="stream"><div class="column">
+          <div class="divider">Ana handed the session to Bo · brief computed from 7 turns</div>
+          <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Leave the invoices table alone. Compute the tax lines at render time.</div></div>
+          <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 8</span></div><div class="text">Understood. The render path now computes tax lines from rates.ts on the way out and the table is untouched. Cy's rounding audit holds tax/rates.ts next door, so I am reading it and not writing to it. Two options for the tax source remain open: the Stripe Tax API or the local tables. I have left both behind a flag until the team decides.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/render.ts</span> · +22 −3</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 34 passed</span></div></div></div>
+          <div class="notice contention"><p>Contention: Stripe Tax API vs local tax tables. <span class="muted">Ana and Cy disagree; Dee can resolve.</span></p><div class="actions"><button class="btn sm" type="button">Open thread</button></div></div>
+        </div></div>
+        <div class="composer-wrap"><div class="composer">
+          <label class="sr-only" for="c-b">Steer the agent</label><input class="input" id="c-b" type="text" placeholder="Steer the agent">
+          <div class="bar"><div class="seg"><button type="button" class="on">Agent</button><button type="button">Team</button></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+        </div><div class="hint">Enter to send · Shift+Enter for a new line</div></div>
+      </div></div>
+    </div>
+  </div></div>
+  <p class="legend">Tauri window: <span class="mono">decorations: false</span> with the app drawing its own caption buttons at 46×40 so they share the 40px title row; the maximise button answers <span class="mono">WM_NCHITTEST</span> as <span class="mono">HTMAXBUTTON</span> so Snap Layouts still appear on hover. Close turns the system red only while hovered. The 8px radius and the one-pixel edge are the system's; <span class="mono">shadow: true</span> keeps the OS drop shadow outside the window.</p>
+</section>
+
+<!-- ============================ C: native titlebars ============================ -->
+<section class="variant" id="native">
+  <div class="head"><span class="letter">C</span><div><h2>The native titlebar, rejected</h2><p>What each OS gives for free: a bar of its own across the window, with the app's chrome stacked beneath it.</p></div></div>
+  <div class="win mac native short">
+    <div class="osbar macos"><span class="lights" role="img" aria-label="macOS window controls"><span class="c"></span><span class="m"></span><span class="z"></span></span><span>Invoice PDF + tax lines — Fold</span></div>
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <div class="tbar"><a class="brand" href="#native"><svg class="mark" viewBox="0 0 96 96" width="20" height="20" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a><button class="btn icon" type="button" aria-label="Collapse sidebar"><svg class="ic" aria-hidden="true"><use href="#i-panel"/></svg></button></div>
+        <div class="side">
+          <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+          <label class="search" for="search-c"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>Search sessions</span><input id="search-c" class="sr-only" type="search" name="q"></label>
+          <div class="lists">
+            <div class="section">Northwind › Payments<span class="n">3 projects</span></div>
+            <details open>
+              <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Billing page</span><span class="n">3</span></summary>
+              <div class="lead">Dee: schema freeze until Thursday</div>
+              <a class="item sess active" href="#native" aria-current="page"><span class="dot awaiting"></span><span class="t">Invoice PDF + tax lines</span><span class="by">Ana</span></a>
+              <a class="item sess" href="#native"><span class="dot running"></span><span class="t">Tax rounding audit</span><span class="by">Cy</span></a>
+            </details>
+          </div>
+        </div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status awaiting">Needs approval</span></span>
+          <div class="right"><a class="btn ghost sm" href="#native"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#native">Team</a><a class="btn ghost sm" href="#native">Details</a></div>
+        </div>
+        <div class="body"><div class="scroll"><div class="column" style="padding-top:8px">
+          <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">goal</span></div><div class="text">Add tax lines to the invoice PDF. Use the rates in tax/rates.ts for now and keep the layout change on the pdf-layout branch.</div></div>
+          <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 7</span></div><div class="text">Tax lines fit under the subtotal without touching the page template. One rounding test failed because rates.ts rounds per line and the PDF rounded the total; the PDF now rounds the same way and all 32 pass.</div></div>
+        </div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="win windows native short">
+    <div class="osbar win11"><svg class="mark" viewBox="0 0 96 96" width="16" height="16" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg)" stroke-width="3" stroke-linecap="round"/></svg><span>Fold</span><span class="caption" role="img" aria-label="Windows window controls"><span><svg aria-hidden="true"><use href="#i-min"/></svg></span><span><svg aria-hidden="true"><use href="#i-max"/></svg></span><span><svg aria-hidden="true"><use href="#i-close"/></svg></span></span></div>
+    <div class="shell">
+      <aside class="sidebar" aria-label="Sidebar">
+        <div class="tbar"><a class="brand" href="#native"><svg class="mark" viewBox="0 0 96 96" width="20" height="20" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Fold</span></a><button class="btn icon" type="button" aria-label="Collapse sidebar"><svg class="ic" aria-hidden="true"><use href="#i-panel"/></svg></button></div>
+        <div class="side">
+          <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
+          <label class="search" for="search-d"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span>Search sessions</span><input id="search-d" class="sr-only" type="search" name="q"></label>
+          <div class="lists">
+            <div class="section">Northwind › Payments<span class="n">3 projects</span></div>
+            <details open>
+              <summary class="item project"><svg class="ic chev" aria-hidden="true"><use href="#i-chev"/></svg><span class="t">Billing page</span><span class="n">3</span></summary>
+              <div class="lead">Dee: schema freeze until Thursday</div>
+              <a class="item sess active" href="#native" aria-current="page"><span class="dot running"></span><span class="t">Invoice PDF + tax lines</span><span class="by">Bo</span></a>
+              <a class="item sess" href="#native"><span class="dot running"></span><span class="t">Tax rounding audit</span><span class="by">Cy</span></a>
+            </details>
+          </div>
+        </div>
+      </aside>
+      <div class="main">
+        <div class="topbar" style="padding-right:12px">
+          <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status running">Running</span></span>
+          <div class="right"><a class="btn ghost sm" href="#native"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn ghost sm" href="#native">Team</a><a class="btn ghost sm" href="#native">Details</a></div>
+        </div>
+        <div class="body"><div class="scroll"><div class="column" style="padding-top:8px">
+          <div class="divider">Ana handed the session to Bo · brief computed from 7 turns</div>
+          <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Leave the invoices table alone. Compute the tax lines at render time.</div></div>
+          <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 8</span></div><div class="text">Understood. The render path now computes tax lines from rates.ts on the way out and the table is untouched.</div></div>
+        </div></div></div>
+      </div>
+    </div>
+  </div>
+  <p class="legend">Two bars where one would do: 28px of system titlebar plus the app's own row on macOS, 32px plus the row on Windows, and the window title repeated twice. The system bar also breaks the crease: the apricot hairline that separates sidebar from content stops short of the window's edge. The one thing it buys, drag and double-click behaviour that is always right, the custom band gets from <span class="mono">data-tauri-drag-region</span>.</p>
+</section>
+
+<!-- ============================ states ============================ -->
+<section class="variant" id="states">
+  <div class="head"><span class="letter">D</span><div><h2>Corners in other states</h2><p>Where a custom titlebar usually goes wrong. The top-left of the window on macOS, the top-right on Windows.</p></div></div>
+  <div class="states">
+    <div><div class="label">macOS, drag region</div><div class="corner"><div class="cs"><div class="tbar drag"><span class="lights" aria-hidden="true"><span class="c"></span><span class="m"></span><span class="z"></span></span></div><div class="row2"><span class="item"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</span></div></div><div class="cm"><div class="tbar drag"><span class="serif">Invoice PDF + tax lines</span></div><div class="msgline">Ana · goal</div></div></div></div>
+    <div><div class="label">macOS, fullscreen</div><div class="corner sq"><div class="cs"><div class="tbar fs"><span class="brand"><svg class="mark" viewBox="0 0 96 96" width="20" height="20" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg>Fold</span></div><div class="row2"><span class="item"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</span></div></div><div class="cm"><div class="tbar fs"><span class="serif">Invoice PDF + tax lines</span></div><div class="msgline">Ana · goal</div></div></div></div>
+    <div><div class="label">macOS, sidebar collapsed</div><div class="corner"><div class="cm"><div class="tbar"><span class="lights" aria-hidden="true"><span class="c"></span><span class="m"></span><span class="z"></span></span><button class="btn icon collapse" type="button" aria-label="Expand sidebar"><svg class="ic" aria-hidden="true"><use href="#i-panel"/></svg></button><span class="crumb">Billing page ›</span><span class="serif">Invoice PDF + tax lines</span></div><div class="msgline">Ana · goal</div></div></div></div>
+    <div><div class="label">macOS, inactive window</div><div class="corner off"><div class="cs"><div class="tbar"><span class="lights off" aria-hidden="true"><span></span><span></span><span></span></span><span class="brand">Fold</span></div><div class="row2"><span class="item"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</span></div></div><div class="cm"><div class="tbar"><span class="serif">Invoice PDF + tax lines</span></div><div class="msgline">Ana · goal</div></div></div></div>
+    <div><div class="label">Windows, drag region</div><div class="corner"><div class="cm"><div class="tbar w drag"><span class="serif">Invoice PDF + tax lines</span><span class="right"><span class="caption" aria-hidden="true"><span><svg><use href="#i-min"/></svg></span><span><svg><use href="#i-max"/></svg></span><span><svg><use href="#i-close"/></svg></span></span></span></div><div class="msgline">Bo · steer</div></div></div></div>
+    <div><div class="label">Windows, maximised</div><div class="corner sq"><div class="cm"><div class="tbar w"><span class="serif">Invoice PDF + tax lines</span><span class="right"><span class="caption" aria-hidden="true"><span><svg><use href="#i-min"/></svg></span><span><svg><use href="#i-restore"/></svg></span><span><svg><use href="#i-close"/></svg></span></span></span></div><div class="msgline">Bo · steer</div></div></div></div>
+    <div><div class="label">Windows, close hovered</div><div class="corner"><div class="cm"><div class="tbar w"><span class="serif">Invoice PDF + tax lines</span><span class="right"><span class="caption" aria-hidden="true"><span><svg><use href="#i-min"/></svg></span><span><svg><use href="#i-max"/></svg></span><span style="background:#C42B1C;color:#fff"><svg><use href="#i-close"/></svg></span></span></span></div><div class="msgline">Bo · steer</div></div></div></div>
+    <div><div class="label">Windows, inactive window</div><div class="corner off"><div class="cm"><div class="tbar w"><span class="serif">Invoice PDF + tax lines</span><span class="right"><span class="caption off" aria-hidden="true"><span><svg><use href="#i-min"/></svg></span><span><svg><use href="#i-max"/></svg></span><span><svg><use href="#i-close"/></svg></span></span></span></div><div class="msgline">Bo · steer</div></div></div></div>
+    <p class="note">The apricot wash marks the drag region: the whole title row on both platforms, minus any button in it. In macOS fullscreen the traffic lights leave and the row shrinks from 52 to 40px, so the wordmark slides to the left edge; nothing else moves. When the sidebar collapses on macOS the lights stay where they are and the main column's row starts after them, with the sidebar toggle and the project crumb. On Windows the maximised window loses its radius and the maximise glyph becomes restore; inactive windows dim the title and the controls, never the content.</p>
+  </div>
+</section>
+
+<!-- ============================ spec ============================ -->
+<section class="variant" id="spec">
+  <div class="head"><span class="letter">E</span><div><h2>One rule set, two platforms</h2></div></div>
+  <div class="compare list">
+    <div class="rowitem"><span class="t">Title row</span><span class="s">macOS 52px (40px in fullscreen); Windows 40px. The sidebar's row and the main column's row are the same height, so the crease between them is one unbroken line from the top edge.</span></div>
+    <div class="rowitem"><span class="t">System controls</span><span class="s">macOS: traffic lights at (14, 20) inside the sidebar, drawn by the system. Windows: minimise, maximise, close at 46×40 at the top right, drawn by the app, hit-tested as the system's.</span></div>
+    <div class="rowitem"><span class="t">App identity</span><span class="s">The mark and wordmark sit at the top-left of the sidebar, after the lights on macOS, at the edge on Windows. Never in the window title: the OS title is the session's name, for Mission Control and Alt-Tab.</span></div>
+    <div class="rowitem"><span class="t">Drag region</span><span class="s">The whole title row across sidebar and main column. Double-click zooms on macOS and maximises on Windows; the sidebar toggle, the crumb and the right-hand buttons are excluded.</span></div>
+    <div class="rowitem"><span class="t">Collapsed sidebar</span><span class="s">macOS keeps the lights and starts the main row at 84px; Windows starts it at the edge. The toggle and the project crumb take the sidebar's place in the row.</span></div>
+    <div class="rowitem"><span class="t">Inactive</span><span class="s">Title and controls go to the tertiary grey; the sidebar, stream and composer do not change. The crease stays apricot.</span></div>
+    <div class="rowitem"><span class="t">Web</span><span class="s">The same shell with a 48px row and no controls; the browser owns the rest. Nothing in the layout is desktop-only except the inset for the controls.</span></div>
+  </div>
+</section>
+
+</div>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

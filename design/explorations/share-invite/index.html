@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Share and invite</title>
+<meta name="description" content="Sharing a session from the Share button: the link, who can open it, a role per person, copy link; the other side of a share; and inviting someone to a project.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1000px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 64px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 18px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header h2 .n { color: var(--fg-3); margin-right: 10px; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+.cap { font-size: 12.5px; color: var(--fg-3); line-height: 1.5; }
+.cap b { font-weight: 500; color: var(--fg-2); }
+.notes { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.sheet a.q { color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.sheet a.q:hover { color: var(--fg); }
+
+/* the popover: one hairline sheet anchored to the button it came from; no shadow, no scrim */
+.pop { width: 460px; max-width: 100%; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg); padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 18px; }
+.pop .head { display: flex; flex-direction: column; gap: 2px; }
+.pop .head h2 { font-family: var(--serif); font-weight: 400; font-size: 20px; letter-spacing: 0; line-height: 1.25; }
+.pop .head .crumb { font-size: 12.5px; color: var(--fg-3); }
+.pop .head .crumb .sep { margin: 0 4px; }
+.pop .group { display: flex; flex-direction: column; gap: 6px; }
+.pop .group > .lbl { font-size: 12.5px; color: var(--fg-3); display: flex; align-items: baseline; gap: 8px; }
+.pop .group > .lbl .r { margin-left: auto; }
+.pop .group > .lbl a { color: var(--fg-3); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.pop .foot { font-size: 12.5px; color: var(--fg-3); line-height: 1.5; }
+.pop .foot .who { color: var(--fg-2); }
+
+/* the link: a read-only field and the one accent button */
+.linkrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.linkrow .field { position: relative; display: flex; align-items: center; }
+.linkrow .field .ic { position: absolute; left: 11px; width: 14px; height: 14px; color: var(--fg-3); pointer-events: none; }
+.linkrow input { width: 100%; min-height: 34px; padding: 0 12px 0 32px; border: 1px solid var(--line); border-radius: var(--radius-full); background: var(--bg-2); color: var(--fg-2); font: 400 13px var(--mono); outline: none; text-overflow: ellipsis; }
+.linkrow input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.linkrow .btn .ic { width: 14px; height: 14px; }
+
+/* radio rows: who can open it */
+.scope { display: flex; flex-direction: column; }
+.scope label { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; padding: 7px 8px; margin: 0 -8px; border-radius: var(--radius); font-size: 14px; cursor: pointer; }
+.scope label:hover { background: var(--bg-2); }
+.scope input { margin: 0; width: 14px; height: 14px; accent-color: var(--accent); }
+.scope .t { min-width: 0; }
+.scope .t .faint { font-size: 12.5px; }
+.scope .as { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; }
+
+/* people rows: avatar, name and presence, a role per person, remove */
+.people { display: flex; flex-direction: column; }
+.people .row { display: grid; grid-template-columns: 26px 1fr auto 24px; gap: 10px; align-items: center; padding: 6px 8px; margin: 0 -8px; border-radius: var(--radius); font-size: 14px; min-height: 42px; }
+.people .row:hover { background: var(--bg-2); }
+.people .avatar { border: 0; }
+.people .avatar.pending { background: transparent; border: 1px dashed var(--fg-3); color: var(--fg-3); }
+.people .name { min-width: 0; display: flex; flex-direction: column; line-height: 1.35; }
+.people .name .n { display: flex; align-items: baseline; gap: 6px; }
+.people .name .n .serif { font-size: 15px; }
+.people .name .n .you { font-size: 12.5px; color: var(--fg-3); }
+.people .name .sub { font-size: 12.5px; color: var(--fg-3); display: inline-flex; align-items: center; gap: 6px; }
+.people .name .sub::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--fg-3); flex: none; }
+.people .name .sub.here::before { background: var(--ok); }
+.people .name .sub.invited::before { background: var(--warn); }
+.people .name .sub.none::before { display: none; }
+.people .fixed { font-size: 13px; color: var(--fg-2); padding-right: 8px; text-align: right; line-height: 1.3; }
+.people .fixed .faint { font-size: 12px; display: block; }
+.people .x { width: 24px; height: 24px; border: 0; background: transparent; color: var(--fg-3); border-radius: 50%; display: inline-grid; place-items: center; cursor: pointer; padding: 0; }
+.people .x:hover { background: var(--bg-3); color: var(--fg); }
+.people .x .ic { width: 13px; height: 13px; }
+.people .x[disabled] { visibility: hidden; }
+
+/* the role select: a word with a chevron, no box until hover */
+.sel { position: relative; display: inline-flex; align-items: center; }
+.sel select { appearance: none; -webkit-appearance: none; border: 1px solid transparent; background: transparent; color: var(--fg-2); font: 500 13px var(--font); padding: 4px 24px 4px 10px; border-radius: var(--radius-full); cursor: pointer; outline: none; }
+.sel select:hover { background: var(--bg-3); color: var(--fg); }
+.sel select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sel .ic { position: absolute; right: 8px; width: 12px; height: 12px; color: var(--fg-3); pointer-events: none; }
+
+/* add someone: one field, one quiet button */
+.addrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.line-input { display: flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-full); background: var(--bg); color: var(--fg); font: inherit; font-size: 14px; width: 100%; outline: none; }
+.line-input::placeholder { color: var(--fg-3); }
+.line-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea.line-input { border-radius: var(--radius); padding: 8px 12px; min-height: 64px; resize: vertical; line-height: 1.5; }
+.btn.quiet { border-color: transparent; color: var(--fg-2); padding-inline: 8px; }
+.btn.quiet:hover { color: var(--fg); }
+.pop .actions { display: flex; align-items: center; gap: 8px; }
+.pop .actions .after { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+
+/* the other side: a quiet notice and a settled line, drawn like the rest of the stream */
+.stream-bit { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.notice { gap: 8px; padding: 14px 16px 12px; }
+.notice .q { font-size: 15px; color: var(--fg); }
+.notice .q .serif { font-size: 16px; }
+.notice .st { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); flex-wrap: wrap; }
+.notice .st .sep { color: var(--fg-3); }
+.notice .actions { margin-top: 6px; align-items: center; flex-wrap: wrap; display: flex; gap: 8px; }
+.notice .actions .after { margin-left: auto; font-size: 12.5px; color: var(--fg-3); }
+.settled { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: var(--fg-2); padding: 3px 0; line-height: 1.5; }
+.settled .ic { width: 14px; height: 14px; margin-top: 4px; opacity: 0.8; }
+.settled .who { color: var(--fg); }
+
+/* in situ: the desktop frame with the popover under the Share button */
+.app { width: 1000px; height: 790px; overflow: hidden; position: relative; }
+.app .shell { height: 100%; }
+.app .sidebar { width: 272px; padding: 10px; gap: 1px; }
+.app .sidebar .brand { padding-bottom: 8px; text-decoration: none; color: var(--fg); }
+.app .sidebar .brand img { width: 20px; height: 20px; }
+.app .sidebar .new .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.app .sidebar .section { padding: 10px 10px 4px; }
+.app .sidebar .dir { padding: 0 10px 8px; font-size: 13px; color: var(--fg-3); font-family: var(--serif); font-style: italic; }
+.app .sidebar .item { position: relative; display: grid; grid-template-columns: 6px 1fr auto; gap: 8px; }
+.app .sidebar .item .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.app .sidebar .item .t .by { color: var(--fg-3); font-size: 13px; }
+.app .sidebar .item .n { font-size: 12.5px; color: var(--fg-2); }
+.app .sidebar .item .dot { background: var(--fg-3); }
+.app .sidebar .item .dot.running { background: var(--ok); }
+.app .sidebar .item .dot.awaiting { background: var(--warn); }
+.app .sidebar .item .dot.paused { background: var(--info); }
+.app .sidebar .item.active { background: var(--bg); font-weight: 500; }
+.app .sidebar .item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--highlight); }
+.app .sidebar .me .avatar { width: 26px; height: 26px; border: 0; }
+.app .sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
+.app .topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.app .topbar .title .crumb { font-size: 13px; color: var(--fg-3); white-space: nowrap; }
+.app .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.app .topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.app .topbar .right .btn .ic { width: 14px; height: 14px; }
+.app .topbar .seat { font-size: 12.5px; color: var(--fg-3); margin-right: 2px; }
+.app .scroll { display: flex; flex-direction: column; overflow: hidden; }
+.app .stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.app .column { padding-top: 0; padding-bottom: 12px; gap: 22px; }
+.app .composer-wrap { padding-top: 4px; padding-bottom: 14px; }
+.app .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; border-radius: 0; color: var(--fg-3); }
+.app .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.app .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.app .send.ink { background: var(--fg); color: var(--bg); }
+.app .pop { position: absolute; top: 48px; right: 56px; width: 440px; padding: 16px 18px 14px; gap: 14px; }
+.app .pop .people .row { min-height: 40px; padding-block: 5px; }
+.app .msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.app .msg.agent .text { font-size: 15px; }
+.app .step .mono { font-size: 12.5px; }
+.app .msg .meta .faint { font-size: 12px; }
+
+@media (max-width: 1060px) {
+  .app { width: 100%; height: auto; }
+  .app .shell { height: 820px; }
+  .app .pop { right: 16px; }
+}
+@media (max-width: 760px) {
+  .pair { grid-template-columns: 1fr; }
+  .app .sidebar { display: none; }
+  .app .pop { left: 8px; right: 8px; width: auto; }
+}
+</style>
+</head>
+<body>
+
+<main class="sheet">
+  <div class="intro">
+    <div class="crumb"><a class="q" href="../../index.html">Fold</a> · Explorations · Share and invite</div>
+    <h1>Share a session, invite to a project</h1>
+    <p>Sharing is a ten-second act, so it lives in a popover under the Share button, never a modal. Four things, top to bottom: the link, who can open it, a role per person, and a field to add someone. Roles are the kernel's lattice (observer, contributor, owner) said as words; the driver's seat is not a role here, it moves by handoff. Everything the popover changes is an event in the log, so the stream says what happened afterwards in the same voice as a tool step.</p>
+  </div>
+
+  <!-- 1. the share popover -->
+  <section>
+    <header>
+      <h2><span class="n">1</span>Share</h2>
+      <p>What Ana sees after pressing Share in the top bar of <span class="serif">Invoice PDF + tax lines</span>. The one accent on the screen is Copy link.</p>
+    </header>
+    <div class="pair">
+      <div class="pop" role="dialog" aria-labelledby="share-title">
+        <div class="head">
+          <h2 id="share-title">Share this session</h2>
+          <div class="crumb">Northwind<span class="sep">›</span>Payments<span class="sep">›</span>Billing page<span class="sep">›</span>Invoice PDF + tax lines</div>
+        </div>
+
+        <div class="group">
+          <label class="lbl" for="share-link">Link</label>
+          <div class="linkrow">
+            <div class="field">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l2.8-2.8a5 5 0 0 0-7.1-7.1L11.5 4.4"/><path d="M14 11a5 5 0 0 0-7.1 0l-2.8 2.8a5 5 0 0 0 7.1 7.1l1.3-1.3"/></svg>
+              <input id="share-link" type="text" readonly value="fold.app/s/inv-pdf-tax">
+            </div>
+            <button class="btn primary" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>Copy link</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="lbl">Who can open it</div>
+          <div class="scope" role="radiogroup" aria-label="Who can open it">
+            <label><input type="radio" name="scope" checked><span class="t">People below only</span></label>
+            <label><input type="radio" name="scope"><span class="t">Anyone in Payments</span><span class="as">opens as observer</span></label>
+            <label><input type="radio" name="scope"><span class="t">Anyone at Northwind with the link</span><span class="as">opens as observer</span></label>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="lbl">People <span class="r"><a href="#">What roles can do</a></span></div>
+          <div class="people">
+            <div class="row">
+              <span class="avatar driver" aria-hidden="true">A</span>
+              <span class="name"><span class="n"><span class="serif">Ana</span><span class="you">you</span></span><span class="sub here">here · driving</span></span>
+              <span class="fixed">owner</span>
+              <button class="x" type="button" disabled aria-label="Remove Ana"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="row">
+              <span class="avatar" aria-hidden="true">B</span>
+              <span class="name"><span class="n"><span class="serif">Bo</span></span><span class="sub here">here</span></span>
+              <span class="sel"><label class="sr-only" for="role-bo">Bo's role</label><select id="role-bo"><option>observer</option><option selected>contributor</option><option>owner</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+              <button class="x" type="button" aria-label="Remove Bo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="row">
+              <span class="avatar off" aria-hidden="true">C</span>
+              <span class="name"><span class="n"><span class="serif">Cy</span></span><span class="sub">away · last seen 14:20</span></span>
+              <span class="sel"><label class="sr-only" for="role-cy">Cy's role</label><select id="role-cy"><option>observer</option><option selected>contributor</option><option>owner</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+              <button class="x" type="button" aria-label="Remove Cy"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="row">
+              <span class="avatar" aria-hidden="true">D</span>
+              <span class="name"><span class="n"><span class="serif">Dee</span></span><span class="sub here">here · lead of Payments</span></span>
+              <span class="fixed">owner <span class="faint">from the project</span></span>
+              <button class="x" type="button" disabled aria-label="Remove Dee"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="row">
+              <span class="avatar pending" aria-hidden="true">E</span>
+              <span class="name"><span class="n"><span class="serif">eli@northwind.dev</span></span><span class="sub invited">invited 16:40 · not opened yet</span></span>
+              <span class="sel"><label class="sr-only" for="role-eli">Eli's role</label><select id="role-eli"><option selected>observer</option><option>contributor</option><option>owner</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+              <button class="x" type="button" aria-label="Withdraw the invitation to eli@northwind.dev"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="addrow">
+          <label class="sr-only" for="share-add">Add a person by name or email</label>
+          <input class="line-input" id="share-add" type="text" placeholder="Name or email, added as observer">
+          <button class="btn" type="button">Add</button>
+        </div>
+
+        <p class="foot">Irreversible calls need two owners or drivers. Right now that is <span class="who">you and Dee</span>. Every change here is an event in the session log.</p>
+      </div>
+
+      <div class="notes">
+        <p class="cap"><b>Link first.</b> The address is the thing most people came for; it is a read-only field with the one accent button beside it. The same link opens the desktop app when it is installed.</p>
+        <p class="cap"><b>Who can open it</b> is three radio rows, not a dropdown. The two wider scopes name the role they grant, and it is always observer: a link never hands out the ability to steer.</p>
+        <p class="cap"><b>A role per person</b> is a word with a chevron, boxed only on hover. Roles that follow from the project (Dee is lead, so owner) are plain words with a reason, and have no remove button. The driver is shown as presence, "here · driving", not as a role: the seat moves by handoff, not from this popover.</p>
+        <p class="cap"><b>Pending</b> is a dashed avatar and the word "invited" with a warm dot. Removing a pending person withdraws the invitation; the button says so.</p>
+        <p class="cap"><b>The footnote</b> ties roles to the approval rule that matters this week: who can approve delete legacy_invoices. It changes as roles change.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. the other side -->
+  <section>
+    <header>
+      <h2><span class="n">2</span>The other side</h2>
+      <p>A share is an event, so it shows twice: as a quiet notice for the person who received it, and as a settled line in the session for everyone else.</p>
+    </header>
+    <div class="stream-bit">
+      <div class="notice" role="group" aria-label="Invitation">
+        <p class="q"><span class="serif">Ana</span> shared <span class="serif">Invoice PDF + tax lines</span> with you as a contributor.</p>
+        <div class="st"><span>Northwind › Payments › Billing page</span><span class="sep">·</span><span class="status running">running</span><span class="sep">·</span><span>turn 9, Ana driving, Dee watching</span></div>
+        <div class="actions">
+          <button class="btn primary" type="button">Open session</button>
+          <button class="btn quiet" type="button">Read the brief first</button>
+          <span class="after">You can steer, pause, fork and vote. You cannot merge or cancel.</span>
+        </div>
+      </div>
+      <div class="settled"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0z"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="M19 8v4M21 10h-4" transform="translate(1 -4)"/></svg><span><span class="who">Ana</span> shared with <span class="who">Bo</span> as contributor and invited eli@northwind.dev as observer · 16:40 · turn 9</span></div>
+      <div class="settled"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0z"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span><span class="who">Bo</span> opened the session · 16:41</span></div>
+      <p class="cap">The settled lines use the same 14px icon and 13.5px grey as "Ran tests" so the log reads as one list. The notice carries the fact, the status word, and what the role allows in one sentence, so Bo does not have to find the roles page before pressing Open.</p>
+    </div>
+  </section>
+
+  <!-- 3. invite to a project -->
+  <section>
+    <header>
+      <h2><span class="n">3</span>Invite to a project</h2>
+      <p>From the Invite button on the project page. A project role sets the default session role for every session inside it, so the three choices are explained by what they become.</p>
+    </header>
+    <div class="pair">
+      <div class="pop" role="dialog" aria-labelledby="invite-title">
+        <div class="head">
+          <h2 id="invite-title">Invite to Payments</h2>
+          <div class="crumb">Northwind<span class="sep">›</span>Payments<span class="sep">·</span>4 people<span class="sep">·</span>3 sessions<span class="sep">·</span>lead Dee</div>
+        </div>
+
+        <div class="group">
+          <label class="lbl" for="invite-emails">Who</label>
+          <textarea class="line-input" id="invite-emails" placeholder="Emails, one per line. Northwind addresses join without a review.">eli@northwind.dev
+fay@northwind.dev</textarea>
+        </div>
+
+        <div class="group">
+          <div class="lbl">Join as</div>
+          <div class="scope" role="radiogroup" aria-label="Project role">
+            <label><input type="radio" name="prole"><span class="t">Observer <span class="faint">· watches sessions and reads the fleet brief</span></span></label>
+            <label><input type="radio" name="prole" checked><span class="t">Member <span class="faint">· contributor on every session, can start sessions and claim paths</span></span></label>
+            <label><input type="radio" name="prole"><span class="t">Lead <span class="faint">· owner on every session, sets project direction</span></span></label>
+          </div>
+        </div>
+
+        <div class="group">
+          <label class="lbl" for="invite-note">A line for them <span class="r">optional</span></label>
+          <input class="line-input" id="invite-note" type="text" value="Schema freeze until Thursday; start from the fleet brief.">
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" type="button">Send 2 invitations</button>
+          <button class="btn quiet" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l2.8-2.8a5 5 0 0 0-7.1-7.1L11.5 4.4"/><path d="M14 11a5 5 0 0 0-7.1 0l-2.8 2.8a5 5 0 0 0 7.1 7.1l1.3-1.3"/></svg>Copy a join link</button>
+          <span class="after">link expires in 7 days</span>
+        </div>
+
+        <p class="foot">Invitations are project events; Dee sees them on the project page. A lead invite needs Dee to confirm.</p>
+      </div>
+
+      <div class="notes">
+        <p class="cap"><b>Same shape as Share.</b> Head, a field, radio rows, one accent button. Someone who has shared a session already knows how to invite to a project.</p>
+        <p class="cap"><b>Roles explained by consequence.</b> "Member · contributor on every session" says what the word will mean next Tuesday when they open someone else's session. The default is member.</p>
+        <p class="cap"><b>The join link is secondary.</b> Projects are where claims and the lead's direction live, so a link that anyone can forward is the quiet button here, with its expiry beside it, rather than the first thing.</p>
+        <p class="cap"><b>The optional line</b> is prefilled with the lead's current direction, "schema freeze until Thursday", because that is the one thing a new member needs before their first turn.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. in situ -->
+  <section>
+    <header>
+      <h2><span class="n">4</span>In situ</h2>
+      <p>The popover under the Share button in the desktop app. No scrim, no shadow: the hairline and the anchor are enough. While it is open the send arrow steps back to ink so the accent is only on Copy link.</p>
+    </header>
+    <div class="frame app">
+      <div class="shell">
+        <aside class="sidebar">
+          <a class="brand" href="#"><img src="../../mark.svg" alt=""><span>Fold</span></a>
+          <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+          <div class="section">Payments <span class="n">3</span></div>
+          <div class="dir">schema freeze until Thursday</div>
+          <a class="item active" href="#"><span class="dot running"></span><span class="t">Invoice PDF + tax lines <span class="by">· Ana</span></span><span class="n">4</span></a>
+          <a class="item" href="#"><span class="dot awaiting"></span><span class="t">Refund webhooks <span class="by">· Bo</span></span><span class="n">2</span></a>
+          <a class="item" href="#"><span class="dot paused"></span><span class="t">Dunning emails <span class="by">· Cy</span></span><span class="n">1</span></a>
+          <div class="section">Recents</div>
+          <a class="item" href="#"><span class="dot"></span><span class="t">Tax rounding audit</span></a>
+          <a class="item" href="#"><span class="dot"></span><span class="t">Stripe Tax spike</span></a>
+          <div class="me"><span class="avatar driver" aria-hidden="true">A</span><span class="who">Ana<br><span class="small faint">Northwind</span></span></div>
+        </aside>
+        <div class="main">
+          <div class="topbar">
+            <div class="title"><span class="crumb">Payments › Billing page</span><span class="serif">Invoice PDF + tax lines</span><span class="status running">running</span></div>
+            <div class="right">
+              <span class="seat">Ana driving</span>
+              <span class="stack"><span class="avatar driver" aria-hidden="true">A</span><span class="avatar" aria-hidden="true">B</span><span class="avatar" aria-hidden="true">D</span></span>
+              <button class="btn sm on" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0z"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Share</button>
+              <button class="btn sm icon" type="button" aria-label="Session details"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+            </div>
+          </div>
+          <div class="scroll">
+            <div class="stream">
+              <div class="column">
+                <div class="msg agent">
+                  <div class="meta"><span class="avatar agent" aria-hidden="true">A</span><span class="who">Ana's agent</span><span class="faint">turn 9</span></div>
+                  <p class="text">The PDF renders with the tax lines from the local tables. I have left the Stripe Tax call behind a flag until the contention is resolved, and I have not touched the legacy_invoices table.</p>
+                  <div class="steps">
+                    <div class="step"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg>Ran tests <span class="mono">billing/pdf · 42 passed</span></div>
+                    <div class="step"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Edited <span class="mono">billing/pdf/tax_lines.ts</span></div>
+                  </div>
+                </div>
+                <div class="notice contention">
+                  <p class="q">Contention: <span class="serif">Stripe Tax API</span> or <span class="serif">local tax tables</span>?</p>
+                  <div class="st"><span>Bo steered toward Stripe Tax · Ana constrained to local tables</span><span class="sep">·</span><span>waiting on the driver</span></div>
+                </div>
+                <div class="settled"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0z"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span><span class="who">Ana</span> shared with <span class="who">Bo</span> as contributor · 16:40</span></div>
+              </div>
+            </div>
+            <div class="composer-wrap">
+              <div class="composer">
+                <div class="input">Steer, constrain or ask…</div>
+                <div class="bar">
+                  <button class="btn icon" type="button" aria-label="Attach"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+                  <div class="right"><button class="send ink" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pop" role="dialog" aria-labelledby="share2-title">
+        <div class="head">
+          <h2 id="share2-title">Share this session</h2>
+          <div class="crumb">Northwind<span class="sep">›</span>Payments<span class="sep">›</span>Billing page<span class="sep">›</span>Invoice PDF + tax lines</div>
+        </div>
+        <div class="group">
+          <label class="lbl" for="share2-link">Link</label>
+          <div class="linkrow">
+            <div class="field">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l2.8-2.8a5 5 0 0 0-7.1-7.1L11.5 4.4"/><path d="M14 11a5 5 0 0 0-7.1 0l-2.8 2.8a5 5 0 0 0 7.1 7.1l1.3-1.3"/></svg>
+              <input id="share2-link" type="text" readonly value="fold.app/s/inv-pdf-tax">
+            </div>
+            <button class="btn primary" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>Copy link</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="lbl">Who can open it</div>
+          <div class="scope" role="radiogroup" aria-label="Who can open it">
+            <label><input type="radio" name="scope2" checked><span class="t">People below only</span></label>
+            <label><input type="radio" name="scope2"><span class="t">Anyone in Payments</span><span class="as">opens as observer</span></label>
+            <label><input type="radio" name="scope2"><span class="t">Anyone at Northwind with the link</span><span class="as">opens as observer</span></label>
+          </div>
+        </div>
+        <div class="group">
+          <div class="lbl">People</div>
+          <div class="people">
+            <div class="row">
+              <span class="avatar driver" aria-hidden="true">A</span>
+              <span class="name"><span class="n"><span class="serif">Ana</span><span class="you">you</span></span><span class="sub here">here · driving</span></span>
+              <span class="fixed">owner</span>
+              <button class="x" type="button" disabled aria-label="Remove Ana"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="row">
+              <span class="avatar" aria-hidden="true">B</span>
+              <span class="name"><span class="n"><span class="serif">Bo</span></span><span class="sub here">here</span></span>
+              <span class="sel"><label class="sr-only" for="role2-bo">Bo's role</label><select id="role2-bo"><option>observer</option><option selected>contributor</option><option>owner</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+              <button class="x" type="button" aria-label="Remove Bo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="row">
+              <span class="avatar off" aria-hidden="true">C</span>
+              <span class="name"><span class="n"><span class="serif">Cy</span></span><span class="sub">away</span></span>
+              <span class="sel"><label class="sr-only" for="role2-cy">Cy's role</label><select id="role2-cy"><option>observer</option><option selected>contributor</option><option>owner</option></select><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+              <button class="x" type="button" aria-label="Remove Cy"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="row">
+              <span class="avatar" aria-hidden="true">D</span>
+              <span class="name"><span class="n"><span class="serif">Dee</span></span><span class="sub here">here · lead of Payments</span></span>
+              <span class="fixed">owner <span class="faint">from the project</span></span>
+              <button class="x" type="button" disabled aria-label="Remove Dee"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <div class="addrow">
+          <label class="sr-only" for="share2-add">Add a person by name or email</label>
+          <input class="line-input" id="share2-add" type="text" placeholder="Name or email, added as observer">
+          <button class="btn" type="button">Add</button>
+        </div>
+        <p class="foot">Irreversible calls need two owners or drivers: <span class="who">you and Dee</span>.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>

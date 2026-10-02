@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold — Replay scrubber</title>
+<meta name="description" content="A thin time-travel line under the top row: one dot per turn, a native range input as the handle, a 'Viewing turn 9 of 14' label and a Return to now button. The column shows the session as it was at that turn.">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* CSS-only theme toggle: the radios at the bottom right override the token variables */
+:root:has(#t-light:checked) {
+  --bg: #FAF8F4; --bg-2: #F3F0EA; --bg-3: #ECE8E1;
+  --fg: #2A3244; --fg-2: #6B7080; --fg-3: #9A9EA9;
+  --line: rgba(42, 50, 68, 0.10);
+  --accent: #56352D; --accent-fg: #FFFFFF;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.28);
+  --crease: #E2C4A6; --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
+  color-scheme: light;
+}
+:root:has(#t-dark:checked) {
+  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
+  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
+  --line: rgba(236, 232, 225, 0.10);
+  --accent: #E2C4A6; --accent-fg: #1F2430;
+  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
+  --crease: rgba(226, 196, 166, 0.55); --fold-face: #E2C4A6; --fold-under: #56352D;
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  color-scheme: dark;
+}
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body { height: auto; min-height: 100%; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the sheet */
+.sheet { width: min(1100px, 100% - 48px); margin: 0 auto; padding: 56px 0 120px; display: flex; flex-direction: column; gap: 72px; }
+.intro { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 14px; }
+.intro .crumb { font-size: 13px; color: var(--fg-3); }
+.intro .crumb a { color: var(--fg-3); }
+.intro p { color: var(--fg-2); }
+section { display: flex; flex-direction: column; gap: 20px; }
+section > header { width: min(var(--col), 100%); display: flex; flex-direction: column; gap: 6px; }
+section > header h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: 0; }
+section > header h2 .n { color: var(--fg-3); margin-right: 8px; }
+section > header p { color: var(--fg-2); font-size: 14px; }
+
+/* a window on the main pane; the sidebar is unchanged and left out */
+.frame { width: 100%; }
+.frame .main { height: auto; }
+.topbar { border-bottom: 0; }
+.topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.topbar .right .btn .ic { width: 14px; height: 14px; }
+.column { padding-top: 24px; padding-bottom: 20px; gap: 26px; }
+.msg .meta .faint { font-size: 12px; }
+.msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.step .mono { font-size: 12.5px; }
+.notice p { margin: 0; }
+.settled { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: var(--fg-2); padding: 3px 0; line-height: 1.5; }
+.settled .ic { width: 14px; height: 14px; margin-top: 4px; opacity: 0.8; }
+.settled .who { color: var(--fg); }
+.composer-wrap { position: static; background: transparent; padding: 4px 20px 20px; }
+.composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; border-radius: 0; color: var(--fg-3); }
+.composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
+.composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+.hint { text-align: center; font-size: 12px; color: var(--fg-3); margin-top: 8px; }
+
+/* ── the scrubber: one strip under the top row ───────────────────────────────── */
+.scrub { display: flex; flex-direction: column; gap: 6px; padding: 0 16px 10px; }
+.scrub .track { position: relative; height: 24px; }
+.scrub .track .line { position: absolute; left: 7px; right: 7px; top: 50%; height: 1px; background: var(--line); }
+.scrub .track .dots { position: absolute; inset: 0; padding: 0 4.5px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.scrub .track .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-3); }
+.scrub .track .dots i.ahead { background: transparent; border: 1px solid var(--fg-3); width: 5px; height: 5px; }
+.scrub .track .dots i.mark { width: 7px; height: 7px; background: var(--fg); }
+.scrub .track .dots i.mark.ahead { background: transparent; border-color: var(--fg-3); }
+.scrub input[type="range"] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: ew-resize; }
+.scrub input[type="range"]::-webkit-slider-runnable-track { height: 100%; background: transparent; }
+.scrub input[type="range"]::-moz-range-track { height: 100%; background: transparent; }
+.scrub input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin-top: 5px; border-radius: 50%; background: var(--fg); border: 3px solid var(--bg); box-sizing: border-box; }
+.scrub input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); border: 3px solid var(--bg); box-sizing: border-box; }
+.scrub input[type="range"]:focus-visible { outline: 0; }
+.scrub input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scrub .label { display: flex; align-items: center; gap: 10px; min-height: 28px; font-size: 13px; color: var(--fg-2); }
+.scrub .label .at { color: var(--fg); font-weight: 500; }
+.scrub .label .sep { color: var(--fg-3); }
+.scrub .label .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.scrub.now .label { color: var(--fg-3); }
+/* the past: a hairline in apricot under the strip, the same crease that separates chrome from content */
+.scrub.past { border-bottom: 1px solid var(--crease); }
+/* hover peek on one dot (static demonstration) */
+.peek { position: absolute; top: 14px; transform: translateX(-50%); font-size: 12px; color: var(--fg-2); white-space: nowrap; background: var(--bg); padding: 0 6px; }
+
+/* the end of the past: what lies ahead, as a divider, not a card */
+.ahead-row { display: flex; align-items: center; gap: 12px; color: var(--fg-3); font-size: 13px; }
+.ahead-row::before, .ahead-row::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.ahead-row .serif { font-size: 14.5px; color: var(--fg-2); }
+
+/* composer while viewing the past: the sheet stays, the words change, the accent leaves */
+.composer.past { color: var(--fg-3); }
+.composer.past .input { color: var(--fg-3); }
+.composer.past::after { background: linear-gradient(225deg, var(--bg) 0 50%, var(--fg-3) 50% 56%, var(--bg-3) 56% 100%); }
+.composer.past .bar .seg label, .composer.past .bar .btn.icon { color: var(--fg-3); }
+
+/* anatomy: label-left rows, as in the other explorations */
+.ex { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; padding: 18px 0; border-top: 1px solid var(--line); }
+.ex .lbl { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--fg-2); padding-top: 2px; }
+.ex .lbl b { font-weight: 500; color: var(--fg); }
+.ex .body { display: flex; flex-direction: column; gap: 10px; min-width: 0; font-size: 14px; color: var(--fg-2); }
+.ex .body .kv { grid-template-columns: 150px 1fr; }
+.ex .body .kv dt { color: var(--fg-3); }
+.ex .body .kv dd { color: var(--fg); }
+.ex .body .kv .mono { font-size: 12.5px; }
+kbd { font: 12px var(--mono); color: var(--fg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+.swatch { display: flex; align-items: center; gap: 12px; }
+.swatch i { display: inline-block; border-radius: 50%; flex: none; }
+
+/* the narrow surface: same strip at 390 px */
+.narrow { width: 390px; }
+.narrow .topbar { padding: 10px 12px; }
+.narrow .scrub { padding: 0 12px 10px; }
+.narrow .scrub .label { flex-wrap: wrap; row-gap: 4px; }
+.narrow .scrub .track .dots i { width: 4px; height: 4px; }
+.narrow .scrub .track .dots i.mark { width: 6px; height: 6px; }
+.narrow .scrub .track .dots i.ahead { width: 4px; height: 4px; }
+.narrow .column { padding: 16px 16px 16px; gap: 18px; }
+.narrow .msg.human .text { max-width: 100%; }
+
+@media (max-width: 760px) {
+  .ex { grid-template-columns: 1fr; gap: 10px; }
+  .sheet { width: min(1100px, 100% - 32px); gap: 56px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
+<symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16z"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M7.5 16.5l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 7.5l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+<symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="9" r="2"/><path d="M6 7v10M18 11c0 3-4 3-8 4"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M5 12h14M11 6l-6 6 6 6"/></symbol>
+</svg>
+
+<div class="sheet">
+
+<div class="intro">
+  <div class="crumb"><a href="../../index.html">Fold design</a> · explorations · replay scrubber</div>
+  <h1>Replay scrubber</h1>
+  <p>Everything in a session is an event in a replayable log, so any turn can be shown exactly as it was. This is the control for that: a thin line under the top row, one dot per turn, a native range input as the handle. Drag it back and the column folds the log up to that turn; a label says where you are, and one button brings you back to now. Below: the strip at rest, the strip while viewing turn 9 of 14, the anatomy, and the same strip at phone width.</p>
+</div>
+
+<!-- ── 1. at rest ───────────────────────────────────────────────────────────── -->
+<section id="now">
+  <header><h2><span class="n">1</span>At rest, on now</h2><p>The strip is always there, 24 px tall, under the top row. Dots in tertiary grey, the handle on the last turn; the label is the one faint line and the composer keeps the only accent. Hovering a dot peeks at what happened in that turn.</p></header>
+  <div class="frame"><div class="main">
+    <div class="topbar">
+      <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status running">Working</span><span class="pill team">Team</span></span>
+      <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn ghost sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+    </div>
+    <div class="scrub now">
+      <div class="track">
+        <span class="line" aria-hidden="true"></span>
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i style="position:relative"><span class="peek">turn 9 · agent asked to delete legacy_invoices</span></i><i></i><i></i><i class="mark"></i><i></i><i></i></span>
+        <label class="sr-only" for="r-now">Turn</label>
+        <input id="r-now" type="range" min="1" max="14" value="14" step="1" aria-valuetext="turn 14 of 14, now">
+      </div>
+      <div class="label"><span>14 turns · started 13:12 · Ana, Bo, Cy</span><span class="right"><span>now</span></span></div>
+    </div>
+    <div class="column">
+      <div class="settled"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Delete of <span class="mono">legacy_invoices</span> granted · <span class="who">Ana</span>, <span class="who">Bo</span> · 2 of 2 drivers · turn 12</span></div>
+      <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer · turn 13</span></div><div class="text">Good. Now move the rate lookup behind a TaxSource interface so we can swap in Stripe Tax later without touching the renderer.</div></div>
+      <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 14 · working</span></div><div class="text">Extracting TaxSource with two implementations, LocalTables and a StripeTax stub that throws until the key is configured. The renderer only sees the interface. Running the suite after each move.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">tax/source.ts</span> · +41 −0</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +6 −9</span></div></div></div>
+    </div>
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="input">Steer the agent</div>
+        <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+      </div>
+      <div class="hint">Enter to send · Shift+Enter for a new line</div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ── 2. viewing the past ──────────────────────────────────────────────────── -->
+<section id="past">
+  <header><h2><span class="n">2</span>Viewing turn 9 of 14</h2><p>The handle is on turn 9. Turns ahead become hollow dots, the label says where you are and what came next, and Return to now takes the accent because it is now the one thing to press. The column shows the log folded up to turn 9: the approval is pending again, exactly as Ana saw it. The composer stays but goes quiet, and the apricot crease moves down under the strip to mark that this is not live.</p></header>
+  <div class="frame"><div class="main">
+    <div class="topbar">
+      <span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status paused">Viewing the past</span><span class="pill team">Team</span></span>
+      <div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="Ana">A</span><span class="avatar" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><a class="btn ghost sm" href="#"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Share</a><a class="btn sm" href="#">Team</a><a class="btn sm" href="#">Details</a></div>
+    </div>
+    <div class="scrub past">
+      <div class="track">
+        <span class="line" aria-hidden="true"></span>
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="ahead"></i><i class="ahead"></i><i class="mark ahead"></i><i class="ahead"></i><i class="ahead"></i></span>
+        <label class="sr-only" for="r-past">Turn</label>
+        <input id="r-past" type="range" min="1" max="14" value="9" step="1" aria-valuetext="turn 9 of 14, 14:02">
+      </div>
+      <div class="label"><span class="at">Viewing turn 9 of 14</span><span class="sep">·</span><span>14:02</span><span class="sep">·</span><span>before Bo's steer and the delete</span><span class="right"><button class="btn sm ghost" type="button"><svg class="ic" aria-hidden="true"><use href="#i-branch"/></svg>Fork from here</button><button class="btn sm primary" type="button"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg>Return to now</button></span></div>
+    </div>
+    <div class="column">
+      <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">goal · turn 1</span></div><div class="text">Add tax lines to the invoice PDF. Use the rates in tax/rates.ts for now and keep the layout change on the pdf-layout branch.</div></div>
+      <div class="msg human"><div class="meta"><span class="who">Cy</span><span class="faint">steer · turn 6</span></div><div class="text">Let's not. Call the Stripe Tax API for the rate; the local tables drift every quarter.</div></div>
+      <div class="notice contention"><p>Stripe Tax API or local tax tables? <span class="muted">Ana and Cy disagree · Dee, as lead, is asked to decide.</span></p></div>
+      <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 9</span></div><div class="text">Holding the rate source until Dee decides; the layout work does not depend on it. Tax lines fit under the subtotal without touching the page template. One rounding test failed because rates.ts rounds per line and the PDF rounded the total; the PDF now rounds the same way and all 32 pass. Next I want to clear legacy_invoices so the renderer never picks up archived rows. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><span>Read <span class="mono">tax/rates.ts</span> · 212 lines</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
+      <div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">Ana approved · 1 of 2 drivers · as it stood at 14:02.</span></p></div>
+      <div class="ahead-row"><span><span class="serif i">5 more turns after this</span> · Bo steered, Dee chose local tables, the delete was granted</span></div>
+    </div>
+    <div class="composer-wrap">
+      <div class="composer past">
+        <div class="input">You are viewing turn 9. Return to now to steer, or fork from here.</div>
+        <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><div class="right"><span class="small faint">Esc returns to now</span></div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ── 3. anatomy ───────────────────────────────────────────────────────────── -->
+<section id="anatomy">
+  <header><h2><span class="n">3</span>Anatomy</h2><p>What the strip is made of, so it can be built once.</p></header>
+  <div>
+    <div class="ex"><div class="lbl"><b>The line</b><span>1 px, the hairline token</span></div><div class="body"><p>Runs the width of the main pane inside the 16 px gutters. It is the only horizontal rule above the column; the top row has none.</p></div></div>
+    <div class="ex"><div class="lbl"><b>The dots</b><span>one per agent turn</span></div><div class="body">
+      <div class="swatch"><i style="width:5px;height:5px;background:var(--fg-3)"></i><span>5 px, tertiary grey: a turn that is at or before the handle.</span></div>
+      <div class="swatch"><i style="width:5px;height:5px;border:1px solid var(--fg-3)"></i><span>Hollow: a turn ahead of the handle, not yet folded in.</span></div>
+      <div class="swatch"><i style="width:7px;height:7px;background:var(--fg)"></i><span>7 px, text colour: a turn with a decision in it (an approval settled, a contention resolved, a handoff). Hollow when ahead.</span></div>
+      <p>Turns are spaced evenly, not by clock time, because a long silence is not a long turn. Past 60 turns the dots thin to a plain line and the handle still snaps to turns.</p>
+    </div></div>
+    <div class="ex"><div class="lbl"><b>The handle</b><span>a native range input</span></div><div class="body"><p>14 px, text colour, a 3 px ring in the page colour so it sits on the line. <span class="mono">&lt;input type="range" min="1" max="14" step="1"&gt;</span> with the track made transparent; the dots are a decoration behind it. Keyboard and screen readers get the input for free, with <span class="mono">aria-valuetext</span> set to "turn 9 of 14, 14:02".</p>
+      <dl class="kv"><dt>Keys</dt><dd><kbd>←</kbd> <kbd>→</kbd> one turn · <kbd>Home</kbd> <kbd>End</kbd> first and now · <kbd>Esc</kbd> return to now</dd><dt>Drag</dt><dd>The column re-folds live while dragging; nothing is fetched, the log is already local.</dd><dt>Scroll</dt><dd>Scrolling the column above its top while on now does not enter the past. Only the strip does.</dd></dl>
+    </div></div>
+    <div class="ex"><div class="lbl"><b>The label</b><span>one line, 13 px</span></div><div class="body"><p>On now: the count, the start time, who was in. In the past: <b class="at" style="color:var(--fg);font-weight:500">Viewing turn 9 of 14</b> · the clock time · a few words on what came next, so nobody is lost. The buttons sit at the right end of the same line: Fork from here as a ghost, Return to now as the primary. The send arrow is gone from the composer while viewing the past, so the screen still has one accent.</p></div></div>
+    <div class="ex"><div class="lbl"><b>What changes below</b><span>the column and the composer</span></div><div class="body"><p>The column is the log folded up to that turn: notices show the state they had then, tool lines stay, later events are not rendered. The last row is a divider naming what lies ahead. The composer stays in place so the layout does not jump, but its text explains the state and the accent leaves it. The top row says "Viewing the past" as a status word with a dot, and the apricot crease drops under the strip.</p></div></div>
+  </div>
+</section>
+
+<!-- ── 4. narrow ────────────────────────────────────────────────────────────── -->
+<section id="narrow">
+  <header><h2><span class="n">4</span>At phone width</h2><p>Mobile is secondary, but the same strip works at 390 px: smaller dots, the label wraps to two lines, the buttons keep their place.</p></header>
+  <div class="frame narrow"><div class="main">
+    <div class="topbar"><span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="status paused">Viewing the past</span></span></div>
+    <div class="scrub past">
+      <div class="track">
+        <span class="line" aria-hidden="true"></span>
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="ahead"></i><i class="ahead"></i><i class="mark ahead"></i><i class="ahead"></i><i class="ahead"></i></span>
+        <label class="sr-only" for="r-narrow">Turn</label>
+        <input id="r-narrow" type="range" min="1" max="14" value="9" step="1" aria-valuetext="turn 9 of 14, 14:02">
+      </div>
+      <div class="label"><span class="at">Viewing turn 9 of 14</span><span class="sep">·</span><span>14:02</span><span class="right"><button class="btn sm ghost" type="button">Fork</button><button class="btn sm primary" type="button">Return to now</button></span></div>
+    </div>
+    <div class="column">
+      <div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Ana's agent</span><span class="faint">turn 9</span></div><div class="text">Tax lines fit under the subtotal without touching the page template. All 32 tests pass. Next I want to clear legacy_invoices; that delete cannot be undone, so I am asking first.</div></div>
+      <div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">Ana approved · 1 of 2 drivers.</span></p></div>
+      <div class="ahead-row"><span class="serif i">5 more turns after this</span></div>
+    </div>
+  </div></div>
+</section>
+
+</div>
+
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+</body>
+</html>
