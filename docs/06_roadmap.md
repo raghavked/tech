@@ -10,9 +10,9 @@ offline demo and an end-to-end test that runs in CI with no network and no model
 
 ## Phase 1: design partners (months 1 to 4)
 
-Goal: three engineering teams using Quorum weekly on real multi-hour agent runs.
+Goal: three engineering teams using Atelier weekly on real multi-hour agent runs.
 
-- **Harness adapters.** Host a Claude Agent SDK run as a Quorum session (the adapter maps
+- **Harness adapters.** Host a Claude Agent SDK run as a Atelier session (the adapter maps
   its hooks to turn, tool and approval events). Then LangGraph and the OpenAI Agents SDK.
   The kernel does not change; the runner grows a `HarnessRunner`.
 - **Identity.** OIDC login, server-issued actor ids, per-event signatures. Per-participant
@@ -20,7 +20,7 @@ Goal: three engineering teams using Quorum weekly on real multi-hour agent runs.
   those who approved it.
 - **Sandboxing.** Per-session container for tools; network off by default.
 - **Slack adapter.** A thread is a session view: presence from the thread, directives from
-  messages, approvals as buttons. This is where non-engineering teams first meet Quorum.
+  messages, approvals as buttons. This is where non-engineering teams first meet Atelier.
 - **Receiver synthesis on handoff.** The incoming driver restates the plan; the restatement
   is journaled before authority moves.
 - **Log compaction and reconnect.** JSONL per branch, periodic snapshots, resume-from-seq

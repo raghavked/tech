@@ -3,7 +3,7 @@
  * of clinical shift-handoff formats (situation, background, what happened, what is open,
  * what is needed). No model call is involved, so two replicas produce the same brief.
  */
-import type { SessionEvent } from "@quorum/protocol";
+import type { SessionEvent } from "@atelier/protocol";
 import { describeRule, ruleFor } from "./approvals.js";
 import type { SessionState } from "./state.js";
 

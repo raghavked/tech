@@ -14,7 +14,7 @@ export default defineConfig({
       command: "node ../../packages/cli/dist/main.js serve --port 7730 --dir ../../store-web-smoke",
       url: "http://127.0.0.1:7730/health",
       reuseExistingServer: false,
-      env: { QUORUM_OFFLINE: "1" },
+      env: { ATELIER_OFFLINE: "1" },
     },
     {
       command: "pnpm exec vite preview --port 4173 --strictPort",

@@ -1,5 +1,5 @@
 /**
- * Quorum session protocol.
+ * Atelier session protocol.
  *
  * Everything in a session is an event in an append-only, hash-chained log. Humans and
  * agents are actors; participants are actors with a role in a session. Directives are how

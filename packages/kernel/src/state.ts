@@ -10,8 +10,8 @@ import type {
   SessionPolicy,
   ToolCall,
   ToolResult,
-} from "@quorum/protocol";
-import { DEFAULT_APPROVAL_POLICY, MAIN_BRANCH, ROLE_RANK } from "@quorum/protocol";
+} from "@atelier/protocol";
+import { DEFAULT_APPROVAL_POLICY, MAIN_BRANCH, ROLE_RANK } from "@atelier/protocol";
 import { type ApprovalRecord, evaluate, ruleFor } from "./approvals.js";
 import {
   arbitrate,

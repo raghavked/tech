@@ -8,8 +8,8 @@ import {
   DEFAULT_APPROVAL_POLICY,
   type ServerMessage,
   type SessionPolicy,
-} from "@quorum/protocol";
-import type { Model, ToolRegistry } from "@quorum/runner";
+} from "@atelier/protocol";
+import type { Model, ToolRegistry } from "@atelier/runner";
 import { type WebSocket, WebSocketServer } from "ws";
 import { type ClientLink, SessionHost } from "./host.js";
 import { listSessions } from "./storage.js";
@@ -23,7 +23,7 @@ export interface ServerOptions {
   log?: (line: string) => void;
 }
 
-export class QuorumServer {
+export class AtelierServer {
   readonly hosts = new Map<string, SessionHost>();
   private http: Server | null = null;
   private wss: WebSocketServer | null = null;

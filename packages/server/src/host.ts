@@ -4,7 +4,7 @@
  * the agent. This is the shape a Durable Object or a single-partition actor would have.
  */
 import { join } from "node:path";
-import { handoffBrief, KernelError, Session } from "@quorum/kernel";
+import { handoffBrief, KernelError, Session } from "@atelier/kernel";
 import type {
   Actor,
   ClientMessage,
@@ -12,9 +12,9 @@ import type {
   ServerMessage,
   SessionEvent,
   SessionPolicy,
-} from "@quorum/protocol";
-import { MAIN_BRANCH, type ROLE_RANK } from "@quorum/protocol";
-import { type Model, Runner, type ToolRegistry } from "@quorum/runner";
+} from "@atelier/protocol";
+import { MAIN_BRANCH, type ROLE_RANK } from "@atelier/protocol";
+import { type Model, Runner, type ToolRegistry } from "@atelier/runner";
 import { FileBlobStore, readLog, sessionDir, writeLog } from "./storage.js";
 
 export interface ClientLink {

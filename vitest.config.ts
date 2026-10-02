@@ -6,10 +6,10 @@ const src = (p: string) => fileURLToPath(new URL(`./packages/${p}/src/index.ts`,
 export default defineConfig({
   resolve: {
     alias: {
-      "@quorum/protocol": src("protocol"),
-      "@quorum/kernel": src("kernel"),
-      "@quorum/runner": src("runner"),
-      "@quorum/server": src("server"),
+      "@atelier/protocol": src("protocol"),
+      "@atelier/kernel": src("kernel"),
+      "@atelier/runner": src("runner"),
+      "@atelier/server": src("server"),
     },
   },
   test: {

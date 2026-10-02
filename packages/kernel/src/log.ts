@@ -6,7 +6,7 @@
  * history a reducer must fold. Every event id commits to its predecessor, so any edit to the
  * past is detectable with `verify()`.
  */
-import { type EventBody, MAIN_BRANCH, type SessionEvent } from "@quorum/protocol";
+import { type EventBody, MAIN_BRANCH, type SessionEvent } from "@atelier/protocol";
 import { hashValue } from "./hash.js";
 
 export interface BranchMeta {

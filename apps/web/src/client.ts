@@ -1,12 +1,12 @@
 /** Websocket client that folds events with the same reducer the server uses. */
-import { fold, type SessionState } from "@quorum/kernel";
+import { fold, type SessionState } from "@atelier/kernel";
 import type {
   Actor,
   ClientMessage,
   PresenceEntry,
   ServerMessage,
   SessionEvent,
-} from "@quorum/protocol";
+} from "@atelier/protocol";
 
 export interface ClientSnapshot {
   state: SessionState | null;
@@ -17,7 +17,7 @@ export interface ClientSnapshot {
   connected: boolean;
 }
 
-export class QuorumClient {
+export class AtelierClient {
   private ws: WebSocket | null = null;
   snapshot: ClientSnapshot = {
     state: null,

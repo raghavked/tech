@@ -1,6 +1,6 @@
 # Kernel design: the deep tech
 
-Quorum's claim is that a multiplayer agent session is a well-defined object with
+Atelier's claim is that a multiplayer agent session is a well-defined object with
 deterministic semantics, not a chat thread with more people in it. This document states
 those semantics. The code is `packages/kernel`; every rule here has a test.
 
@@ -19,7 +19,7 @@ Branches share prefixes. A fork is a pointer to a checkpoint event in the parent
 events; it costs nothing to create and nothing to keep.
 
 Prior art: Temporal and Restate journal activity results and replay deterministically for a
-single input stream; certificate transparency logs give tamper evidence. Quorum applies both
+single input stream; certificate transparency logs give tamper evidence. Atelier applies both
 to a session with many concurrent human inputs. (See `10_sources.md` for references.)
 
 ## 2. Intent arbitration: concurrent humans, one unambiguous intent
@@ -30,7 +30,7 @@ gives one person a read-only link. The multi-user LLM literature finds that fron
 do not keep stable priorities under conflicting principals, so precedence must be a kernel
 policy, decided before the model sees anything.
 
-Quorum represents the team's intent as a lattice-shaped value:
+Atelier represents the team's intent as a lattice-shaped value:
 
 | Component | Type | Merge rule |
 |---|---|---|

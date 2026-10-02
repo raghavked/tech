@@ -1,4 +1,4 @@
-import { ROLE_RANK } from "@quorum/protocol";
+import { ROLE_RANK } from "@atelier/protocol";
 import { describe, expect, it } from "vitest";
 import { type Arbiter, arbitrate, type DirectiveRecord, renderIntent } from "../src/intent.js";
 

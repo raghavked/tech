@@ -1,8 +1,8 @@
 /**
  * Approval gating for risky tool calls. Only humans vote. A deny by any eligible voter denies.
  */
-import type { ApprovalPolicy, ApprovalRule, RiskClass, ToolCall } from "@quorum/protocol";
-import { ROLE_RANK } from "@quorum/protocol";
+import type { ApprovalPolicy, ApprovalRule, RiskClass, ToolCall } from "@atelier/protocol";
+import { ROLE_RANK } from "@atelier/protocol";
 
 export type Vote = "approve" | "deny";
 

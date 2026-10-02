@@ -40,12 +40,12 @@ session; nothing in the kernel changes because the kernel never does I/O.
 
 | Package | Role | Depends on |
 |---|---|---|
-| `@quorum/protocol` | zod schemas for actors, roles, directives, tool calls, events, wire messages | zod |
-| `@quorum/kernel` | pure core: hashing, log, arbitration, approvals, reducer, merge, brief, replay, `Session` command layer | protocol |
-| `@quorum/runner` | the agent loop, tool registry, scripted and Claude models | kernel |
-| `@quorum/server` | websocket front door, session host, disk persistence | runner |
-| `@quorum/cli` | `quorum serve / demo / join / replay / verify / report` | server |
-| `@quorum/web` | React client that folds the same events as the server | kernel, protocol |
+| `@atelier/protocol` | zod schemas for actors, roles, directives, tool calls, events, wire messages | zod |
+| `@atelier/kernel` | pure core: hashing, log, arbitration, approvals, reducer, merge, brief, replay, `Session` command layer | protocol |
+| `@atelier/runner` | the agent loop, tool registry, scripted and Claude models | kernel |
+| `@atelier/server` | websocket front door, session host, disk persistence | runner |
+| `@atelier/cli` | `atelier serve / demo / join / replay / verify / report` | server |
+| `@atelier/web` | React client that folds the same events as the server | kernel, protocol |
 
 The kernel has **no Node dependency**: it ships its own SHA-256 so the browser, the CLI and
 the server hash identically. The web client imports the kernel directly and runs `reduce` on

@@ -1,4 +1,4 @@
-import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@quorum/protocol";
+import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@atelier/protocol";
 import { describe, expect, it } from "vitest";
 import { handoffBrief } from "../src/brief.js";
 import { checkReplay, replayBranch, resumeFrom, stateHash } from "../src/replay.js";

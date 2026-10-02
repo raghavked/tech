@@ -10,9 +10,9 @@
   `Session`, and the reducer independently shadows under-ranked directives on replay.
 - **Approvals bound to content.** An approval id is derived from the hash of the exact tool
   call; votes reference that id. Only humans vote; a deny by any eligible voter wins.
-  Quorum rules require distinct voters at or above a role.
-- **Replayable audit.** `quorum verify` checks every branch's chain and that replay from a
-  snapshot equals full replay. `quorum report` renders the full who-did-what table.
+  Atelier rules require distinct voters at or above a role.
+- **Replayable audit.** `atelier verify` checks every branch's chain and that replay from a
+  snapshot equals full replay. `atelier report` renders the full who-did-what table.
 
 ## What phase 0 does not do
 
@@ -28,7 +28,7 @@
 ## Regulatory fit
 
 - **EU AI Act, Articles 12 and 14.** Article 12 asks for logging built into the system;
-  Article 14 asks for natural persons who can monitor, interpret and override. Quorum's log
+  Article 14 asks for natural persons who can monitor, interpret and override. Atelier's log
   records, per effectful action, who requested it, who approved it, under which policy, and
   what happened: the per-action evidence oversight guidance asks for.
 - **NIST AI RMF agentic profile.** Every agent action tied to an identified, accountable

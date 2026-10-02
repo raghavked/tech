@@ -1,5 +1,5 @@
-import { checkReplay, replayBranch, Session, stateHash } from "@quorum/kernel";
-import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@quorum/protocol";
+import { checkReplay, replayBranch, Session, stateHash } from "@atelier/kernel";
+import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@atelier/protocol";
 import { describe, expect, it } from "vitest";
 import { Runner } from "../src/runner.js";
 import { ScriptedModel } from "../src/scripted.js";

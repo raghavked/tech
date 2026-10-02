@@ -1,9 +1,9 @@
-import { describeRule, ruleFor, type SessionState } from "@quorum/kernel";
-import type { Actor, DirectiveMode, SessionEvent } from "@quorum/protocol";
+import { describeRule, ruleFor, type SessionState } from "@atelier/kernel";
+import type { Actor, DirectiveMode, SessionEvent } from "@atelier/protocol";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { QuorumClient } from "./client.js";
+import { AtelierClient } from "./client.js";
 
-const client = new QuorumClient();
+const client = new AtelierClient();
 
 function useSnapshot() {
   return useSyncExternalStore(
@@ -57,7 +57,7 @@ function Join({ onJoin }: { onJoin: (a: Actor, session: string, token: string) =
         );
       }}
     >
-      <h1>Quorum</h1>
+      <h1>Atelier</h1>
       <p>Drop into a live agent session. The first person in becomes the owner.</p>
       <input placeholder="your name" value={name} onChange={(e) => setName(e.target.value)} />
       <input

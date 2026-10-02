@@ -1,10 +1,10 @@
-# Quorum
+# Atelier
 
 **The multiplayer kernel for long-running agent sessions.**
 
 Agents now run for hours, days and weeks. Work at that scale pulls in many people, but every
 agent product today gives the run to one person: everyone else gets a read-only link, or a
-Slack thread the model has to make sense of. Quorum makes the session itself the shared
+Slack thread the model has to make sense of. Atelier makes the session itself the shared
 object. Anyone on the team drops in, watches, steers, approves, forks, merges and hands off,
 and the kernel decides what happens when two people steer at once.
 
@@ -20,7 +20,7 @@ offline demo that exercises every primitive without a model API. Docs are in
 ## What is new here
 
 - **Session as a hash-chained, branchable log.** Model and tool outputs are recorded, so any
-  session replays deterministically and resumes from a snapshot. `quorum verify` proves it.
+  session replays deterministically and resumes from a snapshot. `atelier verify` proves it.
 - **Intent arbitration.** Concurrent directives from many humans compose into one intent by
   explicit rules (authority, recency, scope). Peers who disagree in the same epoch produce a
   *contention* the agent works around until a driver resolves it. Composition is independent
@@ -51,7 +51,7 @@ Live, in two terminals plus a browser:
 pnpm serve                                   # ws://127.0.0.1:7700/ws, scripted model
 node packages/cli/dist/main.js join demo --as Ana      # first in: owner and driver
 node packages/cli/dist/main.js join demo --as Bo       # contributor
-pnpm --filter @quorum/web dev                # http://localhost:5173, join as a third person
+pnpm --filter @atelier/web dev                # http://localhost:5173, join as a third person
 ```
 
 In Ana's terminal type `Build a doubling helper and deploy it`; in Bo's type
@@ -59,18 +59,18 @@ In Ana's terminal type `Build a doubling helper and deploy it`; in Bo's type
 `/handoff bo` and `/accept <id>` on the other side, and `/brief`.
 
 With `ANTHROPIC_API_KEY` set, `pnpm serve -- --model claude` runs a real model through the
-same kernel. `QUORUM_OFFLINE=1` blocks it.
+same kernel. `ATELIER_OFFLINE=1` blocks it.
 
 ## Commands
 
 | Command | Purpose |
 |---|---|
-| `quorum serve [--port] [--dir] [--model scripted\|claude] [--token]` | host sessions over websockets |
-| `quorum demo [--dir]` | the offline multiplayer scenario; writes log, brief, report, narrative |
-| `quorum join <session> --as <name> [--url] [--token] [--branch]` | terminal participant |
-| `quorum replay <log.json> [--branch]` | fold a log and print the brief |
-| `quorum verify <log.json>` | hash chain and replay determinism for every branch |
-| `quorum report <log.json>` | markdown report of every branch |
+| `atelier serve [--port] [--dir] [--model scripted\|claude] [--token]` | host sessions over websockets |
+| `atelier demo [--dir]` | the offline multiplayer scenario; writes log, brief, report, narrative |
+| `atelier join <session> --as <name> [--url] [--token] [--branch]` | terminal participant |
+| `atelier replay <log.json> [--branch]` | fold a log and print the brief |
+| `atelier verify <log.json>` | hash chain and replay determinism for every branch |
+| `atelier report <log.json>` | markdown report of every branch |
 
 ## Repository map
 
@@ -79,7 +79,7 @@ packages/protocol   zod schemas: actors, roles, directives, tool calls, events, 
 packages/kernel     pure core: hash, log, arbitration, approvals, reducer, merge, brief, replay, Session
 packages/runner     agent loop, tool registry, scripted model, Claude adapter
 packages/server     websocket server, session host, disk persistence
-packages/cli        the quorum binary
+packages/cli        the atelier binary
 apps/web            React client that folds the same events as the server
 scripts/            e2e.sh and the scripted websocket clients it drives
 docs/               thesis, market, landscape, product spec, architecture, kernel design,

@@ -22,8 +22,8 @@
  * authors (see test/intent.test.ts), which is what makes the composed intent safe to compute on
  * every replica without coordination.
  */
-import type { ContentionPolicy, DirectiveInput, DirectiveStatus, Role } from "@quorum/protocol";
-import { GOAL_SCOPE, ROLE_RANK } from "@quorum/protocol";
+import type { ContentionPolicy, DirectiveInput, DirectiveStatus, Role } from "@atelier/protocol";
+import { GOAL_SCOPE, ROLE_RANK } from "@atelier/protocol";
 import { shortId } from "./hash.js";
 
 export interface DirectiveRecord {

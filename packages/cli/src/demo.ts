@@ -4,15 +4,15 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { checkReplay, handoffBrief, type Session } from "@quorum/kernel";
+import { checkReplay, handoffBrief, type Session } from "@atelier/kernel";
 import {
   type Actor,
   DEFAULT_APPROVAL_POLICY,
   MAIN_BRANCH,
   type SessionEvent,
-} from "@quorum/protocol";
-import { defaultTools, Runner, ScriptedModel } from "@quorum/runner";
-import { SessionHost } from "@quorum/server";
+} from "@atelier/protocol";
+import { defaultTools, Runner, ScriptedModel } from "@atelier/runner";
+import { SessionHost } from "@atelier/server";
 import { renderReport } from "./report.js";
 
 const ana: Actor = { id: "ana", kind: "human", name: "Ana" };
@@ -68,7 +68,7 @@ export async function runDemo(
     });
   });
 
-  say("# Quorum demo: one agent, four humans, one session");
+  say("# Atelier demo: one agent, four humans, one session");
   s.join(M, ana, "owner");
   s.join(M, bo, "contributor");
   s.join(M, cy, "contributor");
