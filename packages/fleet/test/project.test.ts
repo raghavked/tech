@@ -279,3 +279,28 @@ describe("fleet contention detection, brief, identity, rendering", () => {
     expect(JSON.stringify(foldProject(p.events()))).toBe(JSON.stringify(p.state()));
   });
 });
+
+describe("crews", () => {
+  it("owner or lead puts a session in a crew; crewmates appear in each other's context and the brief", async () => {
+    const { crews } = await import("../src/state.js");
+    const p = setup();
+    expect(() => p.crew("bo", "s-ana", "Invoice rollout")).toThrow(/owner or a lead/);
+    p.crew("ana", "s-ana", "Invoice rollout");
+    p.crew("dee", "s-bo", " Invoice rollout ");
+    expect(crews(p.state())).toEqual({
+      "Invoice rollout": [
+        expect.objectContaining({ sessionId: "s-ana" }),
+        expect.objectContaining({ sessionId: "s-bo" }),
+      ],
+    });
+    expect(() => p.crew("ana", "s-ana", "Invoice rollout")).toThrow(/already/);
+    const ctx = renderFleetContext(p.state(), "s-ana");
+    expect(ctx).toMatch(/YOUR CREW "Invoice rollout"/);
+    expect(ctx).toMatch(/Bo's agent: Tax lines/);
+    expect(fleetBrief(p.state())).toMatch(/\[crew: Invoice rollout\]/);
+    p.crew("ana", "s-ana", null);
+    expect(p.state().sessions["s-ana"]?.crew).toBeNull();
+    expect(crews(p.state())).toEqual({ "Invoice rollout": [expect.objectContaining({ sessionId: "s-bo" })] });
+    expect(p.ledger.verify()).toEqual({ ok: true });
+  });
+});

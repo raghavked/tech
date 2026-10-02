@@ -38,8 +38,9 @@ export function fleetBrief(p: ProjectState, opts: FleetBriefOptions = {}): strin
       .filter((c) => c.sessionId === s.sessionId)
       .map((c) => resourceKey(c.resource));
     const marker = s.registeredSeq > since ? " (new)" : "";
+    const crew = s.crew ? ` [crew: ${s.crew}]` : "";
     lines.push(
-      `- ${name(s.ownerId)}'s session "${s.title}"${marker}: ${r ? `${r.status}, turn ${r.turn}, goal: ${r.goal ?? "none"}` : "no report yet"}${held.length ? `; holds ${held.join(", ")}` : ""}${r?.pendingApprovals ? `; ${r.pendingApprovals} approval(s) pending` : ""}`,
+      `- ${name(s.ownerId)}'s session "${s.title}"${marker}${crew}: ${r ? `${r.status}, turn ${r.turn}, goal: ${r.goal ?? "none"}` : "no report yet"}${held.length ? `; holds ${held.join(", ")}` : ""}${r?.pendingApprovals ? `; ${r.pendingApprovals} approval(s) pending` : ""}`,
     );
     if (r?.summary) lines.push(`  last: ${r.summary.slice(0, 160)}`);
   }

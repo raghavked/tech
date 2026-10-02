@@ -6,10 +6,21 @@ export function renderFleetContext(p: ProjectState, sessionId: string): string {
   const others = Object.values(p.sessions).filter((s) => s.open && s.sessionId !== sessionId);
   if (!others.length) return "";
   const name = (id: string) => p.members[id]?.name ?? id;
-  const lines = [
+  const mine = p.sessions[sessionId]?.crew ?? null;
+  const mates = mine ? others.filter((s) => s.crew === mine) : [];
+  const lines: string[] = [];
+  if (mates.length) {
+    lines.push(`YOUR CREW "${mine}" (you share this task; coordinate, split the work, report):`);
+    for (const s of mates)
+      lines.push(
+        `  - ${name(s.ownerId)}'s agent: ${s.report?.goal ?? s.title} [${s.report?.status ?? "unknown"}]${s.report?.summary ? `; last: ${s.report.summary.slice(0, 120)}` : ""}`,
+      );
+  }
+  lines.push(
     "OTHER AGENTS IN THIS PROJECT (do not touch what they hold; claim before writing shared paths):",
-  ];
+  );
   for (const s of others) {
+    if (mates.includes(s)) continue;
     const held = activeClaims(p)
       .filter((c) => c.sessionId === s.sessionId)
       .map((c) => resourceKey(c.resource));

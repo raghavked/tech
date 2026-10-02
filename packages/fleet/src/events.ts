@@ -71,6 +71,12 @@ export const ProjectEventBody = z.discriminatedUnion("kind", [
   ),
   base("session.status.reported", SessionStatusReport),
   base("session.closed", z.object({ sessionId: z.string() })),
+  /**
+   * A crew is a named task several sessions work on together ("Invoice PDF rollout"). Sessions
+   * in one crew share their briefs with each other and are shown as a team; `crew: null` makes a
+   * session solo again.
+   */
+  base("session.crewed", z.object({ sessionId: z.string(), crew: z.string().nullable() })),
 
   base(
     "claim.requested",

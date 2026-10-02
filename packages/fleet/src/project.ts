@@ -121,6 +121,16 @@ export class Project {
     });
   }
 
+  /** Put a session in a crew (a named shared task) or take it out. Its owner or a lead may. */
+  crew(by: string, sessionId: string, crew: string | null): ProjectEvent {
+    const ss = this.requireSession(sessionId);
+    if (ss.ownerId !== by && this.rankOf(by) < PROJECT_RANK.lead)
+      throw new KernelError("unauthorized", "only the session's owner or a lead changes its crew");
+    const name = crew?.trim() || null;
+    if (ss.crew === name) throw new KernelError("conflict", "already in that crew");
+    return this.emit(by, { kind: "session.crewed", payload: { sessionId, crew: name } });
+  }
+
   closeSession(sessionId: string): ProjectEvent {
     this.requireSession(sessionId);
     return this.emit(`session:${sessionId}`, { kind: "session.closed", payload: { sessionId } });

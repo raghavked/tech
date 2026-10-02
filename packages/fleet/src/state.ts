@@ -25,6 +25,8 @@ export interface SessionSummary {
   open: boolean;
   registeredSeq: number;
   report: SessionStatusReport | null;
+  /** Named task this session works on with other sessions, or null when solo. */
+  crew: string | null;
 }
 
 export interface ProjectDirective {
@@ -122,8 +124,14 @@ export function reduceProject(prev: ProjectState, e: ProjectEvent): ProjectState
         open: true,
         registeredSeq: e.seq,
         report: null,
+        crew: null,
       };
       break;
+    case "session.crewed": {
+      const ss = s.sessions[e.payload.sessionId];
+      if (ss) ss.crew = e.payload.crew;
+      break;
+    }
     case "session.status.reported": {
       const ss = s.sessions[e.payload.sessionId];
       if (ss) ss.report = e.payload;
@@ -227,6 +235,17 @@ export function foldProject(events: readonly ProjectEvent[], from?: ProjectState
   let s = from ?? initialProjectState();
   for (const e of events) s = reduceProject(s, e);
   return s;
+}
+
+/** Open sessions grouped by crew name; solo sessions are not listed. */
+export function crews(s: ProjectState): Record<string, SessionSummary[]> {
+  const out: Record<string, SessionSummary[]> = {};
+  for (const ss of Object.values(s.sessions)) {
+    if (!ss.open || !ss.crew) continue;
+    (out[ss.crew] ??= []).push(ss);
+  }
+  for (const list of Object.values(out)) list.sort((a, b) => a.registeredSeq - b.registeredSeq);
+  return out;
 }
 
 export function activeClaims(s: ProjectState): ClaimRecord[] {

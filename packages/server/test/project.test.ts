@@ -172,8 +172,18 @@ describe("project host", () => {
     expect(roles(ana.msgs).ana).toBe("owner"); // she started it
     expect(roles(dee.msgs).dee).toBe("owner"); // lead of the team
     const res = await fetch(`http://127.0.0.1:${port}/api/projects/billing/sessions`);
-    const list = (await res.json()) as { sessionId: string; ownerId: string }[];
-    expect(list.map((s) => [s.sessionId, s.ownerId])).toEqual([["s1", "ana"]]);
+    const list = (await res.json()) as {
+      sessionId: string;
+      ownerId: string;
+      crew: string | null;
+      people: { id: string; role: string; online: boolean; driving: boolean }[];
+    }[];
+    expect(list.map((s) => [s.sessionId, s.ownerId, s.crew])).toEqual([["s1", "ana", null]]);
+    // Both engineers are in the session, so the fleet listing shows it as a team of two.
+    expect(list[0]?.people.map((p) => [p.id, p.role, p.online]).sort()).toEqual([
+      ["ana", "owner", true],
+      ["dee", "owner", true],
+    ]);
     const me = (await (await fetch(`http://127.0.0.1:${port}/api/me?user=dee`)).json()) as {
       projects: { projectId: string }[];
     };

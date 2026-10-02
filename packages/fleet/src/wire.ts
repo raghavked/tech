@@ -32,6 +32,11 @@ export const ProjectClientMessage = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("fleet.brief") }),
   z.object({ type: z.literal("project.note"), text: z.string() }),
+  z.object({
+    type: z.literal("project.crew"),
+    sessionId: z.string(),
+    crew: z.string().nullable(),
+  }),
   z.object({ type: z.literal("session.create"), sessionId: z.string(), title: z.string() }),
 ]);
 export type ProjectClientMessage = z.infer<typeof ProjectClientMessage>;

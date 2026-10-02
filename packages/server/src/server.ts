@@ -265,10 +265,21 @@ export class FoldServer {
           const st = p.state();
           return json(
             200,
-            Object.values(st.sessions).map((s) => ({
-              ...s,
-              live: p.hosts.get(s.sessionId)?.session.state().status ?? null,
-            })),
+            Object.values(st.sessions).map((s) => {
+              const h = p.hosts.get(s.sessionId);
+              const live = h?.session.state() ?? null;
+              return {
+                ...s,
+                live: live?.status ?? null,
+                people: (h?.presence() ?? []).map((e) => ({
+                  id: e.actor.id,
+                  name: e.actor.name,
+                  role: e.role,
+                  online: e.online,
+                  driving: live?.driver === e.actor.id,
+                })),
+              };
+            }),
           );
         }
         return json(200, p.state());
@@ -378,6 +389,9 @@ export class FoldServer {
             case "project.note":
               projectHost.project.note(me, msg.text);
               break;
+            case "project.crew":
+              projectHost.project.crew(me, msg.sessionId, msg.crew);
+              break;
             case "session.create":
               projectHost.session(msg.sessionId, { title: msg.title, ownerId: me });
               break;
@@ -409,6 +423,7 @@ function isProjectMessage(m: AnyClientMessage): m is ProjectClientMessage {
     "fleet.resolve",
     "fleet.brief",
     "project.note",
+    "project.crew",
     "session.create",
     "project.subscribe",
     "project.unsubscribe",

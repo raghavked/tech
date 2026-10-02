@@ -18,7 +18,14 @@ export interface Me {
   projects: ProjectRef[];
 }
 
-export type SessionRow = SessionSummary & { live: SessionStatus | null };
+export interface Person {
+  id: string;
+  name: string;
+  role: string;
+  online: boolean;
+  driving: boolean;
+}
+export type SessionRow = SessionSummary & { live: SessionStatus | null; people: Person[] };
 
 export interface MemoryFeed {
   orgId: string;
