@@ -343,7 +343,7 @@ export class FoldServer {
           const sessionOwner = host.session.state().ownerId;
           const derived = ref ? this.orgs.sessionRole(userId, ref, sessionOwner) : null;
           link = { actor: msg.actor, branch: msg.branch, status: "", send };
-          host.joinWithRole(link, derived);
+          host.joinWithRole(link, derived, msg.sinceSeq);
           return;
         }
         if (msg.type === "project.subscribe") {

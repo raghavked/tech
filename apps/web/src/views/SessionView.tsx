@@ -8,6 +8,7 @@ import { copy } from "../copy.js";
 import { actorOf, type Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
 import { rememberRecent } from "../recents.js";
+import { ReconnectLine } from "../reconnect.js";
 import { paths } from "../router.js";
 import { reportPendingApprovals } from "../shell.js";
 import {
@@ -105,7 +106,13 @@ export function SessionView({
       <Shell ctx={ctx} title={shownTitle}>
         <div className="column">
           <ErrorLine errors={snap.errors} />
-          <p className="muted">{snap.connected ? copy.session.joining : copy.session.connecting}</p>
+          <p className="muted">
+            {snap.reconnecting
+              ? copy.session.reconnecting
+              : snap.connected
+                ? copy.session.joining
+                : copy.session.connecting}
+          </p>
         </div>
       </Shell>
     );
@@ -169,6 +176,7 @@ export function SessionView({
           </button>
         </>
       }
+      below={<ReconnectLine reconnecting={snap.reconnecting} />}
       drawer={
         details ? (
           <Drawer

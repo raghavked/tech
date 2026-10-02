@@ -15,6 +15,7 @@ import { wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import type { Identity } from "../identity.js";
 import { ProjectClient } from "../projectClient.js";
+import { ReconnectLine } from "../reconnect.js";
 import { navigate, paths } from "../router.js";
 import {
   doingOf,
@@ -73,7 +74,7 @@ export function Project({
   const lead = myRole === "lead" || myRole === "admin";
 
   return (
-    <Shell ctx={ctx} title={name}>
+    <Shell ctx={ctx} title={name} below={<ReconnectLine reconnecting={snap.reconnecting} />}>
       <div className="column page">
         <h1>{name}</h1>
         <ErrorLine errors={snap.errors} />

@@ -1,4 +1,8 @@
-/** Websocket client for one session. It folds events with the same reducer the server uses. */
+/**
+ * Websocket client for one session. It folds events with the same reducer the server uses.
+ * When the socket drops it re-dials with backoff and rejoins from the last event it holds
+ * (`sinceSeq`), so the server sends only what was missed and the fold stays identical.
+ */
 import type { ProjectClientMessage } from "@fold/fleet";
 import { fold, type SessionState } from "@fold/kernel";
 import type {
@@ -8,6 +12,7 @@ import type {
   ServerMessage,
   SessionEvent,
 } from "@fold/protocol";
+import { Reconnector } from "./reconnect.js";
 
 export interface ClientSnapshot {
   state: SessionState | null;
@@ -16,6 +21,8 @@ export interface ClientSnapshot {
   errors: string[];
   brief: string | null;
   connected: boolean;
+  /** The socket dropped and a re-dial is pending or in flight; `state` is kept meanwhile. */
+  reconnecting: boolean;
 }
 
 export interface JoinOptions {
@@ -37,6 +44,7 @@ const EMPTY: ClientSnapshot = {
   errors: [],
   brief: null,
   connected: false,
+  reconnecting: false,
 };
 
 export class FoldClient {
@@ -44,6 +52,13 @@ export class FoldClient {
   snapshot: ClientSnapshot = EMPTY;
   private listeners = new Set<() => void>();
   private liveListeners = new Set<(e: SessionEvent) => void>();
+  /** Where `connect` pointed us; null once `disconnect` has been called. */
+  private target: { url: string; opts: JoinOptions } | null = null;
+  private readonly reconnector = new Reconnector(() => this.dial());
+  /** The server refused the join for good (bad token): do not keep dialling. */
+  private fatal = false;
+  /** Set once per socket when a trimmed snapshot did not line up and we asked for everything. */
+  private askedFull = false;
 
   subscribe(fn: () => void): () => void {
     this.listeners.add(fn);
@@ -61,29 +76,62 @@ export class FoldClient {
 
   connect(url: string, opts: JoinOptions): void {
     this.disconnect();
+    this.target = { url, opts };
+    this.emit({ ...EMPTY });
+    this.dial();
+  }
+
+  /** The last event we hold, on the branch we hold it for: where a rejoin resumes from. */
+  private resumePoint(): { branch: string; sinceSeq: number } | null {
+    const last = this.snapshot.events[this.snapshot.events.length - 1];
+    return last && this.snapshot.state ? { branch: last.branch, sinceSeq: last.seq } : null;
+  }
+
+  private joinMessage(opts: JoinOptions, resume: { branch: string; sinceSeq: number } | null) {
+    const join: ClientMessage = {
+      type: "join",
+      sessionId: opts.sessionId,
+      actor: opts.actor,
+      branch: resume?.branch ?? opts.branch ?? "main",
+      userId: opts.userId,
+      projectId: opts.projectId,
+      title: opts.title,
+      ...(opts.token ? { token: opts.token } : {}),
+      ...(resume ? { sinceSeq: resume.sinceSeq } : {}),
+    };
+    return join;
+  }
+
+  private dial(): void {
+    const target = this.target;
+    if (!target) return;
+    const { url, opts } = target;
     const ws = new WebSocket(url);
     this.ws = ws;
-    this.emit({ ...EMPTY });
+    this.askedFull = false;
     ws.onopen = () => {
-      this.emit({ connected: true, events: [], state: null });
-      const join: ClientMessage = {
-        type: "join",
-        sessionId: opts.sessionId,
-        actor: opts.actor,
-        branch: opts.branch ?? "main",
-        userId: opts.userId,
-        projectId: opts.projectId,
-        title: opts.title,
-        ...(opts.token ? { token: opts.token } : {}),
-      };
-      ws.send(JSON.stringify(join));
+      if (this.ws !== ws) return;
+      this.emit({ connected: true });
+      ws.send(JSON.stringify(this.joinMessage(opts, this.resumePoint())));
     };
-    ws.onclose = () => this.emit({ connected: false });
+    ws.onclose = () => {
+      if (this.ws !== ws) return;
+      this.ws = null;
+      if (this.fatal || !this.target) {
+        this.emit({ connected: false, reconnecting: false });
+        return;
+      }
+      this.reconnector.schedule();
+      this.emit({ connected: false, reconnecting: true });
+    };
     ws.onmessage = (m) => {
+      if (this.ws !== ws) return;
       const msg = JSON.parse(String(m.data)) as ServerMessage;
       switch (msg.type) {
         case "snapshot":
-          this.emit({ state: fold(msg.events), events: msg.events });
+          this.reconnector.reset();
+          this.emit({ reconnecting: false });
+          this.applySnapshot(msg.events, opts);
           break;
         case "event": {
           const state = this.snapshot.state ? fold([msg.event], this.snapshot.state) : null;
@@ -98,6 +146,7 @@ export class FoldClient {
           this.emit({ brief: msg.markdown });
           break;
         case "error":
+          if (msg.message === "unauthorized") this.fatal = true;
           this.emit({ errors: [...this.snapshot.errors.slice(-4), msg.message] });
           break;
         case "joined":
@@ -106,14 +155,47 @@ export class FoldClient {
     };
   }
 
+  /**
+   * A snapshot is either the whole branch (first seq 0) or, after a rejoin with `sinceSeq`,
+   * the events after the one we hold. A delta folds onto the held state, which gives the same
+   * state as folding the whole history; the missed events reach live listeners too.
+   */
+  private applySnapshot(events: SessionEvent[], opts: JoinOptions): void {
+    const prev = this.snapshot;
+    const last = prev.events[prev.events.length - 1];
+    const first = events[0];
+    const continues =
+      prev.state !== null &&
+      last !== undefined &&
+      (first === undefined ||
+        (first.seq === last.seq + 1 && first.prev === last.id && first.branch === last.branch));
+    if (continues && prev.state) {
+      this.emit({ state: fold(events, prev.state), events: [...prev.events, ...events] });
+      for (const e of events) for (const fn of this.liveListeners) fn(e);
+      return;
+    }
+    if (first && first.seq > 0) {
+      // Trimmed to a point we do not hold (the log changed under us): ask for everything, once.
+      if (!this.askedFull) {
+        this.askedFull = true;
+        this.send(this.joinMessage(opts, null));
+      }
+      return;
+    }
+    this.emit({ state: fold(events), events });
+  }
+
   disconnect(): void {
+    this.target = null;
+    this.fatal = false;
+    this.reconnector.reset();
     const ws = this.ws;
     this.ws = null;
     if (ws) {
       ws.onclose = null;
       ws.close();
     }
-    this.emit({ connected: false });
+    this.emit({ connected: false, reconnecting: false });
   }
 
   send(msg: ClientMessage): void {

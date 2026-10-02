@@ -90,12 +90,15 @@ export function Shell({
   ctx,
   title,
   right,
+  below,
   drawer,
   children,
 }: {
   ctx: ShellContext;
   title: ReactNode;
   right?: ReactNode;
+  /** One quiet line under the top row, e.g. the reconnect notice. */
+  below?: ReactNode;
   drawer?: ReactNode;
   children: ReactNode;
 }) {
@@ -119,6 +122,7 @@ export function Shell({
           <span className="title">{title}</span>
           <div className="right">{right}</div>
         </div>
+        {below}
         <div className="body">
           <div className="scroll">{children}</div>
           {drawer}

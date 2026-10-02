@@ -305,6 +305,13 @@ export const ClientMessage = z.discriminatedUnion("type", [
     /** Project to create the session in when it does not exist yet. */
     projectId: z.string().optional(),
     title: z.string().optional(),
+    /**
+     * Resume: the seq of the last event this client already holds on `branch`. The snapshot
+     * then carries only the events after it; folding them onto the client's state gives the
+     * same state as folding the full history. Omit (or send a seq the branch does not have)
+     * for the full history.
+     */
+    sinceSeq: z.number().int().min(0).optional(),
   }),
   z.object({ type: z.literal("directive"), input: DirectiveInput }),
   z.object({ type: z.literal("withdraw"), directiveId: z.string() }),

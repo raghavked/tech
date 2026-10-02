@@ -86,6 +86,7 @@ export const copy = {
   session: {
     joining: "Joining…",
     connecting: "Connecting…",
+    reconnecting: "Reconnecting…",
     present: (names: string[]) => `Present: ${names.join(", ")}`,
     avatarTitle: (name: string, role: string, driving: boolean) =>
       `${name} · ${role}${driving ? " · driving" : ""}`,

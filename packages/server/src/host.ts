@@ -177,8 +177,11 @@ export class SessionHost {
     this.joinWithRole(link, null);
   }
 
-  /** Attach a client with a role derived from identity; null falls back to first-in-owns. */
-  joinWithRole(link: ClientLink, derived: Role | null): void {
+  /**
+   * Attach a client with a role derived from identity; null falls back to first-in-owns.
+   * `sinceSeq` (reconnect-resume) trims the snapshot to the events after that seq.
+   */
+  joinWithRole(link: ClientLink, derived: Role | null, sinceSeq?: number): void {
     const branch = this.session.log.hasBranch(link.branch) ? link.branch : MAIN_BRANCH;
     link.branch = branch;
     const st = this.session.state(branch);
@@ -190,8 +193,21 @@ export class SessionHost {
     this.session.join(branch, link.actor, role);
     this.clients.add(link);
     link.send({ type: "joined", sessionId: this.sessionId, branch });
-    link.send({ type: "snapshot", branch, events: this.session.events(branch) });
+    link.send({ type: "snapshot", branch, events: this.eventsSince(branch, sinceSeq) });
     this.broadcastPresence();
+  }
+
+  /**
+   * The events of a branch after `sinceSeq`, or the whole branch when `sinceSeq` is absent or
+   * not a seq the branch holds (the client is ahead of a restored log, or on another branch).
+   * Events on a branch have contiguous seqs from 0, so the slice is by index.
+   */
+  eventsSince(branch: string, sinceSeq?: number): SessionEvent[] {
+    const all = this.session.events(branch);
+    if (sinceSeq === undefined) return all;
+    const at = all[sinceSeq];
+    if (!at || at.seq !== sinceSeq) return all;
+    return all.slice(sinceSeq + 1);
   }
 
   leave(link: ClientLink): void {
