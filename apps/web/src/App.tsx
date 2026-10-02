@@ -4,6 +4,7 @@ import { copy } from "./copy.js";
 import { ErrorBoundary, Recover } from "./ErrorBoundary.js";
 import { clearIdentity, type Identity, useIdentity } from "./identity.js";
 import { notifyPermission, requestNotifications } from "./notify.js";
+import { CommandPalette, hotkeyLabel, openPalette, publishSidebarSessions } from "./palette.js";
 import { useRecents } from "./recents.js";
 import { paths, type Route, useRoute } from "./router.js";
 import { type Theme, useTheme } from "./theme.js";
@@ -109,6 +110,8 @@ export function Shell({
   return (
     <div className="shell">
       <Sidebar ctx={ctx} open={navOpen} onClose={() => setNavOpen(false)} />
+      {/* hook point (command-palette): ⌘K / Ctrl+K opens the palette on every page */}
+      <CommandPalette ctx={ctx} />
       <div className="main">
         <div className="topbar">
           <button
@@ -197,6 +200,9 @@ function Sidebar({
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
+          <button type="button" className="kbd" title="Commands" onClick={openPalette}>
+            {hotkeyLabel()}
+          </button>
         </label>
         <div className="lists">
           {identity && teams.length > 0 && (
@@ -318,7 +324,10 @@ function useProjectSessions(ids: string[], route: Route): Record<string, Session
             .catch(() => [id, []] as const),
         ),
       ).then((pairs) => {
-        if (alive) setOut(Object.fromEntries(pairs));
+        if (!alive) return;
+        const rows = Object.fromEntries(pairs);
+        setOut(rows);
+        publishSidebarSessions(rows); // hook point (command-palette)
       });
     load();
     // A session registers a moment after its page opens; look again shortly, then now and then.

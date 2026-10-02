@@ -8,6 +8,7 @@ import { copy } from "../copy.js";
 import { actorOf, type Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
 import { describeQueued, type QueuedMessage } from "../offlineQueue.js";
+import { usePaletteActions } from "../palette.js";
 import { rememberRecent } from "../recents.js";
 import { ReconnectLine } from "../reconnect.js";
 import { paths } from "../router.js";
@@ -27,6 +28,7 @@ import {
   toast,
   useConnectionToasts,
 } from "../ui.js";
+import { sessionCommands } from "./sessionCommands.js";
 
 export function SessionView({
   projectId,
@@ -102,8 +104,17 @@ export function SessionView({
   }, [projectId, sessionId, shownTitle]);
   const [panel, setPanel] = useState<"none" | "details" | "team">("none");
   const details = panel === "details";
+  const setDetails = useCallback((v: boolean) => setPanel(v ? "details" : "none"), []);
   const rows = useFetch(() => api.sessions(projectId), `${projectId}:${s?.seq ?? -1}`);
   const mine = rows.data?.find((r) => r.sessionId === sessionId) ?? null;
+  // hook point (command-palette): this page's actions, refreshed as the session changes
+  usePaletteActions(
+    "session",
+    useMemo(
+      () => sessionCommands({ s, me: actor, client, details, setDetails }),
+      [s, actor, client, details, setDetails],
+    ),
+  );
 
   if (!s)
     return (
