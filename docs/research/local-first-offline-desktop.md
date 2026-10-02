@@ -1,0 +1,54 @@
+# Local-first behaviour for the Fold desktop app
+
+Topic: local-first-offline-desktop. Date: 2026-10-02. Several vendor domains (replicache, electric-sql, inkandswitch, figma, jsdelivr) are blocked by the egress proxy; those entries are marked UNVERIFIED and rest on search snippets.
+
+## Why it matters for Fold
+
+Fold's desktop shell is the primary surface, and engineers use it on trains, in meeting rooms with bad wifi, and across laptop sleep. But Fold is not a document the user owns: the agent runs on the server runner, the log is server-appended (`seq`, Lamport `ts`, `prev` hash), arbitration depends on the *epoch* recorded at submission, and approvals are bound to the content hash of the exact call with a quorum of distinct humans. A client that is offline cannot allocate a `seq`, cannot know the epoch, and cannot see what the agent did meanwhile. So "local-first" for Fold cannot mean CRDT-merging the intent lattice; it means a durable outbox of *intents the server may later admit*, optimistic rendering that is visibly provisional, and a precise policy for what is safe to queue and what must wait. Today `apps/web/src/client.ts` drops the socket on close, keeps nothing, and resyncs from a full `snapshot`; the composer keeps working as if online. That is the gap.
+
+## Prior art
+
+1. **Replicache, "How it works"** (https://doc.replicache.dev/concepts/how-it-works, accessed 2026-10-02, UNVERIFIED: domain blocked, snippets only). Mutators run once on the client "optimistically" and again on the server "authoritatively"; on pull, unconfirmed mutations are replayed on top of the new server state "much like a git rebase", and the speculative result is replaced completely by the authoritative one.
+2. **ElectricSQL, writes guide** (https://electric-sql.com/docs/guides/writes, accessed 2026-10-02, UNVERIFIED: domain blocked). The write contract: optimistic mutation locally, API writes and returns a `txid`, client awaits that `txid` on the sync stream before dropping optimistic state; if the backend throws, the optimistic change is rolled back automatically, so there is never a phantom row and never flicker.
+3. **Linear sync engine, reverse-engineered** (https://github.com/wzhudev/reverse-linear-sync-engine, accessed 2026-10-02, verified). Pending transactions persist in an IndexedDB `__transactions` table and are resent after restart; a global `lastSyncId` gives a *total* order ("whereas CRDTs typically require only a partial order"); clients detect missed deltas by comparing `lastSyncId`; rejected mutations trigger rollback; and the author documents an idempotency hole: if the window closes after send but before the response, replay yields errors like "You can't delete a model that doesn't exist."
+4. **Figma, "How Figma's multiplayer technology works"** (https://www.figma.com/blog/how-figmas-multiplayer-technology-works/, accessed 2026-10-02, UNVERIFIED: domain blocked). Server-authoritative, last-writer-wins per property rather than full CRDT or OT, chosen for clarity; a playground simulating three clients and a server was used to test offline and bandwidth-limited scenarios.
+5. **Ink & Switch, "Local-first software"** (https://www.inkandswitch.com/local-first/, accessed 2026-10-02, UNVERIFIED: domain blocked; summary at https://blog.acolyer.org/2019/11/20/local-first-software/). Seven ideals including "no spinners" and offline work; CRDTs as foundation for user-owned documents, with open UI questions around conflicts.
+6. **Automerge sync protocol** (https://automerge.org/automerge/api-docs/js and the CRAN vignette https://cran.r-project.org/web/packages/automerge/vignettes/sync-protocol.html, accessed 2026-10-02). Peers exchange only missing changes; "heads" can be multiple because concurrent changes are allowed. Useful for the workspace file layer, not for intent.
+7. **Idempotency-Key header** (https://http.dev/idempotency-key, accessed 2026-10-02). A client-chosen key lets the server treat a retried request as a repeat and replay the stored response.
+
+## What to borrow
+
+- **Speculative then authoritative, with replacement (Replicache).** Fold already has a pure `fold(events)`. A queued directive can be folded locally as a *provisional* event to render instantly; when the server's real event arrives it replaces the provisional one wholesale. No merge logic in the client.
+- **The txid handshake (Electric).** Every queued message carries a client reference; the server echoes it inside the event it appends; the client drops the provisional entry only when it sees the matching reference on the stream. This is also the fix for Linear's documented idempotency hole: the reference doubles as an idempotency key and the server dedupes.
+- **Durable outbox and total order (Linear).** Persist the outbox (IndexedDB on web, SQLite via Tauri on desktop), resend in order on reconnect, and use `seq` exactly as Linear uses `lastSyncId`: reconnect with `afterSeq` plus the head hash; the server sends the tail or a full snapshot on mismatch. Fold's hash chain makes this stronger than Linear's: the client verifies the prefix.
+- **Server authority and a simulator (Figma).** Keep arbitration server-side; do not CRDT the intent lattice, because a CRDT merge would silently resolve what Fold deliberately surfaces as a contention. Extend the existing 300-trial property test with partition scenarios.
+- **Local reads everywhere (Ink & Switch).** The whole branch log is already on the client; replay, the brief (`brief.ts` is pure), and history browsing work offline with no spinner.
+
+## What is unsolved
+
+- **Stale epochs.** Arbitration treats two directives as concurrent when they share an epoch. A steer composed offline at epoch 7 and delivered at epoch 12 is neither "concurrent" nor a clean "redirect": the agent may have already done what it asks, or moved past it. No sync engine above has an analogue because none has an autonomous actor advancing state while you are away.
+- **Votes under changed context.** An `approve` queued offline is only meaningful if the call hash is still pending; the hash binding protects against approving a different call, but not against a quorum completing minutes later from a vote cast with stale knowledge. `deny` is always safe (any eligible deny denies).
+- **Identity-allocating actions.** Fork, merge, checkpoint, handoff, role change and contention resolution reference or create server-side identities relative to the current head; there is no sound optimistic rendering for them.
+- **Collapsing.** Linear collapses queued transactions to their net effect. Fold's rule "same author: latest supersedes" makes collapsing *steers on the same scope* safe, but `pause`/`resume` pairs and withdrawals must be kept in sequence.
+
+## Concrete recommendations for Fold
+
+1. **Client reference on the wire and in the log.** In `packages/protocol/src/index.ts`, add `clientRef: { clientId, clientSeq, basedOnSeq, basedOnHead }` to `directive`, `withdraw`, `vote` and `note` messages, and echo `clientRef` on the corresponding `EventBody` variants. In `packages/server/src/host.ts`, keep a per-session `clientId -> lastClientSeq` map derived from the log and drop duplicates, so a resend after a crash is a no-op (closes the Linear hole).
+2. **Durable outbox in the client.** Add `apps/web/src/outbox.ts` with states `queued | sent | acked | rejected`, persisted to IndexedDB; in `apps/desktop/src-tauri` add `tauri-plugin-sql` (SQLite) and let the outbox pick the Tauri store when `__TAURI__` is present. `client.ts` resends in order on `open`, and `ClientSnapshot` gains `pending` and a `state` that is `fold(serverEvents)` plus a provisional overlay (events flagged `provisional`, never hashed into the chain).
+3. **Offline policy matrix in the kernel.** New `packages/kernel/src/offline.ts` exporting `canQueueOffline(message, state)`: allowed are `steer`, `constrain`, `pause`, `note`, `withdraw` of one's own directive, `vote: deny` on anything, and `vote: approve` for risk classes `read | write | exec`. Must wait: `resume`, `cancel`, `resolve`, `handoff.*`, `role`, `checkpoint`, `fork`, `merge`, `switch`, and `vote: approve` for `external | irreversible`. The composer uses this to stay enabled for steer/constrain/note and to show one quiet notice for the rest.
+4. **Stale-arrival rule.** In `packages/kernel/src/intent.ts`, derive `submittedEpoch` from `basedOnSeq`. If the arrival epoch is greater and the mode is `steer`, record the directive with status `stale` (new `DirectiveStatus` value) instead of applying it, and let the author confirm or withdraw from the quiet notice; under `latest-wins` apply it directly. `constrain` applies regardless (grow-only set), `pause` applies regardless (it is safe to be too cautious).
+5. **Votes carry `observedHead`; approvals expire.** In `packages/kernel/src/approvals.ts`, reject an `approve` whose `observedHead` predates the approval's creation, and add `expiresAfterTurns` to `SessionPolicy` so a quorum cannot complete on a call the agent abandoned. Irreversible approvals are online-only by recommendation 3.
+6. **Reconnect by `seq` and head.** Implement the phase-1 `join { afterSeq, head }` path in `packages/server/src/host.ts` and `packages/kernel/src/log.ts`: server checks that `head` matches its event at `afterSeq`, streams the tail, else sends `snapshot`; the client verifies the chain with `packages/kernel/src/hash.ts` before accepting.
+7. **Quiet rendering.** In `apps/web/src/views/SessionView.tsx` and `ui.tsx`, provisional rows render in the same bubble at reduced opacity with a small "queued" affix in `--fg-muted`; one line under the composer reads "Offline. 3 queued, sent on reconnect." in the accent colour from `design/tokens.css`; a rejected or stale item becomes a quiet notice, not a modal.
+8. **Partition tests.** Extend the arbitration property test in `packages/kernel` with scenarios where k clients queue directives offline and reconnect in random order; assert the composed intent equals the online submission modulo the stale rule, and that duplicate `clientRef`s never produce two events. This is Figma's playground, as a test.
+
+## Sources
+
+- https://doc.replicache.dev/concepts/how-it-works (UNVERIFIED, blocked)
+- https://electric-sql.com/docs/guides/writes (UNVERIFIED, blocked)
+- https://github.com/wzhudev/reverse-linear-sync-engine (verified)
+- https://www.figma.com/blog/how-figmas-multiplayer-technology-works/ (UNVERIFIED, blocked)
+- https://www.inkandswitch.com/local-first/ and https://blog.acolyer.org/2019/11/20/local-first-software/ (UNVERIFIED, blocked)
+- https://automerge.org/automerge/api-docs/js and https://cran.r-project.org/web/packages/automerge/vignettes/sync-protocol.html
+- https://http.dev/idempotency-key
+- Repo: `docs/05_kernel_design.md`, `docs/04_technical_architecture.md`, `packages/protocol/src/index.ts`, `apps/web/src/client.ts`, `packages/kernel/src/{intent,approvals}.ts`
