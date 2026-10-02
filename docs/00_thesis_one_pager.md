@@ -13,15 +13,20 @@ sells that kernel to every surface and every vertical that needs it.
 
 ## What just changed
 
-- **Runs got long.** Cloud sessions that outlive a laptop, tasks that span a working day,
-  and autonomous runs that teams check on overnight are now ordinary across Claude Code,
-  Codex, Devin and Cursor. Task-horizon measurements have doubled roughly every seven months
-  for years (METR; re-verify the 2026 figure before citing).
-- **The demand is written down.** YC's Fall 2026 request for startups asks for "a
-  production-ready multiplayer AI workspace that lets a whole team collaborate with AI
-  agents in real time, the way Figma turned design into a shared, live experience." a16z's
-  Big Ideas 2026 says "the collaboration layer becomes the moat." An open Anthropic issue
-  (#60082, May 2026) asks for real-time multi-user Claude Code sessions.
+- **Runs got long.** METR's May 2026 measurement puts the best model's 50%-success task
+  horizon at "likely at least 16 hours", with the recent doubling time near 3.5 months
+  (figures from secondary summaries; verify on metr.org). Anthropic's 2026 agentic coding
+  report describes horizons "expanding from minutes to days or weeks, with agents pausing
+  only for strategic human checkpoints"; OpenAI describes a Codex run of about 25 hours
+  uninterrupted (unverified); Devin is sold as overnight, multi-day work.
+- **The demand is written down.** The request quoted at the top of this repository is Y
+  Combinator's Fall 2026 "Multiplayer AI" request for startups (attributed to partner Aaron
+  Epstein). a16z's Big Ideas 2026 says "the collaboration layer becomes the moat." Open
+  Anthropic issues (#60082, #48828) ask for shared Claude Code sessions and name "context
+  loss when handing off work."
+- **Supervision is the norm.** Stack Overflow's May 2026 pulse survey: daily agent use at
+  work rose from 14% to 37% in a year, 60% of developers block agents from unapproved
+  changes, and the survey's own title is "Agents on a leash."
 - **Vendors are improvising.** Cursor's Team Followups run a teammate's instruction under
   the session creator's tokens. Claude Code share links do not update live. Devin serialises
   everyone's messages into one queue. Slack Code puts a team around an agent in a channel

@@ -1,7 +1,8 @@
 # Market and problem
 
-*Founder notes, 2 October 2026. Figures marked (verify) are from memory or secondary
-sources and must be checked before external use.*
+*Founder notes, 2 October 2026. Most figures come from secondary sources because primary
+sites were unreachable from the research environment; each is cited in `10_sources.md` and
+marked (verify) where the primary page was not read.*
 
 ## The problem, concretely
 
@@ -26,9 +27,12 @@ Four failures recur:
 
 ## Why it is getting worse
 
-- **Runs are longer.** Cloud sessions and autonomous modes are standard in Claude Code,
-  Codex, Devin and Cursor. The task length AI systems complete with 50% reliability has
-  doubled roughly every seven months since 2019 (METR, 2025; verify the latest point).
+- **Runs are longer.** METR's time-horizon series: the best model as of May 2026 completes
+  tasks of "likely at least 16 hours" at 50% reliability and about 3 hours at 80%; the
+  long-run doubling time is about 7 months and the recent one about 3.5 months (verify on
+  metr.org). Anthropic's 2026 agentic coding report describes horizons of days or weeks with
+  strategic human checkpoints; OpenAI reports a roughly 25-hour uninterrupted Codex run
+  (verify); Devin is marketed as overnight, multi-day work.
 - **More harnesses per team.** Teams use two or three agent products at once; Mosaic (YC S26)
   exists because Claude Code, Codex and Cursor sessions needed one shared place.
 - **Regulation is per action.** EU AI Act Article 14 asks for humans who can monitor,
@@ -46,18 +50,26 @@ Four failures recur:
 - **Deal desks, support escalation, legal matters, analyst teams, campaign teams.** Several
   people already crowd one task; the agent is becoming the shared worker in the room.
 
-## Market sizing inputs (verify each)
+## Market sizing inputs
 
-- Developers using AI coding tools: the large majority of professional developers in 2026
-  surveys; agents in daily use by a substantial minority and growing.
-- Spend: the coding-agent category alone supports multiple vendors at multi-billion
-  valuations in 2026 (Cognition at $48B in September, Replit at $9B in March, Factory at
-  $4B in July; verify).
-- Comparables for "multiplayer" products: Figma's collaboration moat; Liveblocks and
-  PartyKit pricing per connection-minute; Slack and Linear as the team surfaces agents are
-  being pulled into.
-- Infrastructure comparables: Temporal $12.55B (September 2026); Convex $57M Series B
-  (August 2026).
+| Input | Figure | Source status |
+|---|---|---|
+| Developers using agents (any frequency) | 31% to 59% year over year (Stack Overflow pulse, May 2026) | snippet; verify |
+| Developers using agents daily at work | 14% to 37% | snippet; verify |
+| Developers who block unapproved agent changes | 60% | snippet; verify |
+| Agentic capability spend embedded in enterprise software, 2026 | about $202B (Gartner, Jan 2026) | secondary; verify |
+| Standalone agentic AI software, 2026 | $7B to $8.5B (Gartner) | secondary; verify |
+| Enterprise apps embedding agents by end-2026 | 40%, from under 5% in 2025 (Gartner) | secondary; verify |
+| Cognition (Devin) | $48B valuation, Sept 2026; ARR about $900M, Aug 2026 | secondary |
+| Cursor (Anysphere) | $29.3B Series D, Jan 2026; ARR about $4B, June 2026; reported $60B acquisition by SpaceX, June 2026 | secondary; acquisition unverified |
+| Replit | $9B, March 2026; $525M run-rate, April 2026 | secondary |
+| Factory | $1.5B, April 2026; reported $5B, Sept 2026 | TechCrunch; later figure unverified |
+| Temporal | $12.55B Series E, Sept 2026; ARR over $250M | secondary |
+| Figma | FY2025 revenue $1.06B (+41%); Q2 2026 $370M (+48%) | secondary |
+
+The Gartner gap between embedded and standalone agent spend ($202B versus $8B) says the
+definition decides the TAM; Quorum's revenue attaches to session-hours and approvers, which
+sits inside whichever definition a buyer uses.
 
 Bottom-up for the first product: 10,000 engineering teams running long agent sessions
 weekly by 2027, 200 session-hours a month each, at low thousands of dollars per team per

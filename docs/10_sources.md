@@ -70,6 +70,34 @@ snippets from this environment; those are marked (snippet). Re-verify before ext
 - Starmer et al., NEJM 2014 (via PSNet): https://psnet.ahrq.gov/resources/resource/28485
 - SBAR: https://www.ncbi.nlm.nih.gov/books/NBK613742/
 
-## Market sizing and long-running agents
+## The request for startups
 
-See `01_market_and_problem.md`; sources for those figures are listed there.
+- Y Combinator, Requests for Startups, Fall 2026, "Multiplayer AI" (page blocked from the research environment; verify verbatim text and date): https://www.ycombinator.com/rfs
+- Mirror of the item (snippet): https://modelence.com/yc-rfs-fall-2026/multiplayer-ai
+- Coverage of the 13-item list: https://www.explainx.ai/blog/yc-requests-for-startups-fall-2026 and https://foundedceo.substack.com/p/y-combinator-just-revealed-13-startup
+
+## Long-running agents
+
+- METR time horizons, summary (primary blocked): https://en.wikipedia.org/wiki/METR; original paper https://arxiv.org/html/2503.14499v3
+- Anthropic, Effective harnesses for long-running agents: https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents
+- Anthropic, 2026 Agentic Coding Trends Report (PDF): https://resources.anthropic.com/hubfs/2026%20Agentic%20Coding%20Trends%20Report.pdf
+- OpenAI, Codex long-running work (blocked; snippet): https://openai.com/index/codex-maxxing-long-running-work/ and https://developers.openai.com/blog/run-long-horizon-tasks-with-codex
+- Devin reviews describing overnight multi-day runs (secondary): https://aiagentrank.io/blog/devin-review-2026
+
+## Market sizing
+
+- Stack Overflow, "Agents on a leash" pulse survey, 2026-05-27 (blocked; snippet): https://stackoverflow.blog/2026/05/27/agents-on-a-leash-agentic-ai-remains-mostly-monitored-at-work
+- Gartner agentic spend, January 2026, via https://softwarestrategiesblog.com/2026/02/26/ and https://dev.to/docdavkitty/ai-agent-market-spending-2026-the-2065-billion-inflection-point-3ae0
+- IDC AI spend via https://paul-okhrem.com/enterprise-ai-agents-statistics-2026/
+- Cognition funding and ARR: https://www.channelinsider.com/ai/news-cognition-devin-2b-funding-48b-valuation/ and https://cryptobriefing.com/cognition-900m-arr-800m-cash-burn/
+- Cursor / Anysphere: https://en.wikipedia.org/wiki/Cursor_(company) and https://techstackipo.com/ipo/cursor
+- Replit: https://sacra.com/research/replit
+- Factory: https://techcrunch.com/2026/04/16/factory-hits-1-5b-valuation-to-build-ai-coding-for-enterprises/ and https://sacra.com/c/factory/
+- Temporal: https://theoutpost.ai/news-story/temporal-secures-550-m-funding-round-valuation-doubles-to-12-6-b-amid-ai-agent-surge-30812/
+- Figma: https://saastr.com/figma-grows-46-and-trades-at-6x-everyone-else-growing-30-trades-at-15-36x
+
+## Pain points
+
+- anthropics/claude-code #60082, real-time multi-user sessions (fetched): https://github.com/anthropics/claude-code/issues/60082
+- anthropics/claude-code #48828, group chat with a coworker, "context loss when handing off work": https://github.com/anthropics/claude-code/issues/48828
+- Essays on supervising long runs: https://vibingwithai.substack.com/p/long-running-coding-agents-raise and https://radar.firstaimovers.com/coding-agent-stack-changed-2026
