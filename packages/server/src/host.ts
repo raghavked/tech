@@ -9,12 +9,13 @@ import type {
   Actor,
   ClientMessage,
   PresenceEntry,
+  Role,
   ServerMessage,
   SessionEvent,
   SessionPolicy,
 } from "@atelier/protocol";
 import { MAIN_BRANCH, type ROLE_RANK } from "@atelier/protocol";
-import { type Model, Runner, type ToolRegistry } from "@atelier/runner";
+import { type Model, Runner, type ToolRegistry, type WorkspaceGuard } from "@atelier/runner";
 import { FileBlobStore, readLog, sessionDir, writeLog } from "./storage.js";
 
 export interface ClientLink {
@@ -30,8 +31,12 @@ export interface HostOptions {
   model: Model;
   tools: ToolRegistry;
   agent?: Actor;
-  create?: { title: string; policy: SessionPolicy };
+  create?: { title: string; policy: SessionPolicy; projectId?: string; ownerId?: string | null };
   log?: (line: string) => void;
+  /** Fleet hook supplied by a ProjectHost. */
+  guard?: WorkspaceGuard | undefined;
+  /** Role to give a joining human, by actor id; falls back to first-in-owns. */
+  roleFor?: ((actorId: string) => Role | null) | undefined;
 }
 
 const AGENT: Actor = { id: "agent", kind: "agent", name: "Agent" };
@@ -56,6 +61,8 @@ export class SessionHost {
     } else if (opts.create) {
       this.session = Session.create(opts.sessionId, opts.create.title, opts.create.policy, {
         store,
+        projectId: opts.create.projectId ?? "default",
+        ownerId: opts.create.ownerId ?? null,
       });
     } else {
       throw new KernelError("not_found", `no session ${opts.sessionId}`);
@@ -105,10 +112,18 @@ export class SessionHost {
     this.flush();
   }
 
+  /** Drive the agent on a branch until it has nothing to do (used by the project host and tests). */
+  drive(branch: string = MAIN_BRANCH): Promise<void> {
+    return this.runner(branch).drive();
+  }
+
   private runner(branch: string): Runner {
     let r = this.runners.get(branch);
     if (!r) {
-      const runnerOpts = this.opts.log ? { log: this.opts.log } : {};
+      const runnerOpts = {
+        ...(this.opts.log ? { log: this.opts.log } : {}),
+        guard: this.opts.guard,
+      };
       r = new Runner(
         this.session,
         branch,
@@ -150,12 +165,19 @@ export class SessionHost {
 
   /** Attach a client. The first human to join a fresh session becomes its owner. */
   join(link: ClientLink): void {
+    this.joinWithRole(link, null);
+  }
+
+  /** Attach a client with a role derived from identity; null falls back to first-in-owns. */
+  joinWithRole(link: ClientLink, derived: Role | null): void {
     const branch = this.session.log.hasBranch(link.branch) ? link.branch : MAIN_BRANCH;
     link.branch = branch;
     const st = this.session.state(branch);
     const hasOwner = Object.values(st.participants).some((p) => p.role === "owner");
     const existing = st.participants[link.actor.id];
-    const role = existing ? existing.role : hasOwner ? "contributor" : "owner";
+    const fromOpts = this.opts.roleFor?.(link.actor.id) ?? null;
+    const role =
+      derived ?? fromOpts ?? (existing ? existing.role : hasOwner ? "contributor" : "owner");
     this.session.join(branch, link.actor, role);
     this.clients.add(link);
     link.send({ type: "joined", sessionId: this.sessionId, branch });

@@ -12,7 +12,7 @@ import {
   type SessionEvent,
 } from "@atelier/protocol";
 import { defaultTools, Runner, ScriptedModel } from "@atelier/runner";
-import { SessionHost } from "@atelier/server";
+import { ProjectHost, SessionHost } from "@atelier/server";
 import { renderReport } from "./report.js";
 
 const ana: Actor = { id: "ana", kind: "human", name: "Ana" };
@@ -151,6 +151,54 @@ export async function runDemo(
   const brief = handoffBrief(s.state(), { forActor: "bo", events: s.events(M) });
   say(`  driver=${s.state().driver}; brief is ${brief.split("\n").length} lines`);
 
+  say("\n## Fleet: two engineers' agents in one project");
+  const fleet = new ProjectHost({
+    root,
+    projectId: "billing",
+    orgId: "northwind",
+    teamId: "payments",
+    name: "Billing page",
+    model: new ScriptedModel(),
+    tools: defaultTools(),
+    sessionPolicy: {
+      approvals: {
+        read: "none",
+        write: "none",
+        exec: "none",
+        external: "none",
+        irreversible: "none",
+      },
+      contention: "block",
+      maxTurns: 40,
+    },
+  });
+  fleet.project.join("dee", "Dee", "lead");
+  const sa = fleet.session("fleet-ana", { title: "Invoice PDF", ownerId: "ana" });
+  const sb = fleet.session("fleet-bo", { title: "Tax lines", ownerId: "bo" });
+  sa.session.join(M, ana, "owner");
+  sb.session.join(M, bo, "owner");
+  sa.session.directive(M, "ana", { text: "Build a doubling helper" });
+  await sa.drive(M);
+  say(
+    `  Ana's agent wrote ${Object.keys(sa.session.state().workspace).length} files and auto-claimed them.`,
+  );
+  sb.session.directive(M, "bo", { text: "Build a doubling helper" });
+  await sb.drive(M);
+  const blocked = sb.session.state().blockedWrites;
+  say(
+    `  Bo's agent tried the same files: ${blocked.length} writes refused (first: ${blocked[0]?.path}, held by ${blocked[0]?.holderSessionId}).`,
+  );
+  fleet.project.directive("dee", { text: "schema freeze until Thursday", mode: "constrain" });
+  say(
+    `  Dee (lead) issues a project constraint; both sessions now carry it: ${[sa, sb].every((h) => h.session.state().intent.constraints.some((c) => c.origin === "project"))}`,
+  );
+  const fb = fleet.brief();
+  say(
+    `  Fleet brief is ${fb.split("\n").length} lines; ledger chain ok: ${fleet.project.ledger.verify().ok}`,
+  );
+  fleet.close();
+  writeFileSync(join(root, "projects", "billing", "fleet-brief.md"), fb);
+
   say("\n## Verification");
   const check = checkReplay(s.log, M);
   say(
@@ -164,7 +212,9 @@ export async function runDemo(
   writeFileSync(join(dir, "brief.md"), brief);
   writeFileSync(join(dir, "report.md"), renderReport(s));
   writeFileSync(join(dir, "narrative.md"), `${narrative.join("\n")}\n`);
-  say(`\nWrote ${dir}/{log.json,brief.md,report.md,narrative.md}`);
+  say(
+    `\nWrote ${dir}/{log.json,brief.md,report.md,narrative.md} and ${root}/projects/billing/{ledger.json,fleet-brief.md}`,
+  );
   return { dir, narrative, ok: check.ok };
 }
 

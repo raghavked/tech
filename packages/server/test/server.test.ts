@@ -154,7 +154,7 @@ describe("websocket server", () => {
   });
 
   it("persists to disk and a new host resumes the same state", async () => {
-    const h = server.hosts.get("s1");
+    const h = server.project("default").hosts.get("s1");
     expect(h).toBeDefined();
     h?.flush();
     const again = new SessionHost({

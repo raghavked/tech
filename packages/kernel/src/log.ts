@@ -9,6 +9,18 @@
 import { type EventBody, MAIN_BRANCH, type SessionEvent } from "@atelier/protocol";
 import { hashValue } from "./hash.js";
 
+/** Minimal shape every chained event shares; `SessionEvent` and the fleet ledger's events fit it. */
+export interface ChainEvent {
+  id: string;
+  prev: string | null;
+  seq: number;
+  branch: string;
+  ts: number;
+  actor: string;
+  kind: string;
+  payload: unknown;
+}
+
 export interface BranchMeta {
   name: string;
   parent: string | null;
@@ -17,24 +29,32 @@ export interface BranchMeta {
   createdSeq: number;
 }
 
-export interface SerializedLog {
+export interface SerializedChain<E extends ChainEvent = SessionEvent> {
   version: 1;
   branches: BranchMeta[];
   /** Own events per branch, in order. */
-  events: Record<string, SessionEvent[]>;
+  events: Record<string, E[]>;
 }
+export type SerializedLog = SerializedChain<SessionEvent>;
 
-export function eventId(e: Omit<SessionEvent, "id">): string {
+export function eventId(e: Omit<ChainEvent, "id">): string {
   const { prev, seq, branch, ts, actor, kind, payload } = e;
   return hashValue({ prev, seq, branch, ts, actor, kind, payload });
 }
 
-export class SessionLog {
+/**
+ * Generic hash-chained, branchable log. `B` is the event body (kind + payload); `E` the full
+ * event. Forks are allowed only at events of `forkableKind`.
+ */
+export class ChainLog<
+  B extends { kind: string; payload: unknown },
+  E extends ChainEvent = B & ChainEvent,
+> {
   private readonly branches = new Map<string, BranchMeta>();
-  private readonly own = new Map<string, SessionEvent[]>();
-  private readonly byId = new Map<string, SessionEvent>();
+  private readonly own = new Map<string, E[]>();
+  private readonly byId = new Map<string, E>();
 
-  constructor() {
+  constructor(protected readonly forkableKind: string | null = null) {
     this.branches.set(MAIN_BRANCH, {
       name: MAIN_BRANCH,
       parent: null,
@@ -44,25 +64,24 @@ export class SessionLog {
     this.own.set(MAIN_BRANCH, []);
   }
 
-  static fromSerialized(data: SerializedLog): SessionLog {
-    const log = new SessionLog();
-    log.branches.clear();
-    log.own.clear();
+  protected load(data: SerializedChain<E>): this {
+    this.branches.clear();
+    this.own.clear();
     for (const b of data.branches) {
-      log.branches.set(b.name, { ...b });
-      log.own.set(b.name, []);
+      this.branches.set(b.name, { ...b });
+      this.own.set(b.name, []);
     }
     for (const b of data.branches) {
       for (const e of data.events[b.name] ?? []) {
-        log.own.get(b.name)?.push(e);
-        log.byId.set(e.id, e);
+        this.own.get(b.name)?.push(e);
+        this.byId.set(e.id, e);
       }
     }
-    return log;
+    return this;
   }
 
-  serialize(): SerializedLog {
-    const events: Record<string, SessionEvent[]> = {};
+  serialize(): SerializedChain<E> {
+    const events: Record<string, E[]> = {};
     for (const [name, evs] of this.own) events[name] = [...evs];
     return { version: 1, branches: [...this.branches.values()].map((b) => ({ ...b })), events };
   }
@@ -79,49 +98,49 @@ export class SessionLog {
     return this.branches.has(name);
   }
 
-  get(id: string): SessionEvent | undefined {
+  get(id: string): E | undefined {
     return this.byId.get(id);
   }
 
   /** Own events of a branch (excluding inherited history). */
-  ownEvents(branch: string): readonly SessionEvent[] {
+  ownEvents(branch: string): readonly E[] {
     return this.own.get(branch) ?? [];
   }
 
   /** Full linear history of a branch including inherited parent history. */
-  eventsOf(branch: string): SessionEvent[] {
+  eventsOf(branch: string): E[] {
     const meta = this.branches.get(branch);
     if (!meta) throw new Error(`unknown branch ${branch}`);
-    const inherited: SessionEvent[] =
+    const inherited: E[] =
       meta.parent && meta.forkPoint ? this.eventsUpTo(meta.parent, meta.forkPoint) : [];
     return inherited.concat(this.ownEvents(branch));
   }
 
   /** History of `branch` up to and including event `id`. */
-  eventsUpTo(branch: string, id: string): SessionEvent[] {
+  eventsUpTo(branch: string, id: string): E[] {
     const all = this.eventsOf(branch);
     const idx = all.findIndex((e) => e.id === id);
     if (idx < 0) throw new Error(`event ${id} not on branch ${branch}`);
     return all.slice(0, idx + 1);
   }
 
-  head(branch: string): SessionEvent | null {
+  head(branch: string): E | null {
     const all = this.eventsOf(branch);
-    return all.length ? (all[all.length - 1] as SessionEvent) : null;
+    return all.length ? (all[all.length - 1] as E) : null;
   }
 
-  append(branch: string, actor: string, body: EventBody): SessionEvent {
+  append(branch: string, actor: string, body: B): E {
     if (!this.branches.has(branch)) throw new Error(`unknown branch ${branch}`);
     const head = this.head(branch);
-    const draft: Omit<SessionEvent, "id"> = {
+    const draft = {
       prev: head?.id ?? null,
       seq: head ? head.seq + 1 : 0,
       branch,
       ts: head ? head.ts + 1 : 0,
       actor,
       ...body,
-    } as Omit<SessionEvent, "id">;
-    const event = { id: eventId(draft), ...draft } as SessionEvent;
+    } as unknown as Omit<E, "id">;
+    const event = { id: eventId(draft as Omit<ChainEvent, "id">), ...draft } as E;
     this.own.get(branch)?.push(event);
     this.byId.set(event.id, event);
     return event;
@@ -132,7 +151,9 @@ export class SessionLog {
     if (this.branches.has(name)) throw new Error(`branch ${name} exists`);
     const at = this.byId.get(forkPoint);
     if (!at) throw new Error(`unknown event ${forkPoint}`);
-    if (at.kind !== "checkpoint.created") throw new Error("fork point must be a checkpoint");
+    if (this.forkableKind && at.kind !== this.forkableKind) {
+      throw new Error(`fork point must be a ${this.forkableKind} event`);
+    }
     // The event must be on the parent's linear history.
     this.eventsUpTo(parent, forkPoint);
     const meta: BranchMeta = { name, parent, forkPoint, createdSeq: at.seq };
@@ -145,10 +166,10 @@ export class SessionLog {
   verify(): { ok: true } | { ok: false; branch: string; seq: number; reason: string } {
     for (const name of this.branches.keys()) {
       const events = this.eventsOf(name);
-      let prev: SessionEvent | null = null;
+      let prev: E | null = null;
       for (const e of events) {
         const { id, ...rest } = e;
-        if (eventId(rest) !== id)
+        if (eventId(rest as Omit<ChainEvent, "id">) !== id)
           return { ok: false, branch: name, seq: e.seq, reason: "bad hash" };
         if ((prev?.id ?? null) !== e.prev)
           return { ok: false, branch: name, seq: e.seq, reason: "broken chain" };
@@ -160,5 +181,15 @@ export class SessionLog {
       }
     }
     return { ok: true };
+  }
+}
+
+/** The session log: a chain log of session events, forkable at checkpoints. */
+export class SessionLog extends ChainLog<EventBody, SessionEvent> {
+  constructor() {
+    super("checkpoint.created");
+  }
+  static fromSerialized(data: SerializedLog): SessionLog {
+    return new SessionLog().load(data);
   }
 }

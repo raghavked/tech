@@ -22,7 +22,13 @@
  * authors (see test/intent.test.ts), which is what makes the composed intent safe to compute on
  * every replica without coordination.
  */
-import type { ContentionPolicy, DirectiveInput, DirectiveStatus, Role } from "@atelier/protocol";
+import type {
+  ContentionPolicy,
+  DirectiveInput,
+  DirectiveOrigin,
+  DirectiveStatus,
+  Role,
+} from "@atelier/protocol";
 import { GOAL_SCOPE, ROLE_RANK } from "@atelier/protocol";
 import { shortId } from "./hash.js";
 
@@ -37,6 +43,8 @@ export interface DirectiveRecord {
   seq: number;
   /** Carried in by a merge: concurrent with everything in its scope. */
   merged: boolean;
+  /** "project" when applied by a lead through the fleet layer. */
+  origin: DirectiveOrigin;
   status: DirectiveStatus;
   contentionId: string | null;
 }
@@ -53,6 +61,7 @@ export interface SteerRegister {
   author: string;
   text: string;
   seq: number;
+  origin: DirectiveOrigin;
 }
 
 export type ControlState = "running" | "paused" | "cancelled";
@@ -60,7 +69,7 @@ export type ControlState = "running" | "paused" | "cancelled";
 export interface Intent {
   goal: SteerRegister | null;
   steers: Record<string, SteerRegister>;
-  constraints: { directiveId: string; author: string; text: string }[];
+  constraints: { directiveId: string; author: string; text: string; origin: DirectiveOrigin }[];
   control: ControlState;
   /** True when a not-yet-consumed interrupting steer exists. */
   interrupt: boolean;
@@ -106,7 +115,7 @@ export function arbitrate(
     .sort((a, b) => a.seq - b.seq)
     .map((d) => {
       statuses[d.id] = "active";
-      return { directiveId: d.id, author: d.author, text: d.input.text };
+      return { directiveId: d.id, author: d.author, text: d.input.text, origin: d.origin };
     });
 
   // Control: last authorised control directive wins; steers revive a cancelled session.
@@ -238,7 +247,7 @@ function pickAmongPeers(peers: DirectiveRecord[], ctx: Arbiter): PeerPick {
 }
 
 function toRegister(d: DirectiveRecord): SteerRegister {
-  return { directiveId: d.id, author: d.author, text: d.input.text, seq: d.seq };
+  return { directiveId: d.id, author: d.author, text: d.input.text, seq: d.seq, origin: d.origin };
 }
 
 /** Effective rank of a participant: their role, lifted to driver if they hold the token. */
@@ -249,15 +258,21 @@ export function effectiveRank(role: Role, isDriver: boolean): number {
 /** Render the intent as the system-prompt fragment the runner hands to the model. */
 export function renderIntent(intent: Intent): string {
   const lines: string[] = [];
-  lines.push(`GOAL: ${intent.goal ? intent.goal.text : "(no goal set; ask the team)"}`);
+  const tag = (o: DirectiveOrigin) => (o === "project" ? "[project] " : "");
+  lines.push(
+    `GOAL: ${intent.goal ? `${tag(intent.goal.origin)}${intent.goal.text}` : "(no goal set; ask the team)"}`,
+  );
   const scopes = Object.keys(intent.steers).sort();
   if (scopes.length) {
     lines.push("DIRECTION BY SCOPE:");
-    for (const s of scopes) lines.push(`  [${s}] ${(intent.steers[s] as SteerRegister).text}`);
+    for (const s of scopes) {
+      const r = intent.steers[s] as SteerRegister;
+      lines.push(`  [${s}] ${tag(r.origin)}${r.text}`);
+    }
   }
   if (intent.constraints.length) {
     lines.push("STANDING CONSTRAINTS (never violate):");
-    for (const c of intent.constraints) lines.push(`  - ${c.text}`);
+    for (const c of intent.constraints) lines.push(`  - ${tag(c.origin)}${c.text}`);
   }
   if (intent.contendedScopes.length) {
     lines.push(

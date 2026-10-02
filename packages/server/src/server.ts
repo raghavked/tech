@@ -1,8 +1,11 @@
 /**
- * Websocket front door. One process hosts many sessions; each session is a SessionHost.
- * Phase-0 auth: an optional shared token. Identity is asserted by the client (dev only).
+ * Websocket and HTTP front door. One process hosts many projects; each project is a
+ * ProjectHost owning its sessions. Phase-0 auth: an optional shared token plus a users.json
+ * that maps asserted user ids to memberships; without it, the first human in owns a session.
  */
-import { createServer, type IncomingMessage, type Server } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { ProjectClientMessage, type ProjectEvent } from "@atelier/fleet";
+import { KernelError } from "@atelier/kernel";
 import {
   ClientMessage,
   DEFAULT_APPROVAL_POLICY,
@@ -11,8 +14,10 @@ import {
 } from "@atelier/protocol";
 import type { Model, ToolRegistry } from "@atelier/runner";
 import { type WebSocket, WebSocketServer } from "ws";
-import { type ClientLink, SessionHost } from "./host.js";
-import { listSessions } from "./storage.js";
+import type { ClientLink, SessionHost } from "./host.js";
+import { OrgRegistry } from "./orgs.js";
+import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
+import { listSessions, readLog, sessionDir } from "./storage.js";
 
 export interface ServerOptions {
   root: string;
@@ -23,54 +28,74 @@ export interface ServerOptions {
   log?: (line: string) => void;
 }
 
+const DEFAULT_POLICY: SessionPolicy = {
+  approvals: DEFAULT_APPROVAL_POLICY,
+  contention: "block",
+  maxTurns: 200,
+};
+
+type AnyClientMessage = ClientMessage | ProjectClientMessage;
+const AnyClientMessageSchema = ClientMessage.or(ProjectClientMessage);
+
 export class AtelierServer {
-  readonly hosts = new Map<string, SessionHost>();
+  readonly projects = new Map<string, ProjectHost>();
+  readonly orgs: OrgRegistry;
   private http: Server | null = null;
   private wss: WebSocketServer | null = null;
 
-  constructor(private readonly opts: ServerOptions) {}
+  constructor(private readonly opts: ServerOptions) {
+    this.orgs = new OrgRegistry(opts.root);
+  }
 
-  host(sessionId: string, title?: string): SessionHost {
-    let h = this.hosts.get(sessionId);
-    if (!h) {
-      const policy = this.opts.defaultPolicy ?? {
-        approvals: DEFAULT_APPROVAL_POLICY,
-        contention: "block",
-        maxTurns: 200,
-      };
-      const base = {
-        root: this.opts.root,
-        sessionId,
-        model: this.opts.model,
-        tools: this.opts.tools,
-      };
-      const withLog = this.opts.log ? { ...base, log: this.opts.log } : base;
-      try {
-        h = new SessionHost(withLog);
-      } catch {
-        h = new SessionHost({ ...withLog, create: { title: title ?? sessionId, policy } });
-      }
-      this.hosts.set(sessionId, h);
-    }
-    return h;
+  /** Get or create the host for a project known to the org registry (or "default"). */
+  project(projectId: string): ProjectHost {
+    let p = this.projects.get(projectId);
+    if (p) return p;
+    const ref = this.orgs.project(projectId);
+    if (!ref) throw new KernelError("not_found", `unknown project ${projectId}`);
+    const base = {
+      root: this.opts.root,
+      projectId,
+      orgId: ref.orgId,
+      teamId: ref.teamId,
+      name: ref.name,
+      model: this.opts.model,
+      tools: this.opts.tools,
+      sessionPolicy: this.opts.defaultPolicy ?? DEFAULT_POLICY,
+    };
+    p = new ProjectHost(this.opts.log ? { ...base, log: this.opts.log } : base);
+    this.projects.set(projectId, p);
+    return p;
+  }
+
+  /** Find which project a stored session belongs to, defaulting to "default". */
+  projectOfSession(sessionId: string): string {
+    for (const [id, p] of this.projects) if (p.hosts.has(sessionId)) return id;
+    const log = readLog(sessionDir(this.opts.root, sessionId));
+    const created = log?.events.main?.[0];
+    return created?.kind === "session.created" ? created.payload.projectId : "default";
+  }
+
+  host(
+    sessionId: string,
+    title?: string,
+    projectId?: string,
+    ownerId: string | null = null,
+  ): SessionHost {
+    const pid = projectId ?? this.projectOfSession(sessionId);
+    return this.project(pid).session(sessionId, { title: title ?? sessionId, ownerId });
   }
 
   sessions(): string[] {
-    return [...new Set([...listSessions(this.opts.root), ...this.hosts.keys()])].sort();
+    const ids = new Set(listSessions(this.opts.root));
+    for (const p of this.projects.values()) for (const id of p.hosts.keys()) ids.add(id);
+    return [...ids].sort();
   }
 
   listen(port: number, hostname = "127.0.0.1"): Promise<number> {
-    const http = createServer((req, res) => {
-      if (req.url === "/health") {
-        res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify({ ok: true, sessions: this.sessions() }));
-        return;
-      }
-      res.writeHead(404);
-      res.end();
-    });
+    const http = createServer((req, res) => this.handleHttp(req, res));
     const wss = new WebSocketServer({ server: http, path: "/ws" });
-    wss.on("connection", (ws, req) => this.connection(ws, req));
+    wss.on("connection", (ws) => this.connection(ws));
     this.http = http;
     this.wss = wss;
     return new Promise((resolve) => {
@@ -82,21 +107,84 @@ export class AtelierServer {
   }
 
   async close(): Promise<void> {
-    for (const h of this.hosts.values()) h.close();
+    for (const p of this.projects.values()) p.close();
     this.wss?.close();
     await new Promise<void>((r) => (this.http ? this.http.close(() => r()) : r()));
   }
 
-  private connection(ws: WebSocket, _req: IncomingMessage): void {
+  // ---- HTTP: read-only API for the web app --------------------------------------------
+
+  private handleHttp(req: IncomingMessage, res: ServerResponse): void {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const json = (code: number, body: unknown) => {
+      res.writeHead(code, {
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+      });
+      res.end(JSON.stringify(body));
+    };
+    try {
+      if (url.pathname === "/health")
+        return json(200, {
+          ok: true,
+          sessions: this.sessions(),
+          projects: [...this.projects.keys()],
+        });
+      if (url.pathname === "/api/me") {
+        const userId = url.searchParams.get("user");
+        const user = this.orgs.user(userId);
+        return json(200, {
+          user: user ? { id: user.id, name: user.name } : null,
+          projects: this.orgs.projectsFor(userId),
+        });
+      }
+      if (url.pathname === "/api/orgs") return json(200, this.orgs.orgs);
+      const m = url.pathname.match(/^\/api\/projects\/([^/]+)(?:\/(sessions|brief|state))?$/);
+      if (m) {
+        const p = this.project(m[1] as string);
+        if (m[2] === "brief") return json(200, { markdown: p.brief() });
+        if (m[2] === "sessions") {
+          const st = p.state();
+          return json(
+            200,
+            Object.values(st.sessions).map((s) => ({
+              ...s,
+              live: p.hosts.get(s.sessionId)?.session.state().status ?? null,
+            })),
+          );
+        }
+        return json(200, p.state());
+      }
+      res.writeHead(404);
+      res.end();
+    } catch (err) {
+      json(err instanceof KernelError && err.code === "not_found" ? 404 : 500, {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // ---- websocket -----------------------------------------------------------------------
+
+  private connection(ws: WebSocket): void {
     let host: SessionHost | null = null;
     let link: ClientLink | null = null;
-    const send = (msg: ServerMessage) => {
+    let projectHost: ProjectHost | null = null;
+    let subscriber: ProjectSubscriber | null = null;
+    let userId: string | null = null;
+    const send = (
+      msg:
+        | ServerMessage
+        | { type: "project.snapshot"; projectId: string; events: ProjectEvent[] }
+        | { type: "project.event"; event: ProjectEvent }
+        | { type: "fleet.brief"; markdown: string },
+    ) => {
       if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
     };
     ws.on("message", (raw) => {
-      let msg: ClientMessage;
+      let msg: AnyClientMessage;
       try {
-        msg = ClientMessage.parse(JSON.parse(raw.toString()));
+        msg = AnyClientMessageSchema.parse(JSON.parse(raw.toString()));
       } catch (err) {
         send({
           type: "error",
@@ -104,26 +192,106 @@ export class AtelierServer {
         });
         return;
       }
-      if (msg.type === "join") {
-        if (this.opts.token && msg.token !== this.opts.token) {
-          send({ type: "error", message: "unauthorized" });
-          ws.close();
+      try {
+        if (msg.type === "join") {
+          if (this.opts.token && msg.token !== this.opts.token) {
+            send({ type: "error", message: "unauthorized" });
+            ws.close();
+            return;
+          }
+          if (host && link) host.leave(link);
+          userId = msg.userId ?? msg.actor.id;
+          const pid = msg.projectId ?? this.projectOfSession(msg.sessionId);
+          projectHost = this.project(pid);
+          const ref = this.orgs.project(pid);
+          const existing = projectHost.hosts.get(msg.sessionId);
+          const ownerForNew = existing ? null : userId;
+          host = projectHost.session(msg.sessionId, {
+            title: msg.title ?? msg.sessionId,
+            ownerId: ownerForNew,
+          });
+          const sessionOwner = host.session.state().ownerId;
+          const derived = ref ? this.orgs.sessionRole(userId, ref, sessionOwner) : null;
+          link = { actor: msg.actor, branch: msg.branch, status: "", send };
+          host.joinWithRole(link, derived);
           return;
         }
-        if (host && link) host.leave(link);
-        host = this.host(msg.sessionId);
-        link = { actor: msg.actor, branch: msg.branch, status: "", send };
-        host.join(link);
-        return;
+        if (msg.type === "project.subscribe") {
+          if (subscriber && projectHost) projectHost.unsubscribe(subscriber);
+          projectHost = this.project(msg.projectId);
+          userId = msg.userId ?? userId;
+          subscriber = { userId, send };
+          projectHost.subscribe(subscriber);
+          return;
+        }
+        if (msg.type === "project.unsubscribe") {
+          if (subscriber && projectHost) projectHost.unsubscribe(subscriber);
+          subscriber = null;
+          return;
+        }
+        if (isProjectMessage(msg)) {
+          if (!projectHost) throw new KernelError("invalid", "subscribe to a project first");
+          const me = userId ?? "anonymous";
+          switch (msg.type) {
+            case "claim":
+              projectHost.claimFor(me, msg.sessionId, msg.resource, msg.mode, msg.reason);
+              break;
+            case "release":
+              projectHost.releaseFor(me, msg.sessionId, msg.claimId);
+              break;
+            case "project.directive":
+              projectHost.project.directive(me, msg.input, msg.targets);
+              break;
+            case "project.withdraw":
+              projectHost.project.withdrawDirective(me, msg.directiveId);
+              break;
+            case "fleet.resolve":
+              projectHost.project.resolveContention(
+                me,
+                msg.contentionId,
+                msg.winnerSessionId,
+                msg.note,
+              );
+              break;
+            case "fleet.brief":
+              send({ type: "fleet.brief", markdown: projectHost.brief() });
+              break;
+            case "project.note":
+              projectHost.project.note(me, msg.text);
+              break;
+            case "session.create":
+              projectHost.session(msg.sessionId, { title: msg.title, ownerId: me });
+              break;
+          }
+          return;
+        }
+        if (!host || !link) {
+          send({ type: "error", message: "join first" });
+          return;
+        }
+        host.handle(link, msg);
+      } catch (err) {
+        send({ type: "error", message: err instanceof Error ? err.message : String(err) });
       }
-      if (!host || !link) {
-        send({ type: "error", message: "join first" });
-        return;
-      }
-      host.handle(link, msg);
     });
     ws.on("close", () => {
       if (host && link) host.leave(link);
+      if (subscriber && projectHost) projectHost.unsubscribe(subscriber);
     });
   }
+}
+
+function isProjectMessage(m: AnyClientMessage): m is ProjectClientMessage {
+  return [
+    "claim",
+    "release",
+    "project.directive",
+    "project.withdraw",
+    "fleet.resolve",
+    "fleet.brief",
+    "project.note",
+    "session.create",
+    "project.subscribe",
+    "project.unsubscribe",
+  ].includes(m.type);
 }

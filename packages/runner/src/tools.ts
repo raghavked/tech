@@ -11,10 +11,34 @@ import type { Session } from "@atelier/kernel";
 import type { ToolCall } from "@atelier/protocol";
 import type { ToolSpec } from "./model.js";
 
+/**
+ * The fleet layer's hook into a session's tools. When present, writes to paths another
+ * session in the project holds are refused and become failed tool results the model sees.
+ */
+export interface WorkspaceGuard {
+  checkWrite(
+    path: string,
+  ): { ok: true } | { ok: false; holderSessionId: string; holderOwner: string; claimId: string };
+  claim(
+    resource:
+      | { type: "path"; pattern: string }
+      | { type: "service"; name: string }
+      | { type: "ticket"; key: string },
+    mode: "exclusive" | "shared",
+    reason: string,
+  ): { granted: boolean; claimId: string; detail: string };
+  release(claimId: string): string;
+  /** Text appended to the model's context describing the rest of the fleet. */
+  context(): string;
+  /** Called by the runner at the end of every turn. */
+  reportStatus(): void;
+}
+
 export interface ToolContext {
   session: Session;
   branch: string;
   agentId: string;
+  guard?: WorkspaceGuard | undefined;
 }
 
 export interface ToolImpl {
@@ -100,6 +124,7 @@ export const workspaceWrite: ToolImpl = {
   },
   async run(args, ctx) {
     const path = safePath(args.path);
+    guardWrite(ctx, path);
     ctx.session.writeFile(ctx.branch, ctx.agentId, path, str(args.content, "content"));
     return `wrote ${path}`;
   },
@@ -119,8 +144,90 @@ export const workspaceDelete: ToolImpl = {
   },
   async run(args, ctx) {
     const path = safePath(args.path);
+    guardWrite(ctx, path);
     ctx.session.deleteFile(ctx.branch, ctx.agentId, path);
     return `deleted ${path}`;
+  },
+};
+
+function guardWrite(ctx: ToolContext, path: string): void {
+  if (!ctx.guard) return;
+  const verdict = ctx.guard.checkWrite(path);
+  if (verdict.ok) return;
+  ctx.session.recordBlockedWrite(
+    ctx.branch,
+    ctx.agentId,
+    path,
+    verdict.holderSessionId,
+    verdict.claimId,
+  );
+  throw new Error(
+    `${path} is held by ${verdict.holderOwner}'s session (claim ${verdict.claimId}); claim it with fleet.claim or work elsewhere`,
+  );
+}
+
+export const fleetClaim: ToolImpl = {
+  spec: {
+    name: "fleet.claim",
+    description:
+      "Claim a path prefix, service or ticket for this session so other agents in the project do not touch it. Denied if another session holds it; the lead then arbitrates.",
+    risk: "write",
+    schema: {
+      type: "object",
+      properties: {
+        resource: {
+          type: "string",
+          description: "path prefix like src/billing/, or service:<name>, or ticket:<key>",
+        },
+        mode: { type: "string", enum: ["exclusive", "shared"] },
+        reason: { type: "string" },
+      },
+      required: ["resource"],
+      additionalProperties: false,
+    },
+  },
+  async run(args, ctx) {
+    if (!ctx.guard) return "no fleet in this session; nothing to claim";
+    const raw = str(args.resource, "resource");
+    const resource = raw.startsWith("service:")
+      ? ({ type: "service", name: raw.slice(8) } as const)
+      : raw.startsWith("ticket:")
+        ? ({ type: "ticket", key: raw.slice(7) } as const)
+        : ({ type: "path", pattern: safePath(raw) } as const);
+    const mode = args.mode === "shared" ? "shared" : "exclusive";
+    const v = ctx.guard.claim(resource, mode, typeof args.reason === "string" ? args.reason : "");
+    if (!v.granted) throw new Error(`claim denied: ${v.detail}`);
+    return `claim ${v.claimId} granted: ${v.detail}`;
+  },
+};
+
+export const fleetRelease: ToolImpl = {
+  spec: {
+    name: "fleet.release",
+    description: "Release a claim this session holds.",
+    risk: "write",
+    schema: {
+      type: "object",
+      properties: { claimId: { type: "string" } },
+      required: ["claimId"],
+      additionalProperties: false,
+    },
+  },
+  async run(args, ctx) {
+    if (!ctx.guard) return "no fleet in this session";
+    return ctx.guard.release(str(args.claimId, "claimId"));
+  },
+};
+
+export const fleetStatus: ToolImpl = {
+  spec: {
+    name: "fleet.status",
+    description: "What the other agents in this project are doing and what they hold.",
+    risk: "read",
+    schema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  async run(_args, ctx) {
+    return ctx.guard?.context() || "no other agents in this project";
   },
 };
 
@@ -210,5 +317,8 @@ export function defaultTools(): ToolRegistry {
     .register(workspaceWrite)
     .register(workspaceDelete)
     .register(shellRun)
-    .register(deploy);
+    .register(deploy)
+    .register(fleetClaim)
+    .register(fleetRelease)
+    .register(fleetStatus);
 }

@@ -23,6 +23,7 @@ function d(
     epoch: o.epoch ?? 0,
     seq,
     merged: o.merged ?? false,
+    origin: "session",
     status: "active",
     contentionId: null,
     input: {

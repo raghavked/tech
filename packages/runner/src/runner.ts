@@ -7,7 +7,7 @@
 import { renderIntent, type Session, type SessionState } from "@atelier/kernel";
 import type { Actor, ToolCall, ToolResult } from "@atelier/protocol";
 import type { Model, ModelRequest, TranscriptEntry } from "./model.js";
-import type { ToolRegistry } from "./tools.js";
+import type { ToolRegistry, WorkspaceGuard } from "./tools.js";
 
 export interface RunnerOptions {
   maxStepsPerTurn?: number;
@@ -16,6 +16,8 @@ export interface RunnerOptions {
   /** Called after each tool execution; useful for tests and the server to interleave actions. */
   onStep?: (state: SessionState) => void | Promise<void>;
   log?: (line: string) => void;
+  /** Fleet hook: claims, blocked writes and status reports to the project. */
+  guard?: WorkspaceGuard | undefined;
 }
 
 export type TurnOutcome =
@@ -168,6 +170,7 @@ export class Runner {
     if (reason === "idle") return reason;
     this.session.turnEnded(this.branch, this.agent.id, reason, summary);
     this.opts.log?.(`turn ended: ${reason} (${summary})`);
+    this.opts.guard?.reportStatus();
     return reason;
   }
 
@@ -194,7 +197,12 @@ export class Runner {
       }
     }
     try {
-      const output = await tool.run(call.args, { session, branch, agentId: agent.id });
+      const output = await tool.run(call.args, {
+        session,
+        branch,
+        agentId: agent.id,
+        guard: this.opts.guard,
+      });
       return { callId: call.id, ok: true, output };
     } catch (err) {
       return {
@@ -256,10 +264,11 @@ export class Runner {
         (d) =>
           `${s.participants[d.author]?.actor.name ?? d.author} [${d.input.mode}/${d.input.scope}]: ${d.input.text}`,
       );
+    const fleet = this.opts.guard?.context() ?? "";
     return {
       title: s.title,
       intent: s.intent,
-      intentText: renderIntent(s.intent),
+      intentText: fleet ? `${renderIntent(s.intent)}\n${fleet}` : renderIntent(s.intent),
       history: s.turns.map((x) => `turn ${x.turn}: ${x.summary}`),
       files: Object.keys(s.workspace).sort(),
       transcript,

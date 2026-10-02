@@ -16,6 +16,8 @@ node packages/cli/dist/main.js demo --dir "$STORE/demo" > "$STORE/demo.out"
 grep -q "hash chain: ok; full replay == snapshot resume: true" "$STORE/demo.out"
 grep -q "contention" "$STORE/demo.out"
 grep -q "deploy \[irreversible\] -> granted" "$STORE/demo.out"
+grep -q "writes refused" "$STORE/demo.out"
+node packages/cli/dist/main.js fleet "$STORE/demo/projects/billing/ledger.json" | grep -q "Fleet brief"
 
 echo "== verify + report"
 node packages/cli/dist/main.js verify "$STORE/demo/sessions/demo/log.json"

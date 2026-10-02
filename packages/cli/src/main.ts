@@ -2,6 +2,7 @@
 /** atelier: the multiplayer kernel for long-running agent sessions. */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fleetBrief, Project, type SerializedLedger } from "@atelier/fleet";
 import { checkReplay, handoffBrief, type SerializedLog, Session } from "@atelier/kernel";
 import type { Actor } from "@atelier/protocol";
 import {
@@ -24,6 +25,7 @@ const USAGE = `atelier <command> [options]
   replay   <log.json> [--branch main]                                           fold the log, print the brief
   verify   <log.json>                                                           check hashes and replay determinism
   report   <log.json>                                                           markdown report of every branch
+  fleet    <ledger.json>                                                        fleet brief from a project ledger
 
 Environment: ATELIER_OFFLINE=1 blocks the Claude adapter; ANTHROPIC_API_KEY enables it.
 Exit codes: 0 ok, 2 usage, 3 verification failed, 4 network.`;
@@ -150,6 +152,15 @@ async function main(): Promise<number> {
       if (!positional[0]) return usage();
       process.stdout.write(renderReport(loadLog(positional[0])));
       return 0;
+    }
+    case "fleet": {
+      if (!positional[0]) return usage();
+      const data = JSON.parse(readFileSync(resolve(positional[0]), "utf8")) as SerializedLedger;
+      const p = Project.fromSerialized(data);
+      const v = p.ledger.verify();
+      process.stdout.write(fleetBrief(p.state()));
+      process.stdout.write(`\nledger chain: ${v.ok ? "ok" : `BROKEN ${JSON.stringify(v)}`}\n`);
+      return v.ok ? 0 : 3;
     }
     default:
       return usage();

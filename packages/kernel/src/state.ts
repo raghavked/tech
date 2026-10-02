@@ -11,7 +11,7 @@ import type {
   ToolCall,
   ToolResult,
 } from "@atelier/protocol";
-import { DEFAULT_APPROVAL_POLICY, MAIN_BRANCH, ROLE_RANK } from "@atelier/protocol";
+import { DEFAULT_APPROVAL_POLICY, LEAD_RANK, MAIN_BRANCH, ROLE_RANK } from "@atelier/protocol";
 import { type ApprovalRecord, evaluate, ruleFor } from "./approvals.js";
 import {
   arbitrate,
@@ -73,9 +73,27 @@ export type SessionStatus =
   | "blocked"
   | "cancelled";
 
+export interface BlockedWrite {
+  path: string;
+  holderSessionId: string;
+  claimId: string;
+  seq: number;
+}
+
+export interface FleetContentionMirror {
+  id: string;
+  kind: "claim" | "path-overlap" | "merge-conflict";
+  sessionIds: string[];
+  resource: string;
+  resolved: boolean;
+  seq: number;
+}
+
 export interface SessionState {
   sessionId: string;
   title: string;
+  projectId: string;
+  ownerId: string | null;
   policy: SessionPolicy;
   branch: string;
   head: string | null;
@@ -99,6 +117,10 @@ export interface SessionState {
   branches: Record<string, { from: string; fromCheckpoint: string; seq: number }>;
   merges: MergeRecord[];
   notes: { actor: string; text: string; seq: number }[];
+  /** Writes refused because another session in the project holds a claim. */
+  blockedWrites: BlockedWrite[];
+  /** Fleet-level contentions this session is part of, mirrored from the project ledger. */
+  fleetContentions: Record<string, FleetContentionMirror>;
   status: SessionStatus;
 }
 
@@ -106,6 +128,8 @@ export function initialState(branch: string = MAIN_BRANCH): SessionState {
   return {
     sessionId: "",
     title: "",
+    projectId: "default",
+    ownerId: null,
     policy: { approvals: DEFAULT_APPROVAL_POLICY, contention: "block", maxTurns: 200 },
     branch,
     head: null,
@@ -135,6 +159,8 @@ export function initialState(branch: string = MAIN_BRANCH): SessionState {
     branches: {},
     merges: [],
     notes: [],
+    blockedWrites: [],
+    fleetContentions: {},
     status: "idle",
   };
 }
@@ -163,6 +189,8 @@ export function reduce(prev: SessionState, e: SessionEvent): SessionState {
       s.sessionId = e.payload.sessionId;
       s.title = e.payload.title;
       s.policy = e.payload.policy;
+      s.projectId = e.payload.projectId;
+      s.ownerId = e.payload.ownerId;
       break;
 
     case "participant.joined": {
@@ -214,6 +242,7 @@ export function reduce(prev: SessionState, e: SessionEvent): SessionState {
         epoch: s.epoch,
         seq: e.seq,
         merged: false,
+        origin: "session",
         status: "active",
         contentionId: null,
       };
@@ -388,6 +417,7 @@ export function reduce(prev: SessionState, e: SessionEvent): SessionState {
           epoch: s.epoch,
           seq: e.seq,
           merged: true,
+          origin: "session",
           status: "active",
           contentionId: null,
         };
@@ -398,6 +428,45 @@ export function reduce(prev: SessionState, e: SessionEvent): SessionState {
 
     case "note.posted":
       s.notes.push({ actor: e.actor, text: e.payload.text, seq: e.seq });
+      break;
+
+    case "project.directive.applied": {
+      s.directives[e.payload.directiveId] = {
+        id: e.payload.directiveId,
+        author: e.payload.author,
+        input: e.payload.input,
+        rank: LEAD_RANK,
+        epoch: s.epoch,
+        seq: e.seq,
+        merged: false,
+        origin: "project",
+        status: "active",
+        contentionId: null,
+      };
+      recompute(s);
+      break;
+    }
+
+    case "project.directive.withdrawn": {
+      const d = s.directives[e.payload.directiveId];
+      if (d) d.status = "withdrawn";
+      recompute(s);
+      break;
+    }
+
+    case "workspace.blocked":
+      s.blockedWrites.push({ ...e.payload, seq: e.seq });
+      break;
+
+    case "fleet.contention.mirrored":
+      s.fleetContentions[e.payload.contentionId] = {
+        id: e.payload.contentionId,
+        kind: e.payload.kind,
+        sessionIds: e.payload.sessionIds,
+        resource: e.payload.resource,
+        resolved: e.payload.resolved,
+        seq: e.seq,
+      };
       break;
   }
 

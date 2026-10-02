@@ -35,6 +35,12 @@ export const ROLE_RANK: Record<Role, number> = {
   owner: 3,
 };
 
+/** Rank of a project-level directive from a lead: above every session role. */
+export const LEAD_RANK = 4;
+
+export const DirectiveOrigin = z.enum(["session", "project"]);
+export type DirectiveOrigin = z.infer<typeof DirectiveOrigin>;
+
 // ---------------------------------------------------------------------------------------
 // Directives: how humans steer the agent
 // ---------------------------------------------------------------------------------------
@@ -136,7 +142,15 @@ const base = <K extends string, P extends z.ZodTypeAny>(kind: K, payload: P) =>
 export const EventBody = z.discriminatedUnion("kind", [
   base(
     "session.created",
-    z.object({ sessionId: z.string(), title: z.string(), policy: SessionPolicy }),
+    z.object({
+      sessionId: z.string(),
+      title: z.string(),
+      policy: SessionPolicy,
+      /** Project this session belongs to; "default" when the fleet layer is not used. */
+      projectId: z.string().default("default"),
+      /** User id of the human who started the session, when identity is known. */
+      ownerId: z.string().nullable().default(null),
+    }),
   ),
   base("participant.joined", z.object({ actor: Actor, role: Role })),
   base("participant.left", z.object({ actorId: z.string() })),
@@ -226,6 +240,34 @@ export const EventBody = z.discriminatedUnion("kind", [
   ),
 
   base("note.posted", z.object({ text: z.string() })),
+
+  // ---- fleet layer: events a project host writes into a session -------------------------
+  base(
+    "project.directive.applied",
+    z.object({
+      directiveId: z.string(),
+      projectDirectiveId: z.string(),
+      projectId: z.string(),
+      /** User id of the lead who issued it on the project. */
+      author: z.string(),
+      input: DirectiveInput,
+    }),
+  ),
+  base("project.directive.withdrawn", z.object({ directiveId: z.string() })),
+  base(
+    "workspace.blocked",
+    z.object({ path: z.string(), holderSessionId: z.string(), claimId: z.string() }),
+  ),
+  base(
+    "fleet.contention.mirrored",
+    z.object({
+      contentionId: z.string(),
+      kind: z.enum(["claim", "path-overlap", "merge-conflict"]),
+      sessionIds: z.array(z.string()),
+      resource: z.string(),
+      resolved: z.boolean(),
+    }),
+  ),
 ]);
 export type EventBody = z.infer<typeof EventBody>;
 export type EventKind = EventBody["kind"];
@@ -258,6 +300,11 @@ export const ClientMessage = z.discriminatedUnion("type", [
     /** Phase-0 auth: a shared token checked by the server. */
     token: z.string().optional(),
     branch: z.string().default(MAIN_BRANCH),
+    /** Identity in users.json; roles derive from memberships when present. */
+    userId: z.string().optional(),
+    /** Project to create the session in when it does not exist yet. */
+    projectId: z.string().optional(),
+    title: z.string().optional(),
   }),
   z.object({ type: z.literal("directive"), input: DirectiveInput }),
   z.object({ type: z.literal("withdraw"), directiveId: z.string() }),

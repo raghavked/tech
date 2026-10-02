@@ -53,12 +53,18 @@ export class Session {
     sessionId: string,
     title: string,
     policy: SessionPolicy,
-    opts: SessionOptions = {},
+    opts: SessionOptions & { projectId?: string; ownerId?: string | null } = {},
   ): Session {
     const s = new Session(opts);
     s.emit(MAIN_BRANCH, "system", {
       kind: "session.created",
-      payload: { sessionId, title, policy },
+      payload: {
+        sessionId,
+        title,
+        policy,
+        projectId: opts.projectId ?? "default",
+        ownerId: opts.ownerId ?? null,
+      },
     });
     return s;
   }
@@ -377,6 +383,63 @@ export class Session {
     const approvalId = shortId("apr", branch, s.seq + 1, call);
     this.emit(branch, agentId, { kind: "approval.requested", payload: { approvalId, call } });
     return approvalId;
+  }
+
+  // ---- fleet-facing (written by a project host, never by a participant) ---------------
+
+  applyProjectDirective(
+    branch: string,
+    projectId: string,
+    projectDirectiveId: string,
+    author: string,
+    input: DirectiveInput,
+  ): SessionEvent {
+    const directiveId = shortId(
+      "dir",
+      "project",
+      projectDirectiveId,
+      this.state(branch).sessionId,
+      branch,
+    );
+    return this.emit(branch, "system", {
+      kind: "project.directive.applied",
+      payload: { directiveId, projectDirectiveId, projectId, author, input },
+    });
+  }
+
+  withdrawProjectDirective(branch: string, directiveId: string): SessionEvent | null {
+    if (!this.state(branch).directives[directiveId]) return null;
+    return this.emit(branch, "system", {
+      kind: "project.directive.withdrawn",
+      payload: { directiveId },
+    });
+  }
+
+  recordBlockedWrite(
+    branch: string,
+    agentId: string,
+    path: string,
+    holderSessionId: string,
+    claimId: string,
+  ) {
+    return this.emit(branch, agentId, {
+      kind: "workspace.blocked",
+      payload: { path, holderSessionId, claimId },
+    });
+  }
+
+  mirrorContention(
+    branch: string,
+    contentionId: string,
+    kind: "claim" | "path-overlap" | "merge-conflict",
+    sessionIds: string[],
+    resource: string,
+    resolved: boolean,
+  ): SessionEvent {
+    return this.emit(branch, "system", {
+      kind: "fleet.contention.mirrored",
+      payload: { contentionId, kind, sessionIds, resource, resolved },
+    });
   }
 
   // ---- internals ----------------------------------------------------------------------
