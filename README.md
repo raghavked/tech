@@ -108,13 +108,19 @@ packages/memory     organisation memory: attributed entries, conflicts, compacti
 packages/server     websocket and HTTP server, project and session hosts, notifications, persistence
 packages/slack      Slack adapter on an interface with an in-memory fake; Bolt socket mode
 packages/cli        the fold binary
-apps/web            the product: React client that folds the same events as the server (PWA)
-apps/desktop        Tauri shell around the web client
+apps/web            the product: React client that folds the same events as the server (PWA);
+                    agents rail, team panel, command palette (⌘K), inbox, approvals queue,
+                    memory browser, replay scrubber, branch compare, settings, share, export,
+                    offline queue and reconnect-resume
+apps/desktop        Tauri 2 shell around the web client: tray, native notifications, deep
+                    links (fold://), auto-update (docs/16_desktop_release.md)
 apps/mobile         Capacitor shell around the web client with native push
 design/             brand tokens, logo, static mockups of every surface
 scripts/            e2e.sh and the scripted websocket clients it drives
 docs/               thesis, market, landscape, product spec, architecture, kernel design,
-                    roadmap, security, business model, threat model, sources, open questions
+                    roadmap, security, business model, threat model, sources, open questions,
+                    brand, fleet, memory, copy, desktop release, performance; docs/research/
+                    holds the deep-tech memos
 ```
 
 ## Development
