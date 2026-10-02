@@ -13,6 +13,7 @@ import { rememberRecent } from "../recents.js";
 import { ReconnectLine } from "../reconnect.js";
 import { paths } from "../router.js";
 import { reportPendingApprovals } from "../shell.js";
+import type { ShortcutHandlers } from "../shortcuts.js";
 import { type Block, describeCall, estimateHeight, type Step } from "../stream/blocks.js";
 import { useBlocks } from "../stream/useBlocks.js";
 import { VirtualList } from "../stream/VirtualList.js";
@@ -28,6 +29,7 @@ import {
   toast,
   useConnectionToasts,
 } from "../ui.js";
+import { focusSoon } from "../useShortcuts.js";
 import { sessionCommands } from "./sessionCommands.js";
 
 export function SessionView({
@@ -135,6 +137,29 @@ export function SessionView({
   const pendingApprovals = Object.values(s.approvals).filter((a) => a.status === "pending");
   reportPendingApprovals(pendingApprovals.length);
   const online = snap.presence.filter((p) => p.online);
+  // Keyboard shortcuts (shortcuts.ts): what each key means on this page.
+  const offered = Object.values(s.handoffs).find(
+    (h) => h.status === "pending" && h.to === actor.id,
+  );
+  const waiting = pendingApprovals[0];
+  const shortcuts: ShortcutHandlers = {
+    steer: () => focusSoon(".composer textarea"),
+    approve: () =>
+      waiting && client.send({ type: "vote", approvalId: waiting.id, vote: "approve" }),
+    deny: () => waiting && client.send({ type: "vote", approvalId: waiting.id, vote: "deny" }),
+    handoff: () => {
+      if (offered) client.send({ type: "handoff.accept", handoffId: offered.id });
+      else {
+        setPanel("details");
+        focusSoon('.drawer button[data-shortcut="handoff"]');
+      }
+    },
+    fork: () => {
+      setPanel("details");
+      focusSoon('.drawer input[aria-label="New branch name"]');
+    },
+    details: () => setPanel((v) => (v === "details" ? "none" : "details")),
+  };
   const share = () => {
     const url = `${location.origin}${location.pathname}${paths.session(projectId, sessionId)}`;
     copyText(url).then((ok) => toast(ok ? copy.session.linkCopied : copy.session.copyFailed));
@@ -192,6 +217,7 @@ export function SessionView({
         </>
       }
       below={<ReconnectLine reconnecting={snap.reconnecting} />}
+      shortcuts={shortcuts}
       drawer={
         details ? (
           <Drawer
@@ -1039,6 +1065,7 @@ function Drawer({
                 <button
                   type="button"
                   className="btn sm"
+                  data-shortcut="handoff"
                   onClick={() => client.send({ type: "handoff.request", to: p.actor.id })}
                 >
                   {copy.details.handOff}

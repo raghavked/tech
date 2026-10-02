@@ -191,7 +191,7 @@ export const copy = {
     interruptNow: "Interrupt now",
     reconnecting: "Reconnecting · ",
     hint: (name: string, role: string, driving: boolean) =>
-      `Enter to send · Shift+Enter for a new line · as ${name}, ${role}${driving ? ", driving" : ""}`,
+      `Enter to send · Shift+Enter for a new line · ? for shortcuts · as ${name}, ${role}${driving ? ", driving" : ""}`,
   },
 
   details: {

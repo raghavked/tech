@@ -6,9 +6,11 @@ import { clearIdentity, type Identity, useIdentity } from "./identity.js";
 import { notifyPermission, requestNotifications } from "./notify.js";
 import { CommandPalette, hotkeyLabel, openPalette, publishSidebarSessions } from "./palette.js";
 import { useRecents } from "./recents.js";
-import { paths, type Route, useRoute } from "./router.js";
+import { navigate, paths, type Route, useRoute } from "./router.js";
+import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
 import { type Theme, useTheme } from "./theme.js";
 import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
+import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
 import { Home } from "./views/Home.js";
 import { Project } from "./views/Project.js";
 import { SessionView } from "./views/SessionView.js";
@@ -93,6 +95,7 @@ export function Shell({
   right,
   below,
   drawer,
+  shortcuts,
   children,
 }: {
   ctx: ShellContext;
@@ -101,14 +104,30 @@ export function Shell({
   /** One quiet line under the top row, e.g. the reconnect notice. */
   below?: ReactNode;
   drawer?: ReactNode;
+  /** Page-specific keys (shortcuts.ts); j, k and ? are handled here for every page. */
+  shortcuts?: ShortcutHandlers;
   children: ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
   const routeKey = JSON.stringify(ctx.route);
   // biome-ignore lint/correctness/useExhaustiveDependencies: close the drawer when the route changes
   useEffect(() => setNavOpen(false), [routeKey]);
+  const [help, setHelp] = useState(false);
+  useShortcuts({
+    ...shortcuts,
+    next: () => stepTo(1),
+    previous: () => stepTo(-1),
+    help: () => setHelp((v) => !v),
+  });
+  // The account menu (and any surface without a keyboard) asks for the sheet by this event.
+  useEffect(() => {
+    const open = () => setHelp(true);
+    addEventListener("fold:shortcuts", open);
+    return () => removeEventListener("fold:shortcuts", open);
+  }, []);
   return (
     <div className="shell">
+      {help && <ShortcutSheet onClose={() => setHelp(false)} />}
       <Sidebar ctx={ctx} open={navOpen} onClose={() => setNavOpen(false)} />
       {/* hook point (command-palette): ⌘K / Ctrl+K opens the palette on every page */}
       <CommandPalette ctx={ctx} />
@@ -133,6 +152,15 @@ export function Shell({
       </div>
     </div>
   );
+}
+
+/** j/k: the session above or below the current one in the sidebar, wrapping at the ends. */
+function stepTo(delta: 1 | -1): void {
+  const current = location.hash.split("?")[0] ?? "";
+  const href = stepSession(sidebarSessionHrefs(), current, delta);
+  if (!href) return;
+  navigate(href);
+  focusSoon(`.sidebar a[href="${href}"]`);
 }
 
 function Sidebar({
@@ -398,6 +426,16 @@ function Account({ identity }: { identity: Identity | null }) {
           <a className="small" href={paths.home()}>
             {copy.account.changeIdentity}
           </a>
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={() => {
+              setOpen(false);
+              dispatchEvent(new Event("fold:shortcuts"));
+            }}
+          >
+            Keyboard shortcuts
+          </button>
           <button
             type="button"
             className="btn ghost sm"
