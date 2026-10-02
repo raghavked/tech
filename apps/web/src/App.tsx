@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { api, type Me, type SessionRow, useFetch } from "./api.js";
+import { pendingOf } from "./approvalsQueue.js";
 import { copy } from "./copy.js";
 import { ErrorBoundary, Recover } from "./ErrorBoundary.js";
 import { clearIdentity, type Identity, useIdentity } from "./identity.js";
@@ -13,6 +14,7 @@ import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
 import { type Theme, useTheme } from "./theme.js";
 import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
 import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
+import { Approvals } from "./views/Approvals.js";
 import { Home } from "./views/Home.js";
 import { Inbox } from "./views/Inbox.js";
 import { Memory } from "./views/Memory.js";
@@ -95,6 +97,8 @@ function Page() {
       );
     case "settings":
       return <Settings identity={identity} me={me.data} ctx={ctx} />;
+    case "approvals": // hook: approvals-queue
+      return <Approvals identity={identity} me={me.data} ctx={ctx} />;
   }
 }
 
@@ -239,6 +243,10 @@ function Sidebar({
     recentsShown.length === 0 &&
     !projects.some((p) => hit(p.name, p.projectId)) &&
     !Object.values(sessions).some((rows) => rows.some(matchRow));
+  // hook: approvals-queue — approvals waiting across every listed project
+  const waiting = Object.values(sessions)
+    .flat()
+    .reduce((n, r) => n + pendingOf(r), 0);
   return (
     <>
       {open && (
@@ -290,6 +298,16 @@ function Sidebar({
             <Icon d={ICONS.inbox} size={15} />
             Inbox
             {inbox.unread > 0 && <span className="count">{inbox.unread}</span>}
+          </a>
+        )}
+        {identity && (
+          <a
+            className={`item inbox${route.name === "approvals" ? " active" : ""}`}
+            href={paths.approvals()}
+          >
+            <Icon d={ICONS.check} size={15} />
+            Approvals
+            {waiting > 0 && <span className="count">{waiting}</span>}
           </a>
         )}
         <div className="lists" ref={listsRef}>
