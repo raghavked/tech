@@ -26,7 +26,7 @@ export function Home({
       <div className="column page home">
         {!identity && (
           <div className="hero hero-card">
-            <Mark size={64} joining />
+            <Mark size={64} settle />
             <h1>{copy.home.heroTitle}</h1>
             <p className="muted">{copy.home.heroLine}</p>
             {needsIdentity && <p className="small danger">{copy.home.needsIdentity}</p>}

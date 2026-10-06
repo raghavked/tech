@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Loading and connecting</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- board ---------- */
+  /* The token's radial-gradient wash is dithered by Chromium, which triples the PNG weight of a full-page shot;
+     this page draws the same apricot wash as a blurred disc instead. Same look, flat pixels. */
+  body { padding: 0; background-image: none; }
+  .board { position: relative; }
+  .board::before { content: ""; position: absolute; left: -220px; top: -420px; width: 1400px; height: 820px; border-radius: 50%; background: var(--wash-ink, rgba(226,196,166,0.34)); filter: blur(140px); pointer-events: none; z-index: -1; }
+  :root[data-theme="dark"] { --wash-ink: rgba(226,196,166,0.09); --glow-ink: rgba(226,196,166,0.08); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wash-ink: rgba(226,196,166,0.09); --glow-ink: rgba(226,196,166,0.08); } }
+  .board > * { position: relative; }
+  .board { width: 1440px; margin: 0 auto; padding: 44px 48px 72px; display: flex; flex-direction: column; gap: 44px; }
+  .head { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: end; }
+  .head .mark { width: 56px; height: 56px; }
+  .head .lede { display: flex; gap: 18px; align-items: center; }
+  .head p { margin: 8px 0 0; max-width: 720px; color: var(--ink-2); font-size: 16px; }
+  .head .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 13px; color: var(--ink-3); }
+  .head .meta .chips { display: flex; gap: 6px; }
+  .bsec { display: flex; flex-direction: column; gap: 18px; }
+  .bsec > .sh { display: flex; align-items: baseline; gap: 14px; }
+  .bsec > .sh h2 { font-size: 28px; }
+  .bsec > .sh .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: .08em; }
+  .bsec > .sh .d { color: var(--ink-2); font-size: 14px; }
+
+  /* scaled screens */
+  .screens { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 24px; }
+  .screen { display: flex; flex-direction: column; gap: 12px; }
+  .screen .cap { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: baseline; padding: 0 4px; }
+  .screen .cap .k { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .screen .cap .t { font-family: var(--serif); font-size: 20px; }
+  .screen .cap .t em { font-style: italic; color: var(--ink-2); }
+  .screen .cap .l { font-size: 12.5px; color: var(--ink-2); display: inline-flex; gap: 6px; align-items: center; }
+  .screen .cap .l b { font-weight: 600; color: var(--ink); }
+  .frame { width: 1440px; height: 900px; zoom: .46; flex: none; }
+  .frame .window { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  .frame .window .titlebar { flex: none; }
+  .frame .window .titlebar .tt { margin-left: 8px; color: var(--rail-muted); }
+  .frame .window .titlebar .tray { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; color: var(--rail-muted); }
+  .frame .window .titlebar .tray i { width: 7px; height: 7px; background: #9BC88F; }
+  .frame .shell { flex: 1; min-height: 0; }
+
+  /* ---------- the mark ---------- */
+  .mark { display: block; }
+  .mark .disc { fill: var(--mark-disc); }
+  .mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; }
+  .mark .arc.a { stroke: #56352D; } .mark .arc.b { stroke: #E2C4A6; } .mark .dot { fill: #E2C4A6; }
+
+  /* ---------- 1 · app launch ---------- */
+  .launch { flex: 1; min-height: 0; background: var(--rail); color: var(--rail-fg); position: relative; display: grid; place-items: center; overflow: hidden; }
+  .launch::before { content: ""; position: absolute; left: 50%; top: 56%; width: 520px; height: 320px; transform: translate(-50%,-50%); border-radius: 50%; background: var(--glow-ink, rgba(226,196,166,0.08)); filter: blur(90px); }
+  .launch .c { position: relative; display: flex; flex-direction: column; align-items: center; gap: 22px; transform: translateY(-14px); }
+  .launch .mark { width: 120px; height: 120px; filter: drop-shadow(0 18px 40px rgba(0,0,0,.35)); }
+  .launch .mark .disc { fill: #202738; }
+  .launch .wm { font-family: var(--serif); font-size: 52px; line-height: 1; letter-spacing: -0.01em; }
+  .launch .line { font-size: 17px; color: var(--rail-muted); }
+  .launch .foot { position: absolute; left: 32px; right: 32px; bottom: 26px; display: flex; justify-content: space-between; font-size: 13px; color: var(--rail-muted); }
+  .launch .foot .mono { color: var(--rail-muted); }
+  .launch .foot .who { display: inline-flex; align-items: center; gap: 10px; }
+  .launch .foot .who .avatar { border-color: var(--rail); width: 24px; height: 24px; font-size: 10px; }
+
+  /* ---------- shared shell bits ---------- */
+  .rail .brand .mark { width: 28px; height: 28px; }
+  .rail .brand .mark .disc { fill: #202738; }
+  .agent .foot .pill { height: 20px; font-size: 11px; }
+  .agent .head .avatar { width: 22px; height: 22px; font-size: 10px; }
+  .avatar.ag { border-radius: 8px 8px 8px 3px; background: var(--gradient-brand); color: #fff; border: 2px solid var(--canvas); width: 28px; height: 28px; display: inline-grid; place-items: center; font-size: 11px; font-weight: 600; }
+  .rail .avatar.ag { border-color: var(--rail); }
+  .topbar .stack .avatar { width: 26px; height: 26px; font-size: 10px; }
+  .centre { flex: 1; display: grid; place-items: center; }
+  .centre .c { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; animation: rise .32s ease both; }
+  .centre .line { font-size: 17px; color: var(--ink); }
+  .centre .line .serif { font-size: 19px; }
+  .centre .sub { font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
+  .centre .here { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+  .composer.waiting { opacity: .72; box-shadow: var(--shadow-soft); }
+  .composer.waiting .input { color: var(--ink-3); }
+  .composer .bar .hint { font-size: 12.5px; color: var(--ink-3); }
+
+  /* orbit, larger for a page centre */
+  .loader.orbit.lg { width: 54px; height: 54px; }
+  .loader.orbit.lg i { top: 22px; left: 22px; width: 10px; height: 10px; }
+  .loader.orbit i:nth-child(2) { background: var(--orbit-b, #56352D); }
+  .loader.orbit i:nth-child(3) { background: var(--ink); }
+  .loader.orbit.lg i { animation-name: converge-lg; }
+  @keyframes converge-lg { 0%, 100% { transform: translateX(22px) } 50% { transform: translateX(0) } }
+
+  /* ---------- 3 · project opening ---------- */
+  .topbar .loader.weave { position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 0; }
+  .topbar { position: relative; }
+  .project { width: min(960px, 100%); margin: 0 auto; padding: 26px 32px 60px; display: flex; flex-direction: column; gap: 26px; }
+  .project .ph { display: flex; align-items: flex-end; gap: 16px; }
+  .project .ph h1 { font-size: 36px; }
+  .project .ph .line { margin-left: auto; font-size: 14px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 10px; }
+  .project .ph .line .mono { color: var(--ink-3); }
+  .project h3.sec { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin-bottom: 8px; }
+  .direction { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px 22px; box-shadow: var(--shadow-soft); display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+  .direction .q { font-family: var(--serif); font-size: 21px; line-height: 1.3; }
+  .direction .by { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+  .fleet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .fleet .crewh { display: flex; align-items: center; gap: 10px; padding: 12px 20px; background: var(--surface-2); font-size: 13px; color: var(--ink-2); }
+  .fleet .crewh .serif { font-size: 17px; color: var(--ink); }
+  .fleet .crewh::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot-deep); }
+  .frow { display: grid; grid-template-columns: 34px 1.3fr 2fr auto auto; gap: 14px; align-items: center; padding: 12px 20px; border-top: 1px solid var(--line); font-size: 14px; }
+  .frow .who { font-family: var(--serif); font-size: 16px; } .frow .who span { font-family: var(--font); font-size: 12.5px; color: var(--ink-3); margin-left: 6px; }
+  .frow .goal { color: var(--ink-2); } .frow .goal i { font-family: var(--serif); color: var(--accent); }
+  .frow .claims { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .frow.pending { color: var(--ink-3); }
+  .frow.pending .who { color: var(--ink-3); }
+  .frow.pending .ph { height: 10px; border-radius: 5px; background: var(--surface-2); }
+  .frow.pending .ph.w60 { width: 60%; } .frow.pending .ph.w40 { width: 40%; }
+  .frow.rise { animation: rise .32s ease both; }
+
+  /* ---------- 4 · long operation ---------- */
+  .notice.op { gap: 14px; padding: 18px 22px; }
+  .notice.op .oh { display: flex; align-items: center; gap: 12px; }
+  .notice.op .oh .serif { font-size: 20px; }
+  .notice.op .oh .pill { margin-left: auto; }
+  .opsteps { display: flex; flex-direction: column; }
+  .opstep { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .opstep:first-child { border-top: 0; }
+  .opstep .n { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; color: var(--ink-2); }
+  .opstep.done .n { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .opstep.running .n { border-color: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.6s ease-in-out infinite; }
+  .opstep .r { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+  .opstep.running .r { color: var(--ink-2); }
+  .opstep.todo { color: var(--ink-3); }
+  .summary { display: flex; flex-direction: column; gap: 9px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface-2); }
+  .summary .t { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .summary .loader.shimmer { height: 12px; }
+  .notice.op .line { font-size: 14px; color: var(--ink-2); }
+  .notice.op .line b { font-weight: 500; color: var(--ink); }
+  .step .ok { color: var(--ok); }
+  .column { padding-top: 26px; gap: 22px; }
+
+  /* ---------- loader anatomy ---------- */
+  .anat { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .anat .card { display: flex; flex-direction: column; gap: 14px; padding: 22px 22px 20px; }
+  .anat .stage { height: 150px; border-radius: var(--radius); background: var(--surface-2); display: grid; place-items: center; position: relative; overflow: hidden; }
+  .anat .stage.navy { background: var(--rail); }
+  .anat .stage .mark { width: 88px; height: 88px; }
+  .anat .stage .mark .disc { fill: #202738; }
+  .anat .stage .weavebox { width: 70%; display: flex; flex-direction: column; gap: 10px; }
+  .anat .stage .weavebox .loader.weave { height: 4px; }
+  .anat .stage .shimbox { width: 70%; display: flex; flex-direction: column; gap: 10px; }
+  .anat .stage .shimbox .loader.shimmer:nth-child(2) { width: 70%; } .anat .stage .shimbox .loader.shimmer:nth-child(3) { width: 85%; }
+  .anat h3 { font-family: var(--serif); font-weight: 400; font-size: 21px; display: flex; align-items: baseline; gap: 8px; }
+  .anat h3 .k { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .anat dl { margin: 0; display: grid; grid-template-columns: 76px 1fr; gap: 6px 10px; font-size: 13px; }
+  .anat dt { color: var(--ink-3); } .anat dd { margin: 0; color: var(--ink-2); }
+  .anat dd b { color: var(--ink); font-weight: 500; }
+  .anat .copyline { font-size: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .anat .copyline .serif { font-size: 17px; }
+
+  /* ---------- states and copy ---------- */
+  .two { display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: start; }
+  .table { display: flex; flex-direction: column; }
+  .table .row { display: grid; grid-template-columns: 150px 1fr 150px; gap: 16px; padding: 11px 6px; border-top: 1px solid var(--line); font-size: 14px; align-items: baseline; }
+  .table .row:first-child { border-top: 0; color: var(--ink-3); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+  .table .row .w { font-weight: 500; }
+  .table .row .q { color: var(--ink); }
+  .table .row .q i { font-family: var(--serif); font-style: normal; color: var(--accent); }
+  .table .row .q .k { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .table .row .m { font-size: 13px; color: var(--ink-2); }
+  .rules { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+  .rules .rule { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; }
+  .rules .rule .n { width: 22px; height: 22px; border-radius: 50%; background: var(--apricot-soft); color: var(--accent); display: grid; place-items: center; font-size: 11.5px; font-weight: 600; margin-top: 1px; }
+  .rules .rule b { font-weight: 600; }
+  .minis { display: flex; gap: 14px; align-items: center; margin-top: 6px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface-2); }
+  .minis .mini { white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); padding: 6px 10px; border-radius: var(--radius-full); background: var(--surface); border: 1px solid var(--line); }
+  .minis .mini .loader.orbit { width: 18px; height: 18px; } .minis .mini .loader.orbit i { top: 7px; left: 7px; width: 4px; height: 4px; animation-name: converge-sm; }
+  @keyframes converge-sm { 0%, 100% { transform: translateX(7px) } 50% { transform: translateX(0) } }
+  .minis .mini .loader.weave { width: 42px; }
+  .minis .mini .mark { width: 18px; height: 18px; }
+  .minis .mini .btn { min-height: 26px; padding: 0 10px; font-size: 12.5px; }
+  .minis .mini.bad { color: var(--danger); }
+
+  /* ---------- mobile ---------- */
+  .phones { display: flex; gap: 22px; align-items: flex-start; }
+  .phones .pcol { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 258px; }
+  .phones .pcol .cap { font-size: 13px; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: baseline; }
+  .phones .pcol .cap .k { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .phones .pcol .cap .t { font-family: var(--serif); font-size: 16px; color: var(--ink); }
+  .pwrap { zoom: .66; }
+  .phone .launch { border-radius: 0; }
+  .phone .launch .mark { width: 96px; height: 96px; }
+  .phone .launch .wm { font-size: 40px; }
+  .phone .launch .foot { left: 22px; right: 22px; bottom: 36px; font-size: 12.5px; }
+  .phone .ptop { display: flex; align-items: center; gap: 10px; padding: 54px 18px 12px; border-bottom: 1px solid var(--line); font-family: var(--serif); font-size: 19px; min-width: 0; }
+  .phone .ptop .mark { width: 24px; height: 24px; }
+  .phone .ptop > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .phone .ptop .pill { margin-left: auto; flex: none; }
+  .phone .centre .line { font-size: 16px; padding: 0 28px; }
+  .phone .pbar { display: flex; justify-content: space-around; padding: 10px 10px 26px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink-3); }
+  .phone .pbar span { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .phone .pbar span i { width: 20px; height: 20px; border-radius: 6px; background: var(--surface-3); display: block; }
+  .phone .pbar span.on { color: var(--accent); } .phone .pbar span.on i { background: var(--apricot); }
+  .phone .pbody { flex: 1; min-height: 0; overflow: hidden; padding: 16px 16px 0; display: flex; flex-direction: column; gap: 14px; }
+  .phone .pbody .direction { padding: 14px 16px; grid-template-columns: 1fr; gap: 6px; }
+  .phone .pbody .direction .q { font-size: 18px; }
+  .phone .frow { grid-template-columns: 30px 1fr auto; padding: 11px 14px; gap: 10px; }
+  .phone .frow .goal, .phone .frow .claims { display: none; }
+  .phone .frow .ph.w60 { width: 100px; }
+  .phone .notice.op { padding: 14px 16px; }
+  .phone .notice.op .oh .serif { font-size: 18px; }
+  .phone .opstep { font-size: 13px; }
+  .phone .pcomposer { margin: 0 14px 24px; padding: 12px 14px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); color: var(--ink-3); font-size: 14px; display: flex; align-items: center; gap: 10px; }
+  .phone .pcomposer .send { margin-left: auto; width: 30px; height: 30px; opacity: .5; }
+  .phone .topweave { height: 3px; }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- ============ head ============ -->
+  <header class="head">
+    <div>
+      <div class="lede">
+        <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        <h1>Loading and connecting</h1>
+      </div>
+      <p>Four waits, four loaders, one line of copy each. Motion means joining or living, so every loader is a picture of something becoming one: the arcs close, three dots converge, two strands weave, a skeleton breathes while the words arrive. Nothing spins for its own sake.</p>
+    </div>
+    <div class="meta">
+      <div class="chips"><span class="chip on">brand</span><span class="chip">loading-screens</span><span class="chip">Payments team</span></div>
+      <span>Desktop 1440 × 900 · Mobile 390 × 844 · light and dark via tokens</span>
+    </div>
+  </header>
+
+  <!-- ============ the four screens ============ -->
+  <section class="bsec">
+    <div class="sh"><span class="n">01</span><h2>The four screens</h2><span class="d">Each wait gets the loader that tells its story, and only that one.</span></div>
+    <div class="screens">
+
+      <!-- 1 · app launch -->
+      <div class="screen">
+        <div class="cap"><span class="k">1</span><span class="t">App launch <em>· arcs close</em></span><span class="l">Loader <b>arcs-close</b> · the mark itself</span></div>
+        <div class="frame"><div class="window">
+          <div class="titlebar"><i></i><i></i><i></i><span class="tt">Henosis</span><span class="tray"><i></i>tray</span></div>
+          <div class="launch">
+            <div class="c">
+              <svg class="mark joining" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+              <div class="wm">Henosis</div>
+              <div class="line">Opening the circle.</div>
+            </div>
+            <div class="foot">
+              <span class="who"><span class="avatar">AN</span>Ana · Payments team</span>
+              <span class="mono">0.9.2 · desktop</span>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- 2 · session joining -->
+      <div class="screen">
+        <div class="cap"><span class="k">2</span><span class="t">Session joining <em>· three dots become one</em></span><span class="l">Loader <b>orbit-converge</b> · centre of the stream</span></div>
+        <div class="frame"><div class="window">
+          <div class="titlebar"><i></i><i></i><i></i><span class="tt">Billing page · Checkout — Henosis</span><span class="tray"><i></i>tray</span></div>
+          <div class="shell">
+            <aside class="rail">
+              <div class="brand"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>Henosis</div>
+              <button class="new">＋ New session</button>
+              <div class="section">Agents <span class="n">3</span></div>
+              <div class="crew"><span class="serif">Invoice rollout</span>· 2 agents</div>
+              <a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Bo's agent</span><span class="pill team">Team</span></div><div class="doing">Proration on the <i>invoice PDF</i> for mid-cycle plan changes</div><div class="foot"><span class="stack"><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span></span>with Cy, Dee · 41k tokens</div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Cy's agent</span><span class="pill solo">Solo</span></div><div class="doing">Tax lines on the <i>Billing page</i>, waiting on an exec approval</div><div class="foot">alone · 18k tokens</div></a>
+              <div class="crew"><span class="serif">Checkout</span>· 1 agent</div>
+              <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div><div class="doing">Checkout retries when the card issuer times out</div><div class="foot">alone · 9k tokens</div></a>
+              <div class="me"><span class="avatar">AN</span>Ana<span class="pill solo" style="margin-left:auto">Payments</span></div>
+            </aside>
+            <div class="main">
+              <div class="topbar"><div class="title"><span>Billing page · Checkout</span><span class="pill team">Team</span></div><span class="stack"><span class="avatar driver">BO</span><span class="avatar">CY</span><span class="avatar">DE</span></span><div class="right"><button class="btn sm">Details</button></div></div>
+              <div class="centre">
+                <div class="c">
+                  <div class="loader orbit lg"><i></i><i></i><i></i></div>
+                  <div class="line">Joining <span class="serif">Bo</span>, <span class="serif">Cy</span> and <span class="serif">Dee</span> in <span class="serif">Billing page · Checkout</span>.</div>
+                  <div class="sub">1,204 of 2,310 events folded</div>
+                </div>
+              </div>
+              <div class="composer-wrap"><div class="composer waiting"><div class="input">Joining…</div><div class="bar"><div class="seg"><button class="on">Agent</button><button>Team</button></div><span class="hint">You can type once the history is in.</span><div class="right"><button class="send" aria-label="Send">↑</button></div></div></div></div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- 3 · project opening -->
+      <div class="screen">
+        <div class="cap"><span class="k">3</span><span class="t">Project opening <em>· two strands weave</em></span><span class="l">Loader <b>weave</b> · under the title, rows ride in</span></div>
+        <div class="frame"><div class="window">
+          <div class="titlebar"><i></i><i></i><i></i><span class="tt">Payments — Henosis</span><span class="tray"><i></i>tray</span></div>
+          <div class="shell">
+            <aside class="rail">
+              <div class="brand"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>Henosis</div>
+              <button class="new">＋ New session</button>
+              <div class="section">Projects</div>
+              <a class="item active" href="#">Payments<span class="n" style="margin-left:auto;color:var(--rail-muted)">5</span></a>
+              <a class="item" href="#">Onboarding</a>
+              <div class="section">Agents <span class="n">3</span></div>
+              <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Bo's agent</span><span class="pill team">Team</span></div><div class="doing">Proration on the <i>invoice PDF</i></div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Cy's agent</span><span class="pill solo">Solo</span></div><div class="doing">Tax lines on the <i>Billing page</i></div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div><div class="doing">Checkout retries</div></a>
+              <div class="me"><span class="avatar">AN</span>Ana<span class="pill solo" style="margin-left:auto">Payments</span></div>
+            </aside>
+            <div class="main">
+              <div class="topbar"><div class="title"><span>Payments</span></div><div class="right"><button class="btn sm">Team chat</button><button class="btn sm primary">Invite</button></div><div class="loader weave"></div></div>
+              <div class="scroll"><div class="project">
+                <div class="ph"><h1>Payments</h1><span class="line">Opening Payments. <span class="mono">3 of 5 sessions in</span></span></div>
+                <div>
+                  <h3 class="sec">Direction</h3>
+                  <div class="direction"><div class="q">Ship proration and tax lines on the invoice PDF before Checkout changes; nothing lands in main without the Billing page owners.</div><div class="by">Ana · lead · Tuesday</div></div>
+                </div>
+                <div>
+                  <h3 class="sec">Agents by crew</h3>
+                  <div class="fleet">
+                    <div class="crewh"><span class="serif">Invoice rollout</span>· 2 sessions · Bo has the baton</div>
+                    <div class="frow rise"><span class="avatar ag">BO</span><span class="who">Bo's agent<span>Billing page · Checkout</span></span><span class="goal">Proration on the <i>invoice PDF</i> for mid-cycle changes</span><span class="claims">billing/invoice/*</span><span class="status running">running</span></div>
+                    <div class="frow rise" style="animation-delay:.08s"><span class="avatar ag">CY</span><span class="who">Cy's agent<span>Tax lines</span></span><span class="goal">Tax lines on the <i>Billing page</i>, VAT and sales tax</span><span class="claims">billing/tax/*</span><span class="status awaiting">awaiting</span></div>
+                    <div class="crewh"><span class="serif">Checkout</span>· 3 sessions</div>
+                    <div class="frow rise" style="animation-delay:.16s"><span class="avatar ag">DE</span><span class="who">Dee's agent<span>Checkout retries</span></span><span class="goal">Retry when the card issuer times out</span><span class="claims">checkout/pay/*</span><span class="status running">running</span></div>
+                    <div class="frow pending"><span class="avatar">·</span><span class="who">2 more sessions</span><span class="ph w60"></span><span class="ph w40"></span><span class="status">reading</span></div>
+                  </div>
+                </div>
+              </div></div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- 4 · long operation -->
+      <div class="screen">
+        <div class="cap"><span class="k">4</span><span class="t">Long operation <em>· the summary arrives</em></span><span class="l">Loader <b>shimmer</b> · inside the notice, never the page</span></div>
+        <div class="frame"><div class="window">
+          <div class="titlebar"><i></i><i></i><i></i><span class="tt">Billing page · Checkout — Henosis</span><span class="tray"><i></i>tray</span></div>
+          <div class="shell">
+            <aside class="rail">
+              <div class="brand"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>Henosis</div>
+              <button class="new">＋ New session</button>
+              <div class="section">Agents <span class="n">3</span></div>
+              <div class="crew"><span class="serif">Invoice rollout</span>· 2 agents</div>
+              <a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Bo's agent</span><span class="pill team">Team</span></div><div class="doing">Uniting <i>pdf-layout</i> into main</div><div class="foot"><span class="stack"><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span><span class="avatar">AN</span></span>with Cy, Dee, Ana · 58k tokens</div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Cy's agent</span><span class="pill solo">Solo</span></div><div class="doing">Tax lines on the <i>Billing page</i></div></a>
+              <div class="crew"><span class="serif">Checkout</span>· 1 agent</div>
+              <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div><div class="doing">Checkout retries</div></a>
+              <div class="me"><span class="avatar">AN</span>Ana<span class="pill solo" style="margin-left:auto">Payments</span></div>
+            </aside>
+            <div class="main">
+              <div class="topbar"><div class="title"><span>Billing page · Checkout</span><span class="pill team">Team</span></div><span class="stack"><span class="avatar driver">BO</span><span class="avatar">CY</span><span class="avatar">DE</span><span class="avatar">AN</span></span><div class="right"><button class="btn sm">Details</button></div></div>
+              <div class="scroll"><div class="column">
+                <div class="msg human"><div class="meta"><span class="who">Ana</span><span>14:02</span><span class="pill">goal</span></div><div class="text">Unite pdf-layout into main once the tax lines pass. Keep the proration rows in the same table as the plan lines.</div></div>
+                <div class="msg agent"><div class="meta"><span class="who">Bo's agent</span><span>14:02</span></div><div class="text">Uniting now. The tax lines branch has two directives that touch the same table; I will carry both and flag the one that conflicts.</div>
+                  <div class="steps"><div class="step"><span class="ok">✓</span> Read directives · goal, api, tests</div><div class="step"><span class="ok">✓</span> Claim billing/invoice/pdf/* · granted</div></div></div>
+                <div class="notice gate op">
+                  <div class="oh"><span class="serif">Uniting pdf-layout into main</span><span class="pill">three-way</span></div>
+                  <div class="opsteps">
+                    <div class="opstep done"><span class="n">✓</span><span>Workspace merged · 212 files, 0 conflicts</span><span class="r">6 s</span></div>
+                    <div class="opstep done"><span class="n">✓</span><span>Directives reconciled · 2 contentions for Bo</span><span class="r">2 s</span></div>
+                    <div class="opstep running"><span class="n"></span><span>Re-running tax line tests · invoice PDF, proration</span><span class="r">41 s</span></div>
+                    <div class="opstep todo"><span class="n">4</span><span>Release gate · Billing page owners rate</span><span class="r">waits</span></div>
+                  </div>
+                  <div class="summary"><span class="t">Summary for the release gate</span><div class="loader shimmer" style="width:92%"></div><div class="loader shimmer" style="width:74%"></div><div class="loader shimmer" style="width:58%"></div></div>
+                  <div class="line"><b>Bo's agent</b> is uniting pdf-layout into main. About a minute; you will be told.</div>
+                  <div class="actions"><button class="btn sm">Watch tests</button><button class="btn sm ghost">Cancel</button></div>
+                </div>
+              </div></div>
+              <div class="composer-wrap"><div class="composer"><div class="input" style="color:var(--ink-3)">Steer Bo's agent…</div><div class="bar"><div class="seg"><button class="on">Agent</button><button>Team</button></div><div class="right"><button class="send" aria-label="Send">↑</button></div></div></div></div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ loader anatomy ============ -->
+  <section class="bsec">
+    <div class="sh"><span class="n">02</span><h2>The four loaders</h2><span class="d">One per screen; the same four everywhere else in the app. Calm mode and reduced motion freeze each at its finished frame.</span></div>
+    <div class="anat">
+      <div class="card">
+        <div class="stage navy"><svg class="mark joining" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div>
+        <h3>Arcs close <span class="k">arcs-close</span></h3>
+        <dl><dt>Where</dt><dd><b>App launch</b>, the splash, the join line in a stream</dd><dt>Loop</dt><dd>1.8 s · arcs swing in from ±70°, overshoot 4°, settle; dot pops at 60%</dd><dt>Still</dt><dd>The closed ring with its centre dot</dd><dt>Sizes</dt><dd>120 on the splash, 48 in a stream, 28 in the rail</dd></dl>
+        <div class="copyline"><span class="serif">Opening the circle.</span></div>
+      </div>
+      <div class="card">
+        <div class="stage"><div class="loader orbit lg"><i></i><i></i><i></i></div></div>
+        <h3>Orbit converge <span class="k">orbit-converge</span></h3>
+        <dl><dt>Where</dt><dd><b>Session joining</b>, reconnecting, a chat opening</dd><dt>Loop</dt><dd>1.4 s · apricot, chocolate and ink orbit and meet at the centre</dd><dt>Still</dt><dd>Three dots stacked as one</dd><dt>Sizes</dt><dd>54 in a page centre, 18 inline in a toast</dd></dl>
+        <div class="copyline"><span class="serif">Joining Bo, Cy and Dee in Billing page · Checkout.</span></div>
+      </div>
+      <div class="card">
+        <div class="stage"><div class="weavebox"><div class="loader weave"></div><div class="loader weave" style="animation-direction:reverse;opacity:.55"></div></div></div>
+        <h3>Weave <span class="k">weave</span></h3>
+        <dl><dt>Where</dt><dd><b>Project opening</b>, any page whose rows arrive one by one</dd><dt>Loop</dt><dd>1.2 s · the live gradient runs along a 3 px strand under the title</dd><dt>Still</dt><dd>A plain apricot strand; gone when the page is whole</dd><dt>Sizes</dt><dd>Full width under a topbar, 42 px inline</dd></dl>
+        <div class="copyline"><span class="serif">Opening Payments.</span> <span class="mono muted" style="white-space:nowrap">3 of 5 in</span></div>
+      </div>
+      <div class="card">
+        <div class="stage"><div class="shimbox"><div class="loader shimmer"></div><div class="loader shimmer"></div><div class="loader shimmer"></div></div></div>
+        <h3>Shimmer <span class="k">shimmer</span></h3>
+        <dl><dt>Where</dt><dd><b>Long operation</b>, inside the notice where the words will land</dd><dt>Loop</dt><dd>1.4 s · a soft apricot light passes over the lines</dd><dt>Still</dt><dd>Flat placeholder lines</dd><dt>Sizes</dt><dd>12 px lines, 92 / 74 / 58 % wide; never a whole page</dd></dl>
+        <div class="copyline"><span class="serif">Bo's agent is uniting pdf-layout into main.</span> <span class="muted">About a minute.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ copy and states ============ -->
+  <section class="bsec">
+    <div class="sh"><span class="n">03</span><h2>Copy and the waits that go wrong</h2><span class="d">One sentence, present tense, names in serif, numbers in mono. The second line is only ever a count or a cause.</span></div>
+    <div class="two">
+      <div class="card">
+        <div class="table">
+          <div class="row"><span>Wait</span><span>Line</span><span>After 8 s</span></div>
+          <div class="row"><span class="w">App launch</span><span class="q">Opening the circle.</span><span class="m">Still opening. <span class="k">0.9.2</span></span></div>
+          <div class="row"><span class="w">Connecting</span><span class="q">Connecting to <i>Payments</i>.</span><span class="m">The server is slow to answer.</span></div>
+          <div class="row"><span class="w">Joining</span><span class="q">Joining <i>Bo</i>, <i>Cy</i> and <i>Dee</i> in <i>Billing page · Checkout</i>. <span class="k">1,204 of 2,310</span></span><span class="m">A long session; the count keeps moving.</span></div>
+          <div class="row"><span class="w">Reconnecting</span><span class="q">Reconnecting · <i>Bo</i> still has the baton.</span><span class="m">Offline. Open the last brief?</span></div>
+          <div class="row"><span class="w">Project opening</span><span class="q">Opening <i>Payments</i>. <span class="k">3 of 5 sessions in</span></span><span class="m">Two sessions are not answering.</span></div>
+          <div class="row"><span class="w">Long operation</span><span class="q"><i>Bo's agent</i> is uniting pdf-layout into main. About a minute.</span><span class="m">Longer than expected · Watch tests</span></div>
+          <div class="row"><span class="w">Failed</span><span class="q">Could not join <i>Billing page · Checkout</i>.</span><span class="m">Try again · Open the replay</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="rules">
+          <div class="rule"><span class="n">1</span><span><b>Say who and what, never "loading".</b> The line names the people, the session or the project. "Loading…" is the fallback the copy table never reaches.</span></div>
+          <div class="rule"><span class="n">2</span><span><b>One loader per screen.</b> The launch has the mark, a session the orbit, a project the strand, an operation the shimmer. A screen never shows two of them.</span></div>
+          <div class="rule"><span class="n">3</span><span><b>Show what is already in.</b> The rail is live while a session joins; the direction is readable while rows arrive; finished steps stay checked while one runs.</span></div>
+          <div class="rule"><span class="n">4</span><span><b>Count instead of a bar.</b> Events folded, sessions in, seconds on a step. A percentage bar lies about things that are not divisible.</span></div>
+          <div class="rule"><span class="n">5</span><span><b>Waits that go wrong get a hand.</b> After 8 s a second line explains; after 30 s one chocolate action appears. Never a spinner alone.</span></div>
+        </div>
+        <div class="minis">
+          <span class="mini"><div class="loader orbit"><i></i><i></i><i></i></div>Reconnecting</span>
+          <span class="mini"><div class="loader weave"></div>3 of 5</span>
+          <span class="mini"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>Ana joined</span>
+          <span class="mini bad">Could not join <button class="btn sm primary">Try again</button></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ mobile ============ -->
+  <section class="bsec">
+    <div class="sh"><span class="n">04</span><h2>On the phone</h2><span class="d">The same four waits at 390 × 844; the loader sits where the thumb is not.</span></div>
+    <div class="phones">
+      <div class="pcol"><div class="pwrap"><div class="phone">
+        <div class="launch"><div class="c">
+          <svg class="mark joining" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+          <div class="wm">Henosis</div><div class="line">Opening the circle.</div></div>
+          <div class="foot"><span class="who"><span class="avatar">AN</span>Ana</span><span class="mono">0.9.2</span></div></div>
+      </div></div><div class="cap"><span class="k">1</span><span class="t">Launch</span>arcs close</div></div>
+
+      <div class="pcol"><div class="pwrap"><div class="phone">
+        <div class="ptop"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span>Billing page · Checkout</span><span class="pill team">Team</span></div>
+        <div class="centre"><div class="c"><div class="here"><span class="stack"><span class="avatar driver">BO</span><span class="avatar">CY</span><span class="avatar">DE</span></span>here now</div><div class="loader orbit lg"><i></i><i></i><i></i></div><div class="line">Joining <span class="serif">Bo</span>, <span class="serif">Cy</span> and <span class="serif">Dee</span>.</div><div class="sub">1,204 of 2,310 events</div></div></div>
+        <div class="pcomposer">Joining…<button class="send" aria-label="Send">↑</button></div>
+        <div class="pbar"><span class="on"><i></i>Session</span><span><i></i>Chats</span><span><i></i>Approvals</span><span><i></i>Rail</span></div>
+      </div></div><div class="cap"><span class="k">2</span><span class="t">Joining</span>orbit converge</div></div>
+
+      <div class="pcol"><div class="pwrap"><div class="phone">
+        <div class="ptop"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span>Payments</span></div>
+        <div class="loader weave topweave"></div>
+        <div class="pbody">
+          <div class="direction"><div class="q">Ship proration and tax lines on the invoice PDF before Checkout changes.</div><div class="by">Ana · lead</div></div>
+          <div class="fleet">
+            <div class="crewh"><span class="serif">Invoice rollout</span>· 2</div>
+            <div class="frow rise"><span class="avatar ag">BO</span><span class="who">Bo's agent</span><span class="status running">running</span></div>
+            <div class="frow rise"><span class="avatar ag">CY</span><span class="who">Cy's agent</span><span class="status awaiting">awaiting</span></div>
+            <div class="crewh"><span class="serif">Checkout</span>· 3</div>
+            <div class="frow rise"><span class="avatar ag">DE</span><span class="who">Dee's agent</span><span class="status running">running</span></div>
+            <div class="frow pending"><span class="avatar">·</span><span class="ph w60"></span><span class="status">reading</span></div>
+          </div>
+          <div class="muted small" style="text-align:center">Opening Payments. <span class="mono">3 of 5 in</span></div>
+        </div>
+        <div class="pbar"><span><i></i>Session</span><span><i></i>Chats</span><span><i></i>Approvals</span><span class="on"><i></i>Rail</span></div>
+      </div></div><div class="cap"><span class="k">3</span><span class="t">Project</span>weave</div></div>
+
+      <div class="pcol"><div class="pwrap"><div class="phone">
+        <div class="ptop"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span>Billing page · Checkout</span><span class="pill team">Team</span></div>
+        <div class="pbody">
+          <div class="msg human"><div class="meta"><span class="who">Ana</span><span>14:02</span></div><div class="text" style="max-width:100%">Unite pdf-layout into main once the tax lines pass.</div></div>
+          <div class="notice gate op">
+            <div class="oh"><span class="serif">Uniting pdf-layout</span><span class="pill">three-way</span></div>
+            <div class="opsteps">
+              <div class="opstep done"><span class="n">✓</span><span>Workspace merged</span><span class="r">6 s</span></div>
+              <div class="opstep done"><span class="n">✓</span><span>Directives reconciled</span><span class="r">2 s</span></div>
+              <div class="opstep running"><span class="n"></span><span>Tax line tests</span><span class="r">41 s</span></div>
+              <div class="opstep todo"><span class="n">4</span><span>Release gate</span><span class="r">waits</span></div>
+            </div>
+            <div class="summary"><span class="t">Summary</span><div class="loader shimmer" style="width:92%"></div><div class="loader shimmer" style="width:70%"></div></div>
+            <div class="line"><b>Bo's agent</b> is uniting. About a minute.</div>
+          </div>
+        </div>
+        <div class="pcomposer">Steer Bo's agent…<button class="send" aria-label="Send">↑</button></div>
+        <div class="pbar"><span class="on"><i></i>Session</span><span><i></i>Chats</span><span><i></i>Approvals</span><span><i></i>Rail</span></div>
+      </div></div><div class="cap"><span class="k">4</span><span class="t">Operation</span>shimmer</div></div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

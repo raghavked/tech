@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis type scale</title>
+<meta name="description" content="Type scale and rhythm for Henosis: serif for names, sans for reading, mono for numbers; the steps, the baseline, and the measure of the column.">
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* proposed additions to tokens.css: the named steps of the scale */
+  :root {
+    --t-display: 400 40px/44px var(--serif);
+    --t-title: 400 26px/32px var(--serif);
+    --t-name: 400 20px/24px var(--serif);
+    --t-name-sm: 400 16px/20px var(--serif);
+    --t-body: 400 15.5px/24px var(--font);
+    --t-text: 400 15px/24px var(--font);
+    --t-ui: 500 14px/20px var(--font);
+    --t-caption: 400 13px/20px var(--font);
+    --t-micro: 500 12px/16px var(--font);
+    --t-kicker: 600 11.5px/16px var(--font);
+    --t-mono: 400 13px/20px var(--mono);
+    --t-mono-sm: 400 12.5px/16px var(--mono);
+    --t-figure: 500 28px/32px var(--mono);
+    --t-figure-lg: 400 40px/44px var(--mono);
+    --measure: 600px; /* prose inside the 780px column */
+    --baseline: 4px;
+  }
+  body { min-height: 100%; background-repeat: no-repeat; }
+  .board { width: min(1360px, 100%); margin: 0 auto; padding: 0 40px 96px; display: flex; flex-direction: column; gap: 56px; }
+  header.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 48px; padding: 44px 0 0; align-items: end; }
+  header.top .brand { display: flex; align-items: center; gap: 12px; font: var(--t-name); margin-bottom: 18px; }
+  header.top .brand svg { width: 30px; height: 30px; }
+  header.top h1 { font-size: 56px; line-height: 1.02; }
+  header.top h1 em { font-style: italic; color: var(--accent); }
+  header.top .sub { max-width: 660px; color: var(--ink-2); font-size: 16px; margin: 14px 0 0; }
+  header.top .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font: var(--t-caption); color: var(--ink-3); text-align: right; }
+  header.top .meta .mono { color: var(--ink-2); }
+  .kicker { font: var(--t-kicker); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .num { font: var(--t-mono-sm); color: var(--apricot-deep); margin-right: 10px; }
+  section { display: flex; flex-direction: column; gap: 20px; }
+  section > .shead { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: end; }
+  section > .shead h2 { font-size: 30px; }
+  section > .shead p { margin: 0; color: var(--ink-2); font: var(--t-text); max-width: 560px; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+  .spec { font: var(--t-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  /* 01 three voices */
+  .voices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .voice { border-radius: var(--radius-lg); padding: 26px 26px 22px; min-height: 330px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; box-shadow: var(--shadow-soft); border: 1px solid var(--line); background: var(--surface); }
+  .voice .role { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; }
+  .voice .role .kicker { color: inherit; opacity: .7; }
+  .voice .big { font-size: 64px; line-height: 1; letter-spacing: -0.02em; margin-top: 6px; }
+  .voice .list { display: flex; flex-direction: column; gap: 2px; font-size: 15px; }
+  .voice .foot { margin-top: auto; font: var(--t-caption); opacity: .85; display: flex; justify-content: space-between; gap: 8px; }
+  .voice.serif-v { background: #2A3244; color: #F3EDE4; border-color: transparent; }
+  .voice.serif-v .big, .voice.serif-v .list { font-family: var(--serif); }
+  .voice.serif-v .list { font-size: 20px; line-height: 28px; }
+  .voice.serif-v .list i { color: var(--apricot); }
+  .voice.sans-v .big { font-family: var(--font); font-weight: 500; letter-spacing: -0.02em; }
+  .voice.sans-v .list { display: block; font: var(--t-body); color: var(--ink); max-width: 36ch; }
+  .voice.sans-v .list b { font-weight: 600; }
+  .voice.mono-v { background: var(--gradient-brand); color: #fff; border-color: transparent; }
+  .voice.mono-v .big { font-family: var(--mono); font-weight: 500; letter-spacing: -0.02em; font-size: 56px; }
+  .voice.mono-v .list { font: var(--t-mono); font-size: 15px; line-height: 24px; font-variant-numeric: tabular-nums; }
+  .voice.mono-v .list span { display: flex; justify-content: space-between; gap: 16px; }
+  .voice.mono-v .list span em { font-style: normal; opacity: .7; font-family: var(--font); }
+  .voice.mono-v .foot { color: rgba(255,255,255,.8); }
+
+  /* 02 the scale */
+  .scale { display: grid; grid-template-columns: minmax(0, 1fr); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .scale .row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 210px; gap: 20px; align-items: baseline; padding: 18px 24px; border-top: 1px solid var(--line); position: relative; }
+  .scale .row:first-child { border-top: 0; }
+  .scale .row.grid { background-image: repeating-linear-gradient(to bottom, transparent 0 3px, color-mix(in srgb, var(--apricot-deep) 16%, transparent) 3px 4px); background-size: 100% 4px; background-position: 0 18px; }
+  .scale .row.head { background: var(--surface-2); padding: 10px 24px; align-items: center; }
+  .scale .row .label { display: flex; flex-direction: column; gap: 2px; }
+  .scale .row .label .n { font: var(--t-ui); }
+  .scale .row .label .u { font: var(--t-caption); color: var(--ink-3); }
+  .scale .row .sample { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .scale .row .vals { display: grid; grid-template-columns: repeat(4, auto); gap: 14px; justify-content: end; font: var(--t-mono-sm); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .scale .row.head .vals, .scale .row.head .label .n { font: var(--t-kicker); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .s-display { font: var(--t-display); letter-spacing: -0.01em; }
+  .s-title { font: var(--t-title); letter-spacing: -0.01em; }
+  .s-name { font: var(--t-name); }
+  .s-name-sm { font: var(--t-name-sm); }
+  .s-body { font: var(--t-body); }
+  .s-text { font: var(--t-text); }
+  .s-ui { font: var(--t-ui); }
+  .s-caption { font: var(--t-caption); color: var(--ink-2); }
+  .s-micro { font: var(--t-micro); color: var(--ink-2); }
+  .s-kicker { font: var(--t-kicker); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .s-mono { font: var(--t-mono); font-variant-numeric: tabular-nums; }
+  .s-mono-sm { font: var(--t-mono-sm); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .s-figure { font: var(--t-figure); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .s-figure-lg { font: var(--t-figure-lg); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .s-display i, .s-title i, .s-name i { color: var(--accent); }
+  .twocol { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .aside { display: flex; flex-direction: column; gap: 16px; }
+  .note { border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--surface); padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-soft); }
+  .note h3 { font: var(--t-name); }
+  .note p { margin: 0; font: var(--t-caption); color: var(--ink-2); }
+  .note ul { margin: 0; padding-left: 18px; font: var(--t-caption); color: var(--ink-2); display: flex; flex-direction: column; gap: 4px; }
+  .note .spacing { display: flex; align-items: flex-end; gap: 10px; margin-top: 4px; }
+  .note .spacing i { display: block; background: var(--apricot); border-radius: 3px; width: 100%; }
+  .note .spacing div { display: flex; flex-direction: column; align-items: center; gap: 6px; font: var(--t-mono-sm); color: var(--ink-3); flex: 1; }
+  .weights { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font: var(--t-caption); color: var(--ink-2); align-items: baseline; }
+  .weights .w { font-size: 17px; color: var(--ink); }
+
+  /* 03 the column */
+  .colwrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+  .stage { border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--canvas); background-image: var(--canvas-wash); box-shadow: var(--shadow-soft); padding: 0 0 28px; position: relative; overflow: hidden; }
+  .stage .ruler { position: relative; width: var(--col); margin: 0 auto; height: 40px; display: flex; align-items: flex-end; }
+  .stage .ruler .bar { position: absolute; left: 24px; right: 24px; bottom: 12px; height: 1px; background: var(--apricot-deep); }
+  .stage .ruler .bar::before, .stage .ruler .bar::after { content: ""; position: absolute; top: -5px; width: 1px; height: 11px; background: var(--apricot-deep); }
+  .stage .ruler .bar::before { left: 0; } .stage .ruler .bar::after { right: 0; }
+  .stage .ruler .tag { position: absolute; left: 24px; bottom: 18px; font: var(--t-mono-sm); color: var(--apricot-deep); }
+  .stage .ruler .tag.r { left: auto; right: 24px; }
+  .stage .ruler .tag.mea { left: calc(24px + var(--measure)); transform: translateX(-100%); padding-right: 8px; }
+  .stage .ruler .bar i { position: absolute; left: var(--measure); top: -5px; width: 1px; height: 11px; background: var(--apricot-deep); }
+  .stage .measure-x { position: absolute; left: calc(50% - var(--col) / 2 + 24px); width: var(--measure); top: 40px; bottom: 0; border-right: 1px dashed color-mix(in srgb, var(--apricot-deep) 60%, transparent); pointer-events: none; }
+  .stage .measure b { position: absolute; right: -1px; top: 6px; transform: translateX(100%); padding-left: 8px; font: var(--t-mono-sm); color: var(--apricot-deep); white-space: nowrap; font-weight: 400; }
+  .stage .column { padding-bottom: 0; gap: 22px; }
+  .stage .msg .text p { margin: 0; }
+  .stage .msg.agent .text { max-width: var(--measure); border-right: 1px dashed color-mix(in srgb, var(--apricot-deep) 55%, transparent); }
+  .stage .msg.agent .text p + p { margin-top: 12px; }
+  .stage .msg .meta .time { font: var(--t-mono-sm); color: var(--ink-3); margin-left: auto; }
+  .stage .step .mono { color: var(--ink); }
+  .stage .step .ok { color: var(--ok); }
+  .stage .step .took { margin-left: auto; font: var(--t-mono-sm); color: var(--ink-3); }
+  .stage .step .ico { width: 14px; height: 14px; flex: none; color: var(--ink-3); }
+  .stage .plan .pstep .took { font: var(--t-mono-sm); color: var(--ink-2); }
+  .stage .plan .pstep .t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .stage .plan .pstep .t small { font: var(--t-caption); color: var(--ink-3); }
+  .stage .plan .foot { display: flex; align-items: center; gap: 12px; font: var(--t-caption); color: var(--ink-2); flex-wrap: wrap; }
+  .stage .plan .foot .mono { color: var(--ink); }
+  .stage .plan .foot .btns { margin-left: auto; display: flex; gap: 8px; }
+  .stage .notice .head { display: flex; align-items: center; gap: 10px; }
+  .stage .notice .head .serif { font: var(--t-name); }
+  .stage .notice .head .pill { margin-left: auto; }
+  .stage .notice p { margin: 0; font: var(--t-text); color: var(--ink-2); }
+  .stage .notice .votes { display: flex; gap: 14px; flex-wrap: wrap; font: var(--t-caption); color: var(--ink-2); }
+  .stage .notice .votes span { display: inline-flex; align-items: center; gap: 6px; }
+  .stage .notice .votes .who { font: var(--t-name-sm); color: var(--ink); }
+  .stage .notice .votes .mono { font-size: 12.5px; }
+  .callouts { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 20px; }
+  .callout { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); font: var(--t-caption); color: var(--ink-2); align-items: start; }
+  .callout b { display: block; font: var(--t-ui); color: var(--ink); margin-bottom: 2px; }
+  .callout .k { width: 22px; height: 22px; border-radius: 50%; background: var(--apricot); color: #56352D; display: grid; place-items: center; font: var(--t-mono-sm); font-weight: 500; }
+  .stage .k, .stage .notice .votes span.k { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--apricot); color: #56352D; font: 500 11px/1 var(--mono); vertical-align: 3px; margin-left: 6px; }
+
+  /* 04 numbers */
+  .numbers { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .tbl { display: flex; flex-direction: column; }
+  .tbl .r { display: grid; grid-template-columns: minmax(0, 1fr) 110px 110px 90px; gap: 16px; padding: 10px 0; border-top: 1px solid var(--line); align-items: baseline; font: var(--t-text); }
+  .tbl .r.h { border-top: 0; padding-top: 0; font: var(--t-kicker); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .tbl .r.total { font-weight: 600; border-top: 2px solid var(--ink); }
+  .tbl .r .n { font: var(--t-mono); font-variant-numeric: tabular-nums; text-align: right; }
+  .tbl .r.total .n { font-weight: 500; }
+  .tbl .r .who { font: var(--t-name); }
+  .tbl .r .sub { font: var(--t-caption); color: var(--ink-3); display: block; }
+  .tbl .r .neg { color: var(--danger); }
+  .tbl .r .bud { display: flex; flex-direction: column; gap: 5px; align-self: center; }
+  .card h3.serif { font: var(--t-name); margin-bottom: 14px; }
+  .card .cardhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .card .cardhead .mono { color: var(--ink-3); font-size: 12.5px; }
+  .figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .fig { padding: 14px 16px; border-radius: var(--radius); background: var(--surface-2); display: flex; flex-direction: column; gap: 4px; }
+  .fig .v { font: var(--t-figure); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .fig .l { font: var(--t-caption); color: var(--ink-2); }
+  .fig .d { font: var(--t-mono-sm); color: var(--ok); }
+  .fig .d.warn { color: var(--warn); }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .compare div { padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); font-size: 15px; line-height: 24px; }
+  .compare div b { display: block; font: var(--t-kicker); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+  .compare .bad { font-family: var(--font); font-variant-numeric: proportional-nums; }
+  .compare .bad b { color: var(--danger); }
+  .compare .good { font-family: var(--mono); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  .compare .good b { color: var(--ok); }
+  .compare span { display: flex; justify-content: space-between; } .compare em { font-style: normal; }
+  .chipline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .tchip { display: inline-flex; flex-direction: column; gap: 4px; padding: 6px 10px; border-radius: var(--radius); background: var(--surface-2); min-width: 120px; }
+  .tchip .mono { font-size: 12.5px; color: var(--ink); }
+  .tchip .budget { width: 100%; height: 3px; }
+
+  /* 05 mobile */
+  .mob { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 32px; align-items: start; }
+  .phone { height: auto; min-height: 640px; }
+  .phone .ptop { padding: 54px 20px 12px; display: flex; align-items: center; gap: 10px; }
+  .phone .ptop .title { font: 400 22px/28px var(--serif); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phone .ptop .pill { flex: none; }
+  .phone .pcol { padding: 8px 20px 24px; display: flex; flex-direction: column; gap: 18px; }
+  .phone .msg .meta .who { font: 400 18px/24px var(--serif); }
+  .phone .msg .meta { font: var(--t-caption); }
+  .phone .msg.human .text { font: 400 16px/24px var(--font); max-width: 92%; padding: 11px 15px; }
+  .phone .msg.agent .text { font: 400 16px/24px var(--font); }
+  .phone .msg .text p { margin: 0; }
+  .phone .step { font: 400 13.5px/20px var(--font); }
+  .phone .step .mono { font-size: 12.5px; color: var(--ink); }
+  .phone .step .took { margin-left: auto; font: var(--t-mono-sm); color: var(--ink-3); }
+  .phone .plan { padding: 14px 16px; gap: 10px; }
+  .phone .plan .head .serif { font: 400 19px/24px var(--serif); }
+  .phone .plan .pstep { grid-template-columns: 20px 1fr auto; font: 400 14px/20px var(--font); padding: 8px 0; }
+  .phone .plan .pstep .est { font-size: 12px; }
+  .phone .pcomp { margin-top: auto; padding: 12px 16px 24px; }
+  .phone .composer { padding: 10px 10px 8px 14px; font-size: 16px; }
+  .mscale { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .mscale .row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 160px; gap: 16px; padding: 12px 20px; border-top: 1px solid var(--line); align-items: baseline; }
+  .mscale .row:first-child { border-top: 0; background: var(--surface-2); padding: 9px 20px; }
+  .mscale .row .label { font: var(--t-ui); }
+  .mscale .row:first-child .label, .mscale .row:first-child .vals { font: var(--t-kicker); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .mscale .row .sample { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mscale .row .vals { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font: var(--t-mono-sm); color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; }
+  .mscale .row .vals .was { color: var(--ink-3); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--ink-3) 50%, transparent); }
+
+  /* 06 rules */
+  .rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .rule { border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--surface); padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow-soft); }
+  .rule h3 { font: var(--t-name); }
+  .rule .ex { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .rule .ex div { padding: 10px 12px; border-radius: var(--radius); background: var(--surface-2); display: flex; flex-direction: column; gap: 2px; }
+  .rule .ex .tag { font: var(--t-kicker); letter-spacing: .08em; text-transform: uppercase; }
+  .rule .ex .yes .tag { color: var(--ok); } .rule .ex .no .tag { color: var(--danger); }
+  .rule .ex .no .s { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--danger) 55%, transparent); color: var(--ink-2); }
+  .rule .ex .s { font: var(--t-text); }
+  .rule .ex .s.serif { font-family: var(--serif); font-size: 17px; }
+  .rule .ex .s.mono { font-family: var(--mono); font-size: 13px; }
+  .rule p { margin: 0; font: var(--t-caption); color: var(--ink-2); }
+
+  footer { display: flex; align-items: center; gap: 12px; font: var(--t-caption); color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 20px; }
+  footer svg { width: 20px; height: 20px; }
+
+  @media (max-width: 1100px) {
+    .voices, .rules { grid-template-columns: 1fr; }
+    .twocol, .colwrap, .numbers { grid-template-columns: 1fr; }
+    .callouts { position: static; }
+    .mob { grid-template-columns: 1fr; }
+    .stage .msg.agent .text { border-right: 0; }
+  }
+  @media (max-width: 640px) {
+    .board { padding: 0 16px 64px; gap: 40px; }
+    header.top { grid-template-columns: 1fr; padding-top: 28px; }
+    header.top h1 { font-size: 40px; }
+    header.top .meta { align-items: flex-start; text-align: left; }
+    section > .shead { grid-template-columns: 1fr; gap: 10px; }
+    .scale .row { grid-template-columns: 1fr; gap: 6px; padding: 14px 16px; }
+    .scale .row .vals { justify-content: start; }
+    .scale .row.head .vals { display: none; }
+    .stage .ruler { width: 100%; }
+    .stage .column { padding-left: 16px; padding-right: 16px; }
+    .stage .ruler .bar { left: 16px; right: 16px; }
+    .stage .ruler .tag { left: 16px; } .stage .ruler .tag.r { right: 16px; }
+    .tbl .r { grid-template-columns: minmax(0, 1fr) 80px 80px; }
+    .tbl .r > :nth-child(4) { display: none; }
+    .figs { grid-template-columns: 1fr; }
+    .compare { grid-template-columns: 1fr; }
+    .mob { grid-template-columns: 1fr; }
+    .phone { width: 100%; max-width: 390px; border-width: 6px; border-radius: 36px; }
+    .mscale .row { grid-template-columns: 1fr; gap: 4px; padding: 12px 16px; }
+    .mscale .row .sample { white-space: normal; }
+    .pill { white-space: nowrap; }
+    .mscale .row .vals { text-align: left; justify-content: start; grid-template-columns: auto auto; }
+    .voice { min-height: 0; }
+    .voice .big { font-size: 48px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+    <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a)" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <circle class="dot" cx="48" cy="48" r="7" fill="var(--mark-dot)"/>
+  </symbol>
+  <symbol id="i-tool" viewBox="0 0 16 16"><path d="M3 4.5h10M3 8h10M3 11.5h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+  <symbol id="i-file" viewBox="0 0 16 16"><path d="M4 2h5l3 3v9H4z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M9 2v3h3" stroke="currentColor" stroke-width="1.3" fill="none"/></symbol>
+  <symbol id="i-send" viewBox="0 0 16 16"><path d="M8 13V4M4.5 7.5L8 4l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+</svg>
+
+<div class="board">
+  <header class="top">
+    <div>
+      <div class="brand"><svg class="mark" aria-hidden="true"><use href="#mark"/></svg>Henosis</div>
+      <h1>Type scale <em>and</em> rhythm</h1>
+      <p class="sub">Three voices and fourteen steps. The serif says who; the sans says what; the mono says how much. Every line height sits on a 4px beat, and prose in the column never runs past 600px.</p>
+    </div>
+    <div class="meta">
+      <span class="kicker">Exploration · system</span>
+      <span>type-scale · v1 · 6 October 2026</span>
+      <span class="mono">Instrument Serif · Instrument Sans · JetBrains Mono</span>
+    </div>
+  </header>
+
+  <!-- 01 three voices -->
+  <section>
+    <div class="shead">
+      <h2><span class="num">01</span>Three voices</h2>
+      <p>A reader should know, before reading a word, whether it is a name, a sentence or a number. The face carries that: serif for anything with a name, sans for anything read, mono for anything counted.</p>
+    </div>
+    <div class="voices">
+      <div class="voice serif-v">
+        <div class="role"><span class="kicker">Serif · names</span><span class="spec" style="color:var(--rail-muted)">Instrument Serif 400 · italic</span></div>
+        <div class="big" style="font-family:var(--serif)">Ana <i style="color:var(--apricot)">joins</i></div>
+        <div class="list">
+          <span>Billing page</span>
+          <span>Invoice rollout <i>· crew</i></span>
+          <span>Bo's agent · <i>pdf-layout</i></span>
+          <span>#billing · the Payments team</span>
+        </div>
+        <div class="foot"><span>Titles, people, agents, crews, groups, branches.</span><span>Never a paragraph.</span></div>
+      </div>
+      <div class="voice sans-v">
+        <div class="role"><span class="kicker">Sans · reading</span><span class="spec">Instrument Sans 400 · 500 · 600</span></div>
+        <div class="big">Reads</div>
+        <div class="list">I rewrote the proration step so a mid-month downgrade credits the unused days on the <b>same invoice</b> rather than the next one. Two tests cover the leap-day case.</div>
+        <div class="foot"><span>Messages, briefs, plans, buttons, rows, captions.</span><span>15.5/24 in the column.</span></div>
+      </div>
+      <div class="voice mono-v">
+        <div class="role"><span class="kicker">Mono · numbers</span><span class="spec" style="color:rgba(255,255,255,.7)">JetBrains Mono 400 · 500</span></div>
+        <div class="big">12.4k</div>
+        <div class="list">
+          <span><em>tokens this turn</em>1,842</span>
+          <span><em>est · took</em>3.2k · 2.9k</span>
+          <span><em>tax line</em>€24.96</span>
+          <span><em>proration</em>−€18.40</span>
+        </div>
+        <div class="foot"><span>Tool lines, paths, tokens, money, times.</span><span>Columns align.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 the scale -->
+  <section>
+    <div class="shead">
+      <h2><span class="num">02</span>The scale</h2>
+      <p>Fourteen named steps, nothing in between. Sizes are chosen by eye; line heights are multiples of 4px so stacked lines of any two steps share a beat. Each step is a token, <code>--t-body</code>, used as a single <code>font:</code> shorthand.</p>
+    </div>
+    <div class="twocol">
+      <div class="scale">
+        <div class="row head"><div class="label"><span class="n">Step</span></div><div></div><div class="vals"><span>face</span><span>size</span><span>line</span><span>weight</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Display</span><span class="u">page titles, hero sentences</span></div><div class="sample s-display">Ana joins the <i>circle.</i></div><div class="vals"><span>serif</span><span>40</span><span>44</span><span>400</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Title</span><span class="u">section and project titles</span></div><div class="sample s-title">Billing page · <i>Invoice rollout</i></div><div class="vals"><span>serif</span><span>26</span><span>32</span><span>400</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Name</span><span class="u">topbar, card heads, plan head</span></div><div class="sample s-name">Checkout: proration on downgrade</div><div class="vals"><span>serif</span><span>20</span><span>24</span><span>400</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Name small</span><span class="u">who said it, chat lines, people</span></div><div class="sample s-name-sm">Bo's agent · Dee · the Payments team</div><div class="vals"><span>serif</span><span>16</span><span>20</span><span>400</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Body</span><span class="u">agent messages, briefs</span></div><div class="sample s-body">The invoice PDF carries each tax line beneath its item.</div><div class="vals"><span>sans</span><span>15.5</span><span>24</span><span>400</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Text</span><span class="u">human messages, descriptions</span></div><div class="sample s-text">Hold the Checkout change until Cy has rated.</div><div class="vals"><span>sans</span><span>15</span><span>24</span><span>400</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">UI</span><span class="u">buttons, rail items, rows</span></div><div class="sample s-ui">Approve now · Ask to revise · Hand off to Bo</div><div class="vals"><span>sans</span><span>14</span><span>20</span><span>500</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Caption</span><span class="u">meta, tool steps, notes</span></div><div class="sample s-caption">Rated 4 by Dee · united pdf-layout into main · 14:02</div><div class="vals"><span>sans</span><span>13</span><span>20</span><span>400</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Micro</span><span class="u">pills, feet of cards</span></div><div class="sample s-micro">Team · Solo · Planning · with Ana, Bo</div><div class="vals"><span>sans</span><span>12</span><span>16</span><span>500</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Kicker</span><span class="u">section labels, drawer heads</span></div><div class="sample s-kicker">Needs you · Usage · Release gates</div><div class="vals"><span>sans</span><span>11.5</span><span>16</span><span>600</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Mono</span><span class="u">tool lines, paths, chips</span></div><div class="sample s-mono">edit src/billing/Proration.ts +42 −9</div><div class="vals"><span>mono</span><span>13</span><span>20</span><span>400</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Mono small</span><span class="u">estimates, times, hex</span></div><div class="sample s-mono-sm">est 3.2k · took 2.9k · 14:02 · #E2C4A6</div><div class="vals"><span>mono</span><span>12.5</span><span>16</span><span>400</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Figure</span><span class="u">overview tiles, usage</span></div><div class="sample s-figure">48.1k · €1,248.00</div><div class="vals"><span>mono</span><span>28</span><span>32</span><span>500</span></div></div>
+        <div class="row grid"><div class="label"><span class="n">Figure large</span><span class="u">the one number on a page</span></div><div class="sample s-figure-lg">212,640</div><div class="vals"><span>mono</span><span>40</span><span>44</span><span>400</span></div></div>
+      </div>
+      <div class="aside">
+        <div class="note">
+          <h3>The beat</h3>
+          <p>Line heights are 16, 20, 24, 32 or 44: every step lands on the 4px grid drawn behind the samples. Vertical space between elements uses the same grid, so a caption under a name under a title still adds up.</p>
+          <div class="spacing">
+            <div><i style="height:4px"></i>4</div>
+            <div><i style="height:8px"></i>8</div>
+            <div><i style="height:12px"></i>12</div>
+            <div><i style="height:16px"></i>16</div>
+            <div><i style="height:24px"></i>24</div>
+            <div><i style="height:32px"></i>32</div>
+            <div><i style="height:48px"></i>48</div>
+          </div>
+        </div>
+        <div class="note">
+          <h3>Weights</h3>
+          <div class="weights">
+            <span class="w serif">Serif</span><span>400 only, with italic. The italic is the emphasis: <i class="serif">joins</i>, <i class="serif">· crew</i>, a team message's <i class="serif">to</i>.</span>
+            <span class="w" style="font-weight:500">Sans</span><span>400 reads, 500 is a control, 600 is a label. Never bold inside a paragraph beyond a single phrase.</span>
+            <span class="w mono">Mono</span><span>400 lines, 500 for a figure or a total. Always <code>tabular-nums</code>.</span>
+          </div>
+        </div>
+        <div class="note">
+          <h3>Fallbacks</h3>
+          <p>Before the webfonts land, Iowan Old Style or Georgia stands in for the serif, the system sans for Instrument Sans, Menlo for the mono. The steps keep their px sizes; nothing reflows when the real faces arrive because line heights are fixed.</p>
+        </div>
+        <div class="note">
+          <h3>Tracking</h3>
+          <ul>
+            <li>Serif at 26 and above: <code>-0.01em</code>. Figures: <code>-0.02em</code>.</li>
+            <li>Kicker: <code>+0.08em</code>, uppercase, the only all-caps on a page.</li>
+            <li>Nothing else is tracked. Mono is never tracked.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 the column -->
+  <section>
+    <div class="shead">
+      <h2><span class="num">03</span>The column</h2>
+      <p>The stream is 780px wide with 24px gutters: 732px of content. Cards and tables use all of it. Prose stops at 600px, about 85 characters of Body, which is where a line of Instrument Sans is still easy to return from. Ana's own messages already stop short; this makes the agent's do the same.</p>
+    </div>
+    <div class="colwrap">
+      <div class="stage">
+        <div class="ruler"><span class="tag">0 · --col 780, content 732</span><span class="tag mea">measure 600</span><span class="tag r">732</span><div class="bar"><i></i></div></div>
+                <div class="column">
+          <div class="msg human">
+            <div class="meta"><span class="avatar driver">A</span><span class="who">Ana</span><span>driver</span><span class="time">13:58</span></div>
+            <div class="text"><p>The Checkout proration is wrong on a mid-month downgrade: the credit lands on next month's invoice. Fix it on the same invoice and make sure the invoice PDF shows the tax lines under each item.<span class="k">1</span></p></div>
+          </div>
+          <div class="msg agent">
+            <div class="meta"><span class="avatar agent">B</span><span class="who">Bo's agent</span><span class="status running">running</span><span class="time">13:59</span></div>
+            <div class="text">
+              <p>Found it. <code>Proration.ts</code> computes the credit after the invoice is sealed, so it rolls to the next period. I will move the credit into the open invoice, then regenerate the PDF with each tax line beneath its item and the proration credit last.<span class="k">2</span></p>
+              <p>Two tests cover the leap-day case and a downgrade on the last day of the month; both pass locally.</p>
+            </div>
+            <div class="steps">
+              <div class="step"><svg class="ico"><use href="#i-tool"/></svg><span class="mono">read apps/web/src/billing/Proration.ts</span><span class="took">0.4k</span></div>
+              <div class="step"><svg class="ico"><use href="#i-tool"/></svg><span class="mono">edit apps/web/src/billing/Proration.ts +42 −9</span><span class="took">1.1k</span></div>
+              <div class="step"><svg class="ico"><use href="#i-file"/></svg><span class="mono">render invoice-2026-10-0142.pdf</span><span class="took">0.6k<span class="k">3</span></span></div>
+              <div class="step"><svg class="ico ok"><use href="#i-check"/></svg><span class="mono">test billing/proration 14 passed</span><span class="took">0.8k</span></div>
+            </div>
+          </div>
+          <div class="plan">
+            <div class="head"><span class="serif">Plan: proration on the same invoice<span class="k">4</span></span><span class="pill" style="margin-left:auto">Waits for one rating</span></div>
+            <div class="steps">
+              <div class="pstep done"><span class="n">✓</span><div class="t"><span>Move the credit into the open invoice</span><small>Proration.ts, Invoice.ts</small></div><span class="est">est 3.2k</span><span class="took">2.9k</span></div>
+              <div class="pstep running"><span class="n">2</span><div class="t"><span>Tax lines beneath each item in the PDF</span><small>invoice-pdf/layout.ts</small></div><span class="est">est 4.0k</span><span class="took">1.6k</span></div>
+              <div class="pstep"><span class="n">3</span><div class="t"><span>Checkout preview shows the credit before paying</span><small>Checkout.tsx · risk: write</small></div><span class="est">est 2.4k</span><span class="took">—</span></div>
+            </div>
+            <div class="foot"><span>Rated 4 by Dee.</span><span>Needs one more at 3+.</span><span class="mono">4.5k of 9.6k est</span><div class="btns"><button class="btn sm">Ask to revise</button><button class="btn sm primary">Approve now</button></div></div>
+          </div>
+          <div class="notice gate">
+            <div class="head"><span class="serif">Release gate · push to <i>main</i></span><span class="pill">irreversible</span></div>
+            <p>Two contributors at 4+ open the gate. The people who consume the Billing page hold it.</p>
+            <div class="votes"><span><span class="who">Cy</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></span><span><span class="who">Dee</span>waiting</span><span class="mono">1 of 2 · avg 4.0</span><span class="k">5</span></div>
+            <div class="actions"><button class="btn sm primary">Approve</button><button class="btn sm">Hold</button></div>
+          </div>
+          <div class="msg team">
+            <div class="meta"><span class="avatar">C</span><span class="who">Cy</span><span class="to">to the Payments team</span><span class="time">14:02</span></div>
+            <div class="text" style="background:var(--apricot-soft);border-radius:var(--radius-lg);padding:13px 18px;align-self:flex-start;max-width:85%"><p>I'll rate once the PDF preview is up. Bo has the baton after this.<span class="k">6</span></p></div>
+          </div>
+        </div>
+      </div>
+      <div class="callouts">
+        <div class="callout"><span class="k">1</span><div><b>A human speaks in Text, 15/24</b>The bubble stops at 85% of the column. Her name is serif Name small, her role is caption.</div></div>
+        <div class="callout"><span class="k">2</span><div><b>The agent reads in Body, 15.5/24</b>Half a point larger than Text, no bubble, and capped at the 600px measure. Code inside is mono at 12.5.</div></div>
+        <div class="callout"><span class="k">3</span><div><b>Tool lines are mono, 13/20</b>Path, verb, count. Tokens taken sit flush right in Mono small so a column of steps reads as a table.</div></div>
+        <div class="callout"><span class="k">4</span><div><b>A plan has a serif head</b>Steps are UI size; the file under each is caption; estimate and actual are mono and align across rows.</div></div>
+        <div class="callout"><span class="k">5</span><div><b>Ratings are stars, counts are mono</b>Who rated is a name in serif; the tally is a number in mono. Never the other way round.</div></div>
+        <div class="callout"><span class="k">6</span><div><b>A team message keeps the beat</b>Same Text step, apricot wash, the <i class="serif">to</i> in serif italic. Nothing in the column breaks the 24px line.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 numbers -->
+  <section>
+    <div class="shead">
+      <h2><span class="num">04</span>Numbers</h2>
+      <p>Every number that can be compared is mono and tabular: tokens, money, times, counts, ratings. A number in a sentence stays in the sentence's face. Columns of numbers right-align; negatives carry a true minus and the danger colour.</p>
+    </div>
+    <div class="numbers">
+      <div class="card">
+        <div class="cardhead"><h3 class="serif" style="margin:0">Tokens by agent · Invoice rollout</h3><span class="mono">this week · 4 of 4 sessions</span></div>
+        <div class="tbl">
+          <div class="r h"><span>Agent</span><span class="n">est</span><span class="n">took</span><span class="n">budget</span></div>
+          <div class="r"><span><span class="who">Ana's agent</span><span class="sub">Billing page · running</span></span><span class="n">24.0k</span><span class="n">22,418</span><span class="bud"><span class="budget"><i style="width:56%"></i></span><span class="s-mono-sm">56%</span></span></div>
+          <div class="r"><span><span class="who">Bo's agent</span><span class="sub">Checkout · planning</span></span><span class="n">9.6k</span><span class="n">4,512</span><span class="bud"><span class="budget"><i style="width:23%"></i></span><span class="s-mono-sm">23%</span></span></div>
+          <div class="r"><span><span class="who">Cy's agent</span><span class="sub">invoice PDF · awaiting approval</span></span><span class="n">18.2k</span><span class="n">17,906</span><span class="bud warn"><span class="budget warn"><i style="width:86%"></i></span><span class="s-mono-sm" style="color:var(--warn)">86%</span></span></div>
+          <div class="r"><span><span class="who">Dee's agent</span><span class="sub">tax lines · done</span></span><span class="n">6.0k</span><span class="n">3,804</span><span class="bud"><span class="budget"><i style="width:19%"></i></span><span class="s-mono-sm">19%</span></span></div>
+          <div class="r total"><span>Crew</span><span class="n">57.8k</span><span class="n">48,640</span><span class="n" style="color:var(--ok)">−16%</span></div>
+        </div>
+        <div class="chipline">
+          <span class="tchip"><span class="mono">12.4k tokens</span><span class="budget"><i style="width:41%"></i></span></span>
+          <span class="tchip"><span class="mono">38.9k tokens</span><span class="budget warn"><i style="width:84%"></i></span></span>
+          <span class="tchip"><span class="mono">51.2k tokens</span><span class="budget over"><i style="width:100%"></i></span></span>
+          <span class="s-caption">The quiet chip in a session's top row, three states.</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="cardhead"><h3 class="serif" style="margin:0">Invoice <i>2026-10-0142</i> · Checkout preview</h3><span class="mono">EUR</span></div>
+        <div class="figs">
+          <div class="fig"><span class="v">€1,248.00</span><span class="l">due 20 Oct</span><span class="d">after credit</span></div>
+          <div class="fig"><span class="v">4.3</span><span class="l">plans rated, avg</span><span class="d">of 12</span></div>
+          <div class="fig"><span class="v">86%</span><span class="l">Cy's budget</span><span class="d warn">amber past 80</span></div>
+        </div>
+        <div class="tbl">
+          <div class="r h"><span>Line</span><span class="n">qty</span><span class="n">amount</span><span class="n">tax</span></div>
+          <div class="r"><span>Team plan, October<span class="sub">12 seats</span></span><span class="n">12</span><span class="n">1,140.00</span><span class="n">228.00</span></div>
+          <div class="r"><span>Agent hours<span class="sub">4 agents · metered</span></span><span class="n">31.5</span><span class="n">126.40</span><span class="n">25.28</span></div>
+          <div class="r"><span>Proration, 14 Oct<span class="sub">17 unused days, same invoice</span></span><span class="n">−17</span><span class="n neg">−18.40</span><span class="n neg">−3.68</span></div>
+          <div class="r total"><span>Total incl. VAT 20%</span><span class="n"></span><span class="n">1,248.00</span><span class="n">249.60</span></div>
+        </div>
+        <div class="compare">
+          <div class="bad"><b>Proportional, sans</b><span>1,140.00<em>228.00</em></span><span>126.40<em>25.28</em></span><span>−18.40<em>−3.68</em></span></div>
+          <div class="good"><b>Tabular, mono</b><span>1,140.00<em>228.00</em></span><span>126.40<em>25.28</em></span><span>−18.40<em>−3.68</em></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 mobile -->
+  <section>
+    <div class="shead">
+      <h2><span class="num">05</span>On the phone</h2>
+      <p>At 390px the column is the screen. Reading sizes go up, not down: Body and Text become 16/24 so a thumb's distance still reads, Display drops to 32/36 and Title to 22/28. The beat stays 4px; the gutters are 20px.</p>
+    </div>
+    <div class="mob">
+      <div class="phone">
+        <div class="ptop"><svg class="mark" width="26" height="26" aria-hidden="true"><use href="#mark"/></svg><span class="title">Checkout: proration</span><span class="pill team">Team</span></div>
+        <div class="pcol">
+          <div class="msg human">
+            <div class="meta"><span class="avatar driver">A</span><span class="who">Ana</span><span class="time" style="margin-left:auto;font:var(--t-mono-sm);color:var(--ink-3)">13:58</span></div>
+            <div class="text"><p>Fix the proration on the same invoice and show tax lines under each item in the PDF.</p></div>
+          </div>
+          <div class="msg agent">
+            <div class="meta"><span class="avatar agent">B</span><span class="who">Bo's agent</span><span class="status running">running</span></div>
+            <div class="text"><p>Found it. The credit is computed after the invoice is sealed. Moving it into the open invoice, then regenerating the PDF.</p></div>
+            <div class="steps">
+              <div class="step"><svg class="ico" width="14" height="14"><use href="#i-tool"/></svg><span class="mono">edit billing/Proration.ts +42 −9</span><span class="took">1.1k</span></div>
+              <div class="step"><svg class="ico" width="14" height="14" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">test proration 14 passed</span><span class="took">0.8k</span></div>
+            </div>
+          </div>
+          <div class="plan">
+            <div class="head"><span class="serif">Plan: same-invoice credit</span><span class="pill" style="margin-left:auto">1 rating</span></div>
+            <div class="steps">
+              <div class="pstep done"><span class="n">✓</span><span>Move the credit</span><span class="est">2.9k</span></div>
+              <div class="pstep running"><span class="n">2</span><span>Tax lines in the PDF</span><span class="est">1.6k</span></div>
+              <div class="pstep"><span class="n">3</span><span>Checkout preview</span><span class="est">est 2.4k</span></div>
+            </div>
+            <div class="stars" aria-label="rate"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></div>
+          </div>
+          <div class="msg team">
+            <div class="meta"><span class="avatar">C</span><span class="who">Cy</span><span class="to">to the team</span></div>
+            <div class="text" style="background:var(--apricot-soft);border-radius:var(--radius-lg);padding:11px 15px;align-self:flex-start;max-width:92%;font:400 16px/24px var(--font)"><p>Bo has the baton after this.</p></div>
+          </div>
+        </div>
+        <div class="pcomp"><div class="composer"><div class="input muted">Say something to Bo's agent…</div><div class="bar"><div class="seg"><button class="on">Agent</button><button>Team</button></div><div class="right"><button class="send" aria-label="send"><svg width="16" height="16"><use href="#i-send"/></svg></button></div></div></div></div>
+      </div>
+      <div class="mscale">
+        <div class="row"><span class="label">Step</span><span></span><span class="vals"><span>desktop</span><span>phone</span></span></div>
+        <div class="row"><span class="label">Display</span><span class="sample" style="font:400 32px/36px var(--serif)">Ana joins the circle.</span><span class="vals"><span class="was">40/44</span><span>32/36</span></span></div>
+        <div class="row"><span class="label">Title</span><span class="sample" style="font:400 22px/28px var(--serif)">Checkout: proration</span><span class="vals"><span class="was">26/32</span><span>22/28</span></span></div>
+        <div class="row"><span class="label">Name</span><span class="sample" style="font:400 19px/24px var(--serif)">Plan: same-invoice credit</span><span class="vals"><span class="was">20/24</span><span>19/24</span></span></div>
+        <div class="row"><span class="label">Name small</span><span class="sample" style="font:400 18px/24px var(--serif)">Bo's agent</span><span class="vals"><span class="was">16/20</span><span>18/24</span></span></div>
+        <div class="row"><span class="label">Body · Text</span><span class="sample" style="font:400 16px/24px var(--font)">The credit is computed after the invoice is sealed.</span><span class="vals"><span class="was">15.5 · 15</span><span>16/24</span></span></div>
+        <div class="row"><span class="label">UI</span><span class="sample" style="font:500 15px/20px var(--font)">Approve now · Ask to revise</span><span class="vals"><span class="was">14/20</span><span>15/20</span></span></div>
+        <div class="row"><span class="label">Caption</span><span class="sample s-caption" style="font-size:13.5px">Rated 4 by Dee · 14:02</span><span class="vals"><span class="was">13/20</span><span>13.5/20</span></span></div>
+        <div class="row"><span class="label">Mono</span><span class="sample s-mono">edit billing/Proration.ts +42 −9</span><span class="vals"><span class="was">13/20</span><span>13/20</span></span></div>
+        <div class="row"><span class="label">Figure</span><span class="sample s-figure" style="font-size:24px;line-height:28px">€1,248.00</span><span class="vals"><span class="was">28/32</span><span>24/28</span></span></div>
+        <div class="row"><span class="label">Composer</span><span class="sample" style="font:400 16px/24px var(--font);color:var(--ink-2)">Say something to Bo's agent…</span><span class="vals"><span class="was">15/24</span><span>16/24</span></span></div>
+        <div class="row" style="background:var(--surface-2);border-top:1px solid var(--line);display:block;padding:14px 20px;font:var(--t-caption);color:var(--ink-2)">Inputs are 16px so iOS does not zoom the composer. Every tappable row is at least 44px tall, which two lines of Caption on the 4px beat give for free (20 + 20 + 4).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 rules -->
+  <section>
+    <div class="shead">
+      <h2><span class="num">06</span>Rules of thumb</h2>
+      <p>The three voices only work if each stays in its lane. These are the mistakes a new screen is most likely to make.</p>
+    </div>
+    <div class="rules">
+      <div class="rule">
+        <h3>Serif names, never explains</h3>
+        <div class="ex">
+          <div class="yes"><span class="tag">Yes</span><span class="s serif">United <i>pdf-layout</i> into main</span></div>
+          <div class="no"><span class="tag">No</span><span class="s serif">The plan waits for two ratings before any tool call above read is allowed.</span></div>
+        </div>
+        <p>A serif line is a name or a short announcement: one line, no wrapping. If it wraps, it is reading, and it goes to sans.</p>
+      </div>
+      <div class="rule">
+        <h3>Mono counts, never speaks</h3>
+        <div class="ex">
+          <div class="yes"><span class="tag">Yes</span><span class="s mono">test billing/proration 14 passed · 0.8k</span></div>
+          <div class="no"><span class="tag">No</span><span class="s mono">I ran the tests and all fourteen of them passed.</span></div>
+        </div>
+        <p>Mono is for what a machine said or counted: a path, a verb, a figure. A number inside a sentence stays sans: "two tests cover the leap-day case".</p>
+      </div>
+      <div class="rule">
+        <h3>One beat, one measure</h3>
+        <div class="ex">
+          <div class="yes"><span class="tag">Yes</span><span class="s">15.5/24, 600px, 12px between paragraphs</span></div>
+          <div class="no"><span class="tag">No</span><span class="s">15px/1.6 stretched across all 732px</span></div>
+        </div>
+        <p>Line heights in px, not ratios, so two steps next to each other share the grid. Prose never runs wider than the measure, even when its card does.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer><svg class="mark" aria-hidden="true"><use href="#mark"/></svg><span>Henosis · type scale and rhythm · exploration for the design wave · tokens v5</span><span style="margin-left:auto" class="mono">14 steps · 3 faces · 4px beat · 600px measure</span></footer>
+</div>
+</body>
+</html>
