@@ -14,12 +14,12 @@ import { atomicWrite } from "./storage.js";
 export interface Notification {
   id: string;
   userId: string;
-  kind: "approval" | "handoff" | "contention" | "done" | "blocked" | "plan";
+  kind: "approval" | "handoff" | "contention" | "done" | "blocked" | "plan" | "mention";
   title: string;
   body: string;
-  /** Deep link understood by every shell: henosis://p/<project>/s/<session> */
+  /** Deep link understood by every shell: henosis://p/<project>/s/<session>, or henosis://c/<org>/<group> for a mention. */
   link: string;
-  /** What the shell acts on inline: the approvalId, handoffId, contentionId or planId behind this item. */
+  /** What the shell acts on inline: the approvalId, handoffId, contentionId, planId or messageId behind this item. */
   ref?: string;
   /** An approval under a release gate: the shell asks for a 1..5 rating with the approve. */
   ratings?: boolean;

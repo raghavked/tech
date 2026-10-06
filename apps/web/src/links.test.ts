@@ -18,6 +18,15 @@ describe("henosis:// deep links", () => {
     expect(parseLink("henosis://p/billing")).toEqual({ kind: "project", projectId: "billing" });
     expect(parseLink("henosis://inbox")).toEqual({ kind: "inbox" });
     expect(parseLink("  HENOSIS://inbox/ ")).toEqual({ kind: "inbox" });
+    expect(parseLink("henosis://c/northwind/grp_1")).toEqual({
+      kind: "chat",
+      orgId: "northwind",
+      groupId: "grp_1",
+    });
+    expect(routeOfLink("henosis://c/northwind/grp_1")).toBe("#/c/northwind/grp_1");
+    expect(linkOf({ kind: "chat", orgId: "northwind", groupId: "grp_1" })).toBe(
+      "henosis://c/northwind/grp_1",
+    );
   });
 
   it("decodes encoded segments and ignores trailing ones", () => {

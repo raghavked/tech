@@ -1,4 +1,4 @@
-/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/inbox`, `#/approvals`, `#/memory/:orgId`, `#/settings`. */
+/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId]`, `#/inbox`, `#/approvals`, `#/memory/:orgId`, `#/settings`. */
 import { useSyncExternalStore } from "react";
 
 export type Route =
@@ -6,6 +6,8 @@ export type Route =
   | { name: "fleet"; projectId: string }
   | { name: "session"; projectId: string; sessionId: string; title: string | null }
   | { name: "management"; teamId: string }
+  /** Groups and chats: one group, or the org's list with the new-group sheet (`?new=1`). */
+  | { name: "chat"; orgId: string; groupId: string | null; newGroup: boolean }
   | { name: "inbox" }
   | { name: "approvals" }
   | { name: "memory"; orgId: string; team: string | null; project: string | null }
@@ -27,6 +29,13 @@ export function parseHash(hash: string): Route {
     return { name: "fleet", projectId: parts[1] };
   }
   if (parts[0] === "m" && parts[1]) return { name: "management", teamId: parts[1] };
+  if (parts[0] === "c" && parts[1])
+    return {
+      name: "chat",
+      orgId: parts[1],
+      groupId: parts[2] ?? null,
+      newGroup: params.get("new") === "1",
+    };
   if (parts[0] === "inbox") return { name: "inbox" };
   if (parts[0] === "memory" && parts[1])
     return {
@@ -48,6 +57,9 @@ export const paths = {
       title ? `?title=${encodeURIComponent(title)}` : ""
     }`,
   management: (teamId: string) => `#/m/${encodeURIComponent(teamId)}`,
+  chat: (orgId: string, groupId?: string | null) =>
+    `#/c/${encodeURIComponent(orgId)}${groupId ? `/${encodeURIComponent(groupId)}` : ""}`,
+  newGroup: (orgId: string) => `#/c/${encodeURIComponent(orgId)}?new=1`,
   inbox: () => "#/inbox",
   memory: (orgId: string, scope: { team?: string; project?: string } = {}) => {
     const p = new URLSearchParams();

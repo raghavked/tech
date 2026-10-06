@@ -1,4 +1,5 @@
 /** The read-only HTTP API of the Henosis server, plus a small fetch hook. */
+import type { ChatScope, ChatState } from "@henosis/chat";
 import type { ProjectState, SessionSummary } from "@henosis/fleet";
 import type { SessionStatus } from "@henosis/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@henosis/memory";
@@ -56,17 +57,41 @@ export interface MemoryQuery {
 export interface Notification {
   id: string;
   userId: string;
-  kind: "approval" | "handoff" | "contention" | "done" | "blocked" | "plan";
+  kind: "approval" | "handoff" | "contention" | "done" | "blocked" | "plan" | "mention";
   title: string;
   body: string;
-  /** henosis://p/<project>/s/<session> */
+  /** henosis://p/<project>/s/<session>, or henosis://c/<org>/<group> for a mention */
   link: string;
-  /** The approvalId, handoffId, contentionId or planId behind the item, when there is one to act on. */
+  /** The approvalId, handoffId, contentionId, planId or messageId behind the item, when there is one to act on. */
   ref?: string;
   /** An approval under a release gate: Approve carries a 1..5 rating. */
   ratings?: boolean;
   at: number;
   read: boolean;
+}
+
+/** One row of GET /api/chat/:org/unread: a group the person belongs to and what is new in it. */
+export interface ChatGroupRow {
+  groupId: string;
+  name: string;
+  purpose: string;
+  scope: ChatScope;
+  members: number;
+  lastSeq: number;
+  unread: number;
+}
+
+/** GET /api/chat/:org/directory: who and which agents a group can be made of. */
+export interface ChatDirectoryListing {
+  people: { id: string; name: string }[];
+  agents: {
+    projectId: string;
+    projectName: string;
+    sessionId: string;
+    title: string;
+    ownerId: string;
+    live: SessionStatus | null;
+  }[];
 }
 
 export type { CuratorReport, EntryRecord, MemoryConflict, ProjectState, UsageQuery, UsageReport };
@@ -117,6 +142,14 @@ export const api = {
     getJson<{ notifications: Notification[] }>(
       `/api/notifications?user=${encodeURIComponent(user)}`,
     ),
+  /** Groups and chats: the folded state of an org's chat, a person's unread rows, the pickers. */
+  chat: (org: string) => getJson<ChatState>(`/api/chat/${encodeURIComponent(org)}`),
+  chatUnread: (org: string, user: string) =>
+    getJson<{ total: number; groups: ChatGroupRow[] }>(
+      `/api/chat/${encodeURIComponent(org)}/unread?user=${encodeURIComponent(user)}`,
+    ),
+  chatDirectory: (org: string) =>
+    getJson<ChatDirectoryListing>(`/api/chat/${encodeURIComponent(org)}/directory`),
   markRead: async (user: string, ids: string[]): Promise<void> => {
     const res = await fetch(`/api/notifications?user=${encodeURIComponent(user)}`, {
       method: "POST",

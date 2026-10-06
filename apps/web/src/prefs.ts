@@ -20,6 +20,7 @@ export const NOTIFY_KINDS: { kind: NotifyKind; label: string; detail: string }[]
   { kind: "blocked", label: "Blocked", detail: "An agent cannot continue without a person" },
   { kind: "done", label: "Done", detail: "An agent finishes what it was asked" },
   { kind: "team", label: "Team chat", detail: "Someone says something to the people in a session" },
+  { kind: "mention", label: "Mentions", detail: "Someone mentions you in a group chat" },
 ];
 
 export type NotifyPrefs = Record<NotifyKind, boolean>;

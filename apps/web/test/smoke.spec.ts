@@ -108,7 +108,8 @@ test.describe("phone layout", () => {
     await expect(sidebar).not.toBeInViewport();
     await page.getByRole("button", { name: "Menu" }).click();
     await expect(sidebar).toBeInViewport();
-    await page.getByRole("button", { name: "Close menu" }).click();
+    // The scrim fills the viewport and the open drawer covers its centre: tap the strip beside it.
+    await page.getByRole("button", { name: "Close menu" }).click({ position: { x: 370, y: 400 } });
     await expect(sidebar).not.toBeInViewport();
     await expect(details(page)).toHaveCount(0);
     await page.getByRole("button", { name: "Details" }).click();

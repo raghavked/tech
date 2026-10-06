@@ -8,6 +8,17 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
 import {
+  CHAT_MESSAGE_TYPES,
+  ChatClientMessage,
+  type ChatDirectory,
+  type ChatEvent,
+  type ChatScope,
+  type ChatServerMessage,
+  memberName,
+  memberOfMention,
+  unreadIn,
+} from "@henosis/chat";
+import {
   deriveProjectRole,
   PROJECT_RANK,
   ProjectClientMessage,
@@ -18,12 +29,15 @@ import { Curator, MemoryStore, type SerializedMemory } from "@henosis/memory";
 import {
   ClientMessage,
   DEFAULT_SESSION_POLICY,
+  MAIN_BRANCH,
   type ServerMessage,
+  type SessionEvent,
   type SessionPolicy,
 } from "@henosis/protocol";
 import type { Model, ToolRegistry } from "@henosis/runner";
 import { type WebSocket, WebSocketServer } from "ws";
 import { handleBranchApi } from "./branchApi.js";
+import { ChatHost, type ChatSubscriber } from "./chatHost.js";
 import { EXPORT_PATH, exportHeaders, exportSessionMarkdown } from "./export.js";
 import type { ClientLink, SessionHost } from "./host.js";
 import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
@@ -51,16 +65,39 @@ export interface Integrations {
 
 const DEFAULT_POLICY: SessionPolicy = { ...DEFAULT_SESSION_POLICY };
 
-type AnyClientMessage = ClientMessage | ProjectClientMessage;
-const AnyClientMessageSchema = ClientMessage.or(ProjectClientMessage);
+type AnyClientMessage = ClientMessage | ProjectClientMessage | ChatClientMessage;
+const AnyClientMessageSchema = ClientMessage.or(ProjectClientMessage).or(ChatClientMessage);
+
+type OutgoingMessage =
+  | ServerMessage
+  | { type: "project.snapshot"; projectId: string; events: ProjectEvent[] }
+  | { type: "project.event"; event: ProjectEvent }
+  | { type: "fleet.brief"; markdown: string }
+  | ChatServerMessage;
+
+/** A mention of an agent that is waiting for the agent's next words. */
+interface PendingReply {
+  orgId: string;
+  groupId: string;
+  messageId: string;
+  projectId: string;
+  sessionId: string;
+  /** The seq of the directive in the session; only later words answer it. */
+  afterSeq: number;
+}
 
 export class HenosisServer {
   readonly projects = new Map<string, ProjectHost>();
   readonly orgs: OrgRegistry;
   readonly memories = new Map<string, MemoryStore>();
+  /** One chat host per organisation, loaded on start and persisted on every event. */
+  readonly chats = new Map<string, ChatHost>();
   readonly notifier: Notifier;
   /** Live adapter status; mutable so an adapter started after `listen` can report itself. */
   readonly integrations: Integrations;
+  /** Display names learned from sessions and chat subscriptions for people users.json does not know. */
+  private readonly names = new Map<string, string>();
+  private readonly pendingReplies = new Map<string, PendingReply[]>();
   private http: Server | null = null;
   private wss: WebSocketServer | null = null;
 
@@ -68,6 +105,7 @@ export class HenosisServer {
     this.orgs = new OrgRegistry(opts.root);
     this.notifier = new Notifier(opts.root, null, opts.log ?? (() => {}));
     this.integrations = { slack: false, ...opts.integrations };
+    for (const o of this.orgs.orgs.orgs) this.chat(o.id);
   }
 
   /** Get or create the host for a project known to the org registry (or "default"). */
@@ -107,9 +145,236 @@ export class HenosisServer {
           kind: pp.actor.kind,
         }));
         this.notifier.onSessionEvent(projectId, sessionId, e, participants, st.policy);
+        if (e.kind === "participant.joined" && e.payload.actor.kind === "human")
+          this.names.set(e.payload.actor.id, e.payload.actor.name);
+        this.answerMentions(sessionId, e);
       });
     });
     return p;
+  }
+
+  // ---- groups and chats ------------------------------------------------------------------
+
+  /** The organisation's chat host, persisted at store/chat/<org>.json. */
+  chat(orgId: string): ChatHost {
+    let c = this.chats.get(orgId);
+    if (c) return c;
+    if (!this.orgs.orgs.orgs.some((o) => o.id === orgId))
+      throw new KernelError("not_found", `unknown organisation ${orgId}`);
+    const base = { root: this.opts.root, orgId, directory: this.chatDirectory(orgId) };
+    c = new ChatHost(this.opts.log ? { ...base, log: this.opts.log } : base);
+    this.chats.set(orgId, c);
+    const host = c;
+    host.chat.onEvent((e) => this.onChatEvent(host, e));
+    return c;
+  }
+
+  /** Who is in the organisation, which sessions it runs and who leads, as the chat needs them. */
+  private chatDirectory(orgId: string): ChatDirectory {
+    const org = () => this.orgs.orgs.orgs.find((o) => o.id === orgId);
+    const projectIds = () => org()?.teams.flatMap((t) => t.projects.map((p) => p.id)) ?? [];
+    const teamIds = () => org()?.teams.map((t) => t.id) ?? [];
+    const inOrg = (userId: string) => {
+      const u = this.orgs.user(userId);
+      // Phase-0 identity: a person users.json does not know is in, as they are for projects
+      // and sessions (first in owns); a known person is in only where their memberships say.
+      if (!u) return true;
+      return (
+        u.orgs.some((o) => o.orgId === orgId) ||
+        u.teams.some((t) => teamIds().includes(t.teamId)) ||
+        u.projects.some((p) => projectIds().includes(p.projectId))
+      );
+    };
+    return {
+      person: (userId) => {
+        if (!inOrg(userId)) return null;
+        const u = this.orgs.user(userId);
+        return { id: userId, name: u?.name ?? this.names.get(userId) ?? userId };
+      },
+      agent: (projectId, sessionId) => {
+        if (!projectIds().includes(projectId)) return null;
+        const ph = this.projects.get(projectId) ?? this.project(projectId);
+        const ss = ph.state().sessions[sessionId];
+        if (ss) return { projectId, sessionId, title: ss.title, ownerId: ss.ownerId };
+        const sh = ph.hosts.get(sessionId);
+        if (!sh) return null;
+        const st = sh.session.state();
+        return { projectId, sessionId, title: st.title, ownerId: st.ownerId };
+      },
+      isLead: (userId, scope) => this.isLead(userId, orgId, scope),
+    };
+  }
+
+  /** A lead or admin for the scope: an org admin, a team lead or manager, a project lead or admin. */
+  private isLead(userId: string, orgId: string, scope: ChatScope): boolean {
+    const u = this.orgs.user(userId);
+    if (!u) return false;
+    if (u.orgs.some((o) => o.orgId === orgId && o.role === "admin")) return true;
+    if (scope.projectId) {
+      const ref = this.orgs.project(scope.projectId);
+      const role = ref ? deriveProjectRole(u, ref) : null;
+      if (role === "lead" || role === "admin") return true;
+      if ((this.projects.get(scope.projectId)?.project.rankOf(userId) ?? 0) >= PROJECT_RANK.lead)
+        return true;
+    }
+    if (scope.teamId && u.teams.some((t) => t.teamId === scope.teamId && t.role !== "member"))
+      return true;
+    return false;
+  }
+
+  /**
+   * A message that mentions an agent member becomes a steer in that agent's session, in the
+   * scope "chat", authored by the person who wrote it (joined as a contributor first when the
+   * identity rules allow); a mention of a person lands in their inbox.
+   */
+  private onChatEvent(host: ChatHost, e: ChatEvent): void {
+    if (e.kind !== "message.posted") return;
+    const group = host.state().groups[e.payload.groupId];
+    if (!group) return;
+    const author = e.actor;
+    const me = group.members.find((m) => m.kind === "human" && m.userId === author);
+    const authorName = (me ? memberName(me) : null) ?? this.names.get(author) ?? author;
+    for (const mention of e.payload.mentions) {
+      const member = memberOfMention(group, mention);
+      if (!member) continue;
+      if (member.kind === "human") {
+        if (member.userId === author) continue;
+        this.notifier.notify(member.userId, {
+          kind: "mention",
+          title: `${authorName} mentioned you in #${group.name}`,
+          body: e.payload.text.slice(0, 160),
+          link: `henosis://c/${host.orgId}/${group.id}`,
+          ref: e.payload.messageId,
+        });
+        continue;
+      }
+      try {
+        const ph = this.project(member.projectId);
+        const sh = ph.hosts.get(member.sessionId) ?? ph.session(member.sessionId);
+        const st = sh.session.state();
+        const ref = this.orgs.project(member.projectId);
+        const joined = !st.participants[author];
+        if (joined) {
+          const derived = ref ? this.orgs.sessionRole(author, ref, st.ownerId) : null;
+          if (derived === "observer") {
+            this.opts.log?.(`chat: ${author} observes ${member.sessionId}; mention not relayed`);
+            continue;
+          }
+          sh.session.join(
+            MAIN_BRANCH,
+            { id: author, kind: "human", name: authorName },
+            derived ?? "contributor",
+          );
+        }
+        const directive = sh.session.directive(MAIN_BRANCH, author, {
+          text: `${authorName} in #${group.name}: ${e.payload.text}`,
+          mode: "steer",
+          scope: "chat",
+        });
+        if (joined) sh.session.leave(MAIN_BRANCH, author);
+        const list = this.pendingReplies.get(member.sessionId) ?? [];
+        list.push({
+          orgId: host.orgId,
+          groupId: group.id,
+          messageId: e.payload.messageId,
+          projectId: member.projectId,
+          sessionId: member.sessionId,
+          afterSeq: directive.seq,
+        });
+        this.pendingReplies.set(member.sessionId, list);
+        void sh.drive();
+      } catch (err) {
+        this.opts.log?.(
+          `chat: could not reach ${member.sessionId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /** The agent's next words after a mention (its model text, or the turn's summary) answer it in the group. */
+  private answerMentions(sessionId: string, e: SessionEvent): void {
+    const list = this.pendingReplies.get(sessionId);
+    if (!list?.length || e.branch !== MAIN_BRANCH) return;
+    let text: string | null = null;
+    let turn = 0;
+    if (e.kind === "agent.model.completed" && e.payload.text.trim()) {
+      text = e.payload.text;
+      turn = e.payload.turn;
+    } else if (e.kind === "agent.turn.ended") {
+      text = e.payload.summary.replace(/^(DONE|continuing):?\s*/i, "").trim() || e.payload.reason;
+      turn = e.payload.turn;
+    }
+    if (text === null) return;
+    const rest: PendingReply[] = [];
+    for (const p of list) {
+      if (e.seq <= p.afterSeq) {
+        rest.push(p);
+        continue;
+      }
+      try {
+        this.chat(p.orgId).chat.agentReply(
+          p.projectId,
+          p.sessionId,
+          p.groupId,
+          p.messageId,
+          text,
+          turn,
+        );
+      } catch (err) {
+        this.opts.log?.(
+          `chat: reply from ${sessionId} dropped: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+    if (rest.length) this.pendingReplies.set(sessionId, rest);
+    else this.pendingReplies.delete(sessionId);
+  }
+
+  /** People and live agents a group can be made of, for the web app's pickers. */
+  private chatDirectoryListing(orgId: string) {
+    const org = this.orgs.orgs.orgs.find((o) => o.id === orgId);
+    if (!org) throw new KernelError("not_found", `unknown organisation ${orgId}`);
+    const dir = this.chatDirectory(orgId);
+    const people = new Map<string, { id: string; name: string }>();
+    for (const u of this.orgs.users.values()) {
+      const p = dir.person(u.id);
+      if (p) people.set(p.id, p);
+    }
+    for (const [id] of this.names) {
+      const p = dir.person(id);
+      if (p && !people.has(id)) people.set(id, p);
+    }
+    const agents: {
+      projectId: string;
+      projectName: string;
+      sessionId: string;
+      title: string;
+      ownerId: string;
+      live: string | null;
+    }[] = [];
+    for (const t of org.teams)
+      for (const pr of t.projects) {
+        const ph = this.project(pr.id);
+        for (const m of Object.values(ph.state().members)) {
+          const p = dir.person(m.userId);
+          if (p && !people.has(p.id)) people.set(p.id, { id: p.id, name: m.name });
+        }
+        for (const s of Object.values(ph.state().sessions)) {
+          if (!s.open) continue;
+          agents.push({
+            projectId: pr.id,
+            projectName: pr.name,
+            sessionId: s.sessionId,
+            title: s.title,
+            ownerId: s.ownerId,
+            live: ph.hosts.get(s.sessionId)?.session.state().status ?? null,
+          });
+        }
+      }
+    return {
+      people: [...people.values()].sort((a, b) => a.name.localeCompare(b.name)),
+      agents,
+    };
   }
 
   /**
@@ -210,6 +475,7 @@ export class HenosisServer {
     for (const t of this.memoryTimers.values()) clearTimeout(t);
     this.memoryTimers.clear();
     for (const p of this.projects.values()) p.close();
+    for (const c of this.chats.values()) c.close();
     for (const [org, m] of this.memories)
       atomicWrite(
         join(this.opts.root, "memory", `${org}.json`),
@@ -317,6 +583,31 @@ export class HenosisServer {
         // memory-browser: optional ?level|team|project|status|q filters (memoryQuery.ts).
         return json(200, memoryFeed(store.state(), memoryQueryOf(url.searchParams)));
       }
+      // Groups and chats: the folded state, a person's unread counts, and who can be a member.
+      const cm = url.pathname.match(/^\/api\/chat\/([^/]+)(?:\/(unread|directory))?$/);
+      if (cm) {
+        const orgId = decodeURIComponent(cm[1] as string);
+        const host = this.chat(orgId);
+        if (cm[2] === "directory") return json(200, this.chatDirectoryListing(orgId));
+        if (cm[2] === "unread") {
+          const user = url.searchParams.get("user") ?? "";
+          const st = host.state();
+          const groups = Object.values(st.groups)
+            .filter((g) => g.members.some((m) => m.kind === "human" && m.userId === user))
+            .sort((a, b) => b.lastSeq - a.lastSeq)
+            .map((g) => ({
+              groupId: g.id,
+              name: g.name,
+              purpose: g.purpose,
+              scope: g.scope,
+              members: g.members.length,
+              lastSeq: g.lastSeq,
+              unread: unreadIn(st, user, g.id),
+            }));
+          return json(200, { total: groups.reduce((n, g) => n + g.unread, 0), groups });
+        }
+        return json(200, host.state());
+      }
       // Branch compare and file read (branchApi.ts) sit under /api/projects/:p/sessions/:s/.
       if (handleBranchApi(url, (id) => this.project(id), json)) return true;
       const m = url.pathname.match(
@@ -366,14 +657,10 @@ export class HenosisServer {
     let link: ClientLink | null = null;
     let projectHost: ProjectHost | null = null;
     let subscriber: ProjectSubscriber | null = null;
+    let chatHost: ChatHost | null = null;
+    let chatSub: ChatSubscriber | null = null;
     let userId: string | null = null;
-    const send = (
-      msg:
-        | ServerMessage
-        | { type: "project.snapshot"; projectId: string; events: ProjectEvent[] }
-        | { type: "project.event"; event: ProjectEvent }
-        | { type: "fleet.brief"; markdown: string },
-    ) => {
+    const send = (msg: OutgoingMessage) => {
       if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
     };
     ws.on("message", (raw) => {
@@ -424,6 +711,51 @@ export class HenosisServer {
         if (msg.type === "project.unsubscribe") {
           if (subscriber && projectHost) projectHost.unsubscribe(subscriber);
           subscriber = null;
+          return;
+        }
+        if (msg.type === "chat.subscribe") {
+          if (chatSub && chatHost) chatHost.unsubscribe(chatSub);
+          userId = msg.userId;
+          if (msg.name && !this.orgs.user(msg.userId)) this.names.set(msg.userId, msg.name);
+          chatHost = this.chat(msg.orgId);
+          chatSub = { userId, send };
+          chatHost.subscribe(chatSub);
+          return;
+        }
+        if (msg.type === "chat.unsubscribe") {
+          if (chatSub && chatHost) chatHost.unsubscribe(chatSub);
+          chatSub = null;
+          return;
+        }
+        if (isChatMessage(msg)) {
+          if (!chatHost) throw new KernelError("invalid", "subscribe to an organisation first");
+          const me = userId ?? "anonymous";
+          const chat = chatHost.chat;
+          switch (msg.type) {
+            case "chat.create":
+              chat.createGroup(me, {
+                name: msg.name,
+                scope: msg.scope,
+                purpose: msg.purpose,
+                members: msg.members,
+              });
+              break;
+            case "chat.add":
+              chat.addMember(me, msg.groupId, msg.member);
+              break;
+            case "chat.remove":
+              chat.removeMember(me, msg.groupId, msg.member);
+              break;
+            case "chat.rename":
+              chat.rename(me, msg.groupId, msg.name, msg.purpose);
+              break;
+            case "chat.say":
+              chat.post(me, msg.groupId, msg.text, msg.replyTo);
+              break;
+            case "chat.read":
+              chat.read(me, msg.groupId);
+              break;
+          }
           return;
         }
         if (isProjectMessage(msg)) {
@@ -481,8 +813,13 @@ export class HenosisServer {
     ws.on("close", () => {
       if (host && link) host.leave(link);
       if (subscriber && projectHost) projectHost.unsubscribe(subscriber);
+      if (chatSub && chatHost) chatHost.unsubscribe(chatSub);
     });
   }
+}
+
+function isChatMessage(m: AnyClientMessage): m is ChatClientMessage {
+  return CHAT_MESSAGE_TYPES.has(m.type);
 }
 
 function isProjectMessage(m: AnyClientMessage): m is ProjectClientMessage {

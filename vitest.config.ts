@@ -11,6 +11,7 @@ export default defineConfig({
       "@henosis/runner": src("runner"),
       "@henosis/fleet": src("fleet"),
       "@henosis/memory": src("memory"),
+      "@henosis/chat": src("chat"),
       "@henosis/slack": src("slack"),
       "@henosis/server": src("server"),
     },

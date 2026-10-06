@@ -117,6 +117,14 @@ export function linkOf(link: string): {
   sessionId: string | null;
   href: string | null;
 } {
+  // A mention links into a group chat; it has no project of its own.
+  const c = link.match(/^henosis:\/\/c\/([^/?#]+)\/([^/?#]+)/);
+  if (c)
+    return {
+      projectId: "",
+      sessionId: null,
+      href: paths.chat(decodeURIComponent(c[1] as string), decodeURIComponent(c[2] as string)),
+    };
   const m = link.match(/^henosis:\/\/p\/([^/?#]+)(?:\/s\/([^/?#]+))?/);
   if (!m) return { projectId: "", sessionId: null, href: null };
   const projectId = decodeURIComponent(m[1] as string);

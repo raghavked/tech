@@ -10,6 +10,7 @@ import {
 } from "react";
 import { api, type Me, type SessionRow, useFetch } from "./api.js";
 import { pendingOf } from "./approvalsQueue.js";
+import { useChatUnread } from "./chat.js";
 import { copy } from "./copy.js";
 import { ErrorBoundary, Recover } from "./ErrorBoundary.js";
 import { clearIdentity, type Identity, useIdentity } from "./identity.js";
@@ -29,6 +30,7 @@ import { Home } from "./views/Home.js";
 // Perf: the other views are separate chunks, loaded on first use and warmed once idle (views/lazy.ts).
 import {
   Approvals,
+  ChatView,
   Inbox,
   Memory,
   Project,
@@ -119,6 +121,18 @@ function View({
       );
     case "management":
       return <Team teamId={route.teamId} identity={identity} me={me} ctx={ctx} />;
+    case "chat": // groups-chats: people and agents in one circle
+      return (
+        <ChatView
+          key={`${route.orgId}/${route.groupId ?? ""}`}
+          orgId={route.orgId}
+          groupId={route.groupId}
+          newGroup={route.newGroup}
+          identity={identity}
+          me={me}
+          ctx={ctx}
+        />
+      );
     case "inbox":
       return <Inbox identity={identity} me={me} ctx={ctx} />;
     case "memory":
@@ -263,6 +277,7 @@ const Sidebar = memo(function Sidebar({
   const activeProject = route.name === "fleet" ? route.projectId : null;
   const activeTeam = route.name === "management" ? route.teamId : null;
   const activeMemory = route.name === "memory" ? route.orgId : null;
+  const activeGroup = route.name === "chat" ? route.groupId : null;
   const teams = useMemo(() => {
     const out = new Map<string, { id: string; name: string; projects: typeof projects }>();
     for (const p of projects) {
@@ -280,6 +295,12 @@ const Sidebar = memo(function Sidebar({
     if (out.size === 0) out.set("default", "Default org");
     return [...out.entries()];
   }, [projects]);
+  // groups-chats: the person's groups across their orgs, with unread counts, polled quietly.
+  const chats = useChatUnread(
+    orgs.map(([id]) => id),
+    identity?.userId ?? null,
+  );
+  const firstOrg = orgs[0]?.[0] ?? "default";
   const listed = new Set(
     Object.values(sessions).flatMap((rows) => rows.filter((r) => r.open).map((r) => r.sessionId)),
   );
@@ -431,6 +452,37 @@ const Sidebar = memo(function Sidebar({
                 {orgs.length > 1 ? copy.shell.orgMemory(name) : copy.shell.memory}
               </a>
             ))}
+          {identity && (
+            <div className="section">
+              {copy.shell.chats}
+              <span className="n">{chats.total || ""}</span>
+            </div>
+          )}
+          {identity &&
+            orgs.map(([id, name]) =>
+              (chats.byOrg[id]?.groups ?? [])
+                .filter((g) => hit(g.name, g.purpose))
+                .map((g) => (
+                  <a
+                    key={`${id}/${g.groupId}`}
+                    className={`item chat${activeGroup === g.groupId ? " active" : ""}`}
+                    href={paths.chat(id, g.groupId)}
+                    title={orgs.length > 1 ? copy.shell.orgChats(name) : g.purpose}
+                  >
+                    <span className="ellipsis">#{g.name}</span>
+                    {g.unread > 0 && <span className="count">{g.unread}</span>}
+                  </a>
+                )),
+            )}
+          {identity && (
+            <a
+              className={`item chat new-group${route.name === "chat" && route.newGroup ? " active" : ""}`}
+              href={paths.newGroup(firstOrg)}
+            >
+              <Icon d={ICONS.plus} size={14} />
+              {copy.shell.newGroup}
+            </a>
+          )}
           {recentsShown.length > 0 && <div className="section">{copy.shell.recents}</div>}
           {recentsShown.map((r) => (
             <a

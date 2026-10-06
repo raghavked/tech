@@ -161,7 +161,11 @@ export function Avatar({
   title?: string;
 }) {
   return (
-    <span className={`avatar${driver ? " driver" : ""}`} title={title ?? name} data-id={id}>
+    <span
+      className={`avatar${driver ? " driver" : ""}${agent ? " agent" : ""}`}
+      title={title ?? name}
+      data-id={id}
+    >
       {agent ? "A" : initials(name)}
     </span>
   );

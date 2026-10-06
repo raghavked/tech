@@ -285,3 +285,71 @@ test("the inbox lists an approval waiting and opens the session to it", async ({
   await expect(conversation(page)).toContainText("Approved: run");
   await expect(conversation(page)).toContainText("Done:", { timeout: 15_000 });
 });
+
+test("a group of Ana, Bo and her agent: Bo's mention steers the agent and its reply lands in the chat", async ({
+  browser,
+}) => {
+  test.setTimeout(60_000);
+  const session = `e2e-chat-${token()}`;
+  const groupName = `Rollout ${token()}`;
+  const ask = "what is left to do?";
+  const messages = (page: Page) => page.getByRole("region", { name: "Messages" });
+
+  // Bo shows up first (the server learns his name), on the org's chat list.
+  const bo = await browser.newPage();
+  await signIn(bo, "Bo", "bo");
+  await bo.goto("/#/c/default");
+  await expect(bo.getByRole("heading", { level: 1 })).toContainText("chats");
+
+  // Ana's agent: a goal and one finished turn, so a mention starts its next turn.
+  const ana = await browser.newPage();
+  await enter(ana, "Ana", "ana", "e2e-chat", session);
+  await steer(ana, `Build a greeter ${token()}`);
+  await expect(approve(ana)).toBeVisible({ timeout: 15_000 });
+  await approve(ana).click();
+  await expect(conversation(ana)).toContainText("Done:", { timeout: 15_000 });
+
+  // Ana starts a group from the sidebar: Bo and her agent are the members.
+  await ana
+    .getByRole("navigation", { name: "Sidebar" })
+    .getByRole("link", { name: "New group" })
+    .click();
+  const sheet = ana.getByRole("form", { name: "New group" });
+  await expect(sheet).toBeVisible();
+  await sheet.getByLabel("Name").fill(groupName);
+  await sheet.getByLabel("Purpose").fill("Greeter rollout");
+  await sheet.getByLabel("Scope").selectOption({ label: "Project Chat" });
+  await sheet.getByRole("checkbox", { name: "Bo", exact: true }).check();
+  await sheet.getByRole("checkbox", { name: session, exact: true }).check();
+  await sheet.getByRole("button", { name: "Create group" }).click();
+  await expect(ana).toHaveURL(/#\/c\/default\/grp_/);
+  await ana.getByRole("button", { name: "Members" }).click();
+  const members = ana.getByRole("complementary", { name: "Members" });
+  await expect(members).toContainText("Ana (you)");
+  await expect(members).toContainText("Bo");
+  await expect(members).toContainText(session);
+
+  // Bo opens it from his list and mentions the agent, picking it from the @ list.
+  await bo.getByRole("link", { name: new RegExp(groupName) }).click();
+  await expect(bo).toHaveURL(/#\/c\/default\/grp_/);
+  const box = bo.getByLabel("Message", { exact: true });
+  await box.fill(`@${session.slice(0, 9)}`);
+  await bo.getByRole("option", { name: new RegExp(session) }).click();
+  await expect(box).toHaveValue(`@${session} `);
+  await box.pressSequentially(ask);
+  await box.press("Enter");
+  await expect(messages(bo)).toContainText(`@${session} ${ask}`);
+  await expect(messages(bo).locator("mark.mention")).toHaveText(`@${session}`);
+
+  // The agent's next words come back into the group, under its session title, for everyone.
+  await expect(messages(bo).locator(".msg.agent")).toContainText("to match the team's direction", {
+    timeout: 20_000,
+  });
+  await expect(messages(ana).locator(".msg.agent")).toContainText(session);
+  await expect(messages(ana).locator(".msg.agent")).toContainText("replied");
+
+  // And in the session the mention is a directive from Bo, in the scope "chat".
+  await ana.goto(`/#/p/e2e-chat/s/${session}`);
+  await expect(conversation(ana)).toContainText(`Bo in #${groupName}: @${session} ${ask}`);
+  await expect(conversation(ana)).toContainText("chat");
+});

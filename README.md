@@ -109,13 +109,15 @@ packages/kernel     pure core: hash, log, arbitration, approvals, reducer, merge
 packages/runner     agent loop, tool registry, scripted model, Claude adapter
 packages/fleet      project ledger: claims, lead directives, contentions, fleet brief, identity
 packages/memory     organisation memory: attributed entries, conflicts, compaction, curator
-packages/server     websocket and HTTP server, project and session hosts, notifications, persistence
+packages/chat       groups and chats: a chained log per org where people and agents are members,
+                    mentions, agent replies, read markers
+packages/server     websocket and HTTP server, project, session and chat hosts, notifications, persistence
 packages/slack      Slack adapter on an interface with an in-memory fake; Bolt socket mode
 packages/cli        the fold binary
 apps/web            the product: React client that folds the same events as the server (PWA);
-                    agents rail, team panel, command palette (⌘K), inbox, approvals queue,
-                    memory browser, replay scrubber, branch compare, settings, share, export,
-                    offline queue and reconnect-resume
+                    agents rail, team panel, groups and chats, command palette (⌘K), inbox,
+                    approvals queue, memory browser, replay scrubber, branch compare, settings,
+                    share, export, offline queue and reconnect-resume
 apps/desktop        Tauri 2 shell around the web client: tray, native notifications, deep
                     links (henosis://), auto-update (docs/16_desktop_release.md)
 apps/mobile         Capacitor shell around the web client with native push

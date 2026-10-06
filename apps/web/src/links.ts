@@ -11,6 +11,7 @@
 export type HenosisLink =
   | { kind: "session"; projectId: string; sessionId: string; title: string | null }
   | { kind: "project"; projectId: string }
+  | { kind: "chat"; orgId: string; groupId: string }
   | { kind: "inbox" };
 
 function safeDecode(s: string): string {
@@ -42,6 +43,9 @@ export function parseLink(link: string): HenosisLink | null {
       };
     if (parts.length === 2) return { kind: "project", projectId: parts[1] };
   }
+  // henosis://c/<org>/<group>: a mention in a group chat.
+  if (parts[0] === "c" && parts[1] && parts[2])
+    return { kind: "chat", orgId: parts[1], groupId: parts[2] };
   return null;
 }
 
@@ -53,6 +57,8 @@ export function routeOf(link: HenosisLink): string {
       return "#/inbox";
     case "project":
       return `#/p/${enc(link.projectId)}`;
+    case "chat":
+      return `#/c/${enc(link.orgId)}/${enc(link.groupId)}`;
     case "session":
       return `#/p/${enc(link.projectId)}/s/${enc(link.sessionId)}${
         link.title ? `?title=${enc(link.title)}` : ""
@@ -74,6 +80,8 @@ export function linkOf(target: HenosisLink): string {
       return "henosis://inbox";
     case "project":
       return `henosis://p/${enc(target.projectId)}`;
+    case "chat":
+      return `henosis://c/${enc(target.orgId)}/${enc(target.groupId)}`;
     case "session":
       return `henosis://p/${enc(target.projectId)}/s/${enc(target.sessionId)}${
         target.title ? `?title=${enc(target.title)}` : ""
