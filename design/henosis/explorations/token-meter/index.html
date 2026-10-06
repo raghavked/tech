@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Token meter</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- the four kinds of token, as colours. Input is the frame (navy), output is the hand
+         (chocolate), cache read is the pulse (apricot), cache write is deep apricot, hatched. ---- */
+  :root { --seg-in: #2A3244; --seg-out: #56352D; --seg-cache: #E2C4A6; --seg-write: #CFA782; --hatch: rgba(255,255,255,0.55); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seg-in: #AEB4C2; --seg-out: #C98E72; --seg-cache: #E2C4A6; --seg-write: #B48A66; --hatch: rgba(28,34,48,0.55); } }
+  :root[data-theme="dark"] { --seg-in: #AEB4C2; --seg-out: #C98E72; --seg-cache: #E2C4A6; --seg-write: #B48A66; --hatch: rgba(28,34,48,0.55); }
+
+  html, body { height: auto; min-height: 100%; }
+  body { overflow-x: hidden; background-repeat: no-repeat; }
+  .board { display: flex; flex-direction: column; }
+  .sheet { width: 1440px; margin: 0 auto; }
+
+  /* ================= 1. the screen, 1440x900 ================= */
+  .screen { height: 900px; overflow: hidden; position: relative; }
+  .screen .shell { height: 100%; }
+  .rail { overflow: hidden; }
+  .rail .brand { padding-bottom: 10px; } .rail .brand svg { width: 30px; height: 30px; }
+  .rail .agent { padding: 7px 12px; gap: 3px; } .rail .section { padding: 10px 10px 2px; } .rail .crew { padding-top: 8px; } .rail .item { padding: 7px 12px; }
+  .rail .search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13px; margin-bottom: 4px; }
+  .rail .search kbd { margin-left: auto; font: 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 1px 5px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; display: inline-flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .rail .agent .foot .tok .hair { width: 44px; height: 2px; border-radius: 1px; background: rgba(243,237,228,0.14); overflow: hidden; }
+  .rail .agent .foot .tok .hair i { display: block; height: 100%; background: var(--rail-muted); }
+  .rail .agent .foot .tok.warn { color: #E2B06A; } .rail .agent .foot .tok.warn .hair i { background: #E2B06A; }
+  .rail .agent .foot .tok.over { color: #E2847A; } .rail .agent .foot .tok.over .hair i { background: #E2847A; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 4px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; } .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+  .ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  .screen .scroll { display: flex; flex-direction: column-reverse; } .screen .scroll .column { flex: none; align-self: center; }
+  .topbar { position: relative; z-index: 3; }
+  .topbar .title { flex: 1; } .topbar .title .serif { font-size: 21px; }
+  .topbar .title .status, .topbar .title .pill { font-family: var(--font); }
+  .topbar .btn.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+  .topbar .btn.sm svg { width: 14px; height: 14px; }
+
+  /* ---- the meter: chip, hairline, popover ---- */
+  .meter { position: relative; display: inline-flex; flex-direction: column; gap: 4px; flex: none; min-width: 96px; }
+  .meter .tchip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 2px; border: 0; background: transparent; font: 12.5px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); cursor: pointer; border-radius: 6px; }
+  .meter .tchip .pct { color: var(--ink-3); }
+  .meter .hair { display: block; height: 3px; border-radius: 2px; background: var(--surface-3); overflow: hidden; position: relative; }
+  .meter .hair i { display: block; height: 100%; border-radius: inherit; background: var(--gradient-live); background-size: 200% 100%; }
+  .meter.live .hair i { animation: weave 1.2s linear infinite; }
+  .meter .hair::after { content: ""; position: absolute; left: 80%; top: -1px; bottom: -1px; width: 1px; background: color-mix(in srgb, var(--ink-3) 55%, transparent); }
+  .meter.warn .tchip { color: var(--warn); } .meter.warn .tchip .pct { color: var(--warn); } .meter.warn .hair i { background: var(--warn); animation: none; }
+  .meter.over .tchip { color: var(--danger); } .meter.over .tchip .pct { color: var(--danger); } .meter.over .hair i { background: var(--danger); animation: none; }
+  .meter.over .hair { box-shadow: 0 0 0 1px var(--danger-soft); } .meter.over .hair::after { display: none; }
+  .meter.none .tchip { color: var(--ink-3); }
+  .meter .tchip .ring { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--apricot-deep); border-right-color: transparent; }
+  .meter.live .tchip .ring { animation: orbit 1.2s linear infinite; }
+
+  .pop { position: absolute; top: calc(100% + 8px); left: 0; z-index: 6; width: 264px; padding: 12px 14px 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 9px; font-size: 13px; color: var(--ink-2); }
+  .pop::before { content: ""; position: absolute; top: -6px; left: 18px; width: 10px; height: 10px; background: var(--surface); border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
+  .pop .head { display: flex; align-items: baseline; gap: 8px; }
+  .pop .head .serif { font-size: 17px; color: var(--ink); } .pop .head .turn { margin-left: auto; font: 11.5px var(--mono); color: var(--ink-3); }
+  .stacked { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--surface-3); gap: 1px; }
+  .stacked i { display: block; height: 100%; } .stacked .in { background: var(--seg-in); } .stacked .out { background: var(--seg-out); } .stacked .cache { background: var(--seg-cache); }
+  .stacked .write { background: repeating-linear-gradient(135deg, var(--seg-write) 0 3px, var(--hatch) 3px 5px); }
+  .kv { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; line-height: 1.5; }
+  .kv .sw { width: 9px; height: 9px; border-radius: 2px; } .kv .sw.in { background: var(--seg-in); } .kv .sw.out { background: var(--seg-out); } .kv .sw.cache { background: var(--seg-cache); }
+  .kv .sw.write { background: repeating-linear-gradient(135deg, var(--seg-write) 0 2px, var(--hatch) 2px 4px); }
+  .kv .v { font: 12.5px var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .kv .v small { font: inherit; color: var(--ink-3); margin-left: 6px; }
+  .pop .rule { height: 1px; background: var(--line); margin: 1px 0; }
+  .pop .bud { display: flex; flex-direction: column; gap: 6px; }
+  .pop .bud .row { display: flex; align-items: baseline; gap: 8px; } .pop .bud .row .v { margin-left: auto; font: 12.5px var(--mono); color: var(--ink); }
+  .pop .bud .budget { height: 4px; }
+  .pop .bud .left { font-size: 12.5px; color: var(--ink-2); }
+  .pop .bud .left b { font-weight: 500; color: var(--ink); }
+  .pop .foot { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-3); }
+  .pop .foot kbd { font: 10.5px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+  .pop .foot a { margin-left: auto; font-weight: 500; }
+  .pop.warn .bud .left, .pop.warn .bud .row .v { color: var(--warn); } .pop.over .bud .left, .pop.over .bud .row .v { color: var(--danger); }
+  .pop .bud .budget.warn > i { background: var(--warn); } .pop .bud .budget.over > i { background: var(--danger); }
+
+  /* ---- stream ---- */
+  .column { padding-top: 22px; padding-bottom: 18px; gap: 22px; }
+  .composer-wrap { padding-top: 6px; }
+  .msg .meta .scope { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+  .msg .meta time { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .msg .meta .tturn { margin-left: auto; font: 11.5px var(--mono); color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
+  .msg .meta .tturn .mini { width: 56px; height: 4px; border-radius: 2px; }
+  .msg.human .text .goal-lbl { font-family: var(--serif); font-style: italic; color: var(--accent); margin-right: 6px; }
+  .msg.agent .text p { margin: 0 0 8px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; }
+  .step { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 5px 10px; border-radius: 10px; }
+  .step svg { width: 15px; height: 15px; color: var(--ink-3); } .step.ok svg { color: var(--ok); }
+  .step .mono { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .step .mono b { font-weight: 500; color: var(--ink); }
+  .step .r { font: 11.5px var(--mono); color: var(--ink-3); }
+  .step.live { background: var(--apricot-soft); } .step.live .r { color: var(--accent); }
+  .step .livedot { width: 9px; height: 9px; margin: 0 auto; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.6s ease-in-out infinite; }
+  .turnfoot { display: flex; align-items: center; gap: 10px; margin: 2px 0 0 10px; font: 11.5px var(--mono); color: var(--ink-3); }
+  .turnfoot .stacked { width: 96px; height: 4px; }
+  .turnfoot .d { color: var(--ink-2); }
+
+  .plan .goal { margin: 0; font-size: 15px; }
+  .plan .pstep { padding: 7px 0; } .plan .pstep:first-child { border-top: 0; }
+  .plan .pstep .t { display: flex; flex-direction: column; min-width: 0; } .plan .pstep .t .d { font-size: 12.5px; color: var(--ink-3); }
+  .plan .pstep .used { font: 12.5px var(--mono); color: var(--ink-2); min-width: 56px; text-align: right; } .plan .pstep .est { min-width: 60px; text-align: right; }
+  .plan .pstep.pending .used { color: var(--ink-3); }
+  .plan .pstep .used.under { color: var(--ok); } .plan .pstep .used.overest { color: var(--warn); }
+  .plan .totals { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+  .plan .totals .budget { grid-column: 1 / -1; height: 5px; }
+  .plan .totals .n { font: 12.5px var(--mono); color: var(--ink); }
+  .plan .totals .saving { color: var(--ok); }
+
+  /* ---- details drawer, usage section ---- */
+  .drawer { width: 340px; padding: 20px 22px; gap: 20px; }
+  .drawer .tabs { display: flex; gap: 2px; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; }
+  .drawer .tabs span { flex: 1; text-align: center; font: 500 12.5px var(--font); color: var(--ink-2); padding: 4px 0; border-radius: var(--radius-full); }
+  .drawer .tabs .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+  .usage { display: flex; flex-direction: column; gap: 10px; }
+  .usage .big { display: flex; align-items: baseline; gap: 8px; }
+  .usage .big .n { font: 400 30px/1 var(--serif); color: var(--ink); letter-spacing: -0.01em; }
+  .usage .big .u { font-size: 13px; color: var(--ink-2); }
+  .usage .big .pct { margin-left: auto; font: 12.5px var(--mono); color: var(--ink-3); }
+  .usage .budget { height: 5px; position: relative; overflow: visible; }
+  .usage .budget::after { content: ""; position: absolute; left: 80%; top: -2px; bottom: -2px; width: 1px; background: color-mix(in srgb, var(--ink-3) 55%, transparent); }
+  .usage .budget > i { border-radius: inherit; }
+  .usage .left { font-size: 13px; color: var(--ink-2); display: flex; gap: 8px; align-items: baseline; line-height: 1.4; }
+  .usage .left > span { flex: 1; min-width: 0; }
+  .usage .left .edit { margin-left: auto; color: var(--accent); font-weight: 500; font-size: 12.5px; white-space: nowrap; flex: none; }
+  .usage .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+  .usage .legend .kv { grid-template-columns: 10px 1fr auto; font-size: 12.5px; }
+  .usage .byturn { display: flex; align-items: center; gap: 8px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin-top: 6px; }
+  .usage .byturn .sum { margin-left: auto; letter-spacing: 0; text-transform: none; font: 11.5px var(--mono); font-weight: 400; }
+  .turns { display: flex; flex-direction: column; }
+  .turn { display: grid; grid-template-columns: 64px 1fr 44px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .turn:first-child { border-top: 0; }
+  .turn .t { color: var(--ink-2); } .turn .t small { display: block; font-size: 11px; color: var(--ink-3); line-height: 1.2; }
+  .turn .stacked { height: 6px; border-radius: 3px; }
+  .turn .n { font: 12.5px var(--mono); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+  .turn.live .t { color: var(--accent); } .turn.live .n { color: var(--accent); }
+  .turn.live .stacked { box-shadow: 0 0 0 2px var(--apricot-soft); }
+  .turn.heavy .n { font-weight: 500; }
+  .usage .more { font-size: 12.5px; color: var(--accent); font-weight: 500; }
+
+  /* ================= 2..5 spec sheets ================= */
+  .spec { padding: 56px 72px 64px; display: flex; flex-direction: column; gap: 26px; border-top: 1px solid var(--line); }
+  .spec > header { display: flex; align-items: baseline; gap: 18px; }
+  .spec > header h2 { font-size: 30px; } .spec > header .k { font: 11.5px var(--mono); color: var(--ink-3); letter-spacing: 0.06em; }
+  .spec > header p { margin: 0; margin-left: auto; max-width: 560px; font-size: 14px; color: var(--ink-2); text-align: right; }
+  .row6 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+  .swatch { display: flex; flex-direction: column; gap: 12px; }
+  .swatch .frame { border: 1px solid var(--line); border-radius: var(--radius); background: color-mix(in srgb, var(--canvas) 82%, transparent); padding: 16px 18px; min-height: 76px; display: flex; align-items: flex-start; }
+  .swatch .lbl { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--ink-2); }
+  .swatch .lbl b { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+  .swatch .lbl code { font: 11.5px var(--mono); color: var(--ink-3); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+  .anatomy { position: relative; display: flex; gap: 40px; align-items: flex-start; }
+  .anatomy .pop { position: static; width: 300px; flex: none; } .anatomy .pop::before { display: none; }
+  .notes { display: flex; flex-direction: column; gap: 10px; counter-reset: n; }
+  .notes div { display: grid; grid-template-columns: 22px 1fr; gap: 10px; font-size: 13.5px; color: var(--ink-2); align-items: start; }
+  .notes div::before { counter-increment: n; content: counter(n); width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); font: 600 11px/20px var(--font); text-align: center; }
+  .notes b { color: var(--ink); font-weight: 600; }
+  .bars { display: flex; flex-direction: column; gap: 14px; }
+  .bars .b { display: grid; grid-template-columns: 150px 1fr 220px; gap: 20px; align-items: center; }
+  .bars .b .lbl { font-size: 13.5px; } .bars .b .lbl code { display: block; font: 11.5px var(--mono); color: var(--ink-3); }
+  .bars .b .ex { font-size: 12.5px; color: var(--ink-2); }
+  .bars .meter { width: 100%; min-width: 0; }
+  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .rules .card { padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--ink-2); }
+  .rules .card h3 { font-size: 14px; color: var(--ink); }
+  .drawer-demo { width: 340px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow-soft); }
+  .drawer-demo h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .mobile-only { display: none; }
+
+  /* ================= mobile, 390x844 ================= */
+  @media (max-width: 500px) {
+    .desktop-only { display: none; }
+    .mobile-only { display: flex; }
+    body { overflow: hidden; }
+    .m { height: 100vh; display: flex; flex-direction: column; }
+    .m .topbar { padding: 10px 14px; gap: 10px; min-height: 52px; }
+    .m .topbar .title { font-size: 18px; gap: 8px; flex: 1; }
+    .m .topbar .btn.icon { width: 32px; min-height: 32px; }
+    .meter.compact { min-width: 64px; }
+    .m .scroll { position: relative; }
+    .m .column { padding: 16px 16px 24px; gap: 18px; }
+    .m .msg.human .text { max-width: 100%; }
+    .m .sheet { position: absolute; left: 0; right: 0; bottom: 0; width: auto; background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: var(--shadow-pop); padding: 10px 18px 28px; display: flex; flex-direction: column; gap: 12px; z-index: 5; }
+    .m .sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: 0 auto 4px; }
+    .m .scrim { position: absolute; inset: 0; background: rgba(42,50,68,0.28); z-index: 4; }
+    .m .sheet .pop { position: static; width: auto; box-shadow: none; border: 0; padding: 0; } .m .sheet .pop::before { display: none; }
+    .m .sheet .turns { max-height: none; }
+  }
+</style>
+</head>
+<body>
+<div class="board">
+
+<!-- ======================================================================= -->
+<!-- 1. THE SCREEN: Billing page at turn 7, the chip hovered open, Details drawer on Usage -->
+<!-- ======================================================================= -->
+<section class="sheet screen desktop-only" aria-label="Session with the token meter open">
+<div class="shell">
+  <nav class="rail" aria-label="Rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+      <span class="wordmark">Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search or jump to<kbd>⌘K</kbd></div>
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Writing <i>proration.ts</i> · step 3 of 4</div>
+      <div class="foot"><span class="with"><span class="avatar">AN</span> with Bo</span><span class="tok"><span>12.4k</span><span class="hair"><i style="width:62%"></i></span></span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits to <i>run db:migrate</i> · release gate</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana</span><span class="tok warn"><span>16.8k</span><span class="hair"><i style="width:84%"></i></span></span></div>
+    </a>
+    <div class="section">Solo</div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok over"><span>31.0k</span><span class="hair"><i style="width:100%"></i></span></span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok"><span>4.2k</span></span></div>
+    </a>
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Project<span class="n">4 sessions</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="m4 8 8 5 8-5"/></svg>Inbox<span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="m9 12 2 2 4-4"/></svg>Approvals<span class="n live">2</span></a>
+    <div class="me"><span class="avatar">AN</span><span class="meta"><span>Ana</span><span class="role">owner · driving</span></span><span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3.9a7 7 0 0 0-1.7-1L14.5 3h-5l-.4 2.5a7 7 0 0 0-1.7 1L5.1 6 3.1 9.5l2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 1.7 1l.4 2.5h5l.4-2.5a7 7 0 0 0 1.7-1l2.3.9 2-3.4-2-1.5c.1-.3.1-.7.1-1Z"/></svg></span></div>
+  </nav>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="title">
+        <span class="serif">Billing page</span>
+        <span class="status running">Running · turn 7</span>
+        <span class="pill team">Team · with Bo</span>
+        <span class="meter live" aria-expanded="true">
+          <button class="tchip" type="button" aria-label="Tokens: 12,400 used, 62% of the budget"><span class="ring" aria-hidden="true"></span>12.4k tokens <span class="pct">62%</span></button>
+          <span class="hair" aria-hidden="true"><i style="width:62%"></i></span>
+          <div class="pop" role="dialog" aria-label="Token breakdown">
+            <div class="head"><span class="serif">Billing page</span><span class="turn">turn 7 · live</span></div>
+            <div class="stacked" aria-hidden="true"><i class="in" style="width:55.6%"></i><i class="out" style="width:14.2%"></i><i class="cache" style="width:23.1%"></i><i class="write" style="width:7.1%"></i></div>
+            <div class="kv"><span class="sw in"></span><span>Input</span><span class="v">9,870</span></div>
+            <div class="kv"><span class="sw out"></span><span>Output</span><span class="v">2,530</span></div>
+            <div class="kv"><span class="sw cache"></span><span>Cache read</span><span class="v">4,100</span></div>
+            <div class="kv"><span class="sw write"></span><span>Cache write</span><span class="v">1,260</span></div>
+            <div class="rule"></div>
+            <div class="bud">
+              <div class="row"><span>Budget</span><span class="v">12,400 of 20,000 · 62%</span></div>
+              <div class="budget"><i style="width:62%"></i></div>
+              <div class="left">About <b>7.6k left</b> · cache read is not counted</div>
+            </div>
+            <div class="foot"><kbd>click</kbd> pins it <a href="#">Usage in Details</a></div>
+          </div>
+        </span>
+      </div>
+      <div class="right">
+        <span class="stack"><span class="avatar driver" title="Ana, owner, driving">AN</span><span class="avatar">BO</span><span class="avatar">CY</span></span>
+        <button class="btn ghost icon sm" type="button" aria-label="Share"><svg class="ic" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg></button>
+        <button class="btn sm" type="button">Team <span class="faint">3</span></button>
+        <button class="btn sm on" type="button">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <section class="column" aria-label="Session stream">
+        <div class="msg human">
+          <div class="meta"><span class="avatar driver">AN</span><span class="who">Ana</span><span class="scope">goal</span><time>09:15</time></div>
+          <div class="text"><span class="goal-lbl">Goal</span>Add proration to the Billing page. Show the prorated credit as its own line above the tax lines, keep the invoice PDF in step, and leave Checkout to Bo.</div>
+        </div>
+
+        <div class="plan">
+          <div class="head"><span class="serif">Plan · proration on the Billing page</span><span class="status running">step 3 of 4</span></div>
+          <p class="goal muted small">Four steps. Estimated 11.5k tokens against a 20k budget; the team approved it at 4.0.</p>
+          <div class="steps">
+            <div class="pstep done"><span class="n">✓</span><span class="t"><span>Read the Billing view and the invoice model</span><span class="d">apps/web/src/views/Billing.tsx, packages/billing</span></span><span class="used under">2.4k</span><span class="est">est 3.0k</span></div>
+            <div class="pstep done"><span class="n">✓</span><span class="t"><span>Write proration.ts with tests</span><span class="d">full cycle, 11 of 30 days, VAT on the net amount</span></span><span class="used overest">4.1k</span><span class="est">est 3.5k</span></div>
+            <div class="pstep running"><span class="n">3</span><span class="t"><span>Render the credit line above the tax lines</span><span class="d">Billing.tsx · in progress</span></span><span class="used">2.1k</span><span class="est">est 2.5k</span></div>
+            <div class="pstep pending"><span class="n">4</span><span class="t"><span>Add the proration column, behind the release gate</span><span class="d">pnpm db:migrate add-proration-column · irreversible</span></span><span class="used">—</span><span class="est">est 2.5k</span></div>
+          </div>
+          <div class="totals">
+            <span>Spent <span class="n">12.4k</span> of the plan's <span class="n">11.5k</span> estimate, with step 4 still to come</span>
+            <span class="n">62% of 20k</span>
+            <div class="budget"><i style="width:62%"></i></div>
+            <span class="small">Step 2 ran 0.6k over its estimate; step 1 came in <span class="saving">0.6k under</span>.</span>
+            <span class="small faint">Soft budget · nothing stops at 100%</span>
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="meta"><span class="avatar agent">bp</span><span class="who">Billing page</span><span class="tturn">turn 7 · step 3 of 4</span></div>
+          <div class="text"><p>The credit line is in. It sits above the tax lines, reads "Prorated credit · 11 of 30 days" and uses the same row shape as a tax line so the PDF needs no new layout. I am leaving Checkout alone, as asked.</p></div>
+          <div class="steps">
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="mono">Read <b>apps/web/src/views/Billing.tsx</b></span><span class="r">212 lines</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="m5 16 11-11 3 3-11 11H5z"/></svg><span class="mono">Wrote <b>packages/billing/proration.ts</b></span><span class="r">+64 −0</span></div>
+            <div class="step live"><span class="livedot"></span><span class="mono">Writing <b>apps/web/src/views/Billing.tsx</b></span><span class="r">now</span></div>
+          </div>
+          <div class="turnfoot"><span class="stacked"><i class="in" style="width:62%"></i><i class="out" style="width:18%"></i><i class="cache" style="width:20%"></i></span><span>this turn <span class="d">2.1k</span> · 1.5k in · 0.4k out · 0.2k cache</span></div>
+        </div>
+      </section>
+
+    </div>
+    <div class="composer-wrap">
+        <div class="composer">
+          <div class="input muted">Steer the agent</div>
+          <div class="bar">
+            <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+            <div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></button></div>
+          </div>
+        </div>
+      </div>
+  </main>
+
+  <aside class="drawer" aria-label="Details">
+    <div class="tabs"><span>Intent</span><span>Branches</span><span class="on">Usage</span><span>Memory</span></div>
+    <section class="usage" aria-label="Usage">
+      <h3>Usage</h3>
+      <div class="big"><span class="n">12,400</span><span class="u">tokens this branch</span><span class="pct">62% of 20k</span></div>
+      <div class="budget"><i style="width:62%"></i></div>
+      <div class="left"><span>About 7.6k left · soft budget</span><a class="edit" href="#">Edit budget</a></div>
+      <div class="legend">
+        <div class="kv"><span class="sw in"></span><span>Input</span><span class="v">9,870</span></div>
+        <div class="kv"><span class="sw out"></span><span>Output</span><span class="v">2,530</span></div>
+        <div class="kv"><span class="sw cache"></span><span>Cache read</span><span class="v">4,100</span></div>
+        <div class="kv"><span class="sw write"></span><span>Cache write</span><span class="v">1,260</span></div>
+      </div>
+      <div class="byturn">By turn <span class="sum">7 turns · avg 1.8k</span></div>
+      <div class="turns">
+        <div class="turn live"><span class="t">Turn 7<small>live</small></span><span class="stacked"><i class="in" style="width:34%"></i><i class="out" style="width:9%"></i><i class="cache" style="width:5%"></i></span><span class="n">2.1k</span></div>
+        <div class="turn"><span class="t">Turn 6<small>step 2</small></span><span class="stacked"><i class="in" style="width:28%"></i><i class="out" style="width:12%"></i><i class="cache" style="width:14%"></i></span><span class="n">1.8k</span></div>
+        <div class="turn heavy"><span class="t">Turn 5<small>tests</small></span><span class="stacked"><i class="in" style="width:40%"></i><i class="out" style="width:14%"></i><i class="cache" style="width:12%"></i></span><span class="n">2.4k</span></div>
+        <div class="turn"><span class="t">Turn 4<small>Bo joined</small></span><span class="stacked"><i class="in" style="width:16%"></i><i class="out" style="width:8%"></i><i class="cache" style="width:8%"></i></span><span class="n">1.1k</span></div>
+        <div class="turn"><span class="t">Turn 3<small>step 1</small></span><span class="stacked"><i class="in" style="width:24%"></i><i class="out" style="width:11%"></i><i class="cache" style="width:9%"></i></span><span class="n">1.6k</span></div>
+        <div class="turn"><span class="t">Turn 2<small>step 1</small></span><span class="stacked"><i class="in" style="width:32%"></i><i class="out" style="width:10%"></i><i class="cache" style="width:2%"></i></span><span class="n">1.9k</span></div>
+        <div class="turn"><span class="t">Turn 1<small>plan</small></span><span class="stacked"><i class="in" style="width:20%"></i><i class="out" style="width:13%"></i><i class="cache" style="width:0%"></i></span><span class="n">1.5k</span></div>
+      </div>
+      <a class="more" href="#">Open the usage report for Payments →</a>
+    </section>
+  </aside>
+</div>
+</section>
+
+<!-- ======================================================================= -->
+<!-- 2. THE CHIP: five states -->
+<!-- ======================================================================= -->
+<section class="sheet spec desktop-only">
+  <header><span class="k">02</span><h2>The chip</h2><p>One mono number in the title row. It says what the branch has spent; the hairline under it says how much of the budget that is. Colour arrives only when a budget turns, and never anywhere else in the row.</p></header>
+  <div class="row6">
+    <div class="swatch"><div class="frame"><span class="meter none"><button class="tchip" type="button">0 tokens</button></span></div><div class="lbl"><b>Empty</b><span>Before the first turn. Faint; no hairline until a budget is set.</span><code>.meter.none</code></div></div>
+    <div class="swatch"><div class="frame"><span class="meter"><button class="tchip" type="button">31.0k tokens</button></span></div><div class="lbl"><b>No budget</b><span>Just the number. The rail and the project page show the same figure.</span><code>.meter</code></div></div>
+    <div class="swatch"><div class="frame"><span class="meter live"><button class="tchip" type="button"><span class="ring"></span>12.4k tokens <span class="pct">62%</span></button><span class="hair"><i style="width:62%"></i></span></span></div><div class="lbl"><b>Live, under</b><span>The apricot hairline weaves while the agent spends; the ring turns with it. The tick marks 80%.</span><code>.meter.live</code></div></div>
+    <div class="swatch"><div class="frame"><span class="meter warn"><button class="tchip" type="button">16.8k tokens <span class="pct">84%</span></button><span class="hair"><i style="width:84%"></i></span></span></div><div class="lbl"><b>Nearing</b><span>Past 80%: number and bar go amber. Nothing else changes.</span><code>.meter.warn</code></div></div>
+    <div class="swatch"><div class="frame"><span class="meter over"><button class="tchip" type="button">22.4k tokens <span class="pct">112%</span></button><span class="hair"><i style="width:100%"></i></span></span></div><div class="lbl"><b>Over</b><span>Past 100%: red, bar full, the percent keeps counting. It is a number people watch, not a gate.</span><code>.meter.over</code></div></div>
+  </div>
+  <div class="rules">
+    <div class="card"><h3>Counting</h3>The chip counts input plus output. Cache reads and writes show in the breakdown but never move the bar: the policy budgets what the agent asks for, not what the cache gives back.</div>
+    <div class="card"><h3>Rounding</h3>Under 10k: one decimal (9.9k). 10k and up: one decimal to 99.9k, then whole (120k). The percent is whole. The popover and the drawer show full numbers with thousands separators.</div>
+    <div class="card"><h3>Reach</h3>Hover or focus opens the breakdown; click pins it; Escape closes. Accessible name: "Tokens: 12,400 used, 62% of the budget". Calm mode stops the weave and the ring.</div>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<!-- 3. THE BREAKDOWN -->
+<!-- ======================================================================= -->
+<section class="sheet spec desktop-only">
+  <header><span class="k">03</span><h2>The breakdown</h2><p>The same four numbers the log records, in the four colours the product already owns. Input is navy (the frame), output chocolate (the hand), cache read apricot (the pulse), cache write hatched.</p></header>
+  <div class="two">
+    <div class="anatomy">
+      <div class="pop warn" role="dialog" aria-label="Token breakdown">
+        <div class="head"><span class="serif">Checkout</span><span class="turn">turn 11 · waiting</span></div>
+        <div class="stacked"><i class="in" style="width:58%"></i><i class="out" style="width:15%"></i><i class="cache" style="width:21%"></i><i class="write" style="width:6%"></i></div>
+        <div class="kv"><span class="sw in"></span><span>Input</span><span class="v">13,320</span></div>
+        <div class="kv"><span class="sw out"></span><span>Output</span><span class="v">3,480</span></div>
+        <div class="kv"><span class="sw cache"></span><span>Cache read</span><span class="v">4,900<small>saved ~4.4k</small></span></div>
+        <div class="kv"><span class="sw write"></span><span>Cache write</span><span class="v">1,380</span></div>
+        <div class="rule"></div>
+        <div class="bud">
+          <div class="row"><span>Budget</span><span class="v">16,800 of 20,000 · 84%</span></div>
+          <div class="budget warn"><i style="width:84%"></i></div>
+          <div class="left">Nearing the budget · about 3.2k left</div>
+        </div>
+        <div class="foot"><kbd>click</kbd> pins it <a href="#">Usage in Details</a></div>
+      </div>
+      <div class="notes">
+        <div><span><b>Head.</b> The session's name in serif and the turn in mono, so the popover is clearly about this branch and this moment.</span></div>
+        <div><span><b>Stacked bar.</b> Proportions of all four kinds, including the two cache kinds, so a cache-heavy session looks different from a chatty one.</span></div>
+        <div><span><b>Rows.</b> Full numbers, tabular. Cache read carries a quiet "saved" note: the input it replaced at the cheaper rate.</span></div>
+        <div><span><b>Budget.</b> Repeats the chip's hairline at twice the height with the same tone, and says the amount left in words.</span></div>
+        <div><span><b>Foot.</b> How to keep it open and where the long form lives.</span></div>
+      </div>
+    </div>
+    <div class="anatomy">
+      <div class="pop" role="dialog" aria-label="Token breakdown">
+        <div class="head"><span class="serif">Tax lines</span><span class="turn">turn 3 · paused</span></div>
+        <div class="stacked"><i class="in" style="width:66%"></i><i class="out" style="width:28%"></i><i class="cache" style="width:6%"></i></div>
+        <div class="kv"><span class="sw in"></span><span>Input</span><span class="v">2,980</span></div>
+        <div class="kv"><span class="sw out"></span><span>Output</span><span class="v">1,220</span></div>
+        <div class="kv"><span class="sw cache"></span><span>Cache read</span><span class="v">260</span></div>
+        <div class="kv"><span class="sw write"></span><span>Cache write</span><span class="v">0</span></div>
+        <div class="rule"></div>
+        <div class="bud">
+          <div class="row"><span>Budget</span><span class="v">No budget set</span></div>
+          <div class="left">Dee can set one in Details · Usage</div>
+        </div>
+        <div class="foot"><kbd>click</kbd> pins it <a href="#">Usage in Details</a></div>
+      </div>
+      <div class="notes">
+        <div><span><b>No budget.</b> The bar row drops; the line offers the owner the one action that would add it. Rows keep their order so the eye lands in the same place every time.</span></div>
+        <div><span><b>Zero rows</b> still show as 0, not hidden; the shape of the popover never changes between sessions.</span></div>
+        <div><span><b>Width</b> 264px, left-aligned to the chip, 8px below, with the caret under the first character. On a narrow title row it may flip right; it never covers the title.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<!-- 4. THE BUDGET BAR -->
+<!-- ======================================================================= -->
+<section class="sheet spec desktop-only">
+  <header><span class="k">04</span><h2>The budget bar</h2><p>One hairline, 3px in the title row, 5px in cards and the drawer. A tick at 80% so the amber moment is visible before it happens. Colour is the only thing that changes between states.</p></header>
+  <div class="two">
+    <div class="bars">
+      <div class="b"><span class="lbl">Fresh<code>0% · no turns yet</code></span><span class="meter"><span class="hair"><i style="width:0%"></i></span></span><span class="ex">Empty track with the tick. Says a budget exists.</span></div>
+      <div class="b"><span class="lbl">Under, idle<code>31% · 6.2k of 20k</code></span><span class="meter"><span class="hair"><i style="width:31%"></i></span></span><span class="ex">Apricot gradient, still.</span></div>
+      <div class="b"><span class="lbl">Under, live<code>62% · 12.4k of 20k</code></span><span class="meter live"><span class="hair"><i style="width:62%"></i></span></span><span class="ex">The gradient weaves while a turn runs; stops at turn end.</span></div>
+      <div class="b"><span class="lbl">Nearing<code>84% · 16.8k of 20k</code></span><span class="meter warn"><span class="hair"><i style="width:84%"></i></span></span><span class="ex">Amber from 80%. No motion: a warning does not pulse.</span></div>
+      <div class="b"><span class="lbl">Over<code>112% · 22.4k of 20k</code></span><span class="meter over"><span class="hair"><i style="width:100%"></i></span></span><span class="ex">Red, full, with a faint red halo. The number carries the overflow.</span></div>
+      <div class="b"><span class="lbl">Done, under<code>finished at 58%</code></span><span class="meter"><span class="hair"><i style="width:58%; background: var(--ok)"></i></span></span><span class="ex">In the handoff brief and the replay, a finished branch under budget turns green once.</span></div>
+    </div>
+    <div class="notes">
+      <div><span><b>Where it appears.</b> Under the chip in the title row; under the totals of a plan card; at the top of Usage in the drawer; as a 2px hair at the end of each rail card when a budget is set; in the manager's tokens-by-agent table.</span></div>
+      <div><span><b>What moves it.</b> Only input plus output. Cache figures are shown beside it, never inside it, so a session that reads a lot from cache does not look expensive.</span></div>
+      <div><span><b>The 80% tick.</b> A 1px line in ink-3 at 80% of the track. It is the only annotation on the bar and it is always there when a budget is, so amber never surprises.</span></div>
+      <div><span><b>Over 100%.</b> The fill stops at the end; the chip's percent and the drawer's "over by 2.4k" carry the overflow. We do not draw past the track.</span></div>
+      <div><span><b>Soft.</b> Nothing stops at the budget. The drawer says so under the bar, in one line, and the plan card repeats it in its foot.</span></div>
+      <div><span><b>Motion.</b> The weave is the only motion in the meter and it means "spending now". Reduced motion and calm mode freeze it to the still gradient.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<!-- 5. USAGE, PER TURN -->
+<!-- ======================================================================= -->
+<section class="sheet spec desktop-only">
+  <header><span class="k">05</span><h2>Usage, per turn</h2><p>The drawer's Usage section is the long form: the big number, the bar, the four kinds, then the last turns newest first, each with its own stacked bar on the same scale so a heavy turn is visibly heavier.</p></header>
+  <div class="two">
+    <div class="drawer-demo">
+      <h3>Usage</h3>
+      <section class="usage">
+        <div class="big"><span class="n">22,400</span><span class="u">tokens this branch</span><span class="pct" style="color: var(--danger)">112% of 20k</span></div>
+        <div class="budget over"><i style="width:100%"></i></div>
+        <div class="left" style="color: var(--danger)"><span>Over by 2.4k · nothing stops here</span><a class="edit" href="#">Raise budget</a></div>
+        <div class="legend">
+          <div class="kv"><span class="sw in"></span><span>Input</span><span class="v">17,900</span></div>
+          <div class="kv"><span class="sw out"></span><span>Output</span><span class="v">4,500</span></div>
+          <div class="kv"><span class="sw cache"></span><span>Cache read</span><span class="v">8,120</span></div>
+          <div class="kv"><span class="sw write"></span><span>Cache write</span><span class="v">2,040</span></div>
+        </div>
+        <div class="byturn">By turn <span class="sum">12 turns · avg 1.9k</span></div>
+        <div class="turns">
+          <div class="turn heavy"><span class="t">Turn 12<small>PDF layout</small></span><span class="stacked"><i class="in" style="width:62%"></i><i class="out" style="width:16%"></i><i class="cache" style="width:10%"></i></span><span class="n">3.9k</span></div>
+          <div class="turn"><span class="t">Turn 11<small>step 4</small></span><span class="stacked"><i class="in" style="width:30%"></i><i class="out" style="width:8%"></i><i class="cache" style="width:12%"></i></span><span class="n">1.7k</span></div>
+          <div class="turn"><span class="t">Turn 10<small>Cy steered</small></span><span class="stacked"><i class="in" style="width:14%"></i><i class="out" style="width:6%"></i><i class="cache" style="width:12%"></i></span><span class="n">0.9k</span></div>
+          <div class="turn"><span class="t">Turn 9<small>step 3</small></span><span class="stacked"><i class="in" style="width:36%"></i><i class="out" style="width:12%"></i><i class="cache" style="width:14%"></i></span><span class="n">2.2k</span></div>
+          <div class="turn"><span class="t">Turn 8<small>step 3</small></span><span class="stacked"><i class="in" style="width:40%"></i><i class="out" style="width:10%"></i><i class="cache" style="width:10%"></i></span><span class="n">2.3k</span></div>
+        </div>
+        <a class="more" href="#">All 12 turns →</a>
+      </section>
+    </div>
+    <div class="notes">
+      <div><span><b>Big number.</b> Serif, full digits, the way a total on an invoice reads. Beside it the percent of the budget in mono; it takes the bar's tone (amber, red) so the state is readable without the bar.</span></div>
+      <div><span><b>One line of consequence.</b> "About 7.6k left before the meter turns", "Nearing the budget · about 3.2k left", "Over the budget by 2.4k · nothing stops here". The owner's action sits at the end of the line: Edit budget, or Raise budget once over.</span></div>
+      <div><span><b>Legend</b> in two columns, same colours as the stacked bars, full numbers.</span></div>
+      <div><span><b>Turns.</b> Newest first, the live one in apricot with a soft ring on its bar. Each row's bar is scaled to the heaviest turn in the list, so widths compare across rows. The sub-line says what the turn was: the plan step, who joined, who steered.</span></div>
+      <div><span><b>Heavy turns</b> (over 1.5x the average) set their number in medium weight. That is the whole emphasis system; no colours beyond the budget tones.</span></div>
+      <div><span><b>Eight rows</b> then a link to the full list; the project's usage report (GET /api/usage) is one more link for leads.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<!-- MOBILE 390x844: title row with the compact chip, the breakdown as a sheet -->
+<!-- ======================================================================= -->
+<div class="m mobile-only">
+  <header class="topbar">
+    <button class="btn ghost icon sm" type="button" aria-label="Open the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="title"><span class="serif">Billing page</span><span class="status running">turn 7</span></div>
+    <span class="meter live compact"><button class="tchip" type="button" aria-label="Tokens: 12,400 used, 62% of the budget"><span class="ring"></span>12.4k</button><span class="hair"><i style="width:62%"></i></span></span>
+    <button class="btn ghost icon sm" type="button" aria-label="Details"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+  </header>
+  <div class="scroll">
+    <section class="column">
+      <div class="msg human">
+        <div class="meta"><span class="avatar driver">AN</span><span class="who">Ana</span><span class="scope">goal</span><time>09:15</time></div>
+        <div class="text"><span class="goal-lbl">Goal</span>Add proration to the Billing page. Show the prorated credit above the tax lines and keep the invoice PDF in step.</div>
+      </div>
+      <div class="msg agent">
+        <div class="meta"><span class="avatar agent">bp</span><span class="who">Billing page</span><span class="tturn">turn 7</span></div>
+        <div class="text"><p>The credit line is in, above the tax lines, in the same row shape as a tax line.</p></div>
+        <div class="steps">
+          <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="mono">Wrote <b>proration.ts</b></span><span class="r">+64</span></div>
+          <div class="step live"><span class="livedot"></span><span class="mono">Writing <b>Billing.tsx</b></span><span class="r">now</span></div>
+        </div>
+        <div class="turnfoot"><span class="stacked"><i class="in" style="width:62%"></i><i class="out" style="width:18%"></i><i class="cache" style="width:20%"></i></span><span>this turn <span class="d">2.1k</span></span></div>
+      </div>
+    </section>
+    <div class="scrim"></div>
+    <div class="sheet" role="dialog" aria-label="Usage">
+      <div class="grab"></div>
+      <section class="usage">
+        <div class="big"><span class="n">12,400</span><span class="u">tokens</span><span class="pct">62% of 20k</span></div>
+        <div class="budget"><i style="width:62%"></i></div>
+        <div class="left">About 7.6k left before the meter turns</div>
+        <div class="legend">
+          <div class="kv"><span class="sw in"></span><span>Input</span><span class="v">9,870</span></div>
+          <div class="kv"><span class="sw out"></span><span>Output</span><span class="v">2,530</span></div>
+          <div class="kv"><span class="sw cache"></span><span>Cache read</span><span class="v">4,100</span></div>
+          <div class="kv"><span class="sw write"></span><span>Cache write</span><span class="v">1,260</span></div>
+        </div>
+        <div class="byturn">By turn <span class="sum">7 turns · avg 1.8k</span></div>
+        <div class="turns">
+          <div class="turn live"><span class="t">Turn 7<small>live</small></span><span class="stacked"><i class="in" style="width:34%"></i><i class="out" style="width:9%"></i><i class="cache" style="width:5%"></i></span><span class="n">2.1k</span></div>
+          <div class="turn"><span class="t">Turn 6<small>step 2</small></span><span class="stacked"><i class="in" style="width:28%"></i><i class="out" style="width:12%"></i><i class="cache" style="width:14%"></i></span><span class="n">1.8k</span></div>
+          <div class="turn heavy"><span class="t">Turn 5<small>tests</small></span><span class="stacked"><i class="in" style="width:40%"></i><i class="out" style="width:14%"></i><i class="cache" style="width:12%"></i></span><span class="n">2.4k</span></div>
+          <div class="turn"><span class="t">Turn 4<small>Bo joined</small></span><span class="stacked"><i class="in" style="width:16%"></i><i class="out" style="width:8%"></i><i class="cache" style="width:8%"></i></span><span class="n">1.1k</span></div>
+        </div>
+        <a class="more" href="#">All 7 turns →</a>
+      </section>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

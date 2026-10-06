@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Composer</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- board ---------- */
+  body { min-height: 100%; }
+  .board { max-width: 1440px; margin: 0 auto; padding: 40px 48px 72px; display: flex; flex-direction: column; gap: 40px; }
+  .board-head { display: flex; align-items: flex-end; gap: 20px; }
+  .board-head .mark { width: 44px; height: 44px; flex: none; }
+  .board-head h1 { font-size: 36px; }
+  .board-head p { margin: 4px 0 0; color: var(--ink-2); max-width: 760px; }
+  .board-head .meta { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; white-space: nowrap; }
+  .sec { display: flex; flex-direction: column; gap: 16px; }
+  .sec > header { display: flex; align-items: baseline; gap: 14px; }
+  .sec > header h2 { font-size: 24px; }
+  .sec > header .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .sec > header p { margin: 0; color: var(--ink-2); font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 32px; }
+  .state { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .state .cap { display: flex; align-items: baseline; gap: 10px; padding: 0 4px; }
+  .state .cap b { font-family: var(--serif); font-weight: 400; font-size: 18px; white-space: nowrap; }
+  .state .cap span { font-size: 13px; color: var(--ink-2); flex: 1; min-width: 0; }
+  .state .cap .k { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+  .stage { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 28px 24px 18px; position: relative; }
+  .stage.dark { background: var(--rail); }
+  .stage .composer-wrap { padding: 0; background: none; position: static; }
+
+  /* ---------- in-context window ---------- */
+  .window.ctx { height: 600px; display: flex; }
+  .window.ctx .rail { overflow: hidden; }
+  .window.ctx .rail { padding: 14px; gap: 6px; }
+  .window.ctx .rail .brand svg { width: 28px; height: 28px; }
+  .window.ctx .main { position: relative; }
+  .window.ctx .scroll { display: flex; flex-direction: column; justify-content: flex-end; }
+  .window.ctx .column { padding-bottom: 8px; gap: 20px; }
+  .window.ctx .composer-wrap { padding: 10px 24px 18px; }
+  .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+  .tokchip .budget { width: 92px; height: 3px; }
+
+  /* ---------- composer refinements (on top of tokens.css) ---------- */
+  .composer { position: relative; gap: 8px; }
+  .composer .input { min-height: 24px; color: var(--ink-3); }
+  .composer .input.typed { color: var(--ink); }
+  .composer .input .caret { display: inline-block; width: 1.5px; height: 18px; background: var(--accent); vertical-align: -3px; margin-left: 1px; animation: pulse 1s steps(2) infinite; }
+  .composer .bar { gap: 6px; }
+  .composer .bar .seg label { display: inline-flex; align-items: center; gap: 6px; }
+  .composer .bar .seg label svg { width: 13px; height: 13px; }
+  .composer .bar .btn.icon { width: 30px; min-height: 30px; }
+  .composer .bar .btn.icon svg { width: 15px; height: 15px; }
+  .chip.mode { font-family: var(--mono); font-size: 12.5px; height: 30px; gap: 6px; padding: 0 11px 0 10px; white-space: nowrap; flex: none; }
+  .chip.mode svg { width: 12px; height: 12px; color: var(--ink-3); }
+  .chip.mode .sep { color: var(--ink-3); }
+  .chip.mode.on { background: var(--apricot-soft); color: var(--ink); }
+  .chip.mode.interrupt { box-shadow: inset 0 0 0 1px var(--warn); color: var(--ink); }
+  .chip.mode.interrupt .bolt { color: var(--warn); }
+  .send svg { width: 16px; height: 16px; }
+  .send:disabled { background: var(--surface-3); color: var(--ink-3); box-shadow: none; cursor: default; }
+  .send.now { background: var(--warn); color: #fff; }
+  .send.queued { background: var(--surface-3); color: var(--ink-2); }
+  .send.pressed { transform: scale(.92); box-shadow: 0 0 0 0 rgba(226,196,166,.6); }
+  .send.release { box-shadow: 0 0 0 12px rgba(226,196,166,0); }
+  .send.release::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; box-shadow: 0 0 0 6px rgba(226,196,166,.45); }
+  .send { position: relative; }
+  .composer.to-team { background: color-mix(in srgb, var(--apricot) 14%, var(--surface)); border-color: color-mix(in srgb, var(--apricot) 55%, transparent); }
+  .composer.to-team .seg .on { background: var(--apricot); color: #56352D; }
+  .composer.to-team .bar .to { display: inline-flex; align-items: center; gap: 6px; font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--accent); padding-left: 4px; }
+  .composer.to-team .bar .to .stack .avatar { width: 22px; height: 22px; font-size: 9.5px; border-color: var(--surface); }
+  .composer.waiting { border-color: color-mix(in srgb, var(--apricot-deep) 60%, transparent); }
+  .composer.disabled .input, .composer.offline .input { color: var(--ink-3); }
+
+  .composer-wrap .hint { margin: 8px 6px 0; font-size: 12.5px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; }
+  .composer-wrap .hint .re { color: var(--warn); display: inline-flex; align-items: center; gap: 5px; }
+  .composer-wrap .hint .re i { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); animation: pulse 1.4s ease-in-out infinite; }
+  .composer-wrap .composing { margin: 0 6px 6px; font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; min-height: 18px; }
+  .composer-wrap .composing .stack .avatar { width: 20px; height: 20px; font-size: 9px; border-color: var(--canvas); }
+  .composer-wrap .composing .dots { display: inline-flex; gap: 3px; }
+  .composer-wrap .composing .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--apricot-deep); animation: pulse 1.2s ease-in-out infinite; }
+  .composer-wrap .composing .dots i:nth-child(2) { animation-delay: .2s; } .composer-wrap .composing .dots i:nth-child(3) { animation-delay: .4s; }
+  .composer-wrap .composing .team { font-family: var(--serif); font-style: italic; color: var(--accent); }
+  .composer-wrap .plan-waits { margin: 0 0 10px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); font-size: 13px; color: var(--ink-2); box-shadow: var(--shadow-soft); }
+  .plan-waits .pill.planning { background: var(--apricot-soft); color: var(--accent); }
+  .plan-waits .pill.planning::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot-deep); animation: pulse 1.6s ease-in-out infinite; }
+  .plan-waits .who { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+  .plan-waits .stars { gap: 1px; } .plan-waits .stars span { width: 15px; height: 16px; font-size: 14px; }
+  .plan-waits .btn { margin-left: auto; }
+  .composer-wrap .queue-note { margin: 10px 6px 0; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-2); }
+  .composer-wrap .queue-note svg { width: 14px; height: 14px; color: var(--warn); }
+  .composer-wrap .queue-note .n { font-family: var(--mono); font-size: 12px; background: var(--surface-3); border-radius: var(--radius-full); padding: 1px 8px; }
+  .queue-list { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  .queue-list li { display: grid; grid-template-columns: 18px 1fr auto auto; gap: 10px; align-items: center; padding: 9px 12px; font-size: 13.5px; border-top: 1px solid var(--line); }
+  .queue-list li:first-child { border-top: 0; }
+  .queue-list li svg { width: 14px; height: 14px; color: var(--ink-3); }
+  .queue-list .tag { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+  .queue-list .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .queue-list .when { font-size: 12px; color: var(--ink-3); font-family: var(--mono); }
+  .queue-list .btn.sm { min-height: 26px; padding: 0 9px; font-size: 12.5px; }
+
+  /* popover */
+  .popover { position: absolute; left: 14px; bottom: calc(100% + 10px); width: 380px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 14px; z-index: 2; }
+  .popover::after { content: ""; position: absolute; left: 118px; bottom: -7px; width: 12px; height: 12px; background: var(--surface); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); transform: rotate(45deg); }
+  .popover .group { display: flex; flex-direction: column; gap: 8px; }
+  .popover .lab { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .popover .lab .hint { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 400; font-family: var(--mono); font-size: 11px; }
+  .popover .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .popover .row .chip { height: 28px; font-size: 13px; }
+  .popover .row .chip.on { background: var(--accent); color: var(--accent-fg); }
+  .popover .row .chip .d { font-size: 12px; color: var(--ink-3); }
+  .popover .desc { font-size: 13px; color: var(--ink-2); margin: -2px 0 0; }
+  .popover .scope { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); font-family: var(--mono); font-size: 13px; }
+  .popover .scope .caret { width: 1.5px; height: 16px; background: var(--accent); }
+  .popover .scope .sug { margin-left: auto; display: inline-flex; gap: 4px; }
+  .popover .scope .sug span { font-family: var(--font); font-size: 11.5px; color: var(--ink-3); padding: 1px 7px; border-radius: var(--radius-full); background: var(--surface-3); }
+  .popover .toggle { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .popover .toggle small { display: block; font-size: 12.5px; color: var(--ink-3); }
+  .switch { width: 36px; height: 20px; border-radius: 10px; background: var(--surface-3); position: relative; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .15s; }
+  .switch.on { background: var(--accent); } .switch.on::after { left: 19px; }
+  .switch.warn { background: var(--warn); }
+  .popover .foot { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+  .popover .foot .kbd { margin-left: auto; }
+  .kbd { font-family: var(--mono); font-size: 11px; color: var(--ink-2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; background: var(--surface-2); line-height: 17px; display: inline-block; }
+
+  /* generic bits */
+  .ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .msg .meta .time { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .step .ic { width: 14px; height: 14px; color: var(--ink-3); }
+  .step .mono { color: var(--ink); }
+  .step .res { margin-left: auto; color: var(--ink-3); font-size: 12.5px; }
+
+  /* press spec */
+  .press { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .press .frame { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px 16px 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .press .frame .t { font-size: 13px; color: var(--ink-2); text-align: center; }
+  .press .frame .t b { display: block; font-family: var(--serif); font-weight: 400; font-size: 17px; color: var(--ink); }
+  .press .frame .ms { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .press .big { transform: scale(1.6); margin: 12px 0; }
+  .press .big.pressed { transform: scale(1.47); }
+  .spec { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .spec .card { padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; }
+  .spec .card h3 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .spec dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; }
+  .spec dt { color: var(--ink-2); } .spec dd { margin: 0; font-family: var(--mono); font-size: 12.5px; }
+  .spec ul { margin: 0; padding-left: 18px; color: var(--ink-2); } .spec li + li { margin-top: 4px; }
+
+  /* ---------- mobile ---------- */
+  .mobile-sec .wrap { display: flex; gap: 32px; align-items: flex-start; }
+  .mobile-sec .phone { flex: none; transform-origin: top left; }
+  .mobile-sec .side { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+  .phone .ptop { display: flex; align-items: center; gap: 10px; padding: 18px 16px 10px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 86%, transparent); }
+  .phone .ptop .title { font-family: var(--serif); font-size: 19px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .phone .pstream { flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 14px 16px 0; gap: 14px; }
+  .phone .msg.human .text { max-width: 92%; padding: 11px 14px; font-size: 14px; }
+  .phone .msg.agent .text { font-size: 14.5px; }
+  .phone .composer-wrap { padding: 10px 12px 14px; }
+  .phone .composer { padding: 12px 10px 10px 14px; }
+  .phone .composer .bar .chip.mode { max-width: 120px; }
+  .phone .composer .bar .chip.mode .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .phone .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: var(--shadow-pop); padding: 10px 18px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .phone .sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: 0 auto 4px; }
+  .phone .sheet .popover { position: static; width: auto; box-shadow: none; border: 0; padding: 0; }
+  .phone .sheet .popover::after { display: none; }
+  .phone .pbody { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 372px; }
+  .phone .scrim { position: absolute; inset: 0; background: rgba(42,50,68,.16); }
+  .phone .home { height: 5px; width: 134px; border-radius: 3px; background: var(--ink); opacity: .7; margin: 4px auto 8px; }
+
+  @media (max-width: 520px) {
+    .board { padding: 0; gap: 0; }
+    .board > *:not(.mobile-sec) { display: none; }
+    .mobile-sec .wrap { display: block; }
+    .mobile-sec .side, .mobile-sec > header { display: none; }
+    .phone { width: 100%; height: 100vh; border: 0; border-radius: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- ============ head ============ -->
+  <div class="board-head">
+    <svg class="mark" viewBox="0 0 96 96" aria-label="Henosis"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+    <div>
+      <h1>The composer</h1>
+      <p>One field, two listeners. Everything you type goes to the agent unless you turn the toggle to the team; the chip under the field says exactly how it will land (mode, scope, now or at the next safe point) so nobody has to open the popover to know.</p>
+    </div>
+    <div class="meta">Session · Invoice PDF rollout<br>Payments team · Ana, Bo, Cy, Dee<br>Exploration 1 of 1 · composer</div>
+  </div>
+
+  <!-- ============ 1. in context ============ -->
+  <section class="sec">
+    <header><span class="n">01</span><h2>In the session</h2><p>The default: Agent, steer, scope goal. Bo is writing; the hint says who you are.</p></header>
+    <div class="window ctx">
+      <aside class="rail">
+        <div class="brand"><svg class="mark" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>Henosis</div>
+        <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+        <div class="section">Payments <span class="n">4</span></div>
+        <div class="crew"><span class="serif">Invoice rollout</span></div>
+        <a class="agent active" href="#"><div class="head"><i class="dot running"></i><span class="t">Invoice PDF rollout</span><span class="pill team">Team</span></div><div class="doing">Writing <i>tax lines</i> into the invoice PDF template</div><div class="foot">Ana, Bo · 41.2k tokens</div></a>
+        <a class="agent" href="#"><div class="head"><i class="dot awaiting_approval"></i><span class="t">Proration on Checkout</span><span class="pill team">Team</span></div><div class="doing">Waits for an approval on <i>proration.ts</i></div><div class="foot">Cy · 18.7k tokens</div></a>
+        <a class="agent" href="#"><div class="head"><i class="dot"></i><span class="t">Billing page copy</span><span class="pill solo">Solo</span></div><div class="doing">Paused by Dee at turn 3</div><div class="foot">Dee · 6.1k tokens</div></a>
+        <div class="me"><span class="avatar">AN</span><span>Ana <span class="small" style="color:var(--rail-muted)">· owner, driving</span></span></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <div class="title"><span>Invoice PDF rollout</span><span class="status running">Running · turn 7</span><span class="pill team">Team · with Bo</span></div>
+          <div class="right">
+            <span class="tokchip">41.2k / 60k<span class="budget"><i style="width:69%"></i></span></span>
+            <span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span><span class="avatar">DE</span></span>
+            <button class="btn sm" type="button">Team</button>
+            <button class="btn sm ghost" type="button">Details</button>
+          </div>
+        </div>
+        <div class="scroll">
+          <div class="column">
+            <div class="msg agent">
+              <div class="meta"><span class="who">Invoice PDF rollout</span><span>turn 7 · step 3 of 4</span><span class="time">14:02</span></div>
+              <div class="text">Adding the tax lines under the subtotal. The template already has a proration row, so I am reusing its alignment for the new rows rather than adding a second table.</div>
+              <div class="steps">
+                <div class="step"><svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 9h16M9 9v11"/></svg><span class="mono">edit templates/invoice.hbs</span><span class="res">+38 −6</span></div>
+                <div class="step"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono">pnpm test billing/invoice</span><span class="res">12 passed</span></div>
+              </div>
+            </div>
+            <div class="msg human team">
+              <div class="meta"><span class="who">Dee</span><span class="to">to the team</span><span class="time">14:03</span></div>
+              <div class="text">Checkout shows the old proration copy on the Billing page; I will take that once this lands.</div>
+            </div>
+          </div>
+        </div>
+        <div class="composer-wrap">
+          <p class="composing" aria-live="polite"><span class="stack"><span class="avatar">BO</span></span>Bo is writing a directive <span class="dots"><i></i><i></i><i></i></span></p>
+          <div class="composer">
+            <div class="input typed" role="textbox" aria-label="Steer the agent">Keep the tax lines in cents until the final render<span class="caret"></span></div>
+            <div class="bar">
+              <div class="seg" role="radiogroup" aria-label="Send to"><label class="on"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Agent</label><label><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.6M20.5 19a5 5 0 0 0-3.5-4.8"/></svg>Team</label></div>
+              <button class="btn ghost icon" type="button" aria-label="Mode and scope"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+              <button class="chip mode" type="button"><span class="txt">steer <span class="sep">·</span> goal</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+            </div>
+          </div>
+          <p class="hint">Enter to send · Shift+Enter for a new line · ? for shortcuts · as Ana, owner, driving</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. states ============ -->
+  <section class="sec">
+    <header><span class="n">02</span><h2>States</h2><p>Each one changes the chip, the field tint or the line above the field; the shape never moves.</p></header>
+    <div class="grid">
+
+      <!-- Agent, empty -->
+      <div class="state">
+        <div class="cap"><b>Agent · empty</b><span>send is quiet until there is text</span><span class="k">to=agent mode=steer scope=goal</span></div>
+        <div class="stage"><div class="composer-wrap">
+          <div class="composer">
+            <div class="input" role="textbox">Steer the agent</div>
+            <div class="bar">
+              <div class="seg"><label class="on"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Agent</label><label><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.6M20.5 19a5 5 0 0 0-3.5-4.8"/></svg>Team</label></div>
+              <button class="btn ghost icon" type="button" aria-label="Mode and scope"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+              <button class="chip mode" type="button"><span class="txt">steer <span class="sep">·</span> goal</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div class="right"><button class="send" type="button" disabled aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+            </div>
+          </div>
+          <p class="hint">Enter to send · Shift+Enter for a new line · ? for shortcuts · as Ana, owner, driving</p>
+        </div></div>
+      </div>
+
+      <!-- Team -->
+      <div class="state">
+        <div class="cap"><b>Team</b><span>apricot wash: this never reaches the agent</span><span class="k">to=team · note</span></div>
+        <div class="stage"><div class="composer-wrap">
+          <div class="composer to-team">
+            <div class="input typed" role="textbox">Bo, can you take the Checkout proration note once the PDF lands?<span class="caret"></span></div>
+            <div class="bar">
+              <div class="seg"><label><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Agent</label><label class="on"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.6M20.5 19a5 5 0 0 0-3.5-4.8"/></svg>Team</label></div>
+              <span class="to">to the team <span class="stack"><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span></span></span>
+              <div class="right"><button class="send" type="button" aria-label="Send to the team"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+            </div>
+          </div>
+          <p class="hint">Enter to say it · kept in the session log, never sent to the agent · as Ana</p>
+        </div></div>
+      </div>
+
+      <!-- Popover -->
+      <div class="state">
+        <div class="cap"><b>Mode and scope</b><span>opens above the chip; the chip rewrites live</span><span class="k">mode=constrain scope=tax-lines</span></div>
+        <div class="stage" style="padding-top:470px"><div class="composer-wrap">
+          <div class="composer">
+            <div class="popover" role="dialog" aria-label="Mode and scope">
+              <div class="group">
+                <div class="lab">Mode <span class="hint">1–5</span></div>
+                <div class="row">
+                  <button class="chip" type="button">steer</button>
+                  <button class="chip on" type="button">constrain</button>
+                  <button class="chip" type="button">pause</button>
+                  <button class="chip" type="button">resume</button>
+                  <button class="chip" type="button">cancel</button>
+                </div>
+                <p class="desc">A standing rule. It accumulates, never conflicts, and stays in the agent's context for the rest of the session.</p>
+              </div>
+              <div class="group">
+                <div class="lab">Scope <span class="hint">what it is about</span></div>
+                <div class="scope">tax-lines<span class="caret"></span><span class="sug"><span>goal</span><span>api</span><span>tests</span><span>pdf-layout</span></span></div>
+              </div>
+              <div class="toggle"><span>Interrupt now<small>Apply at once instead of the next safe point</small></span><span class="switch"></span></div>
+              <div class="toggle"><span>Show queue<small>What waits for the socket</small></span><span class="switch"></span></div>
+              <div class="foot"><span class="small muted">Sends as <span class="mono">constrain · tax-lines</span></span><span class="kbd">Esc</span></div>
+            </div>
+            <div class="input typed" role="textbox">Keep every tax line in cents until the final render<span class="caret"></span></div>
+            <div class="bar">
+              <div class="seg"><label class="on"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Agent</label><label><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.6M20.5 19a5 5 0 0 0-3.5-4.8"/></svg>Team</label></div>
+              <button class="btn ghost icon" type="button" aria-label="Close" aria-expanded="true"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+              <button class="chip mode on" type="button"><span class="txt">constrain <span class="sep">·</span> tax-lines</span><svg class="ic" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg></button>
+              <div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+            </div>
+          </div>
+          <p class="hint">Enter to send · Shift+Enter for a new line · ? for shortcuts · as Ana, owner, driving</p>
+        </div></div>
+      </div>
+
+      <!-- Interrupt -->
+      <div class="state">
+        <div class="cap"><b>Interrupt armed</b><span>warn ring on the chip, the send turns amber: this lands now</span><span class="k">interrupt=true</span></div>
+        <div class="stage"><div class="composer-wrap">
+          <div class="composer">
+            <div class="input typed" role="textbox">Stop the Checkout change; the proration rule moved to the Billing page<span class="caret"></span></div>
+            <div class="bar">
+              <div class="seg"><label class="on"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Agent</label><label><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.6M20.5 19a5 5 0 0 0-3.5-4.8"/></svg>Team</label></div>
+              <button class="btn ghost icon" type="button" aria-label="Mode and scope"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+              <button class="chip mode interrupt" type="button"><svg class="ic bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span class="txt">steer <span class="sep">·</span> checkout <span class="sep">·</span> interrupt</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div class="right"><span class="small" style="color:var(--warn);white-space:nowrap">Sends now</span><button class="send now" type="button" aria-label="Send now"><svg class="ic" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></button></div>
+            </div>
+          </div>
+          <p class="hint">Enter interrupts the agent mid-step · the step in flight finishes its write first · as Ana, owner, driving</p>
+        </div></div>
+      </div>
+
+      <!-- Queued offline -->
+      <div class="state">
+        <div class="cap"><b>Offline · queued</b><span>typing keeps working; the queue speaks in the stream's voice</span><span class="k">connected=false queued=2</span></div>
+        <div class="stage"><div class="composer-wrap">
+          <div class="composer offline">
+            <div class="input typed" role="textbox">And rerun the invoice tests once the tax lines are in<span class="caret"></span></div>
+            <div class="bar">
+              <div class="seg"><label class="on"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Agent</label><label><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.6M20.5 19a5 5 0 0 0-3.5-4.8"/></svg>Team</label></div>
+              <button class="btn ghost icon" type="button" aria-label="Mode and scope"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+              <button class="chip mode" type="button"><span class="txt">steer <span class="sep">·</span> tests</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div class="right"><button class="send queued" type="button" aria-label="Queue"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></button></div>
+            </div>
+          </div>
+          <p class="queue-note" role="status"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Queued · will send when back online <span class="n">2</span></p>
+          <ul class="queue-list">
+            <li><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="t"><span class="tag">constrain · </span>Keep every tax line in cents until the final render</span><span class="when">14:04</span><button class="btn sm ghost" type="button">Remove</button></li>
+            <li><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="t">Approve 7c1e02ab · 4 of 5</span><span class="when">14:05</span><button class="btn sm ghost" type="button">Remove</button></li>
+          </ul>
+          <p class="hint"><span class="re"><i></i>Reconnecting</span> · as Ana, owner, driving</p>
+        </div></div>
+      </div>
+
+      <!-- Plan waiting -->
+      <div class="state">
+        <div class="cap"><b>Plan waiting</b><span>the line above the field says what it waits for</span><span class="k">planWaits=true</span></div>
+        <div class="stage"><div class="composer-wrap">
+          <div class="plan-waits" role="status"><span class="pill planning">Planning</span><span>The plan waits for ratings · <span class="who">Bo</span> <span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span> · yours is missing</span><button class="btn sm primary" type="button">Rate the plan</button></div>
+          <div class="composer waiting">
+            <div class="input" role="textbox">Ask for a revision, or add a rule before the plan runs</div>
+            <div class="bar">
+              <div class="seg"><label class="on"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Agent</label><label><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.6M20.5 19a5 5 0 0 0-3.5-4.8"/></svg>Team</label></div>
+              <button class="btn ghost icon" type="button" aria-label="Mode and scope"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+              <button class="chip mode" type="button"><span class="txt">steer <span class="sep">·</span> plan</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div class="right"><button class="send" type="button" disabled aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+            </div>
+          </div>
+          <p class="hint">Every tool call above read is refused until the plan is approved · as Ana, owner, driving</p>
+        </div></div>
+      </div>
+
+      <!-- Presence composing -->
+      <div class="state">
+        <div class="cap"><b>Others are writing</b><span>one quiet line; to-the-team writing is italic serif</span><span class="k">presence: composing · composing:team</span></div>
+        <div class="stage"><div class="composer-wrap">
+          <p class="composing" aria-live="polite"><span class="stack"><span class="avatar">BO</span><span class="avatar">DE</span></span>Bo is writing a directive, Dee is writing <span class="team">to the team</span> <span class="dots"><i></i><i></i><i></i></span></p>
+          <div class="composer">
+            <div class="input" role="textbox">Steer the agent</div>
+            <div class="bar">
+              <div class="seg"><label class="on"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Agent</label><label><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.6M20.5 19a5 5 0 0 0-3.5-4.8"/></svg>Team</label></div>
+              <button class="btn ghost icon" type="button" aria-label="Mode and scope"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+              <button class="chip mode" type="button"><span class="txt">steer <span class="sep">·</span> goal</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div class="right"><button class="send" type="button" disabled aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+            </div>
+          </div>
+          <p class="hint">Enter to send · Shift+Enter for a new line · ? for shortcuts · as Cy, contributor</p>
+        </div></div>
+      </div>
+
+      <!-- Viewing the past -->
+      <div class="state">
+        <div class="cap"><b>Viewing the past</b><span>the scrubber disables the field; the hint is the way back</span><span class="k">past≠null</span></div>
+        <div class="stage"><div class="composer-wrap">
+          <div class="composer disabled" style="opacity:.75">
+            <div class="input" role="textbox">Steer the agent</div>
+            <div class="bar">
+              <div class="seg"><label class="on"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Agent</label><label><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.6M20.5 19a5 5 0 0 0-3.5-4.8"/></svg>Team</label></div>
+              <button class="chip mode" type="button" disabled><span class="txt">steer <span class="sep">·</span> goal</span></button>
+              <div class="right"><button class="send" type="button" disabled aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+            </div>
+          </div>
+          <p class="hint">Viewing the past · turn 4 of 7 · <a href="#">Return to now</a></p>
+        </div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 3. send press ============ -->
+  <section class="sec">
+    <header><span class="n">03</span><h2>The send press</h2><p>Chocolate hand, apricot pulse: the button dips, then a ring leaves it for half a second.</p></header>
+    <div class="press">
+      <div class="frame"><span class="send big" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span><div class="t"><b>Rest</b>accent, shadow-soft</div><span class="ms">0 ms</span></div>
+      <div class="frame"><span class="send big pressed" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span><div class="t"><b>Down</b>scale .92, shadow gone</div><span class="ms">0–90 ms</span></div>
+      <div class="frame"><span class="send big release" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span><div class="t"><b>Release</b>ring at 6px, apricot .45</div><span class="ms">90–200 ms</span></div>
+      <div class="frame"><span class="send big" style="box-shadow:0 0 0 14px rgba(226,196,166,0)" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span><div class="t"><b>Gone</b>ring to 16px, alpha 0; field clears</div><span class="ms">200–500 ms</span></div>
+    </div>
+    <div class="spec">
+      <div class="card"><h3>Keys</h3><dl><dt>Send</dt><dd>Enter</dd><dt>New line</dt><dd>Shift + Enter</dd><dt>Agent / Team</dt><dd>⌘ + .</dd><dt>Mode and scope</dt><dd>⌘ + /</dd><dt>Interrupt</dt><dd>⌘ + Shift + Enter</dd><dt>Close popover</dt><dd>Esc</dd></dl></div>
+      <div class="card"><h3>Measures</h3><dl><dt>Field</dt><dd>780 max · 22 radius · 14/14/12/18 pad</dd><dt>Textarea</dt><dd>15/1.6 · grows to 200</dd><dt>Bar</dt><dd>30 tall · 6 gap</dd><dt>Send</dt><dd>36 circle</dd><dt>Popover</dt><dd>380 wide · +10 above bar</dd><dt>Line above</dt><dd>12.5/18 · 6 inset</dd></dl></div>
+      <div class="card"><h3>Rules</h3><ul><li>The chip always says how the next send lands; the popover only edits it.</li><li>Team tint uses the pulse (apricot) at 14%, never the hand.</li><li>Interrupt is the only warn colour in the composer; nothing else is amber.</li><li>Offline: the field never locks; the send becomes a clock and the hint says Reconnecting.</li><li>Calm mode: no caret blink, no dots, no ring.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ============ 4. mobile ============ -->
+  <section class="sec mobile-sec">
+    <header><span class="n">04</span><h2>Mobile</h2><p>Same shape; the popover becomes a sheet and the chip truncates.</p></header>
+    <div class="wrap">
+      <div class="phone">
+        <div class="ptop"><button class="btn ghost icon sm" type="button" aria-label="Back"><svg class="ic" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><span class="title">Invoice PDF rollout</span><span class="status running">turn 7</span><span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span></span></div>
+        <div class="pbody">
+          <div class="pstream">
+            <div class="msg agent">
+              <div class="meta"><span class="who">Invoice PDF rollout</span><span class="time">14:02</span></div>
+              <div class="text">Adding the tax lines under the subtotal, reusing the proration row's alignment.</div>
+              <div class="steps"><div class="step"><svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 9h16M9 9v11"/></svg><span class="mono">edit invoice.hbs</span><span class="res">+38 −6</span></div></div>
+            </div>
+            <div class="msg human team">
+              <div class="meta"><span class="who">Dee</span><span class="to">to the team</span></div>
+              <div class="text">Checkout still shows the old proration copy; I will take it after this.</div>
+            </div>
+          </div>
+          <div class="composer-wrap">
+            <p class="composing"><span class="stack"><span class="avatar">BO</span></span>Bo is writing a directive <span class="dots"><i></i><i></i><i></i></span></p>
+            <div class="composer">
+              <div class="input typed" role="textbox">Keep the tax lines in cents<span class="caret"></span></div>
+              <div class="bar">
+                <div class="seg"><label class="on">Agent</label><label>Team</label></div>
+                <button class="chip mode on" type="button"><span class="txt">constrain · tax-lines</span><svg class="ic" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg></button>
+                <div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+              </div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" role="dialog" aria-label="Mode and scope">
+            <div class="grab"></div>
+            <div class="popover">
+              <div class="group"><div class="lab">Mode</div><div class="row"><button class="chip" type="button">steer</button><button class="chip on" type="button">constrain</button><button class="chip" type="button">pause</button><button class="chip" type="button">resume</button><button class="chip" type="button">cancel</button></div><p class="desc">A standing rule; stays in the agent's context.</p></div>
+              <div class="group"><div class="lab">Scope</div><div class="scope">tax-lines<span class="caret"></span><span class="sug"><span>goal</span><span>tests</span></span></div></div>
+              <div class="toggle"><span>Interrupt now<small>Apply at once</small></span><span class="switch"></span></div>
+              <button class="btn primary" type="button" style="width:100%">Done · constrain · tax-lines</button>
+            </div>
+            <div class="home"></div>
+          </div>
+        </div>
+      </div>
+      <div class="side">
+        <div class="card"><h3>What changes on a phone</h3><p class="small muted" style="margin:6px 0 0">The Agent/Team toggle loses its icons; the + button folds into the chip (tap the chip to open); the popover becomes a bottom sheet with a Done button that repeats the chip's words; the hint line is dropped because Enter is a soft key. The composing line stays: it is how two people on phones avoid steering the same scope at once.</p></div>
+        <div class="card"><h3>What stays</h3><p class="small muted" style="margin:6px 0 0">The chip, the apricot team wash, the amber interrupt, the clock send when offline, and the plan-waits line above the field. The send is still 36px and still presses.</p></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

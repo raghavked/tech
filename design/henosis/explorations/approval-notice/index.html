@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approval notices</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- page frame ---- */
+  body { min-height: 100%; }
+  .board { width: min(1320px, 100%); margin: 0 auto; padding: 44px 48px 72px; display: flex; flex-direction: column; gap: 64px; }
+  .hd { display: grid; grid-template-columns: 64px 1fr auto; gap: 20px; align-items: start; }
+  .hd h1 { font-size: 44px; }
+  .hd .lede { max-width: 760px; margin-top: 6px; color: var(--ink-2); font-size: 15.5px; }
+  .hd .meta { text-align: right; font-size: 12.5px; color: var(--ink-3); line-height: 1.7; padding-top: 10px; }
+  .hd .meta b { font-weight: 500; color: var(--ink-2); font-family: var(--mono); font-size: 12px; }
+  .sec { display: flex; flex-direction: column; gap: 22px; }
+  .sec > .t { display: grid; grid-template-columns: 34px 1fr; gap: 14px; align-items: baseline; }
+  .sec > .t .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .sec > .t h2 { font-size: 28px; }
+  .sec > .t p { margin: 4px 0 0; color: var(--ink-2); max-width: 820px; font-size: 14.5px; }
+  .two { display: grid; grid-template-columns: 1fr 380px; gap: 36px; align-items: start; }
+  .stage { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 26px 28px 28px; position: relative; }
+  .stage .lbl { position: absolute; top: 10px; right: 14px; font: 11px var(--mono); color: var(--ink-3); letter-spacing: .02em; }
+  .stage .col { display: flex; flex-direction: column; gap: 18px; }
+  .ic { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ic.s { width: 12px; height: 12px; }
+  .kicker { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+
+  /* ---- callouts ---- */
+  .calls { display: flex; flex-direction: column; gap: 14px; font-size: 13.5px; }
+  .calls .c { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; color: var(--ink-2); }
+  .calls .c b { color: var(--ink); font-weight: 600; }
+  .num { width: 20px; height: 20px; border-radius: 50%; background: var(--rail); color: var(--rail-fg); font: 600 11px var(--font); display: inline-grid; place-items: center; }
+  .anno { position: relative; } .anno .num, .strip .num { position: absolute; z-index: 2; box-shadow: 0 0 0 2px var(--canvas); }
+  /* #phone as the URL target: the page shows the phone alone, for the 390x844 shot */
+  body:has(#phone:target) .board { padding: 0; gap: 0; width: 100%; }
+  body:has(#phone:target) .board > *:not(.mob-sec), body:has(#phone:target) .mob-sec > .t, body:has(#phone:target) .mob ul { display: none; }
+  body:has(#phone:target) .mob { display: block; }
+  body:has(#phone:target) .phone { border: 0; border-radius: 0; box-shadow: none; width: 100%; height: 100vh; }
+
+  /* ---- stream bits ---- */
+  .msg .text { font-size: 15px; }
+  .step .ic { color: var(--ink-3); }
+  .step .mono { font-size: 12.5px; color: var(--ink-2); }
+  .step .took { margin-left: auto; white-space: nowrap; font: 12px var(--mono); color: var(--ink-3); }
+  .step.wait .ic { color: var(--warn); }
+  .step.wait { color: var(--ink-2); }
+
+  /* ---- the approval notice ---- */
+  .notice { gap: 10px; padding: 15px 18px 14px 20px; }
+  .notice.exec::before { background: var(--apricot); }
+  .notice.external::before { background: var(--apricot-deep); }
+  .notice.viewer { background: color-mix(in srgb, var(--surface) 60%, var(--surface-2)); box-shadow: none; }
+  .notice.viewer .ask { color: var(--ink-2); }
+  .notice .ask { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 15px; line-height: 1.45; }
+  .notice .ask .who { font-family: var(--serif); font-size: 17px; }
+  .notice .ask code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); padding: 2px 7px; border-radius: 6px; color: var(--ink); }
+  .notice .ask .risk { height: 20px; padding: 0 8px; font-size: 11px; }
+  .risk.exec { background: var(--apricot-soft); color: var(--accent); }
+  .risk.external { background: var(--apricot); color: #56352D; }
+  .risk.irreversible { background: var(--rail); color: var(--rail-fg); }
+  .notice .needs { font-size: 13px; color: var(--ink-2); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .notice .needs .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); }
+  .notice .needs .you { color: var(--ink); font-weight: 500; }
+  .notice .votes { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--ink-2); align-items: center; }
+  .notice .votes .v { display: inline-flex; align-items: center; gap: 6px; }
+  .notice .votes .v q { font-family: var(--serif); font-style: italic; color: var(--ink-2); quotes: "\201C" "\201D"; }
+  .notice .actions { gap: 10px; margin-top: 2px; }
+  .notice .actions .hint { font-size: 12.5px; color: var(--ink-3); }
+  .notice .actions .hint.nudge { color: var(--warn); }
+  .notice .actions .btn.sm { min-height: 32px; padding: 0 14px; }
+  .notice .actions .btn.deny:hover { border-color: color-mix(in srgb, var(--danger) 40%, transparent); color: var(--danger); }
+  .notice .actions .rt { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+  .notice .actions .rt .lab { font-size: 12.5px; color: var(--ink-3); }
+  .notice.gate .num { display: none; }
+
+  /* optional rating in the notice: the voice, folded */
+  .rate { display: flex; align-items: center; gap: 10px; min-height: 28px; }
+  .rate .lab { font-size: 13px; color: var(--ink-2); }
+  .rate .word { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--ink-3); min-width: 56px; }
+  .rate .word.l4, .rate .word.l5 { color: var(--ok); } .rate .word.l3 { color: var(--ink); } .rate .word.l2 { color: var(--warn); } .rate .word.l1 { color: var(--danger); }
+  .stars { gap: 2px; align-items: center; }
+  .stars svg { width: 22px; height: 22px; display: block; }
+  .stars .st { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; }
+  .stars .st svg { fill: transparent; stroke: var(--ink-3); stroke-width: 1.5; stroke-linejoin: round; }
+  .stars .st.on svg { fill: var(--apricot-deep); stroke: var(--apricot-deep); }
+  .stars .st.pre svg { fill: var(--apricot); stroke: var(--apricot-deep); }
+  .stars .st.focus { box-shadow: var(--glow); }
+  .stars .tick { width: 1px; height: 14px; background: var(--ink-3); margin: 0 3px; }
+  .stars.sm svg, .stars.sm .st { width: 16px; height: 16px; } .stars.sm .st svg { stroke-width: 1.6; }
+  .stars.ro .st svg { stroke: var(--surface-3); }
+  .stars.ro .st.on svg { fill: var(--apricot-deep); stroke: var(--apricot-deep); }
+  .btn { white-space: nowrap; }
+  .state .rate { flex-wrap: wrap; } .state .note { flex: 1 1 100%; min-width: 0; }
+  .phone .stars svg, .phone .stars .st { width: 28px; height: 28px; } .phone .stars { gap: 6px; }
+  .note { flex: 1; min-width: 180px; height: 32px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font: 13.5px var(--font); color: var(--ink); display: flex; align-items: center; }
+  .note.ph { color: var(--ink-3); }
+  .note.focus { box-shadow: var(--glow); border-color: transparent; }
+  .note .caret { width: 1px; height: 16px; background: var(--ink); margin-left: 1px; }
+  .btn.primary .n4 { font-family: var(--mono); font-size: 12px; opacity: .8; margin-left: 2px; }
+
+  /* resolved: the divider */
+  .divider { font-size: 12.5px; }
+  .divider .ic { width: 13px; height: 13px; color: var(--ok); }
+  .divider.granted { color: var(--ink-2); }
+  .divider.granted b { color: var(--ok); font-weight: 600; }
+  .divider.denied { color: var(--danger); }
+  .divider.denied::before, .divider.denied::after { background: color-mix(in srgb, var(--danger) 30%, transparent); }
+  .divider .mono { font-size: 12px; color: inherit; }
+  .divider .stars { margin: 0 2px; }
+  .divider q { font-family: var(--serif); font-style: italic; quotes: "\201C" "\201D"; }
+  .divider .more { color: var(--accent); font-weight: 500; }
+  .divider .inner { display: inline-flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: center; }
+  .divider.fold { font-size: 12.5px; }
+  .divider.fold .stack { margin: 0 2px; }
+  .divider.fold .avatar { width: 20px; height: 20px; font-size: 9px; border-width: 1.5px; }
+  .draw { stroke-dasharray: 40; stroke-dashoffset: 0; }
+
+  /* compact row, long stream */
+  .rowc { display: grid; grid-template-columns: 4px 1fr auto; gap: 12px; align-items: center; padding: 8px 14px 8px 0; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); position: relative; overflow: hidden; }
+  .rowc::before { content: ""; width: 4px; align-self: stretch; background: var(--apricot); border-radius: 0; }
+  .rowc .ask { font-size: 14px; display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+  .rowc .ask code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 5px; }
+  .rowc .ask .risk { height: 18px; padding: 0 7px; font-size: 10.5px; }
+  .rowc .ask .needs { font-size: 12.5px; color: var(--ink-3); }
+  .rowc .act { display: inline-flex; align-items: center; gap: 6px; }
+  .rowc .act .btn.sm { min-height: 28px; padding: 0 11px; font-size: 12.5px; }
+  .rowc .act .key { font: 11px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+
+  /* sticky strip above the composer */
+  .strip { display: flex; align-items: center; gap: 12px; padding: 9px 14px 9px 16px; border-radius: 14px; background: var(--rail); color: var(--rail-fg); font-size: 13.5px; box-shadow: var(--shadow-pop); position: relative; }
+  .strip .dotw { width: 8px; height: 8px; border-radius: 50%; background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); flex: none; }
+  .strip code { font-family: var(--mono); font-size: 12.5px; color: var(--apricot); }
+  .strip .n { color: var(--rail-muted); }
+  .strip .btn { min-height: 28px; padding: 0 11px; font-size: 12.5px; }
+  .strip .btn.ok { background: var(--apricot); color: #56352D; border-color: transparent; }
+  .strip .btn.no { background: transparent; color: var(--rail-fg); border-color: var(--rail-line); }
+  .strip .keys { margin-left: auto; font: 11.5px var(--mono); color: var(--rail-muted); }
+  .strip .keys b { font-weight: 500; color: var(--rail-fg); border: 1px solid var(--rail-line); border-radius: 4px; padding: 0 4px; }
+  .composer { box-shadow: var(--shadow-soft); }
+  .composer .input { color: var(--ink-3); }
+
+  /* states grid */
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .state { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .state .h { display: flex; align-items: baseline; gap: 10px; }
+  .state .h .kicker { color: var(--ink-2); }
+  .state .h .m { margin-left: auto; font: 11px var(--mono); color: var(--ink-3); white-space: nowrap; }
+  .state .why { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+  .state .notice { padding: 13px 16px 12px 18px; }
+  .state .notice .ask { font-size: 14.5px; }
+  .state .notice .ask .who { font-size: 16px; }
+
+  /* rules table */
+  .rules { display: grid; grid-template-columns: auto 1fr; gap: 0 18px; font-size: 13.5px; }
+  .rules > div { padding: 9px 0; border-top: 1px solid var(--line); }
+  .rules > div:nth-child(-n+2) { border-top: 0; }
+  .rules .k { display: inline-flex; align-items: center; gap: 8px; }
+  .rules .v { color: var(--ink-2); }
+  .rules .v b { color: var(--ink); font-weight: 500; }
+
+  /* phone */
+  .phone { width: 390px; height: 844px; margin: 0; }
+  .phone .top { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; font-family: var(--serif); font-size: 19px; }
+  .phone .top .status { font-family: var(--font); font-size: 12.5px; }
+  .phone .scr { flex: 1; overflow: hidden; padding: 6px 14px 14px; display: flex; flex-direction: column; gap: 14px; }
+  .phone .notice { padding: 14px 14px 12px 16px; }
+  .phone .notice .ask { font-size: 14.5px; }
+  .phone .notice .actions { flex-wrap: wrap; }
+  .phone .notice .actions .btn { flex: 1; min-height: 40px; }
+  .phone .notice .actions .rt { margin-left: 0; width: 100%; }
+  .phone .cmp { margin: auto 10px 12px; }
+  .phone .cmp .composer { padding: 10px 10px 10px 14px; }
+  .phone .cmp .strip { margin-bottom: 10px; font-size: 12.5px; padding: 8px 10px 8px 12px; }
+  .phone .cmp .strip .keys { display: none; }
+  .mob { display: grid; grid-template-columns: auto 1fr; gap: 36px; align-items: start; }
+  .mob ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+  .ft { color: var(--ink-3); font-size: 12px; border-top: 1px solid var(--line); padding-top: 18px; display: flex; gap: 24px; }
+
+  /* dark: status words need more light on navy */
+  :root[data-theme="dark"] { --ok: #8FBF86; --ok-soft: rgba(143,191,134,.16); --warn: #E0B06E; --danger: #E8907F; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FBF86; --ok-soft: rgba(143,191,134,.16); --warn: #E0B06E; --danger: #E8907F; } }
+  :root[data-theme="dark"] .risk.exec { color: var(--apricot); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .risk.exec { color: var(--apricot); } }
+
+  @media (max-width: 900px) {
+    .board { padding: 24px 16px 48px; gap: 44px; }
+    .two, .grid3, .grid2, .mob { grid-template-columns: 1fr; }
+    .hd { grid-template-columns: 48px 1fr; } .hd .meta { display: none; } .hd h1 { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="star" viewBox="0 0 24 24"><path d="M12 3.6l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.9l6-.8z"/></symbol>
+</svg>
+
+<div class="board">
+
+  <!-- ================= header ================= -->
+  <header class="hd">
+    <svg class="mark" viewBox="0 0 96 96" width="64" height="64" aria-label="Henosis">
+      <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+      <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="7"/>
+    </svg>
+    <div>
+      <h1>Approval notices</h1>
+      <p class="lede">The ordinary approval: an agent wants to run or reach something, the policy names who may say yes, and the notice asks them in one breath. The stars are there for a voice, not a vote; the same control, folded to the right. When it resolves, the card thins to a line, and a long stream folds the lines so the work stays readable.</p>
+    </div>
+    <div class="meta"><b>approval-notice</b><br>Session: the stream<br>Pairs with rating-control, plan-card</div>
+  </header>
+
+  <!-- ================= 01 anatomy ================= -->
+  <section class="sec">
+    <div class="t"><span class="n">01</span><div><h2>Anatomy</h2><p>An <em>exec</em> approval as it lands in the Billing page session. Ana's agent paused at step 3 of the plan; Bo, a contributor, is reading. The card carries the ask, the risk, the rule, and two buttons. Nothing else is required of Bo.</p></div></div>
+    <div class="two">
+      <div class="stage"><span class="lbl">session · 780 column · light</span>
+        <div class="col">
+          <div class="msg agent">
+            <div class="meta"><span class="avatar agent">A</span><span class="who">Ana's agent</span><span>step 3 of 4 · 10:41</span></div>
+            <div class="text">The proration rounding now lives in one helper shared with Checkout; the tax lines in the invoice PDF use it too. Before I regenerate the snapshots I want to run the billing tests.</div>
+            <div class="steps">
+              <div class="step"><svg class="ic"><use href="#i-pen"/></svg><span class="mono">Wrote src/billing/proration.ts</span><span class="took">1.2k</span></div>
+              <div class="step"><svg class="ic"><use href="#i-pen"/></svg><span class="mono">Wrote src/checkout/total.ts</span><span class="took">0.8k</span></div>
+              <div class="step wait"><svg class="ic"><use href="#i-clock"/></svg><span>Waiting for an approval</span></div>
+            </div>
+          </div>
+
+          <div class="anno">
+            <span class="num" style="left:-10px;top:-10px">1</span>
+            <span class="num" style="right:-10px;top:-10px">2</span>
+            <span class="num" style="left:-10px;bottom:14px">3</span>
+            <span class="num" style="right:-10px;bottom:14px">4</span>
+          <div class="notice exec">
+            <div class="ask"><span class="who">Ana's agent</span><span>wants to run</span><code>pnpm test --filter checkout</code><span class="pill risk exec">exec</span></div>
+            <div class="needs"><span>Needs one contributor or above</span><span class="dot"></span><span class="you">You can approve, Bo</span><span class="dot"></span><span>Billing page · step 3 of 4</span></div>
+            <div class="actions">
+              <button class="btn primary sm">Approve</button>
+              <button class="btn sm deny">Deny</button>
+              <span class="hint">Ana and Cy see this too; the first voice decides</span>
+              <span class="rt"><span class="lab">Rate it</span><span class="stars sm" role="radiogroup" aria-label="Your rating"><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span></span></span>
+            </div>
+          </div>
+          </div>
+
+          <div class="msg agent" style="opacity:.55">
+            <div class="meta"><span class="avatar agent">A</span><span class="who">Ana's agent</span><span>step 3 of 4</span></div>
+            <div class="steps"><div class="step"><svg class="ic"><use href="#i-term"/></svg><span class="mono">Running shell: pnpm test --filter checkout</span><span class="loader weave" style="width:60px;margin-left:auto"></span></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="calls">
+        <div class="c"><span class="num">1</span><div><b>The ask, in a sentence.</b> Serif name, the verb, the argument in mono, the risk as a pill. "Ana's agent wants to run <code style="font-family:var(--mono);font-size:12px">pnpm test</code> (exec)". The apricot crease says this card is live; a release gate gets the navy→chocolate crease instead.</div></div>
+        <div class="c"><span class="num">2</span><div><b>The rule and the person.</b> "Needs one contributor or above" is the policy, verbatim from the kernel; "You can approve, Bo" is what it means for the reader; then where the agent is. Three facts, one line, dots between.</div></div>
+        <div class="c"><span class="num">3</span><div><b>Two buttons, one hand.</b> Approve is chocolate, Deny is quiet and only warms to danger on hover. The hint says who else was asked and that the first voice settles it, so Bo does not wait for Cy.</div></div>
+        <div class="c"><span class="num">4</span><div><b>The voice, folded.</b> Five small stars at the right, unlit, labelled "Rate it". A pick is optional: it rides along with the vote and shows in the divider ("Bo approved · 4 of 5"). Approve without a pick sends no number. Under a ratings rule the stars move left, grow, and gain the word; that is the rating-control exploration.</div></div>
+        <div class="c"><span class="num">·</span><div><b>Keys.</b> With the card under the cursor or focused: <code style="font-family:var(--mono);font-size:12px">y</code> approves, <code style="font-family:var(--mono);font-size:12px">n</code> denies, <code style="font-family:var(--mono);font-size:12px">1–5</code> picks a star first. Same keys in the queue and the strip.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 02 states ================= -->
+  <section class="sec">
+    <div class="t"><span class="n">02</span><div><h2>States</h2><p>Who is reading changes the card more than what is asked. The rule is always printed; the second clause tells you whether it is yours to answer.</p></div></div>
+    <div class="grid3">
+
+      <div class="state">
+        <div class="h"><span class="kicker">Pending · exec</span><span class="m">viewer: Bo, contributor</span></div>
+        <div class="notice exec">
+          <div class="ask"><span class="who">Ana's agent</span><span>wants to run</span><code>pnpm test --filter checkout</code><span class="pill risk exec">exec</span></div>
+          <div class="needs"><span>Needs one contributor or above</span><span class="dot"></span><span class="you">You can approve, Bo</span></div>
+          <div class="actions"><button class="btn primary sm">Approve</button><button class="btn sm deny">Deny</button><span class="rt"><span class="lab">Rate it</span><span class="stars sm"><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span></span></span></div>
+        </div>
+        <div class="why">The default. Any contributor settles it; the agent waits at the step.</div>
+      </div>
+
+      <div class="state">
+        <div class="h"><span class="kicker">Pending · external</span><span class="m">viewer: Ana, driver</span></div>
+        <div class="notice external">
+          <div class="ask"><span class="who">Ana's agent</span><span>wants to deploy to</span><code>preview</code><span class="pill risk external">external</span></div>
+          <div class="needs"><span>Needs the driver</span><span class="dot"></span><span class="you">That is you, Ana</span></div>
+          <div class="actions"><button class="btn primary sm">Approve</button><button class="btn sm deny">Deny</button><span class="rt"><span class="lab">Rate it</span><span class="stars sm"><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span></span></span></div>
+        </div>
+        <div class="why">External reaches outside the workspace, so the driver answers. The deeper apricot crease marks the class.</div>
+      </div>
+
+      <div class="state">
+        <div class="h"><span class="kicker">Pending · not yours</span><span class="m">viewer: Cy, contributor</span></div>
+        <div class="notice external viewer">
+          <div class="ask"><span class="who">Ana's agent</span><span>wants to deploy to</span><code>preview</code><span class="pill risk external">external</span></div>
+          <div class="needs"><span>Needs the driver</span><span class="dot"></span><span class="you">Ana decides</span><span class="dot"></span><span>waiting 6 min</span></div>
+          <div class="actions"><button class="btn sm">Nudge Ana</button><button class="btn ghost sm">Take the baton</button><span class="hint">A nudge posts to the team chat</span></div>
+        </div>
+        <div class="why">No Approve for Cy: the buttons that remain are the ones that help. Taking the baton makes Cy the driver and the card turns live.</div>
+      </div>
+
+      <div class="state">
+        <div class="h"><span class="kicker">Picked a star</span><span class="m">value 4 · focus on the button</span></div>
+        <div class="notice exec">
+          <div class="ask"><span class="who">Ana's agent</span><span>wants to run</span><code>pnpm test --filter checkout</code><span class="pill risk exec">exec</span></div>
+          <div class="needs"><span>Needs one contributor or above</span><span class="dot"></span><span class="you">You can approve, Bo</span></div>
+          <div class="rate"><span class="stars" role="radiogroup"><span class="st on"><svg><use href="#star"/></svg></span><span class="st on"><svg><use href="#star"/></svg></span><span class="st on"><svg><use href="#star"/></svg></span><span class="st on focus"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span></span><span class="word l4">Good</span><span class="note ph">A note with your vote (optional)</span></div>
+          <div class="actions"><button class="btn primary sm" style="box-shadow:var(--glow)">Approve <span class="n4">· 4</span></button><button class="btn sm deny">Deny</button><span class="hint">The number travels with your vote</span></div>
+        </div>
+        <div class="why">The first pick unfolds the row: full stars, the word, the note. The button shows the number it will send.</div>
+      </div>
+
+      <div class="state">
+        <div class="h"><span class="kicker">Low pick, note nudged</span><span class="m">value 2 · note empty</span></div>
+        <div class="notice exec">
+          <div class="ask"><span class="who">Ana's agent</span><span>wants to delete</span><code>snapshots/invoice-*.pdf</code><span class="pill risk exec">exec</span></div>
+          <div class="needs"><span>Needs one contributor or above</span><span class="dot"></span><span class="you">You can approve, Bo</span></div>
+          <div class="rate"><span class="stars"><span class="st on"><svg><use href="#star"/></svg></span><span class="st on"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span></span><span class="word l2">Risky</span><span class="note focus">regenerate, don't delete<span class="caret"></span></span></div>
+          <div class="actions"><button class="btn primary sm">Approve <span class="n4">· 2</span></button><button class="btn sm deny">Deny</button><span class="hint nudge">Say what worries you; the agent reads the note</span></div>
+        </div>
+        <div class="why">At 1 and 2 the hint asks for a note. It never blocks: a 2 with no words still goes through.</div>
+      </div>
+
+      <div class="state">
+        <div class="h"><span class="kicker">Viewing the past</span><span class="m">replay · seq 212</span></div>
+        <div class="notice exec" style="opacity:.75">
+          <div class="ask"><span class="who">Ana's agent</span><span>wants to run</span><code>pnpm test --filter checkout</code><span class="pill risk exec">exec</span></div>
+          <div class="needs"><span>Needs one contributor or above</span><span class="dot"></span><span>Answered 10:43 by Bo</span></div>
+        </div>
+        <div class="why">On the scrubber the card keeps its words and loses its buttons, so a replay cannot vote twice.</div>
+      </div>
+
+    </div>
+
+    <div class="grid2" style="margin-top:4px">
+      <div class="state">
+        <div class="h"><span class="kicker">Granted</span><span class="m">divider · check draws itself</span></div>
+        <div class="stage" style="padding:22px 24px"><div class="col" style="gap:16px">
+          <div class="divider granted"><span class="inner"><svg class="ic draw"><use href="#i-check"/></svg><b>Approved</b>: run <span class="mono">pnpm test --filter checkout</span> · Bo</span></div>
+          <div class="divider granted"><span class="inner"><svg class="ic draw"><use href="#i-check"/></svg><b>Approved</b>: deploy to <span class="mono">preview</span> · Ana · <span class="stars sm ro"><span class="st on"><svg><use href="#star"/></svg></span><span class="st on"><svg><use href="#star"/></svg></span><span class="st on"><svg><use href="#star"/></svg></span><span class="st on"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span></span>4 of 5 · <q>tax lines look right</q></span></div>
+          <div class="divider granted"><span class="inner"><svg class="ic draw"><use href="#i-check"/></svg><b>Approved</b>: push <span class="mono">pdf-layout</span> to <span class="mono">main</span> <span class="pill risk irreversible" style="height:18px;font-size:10.5px;padding:0 7px">irreversible</span> · Bo 4, Cy 5 · 4.5 average</span></div>
+        </div></div>
+        <div class="why">The card becomes a line the moment the kernel grants. Name, number, and the quoted note stay; the rule is gone because it was met. A gate's line lists every rater.</div>
+      </div>
+      <div class="state">
+        <div class="h"><span class="kicker">Denied</span><span class="m">divider · danger, no check</span></div>
+        <div class="stage" style="padding:22px 24px"><div class="col" style="gap:16px">
+          <div class="divider denied"><span class="inner"><svg class="ic" style="color:var(--danger)"><use href="#i-x"/></svg><b>Denied</b>: delete <span class="mono">snapshots/invoice-*.pdf</span> · Bo · <q>regenerate, don't delete</q></span></div>
+          <div class="divider denied"><span class="inner"><svg class="ic" style="color:var(--danger)"><use href="#i-x"/></svg><b>Denied</b>: deploy to <span class="mono">preview</span> · Ana</span></div>
+          <div class="msg agent" style="gap:4px"><div class="meta"><span class="avatar agent">A</span><span class="who">Ana's agent</span><span>step 3 of 4</span></div><div class="text" style="font-size:14px">Understood; I will regenerate the invoice snapshots in place instead of deleting them, and keep the proration block untouched.</div></div>
+        </div></div>
+        <div class="why">A denial is a line too, in the danger ink, with the note the agent reads. The agent's next message answers the note, so the stream explains itself.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 03 long stream ================= -->
+  <section class="sec">
+    <div class="t"><span class="n">03</span><div><h2>In a long stream</h2><p>A test-heavy session asks for an exec approval every few minutes. Resolved ones fold into one line per run of grants, the pending one takes a compact row, and the latest pending also sits as a strip over the composer so the answer never needs a scroll.</p></div></div>
+    <div class="two">
+      <div class="stage"><span class="lbl">session · scrolled to the end · 11:20</span>
+        <div class="col" style="gap:14px">
+          <div class="divider fold"><span class="inner"><svg class="ic draw"><use href="#i-check"/></svg><b style="color:var(--ok)">6 approved</b> between 10:41 and 11:04 · <span class="stack"><span class="avatar">Bo</span><span class="avatar">Cy</span></span> · 5 exec, 1 external · <span class="more">Show</span></span></div>
+
+          <div class="msg agent">
+            <div class="meta"><span class="avatar agent">A</span><span class="who">Ana's agent</span><span>step 4 of 4 · 11:12</span></div>
+            <div class="text">Snapshots regenerated: 14 invoice PDFs changed, all in the proration block. The tax lines are byte-identical. One more run to be sure the Checkout totals agree.</div>
+            <div class="steps">
+              <div class="step"><svg class="ic"><use href="#i-term"/></svg><span class="mono">Ran shell: pnpm test --filter billing</span><span class="took">3.1k · 48 passed</span></div>
+            </div>
+          </div>
+
+          <div class="divider granted"><span class="inner"><svg class="ic draw"><use href="#i-check"/></svg><b>Approved</b>: run <span class="mono">pnpm test --filter billing</span> · Cy · 11:14</span></div>
+
+          <div class="msg human team">
+            <div class="meta"><span class="avatar">D</span><span class="who">Dee</span><span class="to">to the Payments team</span><span>11:16</span></div>
+            <div class="text">Going by the diffs this is ready for the gate once the Checkout run is green. Bo, Cy: rate it when it lands.</div>
+          </div>
+
+          <div class="anno"><span class="num" style="left:-10px;top:-10px">1</span>
+          <div class="rowc">
+            <div class="ask"><span class="serif" style="font-size:15px">Ana's agent</span><span>wants to run</span><code>pnpm test --filter checkout</code><span class="pill risk exec">exec</span><span class="needs">· one contributor · you, Bo</span></div>
+            <div class="act"><button class="btn primary sm">Approve</button><button class="btn sm deny">Deny</button><span class="key">y</span><span class="key">n</span></div>
+          </div></div>
+
+          <div class="divider" style="margin-top:4px">11:20 · now</div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+            <div class="strip"><span class="num" style="left:-10px;top:-10px">2</span><span class="dotw"></span><span>1 approval waits · run <code>pnpm test --filter checkout</code></span><span class="n">· exec</span><button class="btn ok">Approve</button><button class="btn no">Deny</button><span class="keys"><b>y</b> <b>n</b> · <b>g a</b> queue</span></div>
+            <div class="composer"><div class="input">Steer the agent</div><div class="bar"><span class="seg"><button class="on">Agent</button><button>Team</button></span><span class="chip">goal</span><span class="right"><span class="small faint">as Bo, contributor</span><button class="send" aria-label="Send"><svg class="ic" style="color:var(--accent-fg)"><use href="#i-send"/></svg></button></span></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="calls">
+        <div class="c"><span class="num">·</span><div><b>Folding.</b> Consecutive resolved approvals with nothing between them but steps collapse to one line: the count, the span, who answered, the classes. "Show" opens them in place. A denial never folds; it stays its own line in danger ink, because a denial is a decision someone will want to find.</div></div>
+        <div class="c"><span class="num">1</span><div><b>The compact row.</b> After the third approval in a session the pending card shrinks: one line, the ask on the left, the buttons on the right, the keys printed. The stars do not fit here; a press on <span style="font-family:var(--mono);font-size:12px">1–5</span> still rates, and the row grows to the full card while a star is picked.</div></div>
+        <div class="c"><span class="num">2</span><div><b>The strip.</b> The latest pending approval sits on the rail colour above the composer, so Bo can answer without finding the card. Approving in the strip answers the card; the strip crossfades to the next pending one or disappears. Two or more pending: "2 approvals wait" and <span style="font-family:var(--mono);font-size:12px">g a</span> opens the queue.</div></div>
+        <div class="c"><span class="num">·</span><div><b>Rail and tab.</b> While anything waits, the agent's card in the rail shows the amber dot and "waiting for Bo", and the tab title gets "(1)".</div></div>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+          <span class="kicker">Rules in the Payments project</span>
+          <div class="rules">
+            <div class="k"><span class="pill risk exec">exec</span></div><div class="v"><b>one contributor or above</b> · buttons for Bo, Cy, Ana, Dee</div>
+            <div class="k"><span class="pill risk external">external</span></div><div class="v"><b>the driver</b> · buttons for Ana only</div>
+            <div class="k"><span class="pill risk irreversible">irreversible</span></div><div class="v"><b>2 contributors rating it 4+ on average</b> · the gate notice, stars required</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 04 mobile ================= -->
+  <section class="sec mob-sec">
+    <div class="t"><span class="n">04</span><div><h2>Mobile</h2><p>On the phone the card is the whole width; the buttons share a row at 40px and the stars sit under them. The strip stays over the composer; the keys go.</p></div></div>
+    <div class="mob">
+      <div class="phone" id="phone">
+        <div class="top"><span>Billing page</span><span class="status awaiting">awaiting</span></div>
+        <div class="scr">
+          <div class="divider fold"><span class="inner"><svg class="ic draw"><use href="#i-check"/></svg><b style="color:var(--ok)">6 approved</b> · Bo, Cy · <span class="more">Show</span></span></div>
+          <div class="divider granted"><span class="inner"><svg class="ic draw"><use href="#i-check"/></svg><b>Approved</b>: run <span class="mono">pnpm test --filter billing</span> · Cy</span></div>
+          <div class="msg agent">
+            <div class="meta"><span class="avatar agent">A</span><span class="who">Ana's agent</span><span>step 4 of 4</span></div>
+            <div class="text" style="font-size:14px">Snapshots regenerated: 14 invoice PDFs changed, all in the proration block. One more run to be sure the Checkout totals agree.</div>
+            <div class="steps"><div class="step"><svg class="ic"><use href="#i-term"/></svg><span class="mono">Ran shell: pnpm test --filter billing</span><span class="took">48 passed</span></div><div class="step wait"><svg class="ic"><use href="#i-clock"/></svg><span>Waiting for an approval</span></div></div>
+          </div>
+          <div class="notice exec">
+            <div class="ask"><span class="who">Ana's agent</span><span>wants to run</span><code>pnpm test --filter checkout</code><span class="pill risk exec">exec</span></div>
+            <div class="needs"><span>Needs one contributor</span><span class="dot"></span><span class="you">You can approve, Bo</span></div>
+            <div class="actions"><button class="btn primary sm">Approve</button><button class="btn sm deny">Deny</button><span class="rt"><span class="lab">Rate it</span><span class="stars"><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span><span class="st"><svg><use href="#star"/></svg></span></span></span></div>
+          </div>
+          <div class="msg human team">
+            <div class="meta"><span class="avatar">D</span><span class="who">Dee</span><span class="to">to the team</span></div>
+            <div class="text" style="font-size:14px">Rate it when it lands.</div>
+          </div>
+        </div>
+        <div class="cmp">
+          <div class="strip"><span class="dotw"></span><span>1 approval waits</span><button class="btn ok" style="margin-left:auto">Approve</button><button class="btn no">Deny</button></div>
+          <div class="composer"><div class="bar"><span class="input">Steer the agent</span><span class="seg"><button class="on">Agent</button><button>Team</button></span><button class="send" aria-label="Send"><svg class="ic" style="color:var(--accent-fg)"><use href="#i-send"/></svg></button></div></div>
+        </div>
+      </div>
+      <ul>
+        <li>Stars grow to 28px with a 38px hit area; the row stays under the buttons so a thumb does not cross the Approve button to reach a star.</li>
+        <li>The strip's Approve answers the card above it; haptic tick, the card thins to the line, the strip slides away.</li>
+        <li>The fold line keeps only the count and the names; the span and the classes come back on tap.</li>
+        <li>The not-yours state keeps "Nudge Ana" and drops "Take the baton" into the sheet behind the status pill, where the driver controls already live.</li>
+        <li>Calm mode: no draw on the check, no slide on the strip; everything still lands in the same place.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="ft"><span>Henosis · design wave · approval-notice</span><span>Tokens v5 · Instrument Serif, Instrument Sans, JetBrains Mono</span><span>Light and dark via tokens, no scripts</span></footer>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4l11-11-4-4L4 16v4zM13 7l4 4"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+</svg>
+</body>
+</html>

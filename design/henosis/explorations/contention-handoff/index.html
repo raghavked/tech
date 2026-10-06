@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Billing page · contention and the baton</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- shell: navy rail, cream stream, details drawer with the team and the baton ---- */
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 5px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* topbar */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .status { font-family: var(--font); }
+  .topbar .lbl { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+  .topbar .lbl .drv { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 14px; }
+  .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font: 12.5px var(--mono); color: var(--ink-2); min-width: 92px; }
+  .tokchip .budget { height: 3px; }
+  .topbar .btn.sm svg { width: 14px; height: 14px; }
+  .topbar .btn.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+  .topbar .menu { display: none; }
+  .btn { white-space: nowrap; }
+
+  /* stream */
+  .scroll { display: flex; flex-direction: column-reverse; }
+  .scroll .column { flex: none; align-self: center; padding-top: 12px; padding-bottom: 6px; gap: 12px; }
+  .msg .meta time { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .msg.agent .meta .who { display: inline-flex; align-items: center; gap: 8px; }
+  .msg .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; }
+  .msg.agent .text p { margin: 0 0 8px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg.agent .text code, .notice code, .brief code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+  .msg.team .text { background: var(--apricot-soft); border: 0; border-radius: var(--radius-lg); padding: 10px 16px; align-self: flex-start; max-width: 85%; }
+  .step { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 3px 10px; border-radius: 10px; }
+  .step svg { width: 15px; height: 15px; color: var(--ink-3); }
+  .step.ok svg { color: var(--ok); }
+  .step .mono { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .mono b { font-weight: 500; color: var(--ink); }
+  .step .r { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .step.held { background: var(--surface-2); }
+  .step.held svg, .step.held .r { color: var(--warn); }
+  .step.live svg { color: var(--apricot-deep); }
+  .step.live .r { color: var(--apricot-deep); }
+  .step.ok .r.on { color: var(--ok); }
+
+  /* shared notice furniture */
+  .notice { gap: 10px; padding: 14px 20px 12px 22px; }
+  .notice .head { display: flex; align-items: flex-start; gap: 12px; }
+  .notice .head .ask { font-size: 15.5px; line-height: 1.5; min-width: 0; }
+  .notice .head .ask .serif { font-size: 20px; }
+  .notice .head .rule { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+  .notice .head .rule b { font-weight: 500; color: var(--ink); }
+  .notice .head .rule q { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--accent); quotes: "\201C" "\201D"; }
+  .notice .head .elapsed { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); padding-top: 4px; }
+  .notice .head .elapsed::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); animation: pulse 1.6s ease-in-out 1s infinite; }
+  .notice .head .elapsed.live::before { background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
+  .notice .actions { padding-top: 2px; flex-wrap: wrap; }
+  .notice .actions .hint { font-size: 12.5px; color: var(--ink-3); margin-left: 4px; }
+  .notice .actions .kbd { margin-left: auto; display: inline-flex; gap: 10px; font-size: 12px; color: var(--ink-3); }
+  kbd { font: 11px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; background: var(--surface-2); }
+  .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; border-radius: var(--radius-full); padding: 2px 9px; background: var(--surface-3); color: var(--ink-2); vertical-align: 2px; white-space: nowrap; }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .tag.pulse { background: var(--apricot-soft); color: var(--accent); }
+
+  /* ---- the contention notice: two directions, side by side ---- */
+  .notice.contention::before { background: var(--warn); }
+  .directions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .direction { display: flex; flex-direction: column; gap: 7px; padding: 11px 14px 11px; border-radius: 14px; background: var(--surface-2); position: relative; min-width: 0; }
+  .direction .n { position: absolute; top: 10px; right: 12px; font: 500 11px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+  .direction .who { display: flex; align-items: center; gap: 8px; }
+  .direction .who .avatar { width: 24px; height: 24px; font-size: 10px; border: 0; }
+  .direction .who b { font-family: var(--serif); font-size: 15.5px; font-weight: 400; }
+  .direction .who .role { font-size: 11.5px; color: var(--ink-3); }
+  .direction .say { font-size: 14px; line-height: 1.5; color: var(--ink); }
+  .direction .scope { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); font-family: var(--mono); }
+  .direction .scope .tag { font-family: var(--font); }
+  .direction .do { display: flex; gap: 8px; align-items: center; margin-top: auto; padding-top: 4px; }
+  .direction .do .fit { font-size: 12px; color: var(--ink-3); margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+  .direction .do .fit svg { width: 13px; height: 13px; }
+  .direction .do .fit.good { color: var(--ok); }
+  .direction .do .fit.off { color: var(--warn); }
+  .direction.mine { box-shadow: inset 0 0 0 1.5px var(--apricot-deep); background: var(--surface); }
+  .direction.mine .n { border-color: var(--apricot-deep); color: var(--accent); }
+  .direction.won { box-shadow: inset 0 0 0 1.5px var(--ok); background: var(--surface); }
+  .direction.lost { opacity: .55; }
+  .direction.lost .say { text-decoration: line-through; text-decoration-color: var(--ink-3); }
+  .agentnote { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+  .agentnote .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; margin-top: 1px; }
+  .agentnote b { font-weight: 500; color: var(--ink); }
+
+  /* ---- the baton: the handoff notice ---- */
+  .notice.baton::before { background: var(--apricot); }
+  .pass { display: inline-flex; align-items: center; gap: 0; flex: none; margin-top: 2px; }
+  .pass .avatar { width: 34px; height: 34px; font-size: 12px; border: 2px solid var(--surface); position: relative; z-index: 1; }
+  .pass .lane { width: 92px; height: 34px; position: relative; display: grid; align-items: center; margin: 0 -6px; }
+  .pass .lane::before { content: ""; height: 2px; border-top: 2px dashed var(--line); margin: 0 10px; }
+  .pass .stick { position: absolute; top: 9px; left: 20px; width: 44px; height: 16px; border-radius: 8px; background: var(--apricot); border: 1.5px solid var(--apricot-deep); box-shadow: 0 4px 10px rgba(86,53,45,.18); display: grid; place-items: center; }
+  .pass .stick::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #56352D; }
+  .pass.waiting .stick { animation: nudge 1.8s ease-in-out infinite; }
+  @keyframes nudge { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(10px) } }
+  .pass.done .stick { left: 52px; }
+  .pass.done .lane::before { border-color: var(--ok); }
+  .brief { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 10px; }
+  .brief > div { border-radius: 14px; background: var(--surface-2); padding: 9px 12px 10px; min-width: 0; }
+  .brief h4 { margin: 0 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .brief h4 .faint { letter-spacing: 0; text-transform: none; font-weight: 500; margin-left: auto; font-size: 11.5px; }
+  .brief p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+  .brief ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .brief li { font-size: 13px; line-height: 1.4; color: var(--ink); display: grid; grid-template-columns: 14px 1fr; gap: 7px; align-items: start; }
+  .brief li svg { width: 14px; height: 14px; margin-top: 3px; color: var(--ink-3); }
+  .brief li.hot svg { color: var(--warn); }
+  .brief li.ok svg { color: var(--ok); }
+  .brief li .t { color: var(--ink-3); font-size: 12px; font-family: var(--mono); margin-left: 4px; }
+  .brief code { font-size: 12px; }
+
+  /* dividers: the baton moved, a direction was picked */
+  .divider .by { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--accent); }
+  .divider svg { width: 14px; height: 14px; color: var(--apricot-deep); flex: none; }
+  .divider .ok { color: var(--ok); }
+  .divider .mono { font-size: 12px; }
+  .divider.muted .by { color: var(--ink-3); }
+
+  /* composer */
+  .composer-wrap { padding: 4px 24px 12px; }
+  .composer { padding: 11px 14px 10px 18px; }
+  .composer .input { color: var(--ink-3); }
+  .composer .send svg { width: 16px; height: 16px; }
+  .composer .bar .mode { display: inline-flex; align-items: center; gap: 6px; font: 12.5px var(--font); color: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-full); padding: 4px 11px; }
+  .composer .bar .mode .mono { font-size: 12px; color: var(--ink); }
+  .composer .bar .as { font-size: 12.5px; color: var(--ink-3); }
+  .composer .bar .as i { font-family: var(--serif); color: var(--accent); }
+
+  /* ---- details drawer: the team and the baton ---- */
+  .drawer { padding: 20px 20px; gap: 18px; }
+  .drawer .head { display: flex; align-items: center; gap: 8px; }
+  .drawer .head h2 { font-size: 22px; }
+  .drawer .head .btn { margin-left: auto; }
+  .drawer .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); }
+  .drawer .tabs span { padding: 6px 10px; font-size: 13px; color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .drawer .tabs span.on { color: var(--ink); border-color: var(--accent); font-weight: 500; }
+  .people { display: flex; flex-direction: column; gap: 4px; }
+  .person { padding: 5px 8px; border-radius: 12px; margin: 0 -8px; }
+  .person .avatar { width: 26px; height: 26px; font-size: 10px; border: 0; }
+  .person .name { display: flex; flex-direction: column; line-height: 1.25; }
+  .person .name b { font-family: var(--serif); font-weight: 400; font-size: 15px; }
+  .person .name .st { font-size: 12px; color: var(--ink-3); }
+  .person .name .st.drv { color: var(--accent); font-style: italic; font-family: var(--serif); font-size: 13px; }
+  .person .btn.sm { min-height: 26px; padding: 0 9px; font-size: 12px; }
+  .person .btn.sm svg { width: 12px; height: 12px; }
+  .person.offered { background: var(--apricot-soft); }
+  .grow { display: flex; flex-direction: column; gap: 8px; }
+  .grow .g { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); }
+  .grow .g.live { border-color: transparent; background: var(--apricot-soft); }
+  .grow .g .ico { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; }
+  .grow .g .ico svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .grow .g.ok .ico { background: var(--ok-soft); color: var(--ok); }
+  .grow .g.no .ico { background: var(--surface-3); color: var(--ink-2); }
+  .grow .g.hold .ico { background: var(--warn-soft); color: var(--warn); }
+  .grow .g.live .ico { background: var(--apricot); color: #56352D; }
+  .grow .g .t { font-size: 13.5px; line-height: 1.4; }
+  .grow .g .t b { font-weight: 500; }
+  .grow .g .s { font-size: 12.5px; color: var(--ink-2); line-height: 1.4; }
+  .policy { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+  .policy .row { display: grid; grid-template-columns: 18px 1fr; gap: 10px; padding: 6px 0; align-items: start; color: var(--ink-2); }
+  .policy .row .radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line); margin-top: 3px; display: grid; place-items: center; }
+  .policy .row.now .radio { border-color: var(--accent); }
+  .policy .row.now .radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .policy .row.now { color: var(--ink); }
+  .policy .row .mono { font-size: 12.5px; color: var(--ink); }
+  .policy .row .s { display: block; font-size: 12px; color: var(--ink-3); }
+
+  /* ---- the states board below the screen ---- */
+  .board { padding: 40px 48px 80px; display: flex; flex-direction: column; gap: 22px; border-top: 1px solid var(--line); }
+  .board header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .board header p { margin: 0; color: var(--ink-2); max-width: 760px; }
+  .board .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 28px; }
+  .state { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .state > .lbl { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--ink-2); line-height: 1.4; }
+  .state > .lbl b { font-family: var(--serif); font-weight: 400; font-size: 17px; color: var(--ink); flex: none; white-space: nowrap; }
+  .state > .lbl .mono { margin-left: auto; font-size: 12px; color: var(--ink-3); flex: none; white-space: nowrap; padding-left: 8px; }
+  .state .notice { gap: 10px; }
+  .notice.contention.resolved::before { background: var(--ok); }
+  .notice.contention.resolved { gap: 10px; }
+  .btn.disabled { opacity: .5; pointer-events: none; }
+  .btn.sm.danger { color: var(--danger); }
+  .popover { position: relative; display: inline-block; }
+  .popover .card { position: absolute; right: 0; top: calc(100% + 8px); width: 300px; padding: 14px 16px; z-index: 2; box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; }
+  .popover .card .serif { font-size: 18px; }
+  .popover .card p { margin: 0; color: var(--ink-2); line-height: 1.45; }
+  .popover .card .actions { display: flex; gap: 8px; padding-top: 4px; }
+  .toast { display: flex; align-items: center; gap: 12px; width: 420px; padding: 12px 14px; border-radius: 16px; background: var(--rail); color: var(--rail-fg); box-shadow: var(--shadow-pop); font-size: 13.5px; }
+  .toast .mark { width: 34px; height: 34px; flex: none; }
+  .toast .w { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
+  .toast .w b { font-family: var(--serif); font-weight: 400; font-size: 15.5px; }
+  .toast .w span { color: var(--rail-muted); font-size: 12.5px; }
+  .toast .btn { margin-left: auto; flex: none; }
+  .toast .btn.primary { background: var(--apricot); color: #56352D; }
+  .toast .btn.ghost { color: var(--rail-muted); }
+  .teamrow { display: flex; flex-direction: column; gap: 4px; }
+  .teamrow .person { margin: 0; }
+  .handoffs { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+  .handoffs .r { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); color: var(--ink-2); }
+  .handoffs .r:last-child { border-bottom: 0; }
+  .handoffs .r .stack .avatar { width: 22px; height: 22px; font-size: 9px; }
+  .handoffs .r b { font-family: var(--serif); font-weight: 400; color: var(--ink); }
+  .handoffs .r .mono { font-size: 12px; color: var(--ink-3); }
+  .spec { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 28px; }
+  .spec .card { display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; }
+  .spec .card h3 { font-family: var(--serif); font-weight: 400; font-size: 18px; }
+  .spec .card ul { margin: 0; padding-left: 18px; color: var(--ink-2); display: flex; flex-direction: column; gap: 4px; line-height: 1.45; }
+  .spec .card li b { color: var(--ink); font-weight: 500; }
+
+  .pulse-start::before { animation-delay: 1s; }
+
+  /* mobile: the rail and the drawer fold away, the two directions stack, the brief stacks */
+  @media (max-width: 760px) {
+    .rail, .drawer { display: none; }
+    .topbar { padding: 10px 12px; gap: 8px; }
+    .topbar .title .serif { font-size: 19px; }
+    .topbar .lbl, .tokchip, .topbar .btn.details, .topbar .btn.branch { display: none; }
+    .topbar .menu { display: inline-grid; }
+    .scroll .column { padding: 14px 14px 10px; gap: 14px; }
+    .notice { padding: 14px 14px 12px 16px; gap: 10px; }
+    .notice .head { flex-wrap: wrap; }
+    .notice .head .elapsed { margin-left: 0; width: 100%; order: 3; padding-top: 0; }
+    .notice .head .ask { font-size: 14.5px; }
+    .notice .head .ask .serif { font-size: 18px; }
+    .directions { grid-template-columns: 1fr; gap: 8px; }
+    .brief { grid-template-columns: 1fr; gap: 8px; }
+    .notice .actions .kbd { display: none; }
+    .pass { order: -1; width: 100%; }
+    .msg .meta time { display: none; }
+    .msg.team .text, .msg.human .text { max-width: 100%; }
+    .step .r { display: none; }
+    .composer-wrap { padding: 4px 12px 12px; }
+    .composer { padding: 10px 12px 10px 14px; }
+    .composer .bar .mode, .composer .bar .as { display: none; }
+    .composer .input { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .board { padding: 28px 16px 60px; }
+    .board .grid, .spec { grid-template-columns: 1fr; }
+    .toast { width: 100%; flex-wrap: wrap; }
+    .divider .mono { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ===== rail ===== -->
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New session
+    </button>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Holds <i>proration</i> for a pick · rendering the tax lines</div>
+      <div class="foot"><span class="with"><span class="avatar driver">AN</span> with Bo, Cy, Dee</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits at the <i>release gate</i> · deploy to production</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana, Cy</span><span class="tok">18.6k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Inbox <span class="n live">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>Approvals <span class="n live">1</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11h18M3 6h18M3 16h18"/></svg>Groups <span class="n">4</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Overview</a>
+
+    <div class="me">
+      <span class="avatar">BO</span>
+      <span class="meta"><span>Bo</span><span class="role">Payments · owner</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+    </div>
+  </nav>
+
+  <!-- ===== main: the session as Bo sees it (owner, not driving) ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn icon ghost menu" type="button" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title">
+        <span class="serif">Billing page</span>
+        <span class="status running pulse-start">Running</span>
+        <span class="lbl"><span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span></span> 4 here · <span class="drv">Ana has the baton</span></span>
+      </div>
+      <div class="right">
+        <span class="tokchip">12.4k of 30k<span class="budget"><i style="width:41%"></i></span></span>
+        <button class="btn sm branch" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3v12a3 3 0 0 0 3 3h9"/><circle cx="6" cy="3" r="2"/><circle cx="18" cy="18" r="2"/><path d="M18 3v9"/></svg>main · billing-proration</button>
+        <button class="btn sm details on" type="button">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="column">
+
+        <div class="msg human">
+          <div class="meta"><span class="who">Ana</span><span class="faint">driving</span><time>11:52</time></div>
+          <div class="text">Add proration to the Billing page: a mid-cycle plan change shows the credit and the new charge, and the tax lines follow the same numbers the invoice PDF prints.</div>
+        </div>
+
+        <div class="msg agent">
+          <div class="meta"><span class="who"><span class="avatar agent">B</span>Billing page</span><span class="faint">agent · step 3 of 4</span><time>12:00</time></div>
+          <div class="text">
+            <p>Two of you steered <code>proration</code> in different directions within a minute. I am holding that scope and carrying on with the tax lines, which do not depend on the pick.</p>
+          </div>
+          <div class="steps">
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono">read <b>billing/proration.ts</b> and the three plan-change fixtures</span><span class="r">1.1k</span></div>
+            <div class="step held"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span class="mono">proration · <b>held for a pick</b> · two directions</span><span class="r">2 min</span></div>
+            <div class="step live"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><span class="mono">rendering <b>tax lines</b> into <b>BillingPage.tsx</b></span><span class="r">running</span></div>
+          </div>
+        </div>
+
+        <!-- ---- the contention notice: two directions, one pick ---- -->
+        <section class="notice contention rise" aria-label="Contention: two directions for proration">
+          <div class="head">
+            <div class="ask">
+              <span class="serif">Two directions for</span> <code>proration</code>.
+              <div class="rule">The agent holds this scope until <b>Ana picks one</b> · you own this session, so you can too · policy <span class="tag warn">block</span></div>
+            </div>
+            <span class="elapsed">held 2 min</span>
+          </div>
+          <div class="directions">
+            <div class="direction">
+              <span class="n">1</span>
+              <div class="who"><span class="avatar">CY</span><b>Cy</b><span class="role">contributor · 11:58</span></div>
+              <div class="say">Prorate per line and round each tax line to the cent, the way the invoice PDF already does.</div>
+              <div class="scope"><span class="tag">steer</span>proration · billing/proration.ts</div>
+              <div class="do"><button class="btn primary sm" type="button">Pick</button><span class="fit good"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>matches the PDF</span></div>
+            </div>
+            <div class="direction">
+              <span class="n">2</span>
+              <div class="who"><span class="avatar driver">AN</span><b>Ana</b><span class="role">driving · 11:59</span></div>
+              <div class="say">Prorate the total and round once at the end; the tax lines take their share of the rounded figure.</div>
+              <div class="scope"><span class="tag">steer</span>proration · billing/proration.ts</div>
+              <div class="do"><button class="btn primary sm" type="button">Pick</button><span class="fit off"><svg class="ic" viewBox="0 0 24 24"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>moves 3 fixtures by a cent</span></div>
+            </div>
+          </div>
+          <div class="agentnote"><span class="avatar agent">B</span><span><b>What I see:</b> the invoice PDF rounds per line, so Cy's keeps the page and the PDF on the same cent. Ana's is one step shorter and changes three fixture totals by a cent. Either builds; I need one.</span></div>
+          <div class="actions">
+            <span class="hint" style="margin-left:0">The pick applies at the next safe point; the other direction is withdrawn and its author is told.</span>
+            <span class="kbd"><kbd>1</kbd> <kbd>2</kbd> pick</span>
+          </div>
+        </section>
+
+        <!-- ---- the handoff notice: the baton is offered to you ---- -->
+        <section class="notice baton rise" aria-label="Handoff: Ana offers you the baton">
+          <div class="head">
+            <div class="pass waiting" aria-hidden="true"><span class="avatar driver">AN</span><span class="lane"><span class="stick"></span></span><span class="avatar">BO</span></div>
+            <div class="ask">
+              <span class="serif">Ana offers you the baton.</span>
+              <div class="rule">She keeps driving until you accept · <q>you wrote proration last quarter; take it from the pick, I am in the tax review at 12:15</q></div>
+            </div>
+            <span class="elapsed live">offered 40 s ago</span>
+          </div>
+          <div class="brief">
+            <div>
+              <h4>Situation</h4>
+              <p>Step 3 of 4. <code>proration</code> is held by a contention; the tax lines are rendering. 12.4k of 30k tokens; <code>billing-proration</code> is 2 commits ahead.</p>
+            </div>
+            <div>
+              <h4>Open items <span class="faint">3</span></h4>
+              <ul>
+                <li class="hot"><svg class="ic" viewBox="0 0 24 24"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg><span>Pick a direction for proration (Cy's or Ana's)</span></li>
+                <li><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><span>Step 4: totals match the invoice PDF</span></li>
+                <li><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Dee asked for the EU fixture in #billing</span></li>
+              </ul>
+            </div>
+            <div>
+              <h4>Since you were here <span class="faint">11:40</span></h4>
+              <ul>
+                <li class="ok"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Cy joined<span class="t">11:55</span></span></li>
+                <li class="ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span>Three fixtures written<span class="t">+212 −14</span></span></li>
+                <li class="hot"><svg class="ic" viewBox="0 0 24 24"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg><span>Contention opened on proration<span class="t">11:59</span></span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn primary sm" type="button">Accept the baton</button>
+            <button class="btn sm" type="button">Decline</button>
+            <span class="hint">Accepting makes you the driver; Ana stays as a contributor.</span>
+            <span class="kbd"><kbd>Y</kbd> accept <kbd>N</kbd> decline</span>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="input">Steer the agent · "prorate per line, match the PDF"</div>
+        <div class="bar">
+          <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+          <span class="mode">Directive <span class="mono">steer</span></span>
+          <span class="as">as <i>Bo</i>, owner · <i>Ana</i> is driving</span>
+          <span class="right">
+            <button class="btn ghost icon" type="button" aria-label="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="m21 12-8.5 8.5a5 5 0 0 1-7-7L14 5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 8"/></svg></button>
+            <button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== details drawer: the team, the baton, the contentions ===== -->
+  <aside class="drawer" aria-label="Details">
+    <div class="head"><h2>Team</h2><button class="btn ghost icon sm" type="button" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="tabs"><span>Intent</span><span class="on">Team</span><span>Branches</span><span>Usage</span></div>
+
+    <div>
+      <h3>Here now</h3>
+      <div class="people" style="margin-top:8px">
+        <div class="person"><span class="avatar driver">AN</span><span class="name"><b>Ana</b><span class="st drv">driving · since 11:31</span></span></div>
+        <div class="person offered"><span class="avatar">BO</span><span class="name"><b>Bo <span class="faint">you</span></b><span class="st">owner · offered the baton</span></span><span class="tag pulse">40 s</span></div>
+        <div class="person"><span class="avatar">CY</span><span class="name"><b>Cy</b><span class="st">contributor</span></span></div>
+        <div class="person"><span class="avatar">DE</span><span class="name"><b>Dee</b><span class="st">viewer</span></span></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>The baton</h3>
+      <div class="handoffs" style="margin-top:8px">
+        <div class="r"><span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span></span><span><b>Ana</b> offers <b>Bo</b> · waiting</span><span class="mono">12:03</span></div>
+        <div class="r"><span class="stack"><span class="avatar">BO</span><span class="avatar">AN</span></span><span><b>Bo</b> handed to <b>Ana</b> · "tax review"</span><span class="mono">11:31</span></div>
+        <div class="r"><span class="stack"><span class="avatar">BO</span></span><span><b>Bo</b> opened the session · drove</span><span class="mono">11:04</span></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Contentions</h3>
+      <div class="grow" style="margin-top:8px">
+        <div class="g hold"><span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><div><div class="t"><b>proration</b> · Cy and Ana</div><div class="s">Held 2 min · Ana picks, or you as owner</div></div></div>
+        <div class="g ok"><span class="ico"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></svg></span><div><div class="t"><b>tax rounding</b> · Bo and Dee</div><div class="s">11:20 · Ana picked Bo's · Dee's withdrawn</div></div></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Contention policy</h3>
+      <div class="policy" style="margin-top:6px">
+        <div class="row now"><span class="radio"></span><span><span class="mono">block</span><span class="s">The agent holds the scope until the driver or an owner picks</span></span></div>
+        <div class="row"><span class="radio"></span><span><span class="mono">latest-wins</span><span class="s">The most recent directive wins; both are told</span></span></div>
+        <div class="row"><span class="radio"></span><span><span class="mono">driver-wins</span><span class="s">The driver's directive wins; the other is withdrawn</span></span></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ===== states board: every state of the two notices ===== -->
+<section class="board" aria-label="States">
+  <header><h2>Contention and the baton, every state</h2><p>The same two notices as the other seats see them, and what each turns into when it closes. A contention closes into a divider that says who picked what; a handoff closes into a divider that says who has the baton.</p></header>
+  <div class="grid">
+
+    <div class="state">
+      <div class="lbl"><b>The driver's seat</b> Ana sees her own direction ringed, can withdraw it, and picks with 1 or 2<span class="mono">contention · driver</span></div>
+      <section class="notice contention">
+        <div class="head">
+          <div class="ask"><span class="serif">Two directions for</span> <code>proration</code>.<div class="rule">The agent holds this scope until <b>you pick one</b> · policy <span class="tag warn">block</span></div></div>
+          <span class="elapsed">held 2 min</span>
+        </div>
+        <div class="directions">
+          <div class="direction">
+            <span class="n">1</span>
+            <div class="who"><span class="avatar">CY</span><b>Cy</b><span class="role">contributor · 11:58</span></div>
+            <div class="say">Prorate per line and round each tax line to the cent, the way the invoice PDF already does.</div>
+            <div class="do"><button class="btn primary sm" type="button">Pick</button><span class="fit good"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>matches the PDF</span></div>
+          </div>
+          <div class="direction mine">
+            <span class="n">2 · yours</span>
+            <div class="who"><span class="avatar driver">AN</span><b>Ana</b><span class="role">you · driving · 11:59</span></div>
+            <div class="say">Prorate the total and round once at the end; the tax lines take their share of the rounded figure.</div>
+            <div class="do"><button class="btn primary sm" type="button">Pick</button><button class="btn ghost sm" type="button">Withdraw</button><span class="fit off"><svg class="ic" viewBox="0 0 24 24"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>moves 3 fixtures</span></div>
+          </div>
+        </div>
+        <div class="actions"><span class="hint" style="margin-left:0">Withdrawing yours resolves it for Cy's without a pick.</span><span class="kbd"><kbd>1</kbd> <kbd>2</kbd> pick <kbd>W</kbd> withdraw</span></div>
+      </section>
+    </div>
+
+    <div class="state">
+      <div class="lbl"><b>A contributor's seat</b> Dee cannot pick; she sees who can, and that a third steer would join the contention<span class="mono">contention · viewer</span></div>
+      <section class="notice contention">
+        <div class="head">
+          <div class="ask"><span class="serif">Two directions for</span> <code>proration</code>.<div class="rule">The agent holds this scope until <b>Ana picks one</b> · Bo can pick too as owner</div></div>
+          <span class="elapsed">held 2 min</span>
+        </div>
+        <div class="directions">
+          <div class="direction">
+            <span class="n">1</span>
+            <div class="who"><span class="avatar">CY</span><b>Cy</b><span class="role">contributor · 11:58</span></div>
+            <div class="say">Prorate per line and round each tax line to the cent, the way the invoice PDF already does.</div>
+            <div class="do"><span class="fit good" style="margin-left:0"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>matches the PDF</span></div>
+          </div>
+          <div class="direction">
+            <span class="n">2</span>
+            <div class="who"><span class="avatar driver">AN</span><b>Ana</b><span class="role">driving · 11:59</span></div>
+            <div class="say">Prorate the total and round once at the end; the tax lines take their share of the rounded figure.</div>
+            <div class="do"><span class="fit off" style="margin-left:0"><svg class="ic" viewBox="0 0 24 24"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>moves 3 fixtures by a cent</span></div>
+          </div>
+        </div>
+        <div class="actions"><span class="hint" style="margin-left:0">You can say so in Team chat. A steer on <code>proration</code> from you would join this contention as a third direction.</span></div>
+      </section>
+    </div>
+
+    <div class="state">
+      <div class="lbl"><b>Picked</b> the card turns green for a moment, the loser is struck, then it folds into a divider and the held step resumes<span class="mono">contention · resolved</span></div>
+      <section class="notice contention resolved">
+        <div class="head">
+          <div class="ask"><span class="serif">Picked.</span> Bo chose Cy's direction for <code>proration</code>.<div class="rule">Ana's is withdrawn and she has been told · the agent resumes at the next safe point</div></div>
+          <span class="elapsed live" style="--c:var(--ok)">just now</span>
+        </div>
+        <div class="directions">
+          <div class="direction won"><span class="n">picked</span><div class="who"><span class="avatar">CY</span><b>Cy</b></div><div class="say">Prorate per line and round each tax line to the cent.</div></div>
+          <div class="direction lost"><span class="n">withdrawn</span><div class="who"><span class="avatar">AN</span><b>Ana</b></div><div class="say">Prorate the total and round once at the end.</div></div>
+        </div>
+      </section>
+      <div class="divider"><svg class="ic ok" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="by">Bo picked Cy's direction for proration</span><span class="mono">12:05</span></div>
+      <div class="steps"><div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono">proration · <b>resumed</b> · per line, rounded to the cent</span><span class="r on">applied</span></div></div>
+    </div>
+
+    <div class="state">
+      <div class="lbl"><b>Offering</b> the driver hands off from the Team panel; one confirm says what changes and what does not<span class="mono">handoff · offer</span></div>
+      <div class="card teamrow">
+        <div class="person"><span class="avatar driver">AN</span><span class="name"><b>Ana <span class="faint">you</span></b><span class="st drv">driving</span></span></div>
+        <div class="person"><span class="avatar">BO</span><span class="name"><b>Bo</b><span class="st">owner</span></span>
+          <span class="popover"><button class="btn sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M5 19 19 5"/><circle cx="18.5" cy="5.5" r="1.6" fill="currentColor" stroke="none"/></svg>Hand off</button>
+            <div class="card"><span class="serif">Offer Bo the baton?</span><p>Bo gets a brief of the session since he was last here. You keep driving until he accepts, and stay as a contributor after.</p><div class="actions"><button class="btn primary sm" type="button">Offer</button><button class="btn ghost sm" type="button">Cancel</button></div></div>
+          </span>
+        </div>
+        <div class="person" style="margin-top:150px"><span class="avatar">CY</span><span class="name"><b>Cy</b><span class="st">contributor</span></span><button class="btn sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M5 19 19 5"/><circle cx="18.5" cy="5.5" r="1.6" fill="currentColor" stroke="none"/></svg>Hand off</button></div>
+        <div class="person"><span class="avatar">DE</span><span class="name"><b>Dee</b><span class="st">viewer</span></span><button class="btn sm disabled" type="button" title="A viewer cannot drive"><svg class="ic" viewBox="0 0 24 24"><path d="M5 19 19 5"/><circle cx="18.5" cy="5.5" r="1.6" fill="currentColor" stroke="none"/></svg>Hand off</button></div>
+      </div>
+    </div>
+
+    <div class="state">
+      <div class="lbl"><b>Offered</b> what Ana sees while Bo decides: the baton nudges toward him, she still drives, she can take it back<span class="mono">handoff · pending</span></div>
+      <section class="notice baton">
+        <div class="head">
+          <div class="pass waiting" aria-hidden="true"><span class="avatar driver">AN</span><span class="lane"><span class="stick"></span></span><span class="avatar">BO</span></div>
+          <div class="ask"><span class="serif">You offered Bo the baton.</span><div class="rule">You keep driving until he accepts · Bo is here and has seen it</div></div>
+          <span class="elapsed live">waiting 40 s</span>
+        </div>
+        <div class="actions"><button class="btn sm" type="button">Withdraw the offer</button><span class="hint">Bo also gets it in his inbox and on his phone.</span></div>
+      </section>
+      <div class="toast rise" role="status">
+        <svg class="mark joining" viewBox="0 0 96 96" aria-hidden="true">
+          <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+          <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+          <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+          <circle class="dot" cx="48" cy="48" r="7"/>
+        </svg>
+        <span class="w"><b>You are offered the baton</b><span>Ana wants to hand off Billing page</span></span>
+        <button class="btn primary sm" type="button">Accept</button>
+        <button class="btn ghost sm" type="button">Later</button>
+      </div>
+    </div>
+
+    <div class="state">
+      <div class="lbl"><b>Accepted, or declined</b> the baton lands, the rings move, the card folds into a divider everyone sees<span class="mono">handoff · closed</span></div>
+      <section class="notice baton">
+        <div class="head">
+          <div class="pass done" aria-hidden="true"><span class="avatar">AN</span><span class="lane"><span class="stick"></span></span><span class="avatar driver ripple">BO</span></div>
+          <div class="ask"><span class="serif">Bo has the baton.</span><div class="rule">Ana stays as a contributor · the full brief is in Details, under Intent</div></div>
+          <span class="elapsed live" style="color:var(--ok)">just now</span>
+        </div>
+      </section>
+      <div class="divider"><svg class="ic" viewBox="0 0 24 24"><path d="M5 19 19 5"/><circle cx="18.5" cy="5.5" r="1.6" fill="currentColor" stroke="none"/></svg><span class="by">Bo has the baton</span><span class="mono">12:04 · from Ana</span></div>
+      <div class="msg human" style="margin-top:4px">
+        <div class="meta"><span class="who">Bo</span><span class="faint">driving</span><time>12:05</time></div>
+        <div class="text">Prorate per line, match the PDF. Picking Cy's.</div>
+      </div>
+      <div class="divider muted" style="margin-top:6px"><svg class="ic" viewBox="0 0 24 24" style="color:var(--ink-3)"><path d="M6 6l12 12M18 6 6 18"/></svg><span class="by">Bo declined the baton · Ana keeps driving</span><span class="mono">the other outcome</span></div>
+    </div>
+
+  </div>
+
+  <header style="margin-top:12px"><h2>Rules the two notices share</h2></header>
+  <div class="spec">
+    <div class="card"><h3>The stripe says what kind</h3><ul>
+      <li><b>Amber</b> on a contention: something is held. <b>Apricot</b> on a handoff: something live is moving between people. <b>Green</b> for a moment when either closes, then it folds into a divider.</li>
+      <li>Both keep the same head: a serif sentence in the product's voice, a plain rule under it, elapsed time on the right.</li>
+      <li>Neither notice blocks the stream. The agent keeps working around a contention; the driver keeps driving through an offer.</li>
+    </ul></div>
+    <div class="card"><h3>Who can act is written, not hidden</h3><ul>
+      <li>The rule names the picker ("until Ana picks one") and says when you can too ("you own this session").</li>
+      <li>Buttons appear only on the seats that can press them; the others get the sentence and a way to speak (Team chat, a third steer).</li>
+      <li>Your own direction is ringed in apricot and carries Withdraw; withdrawing is a quiet resolve.</li>
+    </ul></div>
+    <div class="card"><h3>The brief is computed, not written</h3><ul>
+      <li>Situation, open items and "since you were here" come from the ledger: step, held scopes, tokens, branch, who joined, what landed.</li>
+      <li>The offer shows a three-column preview; accepting moves the full brief into Details under Intent.</li>
+      <li>Keyboard: <kbd>1</kbd>/<kbd>2</kbd> pick, <kbd>W</kbd> withdraw, <kbd>Y</kbd>/<kbd>N</kbd> accept or decline. Calm mode stops the nudge and the ripple.</li>
+    </ul></div>
+  </div>
+</section>
+</body>
+</html>

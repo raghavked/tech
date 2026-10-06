@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Team panel and Details drawer</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- two desktop screens stacked (Team open, then Details open), then a strip of states ---- */
+  body { overflow-x: hidden; }
+  .screen { height: 900px; overflow: hidden; position: relative; }
+  .screen + .screen { border-top: 1px solid var(--line); }
+  .shell { height: 100%; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* rail (shared shell, condensed) */
+  .rail { overflow: hidden; }
+  .rail .brand { padding-bottom: 10px; } .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; } .rail .section { padding: 12px 10px 4px; } .rail .crew { padding-top: 8px; } .rail .item { padding: 7px 12px; }
+  .rail .search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13px; margin-bottom: 4px; }
+  .rail .search kbd { margin-left: auto; font: 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 1px 5px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 4px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .item svg { opacity: .85; } .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; } .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+
+  /* topbar */
+  .topbar .title .serif { font-size: 21px; } .topbar .title .status, .topbar .title .pill { font-family: var(--font); }
+  .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font: 12.5px var(--mono); color: var(--ink-2); min-width: 92px; } .tokchip .budget { height: 3px; }
+  .topbar .btn { white-space: nowrap; } .topbar .btn.sm svg { width: 14px; height: 14px; }
+  .topbar .btn.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+  .topbar .btn .n { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .topbar .menu { display: none; }
+
+  /* the stream behind the drawer: a few real moments, quiet */
+  .column { padding-top: 22px; padding-bottom: 18px; gap: 20px; }
+  .msg .meta .scope { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+  .msg .meta time { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .msg.human .text .goal-lbl { font-family: var(--serif); font-style: italic; color: var(--accent); margin-right: 6px; }
+  .msg.agent .text p { margin: 0 0 8px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 12px 16px; align-self: flex-start; max-width: 85%; }
+  .msg .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; }
+  .step { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 5px 10px; border-radius: 10px; }
+  .step svg { width: 15px; height: 15px; color: var(--ink-3); } .step.ok svg { color: var(--ok); }
+  .step .mono { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .step .mono b { font-weight: 500; color: var(--ink); }
+  .step .r { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .step.live { background: var(--apricot-soft); } .step.live .r { color: var(--accent); }
+  .step .livedot { width: 9px; height: 9px; margin: 0 auto; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.6s ease-in-out 1s infinite; }
+  .divider .joined { font-family: var(--serif); font-style: italic; font-size: 13.5px; color: var(--accent); }
+  .composer .input { color: var(--ink-3); }
+  .composer .bar .mode { display: inline-flex; align-items: center; gap: 6px; font: 12.5px var(--font); color: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-full); padding: 4px 11px; }
+  .composer .bar .mode .mono { font-size: 12px; color: var(--ink); }
+  .composer .send svg { width: 16px; height: 16px; }
+  .composer-wrap { padding-top: 6px; }
+
+  /* ---- the drawer ---- */
+  .drawer { width: 340px; padding: 0; gap: 0; position: relative; }
+  .topbar .btn.share .lbl { display: none; } .topbar .btn.share { width: 32px; padding: 0; justify-content: center; }
+  .topbar .title > :first-child { overflow: visible; }
+  .drawer .head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 20px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); z-index: 2; }
+  .drawer .head .seg { margin-right: auto; } .drawer .head .seg button { padding: 4px 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .drawer .head .seg .n { font-family: var(--mono); font-size: 11px; color: var(--ink-3); } .drawer .head .seg .on .n { color: var(--ink-2); }
+  .drawer .head .seg .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 2px var(--apricot-soft); }
+  .drawer .sub { display: flex; align-items: center; gap: 8px; padding: 10px 20px 0; font-size: 13px; color: var(--ink-2); }
+  .drawer .sub .serif { font-size: 15px; color: var(--ink); } .drawer .sub .sep { color: var(--ink-3); }
+  .drawer .group { padding: 12px 20px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 9px; }
+  .drawer .group:last-child { border-bottom: 0; }
+  .drawer .group > h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 1px; }
+  .drawer .group > h3 .sum { margin-left: auto; font: 12px var(--font); letter-spacing: 0; text-transform: none; color: var(--ink-3); font-weight: 400; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .drawer .group > h3 .sum .danger { color: var(--danger); font-weight: 500; }
+  .drawer .group > h3 svg.chev { width: 13px; height: 13px; color: var(--ink-3); }
+  .drawer .group.closed > h3 { margin: 0; } .drawer .group.closed > :not(h3) { display: none; }
+  .drawer p { margin: 0; } .drawer .row { display: flex; align-items: center; gap: 8px; min-width: 0; } .drawer .grow { flex: 1; min-width: 0; }
+  .drawer .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drawer .btn.sm { min-height: 28px; padding: 0 10px; font-size: 12.5px; } .drawer .btn.icon.sm { width: 28px; padding: 0; }
+  .drawer .btn.ghost.sm { color: var(--ink-2); } .drawer .btn.ghost.sm:hover { background: var(--surface-2); box-shadow: none; }
+  .drawer .input { height: 32px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); padding: 0 11px; font: 13.5px var(--font); color: var(--ink-3); display: flex; align-items: center; }
+  .drawer .input.mono { font: 12.5px var(--mono); }
+
+  /* people rows */
+  .person { gap: 10px; padding: 2px 0; }
+  .person .avatar { width: 30px; height: 30px; font-size: 11px; border-color: var(--surface); position: relative; }
+  .person .avatar::after { content: ""; position: absolute; right: -3px; bottom: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); border: 2px solid var(--surface); }
+  .person.off .avatar::after { background: var(--ink-3); } .person.off { color: var(--ink-2); } .person.off .avatar { opacity: .7; }
+  .person .who { display: flex; flex-direction: column; line-height: 1.25; flex: 1; min-width: 0; }
+  .person .who .name { font-family: var(--serif); font-size: 16px; color: var(--ink); } .person.off .who .name { color: var(--ink-2); }
+  .person .who .name .you { font-family: var(--font); font-size: 12px; color: var(--ink-3); margin-left: 4px; }
+  .person .who .role { font-size: 12px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 5px; }
+  .person .who .role .driving { color: var(--accent); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+  .person .who .role .driving svg { width: 11px; height: 11px; }
+  .person .who .role .writing { font-style: italic; color: var(--apricot-deep); }
+  .person .select { height: 28px; border: 1px solid var(--line); border-radius: var(--radius-full); padding: 0 8px 0 10px; font: 12.5px var(--font); color: var(--ink); background: var(--surface); display: inline-flex; align-items: center; gap: 4px; }
+  .person .select svg { width: 12px; height: 12px; color: var(--ink-3); }
+  .teamline { font-size: 12.5px; color: var(--ink-3); display: flex; align-items: center; gap: 6px; } .teamline .btn { margin-left: auto; white-space: nowrap; flex: none; }
+  .offer { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border-radius: 12px; background: var(--apricot-soft); font-size: 13px; }
+  .offer .grow em { font-family: var(--serif); font-style: italic; font-size: 15px; }
+  .offer .btn.primary.sm { min-height: 26px; }
+
+  /* crewmate card: a navy tile inside the cream drawer, the same shape as the rail card */
+  .mate { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--radius); background: var(--rail); color: var(--rail-fg); text-decoration: none; box-shadow: inset 0 0 0 1px var(--rail-line); }
+  .mate:hover { text-decoration: none; background: var(--rail-2); }
+  .mate .mhead { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 500; }
+  .mate .mhead .dot { width: 8px; height: 8px; border-radius: 50%; background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,0.25); flex: none; }
+  .mate .mhead .t { flex: 1; font-family: var(--serif); font-weight: 400; font-size: 16px; }
+  .mate .mhead svg { width: 14px; height: 14px; color: var(--rail-muted); }
+  .mate .doing { font-size: 13px; color: var(--rail-muted); line-height: 1.4; } .mate .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+  .mate .foot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--rail-muted); }
+  .mate .foot .avatar { width: 18px; height: 18px; font-size: 9px; border: 1.5px solid var(--rail); }
+  .mate .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .claims { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+  .claims .c { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+  .claims .c .mono { font-size: 12px; color: var(--ink); } .claims .c .by { color: var(--ink-3); font-size: 12px; }
+  .crewform { display: flex; gap: 8px; } .crewform .input { flex: 1; }
+
+  /* chat: lines, then the input pinned under them */
+  .chat { gap: 8px; }
+  .chat .line { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: baseline; font-size: 14px; }
+  .chat .line .who { color: var(--ink); } .chat .line.mine .who { color: var(--accent); }
+  .chat .line .what { color: var(--ink); } .chat .line time { grid-column: 2; font-size: 11.5px; color: var(--ink-3); margin-top: -4px; }
+  .chat .joined { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-style: italic; font-size: 13.5px; color: var(--accent); }
+  .chat .joined::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .chat .typing { font-size: 12.5px; color: var(--ink-3); font-style: italic; display: flex; align-items: center; gap: 6px; }
+  .chat .typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--apricot-deep); animation: pulse 1.2s ease-in-out infinite; } .chat .typing i + i { animation-delay: .2s; } .chat .typing i + i + i { animation-delay: .4s; }
+  .chatfoot { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 2px; margin-top: -2px; display: flex; flex-direction: column; gap: 8px; }
+  .say { display: flex; gap: 8px; align-items: center; } .say .input { flex: 1; }
+  .say .input.on { color: var(--ink); box-shadow: var(--team-glow); background: var(--surface); } .say .input .caret { width: 1px; height: 16px; background: var(--ink); margin-left: 1px; }
+  .say .send { width: 32px; height: 32px; } .say .send svg { width: 14px; height: 14px; }
+  .never { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 6px; } .never svg { width: 13px; height: 13px; }
+
+  /* intent */
+  .intent { display: flex; flex-direction: column; gap: 5px; font-size: 13.5px; }
+  .intent .line { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: baseline; }
+  .intent .k { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; line-height: 1.5; }
+  .intent .k.goal { background: var(--apricot-soft); color: var(--accent); font-family: var(--serif); font-style: italic; font-size: 14px; padding: 0 7px; }
+  .intent .by { color: var(--ink-3); font-size: 12px; white-space: nowrap; } .intent .goal-t { font-size: 14.5px; }
+  .held { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--warn); } .held svg { width: 13px; height: 13px; }
+  .control { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .control .status { font-size: 12.5px; } .control .btn { margin-left: auto; }
+  .control .turn { font-family: var(--mono); color: var(--ink-3); }
+
+  /* replay */
+  .replay { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-3); }
+  .replay .track { flex: 1; height: 4px; border-radius: 2px; background: var(--surface-3); position: relative; }
+  .replay .track i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; border-radius: 2px; background: var(--gradient-live); }
+  .replay .track b { position: absolute; right: -2px; top: -5px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 2px solid var(--apricot-deep); box-shadow: var(--shadow-soft); }
+  .replay .track s { position: absolute; top: -2px; width: 2px; height: 8px; background: var(--ink-3); border-radius: 1px; opacity: .6; }
+  .replay .mono { font-size: 11.5px; }
+
+  /* branches */
+  .branch { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; font-size: 13.5px; }
+  .branch .name { font-family: var(--mono); font-size: 13px; color: var(--ink); display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; }
+  .branch .name svg { width: 13px; height: 13px; color: var(--ink-3); flex: none; }
+  .branch.here .name { font-family: var(--serif); font-size: 16px; } .branch.here .name .here { font: 12px var(--font); color: var(--ink-3); }
+  .branch .acts { display: inline-flex; gap: 2px; }
+  .branch .ahead { font: 11px var(--mono); color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 5px; }
+  .files { display: flex; flex-direction: column; gap: 3px; }
+  .files .f { display: flex; align-items: center; gap: 6px; font: 12.5px var(--mono); color: var(--ink-2); min-width: 0; }
+  .files .f span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .files .f .mark-c { flex: none; font-family: var(--font); font-size: 11.5px; font-weight: 600; color: var(--danger); background: var(--danger-soft); border-radius: 6px; padding: 0 6px; margin-left: auto; }
+  .files .f .mark-m { font-family: var(--font); font-size: 11.5px; color: var(--ink-3); margin-left: auto; }
+  .files .f.hot { color: var(--ink); }
+  .fileline { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); } .fileline .danger { color: var(--danger); } .fileline .btn { margin-left: auto; }
+  .fork { display: flex; gap: 8px; } .fork .input { flex: 1; }
+
+  /* usage */
+  .usage .big { display: flex; align-items: baseline; gap: 8px; } .usage .big b { font-family: var(--mono); font-weight: 500; font-size: 20px; color: var(--ink); letter-spacing: -0.01em; }
+  .usage .big span { font-size: 12.5px; color: var(--ink-3); } .usage .big .pct { margin-left: auto; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
+  .usage .budget { height: 8px; }
+  .usage .split { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 11.5px; color: var(--ink-3); }
+  .usage .split b { display: block; font: 500 12.5px var(--mono); color: var(--ink-2); }
+  .turns { display: flex; flex-direction: column; gap: 2px; }
+  .turns .t { display: grid; grid-template-columns: 56px 1fr auto; gap: 10px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+  .turns .t .bar { height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; } .turns .t .bar i { display: block; height: 100%; background: var(--apricot-deep); border-radius: inherit; }
+  .turns .t .mono { font-size: 12px; } .turns .t.now { color: var(--ink); } .turns .t.now .bar i { background: var(--gradient-live); }
+
+  /* memory, brief */
+  .memlist { display: flex; flex-direction: column; gap: 6px; }
+  .memline { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: baseline; font-size: 13.5px; }
+  .memline .mono { font-size: 11.5px; color: var(--ink-3); margin-right: 4px; } .memline .by { font-size: 12px; color: var(--ink-3); }
+  .memline.conflict { background: var(--warn-soft); border-radius: 10px; padding: 6px 9px; margin: 0 -9px; }
+  .memline.conflict .cf { font-size: 11.5px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--warn); margin-right: 6px; }
+  .brief { margin: 0; white-space: pre-wrap; font: 13.5px/1.55 var(--font); color: var(--ink); background: var(--surface-2); border-radius: 12px; padding: 11px 13px; }
+  .brief .since { font-family: var(--serif); font-style: italic; color: var(--accent); }
+
+  /* ---- states strip ---- */
+  .board { padding: 40px 48px 56px; display: flex; flex-direction: column; gap: 18px; }
+  .board .lead { display: flex; align-items: baseline; gap: 14px; } .board .lead h2 { font-size: 28px; } .board .lead .muted { font-size: 14px; }
+  .states { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; align-items: start; }
+  .state { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; font-size: 14px; }
+  .state .cap { padding: 10px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .state .cap .serif { font-size: 15px; color: var(--ink); } .state .cap .pill { margin-left: auto; }
+  .state .group { padding: 14px 16px; display: flex; flex-direction: column; gap: 9px; }
+  .state .group h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; }
+  .state .group h3 .sum { margin-left: auto; font: 12px var(--font); letter-spacing: 0; text-transform: none; color: var(--ink-3); font-weight: 400; }
+  .state p { margin: 0; } .state .btn.sm { min-height: 28px; padding: 0 10px; font-size: 12.5px; } .state .btn.icon.sm { width: 28px; padding: 0; }
+  .state .input { height: 32px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); padding: 0 11px; font: 13.5px var(--font); color: var(--ink-3); display: flex; align-items: center; flex: 1; }
+  .state .row { display: flex; align-items: center; gap: 8px; } .state .grow { flex: 1; min-width: 0; }
+  .empty { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 14px; border-radius: 12px; border: 1px dashed var(--line); color: var(--ink-2); font-size: 13.5px; }
+  .empty .mark { width: 36px; height: 36px; }
+
+  /* ---- mobile: each screen becomes a phone, the drawer a bottom sheet ---- */
+  .phone-bar { display: none; }
+  @media (max-width: 760px) {
+    .screen { height: 844px; }
+    .rail, .composer-wrap, .board { display: none; }
+    .topbar { padding: 10px 12px; gap: 8px; } .topbar .title .serif { font-size: 19px; }
+    .topbar .lbl, .topbar .tokchip, .topbar .title .pill, .topbar .title .status, .topbar .btn.details, .topbar .btn.share { display: none; }
+    .topbar .title > :first-child { overflow: hidden; }
+    .topbar .btn.sm { padding: 0 9px; } .topbar .menu { display: inline-grid; }
+    .column { padding: 14px 16px 12px; gap: 18px; } .msg.human .text, .msg.team .text { max-width: 100%; } .msg .meta time { display: none; }
+    .shell { position: relative; }
+    .main::after { content: ""; position: absolute; inset: 0; background: rgba(42,50,68,0.28); pointer-events: none; }
+    .drawer { position: absolute; left: 0; right: 0; bottom: 0; top: 96px; width: auto; border-left: 0; border-top-left-radius: 22px; border-top-right-radius: 22px; box-shadow: var(--shadow-pop); z-index: 3; }
+    .drawer .head { padding-top: 8px; border-top-left-radius: 22px; border-top-right-radius: 22px; }
+    .drawer .head::before { content: ""; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--surface-3); }
+    .drawer .head { padding-top: 18px; }
+    .drawer .group { padding: 14px 16px; }
+        .drawer .group:last-child { padding-bottom: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- =============================== screen 1: the Team panel open =============================== -->
+<div class="screen" id="team">
+<div class="shell">
+
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span class="wordmark">Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search or jump to<kbd>⌘K</kbd></div>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Writing <i>proration.ts</i> · step 3 of 4</div>
+      <div class="foot"><span class="with"><span class="avatar">AN</span> with Bo</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits to <i>run db:migrate</i> · release gate</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana</span><span class="tok">9.1k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Project <span class="n">4 sessions</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>Inbox <span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Approvals <span class="n live">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V9l7-5 7 5v11zM10 20v-6h4v6"/></svg>#billing <span class="n">Cy's agent answered</span></a>
+
+    <div class="me">
+      <span class="avatar driver">AN</span>
+      <span class="meta"><span>Ana</span><span class="role">owner · driving</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="btn ghost icon sm menu" type="button" aria-label="Open the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title">
+        <span class="serif">Billing page</span>
+        <span class="status running">Running · turn 14</span>
+        <span class="pill team">Team · with Bo</span>
+        <span class="tokchip"><span>12.4k tokens</span><span class="budget"><i style="width:25%"></i></span></span>
+      </div>
+      <div class="right">
+        <span class="stack">
+          <span class="avatar driver" title="Ana, owner, driving">AN</span>
+          <span class="avatar" title="Bo, contributor">BO</span>
+          <span class="avatar" title="Cy, observer, away" style="opacity:.55">CY</span>
+        </span>
+        <button class="btn ghost sm share" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg><span class="lbl">Share</span></button>
+        <button class="btn sm on" type="button" aria-pressed="true">Team <span class="n">3</span></button>
+        <button class="btn sm details" type="button">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="column">
+        <div class="msg human">
+          <div class="meta"><span class="who">Ana</span><span class="scope">goal</span><time>14:02</time></div>
+          <div class="text"><span class="goal-lbl">Goal</span>Ship the Billing page with proration and tax lines before Thursday's release. Invoice PDF stays Cy's.</div>
+        </div>
+        <div class="msg agent">
+          <div class="meta"><span class="who"><span class="avatar agent">B</span>Billing page</span><time>14:06</time></div>
+          <div class="text"><p>Plan approved by the team's ratings. Writing proration first: a mid-cycle plan change splits the period at the change date and bills each part at its own rate, rounded half-up to the cent.</p></div>
+          <div class="steps">
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>read</b> apps/web/src/billing/Plan.tsx</span><span class="r">2.1k</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>write</b> apps/web/src/billing/Proration.tsx</span><span class="r">+184 −0</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>run</b> pnpm test billing/proration</span><span class="r">12 pass</span></div>
+            <div class="step live"><span class="livedot"></span><span class="mono"><b>write</b> apps/web/src/billing/TaxLines.tsx</span><span class="r">step 3 of 4</span></div>
+          </div>
+        </div>
+        <div class="msg human team">
+          <div class="meta"><span class="who">Bo</span><span class="to">to the team</span><time>14:11</time></div>
+          <div class="text">Taking the proration tests after lunch. Leave TaxLines to Cy's agent, it already owns the PDF side.</div>
+        </div>
+        <div class="divider"><svg class="ic draw" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--ok)"><path d="m5 12 4 4L19 6"/></svg><span class="joined">Cy joins the circle</span></div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="input">Steer, constrain, or ask…</div>
+        <div class="bar">
+          <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+          <span class="mode">scope <span class="mono">tests</span></span>
+          <span class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ---- Team panel ---- -->
+  <aside class="drawer" aria-label="Team">
+    <div class="head">
+      <span class="seg"><button class="on" type="button"><span class="dot"></span>Team <span class="n">3</span></button><button type="button">Details</button></span>
+      <button class="btn ghost icon sm" type="button" aria-label="Close team"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="sub"><span class="serif">Billing page</span><span class="sep">·</span><span>Invoice rollout</span><span class="sep">·</span><span>Payments</span></div>
+
+    <section class="group">
+      <h3>In this session <span class="sum">2 here · 1 away</span></h3>
+      <div class="person">
+        <span class="avatar driver">AN</span>
+        <span class="who"><span class="name">Ana<span class="you">you</span></span><span class="role">owner · <span class="driving"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V4l13 4-13 4"/></svg>driving</span></span></span>
+        <button class="btn ghost sm" type="button">Hand off</button>
+      </div>
+      <div class="person">
+        <span class="avatar">BO</span>
+        <span class="who"><span class="name">Bo</span><span class="role">contributor · <span class="writing">writing to the team…</span></span></span>
+        <span class="select">contributor <svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+      </div>
+      <div class="person off">
+        <span class="avatar">CY</span>
+        <span class="who"><span class="name">Cy</span><span class="role">observer · away 12 min</span></span>
+        <span class="select">observer <svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+      </div>
+      <p class="teamline"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="3"/><path d="M15.5 14.5A5.5 5.5 0 0 1 22 20"/></svg>A team: two people are steering this agent. <button class="btn ghost sm" type="button">Invite</button></p>
+    </section>
+
+    <section class="group">
+      <h3>Crew <span class="sum">1 other agent</span></h3>
+      <p>Working on <span class="serif" style="font-size:16px">Invoice rollout</span> with one other agent.</p>
+      <a class="mate" href="#">
+        <div class="mhead"><span class="dot"></span><span class="t">Checkout</span><svg class="ic" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg></div>
+        <div class="doing">Waits to <i>run db:migrate</i> · release gate held by Dee</div>
+        <div class="foot"><span class="avatar">BO</span> Bo <span class="tok">9.1k</span></div>
+      </a>
+      <div class="claims">
+        <div class="c"><span class="mono">apps/web/src/billing/**</span><span class="by">this agent</span></div>
+        <div class="c"><span class="mono">db/migrations/**</span><span class="by">Checkout</span></div>
+      </div>
+      <div class="row"><button class="btn ghost sm" type="button">Leave crew</button><span class="grow"></span><span class="small faint">Crewmates share one brief.</span></div>
+    </section>
+
+    <section class="group">
+      <h3>Chat <span class="sum">3 today</span></h3>
+      <div class="chat">
+        <div class="line"><span class="who">Bo</span><span class="what">Taking the proration tests after lunch. Leave TaxLines to Cy's agent.</span><time>14:11</time></div>
+        <div class="line mine"><span class="who">You</span><span class="what">Fine. I keep the baton till three, then it's yours.</span><time>14:12</time></div>
+        <div class="joined">Cy joins</div>
+        <div class="line"><span class="who">Cy</span><span class="what">PDF side is rendering tax lines under the subtotal, like the memory says.</span><time>14:18</time></div>
+        <div class="typing"><i></i><i></i><i></i> Bo is writing</div>
+      </div>
+      <div class="chatfoot"><div class="say"><span class="input on">Sure, but round the<span class="caret"></span></span><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+      <p class="never"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg>Kept in the session log. Never sent to the agent.</p></div>
+    </section>
+  </aside>
+
+</div>
+</div>
+
+<!-- =============================== screen 2: the Details drawer open =============================== -->
+<div class="screen" id="details">
+<div class="shell">
+
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span class="wordmark">Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search or jump to<kbd>⌘K</kbd></div>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Writing <i>TaxLines.tsx</i> · step 3 of 4</div>
+      <div class="foot"><span class="with"><span class="avatar">AN</span> with Bo</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits to <i>run db:migrate</i> · release gate</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana</span><span class="tok">9.1k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Project <span class="n">4 sessions</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>Inbox <span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Approvals <span class="n live">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V9l7-5 7 5v11zM10 20v-6h4v6"/></svg>#billing <span class="n">Cy's agent answered</span></a>
+
+    <div class="me">
+      <span class="avatar driver">AN</span>
+      <span class="meta"><span>Ana</span><span class="role">owner · driving</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="btn ghost icon sm menu" type="button" aria-label="Open the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title">
+        <span class="serif">Billing page</span>
+        <span class="status running">Running · turn 14</span>
+        <span class="pill team">Team · with Bo</span>
+        <span class="tokchip"><span>12.4k tokens</span><span class="budget"><i style="width:25%"></i></span></span>
+      </div>
+      <div class="right">
+        <span class="stack">
+          <span class="avatar driver" title="Ana, owner, driving">AN</span>
+          <span class="avatar" title="Bo, contributor">BO</span>
+          <span class="avatar" title="Cy, observer, away" style="opacity:.55">CY</span>
+        </span>
+        <button class="btn ghost sm share" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg><span class="lbl">Share</span></button>
+        <button class="btn sm" type="button">Team <span class="n">3</span></button>
+        <button class="btn sm on details" type="button" aria-pressed="true">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="column">
+        <div class="msg human">
+          <div class="meta"><span class="who">Ana</span><span class="scope">goal</span><time>14:02</time></div>
+          <div class="text"><span class="goal-lbl">Goal</span>Ship the Billing page with proration and tax lines before Thursday's release. Invoice PDF stays Cy's.</div>
+        </div>
+        <div class="msg agent">
+          <div class="meta"><span class="who"><span class="avatar agent">B</span>Billing page</span><time>14:06</time></div>
+          <div class="text"><p>Plan approved by the team's ratings. Writing proration first: a mid-cycle plan change splits the period at the change date and bills each part at its own rate, rounded half-up to the cent.</p></div>
+          <div class="steps">
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>read</b> apps/web/src/billing/Plan.tsx</span><span class="r">2.1k</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>write</b> apps/web/src/billing/Proration.tsx</span><span class="r">+184 −0</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>run</b> pnpm test billing/proration</span><span class="r">12 pass</span></div>
+            <div class="step live"><span class="livedot"></span><span class="mono"><b>write</b> apps/web/src/billing/TaxLines.tsx</span><span class="r">step 3 of 4</span></div>
+          </div>
+        </div>
+        <div class="msg human team">
+          <div class="meta"><span class="who">Bo</span><span class="to">to the team</span><time>14:11</time></div>
+          <div class="text">Taking the proration tests after lunch. Leave TaxLines to Cy's agent, it already owns the PDF side.</div>
+        </div>
+        <div class="divider"><svg class="ic draw" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--ok)"><path d="m5 12 4 4L19 6"/></svg><span class="joined">Cy joins the circle</span></div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="input">Steer, constrain, or ask…</div>
+        <div class="bar">
+          <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+          <span class="mode">scope <span class="mono">tests</span></span>
+          <span class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ---- Details drawer ---- -->
+  <aside class="drawer" aria-label="Details">
+    <div class="head">
+      <span class="seg"><button type="button"><span class="dot"></span>Team <span class="n">3</span></button><button class="on" type="button">Details</button></span>
+      <button class="btn ghost icon sm" type="button" aria-label="Close details"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+
+    <section class="group">
+      <h3>Intent <span class="sum">1 held</span></h3>
+      <div class="intent">
+        <div class="line"><span class="k goal">Goal</span><span class="goal-t">Ship the Billing page with proration and tax lines before Thursday's release. <span class="by">Ana</span></span></div>
+        <div class="line"><span class="k">api</span><span>Keep the PDF endpoint at <span class="mono" style="font-size:12.5px">/api/invoices/:id.pdf</span> <span class="by">Bo</span></span></div>
+        <div class="line"><span class="k">tests</span><span>Cover plan changes mid-cycle, both directions. <span class="by">Ana</span></span></div>
+        <div class="line"><span class="k">always</span><span>Never run db:migrate without the release gate. <span class="by">Dee · project</span></span></div>
+      </div>
+      <p class="held"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Held until a pick: <span class="mono" style="font-size:12px">tests</span> (Bo and Ana disagree)</p>
+      <div class="control"><span class="status running">running</span><span class="turn">turn 14</span><button class="btn sm" type="button"><svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M8 5v14M16 5v14"/></svg>Pause</button></div>
+      <div class="replay"><span class="mono">14:02</span><span class="track"><i></i><s style="left:31%"></s><s style="left:58%"></s><s style="left:83%"></s><b></b></span><span class="mono">now</span></div>
+    </section>
+
+    <section class="group">
+      <h3>People <span class="sum">Ana has the baton</span></h3>
+      <div class="person">
+        <span class="avatar driver">AN</span>
+        <span class="who"><span class="name">Ana<span class="you">you</span></span><span class="role">owner · <span class="driving"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V4l13 4-13 4"/></svg>driving</span></span></span>
+      </div>
+      <div class="person">
+        <span class="avatar">BO</span>
+        <span class="who"><span class="name">Bo</span><span class="role">contributor</span></span>
+        <button class="btn sm" type="button">Hand off</button>
+      </div>
+      <div class="person off">
+        <span class="avatar">CY</span>
+        <span class="who"><span class="name">Cy</span><span class="role">observer · away</span></span>
+        <button class="btn sm" type="button" disabled style="opacity:.5">Hand off</button>
+      </div>
+    </section>
+
+    <section class="group">
+      <h3>Branches <span class="sum">proration · <span class="danger">1 conflict</span></span></h3>
+      <div class="branch here"><span class="name">proration <span class="here">· here</span></span><span class="acts"><span class="ahead">+3 ahead of main</span><button class="btn ghost sm" type="button">Fork</button></span></div>
+      <div class="branch"><span class="name"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3v12M18 9a3 3 0 0 1-3 3H9a3 3 0 0 0-3 3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/></svg>main</span><span class="acts"><button class="btn ghost sm" type="button">Switch</button><button class="btn ghost icon sm" type="button" aria-label="Compare main with proration"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M4 4h6v16H4zM14 4h6v16h-6z"/></svg></button><button class="btn ghost sm" type="button">Unite into proration</button></span></div>
+      <div class="branch"><span class="name"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3v12M18 9a3 3 0 0 1-3 3H9a3 3 0 0 0-3 3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/></svg>try/tax-rounding</span><span class="acts"><button class="btn ghost sm" type="button">Switch</button><button class="btn ghost icon sm" type="button" aria-label="Compare"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M4 4h6v16H4zM14 4h6v16h-6z"/></svg></button><button class="btn ghost sm" type="button">Unite</button></span></div>
+            <p class="fileline">7 files <span class="danger">· 1 conflict</span> · 3 checkpoints <button class="btn ghost sm" type="button">Checkpoint</button></p>
+      <div class="files">
+        <div class="f hot"><span>apps/web/src/billing/TaxLines.tsx</span><span class="mark-c">conflict</span></div>
+      </div>
+    </section>
+
+    <section class="group usage">
+      <h3>Usage <span class="sum">25% · about 37.6k left</span></h3>
+      <div class="big"><b>12,400</b><span>of 50,000</span><span class="pct">25%</span></div>
+      <div class="budget"><i style="width:25%"></i></div>
+      <div class="split"><span>Input<b>7.9k</b></span><span>Output<b>2.5k</b></span><span>Cache read<b>4.1k</b></span><span>Cache write<b>0.6k</b></span></div>
+      <div class="turns">
+        <div class="t now"><span>Turn 14</span><span class="bar"><i style="width:61%"></i></span><span class="mono">1.9k</span></div>
+        <div class="t"><span>Turn 13</span><span class="bar"><i style="width:77%"></i></span><span class="mono">2.4k</span></div>
+        <div class="t"><span>Turn 12</span><span class="bar"><i style="width:26%"></i></span><span class="mono">0.8k</span></div>
+        <div class="t"><span>Turn 11</span><span class="bar"><i style="width:100%"></i></span><span class="mono">3.1k</span></div>
+      </div>
+    </section>
+
+    <section class="group closed">
+      <h3>Memory <span class="sum">3 lines · <span class="danger">1 conflict</span></span><svg class="ic chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></h3>
+      <div class="memlist">
+        <div class="memline"><span><span class="mono">[billing]</span>Proration rounds half-up to the cent.</span><span class="by">Dee</span></div>
+        <div class="memline"><span><span class="mono">[pdf]</span>Tax lines render under the subtotal, never beside it.</span><span class="by">Cy</span></div>
+        <div class="memline conflict"><span><span class="cf">Conflict</span><span class="mono">[checkout]</span>Coupons apply before tax / after tax.</span><span class="by">Bo · Ana</span></div>
+      </div>
+    </section>
+
+    <section class="group closed">
+      <h3>Catch-up <span class="sum">since 14:02</span><svg class="ic chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></h3>
+      <pre class="brief"><span class="since">Since 14:02.</span> Bo rated the plan 4. The agent wrote Proration.tsx and its tests (12 pass). One conflict in TaxLines.tsx waits for you. Checkout waits at the release gate for db:migrate.</pre>
+    </section>
+  </aside>
+
+</div>
+</div>
+
+<!-- =============================== states =============================== -->
+<section class="board" aria-label="States">
+  <div class="lead"><h2>The states the panels wear</h2><span class="muted">Each one is a real branch in the view. Same spacing, same voice.</span></div>
+  <div class="states">
+
+    <div class="state">
+      <div class="cap"><span class="serif">Team</span> · Solo, no crew yet <span class="pill solo">Solo</span></div>
+      <div class="group">
+        <h3>In this session</h3>
+        <div class="person"><span class="avatar driver">DE</span><span class="who"><span class="name">Dee<span class="you">you</span></span><span class="role">owner · <span class="driving">driving</span></span></span></div>
+        <p class="teamline">Solo: one person is steering this agent. <button class="btn ghost sm" type="button">Share the link</button></p>
+      </div>
+      <div class="group" style="border-top:1px solid var(--line)">
+        <h3>Crew</h3>
+        <p class="muted small">Solo. Put this agent in a crew to share one task with other agents in Payments.</p>
+        <div class="row"><span class="input">Name the task</span><button class="btn primary sm" type="button">Team up</button></div>
+        <p class="small faint">Try <span class="serif" style="font-size:14px">Invoice rollout</span> · 2 agents already.</p>
+      </div>
+    </div>
+
+    <div class="state">
+      <div class="cap"><span class="serif">Team</span> · A handoff offered to you <span class="pill team">Team</span></div>
+      <div class="group">
+        <h3>In this session</h3>
+        <div class="person"><span class="avatar driver">AN</span><span class="who"><span class="name">Ana</span><span class="role">owner · <span class="driving">driving</span></span></span></div>
+        <div class="person"><span class="avatar">BO</span><span class="who"><span class="name">Bo<span class="you">you</span></span><span class="role">contributor</span></span></div>
+        <div class="offer"><span class="grow"><em>Ana</em> offers you the baton.</span><button class="btn primary sm" type="button">Accept</button><button class="btn ghost sm" type="button">Decline</button></div>
+      </div>
+      <div class="group" style="border-top:1px solid var(--line)">
+        <h3>Chat</h3>
+        <div class="empty"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>Nothing said yet. Whatever you say here stays with the people.</div>
+        <div class="row"><span class="input">Say to the team</span><button class="btn sm" type="button" disabled style="opacity:.5">Send</button></div>
+      </div>
+    </div>
+
+    <div class="state">
+      <div class="cap"><span class="serif">Details</span> · Paused, nobody else here</div>
+      <div class="group">
+        <h3>Intent</h3>
+        <p class="muted small">No goal yet.</p>
+        <div class="control"><span class="status paused">paused</span><span class="turn">turn 3</span><button class="btn primary sm" type="button">Resume</button></div>
+      </div>
+      <div class="group" style="border-top:1px solid var(--line)">
+        <h3>People</h3>
+        <div class="person"><span class="avatar driver">CY</span><span class="who"><span class="name">Cy<span class="you">you</span></span><span class="role">owner · <span class="driving">driving</span></span></span></div>
+        <p class="muted small">Nobody else here yet. Share the link.</p>
+      </div>
+      <div class="group" style="border-top:1px solid var(--line)">
+        <h3>Memory</h3>
+        <div class="empty">Nothing remembered here yet; ask the agent to remember something.<button class="btn sm" type="button">Write to the agent</button></div>
+      </div>
+    </div>
+
+    <div class="state">
+      <div class="cap"><span class="serif">Details</span> · Over the budget, a brief on the way</div>
+      <div class="group usage">
+        <h3>Usage <span class="sum" style="color:var(--danger)">Over the budget</span></h3>
+        <div class="big"><b>54,120</b><span>of 50,000</span><span class="pct" style="color:var(--danger)">108%</span></div>
+        <div class="budget over"><i style="width:100%"></i></div>
+        <p class="small muted">The agent keeps going; the lead sees this on the overview.</p>
+      </div>
+      <div class="group" style="border-top:1px solid var(--line)">
+        <h3>Catch-up</h3>
+        <div class="row"><span class="loader orbit"><i></i><i></i><i></i></span><span class="small muted">Writing your brief since 13:40…</span></div>
+        <div class="loader shimmer" style="width:92%"></div><div class="loader shimmer" style="width:70%"></div>
+      </div>
+      <div class="group" style="border-top:1px solid var(--line)">
+        <h3>Branches <span class="sum">main · <span style="color:var(--danger)">2 conflicts</span></span></h3>
+        <div class="files"><div class="f hot"><span>apps/web/src/billing/TaxLines.tsx</span><span class="mark-c">conflict</span></div><div class="f hot"><span>server/api/invoices.ts</span><span class="mark-c">conflict</span></div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>
