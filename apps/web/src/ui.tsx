@@ -10,8 +10,8 @@ import { getToasts, subscribeToasts, toast } from "./toast.js";
 export { toast };
 
 /**
- * The Henosis mark inline (design/mark.svg): a ring open at the top and the newcomer's bead
- * that completes it. `joining` plays the bead sliding into the gap (the loading motion).
+ * The Henosis mark inline (design/mark.svg): two arcs, a person's and an agent's, that close
+ * into one ring around one centre. `joining` plays the arcs closing (the loading motion).
  */
 export function Mark({ size = 22, joining = false }: { size?: number; joining?: boolean }) {
   return (
@@ -24,22 +24,22 @@ export function Mark({ size = 22, joining = false }: { size?: number; joining?: 
     >
       <circle cx="48" cy="48" r="46" fill="var(--mark-disc, #2A3244)" />
       <path
-        d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"
-        stroke="var(--mark-ring, #E2C4A6)"
+        d="M48 20 A28 28 0 0 1 48 76"
+        stroke="var(--mark-arc-a, #56352D)"
         strokeWidth="10"
         fill="none"
         strokeLinecap="round"
-        className="ring"
+        className="arc a"
       />
-      <circle
-        cx="48"
-        cy="20"
-        r="7.5"
-        fill="var(--mark-bead, #56352D)"
-        stroke="var(--mark-ring, #E2C4A6)"
-        strokeWidth="2"
-        className="bead"
+      <path
+        d="M48 76 A28 28 0 0 1 48 20"
+        stroke="var(--mark-arc-b, #E2C4A6)"
+        strokeWidth="10"
+        fill="none"
+        strokeLinecap="round"
+        className="arc b"
       />
+      <circle cx="48" cy="48" r="7" fill="var(--mark-dot, #E2C4A6)" className="dot" />
     </svg>
   );
 }

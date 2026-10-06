@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis brand board</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- board layout ---------- */
+  html, body { height: auto; }
+  body { min-height: 100vh; background-repeat: no-repeat; }
+  .anatomy .big > svg, .clear .stage > svg { width: 100%; max-width: 520px; height: auto; }
+  .board { width: min(1440px, 100%); margin: 0 auto; padding: 56px 72px 96px; display: flex; flex-direction: column; gap: 72px; }
+  .board > section { display: grid; grid-template-columns: 260px 1fr; gap: 40px; align-items: start; }
+  .board > section > header { position: sticky; top: 24px; }
+  .board > section > header .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: 0.08em; display: block; margin-bottom: 10px; }
+  .board > section > header h2 { font-size: 30px; }
+  .board > section > header p { margin: 10px 0 0; font-size: 14px; color: var(--ink-2); max-width: 220px; }
+  .rule { height: 1px; background: var(--line); }
+  .grid { display: grid; gap: 18px; }
+  .g2 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g4 { grid-template-columns: repeat(4, 1fr); }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .tile .cap { font-size: 12.5px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; }
+  .tile .cap b { font-weight: 600; color: var(--ink); }
+  .tile .cap .mono { font-size: 12px; color: var(--ink-3); }
+  .stage { display: grid; place-items: center; border-radius: var(--radius); min-height: 140px; }
+  .stage.navy { background: #2A3244; } .stage.cream { background: #FBF7F1; } .stage.apricot { background: #E2C4A6; } .stage.choc { background: #56352D; }
+  .stage.page { background: var(--canvas); border: 1px solid var(--line); }
+  .stage.checker { background: var(--surface-2); background-image: linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%), linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%); background-size: 16px 16px; background-position: 0 0, 8px 8px; }
+  svg { display: block; }
+
+  /* ---------- masthead ---------- */
+  .mast { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; }
+  .mast .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 18px; display: flex; gap: 14px; align-items: center; }
+  .mast .eyebrow .pill { height: 20px; font-size: 11px; }
+  .mast h1 { font-size: 64px; line-height: 1; }
+  .mast h1 i { color: var(--accent); }
+  .mast p { max-width: 640px; font-size: 16px; color: var(--ink-2); margin: 18px 0 0; }
+  .mast .trio { display: flex; gap: 0; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-pop); width: 380px; height: 150px; }
+  .mast .trio div { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; font-family: var(--mono); font-size: 11.5px; line-height: 1.5; }
+  .mast .trio .navy { background: #2A3244; color: #F3EDE4; flex: 1.5; } .mast .trio .choc { background: #56352D; color: #FFF8F1; } .mast .trio .apr { background: #E2C4A6; color: #56352D; } .mast .trio .cream { background: #FBF7F1; color: #5B6273; flex: .8; }
+  .mast .trio b { display: block; font-family: var(--serif); font-size: 17px; font-weight: 400; letter-spacing: 0; }
+
+  /* ---------- 01 the mark ---------- */
+  .anatomy { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+  .anatomy .big { min-height: 420px; position: relative; }
+  .anatomy .legend { display: flex; flex-direction: column; gap: 0; }
+  .anatomy .legend .row { display: grid; grid-template-columns: 28px 1fr auto; gap: 14px; align-items: center; padding: 13px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .anatomy .legend .row:first-child { border-top: 0; }
+  .anatomy .legend .k { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-size: 11px; color: #fff; background: var(--rail); }
+  .anatomy .legend .row .s { color: var(--ink-2); font-size: 13px; }
+  .anatomy .legend .row .mono { color: var(--ink-3); }
+  .anatomy .cuts .cap { flex-direction: column; gap: 2px; }
+
+  /* ---------- 02 sizes ---------- */
+  .sizes { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; padding: 28px 24px 18px; }
+  .sizes figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .sizes figcaption { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .sizes figure.small figcaption::after { content: " ·"; color: var(--apricot-deep); }
+  .threshold { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .threshold .cmp { display: flex; gap: 14px; align-items: center; }
+  .threshold .cmp .px { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 12px; background: var(--surface-2); }
+  .threshold .cmp .px.navy { background: #2A3244; }
+  .threshold p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+
+  /* ---------- 03 wordmark ---------- */
+  .wordmark { font-family: var(--serif); font-weight: 400; letter-spacing: -0.015em; line-height: 1; color: var(--ink); }
+  .wm-big .wordmark { font-size: 160px; }
+  .lockup { display: inline-flex; align-items: center; gap: .32em; }
+  .lockup .wordmark { font-size: 1em; }
+  .wm-type { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .wm-type .tile .ex { font-family: var(--serif); font-size: 30px; line-height: 1.15; }
+  .wm-type .tile .ex i { color: var(--accent); }
+  .wm-type .tile .ex.sans { font-family: var(--font); font-size: 17px; line-height: 1.5; }
+  .wm-type .tile .ex.mono { font-family: var(--mono); font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+  .wm-type .tile .ex.mono b { color: var(--ink); font-weight: 500; }
+  .wm-type .tile .ex.mono .ok { color: var(--ok); }
+  .wm-type .tile { justify-content: space-between; }
+  .wm-rule { font-size: 13.5px; color: var(--ink-2); }
+
+  /* ---------- 04 app icon ---------- */
+  .icons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .icons .stage { min-height: 260px; }
+  .appicon { width: 160px; height: 160px; border-radius: 36px; display: grid; place-items: center; box-shadow: 0 24px 50px rgba(42,50,68,0.22), inset 0 1px 0 rgba(255,255,255,0.06); }
+  .appicon.navy { background: linear-gradient(160deg, #333C50, #2A3244 55%, #232B3B); }
+  .appicon.cream { background: linear-gradient(160deg, #FFFCF8, #FBF7F1 55%, #F4EEE5); box-shadow: 0 24px 50px rgba(42,50,68,0.18), inset 0 0 0 1px rgba(42,50,68,0.06); }
+  .appicon.apricot { background: linear-gradient(160deg, #EDD6BF, #E2C4A6 55%, #D9B894); }
+  .platforms { display: flex; gap: 22px; align-items: flex-end; flex-wrap: wrap; padding: 22px 18px 12px; }
+  .platforms figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 9px; }
+  .platforms figcaption { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .mask { display: grid; place-items: center; background: #2A3244; }
+  .mask.ios { width: 72px; height: 72px; border-radius: 17px; }
+  .mask.mac { width: 72px; height: 72px; border-radius: 16px; box-shadow: 0 6px 14px rgba(42,50,68,0.3); }
+  .mask.android { width: 72px; height: 72px; border-radius: 50%; }
+  .mask.tray { width: 72px; height: 72px; border-radius: 10px; background: var(--surface-2); }
+  .mask.fav { width: 72px; height: 72px; border-radius: 10px; background: var(--surface-2); }
+  .tab { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 10px 10px 0 0; background: var(--surface); border: 1px solid var(--line); border-bottom: 0; font-size: 12.5px; color: var(--ink-2); }
+  .tab b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- 05 clear space ---------- */
+  .clear { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; }
+  .clear .stage { min-height: 360px; }
+  .rules li { padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; display: grid; grid-template-columns: 26px 1fr; gap: 12px; }
+  .rules { list-style: none; margin: 0; padding: 0; }
+  .rules li:first-child { border-top: 0; }
+  .rules li .k { font-family: var(--mono); font-size: 12px; color: var(--apricot-deep); }
+  .rules li b { font-weight: 600; } .rules li span { color: var(--ink-2); }
+
+  /* ---------- 06 misuse ---------- */
+  .misuse { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .misuse .tile { padding: 14px; }
+  .misuse .stage { min-height: 150px; position: relative; }
+  .misuse .no { position: absolute; top: 10px; left: 10px; width: 24px; height: 24px; border-radius: 50%; background: var(--danger); color: #fff; display: grid; place-items: center; }
+  .misuse .cap { flex-direction: column; gap: 2px; }
+  .misuse .cap span { color: var(--ink-3); }
+
+  /* ---------- 07 colour ---------- */
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .swatch { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow-soft); background: var(--surface); display: flex; flex-direction: column; }
+  .swatch .chip-big { height: 150px; display: flex; align-items: flex-end; padding: 14px; font-family: var(--serif); font-size: 22px; }
+  .swatch .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .swatch .role { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--ink-3); }
+  .swatch .role b { color: var(--accent); }
+  .swatch .vals { font-family: var(--mono); font-size: 12px; color: var(--ink-2); line-height: 1.7; }
+  .swatch .vals b { color: var(--ink); font-weight: 500; }
+  .swatch p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .ratio { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .ratio .pair { border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-height: 96px; }
+  .ratio .pair .t { font-family: var(--serif); font-size: 20px; }
+  .ratio .pair .m { font-family: var(--mono); font-size: 12px; opacity: .85; }
+  .ratio .pair .m b { font-weight: 500; }
+  .usage { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .usage .ex { display: flex; flex-direction: column; gap: 12px; }
+  .mini-rail { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .mini-rail .brand { display: flex; align-items: center; gap: 9px; font-family: var(--serif); font-size: 20px; padding: 4px 8px 10px; }
+  .mini-rail .agent { padding: 8px 10px; }
+  .mini-rail .agent .head .t { font-family: var(--serif); font-size: 15px; font-weight: 400; }
+  .mini-page { background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .mini-page .notice { padding: 12px 14px; gap: 8px; }
+  .mini-page .notice .serif { font-size: 17px; }
+  .mini-page .notice p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .gradient-note { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .gradient-note .hero { padding: 24px 28px; min-height: 150px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .gradient-note .hero h3 { font-family: var(--serif); font-weight: 400; font-size: 26px; color: #fff; }
+  .gradient-note .hero p { margin: 4px 0 0; font-size: 13.5px; color: rgba(255,255,255,0.78); }
+  .gradient-note .hero::after { border-width: 22px; width: 220px; height: 220px; right: -60px; top: -60px; }
+
+  /* ---------- footer ---------- */
+  .foot { display: flex; align-items: center; gap: 14px; justify-content: space-between; padding-top: 24px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-3); }
+  .foot .lockup { font-size: 22px; color: var(--ink); }
+
+  @media (max-width: 900px) {
+    .board { padding: 28px 16px 60px; gap: 44px; }
+    .board > section { grid-template-columns: 1fr; gap: 18px; }
+    .board > section > header { position: static; }
+    .mast { grid-template-columns: 1fr; }
+    .mast h1 { font-size: 44px; }
+    .mast .trio { width: 100%; height: 120px; }
+    .g3, .g4, .icons, .misuse, .swatches, .ratio, .anatomy, .threshold, .wm-type, .clear, .usage, .gradient-note { grid-template-columns: 1fr 1fr; }
+    .anatomy, .clear, .usage, .gradient-note, .threshold { grid-template-columns: 1fr; }
+    .wm-big .wordmark { font-size: 92px; }
+    .appicon { width: 120px; height: 120px; border-radius: 27px; }
+    .icons .stage { min-height: 200px; }
+  }
+  @media (max-width: 520px) {
+    .g3, .g4, .misuse, .swatches, .ratio, .wm-type { grid-template-columns: 1fr; }
+    .icons { grid-template-columns: 1fr; }
+    .sizes { gap: 18px; }
+    .wm-big .wordmark { font-size: 72px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- the mark, 96-unit grid: disc r46, ring r28 stroke 10, bead r7.5 at the gap -->
+    <symbol id="mark" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" fill="var(--mark-disc, #2A3244)"/>
+      <path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="var(--mark-ring, #E2C4A6)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle cx="48" cy="20" r="7.5" fill="var(--mark-bead, #56352D)" stroke="var(--mark-ring, #E2C4A6)" stroke-width="2"/>
+    </symbol>
+    <!-- no disc: for placing on a coloured ground -->
+    <symbol id="mark-bare" viewBox="0 0 96 96">
+      <path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="var(--mark-ring, #E2C4A6)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle cx="48" cy="20" r="7.5" fill="var(--mark-bead, #56352D)" stroke="var(--mark-ring, #E2C4A6)" stroke-width="2"/>
+    </symbol>
+    <!-- small-size cut: heavier ring, bigger bead, no bead stroke; use at 24 px and below -->
+    <symbol id="mark-small" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" fill="var(--mark-disc, #2A3244)"/>
+      <path d="M63 24.5 A26 26 0 1 1 33 24.5" stroke="var(--mark-ring, #E2C4A6)" stroke-width="14" fill="none" stroke-linecap="round"/>
+      <circle cx="48" cy="21" r="10" fill="var(--mark-bead, #56352D)" stroke="var(--mark-ring, #E2C4A6)" stroke-width="3"/>
+    </symbol>
+    <!-- one-colour cut: tray, favicon, print -->
+    <symbol id="mark-mono" viewBox="0 0 96 96">
+      <path d="M63 24.5 A26 26 0 1 1 33 24.5" stroke="currentColor" stroke-width="14" fill="none" stroke-linecap="round"/>
+      <circle cx="48" cy="21" r="10" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main class="board">
+
+  <!-- masthead -->
+  <div class="mast">
+    <div>
+      <div class="eyebrow">Brand board <span class="pill">v5 draft</span> <span>design / henosis</span></div>
+      <h1>The ring, the bead, <i>henosis</i></h1>
+      <p>One mark, one wordmark, three colours and a cream page. The ring is the team; it is open at the top until the newcomer's bead completes it. Everything on this board is drawn from <span class="mono">design/mark.svg</span> and <span class="mono">tokens.css</span>; nothing here is decorative.</p>
+    </div>
+    <div class="trio" aria-label="the palette">
+      <div class="navy"><b>Dress Blues</b>#2A3244 · frame</div>
+      <div class="choc"><b>Chocolate</b>#56352D · hand</div>
+      <div class="apr"><b>Apricot</b>#E2C4A6 · pulse</div>
+      <div class="cream"><b>Cream</b>#FBF7F1 · page</div>
+    </div>
+  </div>
+
+  <!-- 01 the mark -->
+  <section>
+    <header><span class="n">01 / THE MARK</span><h2>A ring open at the top</h2><p>The gap is the invitation. The bead is whoever joins next: a person, an agent, a session connecting.</p></header>
+    <div class="anatomy">
+      <div class="tile">
+        <div class="stage page big">
+          <svg viewBox="0 0 320 320" width="320" height="320" aria-label="construction of the mark">
+            <!-- grid -->
+            <g stroke="var(--line)" stroke-width="1">
+              <line x1="160" y1="0" x2="160" y2="320"/><line x1="0" y1="160" x2="320" y2="160"/>
+              <circle cx="160" cy="160" r="153" fill="none"/>
+              <circle cx="160" cy="160" r="93" fill="none" stroke-dasharray="3 4"/>
+              <circle cx="160" cy="160" r="110" fill="none" stroke-dasharray="3 4"/>
+              <circle cx="160" cy="160" r="77" fill="none" stroke-dasharray="3 4"/>
+            </g>
+            <!-- ring and bead at 3.33x -->
+            <g transform="translate(160 160) scale(3.333) translate(-48 -48)">
+              <path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <circle cx="48" cy="20" r="7.5" fill="#56352D" stroke="#E2C4A6" stroke-width="2"/>
+            </g>
+            <!-- callouts -->
+            <g font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="var(--ink-2)">
+              <g><circle cx="262" cy="62" r="11" fill="#2A3244"/><text x="262" y="66" text-anchor="middle" fill="#fff">1</text></g>
+              <g><circle cx="160" cy="300" r="11" fill="#2A3244"/><text x="160" y="304" text-anchor="middle" fill="#fff">2</text></g>
+              <g><circle cx="92" cy="40" r="11" fill="#2A3244"/><text x="92" y="44" text-anchor="middle" fill="#fff">3</text></g>
+              <g><circle cx="30" cy="160" r="11" fill="#2A3244"/><text x="30" y="164" text-anchor="middle" fill="#fff">4</text></g>
+              <line x1="240" y1="76" x2="206" y2="86" stroke="var(--ink-3)"/>
+              <line x1="104" y1="48" x2="140" y2="66" stroke="var(--ink-3)"/>
+              <line x1="42" y1="160" x2="66" y2="160" stroke="var(--ink-3)"/>
+              <text x="166" y="286" text-anchor="middle" fill="var(--ink-3)">r 28 · stroke 10</text>
+              <text x="166" y="14" text-anchor="middle" fill="var(--ink-3)">gap 25 · bead r 7.5</text>
+            </g>
+          </svg>
+        </div>
+        <div class="cap"><b>Construction, 96-unit grid</b><span class="mono">design/mark.svg</span></div>
+      </div>
+      <div class="tile">
+        <div class="legend">
+          <div class="row"><span class="k">1</span><div><b>Bead</b><div class="s">Chocolate Fondant, 2-unit apricot hairline. Sits exactly in the gap, centred on the ring's path. It is the only chocolate on the mark.</div></div><span class="mono">r 7.5</span></div>
+          <div class="row"><span class="k">2</span><div><b>Ring</b><div class="s">Apricot Illusion, round caps. 310° of arc; the opening is centred on 12 o'clock and never anywhere else.</div></div><span class="mono">r 28 · w 10</span></div>
+          <div class="row"><span class="k">3</span><div><b>Gap</b><div class="s">Width equals the bead's outer diameter plus four units of air each side. The bead touches neither cap.</div></div><span class="mono">25 units</span></div>
+          <div class="row"><span class="k">4</span><div><b>Disc</b><div class="s">Dress Blues. Ring-to-edge clearance is 13 units; the disc is dropped on navy or very dark grounds (see 04).</div></div><span class="mono">r 46</span></div>
+        </div>
+        <div class="rule"></div>
+        <div class="grid g3 cuts">
+          <div><div class="stage navy" style="min-height:96px"><svg width="56" height="56"><use href="#mark"/></svg></div><div class="cap" style="margin-top:8px"><b>Default</b><span class="mono">ring, bead, disc</span></div></div>
+          <div><div class="stage cream" style="min-height:96px"><svg width="56" height="56"><use href="#mark"/></svg></div><div class="cap" style="margin-top:8px"><b>On cream</b><span class="mono">disc kept</span></div></div>
+          <div><div class="stage checker" style="min-height:96px"><svg width="56" height="56" style="color:var(--ink)"><use href="#mark-mono"/></svg></div><div class="cap" style="margin-top:8px"><b>One colour</b><span class="mono">mark-mono</span></div></div>
+        </div>
+        <p class="wm-rule" style="margin:0">Motion: the bead travels the ring and settles into the gap when something joins. On this board it is still; in the product it moves once, then rests. Calm mode and reduced motion keep it at rest.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 sizes -->
+  <section>
+    <header><span class="n">02 / EVERY SIZE</span><h2>From 512 to 16</h2><p>Two cuts. The default cut from 32&nbsp;px up; the small cut, with a heavier ring and bigger bead, at 24&nbsp;px and below.</p></header>
+    <div class="grid" style="gap:18px">
+      <div class="tile">
+        <div class="stage page sizes">
+          <figure><svg width="192" height="192"><use href="#mark"/></svg><figcaption>512 · 256 · 192</figcaption></figure>
+          <figure><svg width="128" height="128"><use href="#mark"/></svg><figcaption>128</figcaption></figure>
+          <figure><svg width="96" height="96"><use href="#mark"/></svg><figcaption>96</figcaption></figure>
+          <figure><svg width="64" height="64"><use href="#mark"/></svg><figcaption>64</figcaption></figure>
+          <figure><svg width="48" height="48"><use href="#mark"/></svg><figcaption>48</figcaption></figure>
+          <figure><svg width="32" height="32"><use href="#mark"/></svg><figcaption>32</figcaption></figure>
+          <figure class="small"><svg width="24" height="24"><use href="#mark-small"/></svg><figcaption>24</figcaption></figure>
+          <figure class="small"><svg width="20" height="20"><use href="#mark-small"/></svg><figcaption>20</figcaption></figure>
+          <figure class="small"><svg width="16" height="16"><use href="#mark-small"/></svg><figcaption>16</figcaption></figure>
+        </div>
+        <div class="cap"><b>Default cut above 32, small cut (·) at 24 and below</b><span class="mono">always on whole pixels</span></div>
+      </div>
+      <div class="threshold">
+        <div class="tile">
+          <div class="cmp">
+            <div class="px navy"><svg width="16" height="16"><use href="#mark"/></svg></div>
+            <div class="px navy"><svg width="16" height="16"><use href="#mark-small"/></svg></div>
+            <p><b>Why the small cut exists.</b> At 16&nbsp;px the default ring is 1.7&nbsp;px wide and the bead is 2.5&nbsp;px: the gap closes and the mark reads as a plain circle. The small cut keeps the ring at 2.3&nbsp;px and the bead at 3.3&nbsp;px, so the opening and the bead both survive. Left: default; right: small.</p>
+          </div>
+        </div>
+        <div class="tile">
+          <div class="cmp">
+            <div class="px"><svg width="40" height="40"><use href="#mark"/></svg></div>
+            <div class="px"><span class="lockup" style="font-size:22px"><svg width="22" height="22"><use href="#mark"/></svg></span></div>
+            <p><b>Where each size lives.</b> 512 app store · 192 and 128 onboarding and the join screen · 96 project page and empty states · 48 the rail brand and desktop titlebar · 32 avatars for the Henosis system account · 24 tray and tab icons · 16 favicon and inline mentions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 wordmark -->
+  <section>
+    <header><span class="n">03 / THE WORDMARK</span><h2>henosis, lower case</h2><p>Instrument Serif, regular, never bold, never capitalised. Tracking −1.5%. It is a name, so it is set in the serif like every other name in the product.</p></header>
+    <div class="grid" style="gap:18px">
+      <div class="tile wm-big">
+        <div class="stage page" style="min-height:240px"><span class="wordmark">henosis</span></div>
+        <div class="cap"><b>Primary wordmark</b><span class="mono">Instrument Serif 400 · letter-spacing −0.015em</span></div>
+      </div>
+      <div class="grid g3">
+        <div class="tile">
+          <div class="stage page" style="min-height:130px"><span class="lockup" style="font-size:40px"><svg width="40" height="40"><use href="#mark"/></svg><span class="wordmark">henosis</span></span></div>
+          <div class="cap"><b>Horizontal lockup</b><span class="mono">mark = cap height × 1.0, gap .32em</span></div>
+        </div>
+        <div class="tile">
+          <div class="stage page" style="min-height:130px"><span class="lockup" style="flex-direction:column;gap:.25em;font-size:34px"><svg width="56" height="56"><use href="#mark"/></svg><span class="wordmark">henosis</span></span></div>
+          <div class="cap"><b>Stacked lockup</b><span class="mono">mark = 1.65× the x-height, centred</span></div>
+        </div>
+        <div class="tile">
+          <div class="stage navy" style="min-height:130px"><span class="lockup" style="font-size:40px;color:#F3EDE4"><svg width="40" height="40"><use href="#mark"/></svg><span class="wordmark" style="color:#F3EDE4">henosis</span></span></div>
+          <div class="cap"><b>On the rail</b><span class="mono">rail-fg, 24 px in product</span></div>
+        </div>
+      </div>
+      <div class="wm-type">
+        <div class="tile">
+          <div class="ex">Ana joins the circle.<br><i>Bo has the baton.</i></div>
+          <div class="cap"><b>Instrument Serif: everything with a name</b><span class="mono">titles, people, agents, crews, groups</span></div>
+        </div>
+        <div class="tile">
+          <div class="ex sans">Dee's agent united <b>pdf-layout</b> into main. The invoice PDF now carries the tax lines and the proration note; the Billing page and Checkout pick it up on the next release.</div>
+          <div class="cap"><b>Instrument Sans: everything that is read</b><span class="mono">body, controls, notices</span></div>
+        </div>
+        <div class="tile">
+          <div class="ex mono"><b>edit</b> apps/billing/invoice.pdf.ts <span class="ok">+41 −6</span><br><b>test</b> billing/proration.spec.ts <span class="ok">12 passed</span><br>tokens  <b>18.2k</b> / est 21k</div>
+          <div class="cap"><b>JetBrains Mono: tool lines and numbers</b><span class="mono">tabular figures</span></div>
+        </div>
+        <div class="tile">
+          <div class="ex" style="display:flex;align-items:center;gap:14px;font-size:20px"><span class="lockup" style="font-size:20px"><svg width="20" height="20"><use href="#mark-small"/></svg><span class="wordmark" style="font-size:20px">henosis</span></span><span class="faint" style="font-size:13px;font-family:var(--mono)">20 px, the floor</span></div><p class="wm-rule" style="margin:0">Below 20&nbsp;px use the mark alone. The wordmark is never set in Sans or Mono, never italic on its own, never bold, and never carries a trademark glyph.</p>
+          <div class="cap"><b>Floor</b><span class="mono">20 px · 15 pt print</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 app icon -->
+  <section>
+    <header><span class="n">04 / APP ICON</span><h2>Navy, cream, apricot</h2><p>Three grounds. Navy is the default and the one in every store. Cream is for light docs and print. Apricot is for the Team look editor only, when a lead chooses it.</p></header>
+    <div class="grid" style="gap:18px">
+      <div class="icons">
+        <div class="tile">
+          <div class="stage navy"><div class="appicon navy"><svg width="118" height="118"><use href="#mark-bare"/></svg></div></div>
+          <div class="cap"><b>Navy: default</b><span class="mono">disc dropped, ring r 28</span></div>
+        </div>
+        <div class="tile">
+          <div class="stage cream"><div class="appicon cream"><svg width="118" height="118" style="--mark-disc:#2A3244"><use href="#mark"/></svg></div></div>
+          <div class="cap"><b>Cream: docs and print</b><span class="mono">disc kept, 118 on 160</span></div>
+        </div>
+        <div class="tile">
+          <div class="stage apricot"><div class="appicon apricot"><svg width="118" height="118" style="--mark-disc:#2A3244"><use href="#mark"/></svg></div></div>
+          <div class="cap"><b>Apricot: team look</b><span class="mono">disc kept, never store</span></div>
+        </div>
+      </div>
+      <div class="tile">
+        <div class="stage page platforms">
+          <figure><div class="mask ios"><svg width="54" height="54"><use href="#mark-bare"/></svg></div><figcaption>iOS · 1024</figcaption></figure>
+          <figure><div class="mask mac"><svg width="54" height="54"><use href="#mark-bare"/></svg></div><figcaption>macOS · 1024</figcaption></figure>
+          <figure><div class="mask android"><svg width="50" height="50"><use href="#mark-bare"/></svg></div><figcaption>Android adaptive</figcaption></figure>
+          <figure><div class="mask tray"><svg width="22" height="22" style="color:var(--ink)"><use href="#mark-mono"/></svg></div><figcaption>Tray · 22 template</figcaption></figure>
+          <figure><div class="mask fav"><svg width="32" height="32"><use href="#mark-small"/></svg></div><figcaption>Favicon · 32 / 16</figcaption></figure>
+          <figure><div class="tab"><svg width="16" height="16"><use href="#mark-small"/></svg><b>Billing page</b> · Ana's agent</div><figcaption>Browser tab</figcaption></figure>
+        </div>
+        <div class="cap"><b>Platform masks</b><span class="mono">the ring is never clipped by a mask: keep 13 units of clearance inside every shape</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 clear space -->
+  <section>
+    <header><span class="n">05 / CLEAR SPACE</span><h2>One bead of air</h2><p>The unit is <b>b</b>, the bead's outer diameter (15 of 96). Nothing enters the box drawn at 1b from the mark's edge, and the wordmark is set 2b from the disc.</p></header>
+    <div class="clear">
+      <div class="tile">
+        <div class="stage page">
+          <svg viewBox="0 0 520 300" width="520" height="300" aria-label="clear space around the lockup">
+            <g font-family="JetBrains Mono, ui-monospace, monospace" font-size="11" fill="var(--apricot-deep)">
+              <!-- clear box -->
+              <rect x="40" y="40" width="440" height="220" fill="none" stroke="var(--apricot-deep)" stroke-dasharray="4 4"/>
+              <!-- mark -->
+              <use href="#mark" x="70" y="80" width="140" height="140"/>
+              <!-- bead units -->
+              <rect x="40" y="80" width="22" height="22" fill="var(--apricot-soft)" stroke="var(--apricot-deep)" stroke-width="1"/>
+              <text x="51" y="72" text-anchor="middle">b</text>
+              <rect x="70" y="40" width="22" height="22" fill="var(--apricot-soft)" stroke="var(--apricot-deep)" stroke-width="1"/>
+              <rect x="210" y="130" width="22" height="22" fill="var(--apricot-soft)" stroke="var(--apricot-deep)" stroke-width="1"/>
+              <rect x="232" y="130" width="22" height="22" fill="var(--apricot-soft)" stroke="var(--apricot-deep)" stroke-width="1"/>
+              <text x="232" y="124" text-anchor="middle">2b</text>
+              <rect x="140" y="230" width="22" height="22" fill="var(--apricot-soft)" stroke="var(--apricot-deep)" stroke-width="1"/>
+              <!-- wordmark -->
+              <text x="262" y="172" font-family="Instrument Serif, Iowan Old Style, Georgia, serif" font-size="76" fill="var(--ink)" letter-spacing="-1">henosis</text>
+              <!-- baseline note -->
+              <line x1="262" y1="172" x2="470" y2="172" stroke="var(--line)"/>
+              <text x="470" y="186" text-anchor="end" fill="var(--ink-3)">baseline = disc centre + 0.22 disc</text>
+            </g>
+          </svg>
+        </div>
+        <div class="cap"><b>Clear space and the lockup</b><span class="mono">b = 15 / 96 of the mark's width</span></div>
+      </div>
+      <div class="tile">
+        <ul class="rules">
+          <li><span class="k">01</span><div><b>One bead on every side.</b> <span>Text, other logos, the edge of a card or a window: all stay outside the dashed box.</span></div></li>
+          <li><span class="k">02</span><div><b>Two beads to the wordmark.</b> <span>The horizontal lockup uses 2b between disc and the h; the stacked lockup uses 1b between disc and the x-height.</span></div></li>
+          <li><span class="k">03</span><div><b>Baseline on the disc.</b> <span>The wordmark's baseline sits 0.22 of the disc below its centre, which lines the x-height with the ring's centre.</span></div></li>
+          <li><span class="k">04</span><div><b>In the product, clear space is the padding.</b> <span>The rail brand row is 48 px high for a 24 px mark: that is 1b of air at 24 px, rounded up to the grid.</span></div></li>
+          <li><span class="k">05</span><div><b>Avatars are the exception.</b> <span>The system account's 28 px avatar carries the mark at 20 px with the disc as the avatar fill. Nothing else may crowd the ring.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 misuse -->
+  <section>
+    <header><span class="n">06 / MISUSE</span><h2>What the mark is not</h2><p>Each of these breaks the one idea: a ring open at the top, completed by a chocolate bead.</p></header>
+    <div class="misuse">
+      <div class="tile"><div class="stage navy"><span class="no">×</span><svg width="72" height="72" style="transform:rotate(90deg)"><use href="#mark"/></svg></div><div class="cap"><b>Don't rotate it</b><span>The gap is at 12 o'clock. A gap elsewhere is a different mark.</span></div></div>
+      <div class="tile"><div class="stage navy"><span class="no">×</span><svg viewBox="0 0 96 96" width="72" height="72"><circle cx="48" cy="48" r="46" fill="#2A3244"/><circle cx="48" cy="48" r="28" stroke="#E2C4A6" stroke-width="10" fill="none"/><circle cx="48" cy="20" r="7.5" fill="#56352D" stroke="#E2C4A6" stroke-width="2"/></svg></div><div class="cap"><b>Don't close the ring</b><span>The opening is the invitation; without it there is nothing to join.</span></div></div>
+      <div class="tile"><div class="stage navy"><span class="no">×</span><svg viewBox="0 0 96 96" width="72" height="72"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/></svg></div><div class="cap"><b>Don't drop the bead</b><span>The ring alone is a loading spinner. The bead is the newcomer.</span></div></div>
+      <div class="tile"><div class="stage navy"><span class="no">×</span><svg viewBox="0 0 96 96" width="72" height="72"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="7.5" fill="#56352D" stroke="#E2C4A6" stroke-width="2"/></svg></div><div class="cap"><b>Don't move the bead</b><span>It sits in the gap, on the ring's path, nowhere else.</span></div></div>
+      <div class="tile"><div class="stage navy"><span class="no">×</span><svg viewBox="0 0 96 96" width="72" height="72"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="#4FA3A0" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="48" cy="20" r="7.5" fill="#D94F4F" stroke="#4FA3A0" stroke-width="2"/></svg></div><div class="cap"><b>Don't recolour it</b><span>Apricot ring, chocolate bead. Team accents change the glow, not the mark.</span></div></div>
+      <div class="tile"><div class="stage navy"><span class="no">×</span><svg width="72" height="72" style="transform:scaleX(1.4)"><use href="#mark"/></svg></div><div class="cap"><b>Don't stretch it</b><span>Scale from the corner. The ring is a circle, always.</span></div></div>
+      <div class="tile"><div class="stage navy"><span class="no">×</span><svg viewBox="0 0 96 96" width="72" height="72"><defs><linearGradient id="bad" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#E2C4A6"/><stop offset="1" stop-color="#56352D"/></linearGradient></defs><circle cx="48" cy="48" r="46" fill="#2A3244"/><path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="url(#bad)" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="48" cy="20" r="7.5" fill="#56352D" stroke="#E2C4A6" stroke-width="2"/></svg></div><div class="cap"><b>Don't gradient the ring</b><span>Gradients are for hero moments and the new-session button, not the mark.</span></div></div>
+      <div class="tile"><div class="stage" style="background:linear-gradient(135deg,#9BC88F,#E2847A 60%,#2A3244)"><span class="no">×</span><svg width="72" height="72"><use href="#mark-bare"/></svg></div><div class="cap"><b>Don't drop the disc on a busy ground</b><span>Bare ring only on flat navy or near-black. Everywhere else, keep the disc.</span></div></div>
+    </div>
+  </section>
+
+  <!-- 07 colour -->
+  <section>
+    <header><span class="n">07 / COLOUR</span><h2>Three colours, one page</h2><p>Each colour has one job. If you can name the job, you can pick the colour.</p></header>
+    <div class="grid" style="gap:18px">
+      <div class="swatches">
+        <div class="swatch">
+          <div class="chip-big" style="background:#2A3244;color:#F3EDE4">Dress Blues</div>
+          <div class="body">
+            <div class="role">The <b>frame</b></div>
+            <div class="vals"><b>#2A3244</b><br>rgb 42 50 68 · hsl 222° 24% 22%<br>--rail · --mark-disc</div>
+            <p>The rail, titlebars, the dark canvas, the mark's disc. It holds the room; it never speaks.</p>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="chip-big" style="background:#FBF7F1;color:#5B6273;border-bottom:1px solid var(--line)">Cream</div>
+          <div class="body">
+            <div class="role">The <b>page</b></div>
+            <div class="vals"><b>#FBF7F1</b><br>rgb 251 247 241 · hsl 36° 56% 96%<br>--canvas · + apricot wash</div>
+            <p>Where everything is read. Carries a faint apricot radial wash at the top left, 35% in light, 10% in dark.</p>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="chip-big" style="background:#56352D;color:#FFF8F1">Chocolate Fondant</div>
+          <div class="body">
+            <div class="role">The <b>hand</b></div>
+            <div class="vals"><b>#56352D</b><br>rgb 86 53 45 · hsl 12° 31% 26%<br>--accent · --mark-bead</div>
+            <p>Every primary action: Send, Approve, Unite, Join. Links. The bead. In dark mode the hand becomes apricot.</p>
+          </div>
+        </div>
+        <div class="swatch">
+          <div class="chip-big" style="background:#E2C4A6;color:#56352D">Apricot Illusion</div>
+          <div class="body">
+            <div class="role">The <b>pulse</b></div>
+            <div class="vals"><b>#E2C4A6</b><br>rgb 226 196 166 · hsl 30° 51% 77%<br>--apricot · --mark-ring · --glow</div>
+            <p>Live things: the ring, the running budget, focus glow, selection, the Team pill, team messages.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tile">
+        <div class="ratio">
+          <div class="pair" style="background:#2A3244;color:#F3EDE4"><span class="t">Rail text on Dress Blues</span><span class="m"><b>11.0 : 1</b> · AAA</span></div>
+          <div class="pair" style="background:#56352D;color:#FFF8F1"><span class="t">Button label on Chocolate</span><span class="m"><b>10.3 : 1</b> · AAA</span></div>
+          <div class="pair" style="background:#E2C4A6;color:#56352D"><span class="t">Chocolate on Apricot</span><span class="m"><b>6.5 : 1</b> · AA, team pill</span></div>
+          <div class="pair" style="background:#FBF7F1;color:#56352D;border:1px solid var(--line)"><span class="t">Chocolate on Cream</span><span class="m"><b>10.1 : 1</b> · AAA, links</span></div>
+        </div>
+        <div class="cap"><b>Contrast pairs that are allowed</b><span class="mono">apricot on cream is 1.6 : 1 and is never used for text</span></div>
+      </div>
+
+      <div class="usage">
+        <div class="tile ex">
+          <div class="mini-rail">
+            <div class="brand"><svg width="24" height="24"><use href="#mark"/></svg> henosis</div>
+            <div class="crew"><span class="serif">Invoice rollout</span></div>
+            <a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Ana's agent</span><span class="pill team">Team</span></div><div class="doing">Adding tax lines to the <i>invoice PDF</i>, proration next</div><div class="foot">with Bo, Cy · 18.2k tokens</div></a>
+            <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div><div class="doing">Checkout: waiting on a release gate</div><div class="foot">Payments · 9.4k tokens</div></a>
+          </div>
+          <div class="cap"><b>Frame + pulse</b><span class="mono">navy holds, apricot marks the live and the chosen</span></div>
+        </div>
+        <div class="tile ex">
+          <div class="mini-page">
+            <div class="notice gate">
+              <span class="serif">The Billing page release waits for the Payments team</span>
+              <p>Dee's agent united <b>pdf-layout</b> into main. Two of three consumers have rated the plan; Cy's rating completes the gate.</p>
+              <div class="actions"><button class="btn primary sm">Rate and release</button><button class="btn sm">Open the diff</button><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></div>
+            </div>
+            <div class="budget"><i style="width:68%"></i></div>
+          </div>
+          <div class="cap"><b>Page + hand</b><span class="mono">cream carries the text, chocolate is the one thing to press</span></div>
+        </div>
+      </div>
+
+      <div class="gradient-note">
+        <div class="hero"><h3>Join the circle</h3><p>navy → chocolate, 135°. One per screen: the hero, or the new-session button, never both.</p></div>
+        <div class="tile">
+          <div class="cap" style="flex-direction:column;gap:8px">
+            <b>Dark mode, in one line</b>
+            <span>The frame goes deeper (#161B26), the page goes navy (#1C2230), the hand becomes apricot, and the mark's disc goes near-black (#0F131B). The ring and the bead do not change: the mark is the same object in both rooms.</span>
+          </div>
+          <div class="grid g2" style="gap:10px">
+            <div class="stage" style="background:#1C2230;min-height:72px"><span class="lockup" style="font-size:22px;color:#F0EAE0;--mark-disc:#0F131B"><svg width="22" height="22"><use href="#mark"/></svg><span class="wordmark" style="color:#F0EAE0">henosis</span></span></div>
+            <div class="stage" style="background:#FBF7F1;min-height:72px;border:1px solid var(--line)"><span class="lockup" style="font-size:22px;color:#1F2634;--mark-disc:#2A3244"><svg width="22" height="22"><use href="#mark"/></svg><span class="wordmark" style="color:#1F2634">henosis</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span class="lockup"><svg width="22" height="22"><use href="#mark"/></svg><span class="wordmark">henosis</span></span>
+    <span>Brand board · design/henosis/explorations/brand-board · draws on mark.svg and tokens.css v5</span>
+  </footer>
+</main>
+</body>
+</html>

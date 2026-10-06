@@ -8,21 +8,23 @@ same release gate held by the people who consume the code, and the same manager'
 ## Palette and roles
 Dress Blues #2A3244 is the frame (the rail, titlebars, the dark canvas). Cream #FBF7F1 is the
 page, with a faint apricot wash. Chocolate Fondant #56352D is the hand: every primary action.
-Apricot Illusion #E2C4A6 is the pulse: live things, glows, the bead, selection, team messages.
+Apricot Illusion #E2C4A6 is the pulse: live things, glows, the centre dot, selection, team messages.
 Gradients navy→chocolate for hero moments and the new-session button. Soft shadows are allowed.
 Vibrant, expressive, native, original, professional. Never garish: one gradient per screen.
 
 ## The mark
-A ring open at the top and the newcomer's bead that completes it (design/mark.svg). Motion:
-the bead travels round the ring and settles into the gap when something joins (a member, an
-agent, a session connecting). The ring is apricot on navy; the bead is chocolate.
+Two arcs, a person's and an agent's, that close into one ring around one centre (design/mark.svg):
+the right arc is chocolate, the left arc apricot, the centre dot apricot, on a navy disc; on cream
+the arcs are chocolate and navy with an apricot centre. Motion: the two arcs swing in from apart and
+close into the ring, then the centre dot appears, whenever something joins (a member, an agent, a
+session connecting). The founder chose this mark; do not draw the older ring-and-bead.
 
 ## Type
 Instrument Serif for everything that has a name (titles, people, agents, crews, groups).
 Instrument Sans for everything that is read. JetBrains Mono inside tool lines and numbers.
 
 ## Motion principles
-Motion means joining or living. Loaders: bead-join, orbit-converge (three dots in the three
+Motion means joining or living. Loaders: arcs-close (the mark), orbit-converge (three dots in the three
 colours become one), weave (two strands), shimmer (skeleton). Side motion: cards rise in,
 status dots pulse, badges pop, a joined avatar ripples, a granted approval draws its check,
 the Team pill crossfades, toasts rise. Calm mode and reduced motion turn all of it off.

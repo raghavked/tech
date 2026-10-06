@@ -1,8 +1,8 @@
 /* Henosis design tokens, v5 draft for the design wave. Vibrant, expressive, professional.
    Palette: Chocolate Fondant #56352D, Apricot Illusion #E2C4A6, Dress Blues #2A3244.
    Roles: Dress Blues is the frame (rail, titlebars, dark canvas); cream is the page; Chocolate is
-   the hand (every primary action); Apricot is the pulse (live things, glows, the bead, selection).
-   The mark: a ring open at the top and the newcomer's bead that completes it. */
+   the hand (every primary action); Apricot is the pulse (live things, glows, the centre dot, selection).
+   The mark: two arcs, a person's and an agent's, that close into one ring around one centre. */
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
@@ -54,7 +54,8 @@
   --team-accent: var(--accent);
   --team-highlight: var(--apricot);
   --team-glow: var(--glow);
-  --mark-disc: var(--rail); --mark-ring: var(--apricot); --mark-bead: var(--accent);
+  --mark-disc: var(--rail); --mark-arc-a: var(--accent); --mark-arc-b: var(--apricot); --mark-dot: var(--apricot);
+  --mark-ring: var(--apricot); --mark-bead: var(--accent); /* old names, kept for pages that still use them */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -92,7 +93,7 @@ a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: un
 :focus-visible { outline: 0; box-shadow: var(--team-glow); border-radius: 6px; }
 
 /* the mark */
-.mark .ring { stroke: var(--mark-ring); } .mark .bead { fill: var(--mark-bead); }
+.mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); }
 
 /* shell: navy rail + cream canvas */
 .shell { display: flex; height: 100%; }
@@ -220,7 +221,9 @@ a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: un
 
 /* motion */
 @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
-@keyframes bead-join { 0% { transform: rotate(-200deg) } 70% { transform: rotate(8deg) } 85% { transform: rotate(-4deg) } 100% { transform: rotate(0) } }
+@keyframes arc-a { 0%, 15% { transform: rotate(70deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 85% { transform: rotate(2deg) } 100% { transform: rotate(0) } }
+@keyframes arc-b { 0%, 15% { transform: rotate(-70deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 85% { transform: rotate(-2deg) } 100% { transform: rotate(0) } }
+@keyframes dot-in { 0%, 60% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
 @keyframes orbit { to { transform: rotate(360deg) } }
 @keyframes converge { 0%, 100% { transform: translateX(18px) } 50% { transform: translateX(0) } }
 @keyframes weave { 0% { background-position: 0 0 } 100% { background-position: 200% 0 } }
@@ -229,7 +232,8 @@ a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: un
 @keyframes pop { 0% { transform: scale(.6); opacity: 0 } 70% { transform: scale(1.12) } 100% { transform: scale(1); opacity: 1 } }
 @keyframes ripple { from { box-shadow: 0 0 0 0 rgba(226,196,166,.6) } to { box-shadow: 0 0 0 16px rgba(226,196,166,0) } }
 @keyframes draw { to { stroke-dashoffset: 0 } }
-.mark.joining .bead { transform-origin: 48px 48px; animation: bead-join 1.6s cubic-bezier(.3,.9,.3,1) infinite; }
+.mark.joining .arc { transform-origin: 48px 48px; animation: arc-a 1.8s cubic-bezier(.3,.9,.3,1) infinite; } .mark.joining .arc.b { animation-name: arc-b; }
+.mark.joining .dot { transform-origin: 48px 48px; animation: dot-in 1.8s ease infinite; }
 .loader.orbit { position: relative; width: 36px; height: 36px; animation: orbit 1.4s linear infinite; }
 .loader.orbit i { position: absolute; top: 14px; left: 14px; width: 8px; height: 8px; border-radius: 50%; animation: converge 1.4s ease-in-out infinite; }
 .loader.orbit i:nth-child(1) { background: var(--apricot); transform: rotate(0deg) } .loader.orbit i:nth-child(2) { background: var(--accent); animation-delay: -.47s } .loader.orbit i:nth-child(3) { background: var(--rail); animation-delay: -.93s }
