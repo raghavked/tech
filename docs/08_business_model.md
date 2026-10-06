@@ -2,16 +2,30 @@
 
 ## What is sold
 
-Henosis sells the shared session: the kernel, the hosted actor-per-session service, the
-adapters that let any harness run inside it, and the audit that falls out of the log. It is
-infrastructure with a product on top, in that order. The product (web, CLI, Slack) proves
-the kernel; the kernel is what a platform team standardises on.
+Henosis sells membership: the day a team adds an engineer or an agent, both arrive as
+members of the same circle, with the same groups and chats, the same plan-first manners, the
+same release gate and the same manager's view. Underneath is the shared session: the kernel,
+the hosted actor-per-session service, the adapters that let any harness run inside it, the
+token accounting, and the audit that falls out of the log. It is infrastructure with a
+product on top, in that order. The product (web, desktop, CLI, Slack) proves the kernel; the
+kernel is what a platform team standardises on.
+
+The three features a buyer can point at in a demo:
+
+1. **Groups and chats with agents as members.** A person @mentions an agent in the team's
+   group and it answers from its session; the unity is visible, not promised.
+2. **Plan first, rated by the team; release gated by the consumers.** Every session plans
+   before it writes; every push waits for ratings from the people who consume the code.
+   Token spend is estimated in the plan and reconciled in the log.
+3. **The manager's view.** Tokens per project, person and agent; plans rated and approved;
+   what waits on whom; crews and groups; a team look each team sets for itself.
 
 ## Who buys, and why
 
 | Buyer | Trigger | What they pay for |
 |---|---|---|
-| Engineering teams (bottom-up) | A multi-hour agent run that one person babysits while others wait for the diff | Live co-presence, approvals, handoff |
+| Engineering teams (bottom-up) | A multi-hour agent run that one person babysits while others wait for the diff | Live co-presence, plan ratings, release gates, handoff, groups with the agent in them |
+| Engineering managers | Three engineers, nine agents, one token bill and no idea what waits on whom | The manager's view: tokens by project, person and agent; plans and gates; crews and groups |
 | Platform or developer-productivity teams | Three harnesses in use, no common record of what agents did or who approved it | One session layer across harnesses; replay; policy |
 | Security and compliance | An agent took an irreversible action and nobody can say who authorised it | Henosis approvals, attributed logs, exportable evidence |
 | Vertical teams (sales, support, legal, finance, marketing) | Several people already crowd one agent-driven task in a chat thread | Templates, roles, briefs, policy packs |

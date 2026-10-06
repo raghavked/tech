@@ -16,6 +16,16 @@ adapter with channels per team, project and management; identity from `users.jso
 notifications with deep links; the Henosis brand, mockups of every surface, the rebuilt web
 app with fleet board and management views, and the desktop and mobile shells.
 
+## Phase 0.75: Henosis (this repository, third pass)
+
+In progress. The rebrand to Henosis and the unity thesis: agents as members. Token usage on
+every model call, summed per turn, session, project, person and day; plan-first sessions
+with ratings and the release gate held by the consumers of the code; groups and chats with
+people and agents as members and @mentions that reach the agent's session; a vibrant,
+expressive theme on the palette with loading and side motion; team customisation (accent,
+mark, motion, emblem) set by leads; the manager's view with token charts, plan compliance
+and gates; desktop first, mobile second.
+
 ## Phase 1: design partners (months 1 to 4)
 
 Goal: three engineering teams using Henosis weekly on real multi-hour agent runs.

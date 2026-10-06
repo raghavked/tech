@@ -1,15 +1,32 @@
-# Henosis: the multiplayer kernel for long-running agents
+# Henosis: one team, people and agents together
 
-*One-pager. Working codename "Henosis" (the minimum set of people who can decide). Market
+*One-pager. Henosis is ἕνωσις, the ancient Greek word for union, for becoming one. Market
 facts are founder notes gathered 2 October 2026 and must be re-verified before external use;
 see `10_sources.md`.*
 
 ## The thesis in one line
 
 Agent runs are becoming hours, days and weeks long, and work at that scale is done by teams.
-Every agent product still gives the run to one person. Henosis makes the session itself a
-shared, replayable object with defined semantics for many humans steering one agent, and
-sells that kernel to every surface and every vertical that needs it.
+Every agent product still gives the run to one person, and treats the agent as a tool that
+person holds. Henosis makes the agent a member of the team and the session a shared,
+replayable object: many people steer one agent by defined rules, agents and people sit in
+the same groups and chats, nothing is built before the team has rated the plan, and nothing
+ships before the people who will live with it have rated the release. What Henosis sells is
+the joining: a new engineer and a new agent enter the same circle on the same day, with the
+same memory, the same manners and the same manager's view.
+
+## What a new member gets on day one
+
+- **A seat in every room.** Groups and chats where people and agents are members alike; an
+  agent is addressed by name, answers in the thread, and its work is one click away.
+- **The plan before the work.** A session proposes its plan with token estimates; the team
+  rates it one to five; the agent proceeds when the policy is met. Token spend is planned,
+  not discovered.
+- **A release gate held by the consumers.** Pushes and deploys wait for ratings from the
+  people who consume the code, not just the person who prompted it.
+- **A manager's view that is a sentence, not a dashboard.** Who is on what, with whom,
+  what it cost, what waits on whom; tokens per project, per person, per agent.
+- **A team look.** Each team sets its accent, mark and motion within the Henosis system.
 
 ## What just changed
 
@@ -70,11 +87,13 @@ team through contention, approval, fork, merge and handoff.
 
 ## Who pays
 
-Engineering teams first (live co-presence and approvals on multi-hour runs); platform teams
-second (one session layer across harnesses, replay and policy); security and compliance
-third (attributed, replayable evidence of who authorised what); vertical teams through
-templates and partners. Pricing follows the premise that anyone can drop in: per active
-session-hour plus per approver seat, with the kernel and protocol open.
+Engineering teams first (live co-presence, plan ratings and release gates on multi-hour
+runs); platform teams second (one session layer across harnesses, replay, policy and token
+accounting); security and compliance third (attributed, replayable evidence of who planned,
+rated and authorised what); vertical teams through templates and partners. Pricing follows
+the premise that anyone can join the circle: per active session-hour plus per approver
+seat, with the kernel and protocol open. The selling moment is onboarding: the day a team
+adds a person or an agent and both arrive as members.
 
 ## What would kill it
 
