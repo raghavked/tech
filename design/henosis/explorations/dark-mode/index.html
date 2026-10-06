@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis dark mode audit</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ------------------------------------------------------------------
+     Pinned themes. Each pane carries the exact v5 token set for one scheme
+     so both can sit on one page, whatever the page itself is doing. The
+     page chrome (headings, notes, table) follows the real theme.
+     ------------------------------------------------------------------ */
+  .t-light {
+    --canvas: #FBF7F1; --canvas-wash: radial-gradient(900px 400px at 20% -10%, rgba(226,196,166,0.35), transparent 60%);
+    --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
+    --ink: #1F2634; --ink-2: #5B6273; --ink-3: #8E94A3; --line: rgba(42, 50, 68, 0.12);
+    --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2; --rail-active: rgba(226, 196, 166, 0.18); --rail-line: rgba(243, 237, 228, 0.10);
+    --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1;
+    --shadow-soft: 0 10px 30px rgba(42, 50, 68, 0.08); --shadow-pop: 0 18px 50px rgba(42, 50, 68, 0.16);
+    --mark-disc: #2A3244; --mark-arc-a: var(--accent); --mark-arc-b: var(--apricot); --mark-dot: var(--apricot);
+    --team-accent: var(--accent); --team-glow: var(--glow);
+    color-scheme: light;
+  }
+  .t-dark {
+    --canvas: #1C2230; --canvas-wash: radial-gradient(900px 400px at 20% -10%, rgba(226,196,166,0.10), transparent 60%);
+    --surface: #232B3B; --surface-2: #2A3344; --surface-3: #343E52;
+    --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #7E8595; --line: rgba(240,234,224,0.12);
+    --rail: #161B26; --rail-2: #1E2432; --rail-fg: #F0EAE0; --rail-muted: #8E95A5; --rail-active: rgba(226,196,166,0.16); --rail-line: rgba(243, 237, 228, 0.10);
+    --accent: #E2C4A6; --accent-hover: #EBD3BB; --accent-fg: #1C2230;
+    --shadow-soft: 0 10px 30px rgba(0,0,0,0.35); --shadow-pop: 0 18px 50px rgba(0,0,0,0.5);
+    --mark-disc: #0F131B; --mark-arc-a: var(--accent); --mark-arc-b: var(--apricot); --mark-dot: var(--apricot);
+    --team-accent: var(--accent); --team-glow: var(--glow);
+    color-scheme: dark;
+  }
+  /* the proposed dark additions, used only in the "after" strip of the findings */
+  .t-dark.fixed {
+    --ok: #9BC88F; --ok-soft: rgba(155,200,143,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16);
+    --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); --info: #B4BAC6;
+    --gradient-brand: linear-gradient(135deg, #343E52 0%, #6B4339 100%);
+    --seg-on: var(--surface-3);
+  }
+  .t-light { --seg-on: var(--surface); } .t-dark { --seg-on: var(--surface); }
+
+  /* ------------------------------------------------------------------ board chrome */
+  body { min-height: 100%; }
+  .board { width: min(1360px, 100%); margin: 0 auto; padding: 0 40px 90px; display: flex; flex-direction: column; gap: 56px; }
+  header.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 40px; padding: 44px 0 0; align-items: end; }
+  header.top .brand { display: flex; align-items: center; gap: 12px; font-family: var(--serif); font-size: 24px; margin-bottom: 18px; }
+  header.top h1 { font-size: 54px; }
+  header.top .sub { max-width: 700px; color: var(--ink-2); font-size: 16px; margin: 14px 0 0; }
+  header.top .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 13px; color: var(--ink-3); text-align: right; }
+  header.top .meta b { color: var(--ink); font-weight: 500; }
+  .kicker { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .legend { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+  .legend .sw { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .sw i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line); display: inline-block; }
+  .verdict { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+  .verdict::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .verdict.ok { background: var(--ok-soft); color: var(--ok); }
+  .verdict.watch { background: var(--warn-soft); color: var(--warn); }
+  .verdict.bad { background: var(--danger-soft); color: var(--danger); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .verdict.ok { color: #9BC88F; background: rgba(155,200,143,.14); }
+    :root:not([data-theme="light"]) .verdict.watch { color: #E2B06A; background: rgba(226,176,106,.14); }
+    :root:not([data-theme="light"]) .verdict.bad { color: #E2847A; background: rgba(226,132,122,.14); } }
+  :root[data-theme="dark"] .verdict.ok { color: #9BC88F; background: rgba(155,200,143,.14); }
+  :root[data-theme="dark"] .verdict.watch { color: #E2B06A; background: rgba(226,176,106,.14); }
+  :root[data-theme="dark"] .verdict.bad { color: #E2847A; background: rgba(226,132,122,.14); }
+
+  section.part { display: flex; flex-direction: column; gap: 20px; }
+  section.part > .shead { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: end; }
+  section.part > .shead h2 { font-size: 32px; }
+  section.part > .shead h2 .num { font-family: var(--mono); font-size: 13px; color: var(--apricot-deep); margin-right: 12px; vertical-align: middle; }
+  section.part > .shead p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; white-space: nowrap; }
+
+  /* ------------------------------------------------------------------ 1. token table */
+  .map { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .map .grp { display: grid; grid-template-columns: 120px 1fr; border-top: 1px solid var(--line); }
+  .map .grp:first-child { border-top: 0; }
+  .map .grp > .gname { padding: 18px 20px; font-family: var(--serif); font-size: 20px; border-right: 1px solid var(--line); background: var(--surface-2); line-height: 1.2; }
+  .map .grp > .gname small { display: block; font-family: var(--font); font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+  .map .rows { display: flex; flex-direction: column; }
+  .map .row { display: grid; grid-template-columns: 156px 216px 22px 216px minmax(0, 1fr) 96px; gap: 14px; align-items: center; padding: 9px 20px; border-top: 1px solid var(--line); font-size: 13px; }
+  .map .row:first-child { border-top: 0; }
+  .map .row.head { padding: 10px 20px; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; background: var(--surface); }
+  .map .tok { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+  .map .sw { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); min-width: 0; }
+  .map .sw i { width: 34px; height: 24px; border-radius: 6px; flex: none; border: 1px solid rgba(42,50,68,.14); display: inline-grid; place-items: center; font: 600 12px var(--font); }
+  .map .sw i.on-dark { box-shadow: inset 0 0 0 4px #1C2230; }
+  .map .sw span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .map .arrow { color: var(--ink-3); text-align: center; }
+  .map .arrow.same { color: var(--apricot-deep); }
+  .map .note { color: var(--ink-2); font-size: 13px; line-height: 1.45; }
+
+  /* ------------------------------------------------------------------ 2–6. pairs */
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .pane { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .pane .plabel { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); padding: 0 2px; }
+  .pane .plabel b { font-weight: 600; color: var(--ink); }
+  .pane .plabel code { margin-left: auto; }
+  .screen { position: relative; height: 760px; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--canvas); background-image: var(--canvas-wash); color: var(--ink); box-shadow: var(--shadow-soft); font: 14px/1.55 var(--font); --rail-w: 208px; --col: 100%; }
+  .screen.t-dark { border-color: rgba(240,234,224,.14); }
+  .s-session .screen { height: 1030px; } .s-rail .screen { height: 800px; } .s-project .screen { height: 800px; } .s-manager .screen { height: 850px; } .s-manager .screen .column { padding-bottom: 60px; }
+  .screen .shell { height: 100%; }
+  .screen .rail { padding: 12px; gap: 4px; }
+  .screen .rail .brand { font-size: 20px; padding: 6px 8px 12px; }
+  .screen .rail .new { padding: 9px 12px; font-size: 13px; }
+  .screen .rail .section { padding: 12px 8px 4px; }
+  .screen .agent { padding: 8px 10px; } .screen .agent .head { font-size: 13px; } .screen .agent .doing { font-size: 12px; } .screen .agent .foot { font-size: 11.5px; }
+  .screen .agent .doing i { font-size: 13px; }
+  .screen .crew { padding: 10px 10px 2px; } .screen .crew .serif { font-size: 14px; }
+  .screen .topbar { padding: 10px 18px; min-height: 50px; }
+  .screen .topbar .title { font-size: 18px; }
+  .screen .column { padding: 14px 22px 24px; gap: 16px; }
+  .screen .scroll { overflow: hidden; }
+  .screen .msg .meta { font-size: 12.5px; } .screen .msg .meta .who { font-size: 15px; }
+  .screen .msg.human .text { padding: 10px 15px; font-size: 14px; }
+  .screen .msg.agent .text { font-size: 14px; }
+  .screen .step { font-size: 12.5px; padding: 2px 0; }
+  .screen .step svg { flex: none; color: var(--ink-3); }
+  .screen .step code { background: transparent; padding: 0; font-size: 12.5px; color: var(--ink-2); }
+  .screen .plan { padding: 14px 16px; gap: 10px; }
+  .screen .plan .head .serif { font-size: 18px; }
+  .screen .plan .pstep { font-size: 13px; padding: 7px 0; gap: 10px; }
+  .screen .plan .pstep .est { font-size: 11.5px; }
+  .screen .plan .foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+  .screen .stars span { width: 22px; height: 22px; font-size: 19px; }
+  .screen .notice { padding: 13px 16px; gap: 9px; font-size: 13.5px; }
+  .screen .notice .nt { font-family: var(--serif); font-size: 17px; }
+  .screen .notice p { margin: 0; color: var(--ink-2); }
+  .screen .composer-wrap { padding: 10px 20px 16px; }
+  .screen .composer { padding: 10px 10px 8px 14px; gap: 8px; }
+  .screen .composer .input { color: var(--ink-3); font-size: 14px; }
+  .screen .btn.sm { min-height: 28px; font-size: 12.5px; padding: 0 10px; }
+  .screen .send { width: 32px; height: 32px; }
+  .screen .seg button { font-size: 12px; padding: 3px 11px; }
+  .screen .seg .on { background: var(--seg-on); }
+  .screen .avatar { width: 24px; height: 24px; font-size: 10px; }
+  .screen .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); min-width: 92px; }
+  .screen .tokchip .budget { height: 4px; }
+  .screen .topbar .pill.planning { background: var(--apricot-soft); color: var(--ink); }
+  .screen .drawer { width: 100%; border-left: 0; padding: 16px 18px; gap: 16px; font-size: 13px; }
+  .screen .drawer h3 { font-size: 11px; }
+  .screen .drawer .kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 13px; }
+  .screen .drawer .kv .mono { font-size: 12px; }
+  .screen .drawer .brief { font-size: 13px; color: var(--ink-2); margin: 0; } .screen .drawer .brief + .brief { margin-top: 6px; } .screen .drawer .person { gap: 8px; } .screen .drawer .person .name { font-family: var(--serif); font-size: 15px; } .screen .drawer .kv .role { font-size: 12px; color: var(--ink-3); align-self: center; }
+  .screen .hero { padding: 20px 22px; border-radius: 18px; }
+  .screen .hero::after { right: -60px; top: -60px; width: 220px; height: 220px; border-width: 26px; }
+  .screen .hero h2 { font-size: 22px; color: #fff; }
+  .screen .hero .kick { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+  .screen .hero .chips { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .screen .hero .chip { background: rgba(255,255,255,.12); color: #fff; height: 26px; font-size: 12.5px; }
+  .screen h2.sec { font-size: 20px; display: flex; align-items: baseline; gap: 10px; }
+  .screen h2.sec .faint { font-family: var(--font); font-size: 12.5px; }
+  .screen .rowitem { padding: 9px 4px; font-size: 13.5px; }
+  .screen .rowitem .t { font-size: 15px; }
+  .screen .rowitem .s { font-size: 12.5px; }
+  .screen .rowitem .r { display: flex; align-items: center; gap: 10px; }
+  .screen .crewh { padding: 8px 4px 2px; font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+  .screen .crewh .serif { font-size: 15px; color: var(--accent); }
+  .screen .crewh::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot-deep); }
+  .screen .chat .line { display: flex; gap: 8px; font-size: 13.5px; } .screen .chat .line .who { font-size: 14.5px; }
+  .screen .chat .line .what { color: var(--ink-2); }
+  .screen .summary { font-family: var(--serif); font-size: 22px; line-height: 1.3; }
+  .screen .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .screen .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; box-shadow: var(--shadow-soft); }
+  .screen .stat .v { font-family: var(--serif); font-size: 26px; line-height: 1.1; }
+  .screen .stat .l { font-size: 12px; color: var(--ink-2); }
+  .screen .bars { display: grid; grid-template-columns: 70px 1fr 48px; gap: 6px 10px; align-items: center; font-size: 12.5px; }
+  .screen .bars .mono { font-size: 11.5px; text-align: right; color: var(--ink-2); }
+  .screen .bars .bar { height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+  .screen .bars .bar i { display: block; height: 100%; background: var(--apricot-deep); border-radius: inherit; }
+  .screen .bars .bar i.agent { background: var(--rail); }
+  .screen.t-dark .bars .bar i.agent { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line); }
+  .screen .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .screen .roster { display: flex; flex-wrap: wrap; gap: 6px; }
+  .screen .roster .chip { height: 30px; padding: 0 10px 0 4px; gap: 7px; }
+  .screen .roster .chip .avatar { border-color: transparent; }
+  .screen .notice.contention::before { background: var(--warn); }
+  .screen .option { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .screen .option .mono { font-size: 12px; color: var(--ink-2); }
+  .screen .sr { display: flex; align-items: center; gap: 8px; }
+  .screen .planrow { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 8px 4px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .screen .planrow .t { font-weight: 500; }
+  .screen .planrow .s { font-size: 12.5px; color: var(--ink-2); }
+  .screen .planrow .stars span { width: 18px; height: 18px; font-size: 16px; }
+  .screen .rail-only { display: flex; height: 100%; }
+  .screen .rail-only .rail { width: 296px; padding: 14px; gap: 6px; --rail-w: 296px; }
+  .screen .rail-only .rail .brand { font-size: 24px; padding: 8px 10px 16px; }
+  .screen .rail-only .rail .new { padding: 11px 14px; font-size: 14px; }
+  .screen .rail-only .agent { padding: 10px 12px; } .screen .rail-only .agent .head { font-size: 14px; } .screen .rail-only .agent .doing { font-size: 13px; } .screen .rail-only .agent .foot { font-size: 12px; }
+  .screen .rail-only .agent .doing i { font-size: 14px; }
+  .screen .rail-only .side { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .screen .rail .kbd { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 0 5px; }
+  .screen .rail .search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13px; margin-bottom: 4px; }
+  .screen .rail .search .kbd { border-color: rgba(243,237,228,.14); }
+  .screen .toast { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); background: var(--rail); color: var(--rail-fg); border-radius: var(--radius-full); padding: 8px 14px 8px 10px; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-pop); white-space: nowrap; }
+  .screen .toast .avatar { border-color: transparent; }
+  .screen .stack .avatar + .avatar { margin-left: -6px; }
+  .screen .avatar.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
+
+  /* callouts */
+  .tag { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: var(--apricot); color: #56352D; font: 700 11.5px/22px var(--font); text-align: center; box-shadow: 0 0 0 3px rgba(226,196,166,.35), 0 4px 12px rgba(0,0,0,.25); z-index: 5; }
+  .tag.bad { background: #E2847A; color: #1C2230; box-shadow: 0 0 0 3px rgba(226,132,122,.35), 0 4px 12px rgba(0,0,0,.25); }
+  .callouts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; font-size: 13.5px; color: var(--ink-2); }
+  .callouts .c { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; }
+  .callouts .c .tag { position: static; }
+  .callouts .c b { color: var(--ink); font-weight: 600; }
+  .callouts .c code { font-size: 12px; }
+
+  /* 6. component strip */
+  .strip { border-radius: 16px; border: 1px solid var(--line); background: var(--canvas); background-image: var(--canvas-wash); color: var(--ink); padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-soft); font: 14px/1.5 var(--font); }
+  .strip.t-dark { border-color: rgba(240,234,224,.14); }
+  .strip .srow { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; }
+  .strip .srow .l { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .strip .srow .r { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .strip .seg .on { background: var(--seg-on); }
+  .strip .railbit { background: var(--rail); color: var(--rail-fg); border-radius: 12px; padding: 8px 10px; display: flex; align-items: center; gap: 10px; }
+  .strip .railbit .avatar { border-color: var(--rail); }
+  .strip .railbit .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .strip .budget { width: 110px; }
+  .strip .ratio { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .strip .input { height: 32px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 0 10px; font: 13px var(--font); color: var(--ink); width: 180px; display: inline-flex; align-items: center; }
+  .strip .input.focus { box-shadow: var(--team-glow); }
+  .strip .phonebit { width: 120px; height: 44px; border-radius: 14px; border: 5px solid #1C2230; background: var(--canvas); display: grid; place-items: center; font-size: 12px; color: var(--ink-2); }
+  .strip .mark { width: 36px; height: 36px; }
+
+  /* 7. findings */
+  .findings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .find { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 12px; }
+  .find h3 { font-family: var(--serif); font-weight: 400; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+  .find ul { margin: 0; padding: 0 0 0 18px; font-size: 13.5px; color: var(--ink-2); display: flex; flex-direction: column; gap: 8px; }
+  .find li b { color: var(--ink); font-weight: 600; }
+  .proposal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); overflow: hidden; }
+  .proposal pre { margin: 0; padding: 22px 24px; font: 12.5px/1.6 var(--mono); color: var(--ink-2); background: var(--surface-2); overflow: auto; }
+  .proposal pre b { color: var(--ink); font-weight: 500; }
+  .proposal pre .c { color: var(--ink-3); }
+  .proposal .ba { padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; }
+  .proposal .ba .row2 { display: grid; grid-template-columns: 70px 1fr; gap: 12px; align-items: center; font-size: 12.5px; color: var(--ink-3); }
+  .proposal .ba .demo { border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--canvas); color: var(--ink); border: 1px solid rgba(240,234,224,.14); font: 13px var(--font); }
+  .proposal .ba .demo .hero { padding: 8px 12px; border-radius: 10px; font-family: var(--serif); font-size: 14px; color: #fff; min-width: 120px; }
+  .proposal .ba .demo .hero::after { display: none; }
+  .proposal .ba .demo .seg button { font-size: 12px; padding: 3px 10px; }
+  .proposal .ba .demo .seg .on { background: var(--seg-on); }
+  .proposal .ba .demo .budget { width: 70px; }
+  footer.foot { display: flex; justify-content: space-between; gap: 20px; color: var(--ink-3); font-size: 13px; border-top: 1px solid var(--line); padding-top: 22px; flex-wrap: wrap; }
+
+  @media (max-width: 1100px) {
+    .pair, .findings, .proposal, section.part > .shead, .callouts { grid-template-columns: 1fr; }
+    .map .row { grid-template-columns: 150px 1fr 22px 1fr; } .map .row .note, .map .row .verdict { grid-column: span 2; }
+    .map .grp { grid-template-columns: 1fr; } .map .grp > .gname { border-right: 0; border-bottom: 1px solid var(--line); }
+    header.top { grid-template-columns: 1fr; } header.top .meta { align-items: flex-start; text-align: left; }
+  }
+  @media (max-width: 700px) { .board { padding: 0 16px 60px; } header.top h1 { font-size: 40px; } .screen { height: 560px; --rail-w: 0px; } .screen .rail { display: none; } .screen .rail-only .rail { display: flex; width: 100%; } .screen .rail-only .side { display: none; } .strip .srow { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></symbol>
+    <symbol id="i-send" viewBox="0 0 16 16"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.5 8.5 6.5 11.5 12.5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-file" viewBox="0 0 16 16"><path d="M4 2h5l3 3v9H4z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/><path d="M9 2v3h3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/></symbol>
+    <symbol id="i-term" viewBox="0 0 16 16"><path d="M3 4l4 4-4 4M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M10 10l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-gate" viewBox="0 0 16 16"><path d="M3 13V6l5-3 5 3v7" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/><path d="M6 13V9h4v4" stroke="currentColor" stroke-width="1.5" fill="none"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 16 16"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1H3z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.5" fill="none"/></symbol>
+    <symbol id="mark-sym" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a)" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7" fill="var(--mark-dot)"/></symbol>
+  </defs>
+</svg>
+
+<div class="board">
+  <header class="top">
+    <div>
+      <div class="brand"><svg class="mark" width="30" height="30"><use href="#mark-sym"/></svg> Henosis</div>
+      <div class="kicker">Exploration · system · dark-mode</div>
+      <h1>Dark mode audit</h1>
+      <p class="sub">The session, the rail, the project page and the manager overview rendered twice from the same markup: once pinned to the light tokens, once to the dark set in <code>tokens.css</code> v5. Every number on a dark pane names the token that changed, held, or should not have held.</p>
+    </div>
+    <div class="meta">
+      <span><b>Payments team</b> · Billing page, Checkout</span>
+      <span>tokens.css v5 · 24 tokens remapped, 11 held</span>
+      <span>Page chrome follows your scheme; panes are pinned</span>
+      <div class="legend" style="margin-top:8px">
+        <span class="sw"><i style="background:#FBF7F1"></i>light pane</span>
+        <span class="sw"><i style="background:#1C2230"></i>dark pane</span>
+        <span class="verdict ok">holds</span><span class="verdict watch">watch</span><span class="verdict bad">breaks</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================ 1. mapping -->
+  <section class="part">
+    <div class="shead">
+      <h2><span class="num">01</span>The mapping</h2>
+      <p>Dark mode is not an inversion. The frame darkens two notches, the page becomes a lighter navy than the frame so the rail still reads as the frame, the hand swaps from chocolate to apricot, and the pulse stays apricot everywhere. Shape, not hue, keeps the hand and the pulse apart at night.</p>
+    </div>
+    <div class="map">
+      <div class="grp">
+        <div class="gname">Page<small>the cream and its inks</small></div>
+        <div class="rows">
+          <div class="row head"><span>token</span><span>light</span><span></span><span>dark</span><span>rule</span><span>verdict</span></div>
+          <div class="row"><span class="tok">--canvas</span><span class="sw"><i style="background:#FBF7F1"></i><span>#FBF7F1</span></span><span class="arrow">→</span><span class="sw"><i style="background:#1C2230"></i><span>#1C2230</span></span><span class="note">Navy, one notch lighter than the light-mode rail. Never pure black: the apricot wash needs a blue to warm.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--canvas-wash</span><span class="sw"><i style="background:radial-gradient(circle at 30% 20%, rgba(226,196,166,.35), #FBF7F1)"></i><span>apricot .35</span></span><span class="arrow">→</span><span class="sw"><i style="background:radial-gradient(circle at 30% 20%, rgba(226,196,166,.10), #1C2230)"></i><span>apricot .10</span></span><span class="note">Same shape, a third of the strength. The corner still glows; the page stays legible.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--surface / -2 / -3</span><span class="sw"><i style="background:linear-gradient(90deg,#FFFFFF 33%,#F4EEE5 33% 66%,#ECE3D6 66%)"></i><span>#FFF · F4EEE5 · ECE3D6</span></span><span class="arrow">→</span><span class="sw"><i style="background:linear-gradient(90deg,#232B3B 33%,#2A3344 33% 66%,#343E52 66%)"></i><span>232B3B · 2A3344 · 343E52</span></span><span class="note">Light goes down from white; dark goes up from the canvas. Elevation is a lighter step in both, so cards still sit on top.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--ink / -2 / -3</span><span class="sw"><i style="background:linear-gradient(90deg,#1F2634 33%,#5B6273 33% 66%,#8E94A3 66%)"></i><span>1F2634 · 5B6273 · 8E94A3</span></span><span class="arrow">→</span><span class="sw"><i style="background:linear-gradient(90deg,#F0EAE0 33%,#B4BAC6 33% 66%,#7E8595 66%)"></i><span>F0EAE0 · B4BAC6 · 7E8595</span></span><span class="note">Primary ink is the cream, not white. <code>--ink-3</code> is 3.6 : 1 on <code>--surface</code>: metadata only, never a label.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--line</span><span class="sw"><i style="background:#FBF7F1;box-shadow:inset 0 0 0 2px rgba(42,50,68,.12)"></i><span>navy .12</span></span><span class="arrow">→</span><span class="sw"><i style="background:#1C2230;box-shadow:inset 0 0 0 2px rgba(240,234,224,.12)"></i><span>cream .12</span></span><span class="note">Same alpha, inverted base. Hairlines on <code>--surface</code> are faint at night; the screen border on this board uses .14.</span><span class="verdict watch">watch</span></div>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="gname">Frame<small>the rail and titlebars</small></div>
+        <div class="rows">
+          <div class="row"><span class="tok">--rail / --rail-2</span><span class="sw"><i style="background:linear-gradient(90deg,#2A3244 50%,#333C50 50%)"></i><span>2A3244 · 333C50</span></span><span class="arrow">→</span><span class="sw"><i style="background:linear-gradient(90deg,#161B26 50%,#1E2432 50%)"></i><span>161B26 · 1E2432</span></span><span class="note">Dress Blues darkened two notches so the rail is still darker than the page. The frame stays the frame.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--rail-fg / --rail-muted</span><span class="sw"><i style="background:linear-gradient(90deg,#F3EDE4 50%,#AEB4C2 50%);"></i><span>F3EDE4 · AEB4C2</span></span><span class="arrow">→</span><span class="sw"><i style="background:linear-gradient(90deg,#F0EAE0 50%,#8E95A5 50%)"></i><span>F0EAE0 · 8E95A5</span></span><span class="note">Muted drops a notch because the rail is darker. 5.4 : 1 on <code>--rail</code>; the "what it is on" line is still readable.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--rail-active</span><span class="sw"><i style="background:#2A3244"><i style="width:22px;height:14px;border:0;border-radius:4px;background:rgba(226,196,166,.18)"></i></i><span>apricot .18</span></span><span class="arrow">→</span><span class="sw"><i style="background:#161B26"><i style="width:22px;height:14px;border:0;border-radius:4px;background:rgba(226,196,166,.16)"></i></i><span>apricot .16</span></span><span class="note">Selection is a pulse, so it stays apricot. The inset ring on <code>.agent.active</code> is hard-coded apricot and reads in both.</span><span class="verdict ok">holds</span></div>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="gname">Hand<small>every primary action</small></div>
+        <div class="rows">
+          <div class="row"><span class="tok">--accent</span><span class="sw"><i style="background:#56352D"></i><span>#56352D chocolate</span></span><span class="arrow">→</span><span class="sw"><i style="background:#E2C4A6"></i><span>#E2C4A6 apricot</span></span><span class="note">The big swap. Chocolate on navy is 2.1 : 1, so at night the hand borrows the pulse's colour. Buttons are filled pills, pulses are dots and rings: shape keeps them apart.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--accent-fg</span><span class="sw"><i style="background:#FFF8F1"></i><span>#FFF8F1</span></span><span class="arrow">→</span><span class="sw"><i style="background:#1C2230"></i><span>#1C2230</span></span><span class="note">Ink on the hand flips with it: 11.6 : 1 navy on apricot.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--gradient-brand</span><span class="sw"><i style="background:linear-gradient(135deg,#2A3244,#56352D)"></i><span>navy → chocolate</span></span><span class="arrow same">=</span><span class="sw"><i style="background:linear-gradient(135deg,#2A3244,#56352D)" class="on-dark"></i><span>unchanged</span></span><span class="note">Not remapped. Its navy end is <code>#2A3244</code> on a <code>#1C2230</code> page: the hero and the gate stripe lose their left edge at night.</span><span class="verdict bad">breaks</span></div>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="gname">Pulse<small>live things</small></div>
+        <div class="rows">
+          <div class="row"><span class="tok">--apricot / -deep / -soft</span><span class="sw"><i style="background:linear-gradient(90deg,#E2C4A6 50%,#CFA782 50%)"></i><span>E2C4A6 · CFA782 · .30</span></span><span class="arrow same">=</span><span class="sw"><i style="background:linear-gradient(90deg,#E2C4A6 50%,#CFA782 50%)" class="on-dark"></i><span>unchanged</span></span><span class="note">The pulse is the one colour that never moves. Team messages, the centre dot, the glow, the running bar: all apricot in both.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--glow / --team-glow</span><span class="sw"><i style="background:#FBF7F1;box-shadow:inset 0 0 0 3px rgba(226,196,166,.35)"></i><span>apricot .35 · 4px</span></span><span class="arrow same">=</span><span class="sw"><i style="background:#1C2230;box-shadow:inset 0 0 0 3px rgba(226,196,166,.35)"></i><span>unchanged</span></span><span class="note">Focus ring is brighter at night by nature; fine. It must never follow a team accent (<code>--team-highlight</code> is not the accent).</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">.pill.team</span><span class="sw"><i style="background:#E2C4A6;color:#56352D">T</i><span>apricot / #56352D</span></span><span class="arrow same">=</span><span class="sw"><i style="background:#E2C4A6;color:#56352D" class="on-dark">T</i><span>unchanged</span></span><span class="note">Hard-coded chocolate on apricot, 7.3 : 1 in both. The Team pill is the one place chocolate survives the night.</span><span class="verdict ok">holds</span></div>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="gname">Status<small>a word and a colour</small></div>
+        <div class="rows">
+          <div class="row"><span class="tok">--ok / --warn / --danger</span><span class="sw"><i style="background:linear-gradient(90deg,#4F7D4A 33%,#B9792E 33% 66%,#A8463A 66%)"></i><span>4F7D4A · B9792E · A8463A</span></span><span class="arrow same">=</span><span class="sw"><i style="background:linear-gradient(90deg,#4F7D4A 33%,#B9792E 33% 66%,#A8463A 66%)" class="on-dark"></i><span>unchanged</span></span><span class="note">Not remapped: 2.4 / 3.6 / 2.3 : 1 on <code>--surface</code>. The rail already uses the right dark values (9BC88F · E2B06A · E2847A); the page should too.</span><span class="verdict bad">breaks</span></div>
+          <div class="row"><span class="tok">--info</span><span class="sw"><i style="background:#5B6273"></i><span>#5B6273</span></span><span class="arrow same">=</span><span class="sw"><i style="background:#5B6273" class="on-dark"></i><span>unchanged</span></span><span class="note">Paused dot nearly vanishes on <code>--surface</code> (1.9 : 1). Map to <code>--ink-2</code> at night.</span><span class="verdict bad">breaks</span></div>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="gname">Depth<small>shadows and the mark</small></div>
+        <div class="rows">
+          <div class="row"><span class="tok">--shadow-soft / -pop</span><span class="sw"><i style="background:#fff;box-shadow:0 4px 10px rgba(42,50,68,.16)"></i><span>navy .08 · .16</span></span><span class="arrow">→</span><span class="sw"><i style="background:#232B3B;box-shadow:0 4px 10px rgba(0,0,0,.5)"></i><span>black .35 · .50</span></span><span class="note">Shadows go black and four times stronger; on navy they read as depth rather than dirt. The composer still lifts.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">--mark-disc</span><span class="sw"><i style="background:#2A3244"></i><span>#2A3244</span></span><span class="arrow">→</span><span class="sw"><i style="background:#0F131B"></i><span>#0F131B</span></span><span class="note">Darker than the rail so the disc keeps an edge on it. On the page the disc is 1.3 : 1 against the canvas: the arcs carry the mark, which is the intent.</span><span class="verdict ok">holds</span></div>
+          <div class="row"><span class="tok">.seg .on · .phone</span><span class="sw"><i style="background:#F4EEE5"><i style="width:20px;height:14px;border:0;border-radius:7px;background:#fff;box-shadow:0 1px 3px rgba(42,50,68,.16)"></i></i><span>surface on surface-2</span></span><span class="arrow same">=</span><span class="sw"><i style="background:#2A3344"><i style="width:20px;height:14px;border:0;border-radius:7px;background:#232B3B"></i></i><span>inverted</span></span><span class="note">The selected segment is the lighter pill by day and the darker one by night. The phone bezel is hard-coded <code>#1C2230</code>, the dark canvas, so it disappears.</span><span class="verdict bad">breaks</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2. session -->
+  <section class="part s-session">
+    <div class="shead">
+      <h2><span class="num">02</span>The session</h2>
+      <p>Ana's session on the invoice PDF with the rail, a human line, the agent's words and tool steps, a plan waiting for one more rating, Bo talking to the team, and a release gate. The composer is focused in both panes to show the glow.</p>
+    </div>
+    <div class="pair">
+      <div class="pane">
+        <div class="plabel"><b>Light</b> · page is cream, hand is chocolate <code>prefers-color-scheme: light</code></div>
+        <div class="screen t-light">
+          <div class="shell">
+            <aside class="rail">
+              <div class="brand"><svg class="mark" width="26" height="26"><use href="#mark-sym"/></svg> Henosis</div>
+              <button class="new"><svg width="14" height="14"><use href="#i-plus"/></svg> New session</button>
+              <div class="section">Agents <span class="n">4</span></div>
+              <div class="crew"><span class="serif">Invoice rollout</span></div>
+              <a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Invoice PDF layout</span></div><div class="doing">Adding VAT per line to <i>template.tsx</i></div><div class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="mono" style="margin-left:auto;font-size:11px">12.4k</span></div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines on Checkout</span></div><div class="doing">Waits for the <i>release gate</i></div><div class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">B</span><span class="avatar">C</span></span><span class="mono" style="margin-left:auto;font-size:11px">31.2k</span></div></a>
+              <div class="section">Solo</div>
+              <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Proration on plan change</span></div><div class="doing">Running the <i>proration</i> tests</div><div class="foot"><span class="pill solo">Solo</span><span class="avatar driver">C</span><span class="mono" style="margin-left:auto;font-size:11px">8.9k</span></div></a>
+              <div class="me"><span class="avatar">A</span> Ana</div>
+            </aside>
+            <div class="main">
+              <div class="topbar"><div class="title"><span>Invoice PDF layout</span><span class="pill planning">Planning</span></div><div class="right"><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span><span class="avatar">C</span></span><span class="tokchip">12.4k of 40k<span class="budget"><i style="width:31%"></i></span></span></div></div>
+              <div class="scroll"><div class="column">
+                <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">09:41</span></div><div class="text">Add the tax lines to the invoice PDF: VAT per line, then a total. Proration under its own heading.</div></div>
+                <div class="msg agent"><div class="meta"><span class="who">Ana's agent</span><span class="faint">09:41</span></div><div class="text">I read the template and the tax module. Four steps; two touch files Bo's session has claimed.</div>
+                  <div class="steps"><div class="step"><svg width="14" height="14"><use href="#i-file"/></svg><code>read apps/billing/invoice/template.tsx</code></div><div class="step"><svg width="14" height="14"><use href="#i-file"/></svg><code>read packages/tax/lines.ts</code></div></div></div>
+                <div class="plan"><div class="head"><span class="serif">Tax lines in the invoice PDF</span><span class="pill" style="margin-left:auto">25k est.</span></div>
+                  <div class="steps"><div class="pstep done"><span class="n"><svg width="12" height="12"><use href="#i-check"/></svg></span><span>Read the template and the tax module</span><span class="est">3.8k / 4.1k</span><span></span></div><div class="pstep running"><span class="n">2</span><span>VAT per line, then a tax total</span><span class="est">12k</span><span></span></div><div class="pstep"><span class="n">3</span><span>Proration lines under their own heading</span><span class="est">9k</span><span></span></div></div>
+                  <div class="foot"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span>Bo rated 4. One more rating.</span><span class="sr" style="flex-basis:100%"><button class="btn primary sm">Approve now</button><button class="btn sm">Ask to revise</button></span></div></div>
+                <div class="msg human team"><div class="meta"><span class="who">Bo</span><span class="to">to the team</span><span class="faint">09:44</span></div><div class="text">I'll release the claim on lines.ts once the Checkout tests pass.</div></div>
+                <div class="notice gate"><div class="nt">Release gate: push to main</div><p>Two contributors rating 4 or more grant it. Cy rated 5; one more rating.</p><div class="actions"><button class="btn primary sm">Approve · 4</button><button class="btn sm">Deny</button><span class="stars" style="margin-left:auto"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></div></div>
+              </div></div>
+              <div class="composer-wrap"><div class="composer" style="box-shadow: var(--shadow-pop), var(--team-glow)"><div class="input">Message Ana's agent…</div><div class="bar"><div class="seg"><button class="on">Agent</button><button>Team</button></div><span class="small faint">scope: pdf</span><div class="right"><button class="send"><svg width="14" height="14"><use href="#i-send"/></svg></button></div></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="plabel"><b>Dark</b> · page is navy, hand is apricot <code>[data-theme="dark"]</code></div>
+        <div class="screen t-dark">
+          <b class="tag" style="left:8px;top:28px">1</b><b class="tag" style="left:482px;top:598px">2</b><b class="tag" style="left:585px;top:552px">3</b><b class="tag bad" style="left:222px;top:790px">4</b><b class="tag" style="left:545px;top:688px">5</b><b class="tag bad" style="left:222px;top:434px">6</b><b class="tag" style="left:596px;top:896px">7</b>
+          <div class="shell">
+            <aside class="rail">
+              <div class="brand"><svg class="mark" width="26" height="26"><use href="#mark-sym"/></svg> Henosis</div>
+              <button class="new"><svg width="14" height="14"><use href="#i-plus"/></svg> New session</button>
+              <div class="section">Agents <span class="n">4</span></div>
+              <div class="crew"><span class="serif">Invoice rollout</span></div>
+              <a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Invoice PDF layout</span></div><div class="doing">Adding VAT per line to <i>template.tsx</i></div><div class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="mono" style="margin-left:auto;font-size:11px">12.4k</span></div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines on Checkout</span></div><div class="doing">Waits for the <i>release gate</i></div><div class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">B</span><span class="avatar">C</span></span><span class="mono" style="margin-left:auto;font-size:11px">31.2k</span></div></a>
+              <div class="section">Solo</div>
+              <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Proration on plan change</span></div><div class="doing">Running the <i>proration</i> tests</div><div class="foot"><span class="pill solo">Solo</span><span class="avatar driver">C</span><span class="mono" style="margin-left:auto;font-size:11px">8.9k</span></div></a>
+              <div class="me"><span class="avatar">A</span> Ana</div>
+            </aside>
+            <div class="main">
+              <div class="topbar"><div class="title"><span>Invoice PDF layout</span><span class="pill planning">Planning</span></div><div class="right"><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span><span class="avatar">C</span></span><span class="tokchip">12.4k of 40k<span class="budget"><i style="width:31%"></i></span></span></div></div>
+              <div class="scroll"><div class="column">
+                <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">09:41</span></div><div class="text">Add the tax lines to the invoice PDF: VAT per line, then a total. Proration under its own heading.</div></div>
+                <div class="msg agent"><div class="meta"><span class="who">Ana's agent</span><span class="faint">09:41</span></div><div class="text">I read the template and the tax module. Four steps; two touch files Bo's session has claimed.</div>
+                  <div class="steps"><div class="step"><svg width="14" height="14"><use href="#i-file"/></svg><code>read apps/billing/invoice/template.tsx</code></div><div class="step"><svg width="14" height="14"><use href="#i-file"/></svg><code>read packages/tax/lines.ts</code></div></div></div>
+                <div class="plan"><div class="head"><span class="serif">Tax lines in the invoice PDF</span><span class="pill" style="margin-left:auto">25k est.</span></div>
+                  <div class="steps"><div class="pstep done"><span class="n"><svg width="12" height="12"><use href="#i-check"/></svg></span><span>Read the template and the tax module</span><span class="est">3.8k / 4.1k</span><span></span></div><div class="pstep running"><span class="n">2</span><span>VAT per line, then a tax total</span><span class="est">12k</span><span></span></div><div class="pstep"><span class="n">3</span><span>Proration lines under their own heading</span><span class="est">9k</span><span></span></div></div>
+                  <div class="foot"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span>Bo rated 4. One more rating.</span><span class="sr" style="flex-basis:100%"><button class="btn primary sm">Approve now</button><button class="btn sm">Ask to revise</button></span></div></div>
+                <div class="msg human team"><div class="meta"><span class="who">Bo</span><span class="to">to the team</span><span class="faint">09:44</span></div><div class="text">I'll release the claim on lines.ts once the Checkout tests pass.</div></div>
+                <div class="notice gate"><div class="nt">Release gate: push to main</div><p>Two contributors rating 4 or more grant it. Cy rated 5; one more rating.</p><div class="actions"><button class="btn primary sm">Approve · 4</button><button class="btn sm">Deny</button><span class="stars" style="margin-left:auto"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></div></div>
+              </div></div>
+              <div class="composer-wrap"><div class="composer" style="box-shadow: var(--shadow-pop), var(--team-glow)"><div class="input">Message Ana's agent…</div><div class="bar"><div class="seg"><button class="on">Agent</button><button>Team</button></div><span class="small faint">scope: pdf</span><div class="right"><button class="send"><svg width="14" height="14"><use href="#i-send"/></svg></button></div></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callouts">
+      <div class="c"><b class="tag">1</b><span><b>Rail darkens, page lightens.</b> <code>--rail #161B26</code> against <code>--canvas #1C2230</code>: a 1.2 : 1 step, enough for the frame to read as frame because the topbar hairline and the wash do the rest.</span></div>
+      <div class="c"><b class="tag">2</b><span><b>The hand is apricot.</b> Approve now and the send button go <code>--accent #E2C4A6</code> with <code>--accent-fg #1C2230</code>. The human bubble's shadow goes black .35 and still lifts off <code>--surface</code>.</span></div>
+      <div class="c"><b class="tag">3</b><span><b>Stars and the running step keep the pulse.</b> <code>--apricot-deep</code> on both; the empty star is <code>--surface-3</code>, which rises to #343E52 and stays visible.</span></div>
+      <div class="c"><b class="tag bad">4</b><span><b>The gate stripe fades.</b> <code>.notice.gate::before</code> is <code>--gradient-brand</code>; its navy end is one notch off the card. Proposal: a dark variant starting at <code>--surface-3</code>.</span></div>
+      <div class="c"><b class="tag">5</b><span><b>Team message wash holds.</b> <code>--apricot-soft</code> at .30 over #232B3B reads as a warm card; "to the team" is <code>--accent</code>, now apricot, which is right: it is the same colour as the wash's source.</span></div>
+      <div class="c"><b class="tag bad">6</b><span><b>Status dots on the page are too dim.</b> The plan step's done circle uses <code>--ok #4F7D4A</code> (2.4 : 1 on surface) while the rail dot beside it is #9BC88F. Same meaning, two greens.</span></div>
+      <div class="c"><b class="tag">7</b><span><b>Composer glow is unchanged and brighter.</b> Apricot .35 over navy is louder than over cream; acceptable, since focus should be the loudest thing on a dark page. The Agent segment, though, is the darker pill: see 01.</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3. rail -->
+  <section class="part s-rail">
+    <div class="shead">
+      <h2><span class="num">03</span>The rail and the drawer</h2>
+      <p>The rail at its real width with crews, statuses, Solo and Team, who is with whom, and tokens at the end of the line; beside it the Details drawer with usage, budget, branches and memory. The rail is the one surface that is navy in both schemes, so it is where the two mappings meet.</p>
+    </div>
+    <div class="pair">
+      <div class="pane">
+        <div class="plabel"><b>Light</b> · the frame is Dress Blues <code>--rail #2A3244</code></div>
+        <div class="screen t-light">
+          <div class="rail-only">
+            <aside class="rail">
+              <div class="brand"><svg class="mark" width="30" height="30"><use href="#mark-sym"/></svg> Henosis <span class="kbd">⌘K</span></div>
+              <div class="search"><svg width="14" height="14"><use href="#i-search"/></svg> Search sessions, people, memory <span class="kbd">/</span></div>
+              <button class="new"><svg width="14" height="14"><use href="#i-plus"/></svg> New session</button>
+              <div class="section">Agents <span class="n">4 live</span></div>
+              <div class="crew"><span class="serif">Invoice rollout</span><span>2 agents · 3 people</span></div>
+              <a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Invoice PDF layout</span></div><div class="doing">Adding VAT per line to <i>template.tsx</i>, then the tax total</div><div class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span>with Bo</span><span class="mono" style="margin-left:auto;font-size:11.5px">12.4k</span></div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines on Checkout</span></div><div class="doing">Waits for the <i>release gate</i>: two ratings at 4+</div><div class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">B</span><span class="avatar">C</span></span><span>with Cy</span><span class="mono" style="margin-left:auto;font-size:11.5px">31.2k</span></div></a>
+              <div class="section">Solo</div>
+              <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Proration on plan change</span></div><div class="doing">Running the <i>proration</i> tests on Checkout</div><div class="foot"><span class="pill solo">Solo</span><span class="avatar driver">C</span><span class="mono" style="margin-left:auto;font-size:11.5px">8.9k</span></div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot"></span><span class="t">Billing page copy</span></div><div class="doing">Paused by Dee at the <i>plan</i></div><div class="foot"><span class="pill solo">Solo</span><span class="avatar driver">D</span><span class="mono" style="margin-left:auto;font-size:11.5px">2.1k</span></div></a>
+                                          <div class="me"><span class="avatar">A</span> Ana <span class="faint" style="margin-left:auto;font-size:12px;color:var(--rail-muted)">Payments</span></div>
+            </aside>
+            <div class="side"><div class="drawer">
+              <div><h3>Intent</h3><p class="brief">Tax lines in the invoice PDF: VAT per line, a tax total, proration under its own heading. <span class="faint">[project]</span> Proration waits for the PDF.</p></div>
+              <div><h3>Usage</h3><div class="kv"><span>Spent</span><span class="mono">12,412</span><span>Budget</span><span class="mono">40,000</span><span>Last turn</span><span class="mono">1,844 in · 612 out</span></div><div class="budget" style="margin-top:8px"><i style="width:31%"></i></div></div>
+              <div><h3>Branches</h3><div class="kv"><span class="serif" style="font-size:15px">main</span><span class="status running">driving</span><span class="serif" style="font-size:15px">pdf-layout</span><span class="status paused">paused</span><span class="serif" style="font-size:15px">tax-rounding</span><span class="status awaiting">awaiting</span></div></div>
+              <div><h3>Workspace</h3><div class="kv"><span class="mono">template.tsx</span><span class="faint">claimed · Ana</span><span class="mono">lines.ts</span><span class="status blocked">contended</span></div></div>
+              <div><h3>People</h3><div class="kv"><span class="person"><span class="avatar driver">A</span><span class="name">Ana</span></span><span class="role">driver · owner</span><span class="person"><span class="avatar">B</span><span class="name">Bo</span></span><span class="role">contributor</span><span class="person"><span class="avatar">C</span><span class="name">Cy</span></span><span class="role">observer</span></div></div>
+              <div><h3>Memory</h3><p class="brief">Invoice totals round half-up per line. <span class="faint">Ana · c3f2a1</span></p><p class="brief">Checkout shows tax before proration. <span class="faint">Bo's agent · flagged</span></p></div>
+              <div><h3>Brief</h3><p class="brief">Since you were last here: Bo claimed lines.ts, the plan got one rating, and the gate opened on Tax lines.</p></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="plabel"><b>Dark</b> · the frame goes two notches down <code>--rail #161B26</code></div>
+        <div class="screen t-dark">
+          <b class="tag" style="left:272px;top:92px">1</b><b class="tag" style="left:272px;top:158px">2</b><b class="tag" style="left:6px;top:284px">3</b><b class="tag bad" style="left:602px;top:300px">4</b><b class="tag" style="left:598px;top:198px">5</b><b class="tag" style="left:272px;top:380px">6</b>
+          <div class="rail-only">
+            <aside class="rail">
+              <div class="brand"><svg class="mark" width="30" height="30"><use href="#mark-sym"/></svg> Henosis <span class="kbd">⌘K</span></div>
+              <div class="search"><svg width="14" height="14"><use href="#i-search"/></svg> Search sessions, people, memory <span class="kbd">/</span></div>
+              <button class="new"><svg width="14" height="14"><use href="#i-plus"/></svg> New session</button>
+              <div class="section">Agents <span class="n">4 live</span></div>
+              <div class="crew"><span class="serif">Invoice rollout</span><span>2 agents · 3 people</span></div>
+              <a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Invoice PDF layout</span></div><div class="doing">Adding VAT per line to <i>template.tsx</i>, then the tax total</div><div class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span>with Bo</span><span class="mono" style="margin-left:auto;font-size:11.5px">12.4k</span></div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines on Checkout</span></div><div class="doing">Waits for the <i>release gate</i>: two ratings at 4+</div><div class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">B</span><span class="avatar">C</span></span><span>with Cy</span><span class="mono" style="margin-left:auto;font-size:11.5px">31.2k</span></div></a>
+              <div class="section">Solo</div>
+              <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Proration on plan change</span></div><div class="doing">Running the <i>proration</i> tests on Checkout</div><div class="foot"><span class="pill solo">Solo</span><span class="avatar driver">C</span><span class="mono" style="margin-left:auto;font-size:11.5px">8.9k</span></div></a>
+              <a class="agent" href="#"><div class="head"><span class="dot"></span><span class="t">Billing page copy</span></div><div class="doing">Paused by Dee at the <i>plan</i></div><div class="foot"><span class="pill solo">Solo</span><span class="avatar driver">D</span><span class="mono" style="margin-left:auto;font-size:11.5px">2.1k</span></div></a>
+                                          <div class="me"><span class="avatar">A</span> Ana <span class="faint" style="margin-left:auto;font-size:12px;color:var(--rail-muted)">Payments</span></div>
+            </aside>
+            <div class="side"><div class="drawer">
+              <div><h3>Intent</h3><p class="brief">Tax lines in the invoice PDF: VAT per line, a tax total, proration under its own heading. <span class="faint">[project]</span> Proration waits for the PDF.</p></div>
+              <div><h3>Usage</h3><div class="kv"><span>Spent</span><span class="mono">12,412</span><span>Budget</span><span class="mono">40,000</span><span>Last turn</span><span class="mono">1,844 in · 612 out</span></div><div class="budget" style="margin-top:8px"><i style="width:31%"></i></div></div>
+              <div><h3>Branches</h3><div class="kv"><span class="serif" style="font-size:15px">main</span><span class="status running">driving</span><span class="serif" style="font-size:15px">pdf-layout</span><span class="status paused">paused</span><span class="serif" style="font-size:15px">tax-rounding</span><span class="status awaiting">awaiting</span></div></div>
+              <div><h3>Workspace</h3><div class="kv"><span class="mono">template.tsx</span><span class="faint">claimed · Ana</span><span class="mono">lines.ts</span><span class="status blocked">contended</span></div></div>
+              <div><h3>People</h3><div class="kv"><span class="person"><span class="avatar driver">A</span><span class="name">Ana</span></span><span class="role">driver · owner</span><span class="person"><span class="avatar">B</span><span class="name">Bo</span></span><span class="role">contributor</span><span class="person"><span class="avatar">C</span><span class="name">Cy</span></span><span class="role">observer</span></div></div>
+              <div><h3>Memory</h3><p class="brief">Invoice totals round half-up per line. <span class="faint">Ana · c3f2a1</span></p><p class="brief">Checkout shows tax before proration. <span class="faint">Bo's agent · flagged</span></p></div>
+              <div><h3>Brief</h3><p class="brief">Since you were last here: Bo claimed lines.ts, the plan got one rating, and the gate opened on Tax lines.</p></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callouts">
+      <div class="c"><b class="tag">1</b><span><b>Search and hover rows.</b> <code>--rail-2 #1E2432</code> is a one-notch lift on #161B26, the same relation as #333C50 on #2A3244. The ⌘K key uses <code>--rail-line</code>, which is cream .10 in both.</span></div>
+      <div class="c"><b class="tag">2</b><span><b>The New session button keeps the brand gradient.</b> On the darker rail its navy end (#2A3244) is now lighter than its ground, so the button reads. The one place the unchanged gradient is right.</span></div>
+      <div class="c"><b class="tag">3</b><span><b>Rail dots were designed for night.</b> #9BC88F / #E2B06A / #E2847A are hard-coded on the card and are the values the page tokens should take in dark: the rail is the reference.</span></div>
+      <div class="c"><b class="tag bad">4</b><span><b>Drawer statuses dim.</b> <code>.status.paused</code> uses <code>--info #5B6273</code> and <code>.status.blocked</code> uses <code>--danger #A8463A</code> on <code>--surface #232B3B</code>: 1.9 and 2.3 : 1. The word carries them; the colour does not.</span></div>
+      <div class="c"><b class="tag">5</b><span><b>Budget bar holds.</b> <code>--gradient-live</code> is apricot in both; the track <code>--surface-3</code> rises to #343E52. Numbers in JetBrains Mono at <code>--ink</code>, labels at <code>--ink-2</code>.</span></div>
+      <div class="c"><b class="tag">6</b><span><b>Active card ring.</b> <code>.agent.active</code> has apricot .35 inset on <code>--rail-active</code> .16: still a pulse, still visible, slightly softer than by day. The driver ring on the avatar is <code>--apricot-deep</code> in both.</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4. project -->
+  <section class="part s-project">
+    <div class="shead">
+      <h2><span class="num">04</span>The project page</h2>
+      <p>Payments: the lead's direction as the hero, agents by crew with claims and spend, a contention on <code>lines.ts</code> for the lead to resolve, team chat and the project's memory. The hero is the one gradient the page is allowed, which makes it the screen's hardest dark-mode case.</p>
+    </div>
+    <div class="pair">
+      <div class="pane">
+        <div class="plabel"><b>Light</b> · hero is navy → chocolate on cream <code>--gradient-brand</code></div>
+        <div class="screen t-light">
+          <div class="shell"><div class="main">
+            <div class="topbar"><div class="title"><span>Payments</span><span class="faint" style="font-family:var(--font);font-size:12.5px">4 sessions · 2 crews</span></div><div class="right"><button class="btn sm">Invite</button><button class="btn brand sm"><svg width="12" height="12"><use href="#i-plus"/></svg> New session</button></div></div>
+            <div class="scroll"><div class="column">
+              <div class="hero"><div class="kick">Direction · Dee, lead</div><h2>Ship the invoice PDF with tax lines before the October close. Proration follows.</h2><div class="chips"><span class="chip">54.6k tokens today</span><span class="chip">1 gate open</span><span class="chip">1 contention</span></div></div>
+              <div><h2 class="sec">Agents <span class="faint">by crew</span></h2>
+                <div class="crewh"><span class="serif">Invoice rollout</span><span>Ana, Bo, Cy</span><button class="btn ghost sm" style="margin-left:auto">Leave crew</button></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t serif">Invoice PDF layout</span> <span class="s">Ana · claims template.tsx</span></span><span class="r"><span class="status running">running</span><span class="mono small">12.4k</span></span></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t serif">Tax lines on Checkout</span> <span class="s">Bo · claims lines.ts, checkout/tax.ts</span></span><span class="r"><span class="status awaiting">awaiting</span><span class="mono small">31.2k</span></span></div>
+                <div class="crewh" style="margin-top:6px"><span class="serif">Solo</span></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t serif">Proration on plan change</span> <span class="s">Cy · claims proration.ts</span></span><span class="r"><span class="status running">running</span><button class="btn sm">Team up</button><span class="mono small">8.9k</span></span></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t serif">Billing page copy</span> <span class="s">Dee · no claims</span></span><span class="r"><span class="status paused">paused</span><button class="btn sm">Team up</button><span class="mono small">2.1k</span></span></div>
+              </div>
+              <div class="notice contention"><div class="nt">Contention on <span class="mono">packages/tax/lines.ts</span></div><p>Ana's session and Bo's session both claim it. The lead resolves; the loser's claim releases.</p><div class="actions"><button class="btn primary sm">Keep Ana's</button><button class="btn sm">Keep Bo's</button><span class="small faint" style="margin-left:auto">since 09:43</span></div></div>
+              <div class="two">
+                <div><h2 class="sec">Team chat</h2><div class="chat" style="margin-top:8px"><div class="line"><span class="who">Cy</span><span class="what">Checkout tests green on the tax-lines branch.</span></div><div class="line"><span class="who">Dee</span><span class="what">Lead directive: proration waits for the PDF.</span></div></div></div>
+                <div><h2 class="sec">Memory <span class="faint">3 entries</span></h2><div class="chat" style="margin-top:8px"><div class="line"><span class="what">Invoice totals round half-up per line. <span class="faint">Ana · c3f2a1</span></span></div><div class="line"><span class="what">Checkout shows tax before proration. <span class="faint">Bo's agent · flagged</span></span></div></div></div>
+              </div>
+            </div></div>
+          </div></div>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="plabel"><b>Dark</b> · the same gradient on a navy page <code>unchanged</code></div>
+        <div class="screen t-dark">
+          <b class="tag bad" style="left:14px;top:60px">1</b><b class="tag" style="left:600px;top:30px">2</b><b class="tag" style="left:4px;top:268px">3</b><b class="tag bad" style="left:600px;top:318px">4</b><b class="tag" style="left:6px;top:560px">5</b><b class="tag" style="left:296px;top:690px">6</b>
+          <div class="shell"><div class="main">
+            <div class="topbar"><div class="title"><span>Payments</span><span class="faint" style="font-family:var(--font);font-size:12.5px">4 sessions · 2 crews</span></div><div class="right"><button class="btn sm">Invite</button><button class="btn brand sm"><svg width="12" height="12"><use href="#i-plus"/></svg> New session</button></div></div>
+            <div class="scroll"><div class="column">
+              <div class="hero"><div class="kick">Direction · Dee, lead</div><h2>Ship the invoice PDF with tax lines before the October close. Proration follows.</h2><div class="chips"><span class="chip">54.6k tokens today</span><span class="chip">1 gate open</span><span class="chip">1 contention</span></div></div>
+              <div><h2 class="sec">Agents <span class="faint">by crew</span></h2>
+                <div class="crewh"><span class="serif">Invoice rollout</span><span>Ana, Bo, Cy</span><button class="btn ghost sm" style="margin-left:auto">Leave crew</button></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t serif">Invoice PDF layout</span> <span class="s">Ana · claims template.tsx</span></span><span class="r"><span class="status running">running</span><span class="mono small">12.4k</span></span></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t serif">Tax lines on Checkout</span> <span class="s">Bo · claims lines.ts, checkout/tax.ts</span></span><span class="r"><span class="status awaiting">awaiting</span><span class="mono small">31.2k</span></span></div>
+                <div class="crewh" style="margin-top:6px"><span class="serif">Solo</span></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t serif">Proration on plan change</span> <span class="s">Cy · claims proration.ts</span></span><span class="r"><span class="status running">running</span><button class="btn sm">Team up</button><span class="mono small">8.9k</span></span></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t serif">Billing page copy</span> <span class="s">Dee · no claims</span></span><span class="r"><span class="status paused">paused</span><button class="btn sm">Team up</button><span class="mono small">2.1k</span></span></div>
+              </div>
+              <div class="notice contention"><div class="nt">Contention on <span class="mono">packages/tax/lines.ts</span></div><p>Ana's session and Bo's session both claim it. The lead resolves; the loser's claim releases.</p><div class="actions"><button class="btn primary sm">Keep Ana's</button><button class="btn sm">Keep Bo's</button><span class="small faint" style="margin-left:auto">since 09:43</span></div></div>
+              <div class="two">
+                <div><h2 class="sec">Team chat</h2><div class="chat" style="margin-top:8px"><div class="line"><span class="who">Cy</span><span class="what">Checkout tests green on the tax-lines branch.</span></div><div class="line"><span class="who">Dee</span><span class="what">Lead directive: proration waits for the PDF.</span></div></div></div>
+                <div><h2 class="sec">Memory <span class="faint">3 entries</span></h2><div class="chat" style="margin-top:8px"><div class="line"><span class="what">Invoice totals round half-up per line. <span class="faint">Ana · c3f2a1</span></span></div><div class="line"><span class="what">Checkout shows tax before proration. <span class="faint">Bo's agent · flagged</span></span></div></div></div>
+              </div>
+            </div></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+    <div class="callouts">
+      <div class="c"><b class="tag bad">1</b><span><b>The hero loses its left edge.</b> Navy #2A3244 against canvas #1C2230 is 1.3 : 1; the gradient reads as a chocolate smear with no start. Proposal: in dark, <code>--gradient-brand: linear-gradient(135deg, #343E52, #6B4339)</code>, both ends one notch up.</span></div>
+      <div class="c"><b class="tag">2</b><span><b>Brand button in the topbar.</b> The same gradient at button size still works because the button is small and bordered by its own shadow. Keep <code>.btn.brand</code> on the dark variant too, for one gradient per screen.</span></div>
+      <div class="c"><b class="tag">3</b><span><b>Crew headings.</b> The serif crew name is <code>--accent</code>, apricot at night, which matches the rail's crew label. The ring before it is <code>--apricot-deep</code> in both.</span></div>
+      <div class="c"><b class="tag bad">4</b><span><b>Row statuses.</b> running / awaiting / paused use the page tokens: green 2.4 : 1, amber 3.6 : 1, grey 1.9 : 1 on #232B3B. Fix is the status remap in 07; nothing in the markup changes.</span></div>
+      <div class="c"><b class="tag">5</b><span><b>Contention stripe is <code>--warn</code>.</b> Amber on a dark card is the one status that survives (3.6 : 1 as a 4px stripe is enough for a non-text element). Buttons flip to the apricot hand.</span></div>
+      <div class="c"><b class="tag">6</b><span><b>Memory and chat.</b> Names in Instrument Serif at <code>--ink</code>, bodies at <code>--ink-2</code> (7.9 : 1), provenance at <code>--ink-3</code> (3.6 : 1). The flagged entry needs a word, not a colour, so it holds.</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5. manager -->
+  <section class="part s-manager">
+    <div class="shead">
+      <h2><span class="num">05</span>The manager overview</h2>
+      <p>One sentence, what needs you, tokens by person and by agent, plans rated and approved, release gates, and the roster of people and agents. Dense, numeric, and mostly <code>--surface</code> on <code>--canvas</code>: the page where elevation steps matter most.</p>
+    </div>
+    <div class="pair">
+      <div class="pane">
+        <div class="plabel"><b>Light</b> · cards are white on cream <code>--surface on --canvas</code></div>
+        <div class="screen t-light">
+          <div class="shell"><div class="main">
+            <div class="topbar"><div class="title"><span>Payments · overview</span></div><div class="right"><span class="small faint">Monday 09:50</span><button class="btn ghost sm">Refresh</button></div></div>
+            <div class="scroll"><div class="column">
+              <p class="summary">Payments is on four sessions. Two wait for you: a release gate on Tax lines and a contention on lines.ts.</p>
+              <div><h2 class="sec">Needs you <span class="faint">2</span></h2>
+                <div class="rowitem"><span class="ellipsis"><span class="t">Release gate in Tax lines on Checkout</span> <span class="s">push to main · Cy rated 5 · one more at 4+</span></span><span class="r"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><button class="btn primary sm">Approve · 4</button></span></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t">Contention on <span class="mono">lines.ts</span></span> <span class="s">Ana's session · Bo's session · since 09:43</span></span><span class="r"><button class="btn sm">Resolve</button></span></div>
+              </div>
+              <div class="stats"><div class="stat"><span class="v">54.6k</span><span class="l">tokens today · 40k budget</span><div class="budget warn" style="margin-top:6px"><i style="width:100%"></i></div></div><div class="stat"><span class="v">3 <span class="faint" style="font-size:16px">of 4</span></span><span class="l">plans rated · 2 approved · avg 4.2</span></div><div class="stat"><span class="v">1</span><span class="l">release gate open · 0 denied</span></div></div>
+              <div class="two">
+                <div><h2 class="sec">Tokens <span class="faint">by person</span></h2><div class="bars" style="margin-top:8px"><span>Bo</span><span class="bar"><i style="width:100%"></i></span><span class="mono">31.2k</span><span>Ana</span><span class="bar"><i style="width:40%"></i></span><span class="mono">12.4k</span><span>Cy</span><span class="bar"><i style="width:29%"></i></span><span class="mono">8.9k</span><span>Dee</span><span class="bar"><i style="width:7%"></i></span><span class="mono">2.1k</span></div></div>
+                <div><h2 class="sec">Tokens <span class="faint">by agent</span></h2><div class="bars" style="margin-top:8px"><span>Tax lines</span><span class="bar"><i class="agent" style="width:100%"></i></span><span class="mono">31.2k</span><span>Invoice PDF</span><span class="bar"><i class="agent" style="width:40%"></i></span><span class="mono">12.4k</span><span>Proration</span><span class="bar"><i class="agent" style="width:29%"></i></span><span class="mono">8.9k</span><span>Billing copy</span><span class="bar"><i class="agent" style="width:7%"></i></span><span class="mono">2.1k</span></div></div>
+              </div>
+              <div><h2 class="sec">Plans</h2>
+                <div class="planrow"><span><span class="t">Tax lines in the invoice PDF</span> <span class="s">Ana · 31k est · step 2 of 4</span></span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="pill">waits</span></div>
+                <div class="planrow"><span><span class="t">Tax lines on Checkout</span> <span class="s">Bo · 28k est · 33.1k actual</span></span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span></span><span class="pill" style="background:var(--ok-soft);color:var(--ok)">approved</span></div>
+              </div>
+              <div><h2 class="sec">Members <span class="faint">4 people · 4 agents</span></h2><div class="roster" style="margin-top:8px"><span class="chip"><span class="avatar driver">A</span>Ana · owner</span><span class="chip"><span class="avatar">B</span>Bo</span><span class="chip"><span class="avatar">C</span>Cy</span><span class="chip"><span class="avatar">D</span>Dee · lead</span><span class="chip"><span class="avatar agent">A</span>Ana's agent</span></div></div>
+            </div></div>
+          </div></div>
+          <div class="toast"><span class="avatar agent">D</span> Dee's agent joins the circle.</div>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="plabel"><b>Dark</b> · cards are one notch up from the canvas <code>#232B3B on #1C2230</code></div>
+        <div class="screen t-dark">
+          <b class="tag" style="left:4px;top:96px">1</b><b class="tag" style="left:4px;top:350px">2</b><b class="tag bad" style="left:600px;top:640px">3</b><b class="tag" style="left:598px;top:498px">4</b><b class="tag" style="left:4px;top:752px">5</b><b class="tag" style="left:430px;top:806px">6</b>
+          <div class="shell"><div class="main">
+            <div class="topbar"><div class="title"><span>Payments · overview</span></div><div class="right"><span class="small faint">Monday 09:50</span><button class="btn ghost sm">Refresh</button></div></div>
+            <div class="scroll"><div class="column">
+              <p class="summary">Payments is on four sessions. Two wait for you: a release gate on Tax lines and a contention on lines.ts.</p>
+              <div><h2 class="sec">Needs you <span class="faint">2</span></h2>
+                <div class="rowitem"><span class="ellipsis"><span class="t">Release gate in Tax lines on Checkout</span> <span class="s">push to main · Cy rated 5 · one more at 4+</span></span><span class="r"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><button class="btn primary sm">Approve · 4</button></span></div>
+                <div class="rowitem"><span class="ellipsis"><span class="t">Contention on <span class="mono">lines.ts</span></span> <span class="s">Ana's session · Bo's session · since 09:43</span></span><span class="r"><button class="btn sm">Resolve</button></span></div>
+              </div>
+              <div class="stats"><div class="stat"><span class="v">54.6k</span><span class="l">tokens today · 40k budget</span><div class="budget warn" style="margin-top:6px"><i style="width:100%"></i></div></div><div class="stat"><span class="v">3 <span class="faint" style="font-size:16px">of 4</span></span><span class="l">plans rated · 2 approved · avg 4.2</span></div><div class="stat"><span class="v">1</span><span class="l">release gate open · 0 denied</span></div></div>
+              <div class="two">
+                <div><h2 class="sec">Tokens <span class="faint">by person</span></h2><div class="bars" style="margin-top:8px"><span>Bo</span><span class="bar"><i style="width:100%"></i></span><span class="mono">31.2k</span><span>Ana</span><span class="bar"><i style="width:40%"></i></span><span class="mono">12.4k</span><span>Cy</span><span class="bar"><i style="width:29%"></i></span><span class="mono">8.9k</span><span>Dee</span><span class="bar"><i style="width:7%"></i></span><span class="mono">2.1k</span></div></div>
+                <div><h2 class="sec">Tokens <span class="faint">by agent</span></h2><div class="bars" style="margin-top:8px"><span>Tax lines</span><span class="bar"><i class="agent" style="width:100%"></i></span><span class="mono">31.2k</span><span>Invoice PDF</span><span class="bar"><i class="agent" style="width:40%"></i></span><span class="mono">12.4k</span><span>Proration</span><span class="bar"><i class="agent" style="width:29%"></i></span><span class="mono">8.9k</span><span>Billing copy</span><span class="bar"><i class="agent" style="width:7%"></i></span><span class="mono">2.1k</span></div></div>
+              </div>
+              <div><h2 class="sec">Plans</h2>
+                <div class="planrow"><span><span class="t">Tax lines in the invoice PDF</span> <span class="s">Ana · 31k est · step 2 of 4</span></span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="pill">waits</span></div>
+                <div class="planrow"><span><span class="t">Tax lines on Checkout</span> <span class="s">Bo · 28k est · 33.1k actual</span></span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span></span><span class="pill" style="background:var(--ok-soft);color:var(--ok)">approved</span></div>
+              </div>
+              <div><h2 class="sec">Members <span class="faint">4 people · 4 agents</span></h2><div class="roster" style="margin-top:8px"><span class="chip"><span class="avatar driver">A</span>Ana · owner</span><span class="chip"><span class="avatar">B</span>Bo</span><span class="chip"><span class="avatar">C</span>Cy</span><span class="chip"><span class="avatar">D</span>Dee · lead</span><span class="chip"><span class="avatar agent">A</span>Ana's agent</span></div></div>
+            </div></div>
+          </div></div>
+          <div class="toast"><span class="avatar agent">D</span> Dee's agent joins the circle.</div>
+        </div>
+      </div>
+    </div>
+    <div class="callouts">
+      <div class="c"><b class="tag">1</b><span><b>The sentence.</b> Instrument Serif at 22px in <code>--ink #F0EAE0</code> on the canvas: 13.9 : 1. Cream text, not white, so the serif keeps its warmth at night.</span></div>
+      <div class="c"><b class="tag">2</b><span><b>Stat tiles.</b> <code>--surface</code> one notch up from the canvas with a .12 cream hairline and a black .35 shadow. The over-budget bar is <code>--warn</code>: amber at 3.6 : 1 is the one status that still reads.</span></div>
+      <div class="c"><b class="tag bad">3</b><span><b>The "approved" pill.</b> <code>--ok-soft</code> at .14 on a dark card with <code>--ok #4F7D4A</code> text: 2.2 : 1. Under the remap it becomes #9BC88F on green .16, which is 9.4 : 1.</span></div>
+      <div class="c"><b class="tag">4</b><span><b>Two bar colours.</b> People are <code>--apricot-deep</code>, agents are <code>--rail</code>; at night the rail is darker than the track, so this board gives agent bars <code>--surface-3</code> with a hairline. Worth a token: <code>--bar-agent</code>.</span></div>
+      <div class="c"><b class="tag">5</b><span><b>Roster chips.</b> <code>--surface-2</code> chips with <code>--ink-2</code> text; human avatars on <code>--surface-3</code>, agent avatars on the brand gradient with white initials, 9.6 : 1 at the chocolate end. Agent shape (the cut corner) carries in both.</span></div>
+      <div class="c"><b class="tag">6</b><span><b>The toast is the rail.</b> <code>--rail</code> on the canvas with <code>--shadow-pop</code>; at night that is #161B26 on #1C2230 and the black .5 shadow is what makes it float. Keep the shadow; do not add a border.</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6. components -->
+  <section class="part">
+    <div class="shead">
+      <h2><span class="num">06</span>Every control, both ways</h2>
+      <p>The controls the four pages share, pinned light above dark, with the contrast ratio of the thing that matters on each. Read across: anything that is the same colour in both rows is the pulse or a hard-coded brand value, and that is deliberate everywhere but the three marked.</p>
+    </div>
+    <div class="pair">
+      <div class="pane">
+        <div class="plabel"><b>Light</b></div>
+        <div class="strip t-light">
+          <div class="srow"><span class="l">Buttons</span><span class="r"><button class="btn primary">Approve now</button><button class="btn brand">New session</button><button class="btn">Ask to revise</button><button class="btn ghost">Deny</button><button class="send"><svg width="14" height="14"><use href="#i-send"/></svg></button><span class="ratio">accent-fg / accent 11.1 : 1</span></span></div>
+          <div class="srow"><span class="l">Pills</span><span class="r"><span class="pill team">Team</span><span class="pill solo">Solo</span><span class="pill">31k est.</span><span class="pill" style="background:var(--apricot-soft);color:var(--ink)">Planning</span><span class="chip on">scope: pdf</span><span class="chip">tax</span><span class="ratio">team 7.3 : 1</span></span></div>
+          <div class="srow"><span class="l">Status</span><span class="r"><span class="status running">running</span><span class="status awaiting">awaiting</span><span class="status blocked">blocked</span><span class="status paused">paused</span><span class="status">idle</span><span class="ratio">ok 4.4 · warn 3.4 · danger 5.6 : 1 on surface</span></span></div>
+          <div class="srow"><span class="l">Rail</span><span class="r"><span class="railbit"><span class="dot" style="background:#9BC88F"></span><span class="dot" style="background:#E2B06A"></span><span class="dot" style="background:#E2847A"></span><span class="avatar driver">A</span><span class="avatar">B</span><span class="pill team">Team</span><span class="pill solo">Solo</span><span class="mono" style="font-size:12px">12.4k</span></span><button class="btn brand sm" style="background:var(--gradient-brand)">+ New session</button><span class="ratio">rail-muted / rail 6.6 : 1</span></span></div>
+          <div class="srow"><span class="l">People</span><span class="r"><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span><span class="avatar">C</span><span class="avatar">D</span></span><span class="avatar agent">A</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><svg class="mark" width="36" height="36"><use href="#mark-sym"/></svg><span class="ratio">empty star / surface 1.2 : 1 (shape only)</span></span></div>
+          <div class="srow"><span class="l">Meters</span><span class="r"><span class="budget"><i style="width:31%"></i></span><span class="budget warn"><i style="width:86%"></i></span><span class="budget over"><i style="width:100%"></i></span><div class="loader orbit" style="animation:none"><i></i><i></i><i></i></div><span class="loader shimmer" style="width:90px;animation:none"></span><span class="ratio">track surface-3 on surface</span></span></div>
+          <div class="srow"><span class="l">Inputs</span><span class="r"><span class="input">Name the crew…</span><span class="input focus">Invoice rollout</span><span class="seg"><button class="on">Agent</button><button>Team</button></span><span class="phonebit">bezel</span><span class="ratio">glow apricot .35</span></span></div>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="plabel"><b>Dark</b></div>
+        <div class="strip t-dark">
+          <div class="srow"><span class="l">Buttons</span><span class="r"><button class="btn primary">Approve now</button><button class="btn brand">New session</button><button class="btn">Ask to revise</button><button class="btn ghost">Deny</button><button class="send"><svg width="14" height="14"><use href="#i-send"/></svg></button><span class="ratio">accent-fg / accent 11.6 : 1</span></span></div>
+          <div class="srow"><span class="l">Pills</span><span class="r"><span class="pill team">Team</span><span class="pill solo">Solo</span><span class="pill">31k est.</span><span class="pill" style="background:var(--apricot-soft);color:var(--ink)">Planning</span><span class="chip on">scope: pdf</span><span class="chip">tax</span><span class="ratio">team 7.3 : 1 · unchanged</span></span></div>
+          <div class="srow"><span class="l">Status</span><span class="r"><span class="status running">running</span><span class="status awaiting">awaiting</span><span class="status blocked">blocked</span><span class="status paused">paused</span><span class="status">idle</span><span class="ratio" style="color:#E2847A">ok 2.4 · warn 3.6 · danger 2.3 · info 1.9 : 1</span></span></div>
+          <div class="srow"><span class="l">Rail</span><span class="r"><span class="railbit"><span class="dot" style="background:#9BC88F"></span><span class="dot" style="background:#E2B06A"></span><span class="dot" style="background:#E2847A"></span><span class="avatar driver">A</span><span class="avatar">B</span><span class="pill team">Team</span><span class="pill solo">Solo</span><span class="mono" style="font-size:12px">12.4k</span></span><button class="btn brand sm" style="background:var(--gradient-brand)">+ New session</button><span class="ratio">rail-muted / rail 5.4 : 1</span></span></div>
+          <div class="srow"><span class="l">People</span><span class="r"><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span><span class="avatar">C</span><span class="avatar">D</span></span><span class="avatar agent">A</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><svg class="mark" width="36" height="36"><use href="#mark-sym"/></svg><span class="ratio">empty star / surface 1.4 : 1 (shape only)</span></span></div>
+          <div class="srow"><span class="l">Meters</span><span class="r"><span class="budget"><i style="width:31%"></i></span><span class="budget warn"><i style="width:86%"></i></span><span class="budget over"><i style="width:100%"></i></span><div class="loader orbit" style="animation:none"><i></i><i></i><i></i></div><span class="loader shimmer" style="width:90px;animation:none"></span><span class="ratio" style="color:#E2847A">orbit's navy dot vanishes</span></span></div>
+          <div class="srow"><span class="l">Inputs</span><span class="r"><span class="input">Name the crew…</span><span class="input focus">Invoice rollout</span><span class="seg"><button class="on">Agent</button><button>Team</button></span><span class="phonebit">bezel</span><span class="ratio" style="color:#E2847A">seg inverted · bezel gone</span></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7. findings -->
+  <section class="part">
+    <div class="shead">
+      <h2><span class="num">07</span>What holds, what to watch, what to fix</h2>
+      <p>Twenty-four tokens remap and nineteen of them are right. The five that are wrong share one cause: a value hard-coded for cream (a gradient end, a status hue, a bezel) that nobody told about the night. The proposal is seven lines in <code>tokens.css</code> and no markup.</p>
+    </div>
+    <div class="findings">
+      <div class="find"><h3><span class="verdict ok">holds</span> Keep</h3><ul>
+        <li><b>The frame stays the frame.</b> Rail two notches below the page in both; the rail is never the same colour as a card.</li>
+        <li><b>The hand swaps to apricot, the ink flips with it.</b> 11.6 : 1 on every primary button; no second accent needed.</li>
+        <li><b>The pulse never moves.</b> Team wash, stars, running bar, glow, active ring, crew rings: apricot in both, so "live" means the same thing day and night.</li>
+        <li><b>Cream ink, not white.</b> <code>--ink #F0EAE0</code> keeps Instrument Serif warm; <code>--ink-3</code> stays metadata-only.</li>
+        <li><b>Shadows go black and heavier.</b> Composer, toast and human bubbles still lift; the rail's gradient button still reads.</li>
+      </ul></div>
+      <div class="find"><h3><span class="verdict watch">watch</span> Watch</h3><ul>
+        <li><b>Hairlines at .12</b> are faint on <code>--surface</code>; row dividers on the manager page nearly vanish. Consider .14 for dark.</li>
+        <li><b>The mark on the page.</b> <code>--mark-disc #0F131B</code> on the canvas is 1.3 : 1; the arcs carry it, as intended, but at 20px the disc is gone. Fine in the rail, check in the topbar.</li>
+        <li><b>Two apricots.</b> At night the hand and the pulse are the same hue. Shape keeps them apart (filled pill vs dot / ring / wash). Never a text link in apricot next to an apricot pill.</li>
+        <li><b>Agent bars in charts.</b> <code>--rail</code> as a series colour is darker than the track at night; the board uses <code>--surface-3</code> with a hairline. Name it.</li>
+        <li><b>The composer glow</b> is louder on navy. Acceptable; revisit if the Team look editor lets a lead set a brighter highlight.</li>
+      </ul></div>
+      <div class="find"><h3><span class="verdict bad">breaks</span> Fix</h3><ul>
+        <li><b>Status colours are not remapped.</b> ok 2.4, danger 2.3, info 1.9 : 1 on a dark card. The rail already carries the right values; lift them to the page tokens.</li>
+        <li><b><code>--gradient-brand</code> loses its navy end</b> on the hero and the gate stripe. Dark variant: both ends one notch up.</li>
+        <li><b>Selected segment inverts.</b> <code>.seg .on</code> is <code>--surface</code> on <code>--surface-2</code>: lighter by day, darker by night. Add <code>--seg-on</code>.</li>
+        <li><b>Phone bezel is the dark canvas.</b> <code>.phone</code> border is literally #1C2230. Add <code>--bezel</code>, #0F131B in dark.</li>
+        <li><b>Orbit loader's navy dot</b> is <code>--rail</code>, invisible on the canvas at night. Use <code>--surface-3</code> or <code>--ink-3</code>.</li>
+      </ul></div>
+    </div>
+    <div class="proposal">
+      <pre><span class="c">/* proposed additions to the dark block in tokens.css */</span>
+<b>--ok:</b> #9BC88F;  <b>--ok-soft:</b> rgba(155,200,143,.16);
+<b>--warn:</b> #E2B06A;  <b>--warn-soft:</b> rgba(226,176,106,.16);
+<b>--danger:</b> #E2847A;  <b>--danger-soft:</b> rgba(226,132,122,.16);
+<b>--info:</b> var(--ink-2);
+<b>--gradient-brand:</b> linear-gradient(135deg, #343E52 0%, #6B4339 100%);
+<b>--seg-on:</b> var(--surface-3);   <span class="c">/* light: var(--surface) */</span>
+<b>--bezel:</b> #0F131B;              <span class="c">/* light: #1C2230 */</span>
+<b>--bar-agent:</b> var(--surface-3); <span class="c">/* light: var(--rail) */</span>
+
+<span class="c">/* and in the component rules */</span>
+.seg .on { background: var(--seg-on); }
+.phone   { border-color: var(--bezel); }
+.loader.orbit i:nth-child(3) { background: var(--bar-agent); }</pre>
+      <div class="ba">
+        <div class="kicker">Dark, before and after</div>
+        <div class="row2 t-dark"><span>today</span><div class="demo"><span class="status running">running</span><span class="status blocked">blocked</span><span class="status paused">paused</span><span class="pill" style="background:var(--ok-soft);color:var(--ok)">approved</span><span class="hero">Direction</span><span class="seg"><button class="on">Agent</button><button>Team</button></span><span class="budget over"><i style="width:100%"></i></span></div></div>
+        <div class="row2 t-dark fixed"><span>proposed</span><div class="demo"><span class="status running">running</span><span class="status blocked">blocked</span><span class="status paused">paused</span><span class="pill" style="background:var(--ok-soft);color:var(--ok)">approved</span><span class="hero">Direction</span><span class="seg"><button class="on">Agent</button><button>Team</button></span><span class="budget over"><i style="width:100%"></i></span></div></div>
+        <p class="small muted" style="margin:0">Same markup, the dark block extended. Every ratio above 4.5 : 1 for text, above 3 : 1 for dots and stripes. The hero keeps navy → chocolate as a family, one notch up so it has a left edge; the Team pill and the rail dots are untouched because they were already right.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Henosis · design wave · dark-mode audit</span>
+    <span>Panes pinned with <code>.t-light</code> / <code>.t-dark</code> mirrors of tokens.css v5 · no scripts</span>
+  </footer>
+</div>
+</body>
+</html>

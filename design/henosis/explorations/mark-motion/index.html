@@ -6,69 +6,39 @@
 <title>Henosis · The mark in motion</title>
 <link rel="stylesheet" href="../../tokens.css">
 <style>
-/* ---------- the mark ---------- */
-/* the bead is chocolate in both themes: in dark the accent token turns apricot and would vanish on the ring */
-:root { --mark-bead: #56352D; }
+/* ---------- the mark ----------
+   Markup is the one from design/mark.svg with the token classes: .mark > .disc .arc.a .arc.b .dot.
+   tokens.css colours the arcs (--mark-arc-a/b, --mark-dot) and animates .mark.joining with arc-a / arc-b / dot-in.
+   The arcs are brand constants: tokens point --mark-arc-a at --accent, which is apricot in dark mode and would
+   give both arcs one colour, so they are pinned here and re-pinned per ground. */
+:root { --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6; }
 .mark .disc { fill: var(--mark-disc); }
-.mark .ring { stroke: var(--mark-ring); stroke-width: 10; fill: none; stroke-linecap: round; }
-.mark .bead { fill: var(--mark-bead); stroke: var(--mark-ring); stroke-width: 2; }
-.mark .trail { stroke: var(--mark-bead); stroke-width: 6; fill: none; stroke-linecap: round; opacity: 0; }
-.mark .halo { fill: none; stroke: var(--mark-ring); stroke-width: 1.5; opacity: 0; transform-box: fill-box; transform-origin: center; }
-.mark.frame .trail { opacity: 1; }
-.mark.cream .disc { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
-.mark.cream .ring { stroke: var(--apricot-deep); }
-.mark.cream .bead { fill: #56352D; stroke: var(--apricot-deep); }
-.mark.cream .trail { stroke: #56352D; }
-.mark.cream .halo { stroke: var(--apricot-deep); }
-.mark.wire .disc { fill: none; }
-.mark.wire .ring { stroke: var(--ink); }
-
-/* bead-travel: one loop = 3.2 s. 0–6 % fade in at the far side, 6–52 % travel, 52–70 % overshoot and settle,
-   70–88 % hold, 88–100 % fade out and rewind. Loading screens loop it; the joined moment plays it once. */
-@keyframes bead-travel {
-  0%   { transform: rotate(-210deg); opacity: 0; animation-timing-function: ease-out; }
-  6%   { transform: rotate(-200deg); opacity: 1; animation-timing-function: cubic-bezier(.45,.02,.18,1); }
-  52%  { transform: rotate(9deg); animation-timing-function: cubic-bezier(.4,0,.2,1); }
-  62%  { transform: rotate(-3deg); animation-timing-function: ease-out; }
-  70%, 88% { transform: rotate(0deg); opacity: 1; }
-  100% { transform: rotate(0deg); opacity: 0; }
-}
-@keyframes bead-trail { 0%, 8% { opacity: 0; } 18%, 44% { opacity: .55; } 60%, 100% { opacity: 0; } }
-@keyframes bead-settle { 0%, 60% { transform: scale(1); } 66% { transform: scale(1.22); } 76%, 100% { transform: scale(1); } }
-@keyframes bead-halo { 0%, 62% { opacity: 0; transform: scale(1); } 66% { opacity: .8; } 92%, 100% { opacity: 0; transform: scale(3.4); } }
-@keyframes bead-travel-once {
-  0%   { transform: rotate(-210deg); opacity: 0; animation-timing-function: ease-out; }
-  8%   { transform: rotate(-200deg); opacity: 1; animation-timing-function: cubic-bezier(.45,.02,.18,1); }
-  74%  { transform: rotate(9deg); animation-timing-function: cubic-bezier(.4,0,.2,1); }
-  88%  { transform: rotate(-3deg); animation-timing-function: ease-out; }
-  100% { transform: rotate(0deg); opacity: 1; }
-}
-@keyframes bead-trail-once { 0%, 10% { opacity: 0; } 22%, 62% { opacity: .55; } 86%, 100% { opacity: 0; } }
-@keyframes bead-settle-once { 0%, 86% { transform: scale(1); } 92% { transform: scale(1.22); } 100% { transform: scale(1); } }
-@keyframes bead-halo-once { 0%, 88% { opacity: 0; transform: scale(1); } 92% { opacity: .8; } 100% { opacity: 0; transform: scale(3.2); } }
-.mark.live .orbit, .mark.once .orbit { transform-origin: 48px 48px; }
-.mark.live .orbit { animation: bead-travel 3.2s infinite; animation-delay: var(--d, 0s); }
-.mark.live .trail { animation: bead-trail 3.2s infinite; animation-delay: var(--d, 0s); }
-.mark.live .bead { transform-box: fill-box; transform-origin: center; animation: bead-settle 3.2s infinite; animation-delay: var(--d, 0s); }
-.mark.live .halo { animation: bead-halo 3.2s infinite; animation-delay: var(--d, 0s); }
-.mark.once .orbit { animation: bead-travel-once 1.5s both; animation-delay: var(--d, 0s); }
-.mark.once .trail { animation: bead-trail-once 1.5s both; animation-delay: var(--d, 0s); }
-.mark.once .bead { transform-box: fill-box; transform-origin: center; animation: bead-settle-once 1.5s both; animation-delay: var(--d, 0s); }
-.mark.once .halo { animation: bead-halo-once 1.5s both; animation-delay: var(--d, 0s); }
-/* calm mode or reduced motion: the bead simply sits in the gap */
-@media (prefers-reduced-motion: reduce) { .mark .trail, .mark .halo { opacity: 0 !important; } }
-.calm .mark .orbit, .calm .mark .bead, .calm .mark .trail, .calm .mark .halo { animation: none !important; }
-.calm .mark .trail, .calm .mark .halo { opacity: 0; }
+.mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; }
+.mark.bare .disc { display: none; }
+.mark.cream { --mark-arc-a: #56352D; --mark-arc-b: #2A3244; --mark-dot: #E2C4A6; }
+.mark.choc { --mark-arc-a: #E2C4A6; --mark-arc-b: #2A3244; --mark-dot: #E2C4A6; }
+/* on the page surface the agent's arc follows the theme: navy on cream, apricot on the dark canvas */
+.mark.onpage { --mark-arc-b: #2A3244; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mark.onpage { --mark-arc-b: #E2C4A6; } }
+:root[data-theme="dark"] .mark.onpage { --mark-arc-b: #E2C4A6; }
+.mark.small .arc { stroke-width: 13; } .mark.small .disc { r: 48; } .mark.small .dot { r: 8.5; }
+.mark.tiny .arc { stroke-width: 16; } .mark.tiny .dot { r: 10; }
+/* the once-only version: same keyframes, one run, holds the closed ring */
+.mark.joining.once .arc, .mark.joining.once .dot { animation-iteration-count: 1; animation-fill-mode: both; animation-delay: var(--d, 0s); }
+.mark.joining .arc, .mark.joining .dot { animation-delay: var(--d, 0s); }
+/* calm mode: the ring is simply closed; the same markup, no keyframes */
+[data-motion="calm"] .mark .arc, [data-motion="calm"] .mark .dot, .calm .mark .arc, .calm .mark .dot { animation: none !important; }
+/* storyboard frames are stills: rotation and opacity are written into the SVG, no animation */
 
 /* ---------- board layout ---------- */
 body { min-height: 100%; }
 .board { width: 1440px; margin: 0 auto; padding: 56px 64px 72px; display: flex; flex-direction: column; gap: 64px; }
-.eyebrow { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 10px; }
+.eyebrow { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 10px; font-family: var(--mono); }
 .eyebrow b { font-weight: 600; color: var(--ink-2); }
-.head { display: grid; grid-template-columns: 1fr 420px; gap: 48px; align-items: end; }
+.head { display: grid; grid-template-columns: 1fr 440px; gap: 48px; align-items: end; }
 .head h1 { font-size: 64px; line-height: 1.02; margin-top: 14px; }
 .head h1 i { color: var(--accent); }
-.head .lede { font-size: 17px; color: var(--ink-2); line-height: 1.55; }
+.head .lede { font-size: 17px; color: var(--ink-2); line-height: 1.55; margin: 0; }
 section { display: flex; flex-direction: column; gap: 22px; }
 .sec-head { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
 .sec-head h2 { font-size: 30px; }
@@ -76,34 +46,40 @@ section { display: flex; flex-direction: column; gap: 22px; }
 .sec-head .sub { margin-left: auto; font-size: 13.5px; color: var(--ink-2); max-width: 560px; text-align: right; }
 
 /* hero */
-.hero-live { display: grid; grid-template-columns: 420px 1fr; background: var(--rail); color: var(--rail-fg); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-pop); min-height: 420px; }
-.hero-live .stage { display: grid; place-items: center; background: radial-gradient(360px 360px at 50% 50%, rgba(226,196,166,.14), transparent 70%); border-right: 1px solid var(--rail-line); }
-.hero-live .copy { padding: 44px 48px; display: flex; flex-direction: column; gap: 22px; }
+.hero-live { --d: -.55s; display: grid; grid-template-columns: 440px 1fr; background: #2A3244; color: #F3EDE4; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-pop); min-height: 440px; --mark-disc: #2A3244; }
+.hero-live .stage { display: grid; place-items: center; background: radial-gradient(380px 380px at 50% 50%, rgba(226,196,166,.14), transparent 70%); border-right: 1px solid rgba(243,237,228,.1); }
+.hero-live .copy { padding: 44px 48px 36px; display: flex; flex-direction: column; gap: 22px; }
 .hero-live .copy h2 { font-size: 40px; color: #fff; }
-.hero-live .copy h2 i { color: var(--apricot); }
-.hero-live .copy p { margin: 0; color: var(--rail-muted); font-size: 15.5px; max-width: 560px; }
-.sizes { display: flex; align-items: flex-end; gap: 28px; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--rail-line); }
-.sizes .s { display: flex; flex-direction: column; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11.5px; color: var(--rail-muted); }
-.sizes .s small { font-family: var(--font); font-size: 11px; color: var(--rail-muted); opacity: .8; }
-.legend { display: flex; gap: 28px; font-size: 13px; color: var(--rail-muted); }
+.hero-live .copy h2 i { color: #E2C4A6; }
+.hero-live .copy p { margin: 0; color: #AEB4C2; font-size: 15.5px; max-width: 560px; }
+.sizes { display: flex; align-items: flex-end; gap: 30px; margin-top: auto; padding-top: 18px; border-top: 1px solid rgba(243,237,228,.1); }
+.sizes .s { display: flex; flex-direction: column; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11.5px; color: #AEB4C2; }
+.sizes .s small { font-family: var(--font); font-size: 11px; color: #AEB4C2; opacity: .8; }
+.sizes .s.creamy { background: #FBF7F1; padding: 10px 14px; border-radius: 12px; color: #5B6273; }
+.legend { display: flex; gap: 24px; font-size: 13px; color: #AEB4C2; flex-wrap: wrap; }
 .legend span { display: inline-flex; align-items: center; gap: 8px; }
 .legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
 
 /* storyboard */
-.strip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 18px; }
+.strip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 16px; }
 .frame { display: flex; flex-direction: column; gap: 10px; }
-.frame .cell { aspect-ratio: 1; border-radius: 18px; background: var(--rail); display: grid; place-items: center; position: relative; box-shadow: var(--shadow-soft); }
-.frame .cell .t { position: absolute; left: 12px; top: 10px; font-family: var(--mono); font-size: 11px; color: var(--rail-muted); }
-.frame .cell .n { position: absolute; right: 12px; top: 10px; font-family: var(--serif); font-size: 14px; color: var(--apricot); }
+.frame .cell { aspect-ratio: 1; border-radius: 18px; background: #2A3244; display: grid; place-items: center; position: relative; box-shadow: var(--shadow-soft); }
+.frame .cell .t { position: absolute; left: 12px; top: 10px; font-family: var(--mono); font-size: 11px; color: #AEB4C2; }
+.frame .cell .n { position: absolute; right: 12px; top: 10px; font-family: var(--serif); font-size: 14px; color: #E2C4A6; }
 .frame .cap { font-size: 12.5px; color: var(--ink-2); line-height: 1.45; padding: 0 2px; }
-.timeline { position: relative; height: 54px; margin-top: 6px; }
-.timeline .bar { position: absolute; left: 0; right: 0; top: 22px; height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.frame .cap b { color: var(--ink); font-weight: 600; }
+.timeline { position: relative; height: 96px; margin-top: 6px; }
+.timeline .bar { position: absolute; left: 0; right: 0; height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+.timeline .bar.arcs { top: 20px; } .timeline .bar.dot { top: 50px; }
 .timeline .bar i { position: absolute; top: 0; bottom: 0; }
-.timeline .lbl { position: absolute; top: 34px; font-size: 11.5px; color: var(--ink-3); font-family: var(--mono); white-space: nowrap; }
-.timeline .lbl.top { top: 0; }
+.timeline .lbl { position: absolute; font-size: 11.5px; color: var(--ink-3); font-family: var(--mono); white-space: nowrap; }
+.timeline .lbl.top { top: 0; } .timeline .lbl.mid { top: 34px; } .timeline .lbl.low { top: 64px; } .timeline .lbl.ms { top: 80px; }
+.timeline .lbl.k { color: var(--ink-2); font-family: var(--font); font-weight: 500; }
 
 /* spec */
-.spec { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 24px; }
+.spec { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; align-items: start; }
+.spec .card.rules { grid-column: 1 / -1; }
+.spec .card.rules ul { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 28px; }
 .spec table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .spec th { text-align: left; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 0 0 10px; border-bottom: 1px solid var(--line); }
 .spec td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -114,6 +90,8 @@ section { display: flex; flex-direction: column; gap: 22px; }
 .rules li { display: flex; gap: 10px; align-items: flex-start; } .rules li > span { flex: 1; }
 .rules li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot-deep); flex: none; margin-top: 8px; }
 .rules ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.code { font-family: var(--mono); font-size: 12px; color: var(--ink-2); background: var(--surface-2); border-radius: 10px; padding: 10px 12px; line-height: 1.6; white-space: pre; overflow: auto; margin-top: 12px; }
+.code b { color: var(--ink); font-weight: 500; }
 
 /* applications */
 .apps { display: grid; grid-template-columns: 1fr; gap: 28px; }
@@ -125,7 +103,7 @@ section { display: flex; flex-direction: column; gap: 22px; }
 .app-row .about .kv b { font-weight: 500; color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; padding-top: 2px; }
 
 /* loading screen */
-.loading { height: 560px; background: var(--rail); color: var(--rail-fg); display: grid; place-items: center; position: relative; }
+.loading { height: 540px; background: var(--rail); color: var(--rail-fg); display: grid; place-items: center; position: relative; }
 .loading .centre { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .loading h2 { color: #fff; font-size: 32px; }
 .loading .what { color: var(--rail-muted); font-size: 14px; display: flex; align-items: center; gap: 10px; }
@@ -153,7 +131,7 @@ section { display: flex; flex-direction: column; gap: 22px; }
 .join .line .who { font-family: var(--serif); font-size: 19px; }
 .join .line .how { display: block; font-size: 13px; color: var(--ink-2); margin-top: 2px; }
 .join .people { display: flex; align-items: center; gap: 10px; }
-.join .people .avatar.new { box-shadow: 0 0 0 0 rgba(226,196,166,.6); animation: ripple 1.2s ease-out 1 .9s; border-color: var(--apricot-deep); background: var(--apricot); color: var(--accent); }
+.join .people .avatar.new { box-shadow: 0 0 0 0 rgba(226,196,166,.6); animation: ripple 1.2s ease-out 1 1.3s; border-color: var(--apricot-deep); background: var(--apricot); color: #56352D; }
 .join.agent-join .line .who { color: var(--accent); }
 .join .pill.team { height: 24px; }
 .left { display: flex; align-items: center; gap: 12px; font-size: 13.5px; color: var(--ink-3); }
@@ -172,13 +150,30 @@ section { display: flex; flex-direction: column; gap: 22px; }
 .toast.dark .t .s { color: var(--rail-muted); }
 .toast .weave { width: 100%; margin-top: 6px; }
 
+/* rail on load */
+.railx { width: 296px; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 6px; height: 540px; flex: none; }
+.railx .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font-family: var(--serif); font-size: 24px; }
+.railx .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: #fff; font: 500 14px var(--font); box-shadow: var(--shadow-soft); }
+.railx .section { padding: 16px 10px 6px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.railx .section .n { margin-left: auto; letter-spacing: 0; }
+.railx .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 14px; }
+.railx .rise { animation-fill-mode: both; }
+.onload { display: grid; grid-template-columns: 296px 1fr; background: var(--canvas); }
+.onload .blank { display: grid; place-items: center; color: var(--ink-3); font-size: 13.5px; }
+.onload .blank .sk { width: 60%; display: flex; flex-direction: column; gap: 14px; }
+.onload .blank .sk .loader.shimmer { height: 14px; }
+.onload .blank .sk .loader.shimmer.w { width: 70%; } .onload .blank .sk .loader.shimmer.n { width: 45%; }
+.onload { --t0: -1.8s; }
+.rise.d1 { animation-delay: calc(1.4s + var(--t0)); } .rise.d2 { animation-delay: calc(1.5s + var(--t0)); } .rise.d3 { animation-delay: calc(1.6s + var(--t0)); } .rise.d4 { animation-delay: calc(1.7s + var(--t0)); } .rise.d5 { animation-delay: calc(1.8s + var(--t0)); }
+
 /* splash */
-.splash { height: 520px; background: var(--gradient-brand); color: #fff; position: relative; overflow: hidden; display: grid; place-items: center; }
+.splash { height: 520px; background: var(--gradient-brand); color: #fff; position: relative; overflow: hidden; display: grid; place-items: center; --mark-disc: #1C2230; }
 .splash::before { content: ""; position: absolute; width: 760px; height: 760px; border-radius: 50%; border: 72px solid rgba(226,196,166,.10); right: -300px; top: -280px; }
 .splash::after { content: ""; position: absolute; width: 420px; height: 420px; border-radius: 50%; border: 40px solid rgba(226,196,166,.08); left: -160px; bottom: -200px; }
 .splash .centre { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
-.splash .word { font-family: var(--serif); font-size: 72px; letter-spacing: -0.015em; line-height: 1; color: #fff; }
-.splash .tag { font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--apricot); }
+.splash { --t0: -1.5s; }
+.splash .word { font-family: var(--serif); font-size: 72px; letter-spacing: -0.015em; line-height: 1; color: #fff; animation: rise .5s ease calc(1.3s + var(--t0)) both; }
+.splash .tag { font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--apricot); animation: rise .5s ease calc(1.5s + var(--t0)) both; }
 .splash .ver { position: absolute; bottom: 18px; left: 22px; font-family: var(--mono); font-size: 12px; color: rgba(243,237,228,.55); }
 .splash .org { position: absolute; bottom: 18px; right: 22px; font-size: 13px; color: rgba(243,237,228,.7); display: flex; align-items: center; gap: 8px; }
 .splash .org .pill { background: rgba(226,196,166,.18); color: var(--apricot); }
@@ -186,10 +181,10 @@ section { display: flex; flex-direction: column; gap: 22px; }
 /* mobile splash, scaled on the board, full-screen on a phone */
 .phone-wrap { width: 390px; height: 844px; transform: scale(.616); transform-origin: top left; }
 .phone-slot { width: 240px; height: 520px; flex: none; }
-.msplash { width: 390px; height: 844px; background: var(--gradient-brand); color: #fff; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; border-radius: 46px; }
+.msplash { width: 390px; height: 844px; background: var(--gradient-brand); color: #fff; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; border-radius: 46px; --mark-disc: #1C2230; }
 .msplash.flat { border-radius: 0; }
 .msplash::before { content: ""; position: absolute; width: 520px; height: 520px; border-radius: 50%; border: 56px solid rgba(226,196,166,.10); right: -220px; top: -220px; }
-.msplash .word { font-family: var(--serif); font-size: 44px; line-height: 1; }
+.msplash .word { font-family: var(--serif); font-size: 44px; line-height: 1; letter-spacing: -0.015em; }
 .msplash .tag { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--apricot); }
 .msplash .sbar { position: absolute; top: 18px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 30px; font-family: var(--mono); font-size: 13px; color: rgba(255,255,255,.85); }
 .msplash .foot { position: absolute; bottom: 64px; left: 0; right: 0; text-align: center; font-size: 13px; color: var(--rail-muted); display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -198,15 +193,18 @@ section { display: flex; flex-direction: column; gap: 22px; }
 .two { display: grid; grid-template-columns: 1fr 240px; gap: 28px; align-items: start; }
 
 /* variants row */
-.variants { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.variants { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
 .variant { display: flex; flex-direction: column; gap: 12px; align-items: center; padding: 22px 18px 18px; border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow-soft); text-align: center; }
-.variant.navy { background: var(--rail); color: var(--rail-fg); border-color: transparent; }
+.variant.navy { background: #2A3244; color: #F3EDE4; border-color: transparent; --mark-disc: #2A3244; }
+.variant.creamy { background: #FBF7F1; color: #1F2634; border-color: rgba(42,50,68,.12); }
+.variant.chocy { background: #56352D; color: #FFF8F1; border-color: transparent; }
 .variant .t { font-weight: 500; font-size: 14px; }
 .variant .s { font-size: 12.5px; color: var(--ink-2); }
-.variant.navy .s { color: var(--rail-muted); }
+.variant.navy .s { color: #AEB4C2; } .variant.creamy .s { color: #5B6273; } .variant.chocy .s { color: rgba(255,248,241,.75); }
 .variant .tray { display: flex; align-items: center; gap: 14px; height: 28px; padding: 0 12px; border-radius: 8px; background: var(--surface-2); font-size: 12px; color: var(--ink-2); font-family: var(--mono); }
 .variant .fav { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 8px; border-radius: 9px 9px 0 0; background: var(--surface-2); font-size: 12.5px; color: var(--ink); border: 1px solid var(--line); border-bottom: 0; }
 .variant .fav .x { color: var(--ink-3); display: inline-flex; margin-left: 6px; }
+.variant .calmtag { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
 
 footer { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 18px; }
 
@@ -228,29 +226,29 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
       <div class="eyebrow"><b>Henosis</b> · brand exploration · mark-motion · Payments team</div>
       <h1>The mark <i>in motion</i></h1>
     </div>
-    <p class="lede">The ring is the team. The gap at the top is the seat kept for whoever comes next. When something joins, a person, an agent, a session reconnecting, the bead travels round the ring and settles into the gap. One animation, three homes: the loading screen, the joined-the-circle moment and the splash.</p>
+    <p class="lede">Two arcs, a person's and an agent's, swing in from apart and close into one ring; then the centre appears. It plays whenever something joins: a member, an agent, a session connecting. One set of keyframes from <span class="mono">tokens.css</span>, four homes: the loading screen, the joined-the-circle line, the splash and the rail brand on load.</p>
   </header>
 
   <!-- 1 · live -->
   <section>
-    <div class="sec-head"><span class="num">01</span><h2>Live</h2><span class="sub">Pure CSS: one rotated group, a trail that fades as the bead slows, a halo that breathes once on arrival. Looping here at 3.2 s per cycle.</span></div>
+    <div class="sec-head"><span class="num">01</span><h2>Live</h2><span class="sub">Pure CSS from the tokens: <span class="mono">.mark.joining</span> rotates each arc about the centre with <span class="mono">arc-a</span> / <span class="mono">arc-b</span>, then <span class="mono">dot-in</span> scales the centre up. Looping here at 1.8 s.</span></div>
     <div class="hero-live">
-      <div class="stage"><svg class="mark live " style="--d:-1.3s" viewBox="0 0 96 96" width="256" height="256" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg></div>
+      <div class="stage"><svg class="mark joining" viewBox="0 0 96 96" width="256" height="256" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div>
       <div class="copy">
         <h2>Something <i>joins.</i></h2>
-        <p>Ana opens the Billing page session for the first time. The bead comes in from the far side, runs the ring faster than it leaves it, overshoots the gap by a hair and settles. The halo is the only thing the mark does after that: it says "that was you".</p>
+        <p>Ana opens the Billing page session for the first time. The person's arc and the agent's arc wait low, each on its own side, half present. They swing up together, meet at the top, overshoot by four degrees and settle. Only when the ring is one does the centre appear: the work they now share.</p>
         <div class="legend">
-          <span><i style="background:#2A3244;border:1px solid rgba(255,255,255,.2)"></i>Dress Blues · the disc</span>
-          <span><i style="background:#E2C4A6"></i>Apricot · the ring, the halo</span>
-          <span><i style="background:#56352D;border:1px solid #E2C4A6"></i>Chocolate · the bead, the trail</span>
+          <span><i style="background:#56352D"></i>Chocolate · the person's arc, right, +70° → 0°</span>
+          <span><i style="background:#E2C4A6"></i>Apricot · the agent's arc, left, −70° → 0°</span>
+          <span><i style="background:#E2C4A6;box-shadow:0 0 0 3px #2A3244,0 0 0 4px #E2C4A6"></i>Apricot · the centre, 0 → 1.25 → 1</span>
         </div>
         <div class="sizes">
-          <div class="s"><svg class="mark live " style="--d:-1.3s" viewBox="0 0 96 96" width="16" height="16" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>16<small>favicon</small></div>
-          <div class="s"><svg class="mark live " style="--d:-1.3s" viewBox="0 0 96 96" width="24" height="24" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>24<small>tray · toast</small></div>
-          <div class="s"><svg class="mark live " style="--d:-1.3s" viewBox="0 0 96 96" width="32" height="32" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>32<small>rail brand</small></div>
-          <div class="s"><svg class="mark live " style="--d:-1.3s" viewBox="0 0 96 96" width="48" height="48" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>48<small>join notice</small></div>
-          <div class="s"><svg class="mark live " style="--d:-1.3s" viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>96<small>loading</small></div>
-          <div class="s"><svg class="mark live cream" style="--d:-1.3s" viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>96<small>on cream</small></div>
+          <div class="s"><svg class="mark bare tiny" viewBox="0 0 96 96" width="16" height="16" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 16 A32 32 0 0 1 48 80"/><path class="arc b" d="M48 80 A32 32 0 0 1 48 16"/><circle class="dot" cx="48" cy="48" r="10"/></svg>16<small>favicon · still</small></div>
+          <div class="s"><svg class="mark small joining" viewBox="0 0 96 96" width="24" height="24" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="48"/><path class="arc a" d="M48 19 A29 29 0 0 1 48 77"/><path class="arc b" d="M48 77 A29 29 0 0 1 48 19"/><circle class="dot" cx="48" cy="48" r="8.5"/></svg>24<small>rail brand</small></div>
+          <div class="s"><svg class="mark joining" viewBox="0 0 96 96" width="32" height="32" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>32<small>toast</small></div>
+          <div class="s"><svg class="mark joining" viewBox="0 0 96 96" width="48" height="48" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>48<small>join line</small></div>
+          <div class="s"><svg class="mark joining" viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>96<small>loading</small></div>
+          <div class="s creamy"><svg class="mark bare cream joining" viewBox="0 0 96 96" width="72" height="72" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 18 A30 30 0 0 1 48 78"/><path class="arc b" d="M48 78 A30 30 0 0 1 48 18"/><circle class="dot" cx="48" cy="48" r="8"/></svg>72<small>on cream</small></div>
         </div>
       </div>
     </div>
@@ -258,76 +256,89 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
 
   <!-- 2 · storyboard -->
   <section>
-    <div class="sec-head"><span class="num">02</span><h2>Storyboard</h2><span class="sub">Eight frames of the once-only version (1.4 s). The trail is the bead's own colour at 55 %, its length follows speed. Angles are measured from the gap, clockwise.</span></div>
+    <div class="sec-head"><span class="num">02</span><h2>Storyboard</h2><span class="sub">Eight frames of one run, 1.8 s. Angles are each arc's rotation about the centre; the person's arc is positive (clockwise), the agent's arc is its mirror. Opacity rises from 50 % with the swing.</span></div>
     <div class="strip">
-      <div class="frame"><div class="cell"><span class="t">0 ms</span><span class="n">1</span><svg class="mark frame " viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><circle class="bead" cx="62.00" cy="72.25" r="7.5" opacity="0.00"/></svg></div><div class="cap">Nothing yet. The ring is the team; the gap is the seat.</div></div>
-      <div class="frame"><div class="cell"><span class="t">120 ms</span><span class="n">2</span><svg class="mark frame " viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><path class="trail" d="M62.00 72.25 A28 28 0 0 1 59.39 73.58" opacity="0.30"/><circle class="bead" cx="57.58" cy="74.31" r="7.5" opacity="0.55"/></svg></div><div class="cap">The bead fades in at the far side of the ring.</div></div>
-      <div class="frame"><div class="cell"><span class="t">320 ms</span><span class="n">3</span><svg class="mark frame " viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><path class="trail" d="M52.86 75.57 A28 28 0 0 1 40.28 74.92" opacity="0.55"/><circle class="bead" cx="38.42" cy="74.31" r="7.5" opacity="1.00"/></svg></div><div class="cap">It gathers speed along the bottom.</div></div>
-      <div class="frame"><div class="cell"><span class="t">560 ms</span><span class="n">4</span><svg class="mark frame " viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><path class="trail" d="M32.75 71.48 A28 28 0 0 1 21.53 57.12" opacity="0.55"/><circle class="bead" cx="20.95" cy="55.25" r="7.5" opacity="1.00"/></svg></div><div class="cap">Fastest on the left side; the trail is longest here.</div></div>
-      <div class="frame"><div class="cell"><span class="t">800 ms</span><span class="n">5</span><svg class="mark frame " viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><path class="trail" d="M20.07 46.05 A28 28 0 0 1 25.35 31.54" opacity="0.55"/><circle class="bead" cx="26.55" cy="30.00" r="7.5" opacity="1.00"/></svg></div><div class="cap">Slowing as the gap comes into view.</div></div>
-      <div class="frame"><div class="cell"><span class="t">1 020 ms</span><span class="n">6</span><svg class="mark frame " viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><path class="trail" d="M32.34 24.79 A28 28 0 0 1 40.28 21.08" opacity="0.55"/><circle class="bead" cx="42.18" cy="20.61" r="7.5" opacity="1.00"/></svg></div><div class="cap">Almost home. The trail shortens.</div></div>
-      <div class="frame"><div class="cell"><span class="t">1 160 ms</span><span class="n">7</span><svg class="mark frame " viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><path class="trail" d="M48.49 20.00 A28 28 0 0 1 50.44 20.11" opacity="0.55"/><circle class="bead" cx="52.38" cy="20.34" r="7.5" opacity="1.00"/></svg></div><div class="cap">A small overshoot past the gap, then back.</div></div>
-      <div class="frame"><div class="cell"><span class="t">1 400 ms</span><span class="n">8</span><svg class="mark frame " viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><circle class="bead" cx="48.00" cy="20.00" r="7.5" opacity="1.00"/></svg></div><div class="cap">Settled. The circle is complete; a halo breathes once.</div></div>
+      <div class="frame"><div class="cell"><span class="t">0 ms</span><span class="n">1</span><svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><g transform="rotate(70 48 48)" opacity=".5"><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/></g><g transform="rotate(-70 48 48)" opacity=".5"><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/></g></svg></div><div class="cap"><b>Apart.</b> Both arcs wait low at ±70°, at half opacity. The top is open; there is no centre yet.</div></div>
+      <div class="frame"><div class="cell"><span class="t">270 ms</span><span class="n">2</span><svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><g transform="rotate(70 48 48)" opacity=".5"><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/></g><g transform="rotate(-70 48 48)" opacity=".5"><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/></g></svg></div><div class="cap"><b>The hold.</b> 15 % of the run where nothing moves, so the eye finds two arcs before they go.</div></div>
+      <div class="frame"><div class="cell"><span class="t">450 ms</span><span class="n">3</span><svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><g transform="rotate(30.8 48 48)" opacity=".76"><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/></g><g transform="rotate(-30.8 48 48)" opacity=".76"><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/></g></svg></div><div class="cap"><b>The swing.</b> Fast out of the hold: ±31° and 76 % after a fifth of the travel.</div></div>
+      <div class="frame"><div class="cell"><span class="t">630 ms</span><span class="n">4</span><svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><g transform="rotate(7 48 48)" opacity=".93"><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/></g><g transform="rotate(-7 48 48)" opacity=".93"><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/></g></svg></div><div class="cap"><b>Almost one.</b> ±7°: the seams at 12 and 6 come into line, the arcs are nearly solid.</div></div>
+      <div class="frame"><div class="cell"><span class="t">1 080 ms</span><span class="n">5</span><svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><g transform="rotate(-3.8 48 48)"><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/></g><g transform="rotate(3.8 48 48)"><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/></g></svg></div><div class="cap"><b>Through.</b> The arcs pass their rest and lean the other way by 4°. The centre is about to come.</div></div>
+      <div class="frame"><div class="cell"><span class="t">1 260 ms</span><span class="n">6</span><svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><g transform="rotate(-4 48 48)"><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/></g><g transform="rotate(4 48 48)"><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/></g><circle cx="48" cy="48" r="7" fill="#E2C4A6"/></svg></div><div class="cap"><b>The centre.</b> At the far point of the overshoot the dot is at full size, still growing.</div></div>
+      <div class="frame"><div class="cell"><span class="t">1 440 ms</span><span class="n">7</span><svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><g transform="rotate(1.9 48 48)"><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/></g><g transform="rotate(-1.9 48 48)"><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/></g><circle cx="48" cy="48" r="8.75" fill="#E2C4A6"/></svg></div><div class="cap"><b>The pop.</b> The dot peaks at 1.25× as the arcs settle back through +2°.</div></div>
+      <div class="frame"><div class="cell"><span class="t">1 800 ms</span><span class="n">8</span><svg viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="7" fill="#E2C4A6"/></svg></div><div class="cap"><b>Rest.</b> One ring, one centre, exactly <span class="mono">mark.svg</span>. Nothing on the mark moves again.</div></div>
     </div>
     <div class="timeline">
-      <div class="bar">
-        <i style="left:0;width:8.5%;background:var(--surface-3)"></i>
-        <i style="left:8.5%;width:65%;background:var(--gradient-live)"></i>
-        <i style="left:73.5%;width:9%;background:var(--apricot-deep)"></i>
-        <i style="left:82.5%;width:8%;background:var(--accent)"></i>
-        <i style="left:90.5%;width:9.5%;background:var(--apricot-soft)"></i>
+      <span class="lbl top k" style="left:0">arcs</span>
+      <span class="lbl top" style="left:7%">hold · 270</span>
+      <span class="lbl top" style="left:15%">swing · 990 ms · ±70° → −4° · bezier(.3, .9, .3, 1)</span>
+      <span class="lbl top" style="left:70%">settle → +2°</span>
+      <span class="lbl top" style="left:85%">→ 0°</span>
+      <div class="bar arcs">
+        <i style="left:0;width:15%;background:var(--surface-3)"></i>
+        <i style="left:15%;width:55%;background:linear-gradient(90deg,#56352D,#CFA782)"></i>
+        <i style="left:70%;width:15%;background:var(--apricot-deep)"></i>
+        <i style="left:85%;width:15%;background:var(--apricot-soft)"></i>
       </div>
-      <span class="lbl top" style="left:0">fade in</span>
-      <span class="lbl top" style="left:8.5%">travel · 900 ms · bezier(.45, .02, .18, 1)</span>
-      <span class="lbl top" style="left:73.5%">overshoot</span>
-      <span class="lbl top" style="left:82.5%">settle</span>
-      <span class="lbl top" style="left:90.5%">halo</span>
-      <span class="lbl" style="left:0">0</span>
-      <span class="lbl" style="left:8.5%">120</span>
-      <span class="lbl" style="left:73.5%">1 020</span>
-      <span class="lbl" style="left:82.5%">1 160</span>
-      <span class="lbl" style="left:90.5%">1 280</span>
-      <span class="lbl" style="right:0">1 400 ms</span>
+      <span class="lbl mid k" style="left:0">centre</span>
+      <span class="lbl mid" style="left:60%">grow 0 → 1.25 · ease</span>
+      <span class="lbl mid" style="left:80%">1.25 → 1</span>
+      <div class="bar dot">
+        <i style="left:0;width:60%;background:var(--surface-3)"></i>
+        <i style="left:60%;width:20%;background:var(--apricot-deep)"></i>
+        <i style="left:80%;width:20%;background:var(--apricot-soft)"></i>
+      </div>
+      <span class="lbl ms" style="left:0">0</span>
+      <span class="lbl ms" style="left:15%">270</span>
+      <span class="lbl ms" style="left:60%">1 080</span>
+      <span class="lbl ms" style="left:70%">1 260</span>
+      <span class="lbl ms" style="left:80%">1 440</span>
+      <span class="lbl ms" style="left:85%">1 530</span>
+      <span class="lbl ms" style="right:0">1 800 ms</span>
     </div>
   </section>
 
   <!-- 3 · spec -->
   <section>
-    <div class="sec-head"><span class="num">03</span><h2>Timing and rules</h2><span class="sub">The same keyframes drive every size. Only the duration and the loop change.</span></div>
+    <div class="sec-head"><span class="num">03</span><h2>Timing and rules</h2><span class="sub">The keyframes live in <span class="mono">tokens.css</span>; this page only adds the once-only run and the small-size rule. Sizes do not change the timing.</span></div>
     <div class="spec">
       <div class="card">
-        <h3>Keyframes</h3>
+        <h3>Keyframes, as shipped in tokens.css</h3>
         <table>
-          <tr><th>Phase</th><th>Once</th><th>Loop (3.2 s)</th><th>What moves</th></tr>
-          <tr><td>Fade in</td><td class="m">0 – 120 ms</td><td class="m">0 – 6 %</td><td>bead opacity 0 → 1 at −210°</td></tr>
-          <tr><td>Travel</td><td class="m">120 – 1 020</td><td class="m">6 – 52 %</td><td>rotate −200° → +9°; trail 0 → 55 % → 0</td></tr>
-          <tr><td>Overshoot</td><td class="m">1 020 – 1 160</td><td class="m">52 – 62 %</td><td>rotate +9° → −3°</td></tr>
-          <tr><td>Settle</td><td class="m">1 160 – 1 280</td><td class="m">62 – 70 %</td><td>rotate → 0°; bead scale 1 → 1.22 → 1</td></tr>
-          <tr><td>Halo</td><td class="m">1 280 – 1 400</td><td class="m">66 – 92 %</td><td>1.5 px ring, scale 1 → 3.4, opacity .8 → 0</td></tr>
-          <tr><td style="white-space:nowrap">Hold · rewind</td><td class="m">stays</td><td class="m">70 – 100 %</td><td>loop only: hold, fade out, start again</td></tr>
+          <tr><th>Phase</th><th>Time</th><th>Keyframe</th><th>What moves</th></tr>
+          <tr><td>Hold</td><td class="m">0 – 270 ms</td><td class="m">0 – 15 %</td><td>arc a at +70°, arc b at −70°, both at opacity .5</td></tr>
+          <tr><td>Swing</td><td class="m">270 – 1 260</td><td class="m">15 – 70 %</td><td>a: 70° → −4°, b: −70° → 4°; opacity .5 → 1</td></tr>
+          <tr><td>Settle</td><td class="m">1 260 – 1 530</td><td class="m">70 – 85 %</td><td>a: −4° → 2°, b: 4° → −2°</td></tr>
+          <tr><td>Rest</td><td class="m">1 530 – 1 800</td><td class="m">85 – 100 %</td><td>both → 0°</td></tr>
+          <tr><td>Centre in</td><td class="m">1 080 – 1 440</td><td class="m">60 – 80 %</td><td>dot scale 0 → 1.25, <span class="mono">ease</span></td></tr>
+          <tr><td>Centre settles</td><td class="m">1 440 – 1 800</td><td class="m">80 – 100 %</td><td>dot scale 1.25 → 1</td></tr>
         </table>
+        <div class="code"><b>.mark.joining .arc</b> { transform-origin: 48px 48px; animation: arc-a 1.8s cubic-bezier(.3,.9,.3,1) infinite; }
+<b>.mark.joining .arc.b</b> { animation-name: arc-b; }
+<b>.mark.joining .dot</b> { transform-origin: 48px 48px; animation: dot-in 1.8s ease infinite; }
+<b>.mark.joining.once</b> .arc, .dot { animation-iteration-count: 1; animation-fill-mode: both; }  /* this page */</div>
       </div>
       <div class="card">
-        <h3>Travel easing</h3>
+        <h3>Swing easing</h3>
         <svg class="curve" viewBox="0 0 300 220" aria-hidden="true">
           <rect x="30" y="20" width="240" height="160" rx="10" fill="var(--surface-2)"/>
           <line x1="30" y1="180" x2="270" y2="180" stroke="var(--line)"/><line x1="30" y1="20" x2="30" y2="180" stroke="var(--line)"/>
-          <path d="M30 180 C138 175, 73 20, 270 20" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
-          <line x1="30" y1="180" x2="138" y2="175" stroke="var(--apricot-deep)" stroke-dasharray="3 4"/><line x1="270" y1="20" x2="73" y2="20" stroke="var(--apricot-deep)" stroke-dasharray="3 4"/>
-          <circle cx="138" cy="175" r="4" fill="var(--apricot-deep)"/><circle cx="73" cy="20" r="4" fill="var(--apricot-deep)"/>
+          <path d="M30 180 C102 36, 102 20, 270 20" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+          <line x1="30" y1="180" x2="102" y2="36" stroke="var(--apricot-deep)" stroke-dasharray="3 4"/><line x1="270" y1="20" x2="102" y2="20" stroke="var(--apricot-deep)" stroke-dasharray="3 4"/>
+          <circle cx="102" cy="36" r="4" fill="var(--apricot-deep)"/><circle cx="102" cy="20" r="4" fill="var(--apricot-deep)"/>
           <text x="30" y="205" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-3)">time →</text>
-          <text x="270" y="205" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-2)">bezier(.45, .02, .18, 1)</text>
+          <text x="270" y="205" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink-2)">bezier(.3, .9, .3, 1)</text>
         </svg>
-        <p class="small muted" style="margin:10px 0 0">A slow start so the bead is seen arriving, a long decelerating tail so the gap reads as a destination, not a stop. The overshoot is hand-keyed, not a spring: the mark must land identically on every device.</p>
+        <p class="small muted" style="margin:10px 0 0">A fast start and a long decelerating tail: most of the 70° is gone in the first 300 ms, so the closing reads as arrival, not as a spin. The overshoot is keyed (−4°, +2°), not sprung: the mark lands identically on every device and in every screenshot.</p>
       </div>
       <div class="card rules">
         <h3>Rules</h3>
         <ul>
-          <li><span>Motion means joining. The bead moves only when a member, an agent or a session connects. Never on hover, never as decoration.</span></li>
-          <li><span>One moving mark per screen. If a loader is already playing, a join notice shows the settled mark and lets its avatar ripple instead.</span></li>
+          <li><span>Motion means joining. The arcs move only when a member, an agent or a session connects. Never on hover, never as decoration.</span></li>
+          <li><span>One moving mark per screen. If the loader is already playing, a join line shows the closed ring and lets its avatar ripple instead.</span></li>
           <li><span>Loop only while something is genuinely loading. Past 8 s the loader keeps looping but the weave bar gets a message: "Still folding 1 284 events".</span></li>
-          <li><span>Calm mode and <span class="mono">prefers-reduced-motion</span> render the completed mark, no trail, no halo. The joined line still appears; it just does not animate.</span></li>
-          <li><span>Below 24 px the trail and halo are dropped: the bead simply fades in at the gap.</span></li>
+          <li><span><b>Calm mode</b> and <span class="mono">prefers-reduced-motion</span>: the ring is closed from the first frame, the centre present. Same markup, <span class="mono">animation: none</span>. The joined line still appears; it just does not move.</span></li>
+          <li><span>Small sizes: 24 px and up animate. At 20 and 16 the arcs are too few pixels to read a swing, so the closed mark fades in over 200 ms instead.</span></li>
+          <li><span>The arcs never change colour during the run, and the centre never appears before the ring is one. A ring with no centre is a loader; a centre with no ring is a bullet.</span></li>
         </ul>
       </div>
     </div>
@@ -335,7 +346,7 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
 
   <!-- 4 · applications -->
   <section>
-    <div class="sec-head"><span class="num">04</span><h2>Where it plays</h2><span class="sub">The loading screen, the joined-the-circle moment and the splash, with real Payments-team content.</span></div>
+    <div class="sec-head"><span class="num">04</span><h2>Where it plays</h2><span class="sub">The loading screen, the joined-the-circle line in the stream, the splash, and the rail brand on load, with real Payments-team content.</span></div>
     <div class="apps">
 
       <!-- loading -->
@@ -346,7 +357,7 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
             <div class="loading">
               <div class="who"><span>already here</span><span class="stack"><span class="avatar">Bo</span><span class="avatar">Cy</span><span class="avatar">De</span></span></div>
               <div class="centre">
-                <svg class="mark live " style="--d:-0.9s" viewBox="0 0 96 96" width="112" height="112" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>
+                <svg class="mark joining" style="--d:-.4s" viewBox="0 0 96 96" width="112" height="112" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
                 <h2>Folding the session</h2>
                 <div class="what"><span>Billing page · Checkout</span><span class="sep">·</span><span class="mono">1 284 events</span><span class="sep">·</span><span>Bo has the baton</span></div>
                 <div class="loader weave"></div>
@@ -362,8 +373,8 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
           </div>
           <div class="phone-slot"><div class="phone-wrap"><div class="msplash">
             <div class="sbar"><span>09:41</span><span>●●● ⌒ ▮</span></div>
-            <svg class="mark live " style="--d:-0.9s" viewBox="0 0 96 96" width="120" height="120" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>
-            <div class="word">Henosis</div>
+            <svg class="mark joining" style="--d:-.4s" viewBox="0 0 96 96" width="120" height="120" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+            <div class="word">henosis</div>
             <div class="tag">one team of people and agents</div>
             <div class="foot"><span>Joining the Payments team</span><div class="loader weave"></div></div>
             <div class="home"></div>
@@ -371,8 +382,8 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
         </div>
         <div class="about">
           <h3>Loading screen</h3>
-          <p>Shown while the client folds a session's events locally. The bead loops; the weave bar underneath is the real progress. The list of what is already folded sits bottom-left so a long fold still feels like it is arriving, not stuck.</p>
-          <div class="kv"><b>Mark</b><span>96 – 112 px, looping</span><b>Copy</b><span>"Folding the session" · what · who has the baton</span><b>Mobile</b><span>Same mark on the gradient, 120 px; the only gradient on the screen</span><b>Exit</b><span>The last loop finishes its settle, then the stream rises in</span></div>
+          <p>Shown while the client folds a session's events locally. The arcs loop; the weave bar underneath is the real progress. The list of what is already folded sits bottom-left so a long fold still feels like it is arriving, not stuck.</p>
+          <div class="kv"><b>Mark</b><span>96 – 112 px, looping at 1.8 s</span><b>Copy</b><span>"Folding the session" · what · who has the baton</span><b>Mobile</b><span>Same loop on the gradient, 120 px; the only gradient on the screen</span><b>Exit</b><span>The current loop finishes its settle (at most 1 s), then the stream rises in</span></div>
         </div>
       </div>
 
@@ -396,7 +407,7 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
               </div>
 
               <div class="join">
-                <svg class="mark once " style="--d:-3s" viewBox="0 0 96 96" width="48" height="48" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>
+                <svg class="mark joining once" style="--d:-.5s" viewBox="0 0 96 96" width="48" height="48" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
                 <div class="line"><span class="who">Ana</span> joins the circle.<span class="how">Observer · from Bo's share link · 4 here now</span></div>
                 <div class="people"><span class="stack"><span class="avatar">Bo</span><span class="avatar">Cy</span><span class="avatar">De</span><span class="avatar new">An</span></span><button class="btn sm">Say hello</button></div>
               </div>
@@ -407,7 +418,7 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
               </div>
 
               <div class="join agent-join">
-                <svg class="mark once " style="--d:-3s" viewBox="0 0 96 96" width="48" height="48" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>
+                <svg class="mark" viewBox="0 0 96 96" width="48" height="48" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
                 <div class="line"><span class="who">Dee's agent</span> joins the circle.<span class="how">Crew <span class="serif i">Invoice rollout</span> · Team with Dee · shares this plan's context</span></div>
                 <div class="people"><span class="pill team">Team</span><span class="avatar agent new" style="border-radius:9px 9px 9px 3px">Da</span></div>
               </div>
@@ -416,16 +427,40 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
             </div>
           </div>
           <div class="toasts">
-            <div class="toast"><svg class="mark once " style="--d:-3s" viewBox="0 0 96 96" width="28" height="28" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg><div class="t"><span><span class="who">Ana</span> joins the circle</span><span class="s">Billing page · Checkout · as observer</span></div><button class="btn sm ghost">View</button></div>
-            <div class="toast"><svg class="mark once " style="--d:-3s" viewBox="0 0 96 96" width="28" height="28" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg><div class="t"><span><span class="who">Dee's agent</span> joins the circle</span><span class="s">Crew Invoice rollout · Team with Dee</span></div></div>
-            <div class="toast dark"><svg class="mark live " style="--d:-0.9s" viewBox="0 0 96 96" width="28" height="28" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg><div class="t"><span>Reconnecting</span><span class="s">Session paused at a safe point · attempt 2 of 3</span><div class="loader weave"></div></div></div>
-            <div class="toast"><svg class="mark static " viewBox="0 0 96 96" width="28" height="28" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg><div class="t"><span>Session connected</span><span class="s">1 284 events folded · Bo has the baton</span></div><span class="status running" style="font-size:12px">live</span></div>
+            <div class="toast"><svg class="mark joining once" style="--d:-.5s" viewBox="0 0 96 96" width="32" height="32" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><div class="t"><span><span class="who">Ana</span> joins the circle</span><span class="s">Billing page · Checkout · as observer</span></div><button class="btn sm ghost">View</button></div>
+            <div class="toast"><svg class="mark" viewBox="0 0 96 96" width="32" height="32" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><div class="t"><span><span class="who">Dee's agent</span> joins the circle</span><span class="s">Crew Invoice rollout · Team with Dee</span></div></div>
+            <div class="toast dark"><svg class="mark joining" style="--d:-.4s" viewBox="0 0 96 96" width="32" height="32" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><div class="t"><span>Reconnecting</span><span class="s">Session paused at a safe point · attempt 2 of 3</span><div class="loader weave"></div></div></div>
+            <div class="toast"><svg class="mark" viewBox="0 0 96 96" width="32" height="32" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><div class="t"><span>Session connected</span><span class="s">1 284 events folded · Bo has the baton</span></div><span class="status running" style="font-size:12px">live</span></div>
           </div>
         </div>
         <div class="about">
           <h3>Joined the circle</h3>
-          <p>A join is a line in the stream, not a modal. The 48 px mark plays once, the newcomer's avatar ripples into the stack, and the line says who, how, and how many are here. An agent joining uses the same card with its name in the hand colour and its crew.</p>
-          <div class="kv"><b>Mark</b><span>48 px once, 1.4 s; 28 px in toasts</span><b>Avatar</b><span>ripple starts as the bead settles (+0.9 s)</span><b>Leaving</b><span>A quiet divider, no motion: the ring does not open again</span><b>Toasts</b><span>Rise from bottom-right when the join is in another session</span></div>
+          <p>A join is a line in the stream, not a modal. The 48 px mark plays once: the arcs close, the centre appears, and as it does the newcomer's avatar ripples into the stack. The line says who, how, and how many are here. An agent joining uses the same card with its name in the hand colour and its crew.</p>
+          <div class="kv"><b>Mark</b><span>48 px once, 1.8 s; 32 px in toasts</span><b>Avatar</b><span>ripple starts as the centre appears (+1.3 s)</span><b>Leaving</b><span>A quiet divider, no motion: the ring does not open again</span><b>Toasts</b><span>Rise from bottom-right when the join is in another session; the reconnecting toast loops</span></div>
+        </div>
+      </div>
+
+      <!-- rail on load -->
+      <div class="app-row">
+        <div class="window">
+          <div class="titlebar"><i></i><i></i><i></i><span style="margin-left:10px">Henosis · Payments</span></div>
+          <div class="onload">
+            <div class="railx">
+              <div class="brand"><svg class="mark small joining once" style="--d:var(--t0)" viewBox="0 0 96 96" width="24" height="24" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="48"/><path class="arc a" d="M48 19 A29 29 0 0 1 48 77"/><path class="arc b" d="M48 77 A29 29 0 0 1 48 19"/><circle class="dot" cx="48" cy="48" r="8.5"/></svg> henosis</div>
+              <div class="new rise d1"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg> New session</div>
+              <div class="section rise d2">Agents <span class="n">3</span></div>
+              <a class="agent active rise d3" href="#"><div class="head"><span class="dot running"></span><span class="t">Ana's agent</span><span class="pill team">Team</span></div><div class="doing">Adding tax lines to the <i>invoice PDF</i>, proration next</div><div class="foot">with Bo, Cy · 18.2k tokens</div></a>
+              <a class="agent rise d4" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div><div class="doing">Checkout: waiting on a release gate</div><div class="foot">Payments · 9.4k tokens</div></a>
+              <a class="agent rise d5" href="#"><div class="head"><span class="dot"></span><span class="t">Cy's agent</span><span class="pill solo">Solo</span></div><div class="doing">Idle · last: answered in #billing</div><div class="foot">Payments · 2.1k tokens</div></a>
+              <div class="me rise d5"><span class="avatar">An</span><span>Ana</span><span class="faint" style="margin-left:auto;font-size:12px">Payments</span></div>
+            </div>
+            <div class="blank"><div class="sk"><div class="loader shimmer w"></div><div class="loader shimmer"></div><div class="loader shimmer n"></div></div></div>
+          </div>
+        </div>
+        <div class="about">
+          <h3>The rail brand on load</h3>
+          <p>When the window opens, the 24 px brand mark is the first thing to move: the small cut closes once in the brand row while the rail is still empty. The new-session button and the agent cards rise in as the centre appears, 100 ms apart, top to bottom. The page skeleton shimmers until the first session is folded.</p>
+          <div class="kv"><b>Mark</b><span>24 px small cut, once; then still for the life of the window</span><b>Cards</b><span><span class="mono">rise</span> .32 s, staggered from 1.4 s</span><b>Again?</b><span>Never on navigation. Only on a cold open, and on a reconnect after the rail was greyed</span></div>
         </div>
       </div>
 
@@ -435,8 +470,8 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
           <div class="titlebar"><i></i><i></i><i></i><span style="margin-left:10px">Henosis</span></div>
           <div class="splash">
             <div class="centre">
-              <svg class="mark live " style="--d:-1.3s" viewBox="0 0 96 96" width="160" height="160" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>
-              <div class="word">Henosis</div>
+              <svg class="mark joining once" style="--d:var(--t0)" viewBox="0 0 96 96" width="160" height="160" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+              <div class="word">henosis</div>
               <div class="tag">one team of people and agents</div>
             </div>
             <div class="ver">henosis desktop 0.9.4 · build 2026.10.06</div>
@@ -445,8 +480,8 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
         </div>
         <div class="about">
           <h3>Splash</h3>
-          <p>The only place the mark sits on the brand gradient. It plays once as the window opens and the wordmark fades in with the settle; if sign-in takes longer, it loops until the loading screen takes over with the plain navy canvas.</p>
-          <div class="kv"><b>Mark</b><span>160 px desktop · 120 px mobile</span><b>Wordmark</b><span>Instrument Serif 72 / 44, tagline italic in apricot</span><b>Gradient</b><span>navy → chocolate, the one gradient on this screen</span><b>Hand-off</b><span>Settle → wordmark rises → loading screen</span></div>
+          <p>The only place the mark sits on the brand gradient; its disc deepens to #1C2230 so the ring has a room. It plays once as the window opens; the wordmark rises in as the centre appears and the tagline follows. If sign-in takes longer, the mark goes back to looping until the loading screen takes over on plain navy.</p>
+          <div class="kv"><b>Mark</b><span>160 px desktop · 120 px mobile</span><b>Wordmark</b><span>Instrument Serif 72 / 44, lower case; tagline italic in apricot</span><b>Gradient</b><span>navy → chocolate, the one gradient on this screen</span><b>Hand-off</b><span>Centre in → wordmark rises → loading screen</span></div>
         </div>
       </div>
 
@@ -455,22 +490,23 @@ footer { display: flex; justify-content: space-between; font-size: 12.5px; color
 
   <!-- 5 · variants -->
   <section>
-    <div class="sec-head"><span class="num">05</span><h2>Resting states and small sizes</h2><span class="sub">Where the mark lives when nothing is joining.</span></div>
+    <div class="sec-head"><span class="num">05</span><h2>Resting states and small sizes</h2><span class="sub">Where the mark lives when nothing is joining. Every one of these is the closed ring with its centre: the end frame, never a frame from the middle.</span></div>
     <div class="variants">
-      <div class="variant navy"><svg class="mark static " viewBox="0 0 96 96" width="72" height="72" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg><div class="t">Settled, on navy</div><div class="s">Rail brand, titlebars, dark canvas. The default.</div></div>
-      <div class="variant"><svg class="mark static cream" viewBox="0 0 96 96" width="72" height="72" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg><div class="t">Settled, on cream</div><div class="s">Cards, emails, the invite page. Ring in deep apricot for contrast.</div></div>
-      <div class="variant calm"><svg class="mark live wire" viewBox="0 0 96 96" width="72" height="72" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg><div class="t">Calm mode</div><div class="s">Same markup, animation off: the completed mark, no trail, no halo.</div></div>
-      <div class="variant"><div class="fav"><svg class="mark static " viewBox="0 0 96 96" width="16" height="16" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>Billing page · Checkout<span class="x"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div><div class="tray"><svg class="mark static " viewBox="0 0 96 96" width="16" height="16" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg><span>3 agents · 1 waits for you</span><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M9 1L3 9h4l-1 6 6-8H8z"/></svg></div><div class="t">Favicon and tray</div><div class="s">At 16 px the bead is 2.5 px; it fades in at the gap, no travel.</div></div>
+      <div class="variant navy"><svg class="mark" viewBox="0 0 96 96" width="72" height="72" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><div class="t">Settled, on navy</div><div class="s">Rail brand, titlebars, dark canvas. The default: chocolate and apricot.</div></div>
+      <div class="variant creamy"><svg class="mark bare cream" viewBox="0 0 96 96" width="72" height="72" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 18 A30 30 0 0 1 48 78"/><path class="arc b" d="M48 78 A30 30 0 0 1 48 18"/><circle class="dot" cx="48" cy="48" r="8"/></svg><div class="t">Settled, on cream</div><div class="s">Cards, emails, the invite page. The agent's arc turns navy; the centre stays apricot.</div></div>
+      <div class="variant chocy"><svg class="mark bare choc" viewBox="0 0 96 96" width="72" height="72" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 18 A30 30 0 0 1 48 78"/><path class="arc b" d="M48 78 A30 30 0 0 1 48 18"/><circle class="dot" cx="48" cy="48" r="8"/></svg><div class="t">Settled, on chocolate</div><div class="s">The hand's own ground: the person's arc goes apricot, the agent's navy.</div></div>
+      <div class="variant calm"><svg class="mark joining" viewBox="0 0 96 96" width="72" height="72" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="calmtag">calm mode</span><div class="t">Nothing moves</div><div class="s">Same <span class="mono">.mark.joining</span> markup under <span class="mono">[data-motion="calm"]</span> or reduced motion: the closed ring, from the first frame.</div></div>
+      <div class="variant"><div class="fav"><svg class="mark bare tiny onpage" viewBox="0 0 96 96" width="16" height="16" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 16 A32 32 0 0 1 48 80"/><path class="arc b" d="M48 80 A32 32 0 0 1 48 16"/><circle class="dot" cx="48" cy="48" r="10"/></svg>Billing page · Checkout<span class="x"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span></div><div class="tray"><svg class="mark bare tiny onpage" viewBox="0 0 96 96" width="16" height="16" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 16 A32 32 0 0 1 48 80"/><path class="arc b" d="M48 80 A32 32 0 0 1 48 16"/><circle class="dot" cx="48" cy="48" r="10"/></svg><span>3 agents · 1 waits for you</span><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M9 1L3 9h4l-1 6 6-8H8z"/></svg></div><div class="t">Favicon and tray, 16</div><div class="s">The tiny cut, no disc: arcs 2.7 px, centre 3.3 px. No swing at this size; it fades in closed.</div></div>
     </div>
   </section>
 
-  <footer><span>Henosis · design/henosis/explorations/mark-motion · tokens v5</span><span>Instrument Serif · Instrument Sans · JetBrains Mono</span></footer>
+  <footer><span>Henosis · design/henosis/explorations/mark-motion · tokens v5 · keyframes arc-a, arc-b, dot-in</span><span>Instrument Serif · Instrument Sans · JetBrains Mono</span></footer>
 </div>
 
 <div class="mobile-only"><div class="msplash flat">
   <div class="sbar"><span>09:41</span><span>●●● ⌒ ▮</span></div>
-  <svg class="mark live " style="--d:-0.9s" viewBox="0 0 96 96" width="120" height="120" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="ring" d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"/><g class="orbit"><path class="trail" d="M29.26 27.19 A28 28 0 0 1 46.05 20.07"/><circle class="bead" cx="48" cy="20" r="7.5"/></g><circle class="halo" cx="48" cy="20" r="7.5"/></svg>
-  <div class="word">Henosis</div>
+  <svg class="mark joining" style="--d:-.4s" viewBox="0 0 96 96" width="120" height="120" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+  <div class="word">henosis</div>
   <div class="tag">one team of people and agents</div>
   <div class="foot"><span>Joining the Payments team</span><div class="loader weave"></div></div>
   <div class="home"></div>

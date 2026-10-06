@@ -4,190 +4,299 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henosis — Mobile</title>
-<meta name="description" content="Three phone frames: the session with a team message, the agents rail as a drawer, and the Team panel as a bottom sheet.">
+<meta name="description" content="Three phones: the session with a plan card, the agents rail as a drawer, and the #billing chat.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="tokens.css">
 <style>
 
 .ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
-.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.ic.fill { fill: currentColor; }
 .row { display: flex; align-items: center; gap: 8px; }
 .grow { flex: 1; min-width: 0; }
+.nowrap { white-space: nowrap; }
+.fg { color: var(--fg); }
 .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.input { display: flex; align-items: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-full); background: var(--bg); color: var(--fg-3); font-size: 13.5px; }
-.sidebar .brand { text-decoration: none; color: var(--fg); }
+.input { display: flex; align-items: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-full); background: var(--bg); color: var(--fg-3); font-size: 13.5px; white-space: nowrap; overflow: hidden; }
+.input.sm { min-height: 28px; font-size: 13px; padding: 0 10px; }
+.theme-toggle { border: 0; margin: 0; }
+.theme-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.theme-toggle input:checked + label { background: var(--bg); color: var(--fg); }
+.theme-toggle input:focus-visible + label { outline: 2px solid var(--focus-ring); }
+/* the rail */
+.sidebar .brand { text-decoration: none; }
 .sidebar .brand .mark { flex: none; }
-.sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); }
+.sidebar .search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 4px; color: var(--fg-3); font-size: 14px; border-radius: var(--radius); background: var(--rail-hover); }
 .sidebar .search .ic { width: 14px; height: 14px; }
-.sidebar .new .ic { width: 16px; height: 16px; color: var(--fg-2); }
+.sidebar .search .kbd { font-size: 11px; letter-spacing: 0.02em; }
+.sidebar .new .ic { width: 16px; height: 16px; }
+.sidebar .item .ic { width: 15px; height: 15px; color: var(--fg-2); }
+.sidebar .item .n { margin-left: auto; font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.sidebar .agent { padding: 6px 10px; }
+.sidebar .section { padding-top: 10px; }
 .sidebar .lists { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
 .sidebar .lists > * { flex: none; }
 .sidebar .item.team { color: var(--fg-3); font-size: 13px; padding-top: 4px; padding-bottom: 4px; }
 .sidebar .item.project { font-weight: 500; }
+.sidebar .item.channel .hash { color: var(--fg-3); margin-right: -4px; }
+.sidebar .item .unread { margin-left: auto; min-width: 18px; height: 18px; border-radius: 9px; background: var(--team-highlight); color: var(--team-surface); font-size: 11px; font-weight: 600; display: inline-grid; place-items: center; padding: 0 5px; }
+.sidebar .avatar { background: var(--rail-fg); color: var(--team-surface); }
+.sidebar .avatar.agent { background: var(--rail-fg); color: var(--team-surface); }
 .sidebar .me .avatar { width: 28px; height: 28px; border: 0; }
-.sidebar .me .who { line-height: 1.3; flex: 1; min-width: 0; }
 .sidebar .me .ic { width: 14px; height: 14px; color: var(--fg-3); }
-.agent .head .pill { height: 18px; padding: 0 6px; font-size: 11px; }
+.agent .head .pill.badge { height: 18px; min-width: 18px; padding: 0 5px; font-size: 11px; }
+.agent .foot .stack .avatar { width: 20px; height: 20px; font-size: 8px; }
+.agent .foot .stack .avatar + .avatar { margin-left: -4px; }
+.agent .foot .tokens { margin-left: auto; flex: none; font-family: var(--mono); font-size: 11.5px; color: var(--fg-3); }
+/* the top bar */
 .topbar .title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
 .topbar .title .serif { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
 .topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.topbar .right .btn.primary { color: var(--accent-fg); }
 .topbar .right .btn .ic { width: 14px; height: 14px; }
+.topbar .right .stack .avatar { width: 26px; height: 26px; font-size: 9.5px; }
+.avatar { letter-spacing: -0.03em; }
+.stack .avatar + .avatar { margin-left: -5px; }
+.pill.planning { background: var(--highlight-soft); color: var(--fg); }
+.meter { position: relative; display: inline-flex; flex-direction: column; gap: 3px; flex: none; }
+.meter .chip { height: 24px; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; color: var(--fg); }
+.meter .bar { display: block; height: 2px; border-radius: 1px; background: var(--bg-3); overflow: hidden; }
+.meter .bar .fill { display: block; height: 100%; background: var(--fg-3); border-radius: 1px; }
+.meter.open { align-self: flex-start; gap: 8px; }
+.meter.open .meter-pop { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.meter .kv-line { display: flex; justify-content: space-between; gap: 12px; }
+/* the stream */
 .main .body { flex: 1; min-height: 0; display: flex; }
 .scroll { display: flex; flex-direction: column; overflow: hidden; }
 .stream { flex: 1; min-height: 0; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.column { padding-top: 0; padding-bottom: 10px; gap: 22px; }
 .msg .meta .faint { font-size: 12px; }
 .msg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.msg.human .text .mono { font-size: 13.5px; }
 .step .mono { font-size: 12.5px; }
+.step .chev { width: 12px; height: 12px; color: var(--fg-3); }
 .notice p { margin: 0; }
+.notice.plan { gap: 12px; }
+.notice.plan .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.notice.plan .head .serif { font-size: 17px; }
+.notice.plan .head .status { margin-left: auto; }
+.notice.plan .goal { font-size: 15px; font-weight: 500; }
+.plansteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.planstep { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: baseline; font-size: 14px; }
+.planstep .step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--fg-3); align-self: center; }
+.planstep.running .step-dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+.planstep.done .step-dot { background: var(--ok); }
+.planstep .body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.planstep .title .mono { font-size: 13px; }
+.planstep.done .title { color: var(--fg-2); }
+.planstep .meta { white-space: nowrap; }
+.planstep .meta .mono { font-size: 12px; }
+.planstep .risk { color: var(--warn); }
+.status.plan-proposed::before { background: var(--warn); } .status.plan-approved::before { background: var(--ok); }
+.notice .rating { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.notice .rating .note { flex: 1; min-width: 160px; }
+.notice.plan .raters { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.notice.plan .raters .serif { color: var(--fg); font-size: 14.5px; }
+.notice.plan .raters > span { display: inline-flex; align-items: center; gap: 5px; }
+.compact .planstep .body .small { display: none; }
+.compact .column { gap: 15px; padding-bottom: 6px; }
+.compact .notice { padding: 12px 16px; }
+.compact .notice.plan { gap: 10px; }
+.compact .plansteps { gap: 4px; }
+.compact .msg.human .text { padding: 10px 22px 10px 16px; }
+.compact .composer-wrap { padding-top: 2px; }
+.compact .composer-wrap { padding-bottom: 8px; }
+.compact .hint { margin-top: 4px; }
+.notice .actions { align-items: center; }
+.stars { display: inline-flex; gap: 2px; }
+.stars .star { padding: 2px; color: var(--fg-3); display: inline-grid; place-items: center; }
+.stars .star .ic { width: 14px; height: 14px; stroke-width: 1.5; }
+.stars .star.on { color: var(--accent); }
+.stars .star.on .ic { fill: var(--highlight); }
+.stars.mini .star { padding: 0; }
+.stars.mini .star .ic { width: 11px; height: 11px; }
 .hint { text-align: center; font-size: 12px; color: var(--fg-3); margin-top: 8px; }
-.column { padding-top: 0; padding-bottom: 12px; }
 .composer-wrap { padding-top: 4px; padding-bottom: 12px; }
 .composer .input { border: 0; background: transparent; padding: 0; min-height: 24px; font-size: 15px; border-radius: 0; }
 .composer .bar .btn.icon { border-color: transparent; color: var(--fg-2); width: 30px; min-height: 30px; }
 .composer .bar .btn.icon .ic { width: 15px; height: 15px; }
+/* the drawer (Team panel, Details) */
 .drawer p { margin: 0; }
+.drawer .person { gap: 8px; }
+.drawer .person .avatar { width: 24px; height: 24px; font-size: 10px; }
 .drawer .group > .btn { align-self: flex-start; }
 .drawer .row { gap: 6px; }
-.drawer .input { min-height: 30px; font-size: 13px; }
+.drawer .person .btn { margin-left: 4px; min-height: 24px; padding: 0 8px; font-size: 12px; }
 .drawer .agent { background: var(--bg-2); }
 .drawer .drawer-head { display: none; align-items: center; justify-content: space-between; font-weight: 500; }
 .drawer .drawer-head .btn.icon { width: 28px; min-height: 28px; }
-.drawer .brief { margin: 0; white-space: pre-wrap; font: 13px/1.5 var(--font); color: var(--fg-2); }
+.drawer .brief { margin: 0; font: 13.5px/1.55 var(--font); color: var(--fg-2); }
+.drawer .kv { grid-template-columns: 72px 1fr; font-size: 13px; }
+.drawer .kv .mono { font-size: 12.5px; }
+.drawer .branch { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius); }
+.drawer .branch.on { border-color: var(--highlight); background: var(--highlight-soft); }
 .memlist { display: flex; flex-direction: column; gap: 10px; }
 .memline { display: flex; flex-direction: column; gap: 1px; }
 .memline.conflict { padding-left: 10px; border-left: 2px solid var(--highlight); }
-.app { width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; }
+/* bars (manager's view, usage) */
+.bars { display: flex; flex-direction: column; gap: 6px; }
+.bar-row { display: grid; grid-template-columns: minmax(90px, 150px) 1fr 52px; align-items: center; gap: 10px; font-size: 13px; }
+.bar-row .serif { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 12px; background: var(--bg-2); border-radius: 4px; overflow: hidden; }
+.bar-fill { display: block; height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; min-width: 2px; }
+.bar-value { text-align: right; color: var(--fg-2); font-size: 12px; }
+.drawer .bar-row { grid-template-columns: 40px 1fr 40px; }
+/* chats */
+.chatmsg { display: flex; flex-direction: column; gap: 4px; }
+.chatmsg .meta { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--fg-2); flex-wrap: wrap; }
+.chatmsg .meta .who { font-family: var(--serif); font-size: 15px; color: var(--fg); }
+.chatmsg .meta .time { margin-left: auto; font-size: 12px; color: var(--fg-3); }
+.chatmsg .meta .avatar.agent { width: 20px; height: 20px; font-size: 9px; border: 0; }
+.chatmsg .bubble { background: var(--bg-2); border-radius: var(--radius-lg); padding: 10px 22px 10px 16px; align-self: flex-start; max-width: 88%; position: relative; }
+.chatmsg .bubble::after { content: ""; position: absolute; top: 9px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--highlight); }
+.chatmsg.mine .bubble { align-self: flex-end; }
+.chatmsg.agent .text { padding-left: 28px; font-size: 15px; }
+.mention { background: var(--highlight-soft); border-radius: 6px; padding: 1px 5px; }
+/* a 1440×900 app frame */
+.app { height: 100vh; min-height: 720px; overflow: hidden; }
 .app .shell { height: 100%; }
 
-body { background: var(--bg-2); height: auto; min-height: 100%; }
-.theme-toggle { top: 16px; bottom: auto; }
-.phones { display: flex; gap: 40px; justify-content: center; padding: 48px 24px; }
-.phone { position: relative; }
-.phone .topbar { padding: 14px 14px 6px; gap: 8px; }
+
+body { height: auto; min-height: 100%; }
+.phones { display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 48px 24px 64px; flex-wrap: wrap; }
+.phone { position: relative; box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--blues) 70%, transparent); }
+.phone .main { height: 100%; }
+.phone .topbar { padding: 14px 12px 6px; gap: 8px; }
 .phone .topbar .menu { width: 32px; min-height: 32px; border-color: transparent; color: var(--fg-2); }
 .phone .topbar .title { flex: 1; min-width: 0; gap: 8px; }
-.phone .topbar .title .status { display: none; }
-.phone .topbar .right { margin-left: 0; }
-.phone .column { padding: 8px 16px 20px; gap: 20px; }
+.phone .topbar .title .serif { font-size: 17px; }
+.phone .topbar .right { margin-left: 0; gap: 6px; }
+.phone .topbar .right .btn { border-color: transparent; color: var(--fg-2); }
+.phone .topbar .right .btn.on { background: var(--bg-3); color: var(--fg); }
+.phone .topbar .right .stack .avatar { width: 24px; height: 24px; font-size: 9px; }
+.phone .column { padding: 8px 16px 12px; gap: 18px; }
 .phone .msg.human .text { max-width: 92%; }
-.phone .composer-wrap { padding: 8px 12px 20px; }
-.phone .scrim { position: absolute; inset: 0; z-index: 8; background: rgba(42, 50, 68, 0.35); border-radius: 36px; }
-.phone .sidebar { position: absolute; top: 0; left: 0; bottom: 0; z-index: 9; width: 300px; padding: 20px 12px 16px; }
-.phone .sidebar .brand { padding-top: 10px; }
-.phone .drawer { position: absolute; left: 0; right: 0; bottom: 0; z-index: 10; width: auto; max-height: 76%; border-left: 0; border-top: 1px solid var(--line); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--bg); padding-bottom: 28px; }
-.phone .drawer .drawer-head { display: flex; }
-
+.phone .composer-wrap { padding: 8px 12px 18px; }
+.phone .hint { display: none; }
+.phone .notice { padding: 12px 14px; }
+.phone .notice.plan .head .serif { font-size: 16px; }
+.phone .planstep .body .small { display: none; }
+.phone .rating .note { display: none; }
+.phone .scrim { position: absolute; inset: 0; z-index: 8; background: color-mix(in srgb, var(--blues) 45%, transparent); border-radius: 36px; }
+.phone .sidebar { position: absolute; top: 0; left: 0; bottom: 0; z-index: 9; width: 300px; padding: 22px 12px 18px; border-radius: 36px 0 0 36px; }
+.phone .sidebar .brand { padding-top: 8px; }
+.phone .chatmsg .bubble { max-width: 92%; }
+.phone .chatmsg .meta a { display: none; }
+.caption { text-align: center; font-size: 13px; color: var(--fg-2); margin-top: 14px; }
+.caption .serif { color: var(--fg); font-size: 15px; }
+.theme-toggle { top: 12px; right: 16px; bottom: auto; }
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13V6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v7l-1 6H5z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-memory" viewBox="0 0 24 24"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><path d="M5 17a2 2 0 0 1 2-2h11"/></symbol>
 <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></symbol>
 <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
 <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16z"/></symbol>
+<symbol id="i-deploy" viewBox="0 0 24 24"><path d="M12 19V6M6 12l6-6 6 6"/><path d="M5 20h14"/></symbol>
 <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
 <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14l4-4M7.5 16.5l-1.5 1.5a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M16.5 7.5l1.5-1.5a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"/></symbol>
-<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
 <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.2l-5.4 2.9 1-6.1L3.2 9.7l6.1-.9z"/></symbol>
+<symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/></symbol>
+<symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></symbol>
 </svg>
 <div class="phones">
-<div class="phone">
-  <div class="topbar"><button class="btn ghost icon menu" type="button" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button><span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="pill team">Team</span></span><div class="right"><span class="stack" aria-hidden="true"><span class="avatar" title="Ana">A</span><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Cy">C</span></span></div></div>
-  <div class="stream"><div class="column">
-<div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Then leave the invoices table alone. Compute the tax lines at render time.</div></div>
-<div class="msg human team"><div class="meta"><span class="who">Cy</span><span class="to">to the team</span></div><div class="text">Heads up: the rounding audit is touching rates.ts next door. I'll hold off until this lands.</div></div>
-<div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Agent</span><span class="faint">turn 7</span></div><div class="text">Done at render time, and the rounding now matches rates.ts line by line: all 32 tests pass. Next I want to clear legacy_invoices. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
-<div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">Ana approved · 1 of 2 drivers.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
-</div></div>
-  <div class="composer-wrap">
-  <div class="composer to-team">
-    <div class="input">Say something to the people in this session</div>
-    <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="">Agent</label><label class="on">Team</label></div><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
-  </div>
-  
+<div><div class="phone"><div class="main">
+<div class="topbar"><button class="btn icon menu" type="button" aria-label="Open the rail"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button><span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="pill team">Team</span></span><div class="right"><span class="stack" aria-hidden="true"><span class="avatar driver" title="bo">BO</span><span class="avatar" title="cy">CY</span></span><a class="btn sm" href="#">Details</a></div></div>
+<div class="scroll" style="flex:1"><div class="stream"><div class="column">
+<div class="msg human"><div class="meta"><span class="who">Ana</span><span class="faint">goal</span></div><div class="text">Build the invoice PDF renderer with tax lines and deploy it.</div></div>
+<div class="msg agent"><div class="meta"><span class="avatar agent" title="Invoice PDF + tax lines">A</span><span class="who">Invoice PDF + tax lines</span><span class="faint">turn 1</span></div><div class="text">Plan first: three small steps, tests before anything ships.</div></div>
+<div class="notice plan">
+  <div class="head"><span class="serif">Plan · 3 steps</span><span class="faint small">proposed on turn 1</span><span class="status plan-proposed">Waiting for ratings</span></div>
+  <p class="goal">Build the invoice PDF renderer with tax lines and deploy it</p>
+  <ol class="plansteps">
+    <li class="planstep"><span class="step-dot"></span><span class="body"><span class="title">Write <span class="mono">src/invoice_pdf.mjs</span></span></span><span class="meta small faint">write · <span class="mono">~600</span></span></li>
+    <li class="planstep"><span class="step-dot"></span><span class="body"><span class="title">Write and run the test</span></span><span class="meta small faint">exec · <span class="mono">~900</span></span></li>
+    <li class="planstep"><span class="step-dot"></span><span class="body"><span class="title">Deploy to production</span></span><span class="meta small faint"><span class="risk">irreversible</span> · <span class="mono">~300</span></span></li>
+  </ol>
+  <p class="small muted"><span class="mono">1,800</span> tokens estimated · budget <span class="mono">40,000</span></p>
+  <div class="rating"><span class="stars" role="img" aria-label="0 of 5"><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span></span><span class="small muted nowrap">0 of 1 ratings · needs 1 at 3+</span></div>
+  <div class="actions"><button class="btn sm primary" type="button">Approve now</button><button class="btn sm" type="button">Ask to revise</button><button class="btn sm ghost" type="button">Reject</button></div>
 </div>
-</div>
-<div class="phone">
-  <div class="topbar"><button class="btn ghost icon menu" type="button" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button><span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="pill team">Team</span></span><div class="right"><span class="stack" aria-hidden="true"><span class="avatar" title="Ana">A</span><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Cy">C</span></span></div></div>
-  <div class="stream"><div class="column">
-<div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Then leave the invoices table alone. Compute the tax lines at render time.</div></div>
-<div class="msg human team"><div class="meta"><span class="who">Cy</span><span class="to">to the team</span></div><div class="text">Heads up: the rounding audit is touching rates.ts next door. I'll hold off until this lands.</div></div>
-<div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Agent</span><span class="faint">turn 7</span></div><div class="text">Done at render time, and the rounding now matches rates.ts line by line: all 32 tests pass. Next I want to clear legacy_invoices. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
-<div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">Ana approved · 1 of 2 drivers.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
-</div></div>
-  <div class="composer-wrap">
+</div></div><div class="composer-wrap">
   <div class="composer">
     <div class="input">Steer the agent</div>
-    <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label class="">Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+    <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label class="">Team</label></div><button class="btn icon" type="button" aria-label="Attach"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button><span class="chip">goal</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
   </div>
-  
+  <div class="hint"></div>
+</div></div>
+</div></div><p class="caption"><span class="serif">Session</span> · a plan waits for ratings</p></div>
+
+<div><div class="phone"><div class="main">
+<div class="topbar"><button class="btn icon menu" type="button" aria-label="Open the rail"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button><span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="pill team">Team</span></span><div class="right"><a class="btn sm" href="#">Details</a></div></div>
+<div class="scroll" style="flex:1"><div class="stream"><div class="column">
+<div class="msg agent"><div class="meta"><span class="avatar agent" title="Invoice PDF + tax lines">A</span><span class="who">Invoice PDF + tax lines</span><span class="faint">turn 3</span></div><div class="text">Tests pass; deploying to production as directed.</div></div>
+<div class="notice gate">
+  <p>The agent wants to deploy to production <span class="muted">(irreversible)</span>; needs 2 contributors or above rating it 4+ of 5 on average.</p>
+  <div class="rating"><span class="stars" role="img" aria-label="0 of 5"><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span><span class="star"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span></span><span class="input note sm">A note with your vote (optional)</span><span class="small muted nowrap"><span class="serif fg">Bo</span> approved · 3 of 5 · 1 of 2 raters · 3 average</span></div>
+  <div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button><span class="small faint">Rate it before you approve; 4 if you leave it</span></div>
 </div>
-  <div class="scrim"></div>
-  <aside class="sidebar" aria-label="Sidebar">
-  <a class="brand" href="index.html"><svg class="mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg)"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="var(--bg-2)" stroke-width="3" stroke-linecap="round"/></svg><span class="serif">Henosis</span></a>
+</div></div><div class="composer-wrap">
+  <div class="composer">
+    <div class="input">Steer the agent</div>
+    <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label class="">Team</label></div><button class="btn icon" type="button" aria-label="Attach"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button><span class="chip">goal</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+  </div>
+  <div class="hint"></div>
+</div></div>
+</div>
+<div class="scrim"></div>
+<aside class="sidebar" aria-label="Sidebar">
+  <a class="brand" href="index.html"><svg class="mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a, var(--mark-bead))" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b, var(--mark-ring))" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7" fill="var(--mark-ring)"/></svg><span>Henosis</span></a>
   <button class="new" type="button"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New session</button>
-  <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search sessions</div>
+  <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="grow">Search sessions</span></div>
+  <a class="item" href="#"><svg class="ic" aria-hidden="true"><use href="#i-inbox"/></svg>Inbox<span class="n">3</span></a>
+  <a class="item" href="#"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Approvals<span class="n">1</span></a>
   <div class="lists">
     <div class="section">Agents<span class="n">4</span></div>
-    <a class="item team" href="web-team.html">Payments</a>
-    <a class="item project" href="web-project.html">Billing page</a>
+    <a class="item team" href="#">Payments</a>
+    <a class="item project" href="#">Billing page</a>
     <div class="crew"><span class="serif">Invoice rollout</span><span class="faint">2 agents</span></div>
-    <a class="agent active" href="web-session.html"><span class="head"><span class="dot awaiting_approval"></span><span class="t">Invoice PDF + tax lines</span><span class="pill" title="Approvals waiting">1</span></span><span class="doing"><i>waiting on</i> an approval</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar" title="Ana">A</span><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Cy">C</span></span><span class="with">with Bo, Cy</span></span></a>
-    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Tax rounding audit</span></span><span class="doing"><i>working on</i> Per-line rounding across the EU VAT rates</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar" title="Cy">C</span></span><span class="with">Cy</span></span></a>
-    <a class="agent" href="#"><span class="head"><span class="dot blocked"></span><span class="t">Proration fix</span></span><span class="doing"><i>blocked on</i> migration 0042 on the prod snapshot</span><span class="foot"><span class="pill solo">Solo</span><span class="stack" aria-hidden="true"><span class="avatar" title="Dee">D</span></span><span class="with">Dee</span></span></a>
+    <a class="agent active" href="web-session.html"><span class="head"><span class="dot awaiting_approval"></span><span class="t">Invoice PDF + tax lines</span><span class="pill badge" title="Approvals waiting">1</span></span><span class="doing"><i>waiting on</i> an approval to deploy</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar" title="an">AN</span><span class="avatar driver" title="bo">BO</span><span class="avatar" title="cy">CY</span></span><span class="with">with Bo, Cy</span><span class="tokens">8.5k</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Tax rounding audit</span></span><span class="doing"><i>working on</i> EU VAT per-line rounding</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar" title="cy">CY</span></span><span class="with">with Cy</span><span class="tokens">3.1k</span></span></a>
     <a class="item project" href="#">Checkout</a>
-    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Checkout retries</span></span><span class="doing"><i>working on</i> Retry failed card auths with backoff</span><span class="foot"><span class="pill solo">Solo</span><span class="stack" aria-hidden="true"><span class="avatar" title="Bo">B</span></span><span class="with">Bo</span></span></a>
-    
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Checkout retries</span></span><span class="doing"><i>working on</i> card-auth retries with backoff</span><span class="foot"><span class="pill solo">Solo</span><span class="stack" aria-hidden="true"><span class="avatar" title="bo">BO</span></span><span class="with">Bo</span><span class="tokens">11.6k</span></span></a>
+    <div class="section">Chats</div>
+    <a class="item channel" href="#"><span class="hash">#</span>billing<span class="unread">2</span></a>
   </div>
-  <div class="me"><span class="avatar" title="Ana">A</span><div class="who">Ana Novak<div class="small faint">Northwind · Payments</div></div><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></div>
+  <div class="me"><span class="avatar" title="bo">BO</span><span class="grow">Bo</span><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></div>
 </aside>
-</div>
-<div class="phone">
-  <div class="topbar"><button class="btn ghost icon menu" type="button" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button><span class="title"><span class="serif">Invoice PDF + tax lines</span><span class="pill team">Team</span></span><div class="right"><span class="stack" aria-hidden="true"><span class="avatar" title="Ana">A</span><span class="avatar driver" title="Bo">B</span><span class="avatar" title="Cy">C</span></span></div></div>
-  <div class="stream"><div class="column">
-<div class="msg human"><div class="meta"><span class="who">Bo</span><span class="faint">steer</span></div><div class="text">Then leave the invoices table alone. Compute the tax lines at render time.</div></div>
-<div class="msg human team"><div class="meta"><span class="who">Cy</span><span class="to">to the team</span></div><div class="text">Heads up: the rounding audit is touching rates.ts next door. I'll hold off until this lands.</div></div>
-<div class="msg agent"><div class="meta"><span class="avatar agent" aria-hidden="true">F</span><span class="who">Agent</span><span class="faint">turn 7</span></div><div class="text">Done at render time, and the rounding now matches rates.ts line by line: all 32 tests pass. Next I want to clear legacy_invoices. That delete cannot be undone, so I am asking first.</div><div class="steps"><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edited <span class="mono">invoices/pdf.ts</span> · +14 −6</span></div><div class="step"><svg class="ic" aria-hidden="true"><use href="#i-term"/></svg><span>Ran <span class="mono">pnpm vitest</span> · 32 passed</span></div></div></div>
-<div class="notice"><p>Delete 41,208 archived invoices? <span class="muted">Ana approved · 1 of 2 drivers.</span></p><div class="actions"><button class="btn sm primary" type="button">Approve</button><button class="btn sm" type="button">Deny</button></div></div>
-</div></div>
-  <div class="composer-wrap">
+</div><p class="caption"><span class="serif">Rail</span> · the drawer over the session</p></div>
+
+<div><div class="phone"><div class="main">
+<div class="topbar"><button class="btn icon menu" type="button" aria-label="Open the rail"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button><span class="title"><span class="serif">#billing</span><span class="faint small">Payments</span></span><div class="right"><a class="btn sm on" href="#"><svg class="ic" aria-hidden="true"><use href="#i-people"/></svg>5</a></div></div>
+<div class="scroll" style="flex:1"><div class="stream"><div class="column">
+<div class="divider">Today</div>
+<div class="chatmsg"><div class="meta"><span class="who">Ana</span><span class="time">10:51</span></div><div class="bubble">The PDF is on staging. Cy, can you check the rounding on the EU invoices?</div></div>
+<div class="chatmsg"><div class="meta"><span class="who">Cy</span><span class="time">10:53</span></div><div class="bubble">On it. The audit agent is already in <span class="mono">rates.ts</span>, so I'll ask it.</div></div>
+<div class="chatmsg mine"><div class="meta"><span class="who">Bo</span><span class="time">10:54</span></div><div class="bubble"><span class="mention">@Invoice PDF + tax lines</span> what is left before we can release?</div></div>
+<div class="chatmsg agent"><div class="meta"><span class="avatar agent" title="Invoice PDF + tax lines">A</span><span class="who">Invoice PDF + tax lines</span><span class="faint">replied · in reply to Bo · turn 3</span><a class="small" href="web-session.html">Open session</a><span class="time">10:54</span></div><div class="text">One rating on the release gate. Tests pass on pdf-layout; the deploy is irreversible, so it waits for a second contributor at 4 or above.</div></div></div></div><div class="composer-wrap">
   <div class="composer">
-    <div class="input">Steer the agent</div>
-    <div class="bar"><div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label class="">Team</label></div><button class="btn icon" type="button" aria-label="Mode and scope"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button><span class="chip">steer</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
+    <div class="input">Say something in #billing</div>
+    <div class="bar"><span class="small faint">Say something; @ mentions a person or an agent</span><div class="right"><button class="send" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button></div></div>
   </div>
-  
+  <div class="hint"></div>
+</div></div>
+</div></div><p class="caption"><span class="serif">Chat</span> · people and agents in #billing</p></div>
 </div>
-  <div class="scrim"></div>
-  <aside class="drawer" aria-label="Team">
-  <div class="drawer-head"><span>Team</span><button class="btn ghost icon sm" type="button" aria-label="Close team"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
-  <section class="group"><h3>In this session</h3>
-    <div class="person"><span class="avatar" title="Ana">A</span><span class="name">Ana (you)</span><span class="role">owner</span></div>
-    <div class="person"><span class="avatar driver" title="Bo">B</span><span class="name">Bo</span><span class="role">driving</span></div>
-    <div class="person"><span class="avatar" title="Cy">C</span><span class="name">Cy</span><span class="role">contributor</span></div>
-    <div class="person off"><span class="avatar off" title="Dee">D</span><span class="name">Dee</span><span class="role">observer · away</span></div>
-    
-  </section>
-  <section class="group"><h3>Crew</h3>
-    <p>Working on <span class="serif">Invoice rollout</span> with 1 other agent.</p>
-    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Tax rounding audit</span></span><span class="doing"><i>working on</i> Per-line rounding across the EU VAT rates</span><span class="foot"><span class="pill team">Team</span><span class="stack" aria-hidden="true"><span class="avatar" title="Cy">C</span></span><span class="with">Cy</span></span></a>
-    <button class="btn ghost sm" type="button">Leave crew</button>
-  </section>
-  <section class="group"><h3>Chat</h3>
-    <div class="chat">
-      <div class="line"><span class="who">Bo</span><span class="what">Taking the fold for the delete. Back in five.</span></div>
-      
-      <div class="line mine"><span class="who">You</span><span class="what">Approved on my side. Bo, yours is the second.</span></div>
-    </div>
-    <div class="row"><span class="input grow">Say to the team</span><button class="btn sm" type="button">Send</button></div>
-  </section>
-</aside>
-</div>
-</div>
-<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark"><label for="t-dark">Dark</label></fieldset>
+<fieldset class="theme-toggle"><legend class="sr-only">Theme</legend><input type="radio" name="t" id="t-auto" value="auto" checked><label for="t-auto">Auto</label><input type="radio" name="t" id="t-light" value="light"><label for="t-light">Light</label><input type="radio" name="t" id="t-dark" value="dark"><label for="t-dark">Dark</label></fieldset>
+<script>for(const i of document.querySelectorAll('.theme-toggle input'))i.addEventListener('change',()=>{const v=document.querySelector('.theme-toggle input:checked').value;if(v==='auto')delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=v;});</script>
 </body>
 </html>
