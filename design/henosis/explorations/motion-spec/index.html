@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Motion spec</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* ---------- page ---------- */
+:root { --canvas-wash: none; --choc: #56352D; --apr: #E2C4A6; --navy: #2A3244;
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
+  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1); --ease-move: cubic-bezier(.4,0,.2,1);
+  --ease-mark: cubic-bezier(.3,.9,.3,1); }
+body { background-image: none; }
+.board { max-width: 1344px; margin: 0 auto; padding: 0 48px 72px; }
+.top { display: flex; align-items: center; gap: 14px; padding: 22px 0 18px; border-bottom: 1px solid var(--line); }
+.top .brand { font-family: var(--serif); font-size: 22px; display: flex; align-items: center; gap: 10px; }
+.top .crumb { color: var(--ink-3); font-size: 13px; }
+.top .crumb b { color: var(--ink-2); font-weight: 500; }
+.top .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--ink-2); }
+#calm { position: absolute; opacity: 0; pointer-events: none; }
+.toggle { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; cursor: pointer; user-select: none; }
+.toggle span { padding: 4px 12px; border-radius: var(--radius-full); font-weight: 500; font-size: 12.5px; color: var(--ink-2); }
+.toggle span:first-child { background: var(--surface); color: var(--ink); box-shadow: 0 1px 0 var(--line); }
+body:has(#calm:checked) .toggle span:first-child { background: transparent; color: var(--ink-2); box-shadow: none; }
+body:has(#calm:checked) .toggle span:last-child { background: var(--surface); color: var(--ink); box-shadow: 0 1px 0 var(--line); }
+body:has(#calm:checked) .demo *, body:has(#calm:checked) .demo { animation: none !important; transition: none !important; }
+.calm .demo *, .calm .demo { animation: none !important; transition: none !important; }
+
+.hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; padding: 44px 0 36px; align-items: end; background: none; color: inherit; border-radius: 0; }
+.hero::after { display: none; }
+.hero h1 { font-size: 56px; }
+.hero h1 i { color: var(--choc); }
+:root[data-theme="dark"] .hero h1 i { color: var(--apr); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hero h1 i { color: var(--apr); } }
+.hero .lede { font-size: 17px; color: var(--ink-2); max-width: 56ch; margin-top: 12px; }
+.rules { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rule { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.rule b { display: block; font-family: var(--serif); font-weight: 400; font-size: 19px; margin-bottom: 3px; }
+.rule span { font-size: 13px; color: var(--ink-2); line-height: 1.45; display: block; }
+
+.sec { padding: 40px 0 8px; display: flex; align-items: baseline; gap: 14px; border-top: 1px solid var(--line); margin-top: 32px; }
+.sec h2 { font-size: 30px; }
+.sec .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.sec p { margin: 0 0 0 auto; color: var(--ink-2); font-size: 14px; max-width: 52ch; text-align: right; }
+
+/* clock and curves */
+.clock { display: grid; grid-template-columns: 1fr 1.25fr; gap: 24px; margin-top: 18px; }
+.panel { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); padding: 20px 22px; }
+.panel h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 14px; }
+.dur { display: grid; grid-template-columns: 110px 1fr 56px; gap: 12px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.dur:first-of-type { border-top: 0; }
+.dur .bar { height: 8px; border-radius: 4px; background: var(--surface-3); position: relative; }
+.dur .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--choc); }
+:root[data-theme="dark"] .dur .bar i { background: var(--apr); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dur .bar i { background: var(--apr); } }
+.dur .bar i.loop { background: var(--apricot-deep); }
+.dur .ms { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); text-align: right; }
+.dur .k { color: var(--ink); font-weight: 500; }
+.dur .k small { display: block; font-weight: 400; color: var(--ink-3); font-size: 12px; }
+.curves { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.curve { text-align: left; }
+.curve svg { width: 100%; height: auto; display: block; border-radius: 10px; background: var(--surface-2); }
+.curve b { display: block; font-size: 13px; font-weight: 600; margin-top: 8px; }
+.curve code { font-family: var(--mono); font-size: 11px; color: var(--ink-3); display: block; }
+.curve span { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; line-height: 1.4; }
+
+/* cards */
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 18px; }
+.grid.three { grid-template-columns: repeat(3, 1fr); }
+.spec { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+.spec .demo { height: 150px; background: var(--surface-2); display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
+.spec .demo.navy { background: var(--navy); }
+.spec .demo .cap { position: absolute; left: 12px; bottom: 9px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.spec .demo.navy .cap { color: var(--rail-muted); }
+.spec .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 9px; }
+.spec .name { display: flex; align-items: baseline; gap: 8px; }
+.spec .name b { font-family: var(--serif); font-weight: 400; font-size: 20px; }
+.spec .name i { font-family: var(--serif); color: var(--choc); font-size: 15px; }
+:root[data-theme="dark"] .spec .name i { color: var(--apr); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .spec .name i { color: var(--apr); } }
+.spec .say { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.kv { display: grid; grid-template-columns: 74px 1fr; gap: 3px 10px; font-size: 12.5px; border-top: 1px solid var(--line); padding-top: 9px; }
+.kv dt { color: var(--ink-3); margin: 0; } .kv dd { margin: 0; color: var(--ink); }
+.kv dd code { font-family: var(--mono); font-size: 11.5px; }
+.kv dd.calm-v { color: var(--ink-2); }
+
+/* ---------- live demos ---------- */
+/* the mark, fixed colours on the navy disc in both themes */
+.mk .arc.a { stroke: var(--choc); } .mk .arc.b { stroke: var(--apr); } .mk .dot { fill: var(--apr); }
+.mk .arc, .mk .dot { transform-origin: 48px 48px; transform-box: view-box; }
+.mk.loop .arc.a { animation: m-arc-a 1.8s var(--ease-mark) infinite; }
+.mk.loop .arc.b { animation: m-arc-b 1.8s var(--ease-mark) infinite; }
+.mk.loop .dot { animation: m-dot-in 1.8s ease infinite; }
+.mk.settle .arc.a { animation: m-arc-a-once .8s var(--ease-arrive) both; }
+.mk.settle .arc.b { animation: m-arc-b-once .8s var(--ease-arrive) both; }
+.mk.settle .dot { animation: m-dot-once 1s var(--ease-arrive) both; }
+@keyframes m-arc-a { 0%,12% { transform: rotate(70deg); opacity:.5 } 68% { transform: rotate(-4deg); opacity:1 } 84% { transform: rotate(2deg) } 100% { transform: rotate(0) } }
+@keyframes m-arc-b { 0%,12% { transform: rotate(-70deg); opacity:.5 } 68% { transform: rotate(4deg); opacity:1 } 84% { transform: rotate(-2deg) } 100% { transform: rotate(0) } }
+@keyframes m-dot-in { 0%,60% { transform: scale(0) } 82% { transform: scale(1.25) } 100% { transform: scale(1) } }
+@keyframes m-arc-a-once { 0% { transform: rotate(70deg); opacity:.5 } 70% { transform: rotate(-4deg); opacity:1 } 100% { transform: rotate(0) } }
+@keyframes m-arc-b-once { 0% { transform: rotate(-70deg); opacity:.5 } 70% { transform: rotate(4deg); opacity:1 } 100% { transform: rotate(0) } }
+@keyframes m-dot-once { 0%,55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
+/* orbit converge */
+.orbit { position: relative; width: 44px; height: 44px; }
+.orbit i { position: absolute; left: 17px; top: 17px; width: 10px; height: 10px; border-radius: 50%; }
+.orbit i:nth-child(1) { background: var(--apr); animation: m-orbit-1 1.5s var(--ease-move) infinite; }
+.orbit i:nth-child(2) { background: var(--choc); animation: m-orbit-2 1.5s var(--ease-move) infinite; }
+.orbit i:nth-child(3) { background: var(--ink); animation: m-orbit-3 1.5s var(--ease-move) infinite; }
+:root[data-theme="dark"] .orbit i:nth-child(2) { background: var(--apricot-deep); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .orbit i:nth-child(2) { background: var(--apricot-deep); } }
+@keyframes m-orbit-1 { 0% { transform: rotate(0deg) translateX(11px) } 60% { transform: rotate(300deg) translateX(0) } 100% { transform: rotate(360deg) translateX(11px) } }
+@keyframes m-orbit-2 { 0% { transform: rotate(120deg) translateX(11px) } 60% { transform: rotate(420deg) translateX(0) } 100% { transform: rotate(480deg) translateX(11px) } }
+@keyframes m-orbit-3 { 0% { transform: rotate(240deg) translateX(11px) } 60% { transform: rotate(540deg) translateX(0) } 100% { transform: rotate(600deg) translateX(11px) } }
+/* weave */
+.weave { position: relative; width: 180px; height: 6px; overflow: hidden; border-radius: 3px; background: var(--surface-3); }
+.weave i { position: absolute; width: 34%; height: 2px; border-radius: 1px; left: -34%; }
+.weave i:nth-child(1) { background: var(--apricot-deep); top: 0; animation: m-weave-slide 1.4s linear infinite, m-weave-over .7s ease-in-out infinite; }
+.weave i:nth-child(2) { background: var(--ink); top: 2px; animation: m-weave-slide 1.4s linear -.7s infinite, m-weave-under .7s ease-in-out infinite; }
+@keyframes m-weave-slide { 0% { left: -34% } 100% { left: 100% } }
+@keyframes m-weave-over { 0%,100% { top: 0 } 50% { top: 3px } }
+@keyframes m-weave-under { 0%,100% { top: 3px } 50% { top: 0 } }
+.calm .weave i, body:has(#calm:checked) .weave i { left: 0; width: 100%; }
+.calm .weave i:nth-child(2), body:has(#calm:checked) .weave i:nth-child(2) { display: none; }
+/* shimmer */
+.shim { width: 190px; display: flex; flex-direction: column; gap: 8px; }
+.shim i { display: block; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-3) 30%, var(--apricot-soft) 50%, var(--surface-3) 70%); background-size: 250% 100%; animation: m-shimmer 1.5s var(--ease-move) infinite; }
+.shim i:nth-child(2) { width: 78%; } .shim i:nth-child(3) { width: 56%; }
+@keyframes m-shimmer { 0% { background-position: 100% 0 } 100% { background-position: -20% 0 } }
+.calm .shim i, body:has(#calm:checked) .shim i { background: var(--surface-3); }
+/* side motion: once-animations loop in the demo on a 2.6 s cycle; the real timing is the first part */
+.cards3 { display: flex; flex-direction: column; gap: 6px; width: 196px; }
+.cards3 i { display: block; height: 22px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); animation: m-rise 2.6s var(--ease-arrive) infinite; animation-delay: calc(var(--i) * 36ms); }
+@keyframes m-rise { 0% { opacity:0; transform: translateY(6px) } 12.3% { opacity:1; transform:none } 88% { opacity:1; transform:none } 100% { opacity:0; transform: translateY(6px) } }
+.live { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; }
+.live b { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); animation: m-live 1.8s var(--ease-move) infinite; }
+@keyframes m-live { 0% { box-shadow: 0 0 0 0 var(--ok-soft) } 70% { box-shadow: 0 0 0 6px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
+.badge { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; }
+.badge .pill { animation: m-pop 2.6s var(--ease-arrive) infinite; }
+.badge .pill.team { color: var(--choc); }
+@keyframes m-pop { 0% { transform: scale(.4); opacity:0 } 7.4% { transform: scale(1.15); opacity:1 } 12.3% { transform:none; opacity:1 } 92% { transform:none; opacity:1 } 100% { transform: scale(.4); opacity:0 } }
+.stackd { display: inline-flex; }
+.stackd .av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; background: var(--surface-3); color: var(--ink); border: 2px solid var(--surface-2); position: relative; }
+.stackd .av + .av { margin-left: -8px; }
+.stackd .av.ag { border-radius: 11px 11px 11px 4px; background: var(--navy); color: #fff; }
+.stackd .av.joined { background: var(--apr); color: var(--choc); }
+.stackd .av.joined::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; animation: m-ripple 2.6s var(--ease-leave) infinite; }
+@keyframes m-ripple { 0% { box-shadow: 0 0 0 0 var(--apr); opacity:1 } 34.6% { box-shadow: 0 0 0 14px var(--apr); opacity:0 } 100% { box-shadow: 0 0 0 14px var(--apr); opacity:0 } }
+.check { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; }
+.check .ic { width: 28px; height: 28px; border-radius: 50%; background: var(--ok); display: grid; place-items: center; }
+.check .ic svg { width: 16px; height: 16px; } .check .ic path { stroke: #fff; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 20; stroke-dashoffset: 0; animation: m-draw 2.6s var(--ease-move) infinite; }
+@keyframes m-draw { 0%,1.9% { stroke-dashoffset: 20 } 19.2% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: 0 } }
+.pillx { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; background: var(--apr); color: var(--choc); animation: m-pillbg 2.6s var(--ease-move) infinite; }
+.pillx .w { display: inline-block; animation: m-word 2.6s var(--ease-arrive) infinite; }
+@keyframes m-pillbg { 0%,46% { background: var(--surface-3); color: var(--ink-2) } 58%,100% { background: var(--apr); color: var(--choc) } }
+@keyframes m-word { 0%,46% { opacity:0; transform: translateY(3px) } 58%,100% { opacity:1; transform:none } }
+.toastd { padding: 8px 14px; border-radius: var(--radius-full); background: var(--navy); color: var(--rail-fg); font-size: 13px; animation: m-toast 2.6s var(--ease-arrive) infinite; }
+@keyframes m-toast { 0% { opacity:0; transform: translateY(14px) } 12.3% { opacity:1; transform:none } 85% { opacity:1; transform:none } 100% { opacity:0; transform: translateY(14px) } }
+.sendd { width: 36px; height: 36px; border-radius: 50%; background: var(--choc); color: #FFF8F1; display: grid; place-items: center; animation: m-pressed 2.6s var(--ease-leave) infinite; }
+.sendd svg { width: 16px; height: 16px; }
+@keyframes m-pressed { 0% { box-shadow: 0 0 0 0 rgba(226,196,166,.6) } 17.3% { box-shadow: 0 0 0 10px transparent } 100% { box-shadow: 0 0 0 10px transparent } }
+.teamx { width: 196px; border-radius: 12px; padding: 10px 12px; font-size: 13px; color: #fff; background: var(--navy); animation: m-team 5.2s var(--ease-move) infinite; display: flex; flex-direction: column; gap: 4px; }
+.teamx b { font-family: var(--serif); font-weight: 400; font-size: 16px; }
+.teamx i { width: 10px; height: 10px; border-radius: 50%; background: var(--apr); animation: m-teamdot 5.2s var(--ease-move) infinite; display: inline-block; margin-right: 6px; }
+@keyframes m-team { 0%,45% { background: #2A3244 } 55%,95% { background: #3D3A4E } 100% { background: #2A3244 } }
+@keyframes m-teamdot { 0%,45% { background: #E2C4A6 } 55%,95% { background: #C9D2B5 } 100% { background: #E2C4A6 } }
+.herod { width: 196px; height: 56px; border-radius: 12px; background: var(--gradient-brand); animation: m-fade 2.6s var(--ease-arrive) infinite; color: #fff; font-family: var(--serif); font-size: 15px; padding: 10px 12px; }
+@keyframes m-fade { 0% { opacity:0 } 19.2% { opacity:1 } 90% { opacity:1 } 100% { opacity:0 } }
+
+/* transitions table and index */
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 18px; }
+th { text-align: left; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.nm { font-weight: 500; white-space: nowrap; } td code { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); white-space: nowrap; }
+td.calm-v { color: var(--ink-2); }
+tr.grp td { background: var(--surface-2); font-family: var(--serif); font-size: 16px; padding: 8px 10px; }
+
+/* sequence */
+.seq { display: grid; grid-template-columns: 1fr 380px; gap: 24px; margin-top: 18px; align-items: start; }
+.seq svg { width: 100%; height: auto; display: block; }
+.seq .lbl { font: 12.5px var(--font); fill: var(--ink); } .seq .tm { font: 11px var(--mono); fill: var(--ink-3); } .seq .ax { stroke: var(--line); }
+.seq .b1 { fill: var(--choc); } .seq .b2 { fill: var(--apricot-deep); } .seq .b3 { fill: var(--ink-3); }
+:root[data-theme="dark"] .seq .b1 { fill: var(--apr); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seq .b1 { fill: var(--apr); } }
+.joinline { display: flex; flex-direction: column; gap: 14px; }
+.joinline .line { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface-2); }
+.joinline .line .t { font-size: 14px; } .joinline .line .t b { font-family: var(--serif); font-weight: 400; font-size: 16px; }
+.joinline .line .t small { display: block; color: var(--ink-3); font-size: 12px; }
+.joinline p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+
+/* calm */
+.calmgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.stream { display: flex; flex-direction: column; gap: 12px; }
+.stream .m { display: flex; flex-direction: column; gap: 4px; }
+.stream .meta { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+.stream .meta .who { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+.stream .txt { font-size: 14px; }
+.stream .hm .txt { background: var(--surface-2); border-radius: 14px; padding: 9px 13px; align-self: flex-start; max-width: 90%; }
+.stream .ntc { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2); position: relative; overflow: hidden; font-size: 13.5px; }
+.stream .ntc::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apr); }
+.stream .ntc.enter { animation: m-rise 2.6s var(--ease-arrive) infinite; }
+.stream .stp { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; }
+.calmnotes { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px; }
+.calmnotes .panel ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.calmnotes .panel ul b { color: var(--ink); font-weight: 500; }
+pre { margin: 0; font-family: var(--mono); font-size: 12px; line-height: 1.6; color: var(--ink); background: var(--surface-2); border-radius: 10px; padding: 12px 14px; overflow: auto; white-space: pre-wrap; }
+pre .c { color: var(--ink-3); }
+.tag { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--surface-3); color: var(--ink-2); vertical-align: middle; }
+
+@media (max-width: 1100px) {
+  .grid, .grid.three { grid-template-columns: repeat(2, 1fr); } .clock, .seq, .calmgrid, .calmnotes { grid-template-columns: 1fr; } .curves { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 640px) {
+  .board { padding: 0 16px 48px; } .hero { grid-template-columns: 1fr; gap: 20px; padding: 28px 0 20px; } .hero h1 { font-size: 38px; } .rules { grid-template-columns: 1fr; }
+  .grid, .grid.three { grid-template-columns: 1fr; } .curves { grid-template-columns: repeat(2, 1fr); } .sec { flex-direction: column; gap: 6px; padding-top: 28px; } .sec p { margin: 0; text-align: left; }
+  .top .crumb { display: none; } table { display: block; overflow-x: auto; } .seq { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<input type="checkbox" id="calm">
+<div class="board">
+
+<header class="top">
+  <div class="brand">
+    <svg class="mk" width="30" height="30" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+    Henosis
+  </div>
+  <div class="crumb">Design system · <b>Motion spec</b> · v5 tokens</div>
+  <div class="right">
+    <span>Motion on this page</span>
+    <label class="toggle" for="calm"><span>Full</span><span>Calm</span></label>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <h1>Motion means <i>joining</i> or <i>living</i>.</h1>
+    <p class="lede">Every animation in Henosis, with its duration, easing, trigger and what Calm mode does to it. Every demo is live; the toggle above shows the sheet as the Payments team sees it with Calm on. Nothing on this sheet moves for decoration.</p>
+  </div>
+  <div class="rules">
+    <div class="rule"><b>Three clocks</b><span>120 ms for a press, 200 ms for a hover, 320 ms for something arriving. Loops run 1.4–1.8 s.</span></div>
+    <div class="rule"><b>Rest is the end state</b><span>Without motion an element sits where it ends. No animation ever hides a thing until it plays.</span></div>
+    <div class="rule"><b>Opacity, transform, stroke</b><span>Nothing animates layout. Colour crosses only on the Team pill and a team's accent.</span></div>
+    <div class="rule"><b>Calm turns it all off</b><span><code>prefers-reduced-motion</code> or the team's Motion setting. Same markup, no script.</span></div>
+  </div>
+</section>
+
+<!-- CLOCK AND CURVES -->
+<div class="sec"><span class="n">01</span><h2>Clock and curves</h2><p>Three durations and three easings cover the whole app. The mark has its own curve; the badge pop overshoots inside its keyframes, not its curve.</p></div>
+<div class="clock">
+  <div class="panel">
+    <h3>Durations</h3>
+    <div class="dur"><div class="k">--t-fast<small>press, rail hover</small></div><div class="bar"><i style="width:6.7%"></i></div><div class="ms">120 ms</div></div>
+    <div class="dur"><div class="k">--t<small>hover, focus glow, segment</small></div><div class="bar"><i style="width:11.1%"></i></div><div class="ms">200 ms</div></div>
+    <div class="dur"><div class="k">--t-slow<small>cards, badges, toasts, pills</small></div><div class="bar"><i style="width:17.8%"></i></div><div class="ms">320 ms</div></div>
+    <div class="dur"><div class="k">check, press ring<small>draw, pressed</small></div><div class="bar"><i style="width:25%"></i></div><div class="ms">450 ms</div></div>
+    <div class="dur"><div class="k">team colours<small>accent crossfade, hero fade</small></div><div class="bar"><i style="width:27.8%"></i></div><div class="ms">500 ms</div></div>
+    <div class="dur"><div class="k">mark settles<small>a join, once</small></div><div class="bar"><i style="width:44.4%"></i></div><div class="ms">800 ms</div></div>
+    <div class="dur"><div class="k">ripple<small>joined avatar, once</small></div><div class="bar"><i style="width:50%"></i></div><div class="ms">900 ms</div></div>
+    <div class="dur"><div class="k">loops<small>weave 1.4 · orbit, shimmer 1.5 · mark, pulse 1.8</small></div><div class="bar"><i class="loop" style="width:100%"></i></div><div class="ms">1.4–1.8 s</div></div>
+  </div>
+  <div class="panel">
+    <h3>Easings</h3>
+    <div class="curves">
+      <div class="curve"><svg viewBox="0 0 100 100"><path d="M0 100 C20 30 20 0 100 0" fill="none" stroke="#56352D" stroke-width="3"/><path d="M0 100 L100 0" stroke="rgba(142,148,163,.5)" stroke-width="1" stroke-dasharray="3 3"/></svg><b>arrive</b><code>.2,.7,.2,1</code><span>Things entering: cards, toasts, badges, the settled mark.</span></div>
+      <div class="curve"><svg viewBox="0 0 100 100"><path d="M0 100 C40 100 100 100 100 0" fill="none" stroke="#56352D" stroke-width="3"/><path d="M0 100 L100 0" stroke="rgba(142,148,163,.5)" stroke-width="1" stroke-dasharray="3 3"/></svg><b>leave</b><code>.4,0,1,1</code><span>Things dissipating: the ripple, the press ring.</span></div>
+      <div class="curve"><svg viewBox="0 0 100 100"><path d="M0 100 C40 100 20 0 100 0" fill="none" stroke="#56352D" stroke-width="3"/><path d="M0 100 L100 0" stroke="rgba(142,148,163,.5)" stroke-width="1" stroke-dasharray="3 3"/></svg><b>move</b><code>.4,0,.2,1</code><span>Hover, focus, the check, colour crossfades, every loop.</span></div>
+      <div class="curve"><svg viewBox="0 0 100 100"><path d="M0 100 C30 10 30 0 100 0" fill="none" stroke="#CFA782" stroke-width="3"/><path d="M0 100 L100 0" stroke="rgba(142,148,163,.5)" stroke-width="1" stroke-dasharray="3 3"/></svg><b>mark</b><code>.3,.9,.3,1</code><span>The arcs only. Fast swing, long settle, overshoot keyed by hand (−4°, +2°).</span></div>
+      <div class="curve"><svg viewBox="0 0 100 100"><path d="M0 100 C30 -40 40 0 100 0" fill="none" stroke="#CFA782" stroke-width="3"/><path d="M0 100 L100 0" stroke="rgba(142,148,163,.5)" stroke-width="1" stroke-dasharray="3 3"/></svg><b>pop</b><code>arrive + 1.15×</code><span>The badge: overshoot lives in the keyframes at 60 %, so the curve stays arrive.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADERS -->
+<div class="sec"><span class="n">02</span><h2>Loaders</h2><p>One loader per wait, each a picture of something becoming one. No generic spinner anywhere.</p></div>
+<div class="grid">
+  <div class="spec">
+    <div class="demo navy"><svg class="mk loop" width="88" height="88" viewBox="0 0 96 96" aria-label="the mark closing"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="cap">loop · 1.8 s</span></div>
+    <div class="body">
+      <div class="name"><b>Arcs close</b><i>the app joins you</i></div>
+      <div class="say">App launch, "Opening the circle." Two arcs swing in from 70° apart, overshoot, close; the centre dot pops at 60 %.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>arc-a · arc-b · dot-in</code></dd><dt>Duration</dt><dd>1.8 s loop · 0.8 s once (<code>settle</code>), dot 1 s</dd><dt>Easing</dt><dd>mark · dot <code>ease</code></dd><dt>Trigger</dt><dd>Launch; a session connecting; any join</dd><dt>Calm</dt><dd class="calm-v">Closed ring with its centre, no swing</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="orbit"><i></i><i></i><i></i></div><span class="cap">loop · 1.5 s</span></div>
+    <div class="body">
+      <div class="name"><b>Orbit converge</b><i>you join people</i></div>
+      <div class="say">"Joining Bo, Cy and Dee in Billing page · Checkout." Three dots in the three colours orbit, meet at the centre at 60 %, part again.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>orbit-1 · orbit-2 · orbit-3</code></dd><dt>Duration</dt><dd>1.5 s loop, dots offset 120°</dd><dt>Easing</dt><dd>move</dd><dt>Trigger</dt><dd>History folding; reconnecting</dd><dt>Calm</dt><dd class="calm-v">The three dots stacked as one</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="weave"><i></i><i></i></div><span class="cap">loop · 1.4 s</span></div>
+    <div class="body">
+      <div class="name"><b>Weave</b><i>rows arrive</i></div>
+      <div class="say">"Opening Payments. 3 of 5 sessions in." Two strands cross over and under as they travel under the title.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>weave-slide · weave-over · weave-under</code></dd><dt>Duration</dt><dd>1.4 s slide, 0.7 s cross; second strand −0.7 s</dd><dt>Easing</dt><dd>linear slide · ease-in-out cross</dd><dt>Trigger</dt><dd>Project opening; uniting a branch</dd><dt>Calm</dt><dd class="calm-v">One plain strand, full width</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="shim"><i></i><i></i><i></i></div><span class="cap">loop · 1.5 s</span></div>
+    <div class="body">
+      <div class="name"><b>Shimmer</b><i>words arrive</i></div>
+      <div class="say">"Bo's agent is uniting pdf-layout into main." Only the lines where the release-gate summary will land shimmer.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>shimmer</code></dd><dt>Duration</dt><dd>1.5 s loop, background 100 % → −20 %</dd><dt>Easing</dt><dd>move</dd><dt>Trigger</dt><dd>Brief, summary or memory text pending</dd><dt>Calm</dt><dd class="calm-v">Flat lines in <code>--surface-3</code></dd></dl>
+    </div>
+  </div>
+</div>
+
+<!-- SIDE MOTION -->
+<div class="sec"><span class="n">03</span><h2>Side motion</h2><p>Small things that happen once when something joins or changes. Each demo replays every 2.6 s; the real animation is the first part of the cycle.</p></div>
+<div class="grid">
+  <div class="spec">
+    <div class="demo"><div class="cards3"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i></div><span class="cap">once · 320 ms · stagger 36 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Card rise</b><i>something arrives</i></div>
+      <div class="say">An agent card entering the rail, a message or notice entering the stream. 6 px up, from transparent.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>card-in</code></dd><dt>Duration</dt><dd>320 ms · delay <code>min(i, 8) × 36 ms</code></dd><dt>Easing</dt><dd>arrive</dd><dt>Trigger</dt><dd><code>.enter</code> on first render of a row</dd><dt>Calm</dt><dd class="calm-v">In place, fully opaque</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="live"><b></b>Bo's agent · running</div><span class="cap">loop · 1.8 s</span></div>
+    <div class="body">
+      <div class="name"><b>Status pulse</b><i>something lives</i></div>
+      <div class="say">The green dot of a running session breathes a soft ring outward. Awaiting and blocked never pulse.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>dot-live</code></dd><dt>Duration</dt><dd>1.8 s loop, ring 0 → 5 px by 70 %</dd><dt>Easing</dt><dd>move</dd><dt>Trigger</dt><dd>Status is <code>running</code></dd><dt>Calm</dt><dd class="calm-v">Solid green dot, no ring</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="badge">Needs you <span class="pill team">4</span></div><span class="cap">once · 320 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Badge pop</b><i>a count changes</i></div>
+      <div class="say">Needs-you goes from 3 to 4 when Dee's proration plan asks for a rating. Scale 0.4 → 1.15 → 1.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>pop</code></dd><dt>Duration</dt><dd>320 ms, overshoot at 60 %</dd><dt>Easing</dt><dd>arrive</dd><dt>Trigger</dt><dd><code>.pill.badge</code> mounts or its number changes</dd><dt>Calm</dt><dd class="calm-v">The new number, no scale</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="stackd"><span class="av">Bo</span><span class="av">Cy</span><span class="av ag">D</span><span class="av joined">An</span></div><span class="cap">once · 900 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Avatar ripple</b><i>someone joins</i></div>
+      <div class="say">Ana's avatar enters the stack as the mark's dot lands; one apricot ring grows 14 px and fades.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>ripple</code></dd><dt>Duration</dt><dd>900 ms, after the mark settles (+0.9 s)</dd><dt>Easing</dt><dd>leave</dd><dt>Trigger</dt><dd><code>.avatar.joined</code> on a presence join</dd><dt>Calm</dt><dd class="calm-v">Avatar appears in the stack</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="check"><span class="ic"><svg viewBox="0 0 16 16"><path d="M3 8.5 L6.5 12 L13 4.5"/></svg></span>Approved 4.5 · 2 of 2</div><span class="cap">once · 450 ms · +50 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Check draw</b><i>an approval is granted</i></div>
+      <div class="say">The release gate on the invoice PDF reaches two ratings at 4+; the check draws itself from the stroke.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>draw</code> · dasharray 20</dd><dt>Duration</dt><dd>450 ms, 50 ms after the notice settles</dd><dt>Easing</dt><dd>move</dd><dt>Trigger</dt><dd>Gate granted; rating lands; plan approved</dd><dt>Calm</dt><dd class="calm-v">Check present, fully drawn</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="badge">Session &nbsp;<span class="pillx"><span class="w">Team</span></span></div><span class="cap">once · 320 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Team pill crossfade</b><i>a session becomes Team</i></div>
+      <div class="say">Solo turns Team when Cy joins Bo on Checkout: the background crosses to apricot while the word rises 3 px in.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>word-in</code> + background transition</dd><dt>Duration</dt><dd>320 ms both</dd><dt>Easing</dt><dd>arrive word · move colour</dd><dt>Trigger</dt><dd>Composer Agent ↔ Team; rail pill flips</dd><dt>Calm</dt><dd class="calm-v">Instant swap</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="toastd">United pdf-layout into main.</div><span class="cap">once · 320 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Toast rise</b><i>something happened</i></div>
+      <div class="say">Bottom centre, text only, 14 px up. It stays 4 s and fades over 200 ms.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>toast-up</code></dd><dt>Duration</dt><dd>320 ms in · 200 ms out</dd><dt>Easing</dt><dd>arrive · leave</dd><dt>Trigger</dt><dd>Unite, export, copy, invite sent</dd><dt>Calm</dt><dd class="calm-v">Appears and disappears</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="sendd"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></div><span class="cap">once · 450 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Send pressed</b><i>a directive leaves</i></div>
+      <div class="say">An apricot ring leaves the send button as the message takes its place in the stream.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>pressed</code></dd><dt>Duration</dt><dd>450 ms, ring 0 → 10 px</dd><dt>Easing</dt><dd>leave</dd><dt>Trigger</dt><dd><code>.send.pressed</code> for one send</dd><dt>Calm</dt><dd class="calm-v">Nothing; the message appears</dd></dl>
+    </div>
+  </div>
+</div>
+<div class="grid three" style="margin-top:16px">
+  <div class="spec">
+    <div class="demo"><div class="teamx"><span><i></i>Payments</span><b>Billing page · Checkout</b></div><span class="cap">crossfade · 500 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Team colours</b><i>entering a team</i></div>
+      <div class="say">The route enters Payments and its accent, highlight and glow cross over 500 ms. Registered custom properties, one transition on <code>:root</code>.</div>
+      <dl class="kv"><dt>Properties</dt><dd><code>--team-accent · --team-highlight · --team-surface · --team-glow</code></dd><dt>Duration</dt><dd>500 ms</dd><dt>Easing</dt><dd>move</dd><dt>Trigger</dt><dd>Route change into a team with its own look</dd><dt>Calm</dt><dd class="calm-v">Instant</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo"><div class="herod">Payments, Monday</div><span class="cap">once · 500 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Hero fade</b><i>the overview opens</i></div>
+      <div class="say">The one gradient on the manager overview fades in; nothing else on that page animates on load.</div>
+      <dl class="kv"><dt>Keyframes</dt><dd><code>fade-in</code></dd><dt>Duration</dt><dd>500 ms</dd><dt>Easing</dt><dd>arrive</dd><dt>Trigger</dt><dd><code>.hero-card</code> mounts</dd><dt>Calm</dt><dd class="calm-v">Present</dd></dl>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="demo" style="flex-direction:column;gap:6px;display:flex;align-items:flex-start;justify-content:center;padding:0 22px"><div class="budget" style="width:100%"><i style="width:64%"></i></div><div class="small muted" style="font-size:12px">46,100 of 72,000 tokens · proration plan</div><span class="cap">transition · 300 ms</span></div>
+    <div class="body">
+      <div class="name"><b>Budget fill</b><i>tokens are spent</i></div>
+      <div class="say">The meter's width eases to the new figure as steps complete; the live gradient does not scroll.</div>
+      <dl class="kv"><dt>Property</dt><dd><code>width</code></dd><dt>Duration</dt><dd>300 ms</dd><dt>Easing</dt><dd><code>ease</code></dd><dt>Trigger</dt><dd>A step records its tokens</dd><dt>Calm</dt><dd class="calm-v">Jumps to the new width</dd></dl>
+    </div>
+  </div>
+</div>
+
+<!-- SEQUENCE -->
+<div class="sec"><span class="n">04</span><h2>A join, in order</h2><p>What plays, and when, in the 1.9 s after Ana opens Billing page · Checkout. Everything is timed from the join event in the fold.</p></div>
+<div class="seq">
+  <div class="panel">
+    <h3>Timeline · "Ana joins the circle."</h3>
+    <svg viewBox="0 0 820 300" role="img" aria-label="timeline of the join sequence">
+      <g class="tm">
+        <text x="160" y="14">0</text><text x="290" y="14">0.4 s</text><text x="420" y="14">0.8 s</text><text x="550" y="14">1.2 s</text><text x="680" y="14">1.6 s</text><text x="800" y="14">2 s</text>
+      </g>
+      <g class="ax" stroke-width="1"><line x1="160" y1="22" x2="160" y2="290"/><line x1="290" y1="22" x2="290" y2="290" stroke-dasharray="2 4"/><line x1="420" y1="22" x2="420" y2="290" stroke-dasharray="2 4"/><line x1="550" y1="22" x2="550" y2="290" stroke-dasharray="2 4"/><line x1="680" y1="22" x2="680" y2="290" stroke-dasharray="2 4"/><line x1="810" y1="22" x2="810" y2="290" stroke-dasharray="2 4"/></g>
+      <g class="lbl">
+        <text x="0" y="46">Join line rises</text><rect class="b3" x="160" y="36" width="104" height="14" rx="7"/><text class="tm" x="272" y="47">320 ms</text>
+        <text x="0" y="82">Arcs settle</text><rect class="b1" x="160" y="72" width="260" height="14" rx="7"/><text class="tm" x="428" y="83">800 ms · once</text>
+        <text x="0" y="118">Centre dot</text><rect class="b2" x="339" y="108" width="146" height="14" rx="7"/><text class="tm" x="493" y="119">550–1000 ms</text>
+        <text x="0" y="154">Avatar ripples</text><rect class="b2" x="452" y="144" width="293" height="14" rx="7"/><text class="tm" x="753" y="155">900 ms</text>
+        <text x="0" y="190">"4 here" pops</text><rect class="b3" x="485" y="180" width="104" height="14" rx="7"/><text class="tm" x="597" y="191">320 ms</text>
+        <text x="0" y="226">Status pulse starts</text><rect class="b3" x="485" y="216" width="325" height="14" rx="7"/><text class="tm" x="485" y="244">1.8 s loop from here</text>
+        <text x="0" y="276">Team pill crosses</text><rect class="b3" x="517" y="266" width="104" height="14" rx="7"/><text class="tm" x="629" y="277">only on the first join</text>
+      </g>
+    </svg>
+  </div>
+  <div class="joinline">
+    <div class="line demo">
+      <svg class="mk settle" width="40" height="40" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+      <div class="t"><b>Ana joins the circle.</b><small>From the invite link · 4 here · Bo has the baton</small></div>
+      <div class="stackd" style="margin-left:auto"><span class="av">Bo</span><span class="av">Cy</span><span class="av ag">D</span><span class="av joined">An</span></div>
+    </div>
+    <p>The join is a line in the stream, not a modal. The line rises first; the mark settles once at 40 px while the dot lands; Ana's avatar ripples into the stack as the dot lands; the needs-you badge and the status dot pick up after that. Nothing overlaps the mark's swing except its own line.</p>
+    <p>An agent joining reuses the same line with the agent's name in the hand colour and its crew: <b class="serif">Dee's agent joins the circle.</b> <span class="faint">Invoice rollout · Solo</span></p>
+    <p>Leaving is a quiet divider with no motion. The ring does not open again.</p>
+  </div>
+</div>
+
+<!-- CALM -->
+<div class="sec"><span class="n">05</span><h2>Calm mode</h2><p>The same stream with motion on and with Calm. Calm is the system's reduced-motion preference or the team's Motion setting; the two are one selector.</p></div>
+<div class="calmgrid">
+  <div class="panel">
+    <h3>Full · <span class="tag">data-motion unset</span></h3>
+    <div class="stream demo">
+      <div class="m hm"><div class="meta"><span class="who">Ana</span>12:04</div><div class="txt">Take the proration into the invoice PDF, tax lines last.</div></div>
+      <div class="m"><div class="meta"><span class="who">Bo's agent</span><span class="live"><b></b></span>running</div><div class="txt">Reading the Billing page before touching Checkout.</div><div class="stp"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg>read apps/web/src/views/Billing.tsx · 1,204 tokens</div></div>
+      <div class="ntc enter">Release gate on <b class="serif">invoice PDF</b> · <span class="check" style="font-size:13.5px"><span class="ic" style="width:20px;height:20px"><svg viewBox="0 0 16 16" style="width:12px;height:12px"><path d="M3 8.5 L6.5 12 L13 4.5"/></svg></span>Cy 5 · Dee 4 · granted</span></div>
+      <div class="toastd" style="align-self:center">Ana joins the circle.</div>
+    </div>
+  </div>
+  <div class="panel calm">
+    <h3>Calm · <span class="tag">data-motion="calm"</span></h3>
+    <div class="stream demo">
+      <div class="m hm"><div class="meta"><span class="who">Ana</span>12:04</div><div class="txt">Take the proration into the invoice PDF, tax lines last.</div></div>
+      <div class="m"><div class="meta"><span class="who">Bo's agent</span><span class="live"><b></b></span>running</div><div class="txt">Reading the Billing page before touching Checkout.</div><div class="stp"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8h10M9 4l4 4-4 4"/></svg>read apps/web/src/views/Billing.tsx · 1,204 tokens</div></div>
+      <div class="ntc enter">Release gate on <b class="serif">invoice PDF</b> · <span class="check" style="font-size:13.5px"><span class="ic" style="width:20px;height:20px"><svg viewBox="0 0 16 16" style="width:12px;height:12px"><path d="M3 8.5 L6.5 12 L13 4.5"/></svg></span>Cy 5 · Dee 4 · granted</span></div>
+      <div class="toastd" style="align-self:center">Ana joins the circle.</div>
+    </div>
+  </div>
+</div>
+<div class="calmnotes">
+  <div class="panel">
+    <h3>What Calm keeps</h3>
+    <ul>
+      <li><b>Colour and state.</b> The running dot is still green, the Team pill still apricot, the check still drawn. Only the change is instant.</li>
+      <li><b>The focus ring</b> and hover backgrounds, because those are feedback, not motion. They appear without their 120–200 ms ease.</li>
+      <li><b>Loaders at their finished frame:</b> closed ring, dots stacked as one, a plain strand, flat lines. Copy carries the wait: "1,204 of 2,310 events folded."</li>
+      <li><b>Toasts and notices</b> still arrive and leave on the same clock, just without the rise.</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h3>How it is decided</h3>
+<pre><span class="c">/* tokens.css: every animation sits under one guard */</span>
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) .toast { animation: toast-up var(--t-slow) var(--ease-arrive) both; }
+  …
+}
+<span class="c">/* theme.ts: the team's Motion setting sets the attribute */</span>
+if (theme.motion === "calm") root.dataset.motion = "calm";
+<span class="c">/* components that time something to an animation ask */</span>
+const motion = useMotion(); <span class="c">// "full" | "calm"</span></pre>
+  </div>
+</div>
+
+<!-- TRANSITIONS -->
+<div class="sec"><span class="n">06</span><h2>Transitions</h2><p>Hover, press and focus. All on <code>move</code>; none longer than 320 ms; none on layout.</p></div>
+<table>
+  <thead><tr><th>Control</th><th>Property</th><th>Duration</th><th>Trigger</th><th>Calm</th></tr></thead>
+  <tbody>
+    <tr><td class="nm">Button</td><td><code>background · box-shadow · transform</code></td><td>120 / 200 / 120 ms</td><td>Hover lifts the shadow; press moves 1 px down at 0.99</td><td class="calm-v">Instant</td></tr>
+    <tr><td class="nm">New session (gradient)</td><td><code>box-shadow · transform</code></td><td>200 / 120 ms</td><td>Hover deepens the inset highlight</td><td class="calm-v">Instant</td></tr>
+    <tr><td class="nm">Rail item, agent card</td><td><code>background</code></td><td>120 ms</td><td>Hover; active state is immediate</td><td class="calm-v">Instant</td></tr>
+    <tr><td class="nm">Composer</td><td><code>box-shadow · border-color</code></td><td>200 ms</td><td>Focus-within adds the team glow</td><td class="calm-v">Instant</td></tr>
+    <tr><td class="nm">Segment (Agent / Team)</td><td><code>background · color</code></td><td>200 ms</td><td>Selection moves; the pill word rises (side motion)</td><td class="calm-v">Instant</td></tr>
+    <tr><td class="nm">Chip, row item</td><td><code>background · color</code></td><td>200 / 120 ms</td><td>Hover and on/off</td><td class="calm-v">Instant</td></tr>
+    <tr><td class="nm">Pill (Solo / Team)</td><td><code>background · color · border-color</code></td><td>320 ms</td><td>The session's mode flips</td><td class="calm-v">Instant</td></tr>
+    <tr><td class="nm">Send</td><td><code>transform · box-shadow</code></td><td>120 / 200 ms</td><td>Hover and press; the ring is side motion</td><td class="calm-v">Instant</td></tr>
+    <tr><td class="nm">Budget meter</td><td><code>width</code></td><td>300 ms ease</td><td>Tokens recorded on a step</td><td class="calm-v">Jumps</td></tr>
+    <tr><td class="nm">Replay scrubber</td><td><code>opacity</code> on the handle label</td><td>150 ms</td><td>Dragging shows the event time</td><td class="calm-v">Instant</td></tr>
+  </tbody>
+</table>
+
+<!-- INDEX -->
+<div class="sec"><span class="n">07</span><h2>Index</h2><p>Every keyframe set in <code>tokens.css</code>, where it plays and what Calm shows instead. Twenty-one animations, one guard.</p></div>
+<table>
+  <thead><tr><th>Animation</th><th>Keyframes</th><th>Where</th><th>Trigger</th><th>Duration</th><th>Easing</th><th>Plays</th><th>Calm</th></tr></thead>
+  <tbody>
+    <tr class="grp"><td colspan="8">Joining</td></tr>
+    <tr><td class="nm">Arcs close (loop)</td><td><code>arc-a · arc-b · dot-in</code></td><td>Launch screen, reconnect toast</td><td>App opening; session connecting</td><td>1.8 s</td><td>mark · ease</td><td>Loop</td><td class="calm-v">Closed ring</td></tr>
+    <tr><td class="nm">Arcs settle (once)</td><td><code>arc-a-once · arc-b-once · dot-once</code></td><td>Join line in the stream, onboarding</td><td>A member, an agent or a session joins</td><td>800 ms · dot 1 s</td><td>arrive</td><td>Once</td><td class="calm-v">Closed ring</td></tr>
+    <tr><td class="nm">Ring draw</td><td><code>ring-draw</code></td><td>Onboarding "join the circle"</td><td>The invite is accepted</td><td>900 ms</td><td>arrive</td><td>Once</td><td class="calm-v">Full ring</td></tr>
+    <tr><td class="nm">Orbit converge</td><td><code>orbit-1 · orbit-2 · orbit-3</code></td><td>Session view while history folds</td><td>Join; reconnect</td><td>1.5 s</td><td>move</td><td>Loop</td><td class="calm-v">Stacked dots</td></tr>
+    <tr><td class="nm">Avatar ripple</td><td><code>ripple</code></td><td>Presence stack, Team panel</td><td>Someone joins</td><td>900 ms</td><td>leave</td><td>Once</td><td class="calm-v">Avatar appears</td></tr>
+    <tr><td class="nm">Team pill crossfade</td><td><code>word-in</code> + transition</td><td>Rail card, composer toggle</td><td>Solo → Team; Agent ↔ Team</td><td>320 ms</td><td>arrive · move</td><td>Once</td><td class="calm-v">Instant swap</td></tr>
+    <tr><td class="nm">Team colours</td><td>registered properties</td><td><code>:root</code></td><td>Route enters a team</td><td>500 ms</td><td>move</td><td>Once</td><td class="calm-v">Instant</td></tr>
+    <tr class="grp"><td colspan="8">Living</td></tr>
+    <tr><td class="nm">Status pulse</td><td><code>dot-live</code></td><td>Rail, stream meta, fleet rows</td><td>Status running</td><td>1.8 s</td><td>move</td><td>Loop</td><td class="calm-v">Solid dot</td></tr>
+    <tr><td class="nm">Weave</td><td><code>weave-slide · weave-over · weave-under</code></td><td>Project title, unite notice</td><td>Rows loading; uniting</td><td>1.4 s · 0.7 s</td><td>linear · ease-in-out</td><td>Loop</td><td class="calm-v">Plain strand</td></tr>
+    <tr><td class="nm">Shimmer</td><td><code>shimmer</code></td><td>Brief, gate summary, memory</td><td>Text pending</td><td>1.5 s</td><td>move</td><td>Loop</td><td class="calm-v">Flat lines</td></tr>
+    <tr><td class="nm">Budget fill</td><td>transition <code>width</code></td><td>Plan card, Details drawer</td><td>Step records tokens</td><td>300 ms</td><td>ease</td><td>Once</td><td class="calm-v">Jumps</td></tr>
+    <tr class="grp"><td colspan="8">Arriving</td></tr>
+    <tr><td class="nm">Card rise</td><td><code>card-in</code></td><td>Rail cards, messages, notices, plan cards</td><td>First render with <code>.enter</code></td><td>320 ms + 36 ms × i</td><td>arrive</td><td>Once</td><td class="calm-v">In place</td></tr>
+    <tr><td class="nm">Badge pop</td><td><code>pop</code></td><td>Needs-you, inbox, approvals count</td><td>Count mounts or changes</td><td>320 ms</td><td>arrive</td><td>Once</td><td class="calm-v">New number</td></tr>
+    <tr><td class="nm">Check draw</td><td><code>draw</code></td><td>Gate notice, approvals queue, plan card</td><td>Granted; rated; approved</td><td>450 ms · +50 ms</td><td>move</td><td>Once</td><td class="calm-v">Drawn</td></tr>
+    <tr><td class="nm">Toast rise</td><td><code>toast-up</code></td><td>Bottom centre</td><td>Unite, export, copy, invite</td><td>320 ms · out 200 ms</td><td>arrive · leave</td><td>Once</td><td class="calm-v">Appears</td></tr>
+    <tr><td class="nm">Send pressed</td><td><code>pressed</code></td><td>Composer</td><td>A directive is sent</td><td>450 ms</td><td>leave</td><td>Once</td><td class="calm-v">Nothing</td></tr>
+    <tr><td class="nm">Hero fade</td><td><code>fade-in</code></td><td>Manager overview, project hero</td><td>Mount</td><td>500 ms</td><td>arrive</td><td>Once</td><td class="calm-v">Present</td></tr>
+    <tr><td class="nm">Legacy pulse</td><td><code>pulse</code></td><td>Design tokens only</td><td>Replaced by <code>dot-live</code> in the app</td><td>1.6 s</td><td>ease-in-out</td><td>Loop</td><td class="calm-v">Retire</td></tr>
+  </tbody>
+</table>
+
+</div>
+</body>
+</html>
