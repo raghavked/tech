@@ -303,8 +303,40 @@ export const copy = {
     tokens: (n: string) => ` · ${n} tokens`,
   },
 
+  viz: {
+    tokens: "tokens",
+    nothingYet: "Nothing to show yet.",
+    table: "Table",
+    chart: "Chart",
+    name: "Name",
+    share: "Share",
+    when: "When",
+  },
   team: {
     refresh: "Refresh",
+    overview: "Overview",
+    tokensTotal: "Tokens",
+    tokensDetail: (input: string, output: string) => `${input} in · ${output} out`,
+    agentsOpen: "Agents",
+    agentsDetail: (team: number, solo: number) => `${team} in teams · ${solo} solo`,
+    needsYouTile: "Needs you",
+    needsDetail: (approvals: number, contentions: number) =>
+      `${plural(approvals, "approval")} · ${plural(contentions, "contention")}`,
+    membersTile: "Members",
+    membersDetail: (people: number, agents: number) =>
+      `${plural(people, "person", "people")} · ${plural(agents, "agent")}`,
+    tokensByProject: "Tokens by project",
+    tokensByPerson: "Tokens by person",
+    tokensByAgent: "Tokens by agent",
+    tokensOverTurns: "Tokens over turns",
+    turnBucket: (from: number, to: number) =>
+      from === to ? `turn ${from}` : `turns ${from}–${to}`,
+    calls: (n: number) => plural(n, "call"),
+    membersAndAgents: "Members and agents",
+    crews: "Crews",
+    crewLine: (n: number, owners: string) => `${plural(n, "agent")} · ${owners}`,
+    agentOf: (owner: string) => `${owner}'s agent`,
+    inProject: (p: string) => `in ${p}`,
     noProjects: "No projects in this team are visible to you.",
     summary: (open: number, projects: number, counts: string, needs: number) =>
       `${plural(open, "open session")} across ${plural(projects, "project")}${counts ? `: ${counts}` : ""}. ${

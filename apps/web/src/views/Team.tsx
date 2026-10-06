@@ -1,4 +1,6 @@
 import type { FleetContention, ProjectState } from "@henosis/fleet";
+import { compactTokens } from "@henosis/kernel";
+import type { UsageReport } from "@henosis/protocol";
 import { useEffect, useMemo, useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import {
@@ -15,7 +17,8 @@ import { EmptyState, openDemoSession } from "../empty.js";
 import type { Identity } from "../identity.js";
 import { notifyPermission, requestNotifications } from "../notify.js";
 import { paths } from "../router.js";
-import { Status, toast } from "../ui.js";
+import { Avatar, Status, toast } from "../ui.js";
+import { Area, type BarRow, Bars, StatTile } from "../viz.js";
 
 interface ProjectData {
   ref: ProjectRef;
@@ -65,6 +68,7 @@ export function Team({
   const teamName = first?.teamName ?? teamId;
   const [data, setData] = useState<ProjectData[]>([]);
   const [inbox, setInbox] = useState<Notification[]>([]);
+  const [usage, setUsage] = useState<UsageReport | null>(null);
   const [tick, setTick] = useState(0);
   // onboarding-empty-states: the inbox's empty state offers to turn notifications on.
   const [perm, setPerm] = useState(notifyPermission());
@@ -93,6 +97,10 @@ export function Team({
     api
       .notifications(identity.userId)
       .then((r) => alive && setInbox(r.notifications))
+      .catch(() => undefined);
+    api
+      .usage({ team: teamId })
+      .then((u) => alive && setUsage(u))
       .catch(() => undefined);
     return () => {
       alive = false;
@@ -128,6 +136,76 @@ export function Team({
     .slice(0, 8);
   const orgs = [...new Set(projects.map((p) => p.orgId))];
   const needs = approvals.length + contentions.length;
+
+  // The manager's view: people and agents as one roster, crews, and where the tokens went.
+  const people = new Map<string, { id: string; name: string; role: string; projects: string[] }>();
+  for (const d of data)
+    for (const m of Object.values(d.state?.members ?? {})) {
+      const cur = people.get(m.userId) ?? {
+        id: m.userId,
+        name: m.name,
+        role: m.role,
+        projects: [],
+      };
+      cur.projects.push(d.ref.name);
+      if (m.role !== "member") cur.role = m.role;
+      people.set(m.userId, cur);
+    }
+  const agents = data.flatMap((d) =>
+    d.sessions
+      .filter((s) => s.open)
+      .map((s) => ({ d, s, owner: d.state?.members[s.ownerId]?.name ?? s.ownerId })),
+  );
+  const teamAgents = agents.filter(
+    ({ s }) => s.crew || s.people.filter((p) => p.online).length > 1,
+  ).length;
+  const crews = new Map<
+    string,
+    { project: string; projectId: string; owners: Set<string>; n: number }
+  >();
+  for (const { d, s, owner } of agents) {
+    if (!s.crew) continue;
+    const c = crews.get(`${d.ref.projectId}:${s.crew}`) ?? {
+      project: d.ref.name,
+      projectId: d.ref.projectId,
+      owners: new Set<string>(),
+      n: 0,
+    };
+    c.owners.add(owner);
+    c.n += 1;
+    crews.set(`${d.ref.projectId}:${s.crew}`, c);
+  }
+  const byProject: BarRow[] = (usage?.byProject ?? [])
+    .map((r) => ({
+      key: r.projectId,
+      label: r.name || r.projectId,
+      value: r.usage.input + r.usage.output,
+      href: paths.fleet(r.projectId),
+    }))
+    .sort((a, b) => b.value - a.value);
+  const byPerson: BarRow[] = (usage?.byUser ?? [])
+    .map((r) => ({
+      key: r.userId,
+      label: r.name || r.userId,
+      value: r.usage.input + r.usage.output,
+    }))
+    .sort((a, b) => b.value - a.value);
+  const byAgent: BarRow[] = (usage?.bySession ?? [])
+    .map((r) => ({
+      key: `${r.projectId}/${r.sessionId}`,
+      label: r.title || r.sessionId,
+      sub: copy.team.agentOf(people.get(r.ownerId)?.name ?? r.ownerId),
+      value: r.usage.input + r.usage.output,
+      href: paths.session(r.projectId, r.sessionId),
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
+  const overTurns = (usage?.byTurnBucket ?? []).map((b) => ({
+    label: copy.team.turnBucket(b.from, b.to),
+    value: b.usage.input + b.usage.output,
+    detail: copy.team.calls(b.calls),
+  }));
+  const totalTokens = usage ? usage.totals.input + usage.totals.output : 0;
   const summary =
     projects.length === 0
       ? me
@@ -186,6 +264,96 @@ export function Team({
             ))}
           </div>
         </section>
+        <section className="group" aria-label={copy.team.overview}>
+          <h2>{copy.team.overview}</h2>
+          <div className="stats">
+            <StatTile
+              label={copy.team.tokensTotal}
+              value={compactTokens(totalTokens)}
+              detail={
+                usage
+                  ? copy.team.tokensDetail(
+                      compactTokens(usage.totals.input),
+                      compactTokens(usage.totals.output),
+                    )
+                  : copy.loading
+              }
+              trend={overTurns.map((p) => p.value)}
+            />
+            <StatTile
+              label={copy.team.agentsOpen}
+              value={String(openSessions)}
+              detail={copy.team.agentsDetail(teamAgents, openSessions - teamAgents)}
+            />
+            <StatTile
+              label={copy.team.needsYouTile}
+              value={String(needs)}
+              detail={copy.team.needsDetail(approvals.length, contentions.length)}
+            />
+            <StatTile
+              label={copy.team.membersTile}
+              value={String(people.size + openSessions)}
+              detail={copy.team.membersDetail(people.size, openSessions)}
+            />
+          </div>
+          <div className="charts">
+            <Bars title={copy.team.tokensByProject} rows={byProject} />
+            <Bars title={copy.team.tokensByPerson} rows={byPerson} />
+            <Bars title={copy.team.tokensByAgent} rows={byAgent} />
+            <div className="chart wide" style={{ padding: 0, border: 0 }}>
+              <Area title={copy.team.tokensOverTurns} points={overTurns} />
+            </div>
+          </div>
+        </section>
+        <section className="group">
+          <h2>{copy.team.membersAndAgents}</h2>
+          <div className="roster">
+            {[...people.values()].map((m) => (
+              <div className="member" key={m.id}>
+                <Avatar id={m.id} name={m.name} />
+                <span className="who">
+                  <span className="n">{m.name}</span>
+                  <span className="r">
+                    {m.role} · {m.projects.join(", ")}
+                  </span>
+                </span>
+              </div>
+            ))}
+            {agents.map(({ d, s, owner }) => (
+              <a
+                className="member"
+                key={s.sessionId}
+                href={paths.session(d.ref.projectId, s.sessionId)}
+              >
+                <Avatar id={s.sessionId} name={s.title || s.sessionId} agent />
+                <span className="who">
+                  <span className="n">{s.title || s.sessionId}</span>
+                  <span className="r">
+                    {copy.team.agentOf(owner)} · {copy.team.inProject(d.ref.name)}
+                    {s.crew ? ` · ${s.crew}` : ""}
+                  </span>
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+        {crews.size > 0 && (
+          <section className="group">
+            <h2>{copy.team.crews}</h2>
+            <div className="list">
+              {[...crews.entries()].map(([key, c]) => (
+                <a className="rowitem" key={key} href={paths.fleet(c.projectId)}>
+                  <span className="ellipsis">
+                    <span className="t serif">{key.slice(key.indexOf(":") + 1)}</span>
+                    <span className="s">
+                      {c.project} · {copy.team.crewLine(c.n, [...c.owners].join(", "))}
+                    </span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
         <section className="group">
           <h2>{copy.team.projects}</h2>
           {me && projects.length === 0 && (
