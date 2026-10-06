@@ -56,11 +56,16 @@ export async function runDemo(
   s.onEvent((e: SessionEvent) => {
     if (e.kind !== "approval.requested") return;
     queueMicrotask(() => {
-      const voters = e.payload.call.risk === "irreversible" ? ["ana", "cy"] : ["bo"];
+      const release = e.payload.call.risk === "irreversible";
+      const voters = release ? ["ana", "cy"] : ["bo"];
       for (const v of voters) {
         try {
-          s.vote(e.branch, v, e.payload.approvalId, "approve");
-          say(`  ${v} approved ${e.payload.call.name} (${e.payload.call.risk})`);
+          // A release gate wants a rating from the people who consume the code; Ana is sure, Cy less so.
+          const rating = release ? (v === "ana" ? 5 : 4) : undefined;
+          s.vote(e.branch, v, e.payload.approvalId, "approve", rating);
+          say(
+            `  ${v} approved ${e.payload.call.name} (${e.payload.call.risk})${rating ? ` rating ${rating}/5` : ""}`,
+          );
         } catch (err) {
           say(`  ${v} could not vote: ${(err as Error).message}`);
         }
