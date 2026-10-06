@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Plan card</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- board ---------- */
+  body { min-height: 100%; }
+  .board { max-width: 1440px; margin: 0 auto; padding: 36px 48px 56px; display: flex; flex-direction: column; gap: 28px; }
+  .bhead { display: flex; align-items: flex-end; gap: 22px; }
+  .bhead .mark { width: 56px; height: 56px; flex: none; }
+  .bhead h1 { font-size: 44px; }
+  .bhead .lede { max-width: 640px; color: var(--ink-2); margin: 6px 0 0; font-size: 15px; }
+  .bhead .right { margin-left: auto; display: flex; gap: 8px; align-items: center; padding-bottom: 6px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 28px; align-items: start; }
+  .frame { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .frame .lbl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: baseline; font-size: 13px; color: var(--ink-2); padding: 0 4px; }
+  .frame .lbl b { font-family: var(--serif); font-weight: 400; font-size: 19px; color: var(--ink); white-space: nowrap; }
+  .frame .lbl .k { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); text-align: right; white-space: nowrap; }
+  .frame .lbl .s { grid-column: 1 / -1; }
+  .strip { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 28px; align-items: start; }
+  .spec { display: flex; flex-direction: column; gap: 14px; }
+  .spec h3 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .spec .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+  .spec .row .cap { min-width: 112px; color: var(--ink-3); font-size: 12.5px; }
+  .plan.bare { padding: 0; border: 0; box-shadow: none; background: transparent; border-radius: 0; overflow: visible; }
+  .plan.bare::before { display: none; }
+
+  /* ---------- the plan card ---------- */
+  .plan { gap: 12px; padding: 16px 20px 16px; position: relative; overflow: hidden; }
+  .plan::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
+  .plan.approved::before, .plan.done::before { background: var(--ok); }
+  .plan.past::before { background: var(--surface-3); }
+  .plan.past { box-shadow: none; background: color-mix(in srgb, var(--surface) 70%, var(--canvas)); }
+  .plan.past .goal, .plan.past .pstep { color: var(--ink-2); }
+  .plan .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .plan .head .serif { font-size: 20px; }
+  .plan .head .status { margin-left: auto; }
+  .status.plan-approved::before, .status.plan-done::before { background: var(--ok); }
+  .status.plan-proposed::before { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); animation: pulse 1.6s ease-in-out infinite; }
+  .status.plan-revise::before { background: var(--info); } .status.plan-rejected::before { background: var(--danger); }
+  .plan .goal { margin: 0; font-size: 15px; line-height: 1.5; }
+  .plan .goal .gl { font-family: var(--serif); font-style: italic; color: var(--accent); margin-right: 8px; font-size: 16px; }
+  .plan .why { margin: -4px 0 0; font-size: 13px; color: var(--ink-2); }
+
+  .plan .steps { gap: 0; margin-top: 2px; }
+  .plan .pstep { grid-template-columns: 22px 1fr auto 64px 64px; gap: 12px; padding: 8px 0; align-items: start; }
+  .plan .pstep:first-child { border-top: 0; }
+  .plan .pstep .n { margin-top: 1px; }
+  .plan .pstep .n svg { width: 12px; height: 12px; }
+  .plan .pstep.running .n { color: var(--accent); border-color: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.8s ease-in-out infinite; }
+  .plan .pstep .t { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+  .plan .pstep .t .title { color: var(--ink); line-height: 1.4; }
+  .plan .pstep.done .t .title { color: var(--ink-2); }
+  .plan .pstep .t .d { font-size: 12.5px; color: var(--ink-3); line-height: 1.4; }
+  .plan .pstep .t .d code { font-family: var(--mono); font-size: 12px; }
+  .plan .pstep .t .m { display: none; }
+  .plan .pstep .used, .plan .pstep .est { font-family: var(--mono); font-size: 12.5px; text-align: right; line-height: 1.4; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .plan .pstep .used { color: var(--ink); } .plan .pstep .est { color: var(--ink-3); }
+  .plan .pstep.pending .used { color: var(--ink-3); }
+  .plan .pstep.running .used { color: var(--accent); }
+  .plan .pstep .used.over { color: var(--warn); }
+  .plan .pstep .used small { display: block; font-size: 10.5px; color: var(--ink-3); font-family: var(--font); letter-spacing: .02em; margin-top: -1px; }
+  .risk { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: var(--radius-full); font-size: 11px; font-weight: 600; letter-spacing: .03em; background: var(--surface-2); color: var(--ink-2); margin-top: 1px; white-space: nowrap; }
+  .risk.write { background: var(--apricot-soft); color: var(--ink); }
+  .risk.exec { background: color-mix(in srgb, var(--rail) 12%, transparent); color: var(--ink); }
+  .risk.external { background: var(--warn-soft); color: var(--warn); }
+  .risk.irreversible { background: var(--danger-soft); color: var(--danger); }
+  :root[data-theme="dark"] .risk.write { color: var(--apricot); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .risk.write { color: var(--apricot); } }
+
+  /* totals against the budget: the actual fill, the estimate as a tick */
+  .plan .totals { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+  .plan .totals .sum { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+  .plan .totals .sum b { font-family: var(--mono); font-weight: 500; font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .plan .totals .sum .delta { color: var(--ok); font-weight: 500; }
+  .plan .totals .sum .delta.over { color: var(--warn); }
+  .meter { position: relative; width: 190px; }
+  .meter .budget { height: 6px; }
+  .meter .tick { position: absolute; top: -4px; width: 2px; height: 14px; background: var(--ink-3); border-radius: 1px; }
+  .meter .tick::after { content: "est"; position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font: 500 10px var(--mono); color: var(--ink-3); letter-spacing: .02em; }
+  .meter .cap { display: block; font: 500 10.5px var(--mono); color: var(--ink-3); text-align: right; margin-top: 12px; }
+
+  /* the rating row */
+  .plan .rating { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding-top: 10px; border-top: 1px solid var(--line); }
+  .plan .rating .you { display: flex; flex-direction: column; gap: 2px; }
+  .plan .rating .you .lbl { font-size: 12px; color: var(--ink-2); }
+  .stars { gap: 2px; }
+  .stars span { width: 24px; height: 24px; font-size: 21px; display: grid; place-items: center; color: var(--surface-3); border-radius: 6px; transition: transform .12s ease; }
+  .stars .on { color: var(--apricot-deep); }
+  .stars .hover { color: var(--apricot); transform: scale(1.12); }
+  .stars.given span { cursor: default; }
+  .stars.given .on { color: var(--apricot-deep); }
+  .plan .rating .note { height: 34px; border: 1px solid var(--line); border-radius: var(--radius-full); background: var(--surface-2); padding: 0 14px; font: 14px var(--font); color: var(--ink-3); display: flex; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .plan .rating .note.filled { color: var(--ink); background: var(--surface); }
+  .plan .rating .prog { text-align: right; font-size: 12.5px; color: var(--ink-2); line-height: 1.4; white-space: nowrap; }
+  .plan .rating .prog b { display: block; font-family: var(--mono); font-weight: 500; font-size: 13px; color: var(--ink); }
+  .plan .rating .prog .need { color: var(--warn); }
+  .plan .rating .prog .by { color: var(--ok); font-weight: 500; }
+
+  .plan .raters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+  .plan .raters .r { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px 10px 3px 4px; max-width: 100%; }
+  .plan .raters .r .avatar { width: 22px; height: 22px; font-size: 9.5px; border: 0; }
+  .plan .raters .r b { font-weight: 500; color: var(--ink); font-family: var(--serif); font-size: 15px; }
+  .plan .raters .r .st { color: var(--apricot-deep); letter-spacing: -1px; font-size: 14px; }
+  .plan .raters .r .st i { font-style: normal; color: var(--surface-3); }
+  .plan .raters .r q { quotes: "“" "”"; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .plan .raters .r.waiting { background: transparent; border: 1px dashed var(--line); color: var(--ink-3); }
+  .plan .raters .r.waiting .avatar { opacity: .6; }
+
+  .plan .decision { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding-top: 10px; border-top: 1px solid var(--line); }
+  .plan .decision .note { height: 34px; border: 1px solid var(--line); border-radius: var(--radius-full); background: var(--surface-2); padding: 0 14px; font: 14px var(--font); color: var(--ink-3); display: flex; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .plan .decision .acts { display: flex; gap: 6px; }
+  .plan .decision .who { grid-column: 1 / -1; font-size: 12px; color: var(--ink-3); margin-top: -4px; }
+  .plan .decided { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-2); padding-top: 10px; border-top: 1px solid var(--line); }
+  .plan .decided .who { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+  .plan .decided q { quotes: "“" "”"; }
+  .plan .decided svg { width: 16px; height: 16px; flex: none; }
+  .plan .replaced { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-3); }
+  .plan .replaced a { color: var(--accent); }
+  .btn.sm.danger { color: var(--danger); }
+  .btn.sm.danger:hover { background: var(--danger-soft); }
+  .btn.sm.disabled { opacity: .45; pointer-events: none; box-shadow: none; }
+  .savings { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 6px; border-radius: var(--radius-full); background: var(--ok-soft); color: var(--ok); font-size: 12px; font-weight: 600; }
+  .savings svg { width: 12px; height: 12px; }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 1180px) { .grid, .strip { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) {
+    .board { padding: 20px 16px 40px; gap: 20px; }
+    .bhead { flex-wrap: wrap; gap: 12px; align-items: center; }
+    .bhead h1 { font-size: 32px; } .bhead .mark { width: 40px; height: 40px; }
+    .bhead .right { display: none; }
+    .plan { padding: 14px 14px 14px 16px; }
+    .plan .pstep { grid-template-columns: 22px 1fr 64px; }
+    .plan .pstep .risk, .plan .pstep .est { display: none; }
+    .plan .pstep .t .m { display: flex; gap: 6px; align-items: center; font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+    .plan .pstep .t .m .risk { display: inline-flex; height: 18px; font-size: 10.5px; padding: 0 7px; }
+    .plan .pstep .t .m .est { display: inline; font-family: var(--mono); font-size: 11.5px; }
+    .meter { width: 100px; }
+    .plan .rating { grid-template-columns: 1fr auto; }
+    .plan .rating .note { grid-column: 1 / -1; }
+    .plan .rating .prog { text-align: right; }
+    .plan .decision { grid-template-columns: 1fr; }
+    .plan .decision .acts { flex-wrap: wrap; }
+    .plan .raters .r q { max-width: 160px; }
+    .frame .lbl .k { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <header class="bhead">
+    <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+    <div>
+      <h1>The plan card</h1>
+      <p class="lede">One card, one life. It is proposed, the team rates it, it runs step by step with the tokens it actually took beside the estimate, and it closes with the ledger. The same card in four moments, as Ana (owner, driving) sees it in <span class="serif i">Billing page</span>.</p>
+    </div>
+    <div class="right"><span class="chip">session stream · 780 column</span><span class="chip on">the Payments team</span></div>
+  </header>
+
+  <div class="grid">
+
+    <!-- 1 · proposed, waiting for ratings -->
+    <div class="frame">
+      <div class="lbl"><b>1 · Waiting for ratings</b><span class="k">status=proposed · rank=owner</span><span class="s">Bo has rated; the policy wants two at 3+; Ana may rate or decide.</span></div>
+      <section class="notice plan proposed" aria-label="Plan">
+        <div class="head">
+          <span class="serif">Plan · 4 steps</span>
+          <span class="small faint">proposed on turn 3</span>
+          <span class="status plan-proposed">Waiting for ratings</span>
+        </div>
+        <p class="goal"><span class="gl">Goal</span>Add proration to the Billing page. When a plan changes mid-cycle, show the prorated credit as its own line above the tax lines, keep the invoice PDF in step, and leave Checkout to Bo.</p>
+        <p class="why">The credit must land before VAT so the tax lines read the net amount; the PDF shares the row component, so it follows for free.</p>
+        <div class="steps">
+          <div class="pstep pending"><span class="n">1</span><span class="t"><span class="title">Read the billing model and the tax-line rows</span><span class="d"><code>apps/web/src/views/Billing.tsx</code>, <code>packages/billing/tax.ts</code></span><span class="m"><span class="risk">read</span><span class="est">~2,000</span></span></span><span class="risk">read</span><span class="used">—</span><span class="est">~2,000</span></div>
+          <div class="pstep pending"><span class="n">2</span><span class="t"><span class="title">Compute the prorated credit in packages/billing</span><span class="d">pure function, day-based, one test per edge</span><span class="m"><span class="risk write">write</span><span class="est">~5,000</span></span></span><span class="risk write">write</span><span class="used">—</span><span class="est">~5,000</span></div>
+          <div class="pstep pending"><span class="n">3</span><span class="t"><span class="title">Render the credit line above the tax lines</span><span class="d">Billing.tsx, the same row the invoice PDF reads</span><span class="m"><span class="risk write">write</span><span class="est">~6,000</span></span></span><span class="risk write">write</span><span class="used">—</span><span class="est">~6,000</span></div>
+          <div class="pstep pending"><span class="n">4</span><span class="t"><span class="title">Migrate stored invoices with a proration column</span><span class="d"><code>pnpm db:migrate add-proration-column</code> · waits at the release gate</span><span class="m"><span class="risk irreversible">irreversible</span><span class="est">~3,500</span></span></span><span class="risk irreversible">irreversible</span><span class="used">—</span><span class="est">~3,500</span></div>
+        </div>
+        <div class="totals">
+          <div class="sum"><span><b>~16,500</b> estimated</span><span>· budget <b>40,000</b></span></div>
+          <div class="meter"><div class="budget"><i style="width:0"></i></div><span class="tick" style="left:41%"></span><span class="cap">16.5k of 40k</span></div>
+        </div>
+        <div class="rating">
+          <div class="you"><span class="lbl">Your rating</span><span class="stars" role="radiogroup" aria-label="Rate 1 to 5"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></span></div>
+          <div class="note">A note with your rating (optional)</div>
+          <div class="prog"><b>1 of 2 ratings</b>4.0 average · waiting · <span class="need">needs 2 at 3+</span></div>
+        </div>
+        <div class="raters">
+          <span class="r"><span class="avatar">BO</span><b>Bo</b><span class="st">★★★★<i>★</i></span><q>credit line above tax, yes</q></span>
+          <span class="r waiting"><span class="avatar">CY</span>Cy has not rated</span>
+          <span class="r waiting"><span class="avatar">DE</span>Dee has not rated</span>
+        </div>
+        <div class="decision">
+          <div class="note">A note with your decision (optional)</div>
+          <div class="acts"><button class="btn primary sm">Approve now</button><button class="btn sm">Ask to revise</button><button class="btn ghost sm danger">Reject</button></div>
+          <span class="who">Approve now overrides the ratings; the agent starts at step 1. Until then every tool above read is refused.</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- 2 · approved by the ratings, running -->
+    <div class="frame">
+      <div class="lbl"><b>2 · Approved, running</b><span class="k">status=approved · step 3 of 4</span><span class="s">Two ratings met the policy; step 3 is live and counting.</span></div>
+      <section class="notice plan approved" aria-label="Plan">
+        <div class="head">
+          <span class="serif">Plan · 4 steps</span>
+          <span class="small faint">proposed on turn 3</span>
+          <span class="status plan-approved">Approved</span>
+        </div>
+        <p class="goal"><span class="gl">Goal</span>Add proration to the Billing page. When a plan changes mid-cycle, show the prorated credit as its own line above the tax lines, keep the invoice PDF in step, and leave Checkout to Bo.</p>
+        <div class="steps">
+          <div class="pstep done"><span class="n"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span><span class="t"><span class="title">Read the billing model and the tax-line rows</span><span class="d"><code>Billing.tsx</code> 212 lines · <code>tax.ts</code> 96 lines</span><span class="m"><span class="risk">read</span><span class="est">~2,000</span></span></span><span class="risk">read</span><span class="used">1,920</span><span class="est">~2,000</span></div>
+          <div class="pstep done"><span class="n"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span><span class="t"><span class="title">Compute the prorated credit in packages/billing</span><span class="d"><code>prorate(plan, from, to)</code> · 3 tests passed</span><span class="m"><span class="risk write">write</span><span class="est">~5,000</span></span></span><span class="risk write">write</span><span class="used">4,310</span><span class="est">~5,000</span></div>
+          <div class="pstep running"><span class="n">3</span><span class="t"><span class="title">Render the credit line above the tax lines</span><span class="d">Writing <code>Billing.tsx</code> · now</span><span class="m"><span class="risk write">write</span><span class="est">~6,000</span></span></span><span class="risk write">write</span><span class="used">3,640<small>so far</small></span><span class="est">~6,000</span></div>
+          <div class="pstep pending"><span class="n">4</span><span class="t"><span class="title">Migrate stored invoices with a proration column</span><span class="d"><code>pnpm db:migrate add-proration-column</code> · waits at the release gate</span><span class="m"><span class="risk irreversible">irreversible</span><span class="est">~3,500</span></span></span><span class="risk irreversible">irreversible</span><span class="used">—</span><span class="est">~3,500</span></div>
+        </div>
+        <div class="totals">
+          <div class="sum"><span><b>9,870</b> used</span><span>· <b>~16,500</b> estimated</span><span>· budget <b>40,000</b></span></div>
+          <div class="meter"><div class="budget"><i style="width:25%"></i></div><span class="tick" style="left:41%"></span><span class="cap">9.9k of 40k</span></div>
+        </div>
+        <div class="rating">
+          <div class="you"><span class="lbl">Your rating</span><span class="stars given" aria-label="You rated 4 of 5"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></div>
+          <div class="note filled">keep step 4 behind the gate</div>
+          <div class="prog"><b>2 of 2 ratings</b>4.5 average · <span class="by">approved by the team's ratings</span></div>
+        </div>
+        <div class="raters">
+          <span class="r"><span class="avatar">BO</span><b>Bo</b><span class="st">★★★★★</span><q>credit line above tax, yes</q></span>
+          <span class="r"><span class="avatar">AN</span><b>Ana</b><span class="st">★★★★<i>★</i></span><q>keep step 4 behind the gate</q></span>
+        </div>
+        <div class="decision">
+          <div class="note">A note with your decision (optional)</div>
+          <div class="acts"><button class="btn sm">Ask to revise</button><button class="btn ghost sm danger">Reject</button></div>
+          <span class="who">Ask to revise stops the agent after this step and brings a new plan that supersedes this one.</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- 3 · done, the ledger -->
+    <div class="frame">
+      <div class="lbl"><b>3 · Done</b><span class="k">status=done · 14,120 of ~16,500</span><span class="s">Every step closed; the ledger shows estimate against actual and what the plan saved.</span></div>
+      <section class="notice plan done" aria-label="Plan">
+        <div class="head">
+          <span class="serif">Plan · 4 steps</span>
+          <span class="small faint">proposed on turn 3 · done on turn 9</span>
+          <span class="status plan-done">Done</span>
+        </div>
+        <p class="goal"><span class="gl">Goal</span>Add proration to the Billing page. When a plan changes mid-cycle, show the prorated credit as its own line above the tax lines, keep the invoice PDF in step, and leave Checkout to Bo.</p>
+        <div class="steps">
+          <div class="pstep done"><span class="n"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span><span class="t"><span class="title">Read the billing model and the tax-line rows</span><span class="m"><span class="risk">read</span><span class="est">~2,000</span></span></span><span class="risk">read</span><span class="used">1,920</span><span class="est">~2,000</span></div>
+          <div class="pstep done"><span class="n"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span><span class="t"><span class="title">Compute the prorated credit in packages/billing</span><span class="m"><span class="risk write">write</span><span class="est">~5,000</span></span></span><span class="risk write">write</span><span class="used">4,310</span><span class="est">~5,000</span></div>
+          <div class="pstep done"><span class="n"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span><span class="t"><span class="title">Render the credit line above the tax lines</span><span class="d">took more than estimated: the PDF row needed a width fix</span><span class="m"><span class="risk write">write</span><span class="est">~6,000</span></span></span><span class="risk write">write</span><span class="used over">6,480</span><span class="est">~6,000</span></div>
+          <div class="pstep done"><span class="n"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span><span class="t"><span class="title">Migrate stored invoices with a proration column</span><span class="d">release gate opened by Bo and Cy · 4.5 average</span><span class="m"><span class="risk irreversible">irreversible</span><span class="est">~3,500</span></span></span><span class="risk irreversible">irreversible</span><span class="used">1,410</span><span class="est">~3,500</span></div>
+        </div>
+        <div class="totals">
+          <div class="sum"><span><b>14,120</b> used of <b>~16,500</b></span><span class="delta">· 2,380 under</span><span class="savings"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l3-3 2 2 3-4"/></svg>14% under estimate</span></div>
+          <div class="meter"><div class="budget"><i style="width:35%"></i></div><span class="tick" style="left:41%"></span><span class="cap">14.1k of 40k</span></div>
+        </div>
+        <div class="rating">
+          <div class="you"><span class="lbl">Your rating</span><span class="stars given" aria-label="You rated 4 of 5"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></div>
+          <div class="note filled">keep step 4 behind the gate</div>
+          <div class="prog"><b>2 of 2 ratings</b>4.5 average · done · <span class="by">by the team's ratings</span></div>
+        </div>
+        <div class="raters">
+          <span class="r"><span class="avatar">BO</span><b>Bo</b><span class="st">★★★★★</span><q>credit line above tax, yes</q></span>
+          <span class="r"><span class="avatar">AN</span><b>Ana</b><span class="st">★★★★<i>★</i></span><q>keep step 4 behind the gate</q></span>
+        </div>
+      </section>
+    </div>
+
+    <!-- 4 · revision asked, replaced -->
+    <div class="frame">
+      <div class="lbl"><b>4 · Revision asked</b><span class="k">status=revise · supersededBy=plan_7</span><span class="s">Dee asked for a revision; a newer plan supersedes this one, which stays in the stream, dimmed.</span></div>
+      <section class="notice plan past" aria-label="Plan, replaced">
+        <div class="head">
+          <span class="serif">Plan · 3 steps</span>
+          <span class="small faint">proposed on turn 1</span>
+          <span class="status plan-revise">Revision asked</span>
+        </div>
+        <p class="goal"><span class="gl">Goal</span>Add proration to the Billing page and to Checkout, with the credit folded into the subtotal line.</p>
+        <div class="steps">
+          <div class="pstep pending"><span class="n">1</span><span class="t"><span class="title">Read the billing model and the Checkout totals</span><span class="m"><span class="risk">read</span><span class="est">~3,000</span></span></span><span class="risk">read</span><span class="used">—</span><span class="est">~3,000</span></div>
+          <div class="pstep pending"><span class="n">2</span><span class="t"><span class="title">Fold the prorated credit into the subtotal on both pages</span><span class="m"><span class="risk write">write</span><span class="est">~9,000</span></span></span><span class="risk write">write</span><span class="used">—</span><span class="est">~9,000</span></div>
+          <div class="pstep pending"><span class="n">3</span><span class="t"><span class="title">Regenerate the invoice PDFs for open periods</span><span class="d">calls the PDF service for every open invoice</span><span class="m"><span class="risk external">external</span><span class="est">~7,500</span></span></span><span class="risk external">external</span><span class="used">—</span><span class="est">~7,500</span></div>
+        </div>
+        <div class="totals">
+          <div class="sum"><span><b>~19,500</b> estimated</span><span>· budget <b>40,000</b></span></div>
+          <div class="meter"><div class="budget"><i style="width:0"></i></div><span class="tick" style="left:49%"></span><span class="cap">19.5k of 40k</span></div>
+        </div>
+        <div class="decided">
+          <svg viewBox="0 0 16 16" fill="none" stroke="var(--info)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8a5.5 5.5 0 0 1 9.4-3.9L13.5 5.7M13.5 2.5v3.2h-3.2M13.5 8a5.5 5.5 0 0 1-9.4 3.9L2.5 10.3M2.5 13.5v-3.2h3.2"/></svg>
+          <span>Revision asked by <span class="who">Dee</span> · <q>Keep the credit as its own line and leave Checkout to Bo.</q></span>
+        </div>
+        <div class="raters">
+          <span class="r"><span class="avatar">DE</span><b>Dee</b><span class="st">★★<i>★★★</i></span><q>folding it hides the tax base</q></span>
+        </div>
+        <div class="replaced">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M3.5 8.5L8 13l4.5-4.5"/></svg>
+          Replaced by a newer plan. <a href="#">Jump to the plan from turn 3</a>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <!-- anatomy strip -->
+  <div class="strip">
+    <section class="card spec">
+      <h3>Step row · the four states and the risk word</h3>
+      <div class="plan bare"><div class="steps">
+        <div class="pstep pending"><span class="n">1</span><span class="t"><span class="title">Pending · number in a hairline ring, estimate only</span></span><span class="risk">read</span><span class="used">—</span><span class="est">~2,000</span></div>
+        <div class="pstep running"><span class="n">2</span><span class="t"><span class="title">Running · apricot glow pulses; the actual counts up in chocolate</span></span><span class="risk write">write</span><span class="used">3,640<small>so far</small></span><span class="est">~6,000</span></div>
+        <div class="pstep done"><span class="n"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span><span class="t"><span class="title">Done · green check, actual in ink beside the estimate</span></span><span class="risk exec">exec</span><span class="used">4,310</span><span class="est">~5,000</span></div>
+        <div class="pstep done"><span class="n"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span><span class="t"><span class="title">Done over estimate · the actual turns amber, never red</span></span><span class="risk irreversible">irreversible</span><span class="used over">6,480</span><span class="est">~6,000</span></div>
+      </div>
+      </div><div class="row"><span class="cap">Risk words</span><span class="risk">read</span><span class="risk write">write</span><span class="risk exec">exec</span><span class="risk external">external</span><span class="risk irreversible">irreversible</span></div>
+    </section>
+
+    <section class="card spec">
+      <h3>Stars · one rating per person</h3>
+      <div class="row"><span class="cap">Empty</span><span class="stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></span></div>
+      <div class="row"><span class="cap">Hover on 3</span><span class="stars"><span class="hover">★</span><span class="hover">★</span><span class="hover">★</span><span>★</span><span>★</span></span></div>
+      <div class="row"><span class="cap">Picked 4</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="faint small">sent with the note</span></div>
+      <div class="row"><span class="cap">Given, locked</span><span class="stars given"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="faint small">after the decision</span></div>
+      <div class="row"><span class="cap">Keys</span><span class="small muted">1–5 pick, ←→ move, Enter sends with the note</span></div>
+    </section>
+
+    <section class="card spec">
+      <h3>Status and the progress line</h3>
+      <div class="row"><span class="status plan-proposed">Waiting for ratings</span><span class="status plan-approved">Approved</span><span class="status plan-done">Done</span></div>
+      <div class="row"><span class="status plan-revise">Revision asked</span><span class="status plan-rejected">Rejected</span></div>
+      <div class="row"><span class="cap">No ratings</span><span class="mono">0 of 2 ratings</span><span class="small muted">· waiting · <span style="color:var(--warn)">needs 2 at 3+</span></span></div>
+      <div class="row"><span class="cap">Below the bar</span><span class="mono">2 of 2 ratings</span><span class="small muted">· 2.5 average · waiting · <span style="color:var(--warn)">needs 2 at 3+</span></span></div>
+      <div class="row"><span class="cap">Met</span><span class="mono">2 of 2 ratings</span><span class="small muted">· 4.5 average · <span style="color:var(--ok);font-weight:500">approved by the team's ratings</span></span></div>
+      <div class="row"><span class="cap">Overridden</span><span class="mono">1 of 2 ratings</span><span class="small muted">· 4.0 average · approved <span class="serif">by Ana</span></span></div>
+    </section>
+  </div>
+
+</div>
+</body>
+</html>
