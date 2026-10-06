@@ -16,6 +16,7 @@ import { paths } from "../router.js";
 import { SHORTCUTS } from "../shortcuts.js";
 import { type Theme, useTheme } from "../theme.js";
 import { Avatar, ICONS, Icon } from "../ui.js";
+import { TeamLook } from "./TeamLook.js";
 
 const RISKS: { risk: RiskClass; detail: string }[] = [
   { risk: "read", detail: "Reading files and state" },
@@ -47,6 +48,7 @@ export function Settings({
         <Profile identity={identity} />
         <Notifications />
         <Appearance />
+        <TeamLook identity={identity} me={me} />
         <Keyboard />
         <TeamPolicy me={me} />
         <Integrations />

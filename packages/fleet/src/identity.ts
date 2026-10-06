@@ -23,6 +23,32 @@ export type User = z.infer<typeof User>;
 export const UsersFile = z.object({ users: z.array(User) });
 export type UsersFile = z.infer<typeof UsersFile>;
 
+/** A six-digit hex colour, `#RRGGBB`. */
+export const HexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, "a colour as #RRGGBB");
+
+/**
+ * How a team looks in the web app (docs/12_brand.md, "Team customisation"). Every field is
+ * optional; what is absent falls back to the Henosis palette. The colours become the
+ * `--team-*` custom properties on the page; `mark` picks what sits on the mark's disc;
+ * `motion: "calm"` turns the loaders and side animations off for that team; `emblem` is one
+ * or two letters shown beside the wordmark in the rail.
+ */
+export const TeamTheme = z
+  .object({
+    accent: HexColour.optional(),
+    highlight: HexColour.optional(),
+    surface: HexColour.optional(),
+    glow: HexColour.optional(),
+    mark: z.enum(["ring", "bead", "dot"]).optional(),
+    motion: z.enum(["full", "calm"]).optional(),
+    emblem: z
+      .string()
+      .regex(/^[\p{L}\p{N}]{1,2}$/u, "one or two letters")
+      .optional(),
+  })
+  .strict();
+export type TeamTheme = z.infer<typeof TeamTheme>;
+
 export const OrgsFile = z.object({
   orgs: z.array(
     z.object({
@@ -32,6 +58,7 @@ export const OrgsFile = z.object({
         z.object({
           id: z.string(),
           name: z.string(),
+          theme: TeamTheme.optional(),
           projects: z.array(z.object({ id: z.string(), name: z.string() })),
         }),
       ),
@@ -39,6 +66,27 @@ export const OrgsFile = z.object({
   ),
 });
 export type OrgsFile = z.infer<typeof OrgsFile>;
+export type OrgTeam = OrgsFile["orgs"][number]["teams"][number];
+
+/** The team with this id and the org it belongs to, or null. */
+export function findTeam(orgs: OrgsFile, teamId: string): { orgId: string; team: OrgTeam } | null {
+  for (const o of orgs.orgs)
+    for (const t of o.teams) if (t.id === teamId) return { orgId: o.id, team: t };
+  return null;
+}
+
+/**
+ * Whether a user may change how a team looks: a lead or manager of that team in users.json,
+ * or an admin of the org the team belongs to.
+ */
+export function canStyleTeam(user: User | null, orgs: OrgsFile, teamId: string): boolean {
+  if (!user) return false;
+  const found = findTeam(orgs, teamId);
+  if (!found) return false;
+  const team = user.teams.find((t) => t.teamId === teamId);
+  if (team && (team.role === "lead" || team.role === "manager")) return true;
+  return user.orgs.some((o) => o.orgId === found.orgId && o.role === "admin");
+}
 
 export interface ProjectRef {
   orgId: string;

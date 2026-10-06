@@ -25,8 +25,8 @@ export function Home({
     <Shell ctx={ctx} title={identity ? copy.home.title : copy.product}>
       <div className="column page home">
         {!identity && (
-          <div className="hero">
-            <Mark size={40} />
+          <div className="hero hero-card">
+            <Mark size={64} joining />
             <h1>{copy.home.heroTitle}</h1>
             <p className="muted">{copy.home.heroLine}</p>
             {needsIdentity && <p className="small danger">{copy.home.needsIdentity}</p>}

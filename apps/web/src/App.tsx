@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { api, type Me, type SessionRow, useFetch } from "./api.js";
 import { pendingOf } from "./approvalsQueue.js";
@@ -22,8 +23,8 @@ import { navigate, paths, type Route, useRoute } from "./router.js";
 import { MemoryResults, matchSession, needleOf, searchKeys, useMemorySearch } from "./search.js";
 import { isDesktop } from "./shell.js";
 import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
-import { type Theme, useTheme } from "./theme.js";
-import { AgentCard, Avatar, ICONS, Icon, Mark, Toasts } from "./ui.js";
+import { type Theme, useTeamTheme, useTeamThemeValue, useTheme } from "./theme.js";
+import { AgentCard, Avatar, ICONS, Icon, Loader, Mark, Toasts } from "./ui.js";
 import { UpdateRow } from "./update.js";
 import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
 import { Home } from "./views/Home.js";
@@ -75,6 +76,17 @@ function BrokenView({ error, onRetry }: { error: Error; onRetry: () => void }) {
   );
 }
 
+/**
+ * team-theme: the team a route belongs to. A project or a session of a project is in that
+ * project's team; the team page is its own; the inbox, memory, settings and home are nobody's.
+ */
+export function teamOfRoute(route: Route, me: Me | null): string | null {
+  if (route.name === "management") return route.teamId;
+  if (route.name === "fleet" || route.name === "session")
+    return me?.projects.find((p) => p.projectId === route.projectId)?.teamId ?? null;
+  return null;
+}
+
 function Page() {
   const route = useRoute();
   const identity = useIdentity();
@@ -82,6 +94,8 @@ function Page() {
   const me = useFetch<Me>(identity ? () => api.me(userId) : null, userId);
   const ctx: ShellContext = { route, identity, me: me.data };
   useEffect(warmViews, []);
+  // team-theme: the page wears the team's colours while the route is in that team.
+  useTeamTheme(identity ? teamOfRoute(route, me.data) : null);
   if (!identity || route.name === "home")
     return (
       <Home me={me.data} meError={me.error} identity={identity} ctx={ctx} onRetry={me.reload} />
@@ -148,12 +162,12 @@ function View({
   }
 }
 
-/** The shell with an empty column while a view's chunk is on its way (rarely seen once warmed). */
+/** The shell with shimmer rows in the column while a view's chunk is on its way (rarely seen once warmed). */
 function Loading({ ctx }: { ctx: ShellContext }) {
   return (
     <Shell ctx={ctx} title="">
-      <div className="column">
-        <p className="muted">Loading…</p>
+      <div className="column page">
+        <Loader kind="shimmer" label={copy.loading} title rows={4} />
       </div>
     </Shell>
   );
@@ -174,6 +188,7 @@ export function Shell({
   title,
   right,
   below,
+  busy = false,
   drawer,
   shortcuts,
   children,
@@ -183,15 +198,22 @@ export function Shell({
   right?: ReactNode;
   /** One quiet line under the top row, e.g. the reconnect notice. */
   below?: ReactNode;
+  /** A long operation is under way: the weave loader runs under the top row. */
+  busy?: boolean;
   drawer?: ReactNode;
   /** Page-specific keys (shortcuts.ts); j, k and ? are handled here for every page. */
   shortcuts?: ShortcutHandlers;
   children: ReactNode;
 }) {
-  const [navOpen, setNavOpen] = useState(false);
+  // The phone drawer's state is shared by every Shell (navStore), so it survives the swap from a
+  // lazy view's loading shell to the view itself; it closes when the route changes.
+  const navOpen = useSyncExternalStore(subscribeNav, readNav, () => false);
+  const setNavOpen = setNav;
   const routeKey = JSON.stringify(ctx.route);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: close the drawer when the route changes
-  useEffect(() => setNavOpen(false), [routeKey]);
+  useEffect(() => {
+    if (navRouteKey !== null && navRouteKey !== routeKey) setNav(false);
+    navRouteKey = routeKey;
+  }, [routeKey]);
   const [help, setHelp] = useState(false);
   useShortcuts({
     ...shortcuts,
@@ -226,6 +248,9 @@ export function Shell({
           <span className="title">{title}</span>
           <div className="right">{right}</div>
         </div>
+        <div className={`busybar${busy ? " on" : ""}`} aria-hidden={!busy}>
+          {busy && <Loader kind="weave" label={copy.loading} />}
+        </div>
         {below}
         <div className="body">
           <div className="scroll">{children}</div>
@@ -234,6 +259,23 @@ export function Shell({
       </div>
     </div>
   );
+}
+
+// ---- the phone drawer's state, shared by every Shell --------------------------------------------
+let navIsOpen = false;
+let navRouteKey: string | null = null;
+const navListeners = new Set<() => void>();
+function subscribeNav(fn: () => void): () => void {
+  navListeners.add(fn);
+  return () => navListeners.delete(fn);
+}
+function readNav(): boolean {
+  return navIsOpen;
+}
+function setNav(open: boolean): void {
+  if (navIsOpen === open) return;
+  navIsOpen = open;
+  for (const fn of navListeners) fn();
 }
 
 /** j/k: the session above or below the current one in the sidebar, wrapping at the ends. */
@@ -278,6 +320,9 @@ const Sidebar = memo(function Sidebar({
   const activeTeam = route.name === "management" ? route.teamId : null;
   const activeMemory = route.name === "memory" ? route.orgId : null;
   const activeGroup = route.name === "chat" ? route.groupId : null;
+  // team-theme: the mark wears the current team's style and emblem.
+  const look = useTeamThemeValue(identity ? teamOfRoute(route, me) : null);
+  let cardIndex = 0;
   const teams = useMemo(() => {
     const out = new Map<string, { id: string; name: string; projects: typeof projects }>();
     for (const p of projects) {
@@ -336,8 +381,13 @@ const Sidebar = memo(function Sidebar({
         }
       >
         <a className="brand" href={paths.home()}>
-          <Mark size={22} />
+          <Mark size={24} settle style={look?.mark ?? "ring"} emblem={look?.emblem} />
           <span className="serif">{copy.product}</span>
+          {look?.emblem && look.mark !== "dot" && (
+            <span className="emblem" title={copy.shell.teamEmblem}>
+              {look.emblem}
+            </span>
+          )}
         </a>
         <a className="new" href={paths.fleet(firstProject) + (identity ? "?new=1" : "")}>
           <Icon d={ICONS.plus} />
@@ -421,6 +471,7 @@ const Sidebar = memo(function Sidebar({
                             row={s}
                             href={paths.session(p.projectId, s.sessionId)}
                             active={activeSession === s.sessionId}
+                            index={cardIndex++}
                             nameOf={(id) =>
                               me?.user?.id === id ? "you" : (nameOfMember(s, id) ?? id)
                             }

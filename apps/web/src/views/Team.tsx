@@ -17,7 +17,7 @@ import { EmptyState, openDemoSession } from "../empty.js";
 import type { Identity } from "../identity.js";
 import { notifyPermission, requestNotifications } from "../notify.js";
 import { paths } from "../router.js";
-import { Avatar, Status, toast } from "../ui.js";
+import { Avatar, Loader, Status, toast } from "../ui.js";
 import { Area, type BarRow, Bars, StatTile } from "../viz.js";
 
 interface ProjectData {
@@ -70,6 +70,8 @@ export function Team({
   const [inbox, setInbox] = useState<Notification[]>([]);
   const [usage, setUsage] = useState<UsageReport | null>(null);
   const [tick, setTick] = useState(0);
+  // The weave under the top row while housekeeping runs or the project rows load.
+  const [housekeeping, setHousekeeping] = useState(false);
   // onboarding-empty-states: the inbox's empty state offers to turn notifications on.
   const [perm, setPerm] = useState(notifyPermission());
   const key = projects.map((p) => p.projectId).join(",");
@@ -206,6 +208,7 @@ export function Team({
     detail: copy.team.calls(b.calls),
   }));
   const totalTokens = usage ? usage.totals.input + usage.totals.output : 0;
+  const loading = projects.length > 0 && data.length === 0;
   const summary =
     projects.length === 0
       ? me
@@ -217,6 +220,7 @@ export function Team({
     <Shell
       ctx={ctx}
       title={teamName}
+      busy={housekeeping || loading}
       right={
         <button type="button" className="btn ghost sm" onClick={() => setTick((t) => t + 1)}>
           {copy.team.refresh}
@@ -356,6 +360,7 @@ export function Team({
         )}
         <section className="group">
           <h2>{copy.team.projects}</h2>
+          {loading && <Loader kind="shimmer" label={copy.loading} rows={projects.length} />}
           {me && projects.length === 0 && (
             <EmptyState
               text={copy.team.noProjectsYet}
@@ -439,7 +444,7 @@ export function Team({
           </div>
         </section>
         {orgs.map((org) => (
-          <Housekeeping key={org} orgId={org} />
+          <Housekeeping key={org} orgId={org} onBusy={setHousekeeping} />
         ))}
       </div>
     </Shell>
@@ -455,12 +460,13 @@ function sessionNames(c: FleetContention, state: ProjectState | null): string {
     .join(copy.project.and);
 }
 
-function Housekeeping({ orgId }: { orgId: string }) {
+function Housekeeping({ orgId, onBusy }: { orgId: string; onBusy?: (busy: boolean) => void }) {
   const [report, setReport] = useState<CuratorReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const run = () => {
     setBusy(true);
+    onBusy?.(true);
     api
       .curate(orgId)
       .then((r) => {
@@ -472,7 +478,10 @@ function Housekeeping({ orgId }: { orgId: string }) {
         setError(message);
         toast(`Housekeeping did not run: ${message}`);
       })
-      .finally(() => setBusy(false));
+      .finally(() => {
+        setBusy(false);
+        onBusy?.(false);
+      });
   };
   return (
     <section className="group">

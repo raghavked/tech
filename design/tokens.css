@@ -1,67 +1,162 @@
-/* Henosis design tokens, v4: ultra-minimal with a signature.
-   The base stays in the register of claude.ai and ChatGPT (one column, hairlines, no shadows).
-   Three things make it Henosis's own:
-     1. an editorial serif (Instrument Serif) for titles, the wordmark and agent names;
-     2. the folded corner: the brand mark repeated as a small apricot turn on the composer,
-        on human messages and on cards;
-     3. one crease: a hairline in Apricot Illusion that separates chrome from content.
-   Palette: Chocolate Fondant #56352D (accent), Dress Blues #2A3244 (text), Apricot Illusion #E2C4A6 (crease, highlight). */
+/* Henosis design tokens, v5: the vibrant system.
+   What v4 got right stays: one centred column, hairlines, Instrument Serif for what has a
+   name, Instrument Sans for what happened, no dashboards of tiles. v5 turns the volume up:
+     - a Dress Blues rail with cream text and apricot accents, so the navigation reads like a
+       native app's sidebar rather than a grey web panel;
+     - a warm cream canvas with a faint apricot-to-cream radial wash at the top;
+     - Chocolate Fondant as the one action colour, apricot glows on anything live;
+     - a navy-to-chocolate gradient for the hero, empty states and the new-session button;
+     - the two-arcs mark (design/mark.svg) in motion: a person's arc and an agent's close into one ring.
+   Dark mode stays navy with apricot.
+
+   TOKENS
+   Team theme (a team may set these; see docs/12_brand.md "Team customisation"):
+     --team-accent      the action colour: primary buttons, links, the send button, the bead
+     --team-highlight   the live colour: crease, driver ring, selection, contention, the mark's ring
+     --team-surface     the chrome colour: the rail, the mark's disc, the dark end of gradients
+     --team-glow        the colour of glows around live things (usually the highlight)
+     --team-mark-ring   the mark's ring colour (defaults to the highlight)
+     --team-mark-bead   the mark's bead colour (defaults to the accent)
+     --motion           1 when motion plays, 0 when it does not (reduced motion or a calm team)
+   Mark:
+     --mark-disc, --mark-ring, --mark-bead   what the inline mark (ui.tsx Mark) paints with
+   Canvas:
+     --bg / --bg-2 / --bg-3     page, raised, pressed
+     --wash                     the colour of the radial wash at the top of the canvas
+     --fg / --fg-2 / --fg-3     text, secondary, tertiary
+     --line                     every hairline except the crease
+     --accent / --accent-fg     the action colour and the text on it (reads the team accent)
+     --highlight / --highlight-soft   the live colour and its tint
+     --glow                     translucent team glow for box-shadows
+     --crease                   the one apricot hairline between rail and canvas
+     --grad / --grad-fg         the navy-to-chocolate gradient and the text on it
+     --focus-ring / --focus-halo   the focus outline and its tinted halo
+   Rail (the sidebar sets its own canvas from these):
+     --rail-bg, --rail-fg, --rail-fg-2, --rail-fg-3, --rail-line, --rail-hover, --rail-press, --rail-active
+   Semantic: --ok --warn --danger --info (running, awaiting, blocked, paused)
+   Type: --font --serif --mono.  Shape: --radius --radius-lg --radius-full.  Layout: --col --sidebar.
+   Motion: --t-fast 120ms, --t 200ms, --t-slow 320ms; --ease-arrive, --ease-leave, --ease-move.
+   Compatibility: --fold-face / --fold-under remain as aliases of the highlight and accent. */
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap");
 
+/* Registered so a team's colours crossfade when the route enters that team. */
+@property --team-accent { syntax: "<color>"; inherits: true; initial-value: #56352D; }
+@property --team-highlight { syntax: "<color>"; inherits: true; initial-value: #E2C4A6; }
+@property --team-surface { syntax: "<color>"; inherits: true; initial-value: #2A3244; }
+@property --team-glow { syntax: "<color>"; inherits: true; initial-value: #E2C4A6; }
+
 :root {
-  --bg: #FAF8F4;          /* warm off-white page, "paper" */
-  --bg-2: #F3F0EA;        /* sidebar and hover */
-  --bg-3: #ECE8E1;        /* pressed, chips */
-  --fg: #2A3244;          /* Dress Blues as text */
-  --fg-2: #6B7080;        /* secondary text */
-  --fg-3: #9A9EA9;        /* tertiary, timestamps */
-  --line: rgba(42, 50, 68, 0.10);
-  --accent: #56352D;      /* Chocolate Fondant: primary button, links, the one colour */
-  --accent-fg: #FFFFFF;
-  --highlight: #E2C4A6;   /* Apricot: the crease, selected item, driver ring, contention */
-  --highlight-soft: rgba(226, 196, 166, 0.28);
-  --crease: #E2C4A6;
-  --fold-face: #E2C4A6;   /* the turned corner */
-  --fold-under: #56352D;  /* what shows beneath it */
+  /* the palette, by name */
+  --fondant: #56352D;     /* Chocolate Fondant 19-1432 TCX */
+  --apricot: #E2C4A6;     /* Apricot Illusion 14-1120 TCX */
+  --blues: #2A3244;       /* Dress Blues 19-4024 TCX */
+  --cream: #FBF7F1;
+
+  /* team theme: defaults to the palette; the web app overrides these on <html> per team */
+  --team-accent: var(--fondant);
+  --team-highlight: var(--apricot);
+  --team-surface: var(--blues);
+  --team-glow: var(--apricot);
+  --team-mark-ring: var(--team-highlight);
+  --team-mark-bead: var(--team-accent);
+  --motion: 0;
+
+  /* the mark reads the team */
+  --mark-disc: var(--team-surface);
+  --mark-ring: var(--team-mark-ring);
+  --mark-bead: var(--team-mark-bead);
+
+  /* canvas */
+  --bg: var(--cream);
+  --bg-2: #F4EDE3;
+  --bg-3: #EBE1D4;
+  --wash: color-mix(in srgb, var(--team-highlight) 42%, var(--bg));
+  --fg: #2A3244;
+  --fg-2: #646A7A;
+  --fg-3: #9196A3;
+  --line: rgba(42, 50, 68, 0.11);
+  --accent: var(--team-accent);
+  --accent-fg: #FFF8F0;
+  --highlight: var(--team-highlight);
+  --highlight-soft: color-mix(in srgb, var(--team-highlight) 30%, transparent);
+  --glow: color-mix(in srgb, var(--team-glow) 50%, transparent);
+  --crease: var(--team-highlight);
+  --grad: linear-gradient(135deg, var(--team-surface) 0%, color-mix(in srgb, var(--team-surface) 45%, var(--team-accent)) 55%, var(--team-accent) 100%);
+  --grad-fg: #F8F2EA;
+  --focus-ring: var(--accent);
+  --focus-halo: color-mix(in srgb, var(--team-highlight) 55%, transparent);
+  --fold-face: var(--team-highlight);
+  --fold-under: var(--team-accent);
+
+  /* rail */
+  --rail-bg: var(--team-surface);
+  --rail-fg: #F6F0E7;
+  --rail-fg-2: color-mix(in srgb, var(--rail-fg) 68%, transparent);
+  --rail-fg-3: color-mix(in srgb, var(--rail-fg) 46%, transparent);
+  --rail-line: color-mix(in srgb, var(--rail-fg) 12%, transparent);
+  --rail-hover: color-mix(in srgb, var(--rail-fg) 7%, transparent);
+  --rail-press: color-mix(in srgb, var(--rail-fg) 12%, transparent);
+  --rail-active: color-mix(in srgb, var(--team-highlight) 20%, transparent);
+
   --ok: #5F7F4B; --warn: #B9792E; --danger: #A8463A; --info: #6B7080;
   --font: "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  --radius: 12px; --radius-lg: 20px; --radius-full: 999px;
+  --radius: 14px; --radius-lg: 22px; --radius-full: 999px;
   --col: 760px;           /* conversation column */
   --sidebar: 288px;
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
+  --ease-arrive: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-leave: cubic-bezier(0.4, 0, 1, 1);
+  --ease-move: cubic-bezier(0.4, 0, 0.2, 1);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
-    --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
-    --line: rgba(236, 232, 225, 0.10);
-    --accent: #E2C4A6; --accent-fg: #1F2430;
-    --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
-    --crease: rgba(226, 196, 166, 0.55);
-    --fold-face: #E2C4A6; --fold-under: #56352D;
+    --bg: #1C2130; --bg-2: #242A3A; --bg-3: #2E3547;
+    --wash: color-mix(in srgb, var(--team-highlight) 9%, var(--bg));
+    --fg: #EEE8DF; --fg-2: #ABB1BD; --fg-3: #7E8491;
+    --line: rgba(238, 232, 223, 0.10);
+    --accent: var(--team-highlight); --accent-fg: #1C2130;
+    --highlight: var(--team-highlight);
+    --highlight-soft: color-mix(in srgb, var(--team-highlight) 16%, transparent);
+    --glow: color-mix(in srgb, var(--team-glow) 38%, transparent);
+    --crease: color-mix(in srgb, var(--team-highlight) 55%, transparent);
+    --grad: linear-gradient(135deg, color-mix(in srgb, var(--team-surface) 75%, #0B0E15) 0%, color-mix(in srgb, var(--team-surface) 40%, var(--team-accent)) 60%, var(--team-accent) 100%);
+    --focus-ring: var(--team-highlight);
+    --rail-bg: color-mix(in srgb, var(--team-surface) 62%, #0F131B);
+    --rail-fg: #EEE8DF;
     --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #1F2430; --bg-2: #262C3A; --bg-3: #303748;
-  --fg: #ECE8E1; --fg-2: #AAB0BC; --fg-3: #7C8290;
-  --line: rgba(236, 232, 225, 0.10);
-  --accent: #E2C4A6; --accent-fg: #1F2430;
-  --highlight: #E2C4A6; --highlight-soft: rgba(226, 196, 166, 0.14);
-  --crease: rgba(226, 196, 166, 0.55);
-  --fold-face: #E2C4A6; --fold-under: #56352D;
+  --bg: #1C2130; --bg-2: #242A3A; --bg-3: #2E3547;
+  --wash: color-mix(in srgb, var(--team-highlight) 9%, var(--bg));
+  --fg: #EEE8DF; --fg-2: #ABB1BD; --fg-3: #7E8491;
+  --line: rgba(238, 232, 223, 0.10);
+  --accent: var(--team-highlight); --accent-fg: #1C2130;
+  --highlight: var(--team-highlight);
+  --highlight-soft: color-mix(in srgb, var(--team-highlight) 16%, transparent);
+  --glow: color-mix(in srgb, var(--team-glow) 38%, transparent);
+  --crease: color-mix(in srgb, var(--team-highlight) 55%, transparent);
+  --grad: linear-gradient(135deg, color-mix(in srgb, var(--team-surface) 75%, #0B0E15) 0%, color-mix(in srgb, var(--team-surface) 40%, var(--team-accent)) 60%, var(--team-accent) 100%);
+  --focus-ring: var(--team-highlight);
+  --rail-bg: color-mix(in srgb, var(--team-surface) 62%, #0F131B);
+  --rail-fg: #EEE8DF;
   --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
   color-scheme: dark;
+}
+/* motion plays unless the system asks for less or the team chose calm */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) { --motion: 1; }
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
 h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
-h1 { font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1.15; letter-spacing: 0; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: 36px; line-height: 1.12; letter-spacing: 0; }
 h2 { font-size: 17px; } h3 { font-size: 15px; }
 .serif { font-family: var(--serif); font-weight: 400; letter-spacing: 0; }
 .serif.i { font-style: italic; }
@@ -69,37 +164,52 @@ p { margin: 0; }
 a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
 .muted { color: var(--fg-2); } .faint { color: var(--fg-3); }
 .small { font-size: 13px; } .mono { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; box-shadow: 0 0 0 5px var(--focus-halo); }
+/* borderless fields inside a wrapper that shows focus itself (the composer glows, the search field lights) */
+.composer :focus-visible, .search :focus-visible, .palette .q :focus-visible { outline: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-/* the folded corner: any .folded box gets a small apricot turn at its top-right */
+/* the bead: any .folded box carries a small apricot bead at its top-right, the newcomer's mark */
 .folded { position: relative; }
-.folded::after { content: ""; position: absolute; top: 0; right: 0; width: 14px; height: 14px; border-top-right-radius: inherit;
-  background: linear-gradient(225deg, var(--bg) 0 50%, var(--fold-face) 50% 100%); }
-.folded.deep::after { width: 18px; height: 18px; background: linear-gradient(225deg, var(--bg) 0 50%, var(--fold-under) 50% 56%, var(--fold-face) 56% 100%); }
+.folded::after { content: ""; position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--highlight); box-shadow: 0 0 0 2px var(--bg); }
+.folded.deep::after { width: 9px; height: 9px; background: var(--accent); box-shadow: 0 0 0 2px var(--highlight); }
 
-/* app shell: sidebar + centered column; one apricot crease between them */
+/* the mark: two arcs that close into one ring around one centre (ui.tsx Mark, design/mark.svg) */
+.mark { flex: none; overflow: visible; }
+.mark .arc, .mark .dot, .mark .bead, .mark .ring { transform-box: view-box; transform-origin: 50% 50%; }
+.mark.live .dot { filter: drop-shadow(0 0 3px var(--glow)); }
+
+/* app shell: a navy rail with cream text and apricot accents, one apricot crease, a washed canvas */
 .shell { display: flex; height: 100%; }
-.sidebar { width: var(--sidebar); flex: none; background: var(--bg-2); display: flex; flex-direction: column; padding: 12px; gap: 4px; border-right: 1px solid var(--crease); }
-.sidebar .brand { display: flex; align-items: center; gap: 8px; padding: 6px 8px 14px; font-family: var(--serif); font-size: 21px; letter-spacing: 0; }
-.sidebar .new { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius); color: var(--fg); background: transparent; border: 0; font: inherit; cursor: pointer; }
-.sidebar .new:hover { background: var(--bg-3); }
-.sidebar .section { padding: 14px 10px 4px; font-size: 12px; color: var(--fg-3); display: flex; align-items: center; gap: 8px; }
+.sidebar {
+  --bg: var(--rail-bg); --bg-2: var(--rail-hover); --bg-3: var(--rail-press);
+  --fg: var(--rail-fg); --fg-2: var(--rail-fg-2); --fg-3: var(--rail-fg-3);
+  --line: var(--rail-line); --highlight-soft: var(--rail-active);
+  --accent: var(--team-highlight); --accent-fg: var(--team-surface);
+  --ok: #8FB07A; --warn: #DDA363; --danger: #D9826F; --info: #AAB0BC;
+  width: var(--sidebar); flex: none; background: var(--rail-bg); color: var(--fg); display: flex; flex-direction: column; padding: 12px; gap: 4px; border-right: 1px solid var(--crease);
+}
+.sidebar .brand { display: flex; align-items: center; gap: 9px; padding: 6px 8px 14px; font-family: var(--serif); font-size: 22px; letter-spacing: 0; color: var(--fg); }
+.sidebar .brand .emblem { margin-left: 2px; font: 500 11px var(--font); letter-spacing: 0.06em; color: var(--team-highlight); border: 1px solid color-mix(in srgb, var(--team-highlight) 55%, transparent); border-radius: var(--radius-full); padding: 1px 7px; line-height: 16px; }
+.sidebar .new { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: var(--radius); color: var(--grad-fg); background: var(--grad); border: 0; font: inherit; font-weight: 500; cursor: pointer; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--team-highlight) 28%, transparent), 0 6px 18px -10px var(--team-accent); transition: box-shadow var(--t) var(--ease-move), transform var(--t-fast) var(--ease-move); }
+.sidebar .new:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--team-highlight) 55%, transparent), 0 0 0 3px var(--glow), 0 8px 20px -10px var(--team-accent); }
+.sidebar .new:active { transform: scale(0.985); }
+.sidebar .section { padding: 14px 10px 4px; font-size: 12px; color: var(--fg-3); display: flex; align-items: center; gap: 8px; letter-spacing: 0.03em; }
 .sidebar .section .n { margin-left: auto; font-variant-numeric: tabular-nums; }
-.sidebar .item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); color: var(--fg); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sidebar .item:hover { background: var(--bg-3); text-decoration: none; }
-.sidebar .item.active { background: var(--bg-3); }
+.sidebar .item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); color: var(--fg); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background var(--t-fast) var(--ease-move); }
+.sidebar .item:hover { background: var(--rail-hover); text-decoration: none; }
+.sidebar .item.active { background: var(--rail-active); color: var(--fg); box-shadow: inset 2px 0 0 var(--team-highlight); }
 .sidebar .item .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
-.sidebar .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 8px 10px; font-size: 14px; }
+.sidebar .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 8px 10px; font-size: 14px; color: var(--fg); }
 
 /* the agents rail: one card per live agent in the sidebar */
-.agent { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: var(--radius); color: var(--fg); text-decoration: none; }
-.agent:hover { background: var(--bg-3); text-decoration: none; }
-.agent.active { background: var(--bg); }
+.agent { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: var(--radius); color: var(--fg); text-decoration: none; transition: background var(--t-fast) var(--ease-move); }
+.agent:hover { background: var(--rail-hover); text-decoration: none; }
+.agent.active { background: var(--rail-active); box-shadow: inset 2px 0 0 var(--team-highlight); }
 .agent .head { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 500; }
 .agent .head .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--fg-3); flex: none; }
-.agent .head .dot.running { background: var(--ok); animation: pulse 1.6s ease-in-out infinite; }
+.agent .head .dot.running { background: var(--ok); box-shadow: 0 0 0 0 var(--glow); }
 .agent .head .dot.awaiting_approval { background: var(--warn); } .agent .head .dot.blocked { background: var(--danger); } .agent .head .dot.paused { background: var(--info); }
 .agent .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agent .doing { font-size: 13px; color: var(--fg-2); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -109,14 +219,15 @@ a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: un
 .agent .foot .with { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .crew { padding: 10px 10px 2px; font-size: 12px; color: var(--fg-2); display: flex; align-items: center; gap: 6px; }
 .crew .serif { font-size: 14px; color: var(--fg); }
-.crew::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: linear-gradient(225deg, var(--fold-face) 0 50%, var(--fold-under) 50% 100%); }
+.crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--highlight); border-top-color: transparent; box-sizing: border-box; }
 
 /* pills: the solo/team word */
-.pill { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em; color: var(--fg-2); background: var(--bg-3); white-space: nowrap; }
-.pill.team { background: var(--highlight-soft); color: var(--fg); }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em; color: var(--fg-2); background: var(--bg-3); white-space: nowrap; transition: background var(--t-slow) var(--ease-move), color var(--t-slow) var(--ease-move), border-color var(--t-slow) var(--ease-move); }
+.pill.team { background: var(--highlight-soft); color: var(--fg); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--highlight) 45%, transparent); }
 .pill.solo { background: transparent; border: 1px solid var(--line); }
+.pill.badge { background: var(--warn); color: #fff; min-width: 20px; justify-content: center; padding: 0 6px; }
 
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: radial-gradient(120% 70% at 50% -20%, var(--wash) 0%, transparent 62%), var(--bg); }
 .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 48px; }
 .topbar .title { font-weight: 500; font-size: 14px; } .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .topbar .title .serif { font-size: 17px; }
@@ -127,8 +238,8 @@ a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: un
 .msg { display: flex; flex-direction: column; gap: 6px; }
 .msg .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); }
 .msg .meta .who { font-family: var(--serif); font-size: 15px; color: var(--fg); }
-.msg.human .text { background: var(--bg-2); border-radius: var(--radius-lg); padding: 12px 18px 12px 16px; align-self: flex-start; max-width: 85%; position: relative; }
-.msg.human .text::after { content: ""; position: absolute; top: 0; right: 0; width: 12px; height: 12px; border-top-right-radius: inherit; background: linear-gradient(225deg, var(--bg) 0 50%, var(--fold-face) 50% 100%); }
+.msg.human .text { background: var(--bg-2); border-radius: var(--radius-lg); padding: 12px 22px 12px 16px; align-self: flex-start; max-width: 85%; position: relative; }
+.msg.human .text::after { content: ""; position: absolute; top: 9px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--highlight); }
 .msg.agent .text { font-size: 15.5px; }
 .msg.team .text { background: transparent; border: 1px solid var(--line); }
 .msg.team .meta .to { color: var(--fg-3); font-style: italic; font-family: var(--serif); font-size: 14px; }
@@ -138,46 +249,52 @@ a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: un
 .step.fail { color: var(--danger); }
 .notice { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg); }
 .notice .actions { display: flex; gap: 8px; }
-.notice.contention { border-color: var(--highlight); }
+.notice.contention { border-color: var(--highlight); box-shadow: 0 0 0 3px var(--highlight-soft); }
 .divider { display: flex; align-items: center; gap: 12px; color: var(--fg-3); font-size: 12px; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.divider .ic { width: 14px; height: 14px; color: var(--ok); flex: none; }
 
-/* composer: one rounded sheet with a folded corner, buttons inside */
+/* composer: one rounded sheet with the bead, buttons inside; glows apricot while in use */
 .composer-wrap { position: sticky; bottom: 0; padding: 12px 20px 20px; background: linear-gradient(to top, var(--bg) 70%, transparent); }
-.composer { width: min(var(--col), 100%); margin: 0 auto; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 12px 10px 16px; display: flex; flex-direction: column; gap: 10px; position: relative; }
-.composer::after { content: ""; position: absolute; top: -1px; right: -1px; width: 18px; height: 18px; border-top-right-radius: var(--radius-lg); background: linear-gradient(225deg, var(--bg) 0 50%, var(--fold-under) 50% 56%, var(--fold-face) 56% 100%); }
+.composer { width: min(var(--col), 100%); margin: 0 auto; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 12px 10px 16px; display: flex; flex-direction: column; gap: 10px; position: relative; transition: box-shadow var(--t) var(--ease-move), border-color var(--t) var(--ease-move); }
+.composer::after { content: ""; position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--highlight); }
+.composer:focus-within { border-color: color-mix(in srgb, var(--highlight) 70%, transparent); box-shadow: 0 0 0 4px var(--highlight-soft); }
 .composer.to-team { border-color: var(--highlight); }
 .composer textarea, .composer .input { width: 100%; border: 0; background: transparent; color: var(--fg); font: inherit; resize: none; outline: none; min-height: 24px; }
 .composer .bar { display: flex; align-items: center; gap: 6px; }
 .composer .bar .right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .seg { display: inline-flex; background: var(--bg-3); border-radius: var(--radius-full); padding: 2px; }
-.seg button, .seg label { border: 0; background: transparent; font: 500 12.5px var(--font); color: var(--fg-2); padding: 3px 10px; border-radius: var(--radius-full); cursor: pointer; }
+.seg button, .seg label { border: 0; background: transparent; font: 500 12.5px var(--font); color: var(--fg-2); padding: 3px 10px; border-radius: var(--radius-full); cursor: pointer; transition: background var(--t) var(--ease-move), color var(--t) var(--ease-move); }
 .seg .on { background: var(--bg); color: var(--fg); }
 
 /* controls */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 14px; border-radius: var(--radius-full); border: 1px solid var(--line); background: transparent; color: var(--fg); font: 500 14px var(--font); cursor: pointer; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 14px; border-radius: var(--radius-full); border: 1px solid var(--line); background: transparent; color: var(--fg); font: 500 14px var(--font); cursor: pointer; transition: background var(--t-fast) var(--ease-move), box-shadow var(--t) var(--ease-move), transform var(--t-fast) var(--ease-move); }
 .btn:hover { background: var(--bg-2); }
-.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn:active { transform: scale(0.98); }
+.btn.primary { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white) 0%, var(--accent) 100%); color: var(--accent-fg); border-color: transparent; box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 30%, transparent); }
+.btn.primary:hover { box-shadow: 0 0 0 3px var(--glow), 0 1px 2px color-mix(in srgb, var(--accent) 30%, transparent); }
 .btn.ghost { border-color: transparent; color: var(--fg-2); }
 .btn.icon { width: 34px; padding: 0; }
 .btn.sm { min-height: 28px; padding: 0 10px; font-size: 13px; }
-.send { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; }
-.chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--radius-full); background: var(--bg-3); font-size: 13px; color: var(--fg-2); }
+.send { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; transition: transform var(--t-fast) var(--ease-move), box-shadow var(--t) var(--ease-move); }
+.send:hover { box-shadow: 0 0 0 3px var(--glow); }
+.send:active { transform: scale(0.88); }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--radius-full); background: var(--bg-3); font-size: 13px; color: var(--fg-2); transition: background var(--t) var(--ease-move), color var(--t) var(--ease-move); }
 .chip.on { background: var(--highlight-soft); color: var(--fg); }
 .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg-2); }
 .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--fg-3); }
-.status.running::before { background: var(--ok); animation: pulse 1.6s ease-in-out infinite; }
+.status.running::before { background: var(--ok); box-shadow: 0 0 0 0 var(--glow); }
 .status.awaiting::before { background: var(--warn); } .status.blocked::before { background: var(--danger); } .status.paused::before { background: var(--info); }
 @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }
-.avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--bg-3); color: var(--fg); display: inline-grid; place-items: center; font-size: 11px; font-weight: 600; border: 2px solid var(--bg); }
-.avatar.driver { box-shadow: 0 0 0 2px var(--highlight); }
+.avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--bg-3); color: var(--fg); display: inline-grid; place-items: center; font-size: 11px; font-weight: 600; border: 2px solid var(--bg); position: relative; }
+.avatar.driver { box-shadow: 0 0 0 2px var(--highlight), 0 0 10px var(--glow); }
 .avatar.agent { border-radius: 7px 7px 7px 2px; background: var(--fg); color: var(--bg); }
 .avatar.off { opacity: 0.45; }
 .stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -8px; }
 
 /* lists (projects, fleet, management): rows, not cards */
 .list { display: flex; flex-direction: column; }
-.rowitem { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--line); }
+.rowitem { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--line); transition: background var(--t-fast) var(--ease-move); }
 .rowitem:hover { background: var(--bg-2); border-radius: var(--radius); padding-inline: 10px; margin-inline: -10px; }
 .rowitem .t { font-weight: 500; } .rowitem .s { font-size: 13px; color: var(--fg-2); }
 .kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 16px; font-size: 14px; }
@@ -201,8 +318,91 @@ a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: un
 .drawer h3 { font-size: 12px; color: var(--fg-3); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
 .drawer .group { display: flex; flex-direction: column; gap: 8px; }
 
+/* the gradient: hero, empty states, anything that welcomes a newcomer */
+.hero-card { background: var(--grad); color: var(--grad-fg); border-radius: var(--radius-lg); padding: 36px 28px 32px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; box-shadow: 0 24px 48px -28px color-mix(in srgb, var(--team-surface) 70%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--team-highlight) 22%, transparent); position: relative; overflow: hidden; }
+.hero-card::before { content: ""; position: absolute; inset: -40% -20% auto; height: 120%; background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--team-highlight) 26%, transparent) 0%, transparent 70%); pointer-events: none; }
+.hero-card > * { position: relative; }
+.hero-card h1 { color: inherit; }
+.hero-card .muted { color: color-mix(in srgb, var(--grad-fg) 78%, transparent); }
+.hero-card .mark { --mark-disc: color-mix(in srgb, var(--team-surface) 60%, transparent); }
+.empty { position: relative; padding: 10px 14px 10px 20px; border-radius: var(--radius); background: var(--bg-2); overflow: hidden; }
+.empty::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--grad); }
+
+/* loaders (ui.tsx Loader): .join .orbit .weave .shimmer; the rest state is the end state */
+.loader { display: inline-flex; align-items: center; gap: 10px; color: var(--fg-2); font-size: 13px; }
+.loader.join .mark { width: 28px; height: 28px; }
+.loader.orbit { position: relative; width: 28px; height: 28px; justify-content: center; }
+.loader.orbit i { position: absolute; width: 8px; height: 8px; border-radius: 50%; left: 10px; top: 10px; }
+.loader.orbit i:nth-child(1) { background: var(--team-surface); transform: rotate(0deg) translateX(0); }
+.loader.orbit i:nth-child(2) { background: var(--team-accent); transform: rotate(120deg) translateX(0); }
+.loader.orbit i:nth-child(3) { background: var(--team-highlight); transform: rotate(240deg) translateX(0); }
+.sidebar .loader.orbit i:nth-child(1) { background: var(--rail-fg); }
+.loader.weave { display: block; position: relative; width: 100%; height: 4px; overflow: hidden; border-radius: 2px; background: color-mix(in srgb, var(--highlight) 22%, transparent); }
+.loader.weave i { position: absolute; top: 1px; height: 2px; width: 34%; border-radius: 2px; left: 0; }
+.loader.weave i:nth-child(1) { background: var(--accent); }
+.loader.weave i:nth-child(2) { background: var(--highlight); left: 33%; }
+.loader.shimmer { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.loader.shimmer i { display: block; height: 14px; border-radius: 7px; background: linear-gradient(90deg, var(--bg-3) 0%, var(--bg-3) 35%, var(--highlight-soft) 50%, var(--bg-3) 65%, var(--bg-3) 100%); background-size: 220% 100%; background-position: 100% 0; }
+.loader.shimmer i:nth-child(1) { width: 62%; } .loader.shimmer i:nth-child(2) { width: 84%; } .loader.shimmer i:nth-child(3) { width: 48%; } .loader.shimmer i:nth-child(4) { width: 70%; }
+.loader.shimmer i.title { height: 22px; width: 40%; }
+.loader .lbl { color: var(--fg-2); }
+
 /* phones and windows for mockups */
 .phone { width: 390px; height: 844px; border-radius: 44px; border: 8px solid #2A3244; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; }
 .frame { border-radius: 14px; border: 1px solid var(--line); overflow: hidden; background: var(--bg); }
 .theme-toggle { position: fixed; right: 16px; bottom: 16px; z-index: 9; display: inline-flex; gap: 2px; background: var(--bg-2); border-radius: var(--radius-full); padding: 3px; font-size: 12px; }
 .theme-toggle label { padding: 4px 10px; border-radius: var(--radius-full); cursor: pointer; }
+
+/* MOTION. Everything below plays only when the system allows motion and the team has not chosen
+   calm. Each animation moves opacity and transform (plus stroke for the check); the rest state is
+   the end state, so without motion every element simply sits where it ends. */
+@keyframes arc-a { 0%, 12% { transform: rotate(70deg); opacity: 0.5; } 68% { transform: rotate(-4deg); opacity: 1; } 84% { transform: rotate(2deg); } 100% { transform: rotate(0); } }
+@keyframes arc-b { 0%, 12% { transform: rotate(-70deg); opacity: 0.5; } 68% { transform: rotate(4deg); opacity: 1; } 84% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }
+@keyframes dot-in { 0%, 60% { transform: scale(0); } 82% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes arc-a-once { 0% { transform: rotate(70deg); opacity: 0.5; } 70% { transform: rotate(-4deg); opacity: 1; } 100% { transform: rotate(0); } }
+@keyframes arc-b-once { 0% { transform: rotate(-70deg); opacity: 0.5; } 70% { transform: rotate(4deg); opacity: 1; } 100% { transform: rotate(0); } }
+@keyframes dot-once { 0%, 55% { transform: scale(0); } 80% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes ring-draw { 0% { stroke-dashoffset: 176; } 100% { stroke-dashoffset: 0; } }
+@keyframes orbit-1 { 0% { transform: rotate(0deg) translateX(9px); } 60% { transform: rotate(300deg) translateX(0); } 100% { transform: rotate(360deg) translateX(9px); } }
+@keyframes orbit-2 { 0% { transform: rotate(120deg) translateX(9px); } 60% { transform: rotate(420deg) translateX(0); } 100% { transform: rotate(480deg) translateX(9px); } }
+@keyframes orbit-3 { 0% { transform: rotate(240deg) translateX(9px); } 60% { transform: rotate(540deg) translateX(0); } 100% { transform: rotate(600deg) translateX(9px); } }
+@keyframes weave-slide { 0% { left: -34%; } 100% { left: 100%; } }
+@keyframes weave-over { 0%, 100% { top: 0; } 50% { top: 2px; } }
+@keyframes weave-under { 0%, 100% { top: 2px; } 50% { top: 0; } }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -20% 0; } }
+@keyframes card-in { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
+@keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--glow); } 70% { box-shadow: 0 0 0 5px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes ripple { 0% { box-shadow: 0 0 0 0 var(--highlight); opacity: 1; } 100% { box-shadow: 0 0 0 14px var(--highlight); opacity: 0; } }
+@keyframes toast-up { 0% { opacity: 0; transform: translateY(14px); } 100% { opacity: 1; transform: none; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes pressed { 0% { box-shadow: 0 0 0 0 var(--glow); } 100% { box-shadow: 0 0 0 10px transparent; } }
+@keyframes word-in { 0% { opacity: 0; transform: translateY(3px); } 100% { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  /* loaders */
+  :root:not([data-motion="calm"]) .mark.joining .arc.a { animation: arc-a 1.8s cubic-bezier(0.3, 0.9, 0.3, 1) infinite; }
+  :root:not([data-motion="calm"]) .mark.joining .arc.b { animation: arc-b 1.8s cubic-bezier(0.3, 0.9, 0.3, 1) infinite; }
+  :root:not([data-motion="calm"]) .mark.joining .dot { animation: dot-in 1.8s ease infinite; }
+  :root:not([data-motion="calm"]) .mark.settle .arc.a { animation: arc-a-once 0.8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark.settle .arc.b { animation: arc-b-once 0.8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark.settle .dot { animation: dot-once 1s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .loader.orbit i:nth-child(1) { animation: orbit-1 1.5s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .loader.orbit i:nth-child(2) { animation: orbit-2 1.5s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .loader.orbit i:nth-child(3) { animation: orbit-3 1.5s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .loader.weave i:nth-child(1) { animation: weave-slide 1.4s linear infinite, weave-over 0.7s ease-in-out infinite; }
+  :root:not([data-motion="calm"]) .loader.weave i:nth-child(2) { animation: weave-slide 1.4s linear -0.7s infinite, weave-under 0.7s ease-in-out infinite; }
+  :root:not([data-motion="calm"]) .loader.shimmer i { animation: shimmer 1.5s var(--ease-move) infinite; }
+  /* side animations */
+  :root:not([data-motion="calm"]) .agent.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(min(var(--i, 0), 8) * 36ms); }
+  :root:not([data-motion="calm"]) .agent .head .dot.running, :root:not([data-motion="calm"]) .status.running::before, :root:not([data-motion="calm"]) .sidebar .item .dot.running { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .pill.badge { animation: pop var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .avatar.joined::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; animation: ripple 0.9s var(--ease-leave) both; pointer-events: none; }
+  :root:not([data-motion="calm"]) .toast { animation: toast-up var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .ic.draw path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: draw 0.45s var(--ease-move) 0.05s forwards; }
+  :root:not([data-motion="calm"]) .send.pressed { animation: pressed 0.45s var(--ease-leave) both; }
+  :root:not([data-motion="calm"]) .pill .w { animation: word-in var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .notice.enter, :root:not([data-motion="calm"]) .msg.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .hero-card { animation: fade-in 0.5s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) { transition: --team-accent 0.5s var(--ease-move), --team-highlight 0.5s var(--ease-move), --team-surface 0.5s var(--ease-move), --team-glow 0.5s var(--ease-move); }
+}

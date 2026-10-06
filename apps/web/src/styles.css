@@ -132,6 +132,7 @@ button.chip {
   max-width: min(var(--col), calc(100vw - 32px));
   pointer-events: none;
 }
+/* the slide-up is `toast-up` in tokens.css, under the motion guard */
 .toast {
   padding: 8px 14px;
   border-radius: var(--radius-full);
@@ -141,13 +142,17 @@ button.chip {
   line-height: 1.4;
   text-align: center;
   overflow-wrap: anywhere;
-  animation: toast-in 0.15s ease-out;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--highlight) 35%, transparent);
 }
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
+
+/* the weave under the top row while a long operation runs (Shell `busy`) */
+.busybar {
+  height: 4px;
+  margin: -4px 16px 0;
+  flex: none;
+}
+.busybar .loader.weave {
+  width: 100%;
 }
 
 /* error boundary: one quiet recovery row; see ErrorBoundary.tsx */
@@ -175,8 +180,14 @@ button.chip {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  margin: 2px 0 4px;
+  margin: 6px 0 4px;
   color: var(--fg-3);
+  background: var(--rail-hover);
+  border-radius: var(--radius);
+  transition: box-shadow var(--t) var(--ease-move);
+}
+.sidebar .search:focus-within {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--team-highlight) 50%, transparent);
 }
 .sidebar .search input {
   flex: 1;
@@ -582,17 +593,21 @@ button.chip {
   transform: rotate(45deg);
 }
 
-/* home */
+/* home: the hero is the gradient card with the mark joining its circle (tokens.css .hero-card) */
 .home .hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 12px;
-  padding: 48px 0 8px;
+  padding: 40px 28px 36px;
+  margin-top: 8px;
 }
 .home .hero h1 {
-  max-width: 24ch;
+  max-width: 22ch;
+}
+.home .hero .mark {
+  margin-bottom: 6px;
 }
 .home .form {
   display: flex;
@@ -684,7 +699,7 @@ button.chip {
     grid-template-columns: 1fr;
   }
   .home .hero {
-    padding-top: 24px;
+    padding: 28px 20px 26px;
   }
 }
 @media (min-width: 641px) and (max-width: 1024px) {
@@ -1899,4 +1914,131 @@ mark.mention {
   border: 0;
   margin: 0;
   padding: 0;
+}
+/* team-theme: Settings "Team look" (views/TeamLook.tsx): hex fields, checks and the live preview */
+.teamlook .hexrow input[type="color"] {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.teamlook .hexrow input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+.teamlook .hexrow input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+.teamlook .input.sm {
+  min-height: 28px;
+  font-size: 13px;
+  padding: 0 8px;
+}
+.teamlook .input.mono.sm {
+  width: 96px;
+}
+.teamlook .input.emblem {
+  width: 64px;
+  text-align: center;
+  text-transform: uppercase;
+}
+.teamlook .input.bad {
+  border-color: var(--danger);
+}
+.teamlook .rowitem.checks {
+  grid-template-columns: 1fr;
+}
+.teamlook .rowitem.checks .ellipsis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.teamlook .check {
+  color: var(--ok);
+}
+.teamlook .check.low {
+  color: var(--danger);
+}
+.look-preview {
+  display: grid;
+  grid-template-columns: 236px 1fr;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  min-height: 150px;
+}
+.look-preview .rail {
+  --bg: var(--rail-bg);
+  --bg-2: var(--rail-hover);
+  --bg-3: var(--rail-press);
+  --fg: var(--rail-fg);
+  --fg-2: var(--rail-fg-2);
+  --fg-3: var(--rail-fg-3);
+  --line: var(--rail-line);
+  --highlight-soft: var(--rail-active);
+  --ok: #8fb07a;
+  --warn: #dda363;
+  background: var(--rail-bg);
+  color: var(--fg);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-right: 1px solid var(--crease);
+}
+.look-preview .rail .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 8px 8px;
+  font-family: var(--serif);
+  font-size: 20px;
+}
+.look-preview .rail .brand .emblem {
+  margin-left: 2px;
+  font: 500 11px var(--font);
+  letter-spacing: 0.06em;
+  color: var(--team-highlight);
+  border: 1px solid color-mix(in srgb, var(--team-highlight) 55%, transparent);
+  border-radius: var(--radius-full);
+  padding: 1px 7px;
+  line-height: 16px;
+}
+.look-preview .canvas {
+  background:
+    radial-gradient(
+      120% 70% at 50% -20%,
+      color-mix(in srgb, var(--team-highlight) 42%, var(--bg)) 0%,
+      transparent 62%
+    ),
+    var(--bg);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.look-preview .canvas .title {
+  font-size: 24px;
+}
+.look-preview .canvas .row {
+  flex-wrap: wrap;
+}
+.look-preview .canvas .empty {
+  margin-top: auto;
+}
+@media (max-width: 640px) {
+  .look-preview {
+    grid-template-columns: 1fr;
+  }
+  .look-preview .rail {
+    border-right: 0;
+    border-bottom: 1px solid var(--crease);
+  }
+}
+.look-preview[data-motion="calm"] * {
+  animation: none !important;
 }

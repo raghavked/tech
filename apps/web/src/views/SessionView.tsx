@@ -51,11 +51,13 @@ import {
   ErrorLine,
   ICONS,
   Icon,
+  Loader,
   Stars,
   Status,
   TeamPill,
   TokenMeter,
   useConnectionToasts,
+  useJustJoined,
   useMediaQuery,
 } from "../ui.js";
 import { focusSoon } from "../useShortcuts.js";
@@ -209,6 +211,8 @@ export function SessionView({
   const [scrubber, setScrubber] = useState(false);
   const view = useReplay(snap.events, s, viewSeq);
   const past = viewSeq !== null;
+  // presence join: whoever just came online wears the ripple for a second.
+  const justJoined = useJustJoined(snap.presence.filter((p) => p.online).map((p) => p.actor.id));
 
   if (!s)
     return (
@@ -219,11 +223,16 @@ export function SessionView({
             <OfflineState online={netOnline} onRetry={join} />
           ) : (
             <p className="muted">
-              {snap.reconnecting
-                ? copy.session.reconnecting
-                : snap.connected
-                  ? copy.session.joining
-                  : copy.session.connecting}
+              <Loader
+                kind="join"
+                label={
+                  snap.reconnecting
+                    ? copy.session.reconnecting
+                    : snap.connected
+                      ? copy.session.joining
+                      : copy.session.connecting
+                }
+              />
             </p>
           )}
         </div>
@@ -299,6 +308,7 @@ export function SessionView({
                 id={p.actor.id}
                 name={p.actor.name}
                 driver={s.driver === p.actor.id}
+                joined={justJoined.has(p.actor.id)}
                 title={
                   copy.session.avatarTitle(p.actor.name, p.role, s.driver === p.actor.id) +
                   (isComposing(p.status) ? copy.session.writing : "")
@@ -339,6 +349,7 @@ export function SessionView({
         </>
       }
       below={<ReconnectLine reconnecting={snap.reconnecting} />}
+      busy={snap.reconnecting}
       shortcuts={shortcuts}
       drawer={
         details ? (
@@ -687,6 +698,8 @@ function ApprovalNoticeRow({
       .map(([k]) => name(k));
     return (
       <div className="divider">
+        {/* the check draws itself when an approval is granted (.ic.draw) */}
+        {a.status === "granted" && <Icon d={ICONS.check} size={14} className="draw" />}
         {a.status === "granted" ? copy.approval.approved : copy.approval.denied}: {d.ask}
         {by.length ? ` · ${by.join(", ")}` : ""}
       </div>
@@ -785,9 +798,12 @@ function Composer({
   );
   const composing = useComposing(sendPresence);
   const writing = composingLine(presence, me.id);
+  // The send button presses: a glow ring leaves it for half a second after each send.
+  const [pressed, setPressed] = useState(0);
   const submit = () => {
     composing.clear();
     if (needsText && !text.trim()) return;
+    setPressed((n) => n + 1);
     if (to === "team") {
       client.send({ type: "note", text: text.trim() });
       setText("");
@@ -911,7 +927,8 @@ function Composer({
           <div className="right">
             <button
               type="submit"
-              className="send"
+              key={pressed}
+              className={`send${pressed ? " pressed" : ""}`}
               aria-label={copy.composer.send}
               disabled={past !== null || (needsText && !text.trim())}
             >

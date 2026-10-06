@@ -23,6 +23,7 @@ import {
   PROJECT_RANK,
   ProjectClientMessage,
   type ProjectEvent,
+  TeamTheme,
 } from "@henosis/fleet";
 import { KernelError } from "@henosis/kernel";
 import { Curator, MemoryStore, type SerializedMemory } from "@henosis/memory";
@@ -510,7 +511,47 @@ export class HenosisServer {
         return json(200, {
           user: user ? { id: user.id, name: user.name } : null,
           projects: this.orgs.projectsFor(userId),
+          // team-theme: the teams whose look this user may change (Settings, "Team look").
+          styles: this.orgs.styledTeamsFor(userId),
         });
+      }
+      // team-theme: GET reads a team's look; PUT (a lead or manager of the team) sets or clears it.
+      const tt = url.pathname.match(/^\/api\/teams\/([^/]+)\/theme$/);
+      if (tt) {
+        const teamId = decodeURIComponent(tt[1] as string);
+        const found = this.orgs.team(teamId);
+        if (!found) return json(404, { error: `unknown team ${teamId}` });
+        if (req.method === "PUT") {
+          if (this.opts.token && bearerOf(req, url) !== this.opts.token)
+            return json(401, { error: "unauthorized" });
+          const userId = url.searchParams.get("user");
+          if (!this.orgs.canStyleTeam(userId, teamId))
+            return json(403, { error: "only a lead or manager of the team can change its look" });
+          void readBody(req).then((body) => {
+            let parsed: unknown;
+            try {
+              parsed = JSON.parse(body || "{}");
+            } catch {
+              return json(400, { error: "bad json" });
+            }
+            const raw = (parsed as { theme?: unknown }).theme;
+            if (raw === null) {
+              this.orgs.setTeamTheme(teamId, null);
+              return json(200, { teamId, name: found.team.name, theme: null });
+            }
+            const theme = TeamTheme.safeParse(raw ?? parsed);
+            if (!theme.success)
+              return json(400, {
+                error: theme.error.issues
+                  .map((i) => `${i.path.join(".")}: ${i.message}`)
+                  .join("; "),
+              });
+            this.orgs.setTeamTheme(teamId, theme.data);
+            return json(200, { teamId, name: found.team.name, theme: found.team.theme ?? null });
+          });
+          return true;
+        }
+        return json(200, { teamId, name: found.team.name, theme: found.team.theme ?? null });
       }
       if (url.pathname === "/api/orgs") return json(200, this.orgs.orgs);
       // token-usage: totals and breakdowns from the logs and ledgers on disk (usageApi.ts).
@@ -836,6 +877,13 @@ function isProjectMessage(m: AnyClientMessage): m is ProjectClientMessage {
     "project.subscribe",
     "project.unsubscribe",
   ].includes(m.type);
+}
+
+/** The shared token a write carries: `authorization: Bearer <token>` or `?token=`. */
+function bearerOf(req: IncomingMessage, url: URL): string | null {
+  const h = req.headers.authorization;
+  if (typeof h === "string" && h.toLowerCase().startsWith("bearer ")) return h.slice(7).trim();
+  return url.searchParams.get("token");
 }
 
 function readBody(req: IncomingMessage): Promise<string> {

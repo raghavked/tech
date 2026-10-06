@@ -1,49 +1,205 @@
-/** Small shared pieces on top of tokens.css v3: the mark, line icons, avatars, status words. */
+/** Small shared pieces on top of tokens.css v5: the mark, loaders, line icons, avatars, status words. */
 import type { Resource } from "@henosis/fleet";
 import { budgetStatus, compactTokens, formatTokens } from "@henosis/kernel";
 import type { EntryRecord } from "@henosis/memory";
 import { type Usage, usageTotal } from "@henosis/protocol";
-import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { copy, status as statusWords } from "./copy.js";
 import { initials } from "./identity.js";
+import { useMotion } from "./theme.js";
 import { getToasts, subscribeToasts, toast } from "./toast.js";
 
 /** `toast("Link copied")`: a short text at the bottom centre that goes away by itself. */
-export { toast };
+/** Whether motion plays right now ("full") or the page is calm; see theme.ts. */
+export { toast, useMotion };
+
+export type MarkStyle = "ring" | "bead" | "dot";
 
 /**
  * The Henosis mark inline (design/mark.svg): two arcs, a person's and an agent's, that close
- * into one ring around one centre. `joining` plays the arcs closing (the loading motion).
+ * into one ring around one centre. `joining` plays the arcs closing (the loading motion);
+ * `settle` plays it once (the app has loaded). `style` is the team's choice: the two arcs, one
+ * solid ring, or a plain dot carrying the team's `emblem`. Colours come from `--mark-disc`,
+ * `--mark-arc-a`, `--mark-arc-b` and `--mark-dot` (the team look sets `--mark-ring`/`--mark-bead`).
  */
-export function Mark({ size = 22, joining = false }: { size?: number; joining?: boolean }) {
+export function Mark({
+  size = 22,
+  joining = false,
+  settle = false,
+  style = "ring",
+  emblem,
+  className = "",
+}: {
+  size?: number;
+  joining?: boolean;
+  settle?: boolean;
+  style?: MarkStyle;
+  emblem?: string | undefined;
+  className?: string;
+}) {
+  const cls = `mark ${style}${joining ? " joining" : ""}${settle ? " settle" : ""}${className ? ` ${className}` : ""}`;
   return (
-    <svg
-      viewBox="0 0 96 96"
-      width={size}
-      height={size}
-      aria-hidden="true"
-      className={`mark${joining ? " joining" : ""}`}
-    >
+    <svg viewBox="0 0 96 96" width={size} height={size} aria-hidden="true" className={cls}>
       <circle cx="48" cy="48" r="46" fill="var(--mark-disc, #2A3244)" />
-      <path
-        d="M48 20 A28 28 0 0 1 48 76"
-        stroke="var(--mark-arc-a, #56352D)"
-        strokeWidth="10"
-        fill="none"
-        strokeLinecap="round"
-        className="arc a"
-      />
-      <path
-        d="M48 76 A28 28 0 0 1 48 20"
-        stroke="var(--mark-arc-b, #E2C4A6)"
-        strokeWidth="10"
-        fill="none"
-        strokeLinecap="round"
-        className="arc b"
-      />
-      <circle cx="48" cy="48" r="7" fill="var(--mark-dot, #E2C4A6)" className="dot" />
+      {style === "ring" && (
+        <path
+          d="M48 20 A28 28 0 0 1 48 76"
+          stroke="var(--mark-arc-a, var(--mark-bead, #56352D))"
+          strokeWidth="10"
+          fill="none"
+          strokeLinecap="round"
+          className="arc a"
+        />
+      )}
+      {style === "ring" && (
+        <path
+          d="M48 76 A28 28 0 0 1 48 20"
+          stroke="var(--mark-arc-b, var(--mark-ring, #E2C4A6))"
+          strokeWidth="10"
+          fill="none"
+          strokeLinecap="round"
+          className="arc b"
+        />
+      )}
+      {style === "ring" && (
+        <circle
+          cx="48"
+          cy="48"
+          r="7"
+          fill="var(--mark-dot, var(--mark-ring, #E2C4A6))"
+          className="dot"
+        />
+      )}
+      {style === "bead" && (
+        <circle
+          cx="48"
+          cy="48"
+          r="28"
+          fill="none"
+          stroke="var(--mark-ring, #E2C4A6)"
+          strokeWidth="10"
+          className="arc"
+        />
+      )}
+      {style === "bead" && (
+        <circle cx="48" cy="48" r="7" fill="var(--mark-bead, #56352D)" className="dot" />
+      )}
+      {style === "dot" && (
+        <circle cx="48" cy="48" r="30" fill="var(--mark-ring, #E2C4A6)" className="dot" />
+      )}
+      {style === "dot" && emblem && (
+        <text
+          x="48"
+          y="60"
+          textAnchor="middle"
+          fontFamily="var(--serif)"
+          fontSize="36"
+          fill="var(--mark-disc, #2A3244)"
+        >
+          {emblem}
+        </text>
+      )}
     </svg>
   );
+}
+
+export type LoaderKind = "join" | "orbit" | "weave" | "shimmer";
+
+/**
+ * The four loaders of tokens.css. `join`: the mark with the bead travelling round the ring,
+ * for connecting and joining; `orbit`: three dots in the three palette colours that orbit and
+ * converge, for short waits; `weave`: a thin bar of two strands under the top row, for a long
+ * operation; `shimmer`: skeleton rows with an apricot sheen where a list will be. Without
+ * motion each sits in its rest state. `label` is read out and shown beside join and orbit.
+ */
+export function Loader({
+  kind,
+  label,
+  rows = 3,
+  title = false,
+  className = "",
+}: {
+  kind: LoaderKind;
+  label?: string;
+  /** shimmer: how many rows. */
+  rows?: number;
+  /** shimmer: a taller first row where a heading will be. */
+  title?: boolean;
+  className?: string;
+}) {
+  const cls = `loader ${kind}${className ? ` ${className}` : ""}`;
+  const a11y = label ? { role: "status" as const, "aria-label": label } : { "aria-hidden": true };
+  if (kind === "join")
+    return (
+      <span className={cls} {...a11y}>
+        <Mark size={28} joining />
+        {label && <span className="lbl">{label}</span>}
+      </span>
+    );
+  if (kind === "orbit")
+    return (
+      <span className={cls} {...a11y}>
+        <i />
+        <i />
+        <i />
+      </span>
+    );
+  if (kind === "weave")
+    return (
+      <span className={cls} {...a11y}>
+        <i />
+        <i />
+      </span>
+    );
+  return (
+    <div className={cls} {...a11y}>
+      {title && <i className="title" />}
+      {Array.from({ length: rows }, (_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: the rows are identical placeholders
+        <i key={i} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The ids that appeared in `ids` since the last render, kept for `ms`: the "joined" ripple on
+ * an avatar when someone enters the session. The first render seeds without ripples.
+ */
+export function useJustJoined(ids: string[], ms = 1000): Set<string> {
+  const seen = useRef<Set<string> | null>(null);
+  const [fresh, setFresh] = useState<Set<string>>(() => new Set());
+  const key = ids.join("\u0000");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the identity of `ids`
+  useEffect(() => {
+    const now = new Set(ids);
+    if (seen.current === null) {
+      seen.current = now;
+      return;
+    }
+    const added = ids.filter((id) => !seen.current?.has(id));
+    seen.current = now;
+    if (added.length === 0) return;
+    setFresh((f) => new Set([...f, ...added]));
+    // Each arrival keeps its own timer; a later arrival must not cancel an earlier ripple's end.
+    setTimeout(
+      () =>
+        setFresh((f) => {
+          const next = new Set(f);
+          for (const id of added) next.delete(id);
+          return next;
+        }),
+      ms,
+    );
+  }, [key, ms]);
+  return fresh;
 }
 
 /** Thin 1.5px line icons on a 16-grid; `d` is one path. */
@@ -152,17 +308,20 @@ export function Avatar({
   name,
   driver = false,
   agent = false,
+  joined = false,
   title,
 }: {
   id: string;
   name: string;
   driver?: boolean;
   agent?: boolean;
+  /** Plays the "joined" ripple once: set for a second when this person enters the session. */
+  joined?: boolean;
   title?: string;
 }) {
   return (
     <span
-      className={`avatar${driver ? " driver" : ""}${agent ? " agent" : ""}`}
+      className={`avatar${driver ? " driver" : ""}${agent ? " agent" : ""}${joined ? " joined" : ""}`}
       title={title ?? name}
       data-id={id}
     >
@@ -415,9 +574,17 @@ export function teamOf(row: AgentRow): { team: boolean; with: AgentRow["people"]
   return { team: humans.length > 1 || Boolean(row.crew), with: others };
 }
 
+/** Solo or Team; the background transitions and the word crossfades when the answer changes. */
 export function TeamPill({ row }: { row: AgentRow }) {
   const t = teamOf(row);
-  return <span className={`pill ${t.team ? "team" : "solo"}`}>{t.team ? "Team" : "Solo"}</span>;
+  const word = t.team ? "Team" : "Solo";
+  return (
+    <span className={`pill ${t.team ? "team" : "solo"}`}>
+      <span className="w" key={word}>
+        {word}
+      </span>
+    </span>
+  );
 }
 
 /** What an agent is doing, in one line: the goal while running, the last summary otherwise. */
@@ -442,11 +609,14 @@ export function AgentCard({
   href,
   active,
   nameOf,
+  index = 0,
 }: {
   row: AgentRow;
   href: string;
   active: boolean;
   nameOf: (id: string) => string;
+  /** Position in the rail: staggers the slide-and-fade entrance (`.agent.enter`, `--i`). */
+  index?: number;
 }) {
   const status = row.open ? (row.live ?? row.report?.status ?? "idle") : "closed";
   const d = doingOf(row);
@@ -454,14 +624,20 @@ export function AgentCard({
   const online = row.people.filter((p) => p.online);
   const withNames = t.with.map((p) => p.name);
   const tokens = usageTotal(row.report?.usage);
+  const pending = row.report?.pendingApprovals ?? 0;
   return (
-    <a className={`agent${active ? " active" : ""}`} href={href} title={row.sessionId}>
+    <a
+      className={`agent enter${active ? " active" : ""}`}
+      href={href}
+      title={row.sessionId}
+      style={{ "--i": index } as CSSProperties}
+    >
       <span className="head">
         <span className={`dot ${status}`} />
         <span className="t">{row.title || row.sessionId}</span>
-        {(row.report?.pendingApprovals ?? 0) > 0 && (
-          <span className="pill" title="Approvals waiting">
-            {row.report?.pendingApprovals}
+        {pending > 0 && (
+          <span className="pill badge" title="Approvals waiting" key={pending}>
+            {pending}
           </span>
         )}
       </span>

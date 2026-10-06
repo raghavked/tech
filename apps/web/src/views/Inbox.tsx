@@ -3,9 +3,10 @@ import { useMemo, useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import type { Me, Notification } from "../api.js";
 import { DEFAULT_RATING } from "../approvalsQueue.js";
+import { copy } from "../copy.js";
 import type { Identity } from "../identity.js";
 import { acceptFromInbox, linkOf, markRead, useInbox, voteFromInbox } from "../inbox.js";
-import { Stars } from "../ui.js";
+import { Loader, Stars } from "../ui.js";
 
 interface Outcome {
   busy: boolean;
@@ -51,10 +52,12 @@ export function Inbox({
         ? "Nothing new."
         : `${inbox.unread} new thing${inbox.unread === 1 ? "" : "s"} need${inbox.unread === 1 ? "s" : ""} you.`;
 
+  const busy = Object.values(outcomes).some((o) => o.busy);
   return (
     <Shell
       ctx={ctx}
       title="Inbox"
+      busy={busy}
       right={
         inbox.unread > 0 ? (
           <button
@@ -71,6 +74,9 @@ export function Inbox({
         <h1>Inbox</h1>
         <p className="muted">{summary}</p>
         {inbox.error && <p className="small danger">{inbox.error}</p>}
+        {!inbox.loaded && !inbox.error && (
+          <Loader kind="shimmer" label={copy.loading} rows={3} title />
+        )}
         {groups.map(([projectId, items]) => (
           <section className="group" key={projectId}>
             <h2>{nameOf(projectId)}</h2>

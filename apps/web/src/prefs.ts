@@ -15,7 +15,7 @@ export const NOTIFY_KINDS: { kind: NotifyKind; label: string; detail: string }[]
     label: "Approvals",
     detail: "The agent wants to do something that needs a vote",
   },
-  { kind: "handoff", label: "Handoffs", detail: "Someone offers you the fold" },
+  { kind: "handoff", label: "Handoffs", detail: "Someone offers you the baton" },
   { kind: "contention", label: "Contentions", detail: "Two steers collide, or two sessions do" },
   { kind: "blocked", label: "Blocked", detail: "An agent cannot continue without a person" },
   { kind: "done", label: "Done", detail: "An agent finishes what it was asked" },

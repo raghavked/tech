@@ -1,6 +1,6 @@
 /** The read-only HTTP API of the Henosis server, plus a small fetch hook. */
 import type { ChatScope, ChatState } from "@henosis/chat";
-import type { ProjectState, SessionSummary } from "@henosis/fleet";
+import type { ProjectState, SessionSummary, TeamTheme } from "@henosis/fleet";
 import type { SessionStatus } from "@henosis/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@henosis/memory";
 import type { SessionPolicy, UsageQuery, UsageReport } from "@henosis/protocol";
@@ -19,6 +19,16 @@ export interface ProjectRef {
 export interface Me {
   user: { id: string; name: string } | null;
   projects: ProjectRef[];
+  /** team-theme: the teams whose look this user may change (a lead or manager of them). */
+  styles?: string[];
+}
+
+/** team-theme: how a team looks; the zod shape lives in @henosis/fleet (identity.ts). */
+export type { TeamTheme };
+export interface TeamThemeResponse {
+  teamId: string;
+  name: string;
+  theme: TeamTheme | null;
 }
 
 export interface Person {
@@ -134,6 +144,28 @@ export const api = {
     for (const [k, v] of Object.entries(q)) if (v) p.set(k, v);
     const qs = p.toString();
     return getJson<UsageReport>(`/api/usage${qs ? `?${qs}` : ""}`);
+  },
+  /** team-theme: how a team looks, null when it keeps the palette. */
+  teamTheme: (teamId: string) =>
+    getJson<TeamThemeResponse>(`/api/teams/${encodeURIComponent(teamId)}/theme`),
+  /** team-theme: set (or with null clear) a team's look; the server checks the user's role. */
+  putTeamTheme: async (
+    teamId: string,
+    userId: string,
+    theme: TeamTheme | null,
+    token?: string,
+  ): Promise<TeamThemeResponse> => {
+    const url = `/api/teams/${encodeURIComponent(teamId)}/theme?user=${encodeURIComponent(userId)}`;
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (token) headers.authorization = `Bearer ${token}`;
+    const res = await fetch(apiUrl(url), {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ theme }),
+    });
+    const body = (await res.json().catch(() => ({}))) as TeamThemeResponse & { error?: string };
+    if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
+    return body;
   },
   /** The session rendered as markdown (export-session); opens in a tab, `download` saves a file. */
   exportUrl: (sessionId: string, download = false) =>

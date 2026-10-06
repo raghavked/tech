@@ -93,6 +93,22 @@ body { height: auto; min-height: 100%; }
 .sig .ex.crease-ex .side { width: 42%; background: var(--bg-2); border-right: 1px solid var(--crease); }
 .sig .ex.crease-ex .body { flex: 1; background: var(--bg); display: flex; align-items: center; justify-content: center; }
 .sig .ex.crease-ex .body i { font-family: var(--serif); color: var(--fg-3); }
+.sig.four { grid-template-columns: repeat(4, 1fr); }
+.sig .ex.glow-ex { gap: 18px; display: flex; align-items: center; justify-content: center; }
+.loaders { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.loaders > div { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: var(--radius-lg); background: var(--bg-2); min-height: 120px; }
+.loaders > div > .loader { margin-bottom: auto; }
+.loaders .loader.shimmer i { height: 10px; }
+.loaders b { font-weight: 500; font-size: 14px; }
+.loaders span:last-child { font-size: 13px; color: var(--fg-2); line-height: 1.5; }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.preset { display: flex; flex-direction: column; gap: 0; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line); }
+.preset .rail { background: var(--team-surface); color: #F6F0E7; display: flex; align-items: center; gap: 8px; padding: 14px 16px; font-size: 18px; border-bottom: 1px solid var(--team-highlight); }
+.preset .rail .emblem { margin-left: 2px; font: 500 11px var(--font); letter-spacing: 0.06em; color: var(--team-highlight); border: 1px solid color-mix(in srgb, var(--team-highlight) 55%, transparent); border-radius: var(--radius-full); padding: 1px 7px; line-height: 16px; }
+.preset .canvas { --accent: var(--team-accent); --glow: color-mix(in srgb, var(--team-highlight) 50%, transparent); padding: 14px 16px; background: radial-gradient(120% 90% at 50% -20%, color-mix(in srgb, var(--team-highlight) 42%, var(--bg)) 0%, var(--bg) 70%); }
+.preset b { display: block; font-weight: 500; font-size: 14px; padding: 12px 16px 2px; }
+.preset span:last-child { display: block; font-size: 13px; color: var(--fg-2); line-height: 1.5; padding: 0 16px 14px; }
+@media (max-width: 760px) { .sig.four, .loaders, .presets { grid-template-columns: 1fr 1fr; } }
 .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .cards .agent { background: var(--bg-2); }
 .cards .agent.active { background: var(--bg); border: 1px solid var(--line); }
@@ -117,27 +133,54 @@ body { height: auto; min-height: 100%; }
 <div class="sheet">
   <nav class="nav"><a href="web-session.html">Session</a><a href="web-session-details.html">Details</a><a href="web-project.html">Project</a><a href="web-team.html">Team</a><a href="mobile.html">Mobile</a><a href="desktop.html">Desktop</a></nav>
 
-  <div><div class="label">Mark</div><div class="marks"><div class="tile light"><img src="mark.svg" alt="Henosis mark"></div><div class="tile navy"><svg viewBox="0 0 96 96" role="img" aria-label="Henosis mark on navy"><rect x="12" y="12" width="72" height="72" rx="14" fill="#F3EEE7"/><path d="M84 12v34L50 12z" fill="#56352D"/><path d="M84 46L50 12 84 12z" fill="#E2C4A6"/><path d="M50 12L84 46" stroke="#2A3244" stroke-width="3" stroke-linecap="round"/></svg></div></div></div>
+  <div><div class="label">Mark</div><div class="marks">
+    <div class="tile light"><img src="mark.svg" alt="Henosis mark: a ring open at the top and the bead that completes it"></div>
+    <div class="tile navy"><svg viewBox="0 0 96 96" class="mark ring joining" role="img" aria-label="Henosis mark, the bead joining the ring"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round" class="ring"/><circle cx="48" cy="20" r="8.5" fill="#56352D" stroke="#E2C4A6" stroke-width="3.5" class="bead"/></svg></div>
+  </div>
+  <p class="muted" style="margin-top:16px">A ring open at the top, and the bead that completes it: the team, the place kept for whoever comes next, and the newcomer settling into it. On the right, the joining motion: the bead travels once round the ring and settles into the gap.</p></div>
 
-  <div><div class="label">Wordmark</div><div class="word"><img src="mark.svg" alt="">Henosis</div><p class="muted" style="margin-top:16px">One sheet, one corner turned: a session anyone on the team can pick up where it was left.</p></div>
+  <div><div class="label">Wordmark</div><div class="word"><img src="mark.svg" alt="">Henosis</div><p class="muted" style="margin-top:16px">Henosis, ἕνωσις: unity. The moment many become one; a session several people and several agents share; a branch united into main; a newcomer brought into the circle.</p></div>
 
   <div><div class="label">Signature</div>
-    <p class="muted" style="margin-bottom:16px">The base stays in the register of claude.ai and ChatGPT: one centred column, hairlines, no shadows. Three things make it Henosis's own.</p>
-    <div class="sig">
+    <p class="muted" style="margin-bottom:16px">The base stays in the register of claude.ai and ChatGPT: one centred column, hairlines, rows not cards. Four things make it Henosis's own.</p>
+    <div class="sig four">
       <div><div class="ex"><span class="serif">Invoice rollout</span></div><b>1 · The editorial serif</b><span>Instrument Serif carries the titles, the wordmark and people's names. Everything else is Instrument Sans, so the serif stays rare.</span></div>
-      <div><div class="ex"><div class="folded deep card">Invoice PDF<span class="faint">with Bo, Cy</span></div></div><b>2 · The folded corner</b><span>The mark repeated as a small apricot turn: on the composer, on human messages and on <span class="mono">.folded</span> cards.</span></div>
-      <div><div class="ex crease-ex"><div class="side"></div><div class="body"><i>one crease</i></div></div><b>3 · One crease</b><span>A single hairline in Apricot Illusion separates the rail from the conversation. Every other line is grey.</span></div>
+      <div><div class="ex"><div class="folded deep card">Invoice PDF<span class="faint">with Bo, Cy</span></div></div><b>2 · The bead</b><span>The newcomer's mark repeated as a small apricot bead: on the composer, on human messages and on <span class="mono">.folded</span> cards.</span></div>
+      <div><div class="ex crease-ex"><div class="side"></div><div class="body"><i>one crease</i></div></div><b>3 · One crease</b><span>A single hairline in Apricot Illusion separates the navy rail from the cream canvas. Every other line is grey.</span></div>
+      <div><div class="ex glow-ex"><span class="status running">Running</span><span class="avatar driver" title="Ana">A</span></div><b>4 · The glow</b><span>Apricot around anything live: the running dot pulses it, the driver's avatar wears it, the composer takes it while someone writes.</span></div>
     </div>
   </div>
 
   <div><div class="label">Colour</div><div class="swatches">
-    <div class="swatch"><div style="background:#56352D"></div><b>Chocolate Fondant</b><span>19-1432 TCX · #56352D</span></div>
-    <div class="swatch"><div style="background:#2A3244"></div><b>Dress Blues</b><span>19-4024 TCX · #2A3244</span></div>
-    <div class="swatch"><div style="background:#E2C4A6"></div><b>Apricot Illusion</b><span>15-1319 TCX · #E2C4A6</span></div>
-    <div class="swatch"><div style="background:#FAF8F4"></div><b>Off-white</b><span>#FAF8F4</span></div>
-    <div class="swatch"><div style="background:#F3F0EA"></div><b>Linen</b><span>#F3F0EA</span></div>
-    <div class="swatch"><div style="background:#1F2430"></div><b>Night</b><span>#1F2430</span></div>
-  </div></div>
+    <div class="swatch"><div style="background:#56352D"></div><b>Chocolate Fondant</b><span>19-1432 TCX · #56352D · the action</span></div>
+    <div class="swatch"><div style="background:#2A3244"></div><b>Dress Blues</b><span>19-4024 TCX · #2A3244 · the surface</span></div>
+    <div class="swatch"><div style="background:#E2C4A6"></div><b>Apricot Illusion</b><span>14-1120 TCX · #E2C4A6 · the live colour</span></div>
+    <div class="swatch"><div style="background:#FBF7F1"></div><b>Cream</b><span>#FBF7F1 · the canvas</span></div>
+    <div class="swatch"><div style="background:radial-gradient(120% 90% at 50% -20%, #F3DFC9 0%, #FBF7F1 70%)"></div><b>The wash</b><span>apricot into cream, top of the canvas</span></div>
+    <div class="swatch"><div style="background:linear-gradient(135deg,#2A3244 0%,#3F3438 55%,#56352D 100%)"></div><b>The gradient</b><span>navy to chocolate · hero, empty states, new session</span></div>
+  </div>
+  <p class="muted" style="margin-top:16px">v5 turns the volume up without adding a colour: a Dress Blues rail with cream text and apricot accents, a cream canvas washed apricot at the top, Chocolate as the one action colour, apricot glows on anything live, the gradient where a newcomer is welcomed. Dark mode stays navy with apricot. The team colours are custom properties (<span class="mono">--team-accent</span>, <span class="mono">--team-highlight</span>, <span class="mono">--team-surface</span>, <span class="mono">--team-glow</span>) that everything else reads.</p></div>
+
+  <div><div class="label">Motion</div>
+    <p class="muted" style="margin-bottom:16px">Motion says that someone joined, something finished, or something is still going. The rest state is the end state, so with reduced motion or a calm team every element simply sits where it ends. Three durations (120, 200, 320 ms), three easings, staggers of 36 ms.</p>
+    <div class="loaders">
+      <div><span class="loader join"><svg viewBox="0 0 96 96" width="28" height="28" class="mark ring joining" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="var(--mark-ring)" stroke-width="10" fill="none" stroke-linecap="round" class="ring"/><circle cx="48" cy="20" r="8.5" fill="var(--mark-bead)" stroke="var(--mark-ring)" stroke-width="3.5" class="bead"/></svg><span class="lbl">Joining…</span></span><b>join</b><span>Connecting, joining, reconnecting a session.</span></div>
+      <div><span class="loader orbit" aria-hidden="true"><i></i><i></i><i></i></span><b>orbit</b><span>Three dots in the three colours orbit and converge. Short waits.</span></div>
+      <div><span class="loader weave" aria-hidden="true"><i></i><i></i></span><b>weave</b><span>Two strands weaving under the top row. A long operation.</span></div>
+      <div><div class="loader shimmer" aria-hidden="true"><i></i><i></i><i></i></div><b>shimmer</b><span>Skeleton rows with an apricot sheen. Where a list will be.</span></div>
+    </div>
+    <div class="row" style="margin-top:20px;gap:18px;align-items:center"><span class="agent enter" style="display:inline-flex;padding:6px 10px;background:var(--bg-2)"><span class="head"><span class="dot running"></span><span class="t">a card slides in</span></span></span><span class="pill badge">2</span><span class="avatar driver joined" title="Bo">B</span><span class="pill team"><span class="w">Team</span></span><button class="send pressed" type="button" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></button><div class="divider" style="flex:1"><svg class="ic draw" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>Approved: run pnpm test · Bo</div></div>
+    <p class="muted small" style="margin-top:10px">The side animations: a rail card slides and fades in, the running dot pulses a halo, an approval badge pops, an avatar ripples when its person joins, a toast slides up, the check draws itself when an approval is granted, the send button presses, the Solo/Team word crossfades, the bead settles when the app has loaded. Reload the page to see them again.</p>
+  </div>
+
+  <div><div class="label">Team look</div>
+    <p class="muted" style="margin-bottom:16px">A lead or manager may make the system their team's own without leaving it: accent, highlight, surface and glow (three presets made only of the palette, or custom with contrast checks), what sits on the mark's disc, the motion level and an emblem. The serif, the column, the hairlines, the status words and the voice never change.</p>
+    <div class="presets">
+      <div class="preset" style="--team-accent:#56352D;--team-highlight:#E2C4A6;--team-surface:#2A3244"><div class="rail"><svg viewBox="0 0 96 96" width="22" height="22" class="mark" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path d="M60.5 22.9 A28 28 0 1 1 35.5 22.9" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="48" cy="20" r="8.5" fill="#56352D" stroke="#E2C4A6" stroke-width="3.5"/></svg><span class="serif">Henosis</span></div><div class="canvas"><button class="btn primary sm" type="button">Approve</button></div><b>Fondant</b><span>the default: Chocolate acts, Dress Blues holds, Apricot lives</span></div>
+      <div class="preset" style="--team-accent:#2A3244;--team-highlight:#E2C4A6;--team-surface:#56352D"><div class="rail"><svg viewBox="0 0 96 96" width="22" height="22" class="mark" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#56352D"/><circle cx="48" cy="48" r="22" fill="#2A3244" stroke="#E2C4A6" stroke-width="6"/></svg><span class="serif">Henosis</span><span class="emblem">PY</span></div><div class="canvas"><button class="btn primary sm" type="button">Approve</button></div><b>Apricot</b><span>a Chocolate rail, Dress Blues acts; here with the bead mark and an emblem</span></div>
+      <div class="preset" style="--team-accent:#2A3244;--team-highlight:#E2C4A6;--team-surface:#1B2130;--team-glow:#F0DCC4"><div class="rail"><svg viewBox="0 0 96 96" width="22" height="22" class="mark" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#1B2130"/><circle cx="48" cy="48" r="30" fill="#E2C4A6"/><text x="48" y="60" text-anchor="middle" font-family="Instrument Serif, Georgia, serif" font-size="36" fill="#1B2130">GR</text></svg><span class="serif">Henosis</span></div><div class="canvas"><button class="btn primary sm" type="button">Approve</button></div><b>Blues</b><span>a deeper navy rail and a lighter glow; here with the dot mark carrying the emblem</span></div>
+    </div>
+  </div>
 
   <div><div class="label">Type</div><div class="spec">
     <div class="h">Instrument Serif 400 · 34px · titles and names</div>

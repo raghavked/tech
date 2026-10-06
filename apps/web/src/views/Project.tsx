@@ -24,6 +24,7 @@ import {
   ErrorLine,
   ICONS,
   Icon,
+  Loader,
   MemoryLine,
   Status,
   TeamPill,
@@ -80,7 +81,12 @@ export function Project({
   const [newOpen, setNewOpen] = useState(() => location.hash.includes("new=1"));
 
   return (
-    <Shell ctx={ctx} title={name} below={<ReconnectLine reconnecting={snap.reconnecting} />}>
+    <Shell
+      ctx={ctx}
+      title={name}
+      below={<ReconnectLine reconnecting={snap.reconnecting} />}
+      busy={snap.reconnecting}
+    >
       <div className="column page">
         <h1>{name}</h1>
         <ErrorLine errors={snap.errors} />
@@ -98,7 +104,8 @@ export function Project({
         />
         <section className="group" aria-label={copy.project.agents}>
           <h2>{copy.project.agents}</h2>
-          {sessions.length === 0 && (
+          {!s && !snap.errors.length && <Loader kind="shimmer" label={copy.loading} rows={3} />}
+          {s && sessions.length === 0 && (
             <EmptyState
               text={copy.project.emptySessions}
               action={{ label: copy.project.startOne, onClick: () => setNewOpen(true) }}
@@ -597,7 +604,9 @@ function TeamMemory({
           })}
         </div>
       ))}
-      {rest.length === 0 && !feed.error && feed.loading && <p className="muted">{copy.loading}</p>}
+      {rest.length === 0 && !feed.error && feed.loading && (
+        <Loader kind="shimmer" label={copy.loading} rows={2} />
+      )}
       {rest.length === 0 && !feed.error && !feed.loading && (
         <EmptyState
           text={copy.project.memoryEmptyHint}
