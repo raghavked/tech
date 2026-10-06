@@ -2,8 +2,10 @@
 import { useMemo, useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import type { Me, Notification } from "../api.js";
+import { DEFAULT_RATING } from "../approvalsQueue.js";
 import type { Identity } from "../identity.js";
 import { acceptFromInbox, linkOf, markRead, useInbox, voteFromInbox } from "../inbox.js";
+import { Stars } from "../ui.js";
 
 interface Outcome {
   busy: boolean;
@@ -79,7 +81,16 @@ export function Inbox({
                   n={n}
                   outcome={outcomes[n.id]}
                   onOpen={() => markRead([n.id])}
-                  onApprove={() => act(n, () => voteFromInbox(identity, n, "approve"))}
+                  onApprove={(rating) =>
+                    act(n, () =>
+                      voteFromInbox(
+                        identity,
+                        n,
+                        "approve",
+                        n.ratings ? (rating ?? DEFAULT_RATING) : null,
+                      ),
+                    )
+                  }
                   onDeny={() => act(n, () => voteFromInbox(identity, n, "deny"))}
                   onAccept={() => act(n, () => acceptFromInbox(identity, n))}
                 />
@@ -103,10 +114,12 @@ function InboxRow({
   n: Notification;
   outcome: Outcome | undefined;
   onOpen: () => void;
-  onApprove: () => void;
+  onApprove: (rating: number | null) => void;
   onDeny: () => void;
   onAccept: () => void;
 }) {
+  // A release gate: the stars sit beside Approve; the approve carries the pick.
+  const [rating, setRating] = useState<number | null>(null);
   const { sessionId, href } = linkOf(n.link);
   const actionable = Boolean(n.ref && sessionId) && !n.read && !outcome;
   const text = (
@@ -132,7 +145,8 @@ function InboxRow({
         {outcome?.error && <span className="small danger">{outcome.error}</span>}
         {actionable && n.kind === "approval" && (
           <>
-            <button type="button" className="btn primary sm" onClick={onApprove}>
+            {n.ratings && <Stars value={rating} onChange={setRating} />}
+            <button type="button" className="btn primary sm" onClick={() => onApprove(rating)}>
               Approve
             </button>
             <button type="button" className="btn sm" onClick={onDeny}>

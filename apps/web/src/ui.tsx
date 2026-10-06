@@ -102,7 +102,50 @@ export const ICONS = {
   back: "M13 8H3M7 4L3 8l4 4",
   columns: "M2.5 3h11v10h-11zM8 3v10",
   play: "M5.5 3.5v9l7-4.5z",
+  star: "M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z",
 };
+
+/**
+ * Five stars as buttons: the rating control on a plan and on a release-gate approval. Keyboard
+ * reachable (each star is a button named "Rate n of 5"); the chosen star and those before it
+ * fill. `value` null means nothing chosen yet.
+ */
+export function Stars({
+  value,
+  onChange,
+  label = copy.plan.yourRating,
+  size = 16,
+  disabled = false,
+}: {
+  value: number | null;
+  onChange: (n: number) => void;
+  label?: string;
+  size?: number;
+  disabled?: boolean;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const shown = hover ?? value ?? 0;
+  return (
+    <fieldset className="stars" aria-label={label} onMouseLeave={() => setHover(null)}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          type="button"
+          key={n}
+          className={`star${shown >= n ? " on" : ""}`}
+          aria-label={copy.plan.rate(n)}
+          aria-pressed={value === n}
+          disabled={disabled}
+          onMouseEnter={() => setHover(n)}
+          onFocus={() => setHover(n)}
+          onBlur={() => setHover(null)}
+          onClick={() => onChange(n)}
+        >
+          <Icon d={ICONS.star} size={size} className={shown >= n ? "fill" : ""} />
+        </button>
+      ))}
+    </fieldset>
+  );
+}
 
 export function Avatar({
   id,
@@ -354,6 +397,8 @@ export interface AgentRow {
     summary: string;
     pendingApprovals: number;
     usage?: Usage | undefined;
+    /** Plan first: the plan the session is on. */
+    plan?: { status: string; estTokens: number; actualTokens: number } | undefined;
   } | null;
   live: string | null;
   people: { id: string; name: string; role: string; online: boolean; driving: boolean }[];
@@ -379,6 +424,8 @@ export function doingOf(row: AgentRow): { lead: string; text: string } {
   const goal = r?.goal || row.title || row.sessionId;
   const summary = (r?.summary ?? "").replace(/^(DONE|continuing):?\s*/i, "").trim();
   if (status === "awaiting_approval") return { lead: "waiting on", text: `an approval · ${goal}` };
+  if (r?.plan?.status === "proposed" && status !== "running")
+    return { lead: "waiting for", text: `${copy.plan.waitingFor} · ${goal}` };
   if (status === "blocked") return { lead: "blocked on", text: goal };
   if (status === "running") return { lead: "working on", text: goal };
   if (status === "paused") return { lead: "paused on", text: goal };

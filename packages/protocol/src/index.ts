@@ -147,6 +147,9 @@ export const SessionPolicy = z.object({
 });
 export type SessionPolicy = z.infer<typeof SessionPolicy>;
 export const DEFAULT_SESSION_POLICY: SessionPolicy = SessionPolicy.parse({});
+/** What a client may set when it starts a session; the host fills the rest from its default. */
+export const SessionPolicyPatch = SessionPolicy.partial();
+export type SessionPolicyPatch = z.infer<typeof SessionPolicyPatch>;
 
 /** Model token usage for one call. Counted by the model provider; synthesised offline. */
 export const Usage = z.object({

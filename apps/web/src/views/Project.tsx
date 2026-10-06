@@ -1,6 +1,6 @@
 import { type ProjectState, type SessionSummary, usageOf } from "@henosis/fleet";
 import { compactTokens } from "@henosis/kernel";
-import { type DirectiveMode, usageTotal } from "@henosis/protocol";
+import { type DirectiveMode, type SessionPolicyPatch, usageTotal } from "@henosis/protocol";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import {
@@ -16,7 +16,7 @@ import { wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import { EmptyState } from "../empty.js";
 import type { Identity } from "../identity.js";
-import { ProjectClient } from "../projectClient.js";
+import { createSession, ProjectClient } from "../projectClient.js";
 import { ReconnectLine } from "../reconnect.js";
 import { navigate, paths } from "../router.js";
 import {
@@ -29,6 +29,7 @@ import {
   TeamPill,
   useConnectionToasts,
 } from "../ui.js";
+import { PolicyFields, policyOf } from "./FirstRun.js";
 import { InviteRow } from "./ShareSheet.js";
 
 export function Project({
@@ -140,9 +141,16 @@ export function Project({
             <NewSessionRow
               open={newOpen}
               onOpen={setNewOpen}
-              onCreate={(id, title) => {
-                client.send({ type: "session.create", sessionId: id, title });
-                navigate(paths.session(projectId, id, title));
+              onCreate={(id, title, policy) => {
+                // A socket of its own that waits for the server's answer, so the session exists
+                // with its policy before the page opens it, even while this socket re-dials.
+                createSession(wsUrl(), {
+                  projectId,
+                  userId: identity.userId,
+                  sessionId: id,
+                  title,
+                  policy,
+                }).finally(() => navigate(paths.session(projectId, id, title)));
               }}
             />
           </div>
@@ -401,10 +409,12 @@ function NewSessionRow({
 }: {
   open: boolean;
   onOpen: (open: boolean) => void;
-  onCreate: (id: string, title: string) => void;
+  onCreate: (id: string, title: string, policy: SessionPolicyPatch) => void;
 }) {
   const [id, setId] = useState(`s-${Date.now().toString(36)}`);
   const [title, setTitle] = useState("");
+  const [planFirst, setPlanFirst] = useState(true);
+  const [budget, setBudget] = useState("");
   if (!open)
     return (
       <button type="button" className="rowitem new" onClick={() => setOpen(true)}>
@@ -420,7 +430,7 @@ function NewSessionRow({
       onSubmit={(e) => {
         e.preventDefault();
         if (!id.trim()) return;
-        onCreate(id.trim(), title.trim() || id.trim());
+        onCreate(id.trim(), title.trim() || id.trim(), policyOf(planFirst, budget));
       }}
     >
       <input
@@ -440,6 +450,13 @@ function NewSessionRow({
       <button type="submit" className="btn primary sm">
         {copy.project.open}
       </button>
+      <PolicyFields
+        planFirst={planFirst}
+        budget={budget}
+        onPlanFirst={setPlanFirst}
+        onBudget={setBudget}
+        idPrefix="project"
+      />
     </form>
   );
 }

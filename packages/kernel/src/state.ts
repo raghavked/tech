@@ -28,6 +28,7 @@ import {
   effectiveRank,
   type Intent,
 } from "./intent.js";
+import { type PlanRecord, planApprovalMet, totalTokens } from "./plans.js";
 import { applyChanges, type Tree } from "./workspace.js";
 
 export interface Participant {
@@ -119,6 +120,9 @@ export interface SessionState {
   currentTurn: TurnRecord | null;
   turns: TurnRecord[];
   approvals: Record<string, ApprovalRecord>;
+  /** Plan first: every plan the agent proposed, by id; `activePlanId` is the latest. */
+  plans: Record<string, PlanRecord>;
+  activePlanId: string | null;
   handoffs: Record<string, Handoff>;
   workspace: Tree;
   /** Paths left with conflict markers by a merge, cleared when rewritten. */
@@ -164,6 +168,8 @@ export function initialState(branch: string = MAIN_BRANCH): SessionState {
     currentTurn: null,
     turns: [],
     approvals: {},
+    plans: {},
+    activePlanId: null,
     handoffs: {},
     workspace: {},
     openConflicts: [],
@@ -373,6 +379,82 @@ function reduceInto(s: SessionState, e: SessionEvent): SessionState {
       a.status = evaluate(ruleFor(s.policy.approvals, a.call.risk), a.ballots, (id) =>
         rankOf(s, id),
       );
+      break;
+    }
+
+    case "plan.proposed": {
+      const { planId, turn, goal, steps, estTokens, rationale } = e.payload;
+      const previous = s.activePlanId ? s.plans[s.activePlanId] : undefined;
+      if (previous && previous.id !== planId) previous.supersededBy = planId;
+      s.plans[planId] = {
+        id: planId,
+        turn,
+        goal,
+        steps: steps.map((st) => ({
+          id: st.id,
+          title: st.title,
+          detail: st.detail,
+          estTokens: st.estTokens,
+          risk: st.risk,
+          status: "pending",
+          actualTokens: 0,
+          startedTokens: 0,
+          startedTurn: null,
+          note: "",
+        })),
+        estTokens,
+        rationale,
+        ratings: {},
+        status: "proposed",
+        decidedBy: null,
+        note: "",
+        proposedSeq: e.seq,
+        supersededBy: null,
+      };
+      s.activePlanId = planId;
+      break;
+    }
+
+    case "plan.rated": {
+      const p = s.plans[e.payload.planId];
+      if (p?.status !== "proposed") break;
+      if (!isHuman(s, e.actor) || rankOf(s, e.actor) < ROLE_RANK.contributor) break;
+      p.ratings[e.actor] = { rating: e.payload.rating, note: e.payload.note, seq: e.seq };
+      // The fold decides: no second event, so every replica agrees on when the bar was met.
+      if (planApprovalMet(s.policy.planApproval, p)) {
+        p.status = "approved";
+        p.decidedBy = "policy";
+      }
+      break;
+    }
+
+    case "plan.decided": {
+      const p = s.plans[e.payload.planId];
+      if (!p || p.status === "done") break;
+      p.status = e.payload.status;
+      p.decidedBy = e.payload.by;
+      p.note = e.payload.note;
+      break;
+    }
+
+    case "plan.step.started": {
+      const p = s.plans[e.payload.planId];
+      const st = p?.steps.find((x) => x.id === e.payload.stepId);
+      if (!p || !st || p.status !== "approved" || st.status !== "pending") break;
+      st.status = "running";
+      st.startedTokens = totalTokens(s.usage);
+      st.startedTurn = e.payload.turn;
+      break;
+    }
+
+    case "plan.step.completed": {
+      const p = s.plans[e.payload.planId];
+      const st = p?.steps.find((x) => x.id === e.payload.stepId);
+      if (!p || !st || st.status !== "running") break;
+      st.status = "done";
+      st.actualTokens = e.payload.tokens;
+      st.note = e.payload.note;
+      if (p.status === "approved" && p.steps.every((x) => x.status === "done")) p.status = "done";
       break;
     }
 

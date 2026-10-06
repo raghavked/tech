@@ -41,6 +41,13 @@ export class ClaudeModel implements Model {
       "",
       req.intentText,
       "",
+      req.planFirst
+        ? req.needsPlan
+          ? "Plan first: call plan__propose before any other tool; the team rates the plan and you continue once it is approved."
+          : req.plan
+            ? `Plan ${req.plan.status}: ${req.plan.steps.map((s) => `${s.id} [${s.status}] ${s.title}`).join("; ")}. Call plan__step {stepId} when you move to the next step.`
+            : ""
+        : "",
       req.newDirectives.length
         ? `New directives this turn:\n${req.newDirectives.map((d) => `- ${d}`).join("\n")}`
         : "",

@@ -6,6 +6,7 @@
 import {
   type ApprovalRecord,
   describeRule,
+  isRatingsRule,
   minimumRank,
   rankOf,
   requiredVotes,
@@ -15,6 +16,28 @@ import {
 import type { RiskClass } from "@henosis/protocol";
 import type { SessionRow } from "./api.js";
 import { describeCall } from "./calls.js";
+import { copy } from "./copy.js";
+
+/** The rating a plain Approve carries under a release gate when the person picked none. */
+export const DEFAULT_RATING = 4;
+
+/**
+ * A release gate's progress: rated approvals from eligible voters against the rule's minimum,
+ * with their average; null when the rule is not a ratings rule.
+ */
+export function ratingProgress(
+  s: SessionState,
+  a: ApprovalRecord,
+): { count: number; min: number; average: number; bar: number } | null {
+  const rule = ruleFor(s.policy.approvals, a.call.risk);
+  if (!isRatingsRule(rule)) return null;
+  const min = minimumRank(rule);
+  const rated = Object.entries(a.ballots)
+    .filter(([id, b]) => b.vote === "approve" && b.rating !== null && rankOf(s, id) >= min)
+    .map(([, b]) => b.rating ?? 0);
+  const average = rated.length ? rated.reduce((n, v) => n + v, 0) / rated.length : 0;
+  return { count: rated.length, min: rule.ratings.min, average, bar: rule.ratings.average };
+}
 
 /** Approvals a listed session is waiting on, from the live status first and the report after. */
 export function pendingOf(row: Pick<SessionRow, "open" | "live" | "report">): number {
@@ -42,6 +65,10 @@ export interface QueueRow {
   /** "one driver or above", "1 more driver or above", "nothing" */
   needs: string;
   myVote: "approve" | "deny" | null;
+  /** A release gate: Approve carries a rating; `progress` is "1 of 2 raters · 3 average". */
+  ratings: boolean;
+  progress: string | null;
+  myRating: number | null;
   requestedSeq: number;
 }
 
@@ -49,6 +76,15 @@ export interface QueueRow {
 export function needsOf(s: SessionState, a: ApprovalRecord): string {
   const rule = ruleFor(s.policy.approvals, a.call.risk);
   if (rule === "none") return "nothing";
+  const gate = ratingProgress(s, a);
+  if (gate && isRatingsRule(rule)) {
+    if (gate.count === 0) return describeRule(rule);
+    if (gate.count < gate.min) {
+      const left = gate.min - gate.count;
+      return `${left} more rating${left === 1 ? "" : "s"} from ${rule.ratings.of}s or above`;
+    }
+    return `an average of ${gate.bar}+`;
+  }
   const min = minimumRank(rule);
   const have = Object.entries(a.votes).filter(
     ([id, v]) => v === "approve" && rankOf(s, id) >= min,
@@ -70,6 +106,7 @@ export function rowsOf(
   const sessionTitle = s.title || meta.fallbackTitle || s.sessionId;
   return Object.values(s.approvals).map((a) => {
     const votes = Object.entries(a.votes);
+    const gate = ratingProgress(s, a);
     return {
       key: `${meta.projectId}/${s.sessionId}/${a.id}`,
       projectId: meta.projectId,
@@ -85,6 +122,9 @@ export function rowsOf(
       deniedBy: votes.filter(([, v]) => v === "deny").map(([id]) => name(id)),
       needs: a.status === "pending" ? needsOf(s, a) : "nothing",
       myVote: a.votes[meId] ?? null,
+      ratings: gate !== null,
+      progress: gate ? copy.approval.progress(gate.count, gate.min, gate.average) : null,
+      myRating: a.ballots[meId]?.rating ?? null,
       requestedSeq: a.requestedSeq,
     };
   });

@@ -3,10 +3,25 @@
  * boundary, yields between tool calls so humans can pause, cancel, redirect or withhold
  * approval, and records everything in the log. If the process dies mid-turn, a new runner
  * resumes from the log: the transcript of the current turn is the state.
+ *
+ * Plan first: when the policy asks for a plan, the runner tells the model to propose one,
+ * ends the turn once it is proposed, and starts again when the team's ratings (or an owner)
+ * approve it. While the plan is approved, steps are started and completed as the model moves
+ * through them, and every call above `read` is refused until then.
  */
-import { renderIntent, type Session, type SessionState } from "@henosis/kernel";
+import {
+  activePlan,
+  gateForCall,
+  planForGoal,
+  planNeeded,
+  planWaiting,
+  renderIntent,
+  type Session,
+  type SessionState,
+  totalTokens,
+} from "@henosis/kernel";
 import type { Actor, ToolCall, ToolResult } from "@henosis/protocol";
-import type { Model, ModelRequest, TranscriptEntry } from "./model.js";
+import type { Model, ModelRequest, PlanView, TranscriptEntry } from "./model.js";
 import type { MemoryAccess, ToolRegistry, WorkspaceGuard } from "./tools.js";
 
 export interface RunnerOptions {
@@ -30,6 +45,17 @@ export type TurnOutcome =
   | "blocked"
   | "error"
   | "idle";
+
+type YieldReason = Exclude<TurnOutcome, "done" | "error" | "idle">;
+interface YieldPoint {
+  reason: YieldReason;
+  summary: string;
+}
+
+/** The turn summary while a proposed plan waits for the team. */
+export const PLAN_WAITING_SUMMARY = "plan proposed: waiting for ratings";
+
+const PLAN_TOOLS = new Set(["plan.propose", "plan.step"]);
 
 export class Runner {
   private driving = false;
@@ -65,9 +91,17 @@ export class Runner {
         d.input.mode !== "pause",
     );
     const last = s.turns[s.turns.length - 1];
+    const finished = last?.reason === "done" && last.summary.startsWith("DONE");
+    if (s.policy.planFirst) {
+      const plan = planForGoal(s);
+      // The team is rating: nothing to do until they decide.
+      if (plan?.status === "proposed") return false;
+      // Asked to revise: propose again. Approved: carry on with the steps.
+      if (plan?.status === "revise") return true;
+      if (plan?.status === "approved" && !finished) return true;
+    }
     const continuing = last
-      ? last.reason === "interrupted" ||
-        (last.reason === "done" && !last.summary.startsWith("DONE"))
+      ? last.reason === "interrupted" || (last.reason === "done" && !finished)
       : true;
     return fresh || continuing;
   }
@@ -110,6 +144,8 @@ export class Runner {
     log(`turn ${turn} started on ${branch}`);
     let lastText = "";
     try {
+      // An approved plan always has a step running while the agent works.
+      this.autoStartStep();
       // Resume: finish tool calls the model already decided on but the dead runner never ran.
       const open = s.currentTurn;
       if (open) {
@@ -118,12 +154,13 @@ export class Runner {
         if (pending.length) {
           log(`resuming turn ${turn}: ${pending.length} pending tool calls`);
           const yielded = await this.executeCalls(pending);
-          if (yielded) return this.end(yielded, `yielded while resuming: ${yielded}`);
+          if (yielded)
+            return this.end(yielded.reason, `yielded while resuming: ${yielded.summary}`);
         }
       }
       for (let step = 0; step < this.maxSteps; step++) {
         const yielded = this.checkYield();
-        if (yielded) return this.end(yielded, `yielded: ${yielded}`);
+        if (yielded) return this.end(yielded.reason, yielded.summary);
 
         const req = this.buildRequest();
         const res = await this.model.complete(req);
@@ -136,10 +173,12 @@ export class Runner {
           res.usage,
         );
         if (res.toolCalls.length === 0) {
+          // The goal is complete: the step the agent was on completes with it.
+          if (res.done) this.completeRunningStep();
           return this.end("done", res.done ? `DONE ${res.text}` : res.text || "(no output)");
         }
         const yieldedMid = await this.executeCalls(res.toolCalls);
-        if (yieldedMid) return this.end(yieldedMid, `${yieldedMid} mid-turn`);
+        if (yieldedMid) return this.end(yieldedMid.reason, yieldedMid.summary);
         lastText = res.text;
       }
       return this.end("done", `continuing: ${lastText}`);
@@ -148,10 +187,8 @@ export class Runner {
     }
   }
 
-  /** Execute calls in order, yielding at safe points. Returns the yield reason, if any. */
-  private async executeCalls(
-    calls: ToolCall[],
-  ): Promise<Exclude<TurnOutcome, "done" | "error" | "idle"> | null> {
+  /** Execute calls in order, yielding at safe points. Returns the yield point, if any. */
+  private async executeCalls(calls: ToolCall[]): Promise<YieldPoint | null> {
     const { session, branch, agent } = this;
     for (let i = 0; i < calls.length; i++) {
       const call = calls[i] as ToolCall;
@@ -163,7 +200,7 @@ export class Runner {
           session.toolCompleted(branch, agent.id, {
             callId: c.id,
             ok: false,
-            output: `not executed: session ${yielded}`,
+            output: `not executed: session ${yielded.reason}`,
           });
         }
         return yielded;
@@ -184,13 +221,33 @@ export class Runner {
   }
 
   /** Why the runner must stop at this safe point, if anything. */
-  private checkYield(): Exclude<TurnOutcome, "done" | "error" | "idle"> | null {
+  private checkYield(): YieldPoint | null {
     const s = this.state();
-    if (s.intent.control === "cancelled") return "cancelled";
-    if (s.intent.control === "paused") return "paused";
-    if (s.intent.interrupt) return "interrupted";
-    if (s.intent.contendedScopes.includes("goal") || s.openConflicts.length > 0) return "blocked";
+    const at = (reason: YieldReason): YieldPoint => ({ reason, summary: `yielded: ${reason}` });
+    if (s.intent.control === "cancelled") return at("cancelled");
+    if (s.intent.control === "paused") return at("paused");
+    if (s.intent.interrupt) return at("interrupted");
+    if (s.intent.contendedScopes.includes("goal") || s.openConflicts.length > 0)
+      return at("blocked");
+    if (planWaiting(s)) return { reason: "blocked", summary: PLAN_WAITING_SUMMARY };
     return null;
+  }
+
+  /** Plan first: when the plan is approved and no step is running, the first pending step starts. */
+  private autoStartStep(): void {
+    const s = this.state();
+    if (!s.policy.planFirst) return;
+    const plan = planForGoal(s);
+    if (plan?.status !== "approved") return;
+    if (plan.steps.some((st) => st.status === "running")) return;
+    const next = plan.steps.find((st) => st.status === "pending");
+    if (next) this.session.startStep(this.branch, this.agent.id, plan.id, next.id);
+  }
+
+  private completeRunningStep(): void {
+    const plan = activePlan(this.state());
+    const running = plan?.steps.find((st) => st.status === "running");
+    if (plan && running) this.session.completeStep(this.branch, this.agent.id, plan.id, running.id);
   }
 
   private async execute(call: ToolCall): Promise<ToolResult> {
@@ -198,6 +255,9 @@ export class Runner {
     const tool = this.tools.get(call.name);
     if (!tool) return { callId: call.id, ok: false, output: `unknown tool ${call.name}` };
     session.toolRequested(branch, agent.id, call);
+    // Plan first: nothing above a read runs until the plan is approved.
+    const gate = gateForCall(this.state(), call);
+    if (!gate.ok) return { callId: call.id, ok: false, output: gate.reason };
     const approvalId = session.requestApproval(branch, agent.id, call);
     if (approvalId) {
       const verdict = await this.awaitApproval(approvalId);
@@ -246,6 +306,35 @@ export class Runner {
     });
   }
 
+  /** Plan first, rendered for the model beneath the intent. */
+  private planText(s: SessionState, plan: PlanView | null, needsPlan: boolean): string {
+    if (!s.policy.planFirst) return "";
+    const lines: string[] = [];
+    const spent = totalTokens(s.usage);
+    if (s.policy.tokenBudget)
+      lines.push(`TOKEN BUDGET: ${spent} of ${s.policy.tokenBudget} tokens used so far.`);
+    if (needsPlan) {
+      const previous = planForGoal(s);
+      lines.push(
+        "PLAN FIRST: before any write, exec, external or irreversible tool, call plan.propose with two to six steps {title, detail, estTokens, risk}. The team rates the plan; work starts once it is approved.",
+      );
+      if (previous?.status === "revise")
+        lines.push(`The team asked for a revision${previous.note ? `: ${previous.note}` : "."}`);
+      if (previous?.status === "rejected")
+        lines.push(`The team rejected the last plan${previous.note ? `: ${previous.note}` : "."}`);
+    } else if (plan?.status === "approved") {
+      lines.push(
+        "PLAN (approved; follow it, call plan.step {stepId} as you move to the next step):",
+      );
+      for (const st of plan.steps) lines.push(`  ${st.id} [${st.status}] ${st.title}`);
+    } else if (plan?.status === "proposed") {
+      lines.push(
+        "PLAN: proposed and waiting for the team's ratings; do not act until it is approved.",
+      );
+    }
+    return lines.join("\n");
+  }
+
   private buildRequest(): ModelRequest {
     const s = this.state();
     const transcript: TranscriptEntry[] = [];
@@ -274,17 +363,32 @@ export class Runner {
         (d) =>
           `${s.participants[d.author]?.actor.name ?? d.author} [${d.input.mode}/${d.input.scope}]: ${d.input.text}`,
       );
-    const extras = [this.opts.guard?.context() ?? "", this.opts.memory?.context() ?? ""].filter(
-      Boolean,
-    );
+    const record = planForGoal(s);
+    const plan: PlanView | null = record
+      ? {
+          id: record.id,
+          goal: record.goal,
+          status: record.status,
+          steps: record.steps.map((st) => ({ id: st.id, title: st.title, status: st.status })),
+        }
+      : null;
+    const needsPlan = planNeeded(s);
+    const extras = [
+      this.planText(s, plan, needsPlan),
+      this.opts.guard?.context() ?? "",
+      this.opts.memory?.context() ?? "",
+    ].filter(Boolean);
     return {
       title: s.title,
       intent: s.intent,
       intentText: [renderIntent(s.intent), ...extras].join("\n"),
+      planFirst: s.policy.planFirst,
+      plan,
+      needsPlan,
       history: s.turns.map((x) => `turn ${x.turn}: ${x.summary}`),
       files: Object.keys(s.workspace).sort(),
       transcript,
-      tools: this.tools.specs(),
+      tools: this.tools.specs().filter((spec) => s.policy.planFirst || !PLAN_TOOLS.has(spec.name)),
       turn: s.turn,
       newDirectives,
     };

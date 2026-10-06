@@ -24,9 +24,15 @@ import {
   syncDirectives,
   withdrawPropagated,
 } from "@henosis/fleet";
-import type { SessionState } from "@henosis/kernel";
+import { activePlan, planActualTokens, type SessionState } from "@henosis/kernel";
 import type { MemoryStore } from "@henosis/memory";
-import { type Actor, MAIN_BRANCH, type SessionEvent, type SessionPolicy } from "@henosis/protocol";
+import {
+  type Actor,
+  MAIN_BRANCH,
+  type SessionEvent,
+  SessionPolicy,
+  type SessionPolicyPatch,
+} from "@henosis/protocol";
 import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@henosis/runner";
 import { SessionHost } from "./host.js";
 import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
@@ -107,8 +113,11 @@ export class ProjectHost {
     return out;
   }
 
-  /** Get or create a session host in this project. */
-  session(sessionId: string, create?: { title: string; ownerId: string | null }): SessionHost {
+  /** Get or create a session host in this project; `policy` lays the creator's choices over the default. */
+  session(
+    sessionId: string,
+    create?: { title: string; ownerId: string | null; policy?: SessionPolicyPatch | undefined },
+  ): SessionHost {
     let h = this.hosts.get(sessionId);
     if (h) return h;
     const base = {
@@ -124,11 +133,14 @@ export class ProjectHost {
       h = new SessionHost(withLog);
     } catch (err) {
       if (!create) throw err;
+      const patch = Object.fromEntries(
+        Object.entries(create.policy ?? {}).filter(([, v]) => v !== undefined),
+      );
       h = new SessionHost({
         ...withLog,
         create: {
           title: create.title,
-          policy: this.opts.sessionPolicy,
+          policy: SessionPolicy.parse({ ...this.opts.sessionPolicy, ...patch }),
           projectId: this.projectId,
           ownerId: create.ownerId,
         },
@@ -266,6 +278,7 @@ export class ProjectHost {
         if (!h || !project.state().sessions[sessionId]) return;
         const st = h.session.state();
         const last = st.turns[st.turns.length - 1];
+        const plan = activePlan(st);
         project.reportStatus({
           sessionId,
           status: st.status,
@@ -276,6 +289,15 @@ export class ProjectHost {
           pendingApprovals: Object.values(st.approvals).filter((a) => a.status === "pending")
             .length,
           usage: st.usage,
+          ...(plan
+            ? {
+                plan: {
+                  status: plan.status,
+                  estTokens: plan.estTokens,
+                  actualTokens: planActualTokens(plan),
+                },
+              }
+            : {}),
         });
         project.expireStale();
       },

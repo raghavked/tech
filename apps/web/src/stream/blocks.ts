@@ -29,7 +29,9 @@ export type Block =
   | { kind: "human"; id: string; who: string; text: string; sub: string; team?: boolean }
   | AgentBlock
   | { kind: "divider"; id: string; text: string; danger?: boolean }
-  | { kind: "approval"; id: string; approvalId: string };
+  | { kind: "approval"; id: string; approvalId: string }
+  /** Plan first: the card renders from `state.plans[planId]`, live. */
+  | { kind: "plan"; id: string; planId: string };
 
 /** What a tool call does, in words (copy.steps): `ask` for the approval sentence, `doing`/`done` for the step. */
 export function describeCall(call: ToolCall): {
@@ -204,6 +206,14 @@ export class BlockFolder {
         out.push({ kind: "approval", id: e.id, approvalId: e.payload.approvalId });
         touched();
         break;
+      case "plan.proposed":
+        out.push({ kind: "plan", id: e.id, planId: e.payload.planId });
+        touched();
+        this.agent = null;
+        break;
+      case "plan.decided":
+        divider(copy.stream.planDecided(name(e.actor), e.payload.status));
+        break;
       case "project.directive.applied":
         divider(copy.stream.projectDirection(name(e.payload.author), e.payload.input.text));
         break;
@@ -287,5 +297,7 @@ export function estimateHeight(b: Block): number {
       return 20;
     case "approval":
       return 96;
+    case "plan":
+      return 240;
   }
 }

@@ -3,7 +3,7 @@
  * tool calls. Outputs are recorded in the log so replays never call a model.
  */
 import type { Intent } from "@henosis/kernel";
-import type { RiskClass, ToolCall, ToolResult, Usage } from "@henosis/protocol";
+import type { PlanStatus, RiskClass, ToolCall, ToolResult, Usage } from "@henosis/protocol";
 
 export interface ToolSpec {
   name: string;
@@ -17,10 +17,23 @@ export type TranscriptEntry =
   | { role: "assistant"; text: string; toolCalls: ToolCall[] }
   | { role: "tool"; results: ToolResult[] };
 
+/** The plan as the model sees it: which step is running, which are left. */
+export interface PlanView {
+  id: string;
+  goal: string;
+  status: PlanStatus;
+  steps: { id: string; title: string; status: "pending" | "running" | "done" }[];
+}
+
 export interface ModelRequest {
   title: string;
   intent: Intent;
   intentText: string;
+  /** Plan first: the session wants a plan before any work. */
+  planFirst: boolean;
+  /** The active plan for the goal, or null; the model proposes one when `needsPlan`. */
+  plan: PlanView | null;
+  needsPlan: boolean;
   /** Summaries of previous turns, oldest first. */
   history: string[];
   /** Files currently in the workspace. */

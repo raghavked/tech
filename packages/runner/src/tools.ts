@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, normalize } from "node:path";
-import type { Session } from "@henosis/kernel";
+import { activePlan, type PlanStepInput, type Session } from "@henosis/kernel";
 import type { ToolCall } from "@henosis/protocol";
 import type { ToolSpec } from "./model.js";
 
@@ -378,6 +378,94 @@ export const deploy: ToolImpl = {
   },
 };
 
+/** Plan first: the agent proposes before it acts. A read-class tool, so the gate lets it through. */
+export const planPropose: ToolImpl = {
+  spec: {
+    name: "plan.propose",
+    description:
+      "Propose the plan for the current goal before doing any work: two to six steps, each with a title, a line of detail, an estimate of the tokens it will take and its risk class. The people in the session rate the plan; work starts once it is approved.",
+    risk: "read",
+    schema: {
+      type: "object",
+      properties: {
+        steps: {
+          type: "array",
+          minItems: 1,
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              title: { type: "string" },
+              detail: { type: "string" },
+              estTokens: { type: "integer", minimum: 0 },
+              risk: {
+                type: "string",
+                enum: ["read", "write", "exec", "external", "irreversible"],
+              },
+            },
+            required: ["title"],
+            additionalProperties: false,
+          },
+        },
+        rationale: { type: "string" },
+      },
+      required: ["steps"],
+      additionalProperties: false,
+    },
+  },
+  async run(args, ctx) {
+    if (!Array.isArray(args.steps) || args.steps.length === 0)
+      throw new Error("steps must be a non-empty array");
+    const steps: PlanStepInput[] = args.steps.map((raw, i) => {
+      const st = (raw ?? {}) as Record<string, unknown>;
+      return {
+        id: typeof st.id === "string" ? st.id : undefined,
+        title: str(st.title, `steps[${i}].title`),
+        detail: typeof st.detail === "string" ? st.detail : "",
+        estTokens: typeof st.estTokens === "number" ? st.estTokens : 0,
+        risk:
+          st.risk === "read" ||
+          st.risk === "write" ||
+          st.risk === "exec" ||
+          st.risk === "external" ||
+          st.risk === "irreversible"
+            ? st.risk
+            : "write",
+      };
+    });
+    const ev = ctx.session.proposePlan(ctx.branch, ctx.agentId, {
+      steps,
+      rationale: typeof args.rationale === "string" ? args.rationale : "",
+    });
+    if (ev.kind !== "plan.proposed") throw new Error("plan not recorded");
+    return `plan ${ev.payload.planId} proposed: ${ev.payload.steps.length} steps, about ${ev.payload.estTokens} tokens; waiting for the team's ratings`;
+  },
+};
+
+/** Plan first: the agent says which step it is on; the previous step completes with its tokens. */
+export const planStep: ToolImpl = {
+  spec: {
+    name: "plan.step",
+    description:
+      "Mark the step of the approved plan you are starting now. The step that was running is completed with the tokens it took.",
+    risk: "read",
+    schema: {
+      type: "object",
+      properties: { stepId: { type: "string" } },
+      required: ["stepId"],
+      additionalProperties: false,
+    },
+  },
+  async run(args, ctx) {
+    const stepId = str(args.stepId, "stepId");
+    const ev = ctx.session.startStep(ctx.branch, ctx.agentId, null, stepId);
+    const plan = activePlan(ctx.session.state(ctx.branch));
+    const step = plan?.steps.find((s) => s.id === stepId);
+    if (!ev) return `step ${stepId} is already running`;
+    return `step ${stepId} started: ${step?.title ?? ""}`.trim();
+  },
+};
+
 export function defaultTools(): ToolRegistry {
   return new ToolRegistry()
     .register(workspaceList)
@@ -390,5 +478,7 @@ export function defaultTools(): ToolRegistry {
     .register(fleetRelease)
     .register(fleetStatus)
     .register(memoryRemember)
-    .register(memoryRecall);
+    .register(memoryRecall)
+    .register(planPropose)
+    .register(planStep);
 }

@@ -12,6 +12,12 @@
 export const plural = (n: number, one: string, many = `${one}s`): string =>
   `${n} ${n === 1 ? one : many}`;
 
+/** "1,800 tokens", with the thousands separated the same way everywhere. */
+export const tokens = (n: number): string => `${n.toLocaleString("en-US")} tokens`;
+
+/** A rating average with at most one decimal: 4, 4.5, 4.3. */
+export const average = (n: number): string => String(Math.round(n * 10) / 10);
+
 /** The five status words, the same everywhere (sidebar dot, top row, fleet rows, Slack). */
 export const status = {
   running: "Running",
@@ -84,6 +90,10 @@ export const copy = {
     sessionId: "Session id",
     sessionIdHint: "Open a session by id",
     openSession: "Open session",
+    planFirst: "Plan first",
+    planFirstHint: "The agent proposes a plan; the team rates it before any work",
+    tokenBudget: "Token budget",
+    tokenBudgetHint: "tokens, optional",
   },
 
   session: {
@@ -137,6 +147,58 @@ export const copy = {
     offeredYou: (who: string) => `${who} offers you the fold.`,
     accept: "Accept",
     decline: "Decline",
+    planDecided: (who: string, status: "approved" | "revise" | "rejected") =>
+      status === "approved"
+        ? `${who} approved the plan`
+        : status === "revise"
+          ? `${who} asked for a revised plan`
+          : `${who} rejected the plan`,
+  },
+
+  /** Plan first: the card in the stream, its ratings and the words around it. */
+  plan: {
+    title: "Plan",
+    heading: (n: number) => `Plan · ${plural(n, "step")}`,
+    proposedOn: (turn: number) => `proposed on turn ${turn}`,
+    status: {
+      proposed: "Waiting for ratings",
+      approved: "Approved",
+      revise: "Revision asked",
+      rejected: "Rejected",
+      done: "Done",
+    },
+    /** The same states as one lowercase word for the progress line. */
+    statusWord: {
+      proposed: "waiting",
+      approved: "approved",
+      revise: "revision asked",
+      rejected: "rejected",
+      done: "done",
+    },
+    stepStatus: { pending: "pending", running: "running", done: "done" },
+    est: (n: number) => `~${n.toLocaleString("en-US")}`,
+    used: (n: number) => `${n.toLocaleString("en-US")} used`,
+    totals: (est: number, used: number, budget: number | null) =>
+      `${tokens(est)} estimated${used ? ` · ${tokens(used)} used` : ""}${
+        budget ? ` · budget ${tokens(budget)}` : ""
+      }`,
+    yourRating: "Your rating",
+    rate: (n: number) => `Rate ${n} of 5`,
+    noteHint: "A note with your rating (optional)",
+    progress: (count: number, min: number, avg: number, status: string) =>
+      `${count} of ${min} ratings${count ? ` · ${average(avg)} average` : ""} · ${status}`,
+    needs: (min: number, bar: number) => `needs ${min} at ${average(bar)}+`,
+    rated: (who: string, rating: number) => `${who} rated it ${rating}`,
+    approveNow: "Approve now",
+    askRevise: "Ask to revise",
+    reject: "Reject",
+    decisionHint: "A note with your decision (optional)",
+    decidedBy: (who: string) => `by ${who}`,
+    byPolicy: "by the team's ratings",
+    replaced: "Replaced by a newer plan.",
+    planning: "Planning",
+    waits: "The plan waits for ratings",
+    waitingFor: "ratings on the plan",
   },
 
   /** What a tool call does, in words: `ask` for the approval sentence, `doing`/`done` for the step. */
@@ -173,9 +235,17 @@ export const copy = {
     denied: "Denied",
     wants: (ask: string, risk: string, rule: string) =>
       `The agent wants to ${ask} (${risk}); needs ${rule}.`,
-    vote: (who: string, approve: boolean) => `${who} ${approve ? "approved" : "denied"}`,
+    vote: (who: string, approve: boolean, rating: number | null = null) =>
+      `${who} ${approve ? "approved" : "denied"}${rating ? ` · ${rating} of 5` : ""}`,
     approve: "Approve",
     deny: "Deny",
+    /** A release gate: how many rated approvals there are against the rule's minimum. */
+    progress: (count: number, min: number, avg: number) =>
+      `${count} of ${min} raters${count ? ` · ${average(avg)} average` : ""}`,
+    rateHint: "Rate it before you approve; 4 if you leave it",
+    noteHint: "A note with your vote (optional)",
+    approveRated: (action: string, risk: string) => `Approve ${action} (${risk}) with a rating`,
+    ratePrompt: "Rate it 1 to 5 (Enter for 4)",
   },
 
   composer: {
@@ -197,6 +267,7 @@ export const copy = {
     viewingPast: "Viewing the past · ",
     returnToNow: "Return to now",
     reconnecting: "Reconnecting · ",
+    planWaits: "The plan waits for ratings",
     hint: (name: string, role: string, driving: boolean) =>
       `Enter to send · Shift+Enter for a new line · ? for shortcuts · as ${name}, ${role}${driving ? ", driving" : ""}`,
   },
@@ -281,6 +352,9 @@ export const copy = {
     titleHint: "What is this session for?",
     sessionId: "Session id",
     open: "Open",
+    planFirst: "Plan first",
+    tokenBudget: "Token budget",
+    tokenBudgetHint: "tokens, optional",
     contentions: "Contentions",
     bothWant: "Both want",
     mergeConflictOn: "Merge conflict on",
@@ -390,5 +464,7 @@ export const copy = {
     handoffBody: (who: string, where: string) => `${who} wants to hand off ${where}`,
     contentionTitle: "Fleet contention",
     contentionBody: (kind: string, resource: string) => `${kind} on ${resource}`,
+    planTitle: "A plan waits for your rating",
+    planBody: (steps: number, where: string) => `${plural(steps, "step")} in ${where}`,
   },
 } as const;

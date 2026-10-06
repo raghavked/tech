@@ -158,6 +158,60 @@ describe("websocket server", () => {
     b.close();
   });
 
+  it("creates a plan-first session over the wire; a rating approves the plan and resumes the agent", async () => {
+    const a = new Client(url);
+    await a.open();
+    a.send({ type: "project.subscribe", projectId: "default", userId: "ana" } as never);
+    a.send({
+      type: "session.create",
+      sessionId: "s-plan",
+      title: "Plan first",
+      policy: { planFirst: true, tokenBudget: 9000 },
+    } as never);
+    a.send({ type: "join", sessionId: "s-plan", actor: ana, token: "secret", branch: "main" });
+    const joined = await a.until((s) => s.participants.ana?.role === "owner");
+    expect(joined.policy.planFirst).toBe(true);
+    expect(joined.policy.tokenBudget).toBe(9000);
+    expect(joined.policy.approvals).toEqual(DEFAULT_SESSION_POLICY.approvals);
+    a.ws.on("message", (raw) => {
+      const m = JSON.parse(raw.toString()) as ServerMessage;
+      if (m.type === "event" && m.event.kind === "approval.requested")
+        a.send({ type: "vote", approvalId: m.event.payload.approvalId, vote: "approve" });
+    });
+    a.send({
+      type: "directive",
+      input: {
+        text: "Build a ledger",
+        mode: "steer",
+        scope: "goal",
+        supersedes: [],
+        interrupt: false,
+      },
+    });
+    // The agent proposes and yields; nothing is written while the plan waits.
+    const proposed = await a.until(
+      (s) => s.activePlanId !== null && s.plans[s.activePlanId]?.status === "proposed",
+      15000,
+    );
+    expect(Object.keys(proposed.workspace)).toEqual([]);
+    expect(proposed.turns[proposed.turns.length - 1]?.reason).toBe("blocked");
+    const planId = proposed.activePlanId ?? "";
+    expect(() => a.send({ type: "plan.rate", planId, rating: 5, note: "good" })).not.toThrow();
+    await a.until((s) => s.plans[planId]?.status === "approved", 5000);
+    const done = await a.until(
+      (s) => s.turns.length > 0 && s.turns[s.turns.length - 1]?.summary.startsWith("DONE") === true,
+      15000,
+    );
+    expect(Object.keys(done.workspace)).toContain("src/build_a_ledger.mjs");
+    expect(done.plans[planId]?.status).toBe("done");
+    expect(done.plans[planId]?.steps.every((st) => st.actualTokens > 0)).toBe(true);
+    // The fleet report carries the plan.
+    const report = server.project("default").state().sessions["s-plan"]?.report;
+    expect(report?.plan?.status).toBe("done");
+    expect(report?.plan?.estTokens).toBe(1500);
+    a.close();
+  });
+
   it("persists to disk and a new host resumes the same state", async () => {
     const h = server.project("default").hosts.get("s1");
     expect(h).toBeDefined();

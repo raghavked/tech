@@ -7,6 +7,7 @@ import type {
   Actor,
   DirectiveInput,
   EventBody,
+  RiskClass,
   Role,
   SessionEvent,
   SessionPolicy,
@@ -14,11 +15,18 @@ import type {
   ToolResult,
   Usage,
 } from "@henosis/protocol";
-import { DirectiveInput as DirectiveInputSchema, MAIN_BRANCH, ROLE_RANK } from "@henosis/protocol";
+import {
+  DirectiveInput as DirectiveInputSchema,
+  MAIN_BRANCH,
+  Rating,
+  RiskClass as RiskClassSchema,
+  ROLE_RANK,
+} from "@henosis/protocol";
 import { requiresApproval } from "./approvals.js";
 import { shortId } from "./hash.js";
 import { type SerializedLog, SessionLog } from "./log.js";
 import { planMerge } from "./merge.js";
+import { activePlan, type PlanRecord, totalTokens } from "./plans.js";
 import { fold, rankOf, reduce, type SessionState } from "./state.js";
 import { type BlobStore, MemoryBlobStore, treeHash } from "./workspace.js";
 
@@ -32,6 +40,22 @@ export class KernelError extends Error {
 }
 
 export type EventListener = (event: SessionEvent, state: SessionState) => void;
+
+/** One step as the agent proposes it; the kernel numbers steps without an id (s1, s2...). */
+export interface PlanStepInput {
+  id?: string | undefined;
+  title: string;
+  detail?: string | undefined;
+  estTokens?: number | undefined;
+  risk?: RiskClass | undefined;
+}
+
+export interface PlanInput {
+  steps: PlanStepInput[];
+  rationale?: string | undefined;
+  /** Defaults to the session's goal; a plan is always for one goal. */
+  goal?: string | undefined;
+}
 
 export interface SessionOptions {
   store?: BlobStore;
@@ -204,6 +228,132 @@ export class Session {
       kind: "approval.voted",
       payload:
         rating === undefined ? { approvalId, vote, note } : { approvalId, vote, rating, note },
+    });
+  }
+
+  // ---- plan first ---------------------------------------------------------------------
+
+  /** The agent (or anyone in the session) proposes a plan for the current goal. */
+  proposePlan(branch: string, actorId: string, input: PlanInput): SessionEvent {
+    const s = this.state(branch);
+    this.requireParticipant(s, actorId);
+    const goal = input.goal ?? s.intent.goal?.text;
+    if (!goal) throw new KernelError("invalid", "there is no goal to plan for");
+    if (!input.steps.length) throw new KernelError("invalid", "a plan needs at least one step");
+    const seen = new Set<string>();
+    const steps = input.steps.map((st, i) => {
+      const id = st.id?.trim() || `s${i + 1}`;
+      if (seen.has(id)) throw new KernelError("invalid", `duplicate step id ${id}`);
+      seen.add(id);
+      if (!st.title.trim()) throw new KernelError("invalid", `step ${id} needs a title`);
+      const estTokens = Math.max(0, Math.round(st.estTokens ?? 0));
+      const risk = RiskClassSchema.safeParse(st.risk ?? "write");
+      if (!risk.success) throw new KernelError("invalid", `step ${id}: unknown risk ${st.risk}`);
+      return { id, title: st.title.trim(), detail: st.detail ?? "", estTokens, risk: risk.data };
+    });
+    const planId = shortId("plan", branch, s.seq + 1, goal, steps);
+    return this.emit(branch, actorId, {
+      kind: "plan.proposed",
+      payload: {
+        planId,
+        turn: s.turn,
+        goal,
+        steps,
+        estTokens: steps.reduce((n, st) => n + st.estTokens, 0),
+        rationale: input.rationale ?? "",
+      },
+    });
+  }
+
+  /** A human at contributor rank or above rates a proposed plan 1..5; the fold decides. */
+  ratePlan(
+    branch: string,
+    actorId: string,
+    planId: string,
+    rating: number,
+    note = "",
+  ): SessionEvent {
+    const s = this.state(branch);
+    const p = this.requirePlan(s, planId);
+    if (p.status !== "proposed") throw new KernelError("conflict", `plan is already ${p.status}`);
+    if (s.participants[actorId]?.actor.kind !== "human")
+      throw new KernelError("unauthorized", "only humans rate a plan");
+    if (rankOf(s, actorId) < ROLE_RANK.contributor)
+      throw new KernelError("unauthorized", "rating a plan requires contributor or above");
+    const parsed = Rating.safeParse(rating);
+    if (!parsed.success) throw new KernelError("invalid", "a rating is a whole number from 1 to 5");
+    return this.emit(branch, actorId, {
+      kind: "plan.rated",
+      payload: { planId, rating: parsed.data, note },
+    });
+  }
+
+  /** The driver or an owner decides a plan outright, over or before the ratings. */
+  decidePlan(
+    branch: string,
+    actorId: string,
+    planId: string,
+    status: "approved" | "revise" | "rejected",
+    note = "",
+  ): SessionEvent {
+    const s = this.state(branch);
+    const p = this.requirePlan(s, planId);
+    if (p.status !== "proposed" && p.status !== "approved")
+      throw new KernelError("conflict", `plan is already ${p.status}`);
+    if (rankOf(s, actorId) < ROLE_RANK.driver)
+      throw new KernelError("unauthorized", "deciding a plan requires the driver or an owner");
+    return this.emit(branch, actorId, {
+      kind: "plan.decided",
+      payload: { planId, status, note, by: actorId },
+    });
+  }
+
+  /**
+   * Start a step of the approved plan; the step that was running completes first, with the
+   * tokens spent since it started. Returns null when the step is already running.
+   */
+  startStep(
+    branch: string,
+    actorId: string,
+    planId: string | null,
+    stepId: string,
+  ): SessionEvent | null {
+    const s = this.state(branch);
+    this.requireParticipant(s, actorId);
+    const p = planId ? this.requirePlan(s, planId) : activePlan(s);
+    if (!p) throw new KernelError("not_found", "no plan to work on");
+    if (p.status !== "approved") throw new KernelError("conflict", `plan is ${p.status}`);
+    const st = p.steps.find((x) => x.id === stepId);
+    if (!st) throw new KernelError("not_found", `unknown step ${stepId}`);
+    if (st.status === "running") return null;
+    if (st.status === "done") throw new KernelError("conflict", `step ${stepId} is done`);
+    const running = p.steps.find((x) => x.status === "running");
+    if (running) this.completeStep(branch, actorId, p.id, running.id);
+    return this.emit(branch, actorId, {
+      kind: "plan.step.started",
+      payload: { planId: p.id, stepId, turn: s.turn },
+    });
+  }
+
+  /** Complete a running step; the tokens are what the branch spent since the step started. */
+  completeStep(
+    branch: string,
+    actorId: string,
+    planId: string | null,
+    stepId: string,
+    note = "",
+  ): SessionEvent {
+    const s = this.state(branch);
+    this.requireParticipant(s, actorId);
+    const p = planId ? this.requirePlan(s, planId) : activePlan(s);
+    if (!p) throw new KernelError("not_found", "no plan to work on");
+    const st = p.steps.find((x) => x.id === stepId);
+    if (!st) throw new KernelError("not_found", `unknown step ${stepId}`);
+    if (st.status !== "running") throw new KernelError("conflict", `step ${stepId} is not running`);
+    const tokens = Math.max(0, totalTokens(s.usage) - st.startedTokens);
+    return this.emit(branch, actorId, {
+      kind: "plan.step.completed",
+      payload: { planId: p.id, stepId, turn: s.turn, tokens, note },
     });
   }
 
@@ -459,6 +609,12 @@ export class Session {
     if (!s.participants[actorId]) {
       throw new KernelError("unauthorized", `${actorId} is not a participant on ${s.branch}`);
     }
+  }
+
+  private requirePlan(s: SessionState, planId: string): PlanRecord {
+    const p = s.plans[planId];
+    if (!p) throw new KernelError("not_found", `unknown plan ${planId}`);
+    return p;
   }
 
   private emit(branch: string, actor: string, body: EventBody): SessionEvent {

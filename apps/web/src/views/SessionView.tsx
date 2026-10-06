@@ -3,6 +3,8 @@ import {
   compactTokens,
   describeRule,
   formatTokens,
+  isRatingsRule,
+  planWaiting,
   ruleFor,
   type SessionState,
 } from "@henosis/kernel";
@@ -19,6 +21,7 @@ import {
 } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, refOf, type SessionRow, useFetch } from "../api.js";
+import { DEFAULT_RATING, ratingProgress } from "../approvalsQueue.js";
 import { HenosisClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import { EmptyState, OfflineState, useOffline, useOnline } from "../empty.js";
@@ -39,6 +42,7 @@ import { paths } from "../router.js";
 import { reportPendingApprovals } from "../shell.js";
 import type { ShortcutHandlers } from "../shortcuts.js";
 import { type Block, describeCall, estimateHeight, type Step } from "../stream/blocks.js";
+import { PlanCard } from "../stream/PlanCard.js";
 import { useBlocks } from "../stream/useBlocks.js";
 import { VirtualList } from "../stream/VirtualList.js";
 import {
@@ -47,6 +51,7 @@ import {
   ErrorLine,
   ICONS,
   Icon,
+  Stars,
   Status,
   TeamPill,
   TokenMeter,
@@ -69,6 +74,9 @@ const FLEET_KINDS = new Set<string>([
   "agent.turn.ended",
   "approval.requested",
   "approval.voted",
+  "plan.proposed",
+  "plan.rated",
+  "plan.decided",
   "session.closed",
 ]);
 
@@ -138,6 +146,13 @@ export function SessionView({
           );
         else if (e.kind === "note.posted" && e.actor !== identity.userId)
           notifyIfHidden(`${who(e.actor)} to the team`, e.payload.text, e.id, "team");
+        else if (e.kind === "plan.proposed")
+          notifyIfHidden(
+            copy.notify.planTitle,
+            copy.notify.planBody(e.payload.steps.length, where),
+            e.payload.planId,
+            "approval",
+          );
         else if (e.kind === "fleet.contention.mirrored" && !e.payload.resolved)
           notifyIfHidden(
             copy.notify.contentionTitle,
@@ -227,10 +242,22 @@ export function SessionView({
     (h) => h.status === "pending" && h.to === actor.id,
   );
   const waiting = pendingApprovals[0];
+  // Under a release gate a plain Approve carries the default rating; the notice offers the stars.
+  const waitingRated = waiting
+    ? isRatingsRule(ruleFor(s.policy.approvals, waiting.call.risk))
+    : false;
+  const planWaits = planWaiting(s);
   const shortcuts: ShortcutHandlers = {
     steer: () => focusSoon(".composer textarea"),
     approve: () =>
-      waiting && client.send({ type: "vote", approvalId: waiting.id, vote: "approve", note: "" }),
+      waiting &&
+      client.send({
+        type: "vote",
+        approvalId: waiting.id,
+        vote: "approve",
+        note: "",
+        ...(waitingRated ? { rating: DEFAULT_RATING } : {}),
+      }),
     deny: () =>
       waiting && client.send({ type: "vote", approvalId: waiting.id, vote: "deny", note: "" }),
     handoff: () => {
@@ -256,6 +283,7 @@ export function SessionView({
           <Status status={s.status} />
           {mine && <TeamPill row={mine} />}
           <TokenMeter usage={s.usage} budget={s.policy.tokenBudget} />
+          {planWaits && <span className="pill planning">{copy.plan.planning}</span>}
         </>
       }
       right={
@@ -389,6 +417,7 @@ export function SessionView({
             connected={snap.connected}
             queued={snap.queued}
             presence={snap.presence}
+            planWaits={planWaits}
             past={
               past ? (
                 <>
@@ -473,11 +502,13 @@ function Stream({
           return <div className={`divider${b.danger ? " danger" : ""}`}>{b.text}</div>;
         case "approval":
           return <ApprovalNotice s={s} id={b.approvalId} client={client} />;
+        case "plan":
+          return <PlanCard s={s} planId={b.planId} me={me} client={client} />;
         default:
           return null;
       }
     },
-    [s, client, openSteps, toggleStep],
+    [s, me, client, openSteps, toggleStep],
   );
   const name = (id: string) => s.participants[id]?.actor.name ?? id;
   const contentions = Object.values(s.contentions).filter((c) => !c.resolved);
@@ -613,8 +644,16 @@ function approvalSig(s: SessionState, id: string): string {
   const a = s.approvals[id];
   if (!a) return "";
   const name = (k: string) => s.participants[k]?.actor.name ?? k;
-  const votes = Object.entries(a.votes).map(([k, v]) => `${name(k)}=${v}`);
-  return [a.status, describeRule(ruleFor(s.policy.approvals, a.call.risk)), ...votes].join("|");
+  const votes = Object.entries(a.ballots).map(
+    ([k, b]) => `${name(k)}=${b.vote}:${b.rating ?? ""}:${b.note}`,
+  );
+  const gate = ratingProgress(s, a);
+  return [
+    a.status,
+    describeRule(ruleFor(s.policy.approvals, a.call.risk)),
+    gate ? `${gate.count}/${gate.min}/${gate.average}` : "",
+    ...votes,
+  ].join("|");
 }
 
 const ApprovalNotice = memo(ApprovalNoticeRow, (prev, next) => {
@@ -635,6 +674,9 @@ function ApprovalNoticeRow({
   client: HenosisClient;
 }) {
   const a = s.approvals[id];
+  // A release gate: the person picks a rating (and may add a note) before approving.
+  const [rating, setRating] = useState<number | null>(null);
+  const [note, setNote] = useState("");
   if (!a) return null;
   const name = (k: string) => s.participants[k]?.actor.name ?? k;
   const votes = Object.entries(a.votes);
@@ -650,35 +692,51 @@ function ApprovalNoticeRow({
       </div>
     );
   }
+  const rule = ruleFor(s.policy.approvals, a.call.risk);
+  const gate = ratingProgress(s, a);
+  const vote = (v: "approve" | "deny") =>
+    client.send({
+      type: "vote",
+      approvalId: a.id,
+      vote: v,
+      note: note.trim(),
+      ...(gate && v === "approve" ? { rating: rating ?? DEFAULT_RATING } : {}),
+    });
   return (
     <div className="notice">
-      <span>
-        {copy.approval.wants(
-          d.ask,
-          a.call.risk,
-          describeRule(ruleFor(s.policy.approvals, a.call.risk)),
-        )}
-      </span>
+      <span>{copy.approval.wants(d.ask, a.call.risk, describeRule(rule))}</span>
       {votes.length > 0 && (
         <span className="small muted">
-          {votes.map(([k, v]) => copy.approval.vote(name(k), v === "approve")).join(" · ")}
+          {votes
+            .map(([k, v]) =>
+              copy.approval.vote(name(k), v === "approve", a.ballots[k]?.rating ?? null),
+            )
+            .join(" · ")}
         </span>
       )}
+      {gate && (
+        <div className="rating">
+          <Stars value={rating} onChange={setRating} />
+          <input
+            className="input sm note"
+            aria-label={copy.approval.noteHint}
+            placeholder={copy.approval.noteHint}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <span className="small muted progress">
+            {copy.approval.progress(gate.count, gate.min, gate.average)}
+          </span>
+        </div>
+      )}
       <div className="actions">
-        <button
-          type="button"
-          className="btn primary sm"
-          onClick={() => client.send({ type: "vote", approvalId: a.id, vote: "approve", note: "" })}
-        >
+        <button type="button" className="btn primary sm" onClick={() => vote("approve")}>
           {copy.approval.approve}
         </button>
-        <button
-          type="button"
-          className="btn sm"
-          onClick={() => client.send({ type: "vote", approvalId: a.id, vote: "deny", note: "" })}
-        >
+        <button type="button" className="btn sm" onClick={() => vote("deny")}>
           {copy.approval.deny}
         </button>
+        {gate && rating === null && <span className="small faint">{copy.approval.rateHint}</span>}
       </div>
     </div>
   );
@@ -696,6 +754,7 @@ function Composer({
   queued,
   past = null,
   presence,
+  planWaits = false,
 }: {
   s: SessionState;
   me: Actor;
@@ -706,6 +765,8 @@ function Composer({
   /** replay-scrubber: when set, the composer is disabled and this replaces the hint. */
   past?: ReactNode;
   presence: PresenceEntry[];
+  /** Plan first: a proposed plan waits for the team's ratings. */
+  planWaits?: boolean;
 }) {
   const [text, setText] = useState("");
   const [scope, setScope] = useState("goal");
@@ -755,6 +816,11 @@ function Composer({
   };
   return (
     <div className="composer-wrap">
+      {planWaits && past === null && (
+        <p className="plan-waits small muted" role="status">
+          {copy.composer.planWaits}
+        </p>
+      )}
       <p className="composing small faint" aria-live="polite">
         {writing ?? ""}
       </p>

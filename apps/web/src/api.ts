@@ -56,13 +56,15 @@ export interface MemoryQuery {
 export interface Notification {
   id: string;
   userId: string;
-  kind: "approval" | "handoff" | "contention" | "done" | "blocked";
+  kind: "approval" | "handoff" | "contention" | "done" | "blocked" | "plan";
   title: string;
   body: string;
   /** henosis://p/<project>/s/<session> */
   link: string;
-  /** The approvalId, handoffId or contentionId behind the item, when there is one to act on. */
+  /** The approvalId, handoffId, contentionId or planId behind the item, when there is one to act on. */
   ref?: string;
+  /** An approval under a release gate: Approve carries a 1..5 rating. */
+  ratings?: boolean;
   at: number;
   read: boolean;
 }

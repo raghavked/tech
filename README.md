@@ -42,6 +42,10 @@ Claude on the web, Claude Desktop and Claude mobile are one product. Brand and m
 - **Authority and approvals.** Observer < contributor < driver < owner, with the driver seat
   as a transferable token. Tool calls carry a risk class; irreversible ones need a quorum of
   distinct humans, and approvals are bound to the hash of the exact call.
+- **Plan first, and release gates rated by the people who consume the code.** The agent
+  proposes steps with token estimates before it may change anything; the team rates the plan
+  one to five and the kernel approves it in the fold; each step records what it actually
+  cost. A push or a deploy waits until enough raters approve it with a high enough average.
 - **Fork and merge.** Branch at a checkpoint; merge with a three-way workspace merge and
   directive carry-over that turns conflicting steers into contentions instead of overrides.
 - **Handoff with a computed brief.** The incoming driver gets situation, open items, what

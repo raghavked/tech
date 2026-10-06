@@ -5,6 +5,7 @@
  */
 import type { SessionEvent } from "@henosis/protocol";
 import { describeRule, ruleFor } from "./approvals.js";
+import { activePlan, planActualTokens, ratingSummary } from "./plans.js";
 import type { SessionState } from "./state.js";
 import { budgetStatus, describeBudget, describeUsage, formatTokens } from "./usage.js";
 
@@ -53,10 +54,28 @@ export function handoffBrief(state: SessionState, opts: BriefOptions = {}): stri
     lines.push("Constraints:");
     for (const c of state.intent.constraints) lines.push(`- ${c.text} (${name(c.author)})`);
   }
+  const plan = activePlan(state);
+  if (plan) {
+    const done = plan.steps.filter((s) => s.status === "done").length;
+    lines.push(
+      `Plan: ${plan.status}; ${done} of ${plan.steps.length} steps done; ${planActualTokens(plan)} of ~${plan.estTokens} tokens${
+        state.policy.tokenBudget ? ` (budget ${state.policy.tokenBudget})` : ""
+      }.`,
+    );
+    for (const s of plan.steps)
+      lines.push(`- [${s.status}] ${s.title} (${s.risk}, ~${s.estTokens})`);
+  }
   lines.push("");
 
   lines.push("## Open items");
   let open = 0;
+  if (plan?.status === "proposed" && state.policy.planFirst) {
+    open++;
+    const r = ratingSummary(plan);
+    lines.push(
+      `- Plan waiting for ratings: ${r.count} of ${state.policy.planApproval.min} needed, average ${r.average} (needs ${state.policy.planApproval.average}+)`,
+    );
+  }
   for (const c of Object.values(state.contentions).filter((c) => !c.resolved)) {
     open++;
     lines.push(`- Contention on [${c.scope}] between:`);
@@ -122,7 +141,15 @@ export function handoffBrief(state: SessionState, opts: BriefOptions = {}): stri
       if (e.kind === "contention.resolved")
         decisions.push(`${name(e.actor)} resolved contention ${e.payload.contentionId}`);
       if (e.kind === "approval.voted")
-        decisions.push(`${name(e.actor)} voted ${e.payload.vote} on ${e.payload.approvalId}`);
+        decisions.push(
+          `${name(e.actor)} voted ${e.payload.vote}${e.payload.rating ? ` (${e.payload.rating}/5)` : ""} on ${e.payload.approvalId}`,
+        );
+      if (e.kind === "plan.rated")
+        decisions.push(`${name(e.actor)} rated the plan ${e.payload.rating}/5`);
+      if (e.kind === "plan.decided")
+        decisions.push(
+          `${e.payload.by === "policy" ? "The team's ratings" : name(e.actor)} marked the plan ${e.payload.status}`,
+        );
       if (e.kind === "handoff.accepted") decisions.push(`${name(e.actor)} took over as driver`);
       if (e.kind === "note.posted") decisions.push(`${name(e.actor)} noted: ${e.payload.text}`);
     }

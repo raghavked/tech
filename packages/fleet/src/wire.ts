@@ -1,5 +1,5 @@
 /** Project-level websocket messages, layered beside the session messages. */
-import { DirectiveInput } from "@henosis/protocol";
+import { DirectiveInput, SessionPolicyPatch } from "@henosis/protocol";
 import { z } from "zod";
 import { ClaimMode, ProjectEventBody, Resource } from "./events.js";
 
@@ -37,7 +37,13 @@ export const ProjectClientMessage = z.discriminatedUnion("type", [
     sessionId: z.string(),
     crew: z.string().nullable(),
   }),
-  z.object({ type: z.literal("session.create"), sessionId: z.string(), title: z.string() }),
+  z.object({
+    type: z.literal("session.create"),
+    sessionId: z.string(),
+    title: z.string(),
+    /** Over the project's default: plan first, the rating bar, a token budget. */
+    policy: SessionPolicyPatch.optional(),
+  }),
 ]);
 export type ProjectClientMessage = z.infer<typeof ProjectClientMessage>;
 

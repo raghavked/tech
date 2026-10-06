@@ -31,10 +31,15 @@ test("two people share one live agent session in the browser", async ({ browser 
   await expect(details(ana)).toContainText("Bo");
   await expect(conversation(ana)).toContainText("Bo joined as contributor");
 
-  // Ana sets the goal; the agent starts and asks for approval to run tests.
+  // Ana sets the goal. Sessions from the home page plan first: the agent proposes, Ana rates
+  // the plan, then the agent starts and asks for approval to run tests.
   await ana.getByPlaceholder("Steer the agent").fill("Build a greeter");
   await ana.getByPlaceholder("Steer the agent").press("Enter");
   await expect(conversation(bo)).toContainText("Build a greeter");
+  const plan = ana.getByRole("region", { name: "Plan" });
+  await expect(plan).toContainText("Waiting for ratings", { timeout: 30_000 });
+  await plan.getByRole("button", { name: "Rate 5 of 5" }).click();
+  await expect(bo.getByRole("region", { name: "Plan" })).toContainText("approved");
   await expect(conversation(bo)).toContainText("The agent wants to run", { timeout: 30_000 });
   await expect(conversation(bo)).toContainText("Wrote src/build_a_greeter.mjs");
 

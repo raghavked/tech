@@ -13,7 +13,8 @@ import WebSocket from "ws";
 const HELP = `Type text to steer the goal. Commands:
   /scope <name> <text>     steer a named scope        /constrain <text>   add a constraint
   /interrupt <text>        redirect now               /pause | /resume | /cancel
-  /approve <id> | /deny <id>                          /resolve <contention> <winner-directive>
+  /approve <id> [1-5] | /deny <id>                    /resolve <contention> <winner-directive>
+  /rate <plan> <1-5> [note]                           /plan <approved|revise|rejected> <plan> [note]
   /handoff <actor>  /accept <id>  /decline <id>       /role <actor> <observer|contributor|driver|owner>
   /fork <branch>  /merge <branch>  /switch <branch>   /checkpoint [label]
   /brief  /state  /files  /note <text>  /quit`;
@@ -127,12 +128,28 @@ function parseLine(
       return directive({ text: text || "resume", mode: "resume" });
     case "cancel":
       return directive({ text: text || "cancel", mode: "cancel" });
-    case "approve":
+    case "approve": {
+      const n = Number(rest[1]);
+      const rating = Number.isInteger(n) && n >= 1 && n <= 5 ? n : 5;
       return rest[0]
-        ? { type: "vote", approvalId: rest[0], vote: "approve", rating: 5, note: "" }
+        ? { type: "vote", approvalId: rest[0], vote: "approve", rating, note: "" }
         : null;
+    }
     case "deny":
       return rest[0] ? { type: "vote", approvalId: rest[0], vote: "deny", note: "" } : null;
+    case "rate": {
+      const rating = Number(rest[1]);
+      return rest[0] && Number.isInteger(rating) && rating >= 1 && rating <= 5
+        ? { type: "plan.rate", planId: rest[0], rating, note: rest.slice(2).join(" ") }
+        : null;
+    }
+    case "plan": {
+      const status = rest[0];
+      const planId = rest[1];
+      return planId && (status === "approved" || status === "revise" || status === "rejected")
+        ? { type: "plan.decide", planId, status, note: rest.slice(2).join(" ") }
+        : null;
+    }
     case "resolve":
       return rest[0] ? { type: "resolve", contentionId: rest[0], winner: rest[1] ?? null } : null;
     case "handoff":
@@ -213,7 +230,19 @@ export function describe(e: SessionEvent, s: SessionState | null): string {
     case "approval.requested":
       return `APPROVAL NEEDED ${e.payload.approvalId}: ${e.payload.call.name} [${e.payload.call.risk}] ${JSON.stringify(e.payload.call.args)}  -> /approve ${e.payload.approvalId}`;
     case "approval.voted":
-      return `${who} voted ${e.payload.vote} on ${e.payload.approvalId} (${s?.approvals[e.payload.approvalId]?.status})`;
+      return `${who} voted ${e.payload.vote}${e.payload.rating ? ` ${e.payload.rating}/5` : ""} on ${e.payload.approvalId} (${s?.approvals[e.payload.approvalId]?.status})`;
+    case "plan.proposed":
+      return `PLAN PROPOSED ${e.payload.planId} (~${e.payload.estTokens} tokens):\n${e.payload.steps
+        .map((st) => `  ${st.id} ${st.title} [${st.risk}, ~${st.estTokens}]`)
+        .join("\n")}\n  -> /rate ${e.payload.planId} <1-5>`;
+    case "plan.rated":
+      return `${who} rated plan ${e.payload.planId} ${e.payload.rating}/5 (${s?.plans[e.payload.planId]?.status})`;
+    case "plan.decided":
+      return `${who} marked plan ${e.payload.planId} ${e.payload.status}${e.payload.note ? `: ${e.payload.note}` : ""}`;
+    case "plan.step.started":
+      return `agent: step ${e.payload.stepId} started`;
+    case "plan.step.completed":
+      return `agent: step ${e.payload.stepId} done (${e.payload.tokens} tokens)`;
     case "handoff.requested":
       return `${who} offers the driver seat to ${e.payload.to} -> /accept ${e.payload.handoffId}`;
     case "handoff.accepted":

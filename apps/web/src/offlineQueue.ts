@@ -16,6 +16,8 @@ export interface QueuedMessage {
 const QUEUEABLE = new Set<ClientMessage["type"]>([
   "directive",
   "vote",
+  "plan.rate",
+  "plan.decide",
   "handoff.request",
   "handoff.accept",
   "handoff.decline",
@@ -38,7 +40,17 @@ export function describeQueued(msg: ClientMessage, who: (id: string) => string =
       return `${tag}${i.text}`;
     }
     case "vote":
-      return `${msg.vote === "approve" ? "Approve" : "Deny"} ${msg.approvalId.slice(0, 8)}`;
+      return `${msg.vote === "approve" ? "Approve" : "Deny"} ${msg.approvalId.slice(0, 8)}${
+        msg.rating ? ` · ${msg.rating} of 5` : ""
+      }`;
+    case "plan.rate":
+      return `Rate the plan ${msg.rating} of 5`;
+    case "plan.decide":
+      return msg.status === "approved"
+        ? "Approve the plan"
+        : msg.status === "revise"
+          ? "Ask for a revised plan"
+          : "Reject the plan";
     case "handoff.request":
       return `Hand off to ${who(msg.to)}`;
     case "handoff.accept":

@@ -78,12 +78,33 @@ assign roles; drivers and owners resolve contentions, merge, resume and cancel; 
 steer, constrain, pause, fork and vote; observers watch and ask for briefs.
 
 Every tool has a risk class: `read`, `write`, `exec`, `external`, `irreversible`. A session
-policy maps each class to an approval rule: none, one contributor, one driver, one owner, or
-an M-of-N quorum of a role. The default requires one contributor for `exec`, the driver for
-`external`, and two drivers or owners for `irreversible`. Only humans vote; a deny by any
-eligible voter denies; votes are events bound to the approval id, which is derived from the
-content hash of the exact call. "Two people approving two different realities" cannot happen
-because the thing approved is the hash.
+policy maps each class to an approval rule: none, one contributor, one driver, one owner, an
+M-of-N quorum of a role, or a **release gate** `{ ratings: { min, average, of } }` that grants
+only when `min` approvals from people at `of` or above carry ratings averaging `average` or
+more. The default requires one contributor for `exec`, the driver for `external`, and a gate
+of two contributors at 4+ for `irreversible`. Only humans vote; a deny by any eligible voter
+denies; an unrated approve under a gate is a voice, not a vote; votes are events bound to the
+approval id, which is derived from the content hash of the exact call. "Two people approving
+two different realities" cannot happen because the thing approved is the hash.
+
+### Plans
+
+With `planFirst` on, the agent may read but not change anything until a plan for the current
+goal is approved. The agent proposes (`plan.proposed`: steps with a title, detail, a token
+estimate and a risk class); humans at contributor rank or above rate it 1..5 (`plan.rated`,
+one rating per person); the reducer marks the plan approved with `decidedBy: "policy"` the
+moment the policy's `planApproval { min, average }` is met. No second event is written for
+that: the approval is derived in the fold, so every replica agrees on when the bar was met.
+The driver or an owner may decide outright (`plan.decided`: approved, revise, rejected). A new
+proposal supersedes the active plan, whatever its status, and the plan is keyed to the goal
+text, so a changed goal needs a new plan. `gateForCall(state, call)` is the one function the
+runner asks; it refuses every call above `read` with a tool result the model reads.
+
+Steps run one at a time: `plan.step.started` when the agent moves to a step (or the runner
+starts the first pending one), `plan.step.completed` with the tokens spent since it started,
+computed from the session's running usage total, which the reducer sums from every
+`agent.model.completed`. The plan is done when every step is. Token budgets are soft: the
+agent is told what it has spent; nothing is cut off.
 
 ## 4. Fork and merge
 

@@ -52,6 +52,7 @@ async function steer(page: Page, text: string, scope?: string) {
 }
 
 const approve = (page: Page) => page.getByRole("button", { name: "Approve", exact: true });
+const planCard = (page: Page) => page.getByRole("region", { name: "Plan" }).last();
 
 test("a lead's project direction reaches a session and leaves when withdrawn", async ({
   browser,
@@ -170,6 +171,90 @@ test("the memory panel shows an entry attributed to the engineer", async ({ page
   const team = page.getByRole("region", { name: "Team memory" });
   await expect(team).toContainText(key, { timeout: 15_000 });
   await expect(team).toContainText(`Ana · ${session}`);
+});
+
+test("plan first: the agent proposes, Ana rates it, the plan is approved and the agent proceeds", async ({
+  page,
+}) => {
+  const t = token();
+  const session = `e2e-plan-${t}`;
+  await signIn(page, "Ana", "ana");
+
+  // A new session from the project page: plan first is on by default.
+  await page.goto("/#/p/e2e-plan");
+  const agents = page.getByRole("region", { name: "Agents" });
+  await agents.getByRole("button", { name: "New session" }).click();
+  await expect(page.getByLabel("Plan first")).toBeChecked();
+  await page.getByLabel("Token budget").fill("20000");
+  await page.getByLabel("Title", { exact: true }).fill(`Plan ${t}`);
+  await page.getByLabel("Session id", { exact: true }).fill(session);
+  await page.getByRole("button", { name: "Open", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`#/p/e2e-plan/s/${session}`));
+  await expect(page.getByLabel("Directive", { exact: true })).toBeVisible();
+
+  // The goal brings a plan, not work: the card, the pill and the quiet line under the composer.
+  await steer(page, `Build a widget ${t}`);
+  const plan = planCard(page);
+  await expect(plan).toBeVisible({ timeout: 15_000 });
+  await expect(plan).toContainText("Plan · 2 steps");
+  await expect(plan).toContainText("Waiting for ratings");
+  await expect(plan).toContainText(`Write src/build_a_widget_${t}.mjs`);
+  await expect(plan).toContainText("budget 20,000 tokens");
+  await expect(page.getByText("The plan waits for ratings")).toBeVisible();
+  await expect(page.getByText("Planning", { exact: true })).toBeVisible();
+  await expect(conversation(page)).not.toContainText("Wrote src/");
+
+  // Ana rates it 5: one rating at 3 or above is the default bar, so the plan is approved.
+  await plan.getByRole("button", { name: "Rate 5 of 5" }).click();
+  await expect(plan).toContainText("1 of 1 ratings · 5 average · approved");
+  await expect(plan).toContainText("Ana rated it 5");
+  await expect(page.getByText("The plan waits for ratings")).toHaveCount(0);
+
+  // The agent proceeds through its steps and asks for the test run as usual.
+  await expect(conversation(page)).toContainText(`Wrote src/build_a_widget_${t}.mjs`, {
+    timeout: 15_000,
+  });
+  await expect(approve(page)).toBeVisible({ timeout: 15_000 });
+  await approve(page).click();
+  await expect(conversation(page)).toContainText("Done:", { timeout: 15_000 });
+  await expect(plan).toContainText("Done");
+  await expect(plan).toContainText(/\d+ used/);
+});
+
+test("a deploy waits until two contributors rate it 4 or better", async ({ browser }) => {
+  const t = token();
+  const session = `e2e-gate-${t}`;
+  const ana = await browser.newPage();
+  await enter(ana, "Ana", "ana", "e2e-gate", session);
+  const bo = await browser.newPage();
+  await enter(bo, "Bo", "bo", "e2e-gate", session);
+  const cy = await browser.newPage();
+  await enter(cy, "Cy", "cy", "e2e-gate", session);
+  await expect(conversation(ana)).toContainText("Cy joined as contributor");
+
+  // The test run needs one contributor; Ana approves it without a rating.
+  await steer(ana, `Build a doubler ${t} and deploy it`);
+  await expect(conversation(ana)).toContainText("The agent wants to run", { timeout: 15_000 });
+  await approve(ana).click();
+  await expect(conversation(ana)).toContainText("Approved: run", { timeout: 15_000 });
+
+  // The deploy is a release gate: two contributors or above, rating it 4+ on average.
+  await expect(conversation(bo)).toContainText("deploy to production", { timeout: 15_000 });
+  await expect(conversation(bo)).toContainText("2 contributors or above rating it 4+ of 5");
+  await expect(bo.getByRole("button", { name: "Rate 3 of 5" })).toBeVisible();
+
+  // Bo rates it 3 and approves: one rater, and the average is short.
+  await bo.getByRole("button", { name: "Rate 3 of 5" }).click();
+  await approve(bo).click();
+  await expect(conversation(ana)).toContainText("Bo approved · 3 of 5");
+  await expect(conversation(ana)).toContainText("1 of 2 raters · 3 average");
+  await expect(conversation(ana)).not.toContainText("Deployed to production");
+
+  // Cy rates it 5: two raters, an average of 4, the deploy goes.
+  await cy.getByRole("button", { name: "Rate 5 of 5" }).click();
+  await approve(cy).click();
+  await expect(conversation(ana)).toContainText("Approved: deploy to production");
+  await expect(conversation(ana)).toContainText("Deployed to production", { timeout: 15_000 });
 });
 
 test("the inbox lists an approval waiting and opens the session to it", async ({ page }) => {

@@ -241,6 +241,14 @@ export class SessionHost {
         case "vote":
           s.vote(b, me, msg.approvalId, msg.vote, msg.rating, msg.note);
           break;
+        // Plan first: a rating or a decision may approve the plan; the drive below resumes the
+        // runner, the way a granted approval does.
+        case "plan.rate":
+          s.ratePlan(b, me, msg.planId, msg.rating, msg.note);
+          break;
+        case "plan.decide":
+          s.decidePlan(b, me, msg.planId, msg.status, msg.note);
+          break;
         case "handoff.request":
           s.requestHandoff(b, me, msg.to);
           break;

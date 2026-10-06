@@ -1,9 +1,17 @@
 /** The command-palette actions of one session page; SessionView registers them. */
-import type { SessionState } from "@henosis/kernel";
+import { isRatingsRule, ruleFor, type SessionState } from "@henosis/kernel";
 import type { Actor } from "@henosis/protocol";
+import { DEFAULT_RATING } from "../approvalsQueue.js";
 import type { HenosisClient } from "../client.js";
+import { copy } from "../copy.js";
 import type { PaletteAction } from "../palette.js";
 import { ICONS } from "../ui.js";
+
+/** "4" or "" to the default; anything outside 1..5 is the default too. */
+export function ratingOf(text: string, fallback = DEFAULT_RATING): number {
+  const n = Number.parseInt(text.trim(), 10);
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : fallback;
+}
 
 export function sessionCommands({
   s,
@@ -43,14 +51,33 @@ export function sessionCommands({
   ];
   for (const a of Object.values(s.approvals)
     .filter((a) => a.status === "pending")
-    .slice(0, 5))
-    out.push({
-      id: `approve:${a.id}`,
-      label: `Approve ${a.call.name} (${a.call.risk})`,
-      icon: ICONS.check,
-      hint: "pending",
-      run: () => client.send({ type: "vote", approvalId: a.id, vote: "approve", note: "" }),
-    });
+    .slice(0, 5)) {
+    // A release gate asks for the rating first; Enter alone sends the default.
+    if (isRatingsRule(ruleFor(s.policy.approvals, a.call.risk)))
+      out.push({
+        id: `approve:${a.id}`,
+        label: copy.approval.approveRated(a.call.name, a.call.risk),
+        icon: ICONS.check,
+        hint: "pending",
+        prompt: copy.approval.ratePrompt,
+        run: (text) =>
+          client.send({
+            type: "vote",
+            approvalId: a.id,
+            vote: "approve",
+            note: "",
+            rating: ratingOf(text),
+          }),
+      });
+    else
+      out.push({
+        id: `approve:${a.id}`,
+        label: `Approve ${a.call.name} (${a.call.risk})`,
+        icon: ICONS.check,
+        hint: "pending",
+        run: () => client.send({ type: "vote", approvalId: a.id, vote: "approve", note: "" }),
+      });
+  }
   if (s.driver === me.id)
     for (const p of Object.values(s.participants))
       if (p.actor.kind === "human" && p.actor.id !== me.id)

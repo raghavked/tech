@@ -7,19 +7,22 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ProjectEvent } from "@henosis/fleet";
-import type { SessionEvent } from "@henosis/protocol";
+import { isRatingsRule, ruleFor } from "@henosis/kernel";
+import type { SessionEvent, SessionPolicy } from "@henosis/protocol";
 import { atomicWrite } from "./storage.js";
 
 export interface Notification {
   id: string;
   userId: string;
-  kind: "approval" | "handoff" | "contention" | "done" | "blocked";
+  kind: "approval" | "handoff" | "contention" | "done" | "blocked" | "plan";
   title: string;
   body: string;
   /** Deep link understood by every shell: henosis://p/<project>/s/<session> */
   link: string;
-  /** What the shell acts on inline: the approvalId, handoffId or contentionId behind this item. */
+  /** What the shell acts on inline: the approvalId, handoffId, contentionId or planId behind this item. */
   ref?: string;
+  /** An approval under a release gate: the shell asks for a 1..5 rating with the approve. */
+  ratings?: boolean;
   at: number;
   read: boolean;
 }
@@ -108,6 +111,7 @@ export class Notifier {
     sessionId: string,
     e: SessionEvent,
     participants: { id: string; name: string; role: string; isDriver: boolean; kind: string }[],
+    policy?: SessionPolicy,
   ): void {
     const link = `henosis://p/${projectId}/s/${sessionId}`;
     const humans = participants.filter((p) => p.kind === "human");
@@ -115,6 +119,9 @@ export class Notifier {
     switch (e.kind) {
       case "approval.requested": {
         const eligible = humans.filter((p) => p.role !== "observer");
+        const ratings = policy
+          ? isRatingsRule(ruleFor(policy.approvals, e.payload.call.risk))
+          : false;
         for (const p of eligible)
           this.notify(p.id, {
             kind: "approval",
@@ -122,6 +129,18 @@ export class Notifier {
             body: `${e.payload.call.name} [${e.payload.call.risk}] in ${sessionId}`,
             link,
             ref: e.payload.approvalId,
+            ...(ratings ? { ratings: true } : {}),
+          });
+        break;
+      }
+      case "plan.proposed": {
+        for (const p of humans.filter((p) => p.role !== "observer"))
+          this.notify(p.id, {
+            kind: "plan",
+            title: "A plan waits for your rating",
+            body: `${e.payload.steps.length} steps, about ${e.payload.estTokens} tokens, in ${sessionId}`,
+            link,
+            ref: e.payload.planId,
           });
         break;
       }

@@ -48,6 +48,24 @@ the next person with a brief the system wrote.
 | **Remember** | An agent or human records a fact | Attributed to the engineer, session and commit; scoped; conflicts surfaced by name |
 | **Curator** | Runs on a schedule | Compacts with attribution, flags stale agent-written entries, lists conflicts |
 
+## Plan first and release gates
+
+Everything is planned out first and then implemented, with approval ratings before the code
+is pushed, from the people who consume it.
+
+| Primitive | What the user does | What the system guarantees |
+|---|---|---|
+| **Plan** | Set a goal in a plan-first session | The agent proposes steps (title, detail, token estimate, risk) before any work; the plan is a card in the stream; the session shows *Planning* and the composer says the plan waits |
+| **Rate** | Pick one to five stars on the plan, with a note | One rating per person, contributor or above; the kernel approves the plan when the policy's count and average are met (default: one rating at 3+), derived in the fold, so every replica agrees |
+| **Decide** | An owner or the driver clicks Approve now, Ask to revise or Reject | Overrides the ratings; a revision brings a new plan that supersedes the old one; a rejection stops the agent until someone steers again |
+| **Gate** | Nothing | While the plan waits, every tool call above `read` is refused with a result the model reads: "the plan is not approved yet; wait or revise" |
+| **Steps** | Watch the rows | The agent marks the step it is on; each step records the tokens it took beside its estimate; the plan is done when every step is; the totals sit against the session's token budget |
+| **Release gate** | Rate an approval under a ratings rule | A rule `{ ratings: { min, average, of } }` grants only when enough people at that role approve with a high enough average (default for `irreversible`: two contributors at 4+); an unrated approve is a voice, not a vote; the notice, the queue, the inbox and the palette all take the rating; Approve without a pick sends 4 |
+
+The new-session forms (home and project page) carry *Plan first* (on by default) and an
+optional *Token budget*. Budgets are soft: the agent is told what it has spent, the card shows
+it, nothing is cut off.
+
 ## Surfaces
 
 - **Web client** (`apps/web`): the agents rail, the event stream with team messages, the
@@ -72,9 +90,11 @@ roles, everything a driver can). The first human into a new session owns it.
 ## Policies a session is created with
 
 - Approval rules per risk class (`read`, `write`, `exec`, `external`, `irreversible`).
-  Default: exec needs a contributor, external the driver, irreversible two drivers.
+  Default: exec needs a contributor, external the driver, irreversible a release gate of two
+  contributors rating it 4+ on average.
 - Contention policy: `block` (default), `latest-wins`, `driver-wins`.
 - Turn budget.
+- Plan first (`planFirst`, with `planApproval { min, average }`) and a soft token budget.
 - Token budget (soft): input plus output tokens the branch may spend before the meter turns.
 
 ### Token usage

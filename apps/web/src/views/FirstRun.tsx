@@ -4,6 +4,8 @@
  */
 import { type ReactNode, useMemo, useState } from "react";
 import type { Me, ProjectRef } from "../api.js";
+import { wsUrl } from "../client.js";
+import { copy } from "../copy.js";
 import {
   DEMO_PROJECT,
   DemoRow,
@@ -13,8 +15,57 @@ import {
   useOnline,
 } from "../empty.js";
 import { type Identity, slugify } from "../identity.js";
+import { createSession } from "../projectClient.js";
 import { navigate, paths } from "../router.js";
 import { ICONS, Icon } from "../ui.js";
+
+/** The policy fields a new session starts with: plan first (on) and an optional token budget. */
+export function PolicyFields({
+  planFirst,
+  budget,
+  onPlanFirst,
+  onBudget,
+  idPrefix,
+}: {
+  planFirst: boolean;
+  budget: string;
+  onPlanFirst: (v: boolean) => void;
+  onBudget: (v: string) => void;
+  idPrefix: string;
+}) {
+  return (
+    <div className="row small policy-row">
+      <label htmlFor={`${idPrefix}-plan-first`} title={copy.home.planFirstHint}>
+        <input
+          id={`${idPrefix}-plan-first`}
+          type="checkbox"
+          checked={planFirst}
+          onChange={(e) => onPlanFirst(e.target.checked)}
+        />
+        {copy.home.planFirst}
+      </label>
+      <label htmlFor={`${idPrefix}-budget`}>
+        <span className="muted">{copy.home.tokenBudget}</span>
+        <input
+          id={`${idPrefix}-budget`}
+          className="input sm mono budget"
+          type="number"
+          min={1}
+          inputMode="numeric"
+          placeholder={copy.home.tokenBudgetHint}
+          value={budget}
+          onChange={(e) => onBudget(e.target.value)}
+        />
+      </label>
+    </div>
+  );
+}
+
+/** What the fields say, as the wire's partial policy. */
+export function policyOf(planFirst: boolean, budget: string) {
+  const n = Number.parseInt(budget, 10);
+  return { planFirst, tokenBudget: Number.isInteger(n) && n > 0 ? n : null };
+}
 
 interface Team {
   id: string;
@@ -196,6 +247,9 @@ function OpenSession({ identity, team }: { identity: Identity; team: Team | null
   const projects = team?.projects ?? [];
   const [sessionId, setSessionId] = useState("");
   const [project, setProject] = useState(DEMO_PROJECT);
+  const [planFirst, setPlanFirst] = useState(true);
+  const [budget, setBudget] = useState("");
+  const [opening, setOpening] = useState(false);
   const pid = projects.some((p) => p.projectId === project)
     ? project
     : (projects[0]?.projectId ?? DEMO_PROJECT);
@@ -218,8 +272,19 @@ function OpenSession({ identity, team }: { identity: Identity; team: Team | null
         onSubmit={(e) => {
           e.preventDefault();
           const id = slugify(sessionId);
-          if (!id) return;
-          navigate(paths.session(pid, id));
+          if (!id || opening) return;
+          // The session is created with its policy first; an existing one is left as it is.
+          setOpening(true);
+          createSession(wsUrl(), {
+            projectId: pid,
+            userId: identity.userId,
+            sessionId: id,
+            title: id,
+            policy: policyOf(planFirst, budget),
+          }).finally(() => {
+            setOpening(false);
+            navigate(paths.session(pid, id));
+          });
         }}
       >
         {projects.length > 1 ? (
@@ -243,10 +308,17 @@ function OpenSession({ identity, team }: { identity: Identity; team: Team | null
           value={sessionId}
           onChange={(e) => setSessionId(e.target.value)}
         />
-        <button type="submit" className="btn sm">
+        <button type="submit" className="btn sm" disabled={opening}>
           Open session
         </button>
       </form>
+      <PolicyFields
+        planFirst={planFirst}
+        budget={budget}
+        onPlanFirst={setPlanFirst}
+        onBudget={setBudget}
+        idPrefix="home"
+      />
     </>
   );
 }

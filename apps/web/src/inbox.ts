@@ -209,11 +209,15 @@ function awaitEvent(
   });
 }
 
-/** Vote on an approval from the inbox; the words that come back are what the row shows. */
+/**
+ * Vote on an approval from the inbox; the words that come back are what the row shows. Under
+ * a release gate the approve carries `rating` (the row's stars, or the default).
+ */
 export async function voteFromInbox(
   identity: Identity,
   n: Notification,
   vote: "approve" | "deny",
+  rating: number | null = null,
 ): Promise<string> {
   const { projectId, sessionId } = linkOf(n.link);
   if (!sessionId || !n.ref) throw new Error("Open the session to vote on this");
@@ -225,7 +229,13 @@ export async function voteFromInbox(
       return a.status === "granted" ? "Already approved" : "Already denied";
     if (a.votes[identity.userId])
       return a.votes[identity.userId] === "approve" ? "You approved" : "You denied";
-    client.send({ type: "vote", approvalId, vote, note: "" });
+    client.send({
+      type: "vote",
+      approvalId,
+      vote,
+      note: "",
+      ...(vote === "approve" && rating !== null ? { rating } : {}),
+    });
     await awaitEvent(
       client,
       (e) =>

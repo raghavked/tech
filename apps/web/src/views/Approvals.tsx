@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, type ProjectRef, type SessionRow } from "../api.js";
 import {
+  DEFAULT_RATING,
   isTyping,
   moveCursor,
   pendingOf,
@@ -16,9 +17,10 @@ import {
   sortRows,
 } from "../approvalsQueue.js";
 import { HenosisClient, wsUrl } from "../client.js";
+import { copy } from "../copy.js";
 import { actorOf, type Identity } from "../identity.js";
 import { navigate, paths } from "../router.js";
-import { ErrorLine } from "../ui.js";
+import { ErrorLine, Stars } from "../ui.js";
 
 interface Target {
   ref: ProjectRef;
@@ -164,10 +166,15 @@ export function Approvals({
   const [cursorKey, setCursorKey] = useState<string | null>(null);
   const keys = pending.map((r) => r.key);
   const cursor = cursorKey && keys.includes(cursorKey) ? cursorKey : (keys[0] ?? null);
-  const vote = (r: QueueRow, v: "approve" | "deny") =>
-    hub.joined
-      .get(`${r.projectId}/${r.sessionId}`)
-      ?.client.send({ type: "vote", approvalId: r.approvalId, vote: v, note: "" });
+  // Under a release gate an approve carries the chosen rating, or the default when none was picked.
+  const vote = (r: QueueRow, v: "approve" | "deny", rating: number | null = null) =>
+    hub.joined.get(`${r.projectId}/${r.sessionId}`)?.client.send({
+      type: "vote",
+      approvalId: r.approvalId,
+      vote: v,
+      note: "",
+      ...(r.ratings && v === "approve" ? { rating: rating ?? DEFAULT_RATING } : {}),
+    });
 
   // j/k move, a/d decide, Enter opens the session. Never while typing somewhere.
   const latest = useRef({ keys, cursor, pending, vote });
@@ -239,12 +246,15 @@ export function Approvals({
                 r={r}
                 cursor={r.key === cursor}
                 onFocus={() => setCursorKey(r.key)}
-                onVote={(v) => vote(r, v)}
+                onVote={(v, rating) => vote(r, v, rating)}
               />
             ))}
           </div>
           {pending.length > 0 && (
-            <p className="small faint">j / k to move · a approves · d denies · Enter opens</p>
+            <p className="small faint">
+              j / k to move · a approves ({DEFAULT_RATING} of 5 under a release gate) · d denies ·
+              Enter opens
+            </p>
           )}
         </section>
         {done.length > 0 && (
@@ -271,8 +281,9 @@ function QueueRowItem({
   r: QueueRow;
   cursor: boolean;
   onFocus: () => void;
-  onVote: (v: "approve" | "deny") => void;
+  onVote: (v: "approve" | "deny", rating: number | null) => void;
 }) {
+  const [rating, setRating] = useState<number | null>(r.myRating);
   const voted =
     r.approvedBy.length || r.deniedBy.length
       ? [
@@ -301,25 +312,29 @@ function QueueRowItem({
         </span>
         <span className="s">
           {r.projectName} · {r.risk} · {voted}
+          {r.progress ? ` · ${r.progress}` : ""}
         </span>
       </span>
       <span className="row">
         <span className="status awaiting">needs {r.needs}</span>
+        {r.ratings && (
+          <Stars value={rating} onChange={setRating} disabled={r.myVote === "approve"} />
+        )}
         <button
           type="button"
           className="btn sm"
           disabled={r.myVote === "approve"}
-          onClick={() => onVote("approve")}
+          onClick={() => onVote("approve", rating)}
         >
-          Approve
+          {copy.approval.approve}
         </button>
         <button
           type="button"
           className="btn sm"
           disabled={r.myVote === "deny"}
-          onClick={() => onVote("deny")}
+          onClick={() => onVote("deny", null)}
         >
-          Deny
+          {copy.approval.deny}
         </button>
       </span>
     </div>

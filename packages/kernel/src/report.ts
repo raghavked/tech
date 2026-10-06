@@ -40,7 +40,22 @@ export function renderReport(s: Session): string {
           detail = `${e.payload.approvalId} ${e.payload.call.name} [${e.payload.call.risk}]`;
           break;
         case "approval.voted":
-          detail = `${e.payload.vote} on ${e.payload.approvalId}`;
+          detail = `${e.payload.vote}${e.payload.rating ? ` ${e.payload.rating}/5` : ""} on ${e.payload.approvalId}`;
+          break;
+        case "plan.proposed":
+          detail = `${e.payload.planId}: ${e.payload.steps.length} steps, est ${e.payload.estTokens} tokens`;
+          break;
+        case "plan.rated":
+          detail = `${e.payload.rating}/5 on ${e.payload.planId}`;
+          break;
+        case "plan.decided":
+          detail = `${e.payload.planId} ${e.payload.status} by ${e.payload.by}`;
+          break;
+        case "plan.step.started":
+          detail = `${e.payload.planId} step ${e.payload.stepId}`;
+          break;
+        case "plan.step.completed":
+          detail = `${e.payload.planId} step ${e.payload.stepId}: ${e.payload.tokens} tokens`;
           break;
         case "contention.resolved":
           detail = `${e.payload.contentionId} -> ${e.payload.winner ?? "replacement"}`;

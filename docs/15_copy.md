@@ -1,8 +1,8 @@
 # Copy: the words in the interface
 
 Every user-facing string of the web app lives in `apps/web/src/copy.ts`, grouped by surface
-(shell, account, home, session, stream, steps, approval, composer, details, project, team,
-notify) plus the five status words. Views import `copy` and carry no literal of their own.
+(shell, account, home, session, stream, plan, steps, approval, composer, details, project,
+team, notify) plus the five status words. Views import `copy` and carry no literal of their own.
 Strings that take data are functions, so word order and plurals are decided once, next to
 the sentence they belong to.
 
@@ -24,7 +24,13 @@ and who did it, and no more.
    Hand off, Fork, Unite into main. No "Submit", no "OK", no "Yes".
 6. **Henosis's own words** for its own ideas: the driver holds *the baton*, a person *drives* it,
    handing over *offers the baton*, a merge *unites* a branch, a steer and a constraint are
-   *directions*, two of them at once is a *contention*.
+   *directions*, two of them at once is a *contention*. Before it acts the agent proposes a
+   *plan*; people *rate* it one to five (the control is five stars named "Rate n of 5"); the
+   plan is *approved*, sent back to *revise*, or *rejected*; while it waits the session is
+   *Planning* and "The plan waits for ratings". An approval that needs ratings is a *release
+   gate*; its progress reads "1 of 2 raters · 3 average", a plan's "2 of 2 ratings · 4.5
+   average · approved". Tokens are counted as "1,800 tokens", a budget as "budget 20,000
+   tokens"; a step's spend is "250 used".
 7. **Quiet errors.** State what failed and where ("Could not load /api/me: 503"); no
    exclamation marks, no blame.
 8. **Middle dots separate facts** on one line ("Ana · contributor · away"), never commas

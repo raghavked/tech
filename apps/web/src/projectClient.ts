@@ -11,7 +11,65 @@ import {
   type ProjectState,
   reduceProject,
 } from "@henosis/fleet";
+import type { SessionPolicyPatch } from "@henosis/protocol";
 import { Reconnector } from "./reconnect.js";
+
+/**
+ * Start a session with a policy of its own (plan first, a token budget) over a short-lived
+ * project socket. Resolves once the server has answered, or after a short wait, so the caller
+ * can open the session; an existing session is left as it is.
+ */
+export function createSession(
+  url: string,
+  input: {
+    projectId: string;
+    userId: string;
+    sessionId: string;
+    title: string;
+    policy: SessionPolicyPatch;
+  },
+): Promise<void> {
+  return new Promise((resolve) => {
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(url);
+    } catch {
+      resolve();
+      return;
+    }
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        ws.close();
+      } catch {
+        // already closed
+      }
+      resolve();
+    };
+    const timer = setTimeout(finish, 4000);
+    ws.onopen = () => {
+      const send = (m: ProjectClientMessage) => ws.send(JSON.stringify(m));
+      send({ type: "project.subscribe", projectId: input.projectId, userId: input.userId });
+      send({
+        type: "session.create",
+        sessionId: input.sessionId,
+        title: input.title,
+        policy: input.policy,
+      });
+      // The server answers in order: the brief comes back once the session exists.
+      send({ type: "fleet.brief" });
+    };
+    ws.onmessage = (m) => {
+      const msg = JSON.parse(String(m.data)) as { type: string };
+      if (msg.type === "fleet.brief" || msg.type === "error") finish();
+    };
+    ws.onerror = finish;
+    ws.onclose = finish;
+  });
+}
 
 export interface ProjectSnapshot {
   state: ProjectState | null;
@@ -120,7 +178,9 @@ export class ProjectClient {
     this.emit({ connected: false, reconnecting: false });
   }
 
+  /** Sends on an open socket; while a re-dial is in flight the message is dropped, not thrown. */
   send(msg: ProjectClientMessage): void {
-    this.ws?.send(JSON.stringify(msg));
+    const ws = this.ws;
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
   }
 }

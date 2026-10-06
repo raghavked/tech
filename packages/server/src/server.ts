@@ -106,7 +106,7 @@ export class HenosisServer {
           isDriver: st.driver === pp.actor.id,
           kind: pp.actor.kind,
         }));
-        this.notifier.onSessionEvent(projectId, sessionId, e, participants);
+        this.notifier.onSessionEvent(projectId, sessionId, e, participants, st.policy);
       });
     });
     return p;
@@ -460,7 +460,11 @@ export class HenosisServer {
               projectHost.project.crew(me, msg.sessionId, msg.crew);
               break;
             case "session.create":
-              projectHost.session(msg.sessionId, { title: msg.title, ownerId: me });
+              projectHost.session(msg.sessionId, {
+                title: msg.title,
+                ownerId: me,
+                policy: msg.policy,
+              });
               break;
           }
           return;
