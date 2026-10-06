@@ -89,13 +89,19 @@ describe("session commands", () => {
     expect(ap).not.toBeNull();
     expect(s.state().status).toBe("awaiting_approval");
     expect(() => s.vote(M, "agent", ap ?? "", "approve")).toThrow(/only humans/);
-    s.vote(M, "bo", ap ?? "", "approve"); // contributor: ineligible for a driver quorum
+    // Irreversible is a release gate: two contributors or above, rating it 4+ on average.
+    s.vote(M, "bo", ap ?? "", "approve", 5); // one rated approval: not yet two
     expect(s.state().approvals[ap ?? ""]?.status).toBe("pending");
-    s.vote(M, "ana", ap ?? "", "approve"); // owner counts, but quorum is 2
+    s.vote(M, "ana", ap ?? "", "approve"); // an unrated approve is a voice, not a vote
     expect(s.state().approvals[ap ?? ""]?.status).toBe("pending");
     s.setRole(M, "ana", "cy", "driver");
-    s.vote(M, "cy", ap ?? "", "approve");
+    s.vote(M, "cy", ap ?? "", "approve", 3); // two rated, average 4: granted
     expect(s.state().approvals[ap ?? ""]?.status).toBe("granted");
+    expect(s.state().approvals[ap ?? ""]?.ballots.cy).toEqual({
+      vote: "approve",
+      rating: 3,
+      note: "",
+    });
     expect(s.state().status).toBe("running");
     expect(() => s.vote(M, "bo", ap ?? "", "deny")).toThrow(/already decided/);
   });

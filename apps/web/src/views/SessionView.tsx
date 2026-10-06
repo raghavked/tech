@@ -222,8 +222,9 @@ export function SessionView({
   const shortcuts: ShortcutHandlers = {
     steer: () => focusSoon(".composer textarea"),
     approve: () =>
-      waiting && client.send({ type: "vote", approvalId: waiting.id, vote: "approve" }),
-    deny: () => waiting && client.send({ type: "vote", approvalId: waiting.id, vote: "deny" }),
+      waiting && client.send({ type: "vote", approvalId: waiting.id, vote: "approve", note: "" }),
+    deny: () =>
+      waiting && client.send({ type: "vote", approvalId: waiting.id, vote: "deny", note: "" }),
     handoff: () => {
       if (offered) client.send({ type: "handoff.accept", handoffId: offered.id });
       else {
@@ -658,14 +659,14 @@ function ApprovalNoticeRow({
         <button
           type="button"
           className="btn primary sm"
-          onClick={() => client.send({ type: "vote", approvalId: a.id, vote: "approve" })}
+          onClick={() => client.send({ type: "vote", approvalId: a.id, vote: "approve", note: "" })}
         >
           {copy.approval.approve}
         </button>
         <button
           type="button"
           className="btn sm"
-          onClick={() => client.send({ type: "vote", approvalId: a.id, vote: "deny" })}
+          onClick={() => client.send({ type: "vote", approvalId: a.id, vote: "deny", note: "" })}
         >
           {copy.approval.deny}
         </button>

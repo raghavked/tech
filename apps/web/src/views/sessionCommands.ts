@@ -49,7 +49,7 @@ export function sessionCommands({
       label: `Approve ${a.call.name} (${a.call.risk})`,
       icon: ICONS.check,
       hint: "pending",
-      run: () => client.send({ type: "vote", approvalId: a.id, vote: "approve" }),
+      run: () => client.send({ type: "vote", approvalId: a.id, vote: "approve", note: "" }),
     });
   if (s.driver === me.id)
     for (const p of Object.values(s.participants))

@@ -190,6 +190,8 @@ export class Session {
     actorId: string,
     approvalId: string,
     vote: "approve" | "deny",
+    rating?: number,
+    note = "",
   ): SessionEvent {
     const s = this.state(branch);
     const a = s.approvals[approvalId];
@@ -197,7 +199,11 @@ export class Session {
     if (a.status !== "pending") throw new KernelError("conflict", "approval already decided");
     const p = s.participants[actorId];
     if (p?.actor.kind !== "human") throw new KernelError("unauthorized", "only humans vote");
-    return this.emit(branch, actorId, { kind: "approval.voted", payload: { approvalId, vote } });
+    return this.emit(branch, actorId, {
+      kind: "approval.voted",
+      payload:
+        rating === undefined ? { approvalId, vote, note } : { approvalId, vote, rating, note },
+    });
   }
 
   // ---- handoff ------------------------------------------------------------------------

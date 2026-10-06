@@ -7,6 +7,7 @@
  * busy fleet stays under the roughly one-message-per-second-per-channel limit.
  */
 import type { ProjectEvent } from "@henosis/fleet";
+import { describeRule } from "@henosis/kernel";
 import type { MemoryEvent, MemoryStore } from "@henosis/memory";
 import type { DirectiveInput, SessionEvent } from "@henosis/protocol";
 import type { HenosisServer, ProjectHost } from "@henosis/server";
@@ -215,7 +216,7 @@ export class SlackAdapter {
         if (!ref) break;
         const call = e.payload.call;
         const rule = st ? st.policy.approvals[call.risk] : undefined;
-        const text = `:raised_hand: *Approval needed* in ${name(st?.ownerId ?? "")}'s session: \`${call.name}\` [${call.risk}] ${JSON.stringify(call.args).slice(0, 200)}${rule && typeof rule === "object" ? ` (needs ${rule.quorum} ${rule.of}s)` : ""}${this.open(host.projectId, sessionId, "Review in Henosis")}`;
+        const text = `:raised_hand: *Approval needed* in ${name(st?.ownerId ?? "")}'s session: \`${call.name}\` [${call.risk}] ${JSON.stringify(call.args).slice(0, 200)}${rule && typeof rule === "object" ? ` (needs ${describeRule(rule)})` : ""}${this.open(host.projectId, sessionId, "Review in Henosis")}`;
         const blocks: Block[] = [
           { type: "section", text: { type: "mrkdwn", text } },
           {
@@ -365,7 +366,14 @@ export class SlackAdapter {
             { id: user, kind: "human", name: host.state().members[user]?.name ?? user },
             this.roleFor(host, user, st.ownerId),
           );
-        sh.session.vote("main", user, c, d === "approve" ? "approve" : "deny");
+        sh.session.vote(
+          "main",
+          user,
+          c,
+          d === "approve" ? "approve" : "deny",
+          d === "approve" ? 5 : undefined,
+          "from Slack",
+        );
         void sh.drive("main");
       } else if (kind === "resolve" && a && b && c) {
         this.opts.server.project(a).project.resolveContention(user, b, c, "resolved from Slack");

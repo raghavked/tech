@@ -86,12 +86,28 @@ export const RiskClass = z.enum(["read", "write", "exec", "external", "irreversi
 export type RiskClass = z.infer<typeof RiskClass>;
 
 /** Who must approve a tool call of a given risk class. */
+/**
+ * A rating is a 1..5 confidence a human attaches to an approval or a plan. A release gate is
+ * an approval rule that needs `min` approving raters at `of` or above whose average rating is
+ * at least `average`; any deny still denies. This is how the people who consume the code
+ * sign off before a push or a deploy.
+ */
+export const Rating = z.number().int().min(1).max(5);
+export type Rating = z.infer<typeof Rating>;
+
 export const ApprovalRule = z.union([
   z.literal("none"),
   z.literal("contributor"),
   z.literal("driver"),
   z.literal("owner"),
   z.object({ quorum: z.number().int().min(1), of: Role }),
+  z.object({
+    ratings: z.object({
+      min: z.number().int().min(1),
+      average: z.number().min(1).max(5),
+      of: Role,
+    }),
+  }),
 ]);
 export type ApprovalRule = z.infer<typeof ApprovalRule>;
 
@@ -103,7 +119,7 @@ export const DEFAULT_APPROVAL_POLICY: ApprovalPolicy = {
   write: "none",
   exec: "contributor",
   external: "driver",
-  irreversible: { quorum: 2, of: "driver" },
+  irreversible: { ratings: { min: 2, average: 4, of: "contributor" } },
 };
 
 export const ContentionPolicy = z.enum(["block", "driver-wins", "latest-wins"]);
@@ -114,8 +130,54 @@ export const SessionPolicy = z.object({
   contention: ContentionPolicy.default("block"),
   /** Maximum agent turns per branch before the runner stops and asks for direction. */
   maxTurns: z.number().int().min(1).default(200),
+  /**
+   * Plan first: before any write, exec, external or irreversible tool, the agent proposes a
+   * plan (steps with token estimates) and the people in the session rate it; it proceeds
+   * once `planApproval` is met. Token optimisation starts here: the plan is the budget.
+   */
+  planFirst: z.boolean().default(false),
+  planApproval: z
+    .object({
+      min: z.number().int().min(1).default(1),
+      average: z.number().min(1).max(5).default(3),
+    })
+    .default({ min: 1, average: 3 }),
+  /** Soft token budget for the session (input + output); null means none. */
+  tokenBudget: z.number().int().min(1).nullable().default(null),
 });
 export type SessionPolicy = z.infer<typeof SessionPolicy>;
+export const DEFAULT_SESSION_POLICY: SessionPolicy = SessionPolicy.parse({});
+
+/** Model token usage for one call. Counted by the model provider; synthesised offline. */
+export const Usage = z.object({
+  input: z.number().int().min(0).default(0),
+  output: z.number().int().min(0).default(0),
+  cacheRead: z.number().int().min(0).default(0),
+  cacheWrite: z.number().int().min(0).default(0),
+});
+export type Usage = z.infer<typeof Usage>;
+export const ZERO_USAGE: Usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+export function addUsage(a: Usage, b: Partial<Usage> | undefined): Usage {
+  if (!b) return a;
+  return {
+    input: a.input + (b.input ?? 0),
+    output: a.output + (b.output ?? 0),
+    cacheRead: a.cacheRead + (b.cacheRead ?? 0),
+    cacheWrite: a.cacheWrite + (b.cacheWrite ?? 0),
+  };
+}
+
+/** One step of a plan the agent proposes before it acts. */
+export const PlanStep = z.object({
+  id: z.string(),
+  title: z.string(),
+  detail: z.string().default(""),
+  estTokens: z.number().int().min(0).default(0),
+  risk: RiskClass.default("write"),
+});
+export type PlanStep = z.infer<typeof PlanStep>;
+export const PlanStatus = z.enum(["proposed", "approved", "revise", "rejected", "done"]);
+export type PlanStatus = z.infer<typeof PlanStatus>;
 
 export const ToolCall = z.object({
   id: z.string(),
@@ -178,6 +240,7 @@ export const EventBody = z.discriminatedUnion("kind", [
       toolCalls: z.array(ToolCall),
       /** Opaque model identity for the record; never used to reproduce output. */
       model: z.string(),
+      usage: Usage.optional(),
     }),
   ),
   base("agent.tool.requested", z.object({ turn: z.number().int(), call: ToolCall })),
@@ -192,7 +255,56 @@ export const EventBody = z.discriminatedUnion("kind", [
   ),
 
   base("approval.requested", z.object({ approvalId: z.string(), call: ToolCall })),
-  base("approval.voted", z.object({ approvalId: z.string(), vote: z.enum(["approve", "deny"]) })),
+  base(
+    "approval.voted",
+    z.object({
+      approvalId: z.string(),
+      vote: z.enum(["approve", "deny"]),
+      rating: Rating.optional(),
+      note: z.string().default(""),
+    }),
+  ),
+
+  /** Plan first: the agent proposes, people rate, the kernel decides against the policy. */
+  base(
+    "plan.proposed",
+    z.object({
+      planId: z.string(),
+      turn: z.number().int(),
+      goal: z.string(),
+      steps: z.array(PlanStep),
+      estTokens: z.number().int().min(0),
+      rationale: z.string().default(""),
+    }),
+  ),
+  base(
+    "plan.rated",
+    z.object({ planId: z.string(), rating: Rating, note: z.string().default("") }),
+  ),
+  base(
+    "plan.decided",
+    z.object({
+      planId: z.string(),
+      status: z.enum(["approved", "revise", "rejected"]),
+      note: z.string().default(""),
+      /** "policy" when the ratings met the policy; otherwise the deciding actor's id. */
+      by: z.string(),
+    }),
+  ),
+  base(
+    "plan.step.started",
+    z.object({ planId: z.string(), stepId: z.string(), turn: z.number().int() }),
+  ),
+  base(
+    "plan.step.completed",
+    z.object({
+      planId: z.string(),
+      stepId: z.string(),
+      turn: z.number().int(),
+      tokens: z.number().int().min(0),
+      note: z.string().default(""),
+    }),
+  ),
 
   base("handoff.requested", z.object({ handoffId: z.string(), to: z.string() })),
   base("handoff.accepted", z.object({ handoffId: z.string() })),
@@ -321,7 +433,25 @@ export const ClientMessage = z.discriminatedUnion("type", [
     winner: z.string().nullable(),
     replacement: DirectiveInput.optional(),
   }),
-  z.object({ type: z.literal("vote"), approvalId: z.string(), vote: z.enum(["approve", "deny"]) }),
+  z.object({
+    type: z.literal("vote"),
+    approvalId: z.string(),
+    vote: z.enum(["approve", "deny"]),
+    rating: Rating.optional(),
+    note: z.string().default(""),
+  }),
+  z.object({
+    type: z.literal("plan.rate"),
+    planId: z.string(),
+    rating: Rating,
+    note: z.string().default(""),
+  }),
+  z.object({
+    type: z.literal("plan.decide"),
+    planId: z.string(),
+    status: z.enum(["approved", "revise", "rejected"]),
+    note: z.string().default(""),
+  }),
   z.object({ type: z.literal("handoff.request"), to: z.string() }),
   z.object({ type: z.literal("handoff.accept"), handoffId: z.string() }),
   z.object({ type: z.literal("handoff.decline"), handoffId: z.string() }),

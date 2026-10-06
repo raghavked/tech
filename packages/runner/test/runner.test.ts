@@ -27,7 +27,7 @@ function autoApprove(s: Session, voters: string[], vote: "approve" | "deny" = "a
     queueMicrotask(() => {
       for (const v of voters) {
         try {
-          s.vote(M, v, e.payload.approvalId, vote);
+          s.vote(M, v, e.payload.approvalId, vote, 5);
         } catch {
           /* already decided */
         }
@@ -72,7 +72,7 @@ describe("runner with the scripted model", () => {
       if (e.kind !== "approval.requested") return;
       const vote = e.payload.call.risk === "irreversible" ? "deny" : "approve";
       queueMicrotask(() => {
-        s.vote(M, "bo", e.payload.approvalId, vote);
+        s.vote(M, "bo", e.payload.approvalId, vote, 5);
         if (vote === "approve") return;
       });
     });

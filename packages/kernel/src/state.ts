@@ -11,7 +11,7 @@ import type {
   ToolCall,
   ToolResult,
 } from "@henosis/protocol";
-import { DEFAULT_APPROVAL_POLICY, LEAD_RANK, MAIN_BRANCH, ROLE_RANK } from "@henosis/protocol";
+import { DEFAULT_SESSION_POLICY, LEAD_RANK, MAIN_BRANCH, ROLE_RANK } from "@henosis/protocol";
 import { type ApprovalRecord, evaluate, ruleFor } from "./approvals.js";
 import {
   arbitrate,
@@ -130,7 +130,7 @@ export function initialState(branch: string = MAIN_BRANCH): SessionState {
     title: "",
     projectId: "default",
     ownerId: null,
-    policy: { approvals: DEFAULT_APPROVAL_POLICY, contention: "block", maxTurns: 200 },
+    policy: { ...DEFAULT_SESSION_POLICY },
     branch,
     head: null,
     seq: -1,
@@ -337,6 +337,7 @@ function reduceInto(s: SessionState, e: SessionEvent): SessionState {
         id: e.payload.approvalId,
         call: e.payload.call,
         votes: {},
+        ballots: {},
         status: "pending",
         requestedSeq: e.seq,
         turn: s.turn,
@@ -348,7 +349,14 @@ function reduceInto(s: SessionState, e: SessionEvent): SessionState {
       const a = s.approvals[e.payload.approvalId];
       if (a?.status !== "pending" || !isHuman(s, e.actor)) break;
       a.votes[e.actor] = e.payload.vote;
-      a.status = evaluate(ruleFor(s.policy.approvals, a.call.risk), a.votes, (id) => rankOf(s, id));
+      a.ballots[e.actor] = {
+        vote: e.payload.vote,
+        rating: e.payload.rating ?? null,
+        note: e.payload.note ?? "",
+      };
+      a.status = evaluate(ruleFor(s.policy.approvals, a.call.risk), a.ballots, (id) =>
+        rankOf(s, id),
+      );
       break;
     }
 

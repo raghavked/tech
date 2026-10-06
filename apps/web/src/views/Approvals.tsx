@@ -167,7 +167,7 @@ export function Approvals({
   const vote = (r: QueueRow, v: "approve" | "deny") =>
     hub.joined
       .get(`${r.projectId}/${r.sessionId}`)
-      ?.client.send({ type: "vote", approvalId: r.approvalId, vote: v });
+      ?.client.send({ type: "vote", approvalId: r.approvalId, vote: v, note: "" });
 
   // j/k move, a/d decide, Enter opens the session. Never while typing somewhere.
   const latest = useRef({ keys, cursor, pending, vote });

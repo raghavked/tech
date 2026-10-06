@@ -5,7 +5,7 @@ import { fold, type SessionState } from "@henosis/kernel";
 import {
   type Actor,
   type ClientMessage,
-  DEFAULT_APPROVAL_POLICY,
+  DEFAULT_SESSION_POLICY,
   type ServerMessage,
 } from "@henosis/protocol";
 import { defaultTools, ScriptedModel } from "@henosis/runner";
@@ -178,11 +178,7 @@ describe("websocket server", () => {
   it("serves the project's session policy and the integration status over HTTP", async () => {
     const base = url.replace(/^ws/, "http").replace(/\/ws$/, "");
     const policy = await (await fetch(`${base}/api/projects/default/policy`)).json();
-    expect(policy).toEqual({
-      approvals: DEFAULT_APPROVAL_POLICY,
-      contention: "block",
-      maxTurns: 200,
-    });
+    expect(policy).toEqual(DEFAULT_SESSION_POLICY);
     expect(await (await fetch(`${base}/api/integrations`)).json()).toEqual({ slack: false });
     server.integrations.slack = true;
     expect(await (await fetch(`${base}/api/integrations`)).json()).toEqual({ slack: true });

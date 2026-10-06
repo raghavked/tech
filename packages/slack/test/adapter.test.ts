@@ -107,7 +107,7 @@ describe("slack adapter", () => {
     expect(granted?.status).toBe("granted");
     expect(granted?.votes.bo).toBe("approve");
     expect(slack.updates.some((u) => u.text.includes("granted"))).toBe(true);
-    // Deploy needs two drivers; it is broadcast to the channel, and Ana (owner) plus Dee (lead) approve from Slack.
+    // Deploy is a release gate (two raters at 4+); it is broadcast to the channel, and Ana (owner) plus Dee (lead) approve from Slack with the button's full rating.
     const deploy = [...slack.posts]
       .reverse()
       .find((p) => p.text.includes("deploy") && (p.blocks ?? []).some((b) => b.type === "actions"));

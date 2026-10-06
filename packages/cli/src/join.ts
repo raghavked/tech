@@ -128,9 +128,11 @@ function parseLine(
     case "cancel":
       return directive({ text: text || "cancel", mode: "cancel" });
     case "approve":
-      return rest[0] ? { type: "vote", approvalId: rest[0], vote: "approve" } : null;
+      return rest[0]
+        ? { type: "vote", approvalId: rest[0], vote: "approve", rating: 5, note: "" }
+        : null;
     case "deny":
-      return rest[0] ? { type: "vote", approvalId: rest[0], vote: "deny" } : null;
+      return rest[0] ? { type: "vote", approvalId: rest[0], vote: "deny", note: "" } : null;
     case "resolve":
       return rest[0] ? { type: "resolve", contentionId: rest[0], winner: rest[1] ?? null } : null;
     case "handoff":

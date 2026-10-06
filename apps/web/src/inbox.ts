@@ -225,7 +225,7 @@ export async function voteFromInbox(
       return a.status === "granted" ? "Already approved" : "Already denied";
     if (a.votes[identity.userId])
       return a.votes[identity.userId] === "approve" ? "You approved" : "You denied";
-    client.send({ type: "vote", approvalId, vote });
+    client.send({ type: "vote", approvalId, vote, note: "" });
     await awaitEvent(
       client,
       (e) =>

@@ -56,7 +56,7 @@ export function needsOf(s: SessionState, a: ApprovalRecord): string {
   const want = requiredVotes(rule);
   if (have === 0) return describeRule(rule);
   const left = Math.max(1, want - have);
-  const of = typeof rule === "string" ? rule : rule.of;
+  const of = typeof rule === "string" ? rule : "ratings" in rule ? rule.ratings.of : rule.of;
   return `${left} more ${of}${left === 1 ? "" : "s"} or above`;
 }
 

@@ -17,7 +17,7 @@ import { KernelError } from "@henosis/kernel";
 import { Curator, MemoryStore, type SerializedMemory } from "@henosis/memory";
 import {
   ClientMessage,
-  DEFAULT_APPROVAL_POLICY,
+  DEFAULT_SESSION_POLICY,
   type ServerMessage,
   type SessionPolicy,
 } from "@henosis/protocol";
@@ -48,11 +48,7 @@ export interface Integrations {
   slack: boolean;
 }
 
-const DEFAULT_POLICY: SessionPolicy = {
-  approvals: DEFAULT_APPROVAL_POLICY,
-  contention: "block",
-  maxTurns: 200,
-};
+const DEFAULT_POLICY: SessionPolicy = { ...DEFAULT_SESSION_POLICY };
 
 type AnyClientMessage = ClientMessage | ProjectClientMessage;
 const AnyClientMessageSchema = ClientMessage.or(ProjectClientMessage);

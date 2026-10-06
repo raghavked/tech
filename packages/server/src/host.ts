@@ -239,7 +239,7 @@ export class SessionHost {
           s.resolve(b, me, msg.contentionId, msg.winner, msg.replacement);
           break;
         case "vote":
-          s.vote(b, me, msg.approvalId, msg.vote);
+          s.vote(b, me, msg.approvalId, msg.vote, msg.rating, msg.note);
           break;
         case "handoff.request":
           s.requestHandoff(b, me, msg.to);

@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { checkReplay, handoffBrief, type Session } from "@henosis/kernel";
 import {
   type Actor,
-  DEFAULT_APPROVAL_POLICY,
+  DEFAULT_SESSION_POLICY,
   MAIN_BRANCH,
   type SessionEvent,
 } from "@henosis/protocol";
@@ -43,7 +43,7 @@ export async function runDemo(
     tools: defaultTools(),
     create: {
       title: "Ship the doubling helper",
-      policy: { approvals: DEFAULT_APPROVAL_POLICY, contention: "block", maxTurns: 60 },
+      policy: { ...DEFAULT_SESSION_POLICY, maxTurns: 60 },
     },
   });
   const s: Session = host.session;
@@ -161,6 +161,7 @@ export async function runDemo(
     model: new ScriptedModel(),
     tools: defaultTools(),
     sessionPolicy: {
+      ...DEFAULT_SESSION_POLICY,
       approvals: {
         read: "none",
         write: "none",
