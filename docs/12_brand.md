@@ -1,4 +1,4 @@
-# Brand: Fold
+# Brand: Henosis
 
 *Bring the team into the fold.*
 
@@ -8,8 +8,8 @@ A fold is where two things meet and become one. In this product that happens thr
 a branch merges back (fold), the kernel folds events into state (`fold(events)` is the
 reducer's actual name), and a teammate is brought into the fold of a running session. One
 syllable, a verb engineers already use, and no other company in the category owns it.
-Package scope `@fold/*`, binary `fold`, environment variables `FOLD_*`, deep links
-`fold://`.
+Package scope `@henosis/*`, binary `fold`, environment variables `HENOSIS_*`, deep links
+`henosis://`.
 
 ## Mark
 
@@ -40,12 +40,12 @@ human's attention is here": who is driving, what is contended, where the course 
 Instrument Sans at 15 px with a 1.6 line height for everything that is read; Instrument
 Serif, upright and regular, for everything that is named: page titles, session titles, the
 wordmark, people's names in the stream and the panel, crew names. JetBrains Mono only inside
-tool lines for paths and commands. The serif is what makes a Fold screen recognisable at a
+tool lines for paths and commands. The serif is what makes a Henosis screen recognisable at a
 glance next to claude.ai and ChatGPT, which are sans-only; it is never used for body text.
 
 ## Interface register
 
-Fold's interface is in the register of claude.ai and ChatGPT, on purpose: a quiet sidebar of
+Henosis's interface is in the register of claude.ai and ChatGPT, on purpose: a quiet sidebar of
 sessions and projects, one centred conversation column (760 px), human directives as soft
 bubbles, the agent's words as plain text, tool calls as collapsed grey lines ("Ran pnpm
 vitest · 31 passed, 1 failed"), approvals and contentions as single quiet notices with two
@@ -83,7 +83,7 @@ Smaller marks that follow from them:
 ## Voice
 
 Calm, specific. "Ana is driving." "Bo is offered the session." "Course changed: schema
-freeze until Thursday." "Folded pdf-layout into main." Never "AI-powered".
+freeze until Thursday." "United pdf-layout into main." Never "AI-powered".
 
 ## Surfaces
 

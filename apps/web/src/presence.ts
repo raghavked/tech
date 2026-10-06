@@ -6,7 +6,7 @@
  * composer, and the quiet lines the session page shows above the composer and in the avatar
  * stack tooltip. Pure helpers first; the hook at the end.
  */
-import type { PresenceEntry } from "@fold/protocol";
+import type { PresenceEntry } from "@henosis/protocol";
 import { useCallback, useEffect, useRef } from "react";
 
 /**

@@ -1,7 +1,7 @@
 /**
  * Markdown session report rendered from the log: who did what, when, with what effect,
  * followed by the handoff brief. Pure and deterministic, like the brief, so the CLI's
- * `fold report`, the demo's report.md and the server's export endpoint all produce the
+ * `henosis report`, the demo's report.md and the server's export endpoint all produce the
  * same document for the same log. (Moved here from packages/cli so the server can use it.)
  */
 import { handoffBrief } from "./brief.js";

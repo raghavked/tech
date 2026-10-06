@@ -1,4 +1,4 @@
-import { ChainLog, type SerializedChain } from "@fold/kernel";
+import { ChainLog, type SerializedChain } from "@henosis/kernel";
 import type { ProjectEvent, ProjectEventBody } from "./events.js";
 
 export type SerializedLedger = SerializedChain<ProjectEvent>;

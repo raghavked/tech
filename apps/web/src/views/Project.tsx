@@ -1,5 +1,5 @@
-import type { ProjectState, SessionSummary } from "@fold/fleet";
-import type { DirectiveMode } from "@fold/protocol";
+import type { ProjectState, SessionSummary } from "@henosis/fleet";
+import type { DirectiveMode } from "@henosis/protocol";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import {
@@ -130,7 +130,7 @@ export function Project({
                         sessionId: sess.sessionId,
                         crew: crewName,
                       });
-                      setTimeout(() => dispatchEvent(new Event("fold:fleet")), 300);
+                      setTimeout(() => dispatchEvent(new Event("henosis:fleet")), 300);
                     }}
                   />
                 ))}

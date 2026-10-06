@@ -1,8 +1,8 @@
-/** The read-only HTTP API of the Fold server, plus a small fetch hook. */
-import type { ProjectState, SessionSummary } from "@fold/fleet";
-import type { SessionStatus } from "@fold/kernel";
-import type { CuratorReport, EntryRecord, MemoryConflict } from "@fold/memory";
-import type { SessionPolicy } from "@fold/protocol";
+/** The read-only HTTP API of the Henosis server, plus a small fetch hook. */
+import type { ProjectState, SessionSummary } from "@henosis/fleet";
+import type { SessionStatus } from "@henosis/kernel";
+import type { CuratorReport, EntryRecord, MemoryConflict } from "@henosis/memory";
+import type { SessionPolicy } from "@henosis/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiUrl } from "./shell.js";
 
@@ -59,7 +59,7 @@ export interface Notification {
   kind: "approval" | "handoff" | "contention" | "done" | "blocked";
   title: string;
   body: string;
-  /** fold://p/<project>/s/<session> */
+  /** henosis://p/<project>/s/<session> */
   link: string;
   /** The approvalId, handoffId or contentionId behind the item, when there is one to act on. */
   ref?: string;
@@ -129,7 +129,7 @@ export async function markNotificationsRead(userId: string, ids: string[]): Prom
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} marking notifications read`);
 }
 
-// Deep links (fold://p/<project>/s/<session>, fold://inbox) are parsed in links.ts; this
+// Deep links (henosis://p/<project>/s/<session>, henosis://inbox) are parsed in links.ts; this
 // re-export keeps the name the views already import.
 export { routeOfLink } from "./links.js";
 

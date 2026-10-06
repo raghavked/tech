@@ -1,22 +1,22 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@fold/protocol";
-import { defaultTools, ScriptedModel } from "@fold/runner";
+import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@henosis/protocol";
+import { defaultTools, ScriptedModel } from "@henosis/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { exportSessionMarkdown, sessionForExport } from "../src/export.js";
 import { SessionHost } from "../src/host.js";
-import { FoldServer } from "../src/server.js";
+import { HenosisServer } from "../src/server.js";
 
 const ana: Actor = { id: "ana", kind: "human", name: "Ana" };
 const policy = { approvals: DEFAULT_APPROVAL_POLICY, contention: "block" as const, maxTurns: 50 };
 
 describe("session export", () => {
   let root: string;
-  let server: FoldServer;
+  let server: HenosisServer;
   let base: string;
   beforeAll(async () => {
-    root = mkdtempSync(join(tmpdir(), "fold-export-"));
+    root = mkdtempSync(join(tmpdir(), "henosis-export-"));
     // A session that exists only on disk, written by a host that is then closed.
     const h = new SessionHost({
       root,
@@ -28,7 +28,7 @@ describe("session export", () => {
     h.session.join(MAIN_BRANCH, ana, "owner");
     h.session.directive(MAIN_BRANCH, "ana", { text: "Write the export" });
     h.close();
-    server = new FoldServer({ root, model: new ScriptedModel(), tools: defaultTools() });
+    server = new HenosisServer({ root, model: new ScriptedModel(), tools: defaultTools() });
     const port = await server.listen(0);
     base = `http://127.0.0.1:${port}`;
   });

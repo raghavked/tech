@@ -1,4 +1,4 @@
-import { MAIN_BRANCH } from "@fold/protocol";
+import { MAIN_BRANCH } from "@henosis/protocol";
 import { describe, expect, it } from "vitest";
 import { SessionLog } from "../src/log.js";
 

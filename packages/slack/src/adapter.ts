@@ -6,10 +6,10 @@
  * Slack is write-mostly here (no polling of threads) and updates coalesce per thread so a
  * busy fleet stays under the roughly one-message-per-second-per-channel limit.
  */
-import type { ProjectEvent } from "@fold/fleet";
-import type { MemoryEvent, MemoryStore } from "@fold/memory";
-import type { DirectiveInput, SessionEvent } from "@fold/protocol";
-import type { FoldServer, ProjectHost } from "@fold/server";
+import type { ProjectEvent } from "@henosis/fleet";
+import type { MemoryEvent, MemoryStore } from "@henosis/memory";
+import type { DirectiveInput, SessionEvent } from "@henosis/protocol";
+import type { HenosisServer, ProjectHost } from "@henosis/server";
 import { z } from "zod";
 import type { Block, SlackClient } from "./client.js";
 import { appUrlOf, linkOf, mrkdwnLink } from "./links.js";
@@ -21,7 +21,7 @@ export const ChannelMap = z.object({
   projects: z.record(z.string()).default({}),
   /** channel id for leads and managers: digests, contentions, memory conflicts */
   management: z.string().optional(),
-  /** slack user id -> fold user id */
+  /** slack user id -> henosis user id */
   users: z.record(z.string()).default({}),
 });
 export type ChannelMap = z.infer<typeof ChannelMap>;
@@ -32,13 +32,13 @@ interface ThreadRef {
 }
 
 export interface SlackAdapterOptions {
-  server: FoldServer;
+  server: HenosisServer;
   client: SlackClient;
   map: ChannelMap;
   /** Coalesce window for thread updates, ms. 0 = immediate (tests). */
   coalesceMs?: number;
   /**
-   * Where the web app is served, e.g. "https://fold.example.com". When set, threads,
+   * Where the web app is served, e.g. "https://henosis.example.com". When set, threads,
    * approvals and contentions carry a link that opens the session or project in the app
    * (the client's hash route under this origin; the desktop shell opens it too). Unset: no links.
    */
@@ -58,7 +58,7 @@ export class SlackAdapter {
     const { client } = opts;
     client.onAction((e) => this.onAction(e));
     client.onMessage((e) => this.onMessage(e));
-    client.onSlash("/fold", (e) => this.onSlash(e));
+    client.onSlash("/henosis", (e) => this.onSlash(e));
   }
 
   /** Attach to a project host: existing sessions get threads; new ones are picked up as they register. */
@@ -93,7 +93,7 @@ export class SlackAdapter {
   }
 
   /** " <url|label>" for a session or project when `appBaseUrl` is set, else "". */
-  private open(projectId: string, sessionId?: string, label = "Open in Fold"): string {
+  private open(projectId: string, sessionId?: string, label = "Open in Henosis"): string {
     const url = appUrlOf(linkOf(projectId, sessionId), this.opts.appBaseUrl);
     return url ? ` ${mrkdwnLink(url, label)}` : "";
   }
@@ -121,7 +121,7 @@ export class SlackAdapter {
     void this.opts.client
       .post({
         channel,
-        text: `:fold: *${owner}'s agent* started "${title}" in ${host.state().name}. Reply in this thread to steer it.${this.open(host.projectId, sessionId)}`,
+        text: `:henosis: *${owner}'s agent* started "${title}" in ${host.state().name}. Reply in this thread to steer it.${this.open(host.projectId, sessionId)}`,
       })
       .then((posted) => {
         this.threads.set(sessionId, posted);
@@ -215,7 +215,7 @@ export class SlackAdapter {
         if (!ref) break;
         const call = e.payload.call;
         const rule = st ? st.policy.approvals[call.risk] : undefined;
-        const text = `:raised_hand: *Approval needed* in ${name(st?.ownerId ?? "")}'s session: \`${call.name}\` [${call.risk}] ${JSON.stringify(call.args).slice(0, 200)}${rule && typeof rule === "object" ? ` (needs ${rule.quorum} ${rule.of}s)` : ""}${this.open(host.projectId, sessionId, "Review in Fold")}`;
+        const text = `:raised_hand: *Approval needed* in ${name(st?.ownerId ?? "")}'s session: \`${call.name}\` [${call.risk}] ${JSON.stringify(call.args).slice(0, 200)}${rule && typeof rule === "object" ? ` (needs ${rule.quorum} ${rule.of}s)` : ""}${this.open(host.projectId, sessionId, "Review in Henosis")}`;
         const blocks: Block[] = [
           { type: "section", text: { type: "mrkdwn", text } },
           {
@@ -458,7 +458,7 @@ export class SlackAdapter {
             "team memory is empty",
         );
       } else {
-        await e.respond("usage: /fold brief <project> | sessions <project> | memory <org>");
+        await e.respond("usage: /henosis brief <project> | sessions <project> | memory <org>");
       }
     } catch (err) {
       await e.respond(`error: ${err instanceof Error ? err.message : String(err)}`);

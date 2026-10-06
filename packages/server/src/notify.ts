@@ -6,8 +6,8 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ProjectEvent } from "@fold/fleet";
-import type { SessionEvent } from "@fold/protocol";
+import type { ProjectEvent } from "@henosis/fleet";
+import type { SessionEvent } from "@henosis/protocol";
 import { atomicWrite } from "./storage.js";
 
 export interface Notification {
@@ -16,7 +16,7 @@ export interface Notification {
   kind: "approval" | "handoff" | "contention" | "done" | "blocked";
   title: string;
   body: string;
-  /** Deep link understood by every shell: fold://p/<project>/s/<session> */
+  /** Deep link understood by every shell: henosis://p/<project>/s/<session> */
   link: string;
   /** What the shell acts on inline: the approvalId, handoffId or contentionId behind this item. */
   ref?: string;
@@ -109,7 +109,7 @@ export class Notifier {
     e: SessionEvent,
     participants: { id: string; name: string; role: string; isDriver: boolean; kind: string }[],
   ): void {
-    const link = `fold://p/${projectId}/s/${sessionId}`;
+    const link = `henosis://p/${projectId}/s/${sessionId}`;
     const humans = participants.filter((p) => p.kind === "human");
     const actorName = humans.find((p) => p.id === e.actor)?.name ?? e.actor;
     switch (e.kind) {
@@ -176,7 +176,7 @@ export class Notifier {
         kind: "contention",
         title: "Fleet contention",
         body: `${e.payload.kind} on ${e.payload.resource}: ${e.payload.detail.slice(0, 140)}`,
-        link: `fold://p/${projectId}`,
+        link: `henosis://p/${projectId}`,
         ref: e.payload.contentionId,
       });
   }

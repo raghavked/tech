@@ -1,10 +1,10 @@
 /**
  * Hooks for the native shells, every call guarded so a plain browser never notices them.
  *
- * Desktop (apps/desktop, Tauri v2): the shell injects `window.__FOLD_DESKTOP__` before the
+ * Desktop (apps/desktop, Tauri v2): the shell injects `window.__HENOSIS_DESKTOP__` before the
  * client loads (apps/desktop/src/bridge.js). Through it the client tells the shell whom to poll
  * `/api/notifications` for and which session is on screen, asks for native notifications, and
- * receives `#/p/<project>/s/<session>` routes from fold:// links and tray clicks. Nothing here
+ * receives `#/p/<project>/s/<session>` routes from henosis:// links and tray clicks. Nothing here
  * imports `@tauri-apps/*`; a shell built without the bridge still works through the global
  * Tauri object (`withGlobalTauri`).
  */
@@ -17,7 +17,7 @@ export interface DesktopInfo {
   platform: "macos" | "windows" | "linux" | string;
   /** Origin the shell polls; the bundled client reaches /api and /ws there too. */
   serverUrl: string;
-  /** The route of the fold:// link the app was launched with, once. */
+  /** The route of the henosis:// link the app was launched with, once. */
   launchRoute: string | null;
   pollSeconds: number;
 }
@@ -29,7 +29,7 @@ export interface DesktopNotification {
   tag?: string;
 }
 
-export interface FoldDesktop {
+export interface HenosisDesktop {
   info: () => Promise<DesktopInfo>;
   notify: (n: DesktopNotification) => Promise<unknown>;
   setIdentity: (serverUrl: string | null, userId: string | null) => Promise<unknown>;
@@ -42,7 +42,7 @@ export interface FoldDesktop {
   onInbox: (cb: (counts: unknown) => void) => Promise<() => void>;
 }
 
-/** Hand a fold:// link or a hash route to the client's link handler (`connectLinks`). */
+/** Hand a henosis:// link or a hash route to the client's link handler (`connectLinks`). */
 export function dispatchLink(link: string): void {
   try {
     dispatchEvent(new CustomEvent(LINK_EVENT, { detail: link }));
@@ -143,7 +143,7 @@ function scheduleUpdateChecks(): void {
   }, CHECK_DELAY_MS);
 }
 
-type Globals = { __FOLD_DESKTOP__?: FoldDesktop; __TAURI__?: TauriGlobal };
+type Globals = { __HENOSIS_DESKTOP__?: HenosisDesktop; __TAURI__?: TauriGlobal };
 
 /** The global Tauri API object (`withGlobalTauri`), or undefined in a browser. */
 function tauri(): TauriGlobal | undefined {
@@ -155,16 +155,16 @@ function tauri(): TauriGlobal | undefined {
 }
 
 /** The bridge the shell injected, or one assembled from the global Tauri object, or nothing. */
-export function desktop(): FoldDesktop | undefined {
+export function desktop(): HenosisDesktop | undefined {
   try {
     const g = window as unknown as Globals;
-    if (g.__FOLD_DESKTOP__) return g.__FOLD_DESKTOP__;
+    if (g.__HENOSIS_DESKTOP__) return g.__HENOSIS_DESKTOP__;
     const t = g.__TAURI__;
     if (!t?.core) return undefined;
     const invoke = t.core.invoke;
     const listen = <T>(name: string, cb: (p: T) => void) =>
       t.event ? t.event.listen(name, (e) => cb(e.payload as T)) : Promise.resolve(() => {});
-    g.__FOLD_DESKTOP__ = {
+    g.__HENOSIS_DESKTOP__ = {
       info: () => invoke("shell_info") as Promise<DesktopInfo>,
       notify: (n) => invoke("notify", { title: n.title, body: n.body, tag: n.tag ?? null }),
       setIdentity: (serverUrl, userId) => invoke("set_identity", { serverUrl, userId }),
@@ -176,7 +176,7 @@ export function desktop(): FoldDesktop | undefined {
       onTray: (cb) => listen("tray", cb),
       onInbox: (cb) => listen("inbox", cb),
     };
-    return g.__FOLD_DESKTOP__;
+    return g.__HENOSIS_DESKTOP__;
   } catch {
     return undefined;
   }
@@ -186,7 +186,7 @@ export function isDesktop(): boolean {
   return desktop() !== undefined;
 }
 
-const SERVER_KEY = "fold.server";
+const SERVER_KEY = "henosis.server";
 const DEFAULT_SERVER = "http://127.0.0.1:7700";
 let serverUrl = "";
 
@@ -203,7 +203,7 @@ function rememberServer(url: string): void {
  * Where `/api` and `/ws` live. Empty (same origin) in a browser and under `tauri dev`, whose
  * Vite server proxies them; the shell's server URL when the client is the bundled build served
  * from `tauri://localhost` (macOS, Linux) or `http://tauri.localhost` (Windows). Until the
- * shell has answered `info()`, the URL remembered from the last launch, then `fold serve`'s.
+ * shell has answered `info()`, the URL remembered from the last launch, then `henosis serve`'s.
  */
 export function apiBase(): string {
   try {
@@ -267,13 +267,13 @@ export function connectShell(): Promise<void> {
     };
     onIdentityChange(sendIdentity);
     addEventListener("hashchange", sendRoute);
-    // Both land on the "fold:link" DOM event that links.ts routes (hash routes and fold:// alike).
+    // Both land on the "henosis:link" DOM event that links.ts routes (hash routes and henosis:// alike).
     d.onDeepLink((route) => {
       if (typeof route === "string") dispatchLink(route);
     }).catch(() => undefined);
     d.onTray((item) => {
       // The session view lists approvals in its inspector; elsewhere the inbox has them.
-      if (item === "pending" && !location.hash.includes("/s/")) dispatchLink("fold://inbox");
+      if (item === "pending" && !location.hash.includes("/s/")) dispatchLink("henosis://inbox");
     }).catch(() => undefined);
     const ready = d
       .info()

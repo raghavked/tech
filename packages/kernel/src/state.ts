@@ -10,8 +10,8 @@ import type {
   SessionPolicy,
   ToolCall,
   ToolResult,
-} from "@fold/protocol";
-import { DEFAULT_APPROVAL_POLICY, LEAD_RANK, MAIN_BRANCH, ROLE_RANK } from "@fold/protocol";
+} from "@henosis/protocol";
+import { DEFAULT_APPROVAL_POLICY, LEAD_RANK, MAIN_BRANCH, ROLE_RANK } from "@henosis/protocol";
 import { type ApprovalRecord, evaluate, ruleFor } from "./approvals.js";
 import {
   arbitrate,
@@ -175,7 +175,7 @@ export function isHuman(state: SessionState, actorId: string): boolean {
   return state.participants[actorId]?.actor.kind === "human";
 }
 
-/** Fold one event. Returns a new state; the input is not mutated. */
+/** Henosis one event. Returns a new state; the input is not mutated. */
 export function reduce(prev: SessionState, e: SessionEvent): SessionState {
   return reduceInto(structuredClone(prev), e);
 }

@@ -4,7 +4,7 @@ import {
   type EventBody,
   MAIN_BRANCH,
   type SessionEvent,
-} from "@fold/protocol";
+} from "@henosis/protocol";
 import { describe, expect, it } from "vitest";
 import { eventId } from "../src/log.js";
 import { fold, initialState, reduce } from "../src/state.js";

@@ -1,6 +1,6 @@
 /**
  * Two branches side by side in the column: the files that differ as rows with +/- counts,
- * each side's last three turns, and "Fold into <here>", which sends the existing merge
+ * each side's last three turns, and "Henosis into <here>", which sends the existing merge
  * message. Conflicts the fold leaves (state.openConflicts) are rows whose "Open file" shows
  * the conflict-marked content read-only. Data comes from the server's branch routes
  * (packages/server/src/branchApi.ts); the merge itself rides the session websocket.
@@ -10,11 +10,11 @@ import {
   rankOf,
   type SessionState,
   type TurnGlimpse,
-} from "@fold/kernel";
-import { type Actor, ROLE_RANK } from "@fold/protocol";
+} from "@henosis/kernel";
+import { type Actor, ROLE_RANK } from "@henosis/protocol";
 import { useEffect, useState } from "react";
 import { getJson, useFetch } from "../api.js";
-import type { FoldClient } from "../client.js";
+import type { HenosisClient } from "../client.js";
 import { ErrorLine, ICONS, Icon, Mark } from "../ui.js";
 
 interface SessionFile {
@@ -49,7 +49,7 @@ export function BranchCompare({
 }: {
   s: SessionState;
   me: Actor;
-  client: FoldClient;
+  client: HenosisClient;
   projectId: string;
   /** The branch shown beside the one this client is on. */
   other: string;
@@ -141,7 +141,7 @@ export function BranchCompare({
       <section className="group">
         {folded ? (
           <div className={`divider${folded.conflicts.length ? " danger" : ""}`}>
-            Folded {other} into {here}
+            United {other} into {here}
             {folded.conflicts.length
               ? ` · ${folded.conflicts.length} conflict${folded.conflicts.length === 1 ? "" : "s"}`
               : " · no conflicts"}
@@ -155,7 +155,7 @@ export function BranchCompare({
               onClick={() => client.send({ type: "merge", source: other })}
             >
               <Mark size={14} />
-              Fold {other} into {here}
+              Unite {other} into {here}
             </button>
             {!canFold && <span className="small faint">Folding needs the driver or an owner.</span>}
           </p>

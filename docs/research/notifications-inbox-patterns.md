@@ -1,10 +1,10 @@
-# Inbox patterns for actionable items, applied to Fold
+# Inbox patterns for actionable items, applied to Henosis
 
 *Research memo, 2 October 2026. Topic: notifications-inbox-patterns.*
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-Fold already produces three kinds of item that wait on a specific human: an approval (one vote, or a quorum for irreversible calls), a contention (two peers or two sessions disagree; a driver or lead must pick), and a handoff (a named person must accept and read the brief). Today each lives inside the session it came from, as a quiet notice in the 760px column. That is right for the person already in the session. It is wrong for everyone else: the lead who is asked to resolve a claim between two sessions they are not watching, the driver who holds three sessions and is approving in one, the engineer being handed off to while they are on another project.
+Henosis already produces three kinds of item that wait on a specific human: an approval (one vote, or a quorum for irreversible calls), a contention (two peers or two sessions disagree; a driver or lead must pick), and a handoff (a named person must accept and read the brief). Today each lives inside the session it came from, as a quiet notice in the 760px column. That is right for the person already in the session. It is wrong for everyone else: the lead who is asked to resolve a claim between two sessions they are not watching, the driver who holds three sessions and is approving in one, the engineer being handed off to while they are on another project.
 
 The server already keeps a per-user inbox (`packages/server/src/notify.ts`) with a `Notification` of kind `approval | handoff | contention | done | blocked`, a deep link and a single `read` flag, and the desktop tray shows a pending-approvals count (`apps/web/src/shell.ts`). What is missing is the triage model on top: what "done" means, whether an item can come back, how items group across projects, and whether the human can act without opening the session. The products below have each spent years on exactly that, and the differences between them are instructive.
 
@@ -20,26 +20,26 @@ The server already keeps a per-user inbox (`packages/server/src/notify.ts`) with
 
 ## What to borrow
 
-- **Per-thread items, not per-event items** (Linear, GitHub). One approval is one item however many votes arrive; a contention stays one item as it gains participants. Fold's log is per-event, so the inbox must fold events by `approvalId`, `contentionId`, `handoffId`.
-- **Done is reversible by new activity** (Octobox). A denied claim you marked done should come back when the lead's resolution changes it, and a quorum approval should come back when a vote is withdrawn. This is cheap in Fold because every change is an event with the same id.
+- **Per-thread items, not per-event items** (Linear, GitHub). One approval is one item however many votes arrive; a contention stays one item as it gains participants. Henosis's log is per-event, so the inbox must fold events by `approvalId`, `contentionId`, `handoffId`.
+- **Done is reversible by new activity** (Octobox). A denied claim you marked done should come back when the lead's resolution changes it, and a quorum approval should come back when a vote is withdrawn. This is cheap in Henosis because every change is an event with the same id.
 - **Reason on every item** (GitHub). Why am I seeing this: "you are the only driver", "quorum needs one more owner", "handoff to you", "you lead this project". Reason is what lets Unsubscribe mean something.
 - **Snooze returns as new and unread** (Linear). Snooze is a reminder, not a dismissal. Presets should be work-shaped: "after this turn", "when the session pauses", "tomorrow".
-- **A Priority split with a stated rule** (Linear 2026, Superhuman). Fold's rule is already deterministic: items blocking an agent now (approval pending, contention on goal) outrank items that merely inform (done, blocked write that the agent routed around).
+- **A Priority split with a stated rule** (Linear 2026, Superhuman). Henosis's rule is already deterministic: items blocking an agent now (approval pending, contention on goal) outrank items that merely inform (done, blocked write that the agent routed around).
 - **Capability per item** (LangChain). Approvals accept/deny; contentions pick an option or write a steer; handoffs accept/decline; informational items only open. Render only the verbs the kernel will accept from this user at this rank.
-- **Group by project** (GitHub by repository). Fold's unit is the project; inside a project, sessions; the lead's fleet contentions sit at project level, above any session.
+- **Group by project** (GitHub by repository). Henosis's unit is the project; inside a project, sessions; the lead's fleet contentions sit at project level, above any session.
 
 ## What is unsolved
 
 - **Quorum visibility.** No inbox above has a vote that needs two distinct humans. Showing "1 of 2 approved, Ana approved" in the list is new, and a Done by a non-voter must not count as a vote.
 - **Stale action.** Approvals are bound to the hash of the exact call. An inbox item can be acted on minutes after the agent moved on; the kernel will reject it, and the inbox must show that the moment has passed rather than a generic error.
-- **Snooze on an item that blocks a running agent.** Linear's snooze hides work that waits for you. In Fold the agent is waiting; snoozing an approval should hand the item to another eligible voter or say plainly that the session stays paused.
+- **Snooze on an item that blocks a running agent.** Linear's snooze hides work that waits for you. In Henosis the agent is waiting; snoozing an approval should hand the item to another eligible voter or say plainly that the session stays paused.
 - **Unsubscribe from a session you own.** Owners cannot opt out of quorum duty without transferring the seat; the inbox needs to say so instead of offering the verb.
 - **Minimalism.** The register is claude.ai: one column, no badges shouting. An inbox is inherently a list with chrome. The design question is how little chrome it can carry.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **Promote the server inbox to a triaged item store.** In `packages/server/src/notify.ts` replace `read: boolean` with `state: "open" | "done" | "snoozed"`, `snoozedUntil`, `reason`, `threadKey` (`approval:<id>`, `contention:<id>`, `handoff:<id>`), and `allowed: ("approve"|"deny"|"pick"|"steer"|"accept"|"decline")[]` computed from the user's rank and the policy. Mirror the shape in `apps/web/src/api.ts` `Notification`.
-2. **Fold events into threads and reopen on activity.** In the same file, upsert by `threadKey`: a new vote, resolution or decline on a done or snoozed item sets `state: "open"` again and bumps `at`. Add a resolved kernel event (`approval.voted` reaching quorum, `contention.resolved`, `handoff.accepted/declined`) that marks the item done for every recipient. Tests beside the existing notify tests.
+2. **Henosis events into threads and reopen on activity.** In the same file, upsert by `threadKey`: a new vote, resolution or decline on a done or snoozed item sets `state: "open"` again and bumps `at`. Add a resolved kernel event (`approval.voted` reaching quorum, `contention.resolved`, `handoff.accepted/declined`) that marks the item done for every recipient. Tests beside the existing notify tests.
 3. **Add an Inbox view at `/inbox`, grouped by project, split in two.** New `apps/web/src/views/Inbox.tsx`, routed in `router.ts`, linked as the first sidebar item in `Home.tsx` with a single hairline count in `--fg-3`, no colour. Section "Needs you" (open approvals, contentions, handoffs to you, ordered by what blocks a running agent) above "Later" (done writes, blocked notes, snoozed items with their return time). Project headers are plain 13.5px rows; sessions nest under them as the existing `.sidebar .item.sub` style does.
 4. **Act inline with the existing notice component.** Reuse `ApprovalNotice` from `apps/web/src/views/SessionView.tsx` (extract it and the contention notice to `apps/web/src/ui.tsx`) so an inbox row expands into the same two-button notice the session shows. Votes go through the same `client.send({ type: "vote" })` path, so hash binding and quorum rules stay in the kernel. On rejection, render "That moment passed; the agent moved on" in the row and mark it done.
 5. **Keyboard triage with Linear/Superhuman verbs.** `j`/`k` move, `e` done, `h` snooze (presets: after this turn, when the session pauses, tomorrow 9:00, custom), `y` approve, `n` deny, `o` open the session at the notice, `u` unread. Register in `apps/web/src/ui.tsx` next to the existing shortcuts; the desktop shell inherits them. Snoozing an approval that would leave no eligible voter shows one line "The session stays paused until someone approves" before confirming.

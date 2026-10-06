@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  FOLD_OFFLINE: "1"
+  HENOSIS_OFFLINE: "1"
 
 jobs:
   # Fails in seconds when the tag, tauri.conf.json, Cargo.toml and CHANGELOG.md disagree.
@@ -40,9 +40,9 @@ jobs:
           version="${GITHUB_REF_NAME#desktop-v}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           {
-            echo "notes<<FOLD_NOTES_EOF"
+            echo "notes<<HENOSIS_NOTES_EOF"
             node scripts/desktop-release-notes.mjs "$version" --check
-            echo "FOLD_NOTES_EOF"
+            echo "HENOSIS_NOTES_EOF"
           } >> "$GITHUB_OUTPUT"
 
   build:
@@ -148,7 +148,7 @@ jobs:
           tauriScript: npx tauri
           args: ${{ matrix.args }} ${{ env.SIGN_ARGS }}
           tagName: ${{ github.ref_name }}
-          releaseName: Fold desktop ${{ needs.notes.outputs.version }}
+          releaseName: Henosis desktop ${{ needs.notes.outputs.version }}
           releaseBody: ${{ needs.notes.outputs.notes }}
           releaseDraft: true
           prerelease: ${{ contains(needs.notes.outputs.version, '-') }}

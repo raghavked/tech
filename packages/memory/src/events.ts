@@ -8,7 +8,7 @@
  * raw entries, level n+1 is a summary that cites the ids and authors it folded, so attribution
  * survives compaction.
  */
-import type { ChainEvent } from "@fold/kernel";
+import type { ChainEvent } from "@henosis/kernel";
 import { z } from "zod";
 
 export const Scope = z.object({

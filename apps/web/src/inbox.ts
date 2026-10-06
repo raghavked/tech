@@ -3,11 +3,11 @@
  * count) and the Inbox view; mark-read; and the inline actions, which join the session over the
  * websocket, vote or accept, and leave again. Every storage and network call is guarded.
  */
-import type { SessionState } from "@fold/kernel";
-import type { SessionEvent } from "@fold/protocol";
+import type { SessionState } from "@henosis/kernel";
+import type { SessionEvent } from "@henosis/protocol";
 import { useEffect, useSyncExternalStore } from "react";
 import { api, type Notification } from "./api.js";
-import { FoldClient, wsUrl } from "./client.js";
+import { HenosisClient, wsUrl } from "./client.js";
 import { actorOf, type Identity } from "./identity.js";
 import { notifyIfHidden } from "./notify.js";
 import { paths } from "./router.js";
@@ -69,7 +69,7 @@ function start(userId: string): void {
   if (timer) return;
   timer = setInterval(refreshInbox, EVERY_MS);
   addEventListener("focus", refreshInbox);
-  addEventListener("fold:inbox", refreshInbox);
+  addEventListener("henosis:inbox", refreshInbox);
 }
 
 function stop(): void {
@@ -77,7 +77,7 @@ function stop(): void {
   clearInterval(timer);
   timer = null;
   removeEventListener("focus", refreshInbox);
-  removeEventListener("fold:inbox", refreshInbox);
+  removeEventListener("henosis:inbox", refreshInbox);
 }
 
 /** The inbox for `userId`, polled while any component holds it. */
@@ -117,7 +117,7 @@ export function linkOf(link: string): {
   sessionId: string | null;
   href: string | null;
 } {
-  const m = link.match(/^fold:\/\/p\/([^/?#]+)(?:\/s\/([^/?#]+))?/);
+  const m = link.match(/^henosis:\/\/p\/([^/?#]+)(?:\/s\/([^/?#]+))?/);
   if (!m) return { projectId: "", sessionId: null, href: null };
   const projectId = decodeURIComponent(m[1] as string);
   const sessionId = m[2] ? decodeURIComponent(m[2]) : null;
@@ -138,9 +138,9 @@ async function inSession<T>(
   identity: Identity,
   projectId: string,
   sessionId: string,
-  fn: (client: FoldClient, state: SessionState) => Promise<T>,
+  fn: (client: HenosisClient, state: SessionState) => Promise<T>,
 ): Promise<T> {
-  const client = new FoldClient();
+  const client = new HenosisClient();
   try {
     const state = await new Promise<SessionState>((resolve, reject) => {
       let opened = false;
@@ -179,7 +179,7 @@ async function inSession<T>(
 
 /** Resolve with the first live event `match` accepts, or reject on a server error or timeout. */
 function awaitEvent(
-  client: FoldClient,
+  client: HenosisClient,
   match: (e: SessionEvent) => boolean,
 ): Promise<SessionEvent> {
   return new Promise((resolve, reject) => {

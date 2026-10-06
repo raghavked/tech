@@ -1,14 +1,14 @@
 /**
- * Deep links, end to end on the client. Every shell hands the web app a `fold://` link:
- * server notifications carry fold://p/<project>/s/<session>, the tray opens fold://inbox,
- * the desktop shell dispatches a "fold:link" DOM event, Slack posts the same routes under the
- * app's base URL, and a plain browser tab can be opened at /?link=fold://… .
+ * Deep links, end to end on the client. Every shell hands the web app a `henosis://` link:
+ * server notifications carry henosis://p/<project>/s/<session>, the tray opens henosis://inbox,
+ * the desktop shell dispatches a "henosis:link" DOM event, Slack posts the same routes under the
+ * app's base URL, and a plain browser tab can be opened at /?link=henosis://… .
  *
  * Parsing is pure (no React, no DOM at import time) so it is unit-tested directly; the DOM
  * wiring lives in `connectLinks` and is guarded for environments without a window.
  */
 
-export type FoldLink =
+export type HenosisLink =
   | { kind: "session"; projectId: string; sessionId: string; title: string | null }
   | { kind: "project"; projectId: string }
   | { kind: "inbox" };
@@ -22,12 +22,12 @@ function safeDecode(s: string): string {
 }
 
 /**
- * Parse a fold:// link: `fold://inbox`, `fold://p/<project>` and
- * `fold://p/<project>/s/<session>[?title=…]`. Segments after the session (a future
+ * Parse a henosis:// link: `henosis://inbox`, `henosis://p/<project>` and
+ * `henosis://p/<project>/s/<session>[?title=…]`. Segments after the session (a future
  * `/a/<approvalId>`) are ignored; anything else is null.
  */
-export function parseLink(link: string): FoldLink | null {
-  const m = link.trim().match(/^fold:\/\/([^?#]*)(?:\?([^#]*))?/i);
+export function parseLink(link: string): HenosisLink | null {
+  const m = link.trim().match(/^henosis:\/\/([^?#]*)(?:\?([^#]*))?/i);
   if (!m) return null;
   const parts = (m[1] ?? "").split("/").filter(Boolean).map(safeDecode);
   const query = new URLSearchParams(m[2] ?? "");
@@ -46,7 +46,7 @@ export function parseLink(link: string): FoldLink | null {
 }
 
 /** The client's hash route for a parsed link. */
-export function routeOf(link: FoldLink): string {
+export function routeOf(link: HenosisLink): string {
   const enc = encodeURIComponent;
   switch (link.kind) {
     case "inbox":
@@ -60,40 +60,40 @@ export function routeOf(link: FoldLink): string {
   }
 }
 
-/** Turn a fold:// deep link into the client's hash route, or null when it is not one. */
+/** Turn a henosis:// deep link into the client's hash route, or null when it is not one. */
 export function routeOfLink(link: string): string | null {
   const parsed = parseLink(link);
   return parsed ? routeOf(parsed) : null;
 }
 
-/** The fold:// link for a session, project or the inbox: the inverse of `parseLink`. */
-export function linkOf(target: FoldLink): string {
+/** The henosis:// link for a session, project or the inbox: the inverse of `parseLink`. */
+export function linkOf(target: HenosisLink): string {
   const enc = encodeURIComponent;
   switch (target.kind) {
     case "inbox":
-      return "fold://inbox";
+      return "henosis://inbox";
     case "project":
-      return `fold://p/${enc(target.projectId)}`;
+      return `henosis://p/${enc(target.projectId)}`;
     case "session":
-      return `fold://p/${enc(target.projectId)}/s/${enc(target.sessionId)}${
+      return `henosis://p/${enc(target.projectId)}/s/${enc(target.sessionId)}${
         target.title ? `?title=${enc(target.title)}` : ""
       }`;
   }
 }
 
 /**
- * The hash route a shell may hand the client on load: `?link=fold://…` in the query (a
- * browser tab opened from a notification or Slack) or the fold:// link in place of the hash
- * (`/#fold://p/x/s/y`). Pure: takes `location.search` and `location.hash`.
+ * The hash route a shell may hand the client on load: `?link=henosis://…` in the query (a
+ * browser tab opened from a notification or Slack) or the henosis:// link in place of the hash
+ * (`/#henosis://p/x/s/y`). Pure: takes `location.search` and `location.hash`.
  */
 export function pendingLinkIn(search: string, hash: string): string | null {
   const fromQuery = new URLSearchParams(search.replace(/^\?/, "")).get("link");
   if (fromQuery) return routeOfLink(fromQuery);
   const raw = safeDecode(hash.replace(/^#/, ""));
-  return /^fold:\/\//i.test(raw) ? routeOfLink(raw) : null;
+  return /^henosis:\/\//i.test(raw) ? routeOfLink(raw) : null;
 }
 
-/** Hash routes and fold:// links alike: the route to navigate to, or null. */
+/** Hash routes and henosis:// links alike: the route to navigate to, or null. */
 export function routeOfAny(linkOrRoute: unknown): string | null {
   if (typeof linkOrRoute !== "string") return null;
   const s = linkOrRoute.trim();
@@ -102,7 +102,7 @@ export function routeOfAny(linkOrRoute: unknown): string | null {
   return routeOfLink(s);
 }
 
-/** Navigate to a fold:// link or a `#/` hash route. Returns false when it is neither. */
+/** Navigate to a henosis:// link or a `#/` hash route. Returns false when it is neither. */
 export function openLink(linkOrRoute: unknown): boolean {
   const route = routeOfAny(linkOrRoute);
   if (!route) return false;
@@ -116,10 +116,10 @@ export function openLink(linkOrRoute: unknown): boolean {
 }
 
 /** The DOM event a shell dispatches to open a link: `detail` is the link or `{ link }`. */
-export const LINK_EVENT = "fold:link";
+export const LINK_EVENT = "henosis:link";
 
 /**
- * Route a link given on load, then keep listening for "fold:link" events. Call once at
+ * Route a link given on load, then keep listening for "henosis:link" events. Call once at
  * startup, before React mounts, so the first render already sees the route.
  */
 export function connectLinks(): () => void {

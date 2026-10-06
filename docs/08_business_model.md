@@ -2,7 +2,7 @@
 
 ## What is sold
 
-Fold sells the shared session: the kernel, the hosted actor-per-session service, the
+Henosis sells the shared session: the kernel, the hosted actor-per-session service, the
 adapters that let any harness run inside it, and the audit that falls out of the log. It is
 infrastructure with a product on top, in that order. The product (web, CLI, Slack) proves
 the kernel; the kernel is what a platform team standardises on.
@@ -13,7 +13,7 @@ the kernel; the kernel is what a platform team standardises on.
 |---|---|---|
 | Engineering teams (bottom-up) | A multi-hour agent run that one person babysits while others wait for the diff | Live co-presence, approvals, handoff |
 | Platform or developer-productivity teams | Three harnesses in use, no common record of what agents did or who approved it | One session layer across harnesses; replay; policy |
-| Security and compliance | An agent took an irreversible action and nobody can say who authorised it | Fold approvals, attributed logs, exportable evidence |
+| Security and compliance | An agent took an irreversible action and nobody can say who authorised it | Henosis approvals, attributed logs, exportable evidence |
 | Vertical teams (sales, support, legal, finance, marketing) | Several people already crowd one agent-driven task in a chat thread | Templates, roles, briefs, policy packs |
 
 ## Pricing (working hypothesis)
@@ -26,7 +26,7 @@ The working model:
 - **Per approver seat** for people with driver or owner rights, since authority is what
   organisations control and count.
 - **Platform tier** priced per harness adapter and per retained-log volume, for teams that
-  run Fold as their session layer.
+  run Henosis as their session layer.
 - Open-source kernel and protocol; commercial hosting, adapters, policy packs, audit export.
 
 Illustrative: a 40-engineer team with 10 approvers running 200 session-hours a month lands
@@ -41,7 +41,7 @@ governs.
   its session model.
 - **Neutrality.** No first-party vendor has a reason to make its sessions portable to a
   rival's harness. Platform teams do. Slack Code shows the cross-vendor surface is wanted;
-  Fold is the state behind such a surface.
+  Henosis is the state behind such a surface.
 - **The log compounds.** Every session adds to an organisation's record of how its agents
   are steered and approved. Policy packs, briefs and analytics are built on it, and
   switching away means losing replayable history.
@@ -50,7 +50,7 @@ governs.
 
 Figma made design multiplayer and the file format the moat. Liveblocks and PartyKit sell
 the multiplayer substrate per connection-minute. Temporal sells durable execution and was
-valued at $12.55B in September 2026. Fold sits at the join: durable, replayable sessions
+valued at $12.55B in September 2026. Henosis sits at the join: durable, replayable sessions
 with multiplayer semantics, priced like the former and valued like the latter if it becomes
 the record of agent work.
 
@@ -64,7 +64,7 @@ the record of agent work.
 3. **Platform sale** once two or more teams in an organisation use it: the session layer,
    policy and audit.
 4. **Vertical templates** with partners who already own the workflow (deal desks, support
-   escalation, matter management), where Fold is the session under their product.
+   escalation, matter management), where Henosis is the session under their product.
 
 ## Risks
 

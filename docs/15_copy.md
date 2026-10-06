@@ -8,10 +8,10 @@ the sentence they belong to.
 
 ## Voice
 
-Calm, specific, in Fold's register (`12_brand.md`). The interface describes what happened
+Calm, specific, in Henosis's register (`12_brand.md`). The interface describes what happened
 and who did it, and no more.
 
-1. **Name the person and the act.** "Ana is driving." "Bo offers the fold to you." "Bo joined
+1. **Name the person and the act.** "Ana is driving." "Bo offers the baton to you." "Bo joined
    as contributor." Never "a user", never the passive voice when there is a name.
 2. **Say the thing, not the technology.** "The agent wants to run `pnpm test`"; never
    "AI-powered", "intelligent", "smart", "magic", or an apology from the model.
@@ -19,11 +19,11 @@ and who did it, and no more.
    same words in the sidebar dot, the top row, the fleet rows, the counts ("3 awaiting
    approval") and Slack. Capitalised only where it starts a line; never a pill.
 4. **Short, declarative, present tense** for state ("Nobody else here yet. Share the link.")
-   and past tense for the log ("Folded pdf-layout into main", "Wrote src/app.ts").
+   and past tense for the log ("United pdf-layout into main", "Wrote src/app.ts").
 5. **Verbs on buttons**, one or two words: Approve, Deny, Accept, Decline, Pick, Withdraw,
-   Hand off, Fork, Fold into main. No "Submit", no "OK", no "Yes".
-6. **Fold's own words** for its own ideas: a session is *the fold*, a person *drives* it,
-   handing over *offers the fold*, a merge *folds* a branch in, a steer and a constraint are
+   Hand off, Fork, Unite into main. No "Submit", no "OK", no "Yes".
+6. **Henosis's own words** for its own ideas: the driver holds *the baton*, a person *drives* it,
+   handing over *offers the baton*, a merge *unites* a branch, a steer and a constraint are
    *directions*, two of them at once is a *contention*.
 7. **Quiet errors.** State what failed and where ("Could not load /api/me: 503"); no
    exclamation marks, no blame.

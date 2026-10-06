@@ -10,7 +10,7 @@ import {
   type ProjectServerMessage,
   type ProjectState,
   reduceProject,
-} from "@fold/fleet";
+} from "@henosis/fleet";
 import { Reconnector } from "./reconnect.js";
 
 export interface ProjectSnapshot {

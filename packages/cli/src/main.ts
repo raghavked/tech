@@ -2,22 +2,22 @@
 /** fold: the multiplayer kernel for long-running agent sessions. */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { fleetBrief, Project, type SerializedLedger } from "@fold/fleet";
-import { checkReplay, handoffBrief, type SerializedLog, Session } from "@fold/kernel";
-import type { Actor } from "@fold/protocol";
+import { fleetBrief, Project, type SerializedLedger } from "@henosis/fleet";
+import { checkReplay, handoffBrief, type SerializedLog, Session } from "@henosis/kernel";
+import type { Actor } from "@henosis/protocol";
 import {
   ClaudeModel,
   claudeAvailable,
   defaultTools,
   type Model,
   ScriptedModel,
-} from "@fold/runner";
-import { FoldServer } from "@fold/server";
+} from "@henosis/runner";
+import { HenosisServer } from "@henosis/server";
 import { runDemo } from "./demo.js";
 import { joinSession } from "./join.js";
 import { renderReport } from "./report.js";
 
-const USAGE = `fold <command> [options]
+const USAGE = `henosis <command> [options]
 
   serve    [--port 7700] [--dir ./store] [--model scripted|claude] [--token T]   run the session server
   demo     [--dir ./store-demo]                                                 offline multiplayer scenario
@@ -31,7 +31,7 @@ const USAGE = `fold <command> [options]
 slack.json: { "botToken": "xoxb-...", "appToken": "xapp-...", "map": { "teams": {"payments": "C..."},
              "projects": {"billing": "C..."}, "management": "C...", "users": {"U123": "ana"} }, "projects": ["billing"] }
 
-Environment: FOLD_OFFLINE=1 blocks the Claude adapter; ANTHROPIC_API_KEY enables it.
+Environment: HENOSIS_OFFLINE=1 blocks the Claude adapter; ANTHROPIC_API_KEY enables it.
 Exit codes: 0 ok, 2 usage, 3 verification failed, 4 network.`;
 
 function parseArgs(argv: string[]): { positional: string[]; flags: Record<string, string | true> } {
@@ -65,7 +65,7 @@ function pickModel(name: string): Model {
   if (name === "claude") {
     if (!claudeAvailable()) {
       process.stderr.write(
-        "claude model requested but ANTHROPIC_API_KEY is unset or FOLD_OFFLINE=1\n",
+        "claude model requested but ANTHROPIC_API_KEY is unset or HENOSIS_OFFLINE=1\n",
       );
       process.exit(4);
     }
@@ -83,8 +83,8 @@ async function main(): Promise<number> {
       const root = resolve(flag(flags, "dir", "./store"));
       const model = pickModel(flag(flags, "model", "scripted"));
       const tokenFlag = flags.token;
-      const token = typeof tokenFlag === "string" ? tokenFlag : process.env.FOLD_TOKEN;
-      const server = new FoldServer({
+      const token = typeof tokenFlag === "string" ? tokenFlag : process.env.HENOSIS_TOKEN;
+      const server = new HenosisServer({
         root,
         model,
         tools: defaultTools(),
@@ -93,7 +93,7 @@ async function main(): Promise<number> {
       });
       const bound = await server.listen(port, flag(flags, "host", "127.0.0.1"));
       process.stdout.write(
-        `fold server on ws://127.0.0.1:${bound}/ws (model ${model.name}, store ${root}${token ? ", token required" : ""})\n`,
+        `henosis server on ws://127.0.0.1:${bound}/ws (model ${model.name}, store ${root}${token ? ", token required" : ""})\n`,
       );
       const stop = async () => {
         await server.close();
@@ -111,17 +111,17 @@ async function main(): Promise<number> {
         appToken: string;
         map: Record<string, unknown>;
         projects?: string[];
-        /** Where the web app is served; Slack messages then link into it (or FOLD_APP_URL). */
+        /** Where the web app is served; Slack messages then link into it (or HENOSIS_APP_URL). */
         appBaseUrl?: string;
       };
-      const { BoltSlackClient, ChannelMap, SlackAdapter } = await import("@fold/slack");
+      const { BoltSlackClient, ChannelMap, SlackAdapter } = await import("@henosis/slack");
       const port = Number(flag(flags, "port", "7700"));
       const root = resolve(flag(flags, "dir", "./store"));
-      const server = new FoldServer({
+      const server = new HenosisServer({
         root,
         model: pickModel(flag(flags, "model", "scripted")),
         tools: defaultTools(),
-        token: process.env.FOLD_TOKEN,
+        token: process.env.HENOSIS_TOKEN,
         log: (l) => process.stderr.write(`${l}\n`),
       });
       const bound = await server.listen(port, flag(flags, "host", "127.0.0.1"));
@@ -129,7 +129,7 @@ async function main(): Promise<number> {
         server,
         client: new BoltSlackClient({ botToken: cfg.botToken, appToken: cfg.appToken }),
         map: ChannelMap.parse(cfg.map),
-        appBaseUrl: cfg.appBaseUrl ?? process.env.FOLD_APP_URL,
+        appBaseUrl: cfg.appBaseUrl ?? process.env.HENOSIS_APP_URL,
         log: (l) => process.stderr.write(`${l}\n`),
       });
       for (const pid of cfg.projects ?? server.orgs.projectsFor(null).map((p) => p.projectId))
@@ -137,7 +137,7 @@ async function main(): Promise<number> {
       await adapter.start();
       server.integrations.slack = true;
       process.stdout.write(
-        `fold server on ws://127.0.0.1:${bound}/ws with Slack adapter (socket mode)\n`,
+        `henosis server on ws://127.0.0.1:${bound}/ws with Slack adapter (socket mode)\n`,
       );
       const stop = async () => {
         await adapter.stop();
@@ -166,7 +166,7 @@ async function main(): Promise<number> {
         name,
       };
       const tokenFlag = flags.token;
-      const token = typeof tokenFlag === "string" ? tokenFlag : process.env.FOLD_TOKEN;
+      const token = typeof tokenFlag === "string" ? tokenFlag : process.env.HENOSIS_TOKEN;
       await joinSession(
         flag(flags, "url", "ws://127.0.0.1:7700/ws"),
         sessionId,

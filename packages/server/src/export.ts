@@ -3,7 +3,7 @@
  * A live session is rendered from its host (so unflushed events are included); a session
  * only on disk is folded from its log. Pure apart from reading the log.
  */
-import { KernelError, renderReport, Session } from "@fold/kernel";
+import { KernelError, renderReport, Session } from "@henosis/kernel";
 import type { ProjectHost } from "./projectHost.js";
 import { readLog, sessionDir } from "./storage.js";
 

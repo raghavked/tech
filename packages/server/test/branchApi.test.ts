@@ -1,22 +1,22 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { BranchCompare } from "@fold/kernel";
-import type { Actor } from "@fold/protocol";
-import { defaultTools, ScriptedModel } from "@fold/runner";
+import type { BranchCompare } from "@henosis/kernel";
+import type { Actor } from "@henosis/protocol";
+import { defaultTools, ScriptedModel } from "@henosis/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { SessionFile } from "../src/branchApi.js";
-import { FoldServer } from "../src/server.js";
+import { HenosisServer } from "../src/server.js";
 
 const ana: Actor = { id: "ana", kind: "human", name: "Ana" };
 
 describe("branch compare and file routes", () => {
   let root: string;
-  let server: FoldServer;
+  let server: HenosisServer;
   let base: string;
   beforeAll(async () => {
-    root = mkdtempSync(join(tmpdir(), "fold-cmp-"));
-    server = new FoldServer({ root, model: new ScriptedModel(), tools: defaultTools() });
+    root = mkdtempSync(join(tmpdir(), "henosis-cmp-"));
+    server = new HenosisServer({ root, model: new ScriptedModel(), tools: defaultTools() });
     const port = await server.listen(0);
     base = `http://127.0.0.1:${port}/api/projects/default/sessions/cmp`;
     const s = server.host("cmp", "Compare me", "default", "ana").session;

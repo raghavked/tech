@@ -1,12 +1,12 @@
-# Fold desktop
+# Henosis desktop
 
 A Tauri v2 shell around the web client in `apps/web`: the same product in a native window,
 a tray item that counts the approvals and handoffs awaiting you, a badge on the Dock or
-launcher, native notifications, and `fold://` links that open the right session. Desktop,
+launcher, native notifications, and `henosis://` links that open the right session. Desktop,
 web and mobile are one client, the way Claude on the web, Claude Desktop and Claude mobile
 are one product.
 
-This directory is excluded from the pnpm workspace (`"fold:excluded": true` here and
+This directory is excluded from the pnpm workspace (`"henosis:excluded": true` here and
 `!apps/desktop` in `pnpm-workspace.yaml`) so the monorepo install never needs a Rust
 toolchain, and CI does not build it. Install its dependencies here, with npm, when you build
 the app.
@@ -15,9 +15,9 @@ the app.
 apps/desktop
 ├── package.json              npm scripts (dev, build, build:mac, build:win, build:linux, icons)
 ├── scripts/make-icons.mjs    draws the icon set from the brand mark, Node only
-├── src/bridge.js             window.__FOLD_DESKTOP__, injected before the client loads
+├── src/bridge.js             window.__HENOSIS_DESKTOP__, injected before the client loads
 └── src-tauri
-    ├── tauri.conf.json       window, fold:// scheme, bundle and signing settings
+    ├── tauri.conf.json       window, henosis:// scheme, bundle and signing settings
     ├── capabilities/         what the window may call
     ├── entitlements.plist    macOS hardened runtime
     ├── icons/                icon.png, .ico, .icns (committed) and the fuller generated set
@@ -34,16 +34,16 @@ apps/desktop
   `shell.ts` prefixes them with the server URL the shell reports; `api.ts` and `client.ts`
   go through it. In a browser, and under `tauri dev` (the Vite dev server proxies both),
   it is empty and nothing changes.
-- The server URL is `FOLD_URL` in the environment, else the one-line `server` file in the
-  app's config directory (`~/Library/Application Support/studio.fold.desktop/server`,
-  `%APPDATA%\studio.fold.desktop\server`, `~/.config/studio.fold.desktop/server`), else
-  `http://127.0.0.1:7700`, which is `fold serve` without flags.
+- The server URL is `HENOSIS_URL` in the environment, else the one-line `server` file in the
+  app's config directory (`~/Library/Application Support/team.henosis.desktop/server`,
+  `%APPDATA%\team.henosis.desktop\server`, `~/.config/team.henosis.desktop/server`), else
+  `http://127.0.0.1:7700`, which is `henosis serve` without flags.
 - `notify.ts` sends native notifications through the bridge when the window is not focused;
   webviews have no Notification API of their own.
 
 ### The bridge
 
-`src/bridge.js` defines `window.__FOLD_DESKTOP__`. Every method returns a promise; every
+`src/bridge.js` defines `window.__HENOSIS_DESKTOP__`. Every method returns a promise; every
 listener resolves to an unlisten function.
 
 | Method | Purpose |
@@ -55,19 +55,19 @@ listener resolves to an unlisten function.
 | `setPending(count)` | the open session's live count changed: poll now |
 | `refreshInbox()` | poll now |
 | `openExternal(url)` | open in the system browser |
-| `onDeepLink(cb)` | `"#/p/<project>/s/<session>"` from a `fold://` link or the tray |
+| `onDeepLink(cb)` | `"#/p/<project>/s/<session>"` from a `henosis://` link or the tray |
 | `onTray(cb)` | `"pending"` or `"open"` |
 | `onInbox(cb)` | `{ approvals, handoffs }` after every poll |
 
 ## Tray, badge and notifications
 
 Every 15 seconds, on focus, and whenever the client reports a change, the shell reads
-`GET /api/notifications?user=<id>&unread=1` on the Fold server (`packages/server/src/notify.ts`
+`GET /api/notifications?user=<id>&unread=1` on the Henosis server (`packages/server/src/notify.ts`
 writes that inbox from session events). Unread `approval` and `handoff` items are what
 await you:
 
 - The tray menu reads **Pending approvals · N**, with **Handoffs offered · N** beneath it when
-  there are any, then **Open Fold** and **Quit Fold**. The first two open the first item's
+  there are any, then **Open Henosis** and **Quit Henosis**. The first two open the first item's
   session. The tray icon gains a dot when N is above zero, and the Dock or launcher badge shows
   the total (macOS and Linux; Tauri has no badge count on Windows, where the tray carries it).
 - A new item becomes one native notification, unless its session is on screen: the client
@@ -76,13 +76,13 @@ await you:
   collapse into a summary.
 - Items of the session on screen are marked read (`POST /api/notifications`) while the
   window is focused, so the badge drops as you look.
-- Notifications are one button: clicking brings Fold forward where the OS does that for
+- Notifications are one button: clicking brings Henosis forward where the OS does that for
   bundled apps (macOS, Windows). Open the session from the tray or the client when it does
   not. Bodies name the tool and risk class, never the arguments.
 
 ## Deep links
 
-`fold://p/<project>/s/<session>` (and `fold://m/<team>`) become the client's hash route.
+`henosis://p/<project>/s/<session>` (and `henosis://m/<team>`) become the client's hash route.
 macOS registers the scheme from the bundle's `Info.plist`; Windows and Linux register it at
 install and again at launch so `tauri dev` answers links too. The single-instance plugin
 forwards a link from a second launch to the running window. A link the app was launched
@@ -103,7 +103,7 @@ npm run build               # builds the client, then every bundle this OS can m
 ```
 
 `npm run icons:full` runs `tauri icon` for the complete platform set. Repeat
-`pnpm --filter @fold/web build` after client changes; `tauri build` does it for you.
+`pnpm --filter @henosis/web build` after client changes; `tauri build` does it for you.
 
 ### macOS
 ## Release and auto-update
@@ -157,7 +157,7 @@ signtool sign /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f cert.pf
 
 Tauri runs `signtool` itself when `certificateThumbprint` is set. `webviewInstallMode` is
 `downloadBootstrapper`: the installer fetches WebView2 when Windows lacks it. The installer
-registers `fold://` for the current user.
+registers `henosis://` for the current user.
 
 ### Linux
 
@@ -171,7 +171,7 @@ prerequisites page). The `.deb` depends on `libwebkit2gtk-4.1-0` and
 `libayatana-appindicator3-1`; the tray needs an app-indicator host (GNOME: the AppIndicator
 extension). Sign packages after the build: `dpkg-sig --sign builder *.deb`,
 `rpm --addsign *.rpm`, and `gpg --detach-sign *.AppImage` with the key your repository
-publishes. The `.deb` and `.rpm` install the `.desktop` file that registers `fold://`;
+publishes. The `.deb` and `.rpm` install the `.desktop` file that registers `henosis://`;
 AppImage users register it at first launch (`register_all` in `main.rs`).
 
 ## Releasing

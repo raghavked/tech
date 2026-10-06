@@ -1,4 +1,4 @@
-/* Fold service worker: caches the app shell, passes the websocket and the API through. */
+/* Henosis service worker: caches the app shell, passes the websocket and the API through. */
 const SHELL = "fold-shell-v1";
 const SHELL_URLS = ["/", "/manifest.webmanifest", "/favicon.svg", "/logo.svg"];
 

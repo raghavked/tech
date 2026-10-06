@@ -1,5 +1,5 @@
 /** Who is using this browser: a display name, a user id known to users.json and an optional token. */
-import type { Actor } from "@fold/protocol";
+import type { Actor } from "@henosis/protocol";
 import { useSyncExternalStore } from "react";
 
 export interface Identity {
@@ -8,7 +8,7 @@ export interface Identity {
   token: string;
 }
 
-const KEY = "fold.identity";
+const KEY = "henosis.identity";
 const listeners = new Set<() => void>();
 let current: Identity | null = readStored();
 

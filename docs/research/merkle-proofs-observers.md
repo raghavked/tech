@@ -1,10 +1,10 @@
-# Merkle proofs for observers: transparency-log techniques for Fold session logs
+# Merkle proofs for observers: transparency-log techniques for Henosis session logs
 
 Date: 2026-10-02. Topic slug: `merkle-proofs-observers`.
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-Fold's session is already a hash-chained log: `eventId()` in `packages/kernel/src/log.ts` commits each event to `prev`, so the head id commits to the whole prefix and `fold verify` detects any edit. What the chain does **not** give is a cheap way for a client that already holds a prefix to check that the server's new head *extends* that prefix. With a plain chain the only proof is the events themselves: a desktop client away for a day must download and re-hash everything it missed before trusting the head, and a client that only wants the brief (mobile, an observer, Slack) cannot check that it sees the same history as the room.
+Henosis's session is already a hash-chained log: `eventId()` in `packages/kernel/src/log.ts` commits each event to `prev`, so the head id commits to the whole prefix and `henosis verify` detects any edit. What the chain does **not** give is a cheap way for a client that already holds a prefix to check that the server's new head *extends* that prefix. With a plain chain the only proof is the events themselves: a desktop client away for a day must download and re-hash everything it missed before trusting the head, and a client that only wants the brief (mobile, an observer, Slack) cannot check that it sees the same history as the room.
 
 That second case is the real threat. A server (or compromised runner) that shows Ana one history and Bo another breaks arbitration, quorum approvals and handoff briefs silently; approvals bind to a call's content hash, but nothing binds them to a position in a history everyone agrees on. Transparency logs solved exactly this for certificates: a Merkle tree, O(log n) proofs, signed checkpoints, and witnesses that refuse to cosign an inconsistent checkpoint. The same machinery makes "I am looking at the real session" something the desktop client checks in a few hundred bytes, and lets an auditor verify the log later without the server's cooperation.
 
@@ -20,7 +20,7 @@ That second case is the real threat. A server (or compromised runner) that shows
 
 ## What to borrow
 
-- **The tree, not just the chain.** Keep `prev` (it is what fork pointers, replay and `fold verify` use) and add an RFC 9162 Merkle tree over the same leaves. The leaf is the existing event id, so the tree is a pure function of the event sequence and the kernel computes it anywhere.
+- **The tree, not just the chain.** Keep `prev` (it is what fork pointers, replay and `henosis verify` use) and add an RFC 9162 Merkle tree over the same leaves. The leaf is the existing event id, so the tree is a pure function of the event sequence and the kernel computes it anywhere.
 - **The skeptical-client loop.** The desktop client keeps `(branch, size, root)` as its trust anchor. On reconnect it asks for a consistency proof from its size to the current one and refuses to fold anything until the proof checks. Cost: `~log2 n` hashes; for a 100,000-event session, 17 hashes, 544 bytes.
 - **Signed checkpoints as the unit of trust.** Replace "the snapshot is whatever the server sent" with a signed `(origin, size, root)` note that votes and handoff accepts can cite.
 - **Witnesses from the people already in the room.** Every connected client already holds a checkpoint; broadcasting `(size, root)` in presence lets clients detect a split view among themselves, and the Slack adapter and the CLI can be persistent witnesses that cosign.
@@ -32,17 +32,17 @@ That second case is the real threat. A server (or compromised runner) that shows
 - **Branches are not linear logs.** A fork's history is `parent[0..f] ++ own`, so the branch tree at size f equals the parent tree at size f and a consistency proof across the fork point is ordinary. But a merge appends to the target a single event that *references* the source branch; the source's events are not leaves of the target tree. A client that verified the source branch has no proof that the merge event's recorded base and tree match what it saw. Putting the source root in the merge payload is the likely fix, but no transparency-log design covers this.
 - **Compaction versus append-only.** Organisation memory compacts; a transparency tree cannot forget. Memory must treat compaction as new events over an uncompacted tree, or forgo proofs.
 - **Who holds the signing key.** In phase 0 identity is client-asserted and the server is trusted. A server-signed checkpoint proves nothing against the server; it needs independent cosigners, so the witness step is not optional.
-- **Timestamps.** `append()` assigns a logical `ts = head.ts + 1`. Rekor v2 concluded a log should not vouch for wall-clock time; Fold will want an external time source for "approved at" if logs become audit evidence.
+- **Timestamps.** `append()` assigns a logical `ts = head.ts + 1`. Rekor v2 concluded a log should not vouch for wall-clock time; Henosis will want an external time source for "approved at" if logs become audit evidence.
 - **Latency.** Checkpoints can lag events (Tessera publishes asynchronously). The UI must render on `event` and upgrade once the covering checkpoint arrives.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **`packages/kernel/src/merkle.ts` (new).** Implement RFC 9162 `leafHash`, `nodeHash`, `rootAt(leaves, n)`, `inclusionProof(i, n)`, `consistencyProof(m, n)`, `verifyInclusion`, `verifyConsistency` on top of the existing `sha256` in `hash.ts`. Leaf = UTF-8 bytes of the event id. Property-test that a fork's root at the fork point equals the parent's root there.
 2. **`packages/kernel/src/log.ts`.** Give `ChainLog` an incremental tree per branch: store the `1 + log2 n` frontier hashes per append (the `tlog.StoredHashes` model) rather than recomputing from scratch; expose `root(branch)`, `size(branch)` and the two proof methods. Make `checkpoint.created` carry `{size, root}` so forks and merges reference a tree position, not only an event id, and add the source branch root to the merge payload.
 3. **`packages/protocol/src/index.ts`.** Add wire messages: client `resume {branch, size, root}`; server `checkpoint {origin: "<org>/<session>/<branch>", size, root, signatures[]}` in `tlog-checkpoint` note form, `consistency {from, to, hashes[]}`, `events {branch, from, events[]}`, and `inclusion {index, size, hashes[]}` on request. Carry `(size, root)` in `presence` so clients can compare views.
 4. **`packages/server/src/host.ts` and `storage.ts`.** Sign checkpoints with a per-deployment key (Ed25519 via WebCrypto, so the kernel stays Node-free). When phase 1 moves to JSONL per branch, write hash tiles of 256 under `store/sessions/<id>/tiles/<branch>/<L>/<N>` and serve them over HTTP with immutable cache headers; keep `checkpoint` uncached. Serve `snapshot` as a checkpoint plus an entry range so it is verifiable rather than trusted.
 5. **`apps/web/src/sync.ts` (new, used by `views/SessionView.tsx`) and the Tauri shell.** Keep the trust anchor `(branch, size, root)` in local storage, wrapped in try/catch, and in the desktop shell also in a file so it survives a cleared web view. On reconnect send `resume`, verify consistency before folding, then hash the delivered events and confirm they reach the checkpoint root. On failure render one quiet notice, "History changed since you last connected", keep the old view read-only until a human chooses to re-sync, and never fold unverified events.
-6. **`packages/slack/src/adapter.ts` and `packages/cli/src/main.ts`.** Make both persistent witnesses: they keep the last checkpoint per session, demand a consistency proof for each new one, and return a cosignature the server attaches to the note. Extend `fold verify <log.json>` to recompute roots, check every checkpoint and merge payload against them, and print the witness set that cosigned the head.
+6. **`packages/slack/src/adapter.ts` and `packages/cli/src/main.ts`.** Make both persistent witnesses: they keep the last checkpoint per session, demand a consistency proof for each new one, and return a cosignature the server attaches to the note. Extend `henosis verify <log.json>` to recompute roots, check every checkpoint and merge payload against them, and print the witness set that cosigned the head.
 
 ## Sources
 
@@ -56,4 +56,4 @@ That second case is the real threat. A server (or compromised runner) that shows
 - Trillian Tessera: https://github.com/transparency-dev/tessera
 - Rekor v2 GA announcement: https://blog.sigstore.dev/rekor-v2-ga/ (blocked; UNVERIFIED, from search snippets)
 - Tile-Based Transparency Logs, transparency.dev: https://transparency.dev/articles/tile-based-logs/ (blocked; UNVERIFIED, from search snippets)
-- Fold repo: /home/user/tech/packages/kernel/src/log.ts, /home/user/tech/packages/kernel/src/hash.ts, /home/user/tech/packages/protocol/src/index.ts, /home/user/tech/docs/04_technical_architecture.md, /home/user/tech/docs/05_kernel_design.md
+- Henosis repo: /home/user/tech/packages/kernel/src/log.ts, /home/user/tech/packages/kernel/src/hash.ts, /home/user/tech/packages/protocol/src/index.ts, /home/user/tech/docs/04_technical_architecture.md, /home/user/tech/docs/05_kernel_design.md

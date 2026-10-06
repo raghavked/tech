@@ -2,19 +2,19 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fold, type SessionState } from "@fold/kernel";
+import { fold, type SessionState } from "@henosis/kernel";
 import {
   type Actor,
   type ClientMessage,
   DEFAULT_APPROVAL_POLICY,
   type ServerMessage,
   type SessionEvent,
-} from "@fold/protocol";
-import { defaultTools, ScriptedModel } from "@fold/runner";
+} from "@henosis/protocol";
+import { defaultTools, ScriptedModel } from "@henosis/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { SessionHost } from "../src/host.js";
-import { FoldServer } from "../src/server.js";
+import { HenosisServer } from "../src/server.js";
 
 const open: Client[] = [];
 
@@ -31,7 +31,7 @@ class Client {
       const m = JSON.parse(raw.toString()) as ServerMessage;
       if (m.type === "snapshot") {
         this.snapshots.push(m.events);
-        // Fold a delta onto what we hold, exactly as the web client does.
+        // Henosis a delta onto what we hold, exactly as the web client does.
         const last = this.events[this.events.length - 1];
         const first = m.events[0];
         if (this.state && last && first && first.seq === last.seq + 1) {
@@ -79,11 +79,11 @@ const bo: Actor = { id: "bo", kind: "human", name: "Bo" };
 
 describe("reconnect-resume", () => {
   let root: string;
-  let server: FoldServer;
+  let server: HenosisServer;
   let url: string;
   beforeAll(async () => {
-    root = mkdtempSync(join(tmpdir(), "fold-resume-"));
-    server = new FoldServer({ root, model: new ScriptedModel(), tools: defaultTools() });
+    root = mkdtempSync(join(tmpdir(), "henosis-resume-"));
+    server = new HenosisServer({ root, model: new ScriptedModel(), tools: defaultTools() });
     const port = await server.listen(0);
     url = `ws://127.0.0.1:${port}/ws`;
   });

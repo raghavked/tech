@@ -1,10 +1,10 @@
-# Local-first behaviour for the Fold desktop app
+# Local-first behaviour for the Henosis desktop app
 
 Topic: local-first-offline-desktop. Date: 2026-10-02. Several vendor domains (replicache, electric-sql, inkandswitch, figma, jsdelivr) are blocked by the egress proxy; those entries are marked UNVERIFIED and rest on search snippets.
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-Fold's desktop shell is the primary surface, and engineers use it on trains, in meeting rooms with bad wifi, and across laptop sleep. But Fold is not a document the user owns: the agent runs on the server runner, the log is server-appended (`seq`, Lamport `ts`, `prev` hash), arbitration depends on the *epoch* recorded at submission, and approvals are bound to the content hash of the exact call with a quorum of distinct humans. A client that is offline cannot allocate a `seq`, cannot know the epoch, and cannot see what the agent did meanwhile. So "local-first" for Fold cannot mean CRDT-merging the intent lattice; it means a durable outbox of *intents the server may later admit*, optimistic rendering that is visibly provisional, and a precise policy for what is safe to queue and what must wait. Today `apps/web/src/client.ts` drops the socket on close, keeps nothing, and resyncs from a full `snapshot`; the composer keeps working as if online. That is the gap.
+Henosis's desktop shell is the primary surface, and engineers use it on trains, in meeting rooms with bad wifi, and across laptop sleep. But Henosis is not a document the user owns: the agent runs on the server runner, the log is server-appended (`seq`, Lamport `ts`, `prev` hash), arbitration depends on the *epoch* recorded at submission, and approvals are bound to the content hash of the exact call with a quorum of distinct humans. A client that is offline cannot allocate a `seq`, cannot know the epoch, and cannot see what the agent did meanwhile. So "local-first" for Henosis cannot mean CRDT-merging the intent lattice; it means a durable outbox of *intents the server may later admit*, optimistic rendering that is visibly provisional, and a precise policy for what is safe to queue and what must wait. Today `apps/web/src/client.ts` drops the socket on close, keeps nothing, and resyncs from a full `snapshot`; the composer keeps working as if online. That is the gap.
 
 ## Prior art
 
@@ -18,10 +18,10 @@ Fold's desktop shell is the primary surface, and engineers use it on trains, in 
 
 ## What to borrow
 
-- **Speculative then authoritative, with replacement (Replicache).** Fold already has a pure `fold(events)`. A queued directive can be folded locally as a *provisional* event to render instantly; when the server's real event arrives it replaces the provisional one wholesale. No merge logic in the client.
+- **Speculative then authoritative, with replacement (Replicache).** Henosis already has a pure `fold(events)`. A queued directive can be folded locally as a *provisional* event to render instantly; when the server's real event arrives it replaces the provisional one wholesale. No merge logic in the client.
 - **The txid handshake (Electric).** Every queued message carries a client reference; the server echoes it inside the event it appends; the client drops the provisional entry only when it sees the matching reference on the stream. This is also the fix for Linear's documented idempotency hole: the reference doubles as an idempotency key and the server dedupes.
-- **Durable outbox and total order (Linear).** Persist the outbox (IndexedDB on web, SQLite via Tauri on desktop), resend in order on reconnect, and use `seq` exactly as Linear uses `lastSyncId`: reconnect with `afterSeq` plus the head hash; the server sends the tail or a full snapshot on mismatch. Fold's hash chain makes this stronger than Linear's: the client verifies the prefix.
-- **Server authority and a simulator (Figma).** Keep arbitration server-side; do not CRDT the intent lattice, because a CRDT merge would silently resolve what Fold deliberately surfaces as a contention. Extend the existing 300-trial property test with partition scenarios.
+- **Durable outbox and total order (Linear).** Persist the outbox (IndexedDB on web, SQLite via Tauri on desktop), resend in order on reconnect, and use `seq` exactly as Linear uses `lastSyncId`: reconnect with `afterSeq` plus the head hash; the server sends the tail or a full snapshot on mismatch. Henosis's hash chain makes this stronger than Linear's: the client verifies the prefix.
+- **Server authority and a simulator (Figma).** Keep arbitration server-side; do not CRDT the intent lattice, because a CRDT merge would silently resolve what Henosis deliberately surfaces as a contention. Extend the existing 300-trial property test with partition scenarios.
 - **Local reads everywhere (Ink & Switch).** The whole branch log is already on the client; replay, the brief (`brief.ts` is pure), and history browsing work offline with no spinner.
 
 ## What is unsolved
@@ -29,9 +29,9 @@ Fold's desktop shell is the primary surface, and engineers use it on trains, in 
 - **Stale epochs.** Arbitration treats two directives as concurrent when they share an epoch. A steer composed offline at epoch 7 and delivered at epoch 12 is neither "concurrent" nor a clean "redirect": the agent may have already done what it asks, or moved past it. No sync engine above has an analogue because none has an autonomous actor advancing state while you are away.
 - **Votes under changed context.** An `approve` queued offline is only meaningful if the call hash is still pending; the hash binding protects against approving a different call, but not against a quorum completing minutes later from a vote cast with stale knowledge. `deny` is always safe (any eligible deny denies).
 - **Identity-allocating actions.** Fork, merge, checkpoint, handoff, role change and contention resolution reference or create server-side identities relative to the current head; there is no sound optimistic rendering for them.
-- **Collapsing.** Linear collapses queued transactions to their net effect. Fold's rule "same author: latest supersedes" makes collapsing *steers on the same scope* safe, but `pause`/`resume` pairs and withdrawals must be kept in sequence.
+- **Collapsing.** Linear collapses queued transactions to their net effect. Henosis's rule "same author: latest supersedes" makes collapsing *steers on the same scope* safe, but `pause`/`resume` pairs and withdrawals must be kept in sequence.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **Client reference on the wire and in the log.** In `packages/protocol/src/index.ts`, add `clientRef: { clientId, clientSeq, basedOnSeq, basedOnHead }` to `directive`, `withdraw`, `vote` and `note` messages, and echo `clientRef` on the corresponding `EventBody` variants. In `packages/server/src/host.ts`, keep a per-session `clientId -> lastClientSeq` map derived from the log and drop duplicates, so a resend after a crash is a no-op (closes the Linear hole).
 2. **Durable outbox in the client.** Add `apps/web/src/outbox.ts` with states `queued | sent | acked | rejected`, persisted to IndexedDB; in `apps/desktop/src-tauri` add `tauri-plugin-sql` (SQLite) and let the outbox pick the Tauri store when `__TAURI__` is present. `client.ts` resends in order on `open`, and `ClientSnapshot` gains `pending` and a `state` that is `fold(serverEvents)` plus a provisional overlay (events flagged `provisional`, never hashed into the chain).

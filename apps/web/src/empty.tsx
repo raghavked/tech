@@ -1,6 +1,6 @@
 /**
  * Empty states, one sentence and one action each, plus the demo session and an offline hook.
- * Every page with a list that can be empty uses `EmptyState`; the copy stays in Fold's voice.
+ * Every page with a list that can be empty uses `EmptyState`; the copy stays in Henosis's voice.
  */
 import { type ReactNode, useEffect, useState } from "react";
 import { slugify } from "./identity.js";
@@ -44,7 +44,7 @@ export function EmptyState({
 export function OfflineState({ online, onRetry }: { online: boolean; onRetry?: () => void }) {
   return (
     <EmptyState
-      text={online ? "Fold cannot reach its server right now." : "You are offline."}
+      text={online ? "Henosis cannot reach its server right now." : "You are offline."}
       action={onRetry ? { label: "Retry", onClick: onRetry } : null}
     />
   );

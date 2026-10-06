@@ -2,9 +2,9 @@
 
 *Research memo, presence-collab-ux, 2 October 2026. Vendor pages (help.figma.com, liveblocks.io, dourish.com, cs.usask.ca) were blocked by the egress proxy; claims from those are taken from search snippets and marked UNVERIFIED where the page itself was not read.*
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-Fold's session is one agent with many humans around it. The kernel already answers the hard
+Henosis's session is one agent with many humans around it. The kernel already answers the hard
 authority question (the driver token, quorum approvals, arbitration), and `docs/05_kernel_design.md`
 section 6 fixes the policy: presence is ephemeral, broadcast on change, never logged. What the
 product does not yet say is *which* presence facts a watcher needs, and how to show them without
@@ -30,7 +30,7 @@ which is right for an issue page but thin for a live session.
    activity". The ShrEdit study found that awareness exploited *passively* through the shared
    workspace let people move between close and loose collaboration and coordinate dynamically,
    where explicit informational mechanisms and role-restrictive ones (locks, roles) did not.
-   Fold is deliberately role-restrictive at the authority layer; the paper's lesson is that the
+   Henosis is deliberately role-restrictive at the authority layer; the paper's lesson is that the
    presence layer must supply the passive awareness that roles alone remove.
 
 2. **Gutwin and Greenberg, "A Framework of Awareness for Small Groups in Shared-Workspace
@@ -78,14 +78,14 @@ which is right for an issue page but thin for a live session.
 
 ## What to borrow
 
-- **Presence is a separate channel, never the log** (Liveblocks, and Fold's own rule). Keep
+- **Presence is a separate channel, never the log** (Liveblocks, and Henosis's own rule). Keep
   `PresenceEntry` on the websocket; joins, leaves and role changes stay events.
 - **Passive over explicit** (Dourish and Bellotti). The watcher should learn who is composing by
   looking at the composer region, not by anyone announcing it.
 - **The Linear avatar row is the right amount of "who"**: at most four faces, "+N", name on hover,
   a stale marker when the socket drops.
 - **Spotlight's asymmetry**: one person's view can be followed, following is silent, and only the
-  canvas is shared. For Fold the "canvas" is the stream position: following the agent (auto-scroll
+  canvas is shared. For Henosis the "canvas" is the stream position: following the agent (auto-scroll
   to the live turn) versus reading history.
 - **Debounce and TTL numbers** from the typing-indicator design: 3 s idle, 5 s server TTL, name the
   person, aggregate above two.
@@ -93,9 +93,9 @@ which is right for an issue page but thin for a live session.
 ## What does not transfer
 
 Cursors. There is no spatial canvas in a 760 px column; "where" collapses to *which branch* and
-*which turn is being read*. Per-person colours also do not transfer: Fold has one accent and
+*which turn is being read*. Per-person colours also do not transfer: Henosis has one accent and
 identity is carried by the serif name and the apricot driver ring. And an unqualified "typing"
-is wrong in Fold because composing has three targets that mean different things to a watcher: a
+is wrong in Henosis because composing has three targets that mean different things to a watcher: a
 message to the agent, a directive (steer or constrain), and a note to the team that never reaches
 the model.
 
@@ -116,7 +116,7 @@ the model.
 - **Off-surface participants.** Slack-side humans and a mobile watcher on a flaky socket have
   no honest "online". The stale indicator covers the socket; it does not cover a Slack thread.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **Replace free-text `status` with a typed activity.** In `packages/protocol/src/index.ts`,
    extend `PresenceEntry` with `activity: "watching" | "reading" | "composing" | "deciding" | "away"`,
@@ -127,7 +127,7 @@ the model.
    on first keystroke, ignore repeats, clear after 20 s without a refresh (not 5 s: a directive
    takes longer than a chat line), and mark a client `away` after 5 min without focus. Broadcast
    on change only; coalesce bursts within 250 ms.
-3. **One quiet line above the composer, Slack's templates, Fold's nouns.** In
+3. **One quiet line above the composer, Slack's templates, Henosis's nouns.** In
    `apps/web/src/views/SessionView.tsx`, render at most one line in `--fg-3`: "Bo is writing to
    the agent", "Bo is writing a directive", "Bo and Dee are writing", "Several people are writing".
    A directive in progress gets the apricot folded corner; a team note gets nothing. No ellipsis
@@ -141,7 +141,7 @@ the model.
    quorum count ("1 of 2 · Dee is looking"). This is the one place presence should change what a
    person does.
 6. **Follow the agent, silently.** A watcher scrolled back is `reading`; a watcher at the bottom is
-   `watching`. The "jump to live" affordance already implied by auto-scroll is the Fold equivalent
+   `watching`. The "jump to live" affordance already implied by auto-scroll is the Henosis equivalent
    of following a spotlight; nobody is notified when someone scrolls back. Document the state
    machine and the no-content rule in `docs/05_kernel_design.md` section 6.
 7. **Desktop first.** In `apps/desktop/src-tauri`, feed window focus and blur into the `away`

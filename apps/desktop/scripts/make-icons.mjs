@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Draws the Fold mark (design/favicon.svg: a Dress Blues sheet with its top-right corner
+ * Draws the Henosis mark (design/favicon.svg: a Dress Blues sheet with its top-right corner
  * folded down in Apricot Illusion, a linen crease between) into the icon files Tauri needs,
  * with nothing but Node: icon.png, 32x32.png, 128x128.png, 128x128@2x.png, icon.ico and
  * icon.icns. `npx tauri icon` produces a fuller set; this keeps `cargo check`, `tauri dev`

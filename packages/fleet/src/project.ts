@@ -2,9 +2,9 @@
  * Project: the command layer over the ledger. Authority lives here: leads and admins issue
  * project directives and resolve fleet contentions; a session's owner claims on its behalf.
  */
-import { KernelError, shortId } from "@fold/kernel";
-import type { DirectiveInput } from "@fold/protocol";
-import { DirectiveInput as DirectiveInputSchema, MAIN_BRANCH } from "@fold/protocol";
+import { KernelError, shortId } from "@henosis/kernel";
+import type { DirectiveInput } from "@henosis/protocol";
+import { DirectiveInput as DirectiveInputSchema, MAIN_BRANCH } from "@henosis/protocol";
 import {
   type ClaimRecord,
   claimConflictId,

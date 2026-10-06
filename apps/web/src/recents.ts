@@ -7,7 +7,7 @@ export interface Recent {
   title: string;
 }
 
-const KEY = "fold.recents";
+const KEY = "henosis.recents";
 const MAX = 12;
 const listeners = new Set<() => void>();
 let current: Recent[] = read();

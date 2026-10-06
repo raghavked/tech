@@ -1,5 +1,5 @@
 /**
- * Every user-facing string of the web app, in Fold's voice (docs/15_copy.md): calm, specific,
+ * Every user-facing string of the web app, in Henosis's voice (docs/15_copy.md): calm, specific,
  * no AI-speak. Views import `copy` and never carry a literal of their own. Strings that take
  * data are functions, so word order and plurals live here too.
  *
@@ -25,7 +25,7 @@ export const status = {
 } as const;
 
 export const copy = {
-  product: "Fold",
+  product: "Henosis",
   loading: "Loading…",
   roles: { driving: "driving", you: "you" },
 
@@ -52,7 +52,7 @@ export const copy = {
     themeDark: "Dark",
     notifications: "Notifications",
     notifyOn: "On while this tab is hidden",
-    notifyOnDesktop: "On while Fold is in the background",
+    notifyOnDesktop: "On while Henosis is in the background",
     notifyBlocked: "Blocked by the browser",
     notifyUnsupported: "Not available here",
     notifyTurnOn: "Turn on",
@@ -62,7 +62,7 @@ export const copy = {
 
   home: {
     title: "Home",
-    heroTitle: "Several hands on the fold; one holds it at a time.",
+    heroTitle: "Many hands, one team. One holds the baton at a time.",
     heroLine: "Watch the course, redirect, hand off.",
     needsIdentity: "Pick an identity to open that page.",
     signedInAs: (name: string) => `Signed in as ${name}`,
@@ -114,16 +114,16 @@ export const copy = {
     projectDirection: (who: string, text: string) => `${who} set a project direction: ${text}`,
     picked: (who: string) => `${who} picked a direction`,
     withdrew: (who: string) => `${who} withdrew a directive`,
-    offered: (who: string, to: string) => `${who} offers the fold to ${to}`,
-    hasTheFold: (who: string) => `${who} has the fold`,
-    declined: (who: string) => `${who} declined the fold`,
+    offered: (who: string, to: string) => `${who} offers the baton to ${to}`,
+    hasTheBaton: (who: string) => `${who} has the baton`,
+    declined: (who: string) => `${who} declined the baton`,
     joined: (who: string, role: string) => `${who} joined as ${role}`,
     left: (who: string) => `${who} left`,
     roleChanged: (who: string, role: string) => `${who} is now ${role}`,
     checkpoint: (label: string) => `Checkpoint ${label}`,
     forked: (branch: string, from: string) => `Branch ${branch} forked from ${from}`,
     folded: (source: string, base: string, conflicts: number) =>
-      `Folded ${source} into ${base}${conflicts ? ` · ${plural(conflicts, "conflict")}` : ""}`,
+      `United ${source} into ${base}${conflicts ? ` · ${plural(conflicts, "conflict")}` : ""}`,
     writeRefused: (path: string, holder: string) => `Write to ${path} refused: held by ${holder}`,
     fleetContention: (kind: string, resource: string, others: string[], resolved: boolean) =>
       `${resolved ? "Resolved: " : "Fleet contention: "}${kind} on ${resource} with ${others.join(", ") || "another session"}`,
@@ -222,7 +222,7 @@ export const copy = {
     branches: "Branches",
     here: " · here",
     switch: "Switch",
-    foldInto: (branch: string) => `Fold into ${branch}`,
+    foldInto: (branch: string) => `Unite into ${branch}`,
     branchName: "New branch name",
     branchHint: "try/idea",
     fork: "Fork",
@@ -313,12 +313,12 @@ export const copy = {
     housekeeping: "Memory housekeeping",
     browseMemory: "Browse memory",
     curatorHint: (org: string) =>
-      `One curator pass over ${org}: fold grown scopes, flag stale entries, list conflicts.`,
+      `One curator pass over ${org}: compact grown scopes, flag stale entries, list conflicts.`,
     run: "Run",
     running: "Running…",
     runAgain: "Run again",
     nothingToTidy: "Nothing to tidy.",
-    foldedIn: (n: number) => `Folded ${n} entries in `,
+    foldedIn: (n: number) => `Compacted ${n} entries in `,
     level: (n: number) => `level ${n}`,
     stale: "Stale: ",
     staleLine: (author: string, unreadFor: number) =>
@@ -329,7 +329,7 @@ export const copy = {
   notify: {
     approvalTitle: "Approval needed",
     approvalBody: (call: string, risk: string, where: string) => `${call} [${risk}] in ${where}`,
-    handoffTitle: "You are offered the fold",
+    handoffTitle: "You are offered the baton",
     handoffBody: (who: string, where: string) => `${who} wants to hand off ${where}`,
     contentionTitle: "Fleet contention",
     contentionBody: (kind: string, resource: string) => `${kind} on ${resource}`,

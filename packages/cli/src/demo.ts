@@ -4,15 +4,15 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { checkReplay, handoffBrief, type Session } from "@fold/kernel";
+import { checkReplay, handoffBrief, type Session } from "@henosis/kernel";
 import {
   type Actor,
   DEFAULT_APPROVAL_POLICY,
   MAIN_BRANCH,
   type SessionEvent,
-} from "@fold/protocol";
-import { defaultTools, Runner, ScriptedModel } from "@fold/runner";
-import { ProjectHost, SessionHost } from "@fold/server";
+} from "@henosis/protocol";
+import { defaultTools, Runner, ScriptedModel } from "@henosis/runner";
+import { ProjectHost, SessionHost } from "@henosis/server";
 import { renderReport } from "./report.js";
 
 const ana: Actor = { id: "ana", kind: "human", name: "Ana" };
@@ -68,7 +68,7 @@ export async function runDemo(
     });
   });
 
-  say("# Fold demo: one agent, four humans, one session");
+  say("# Henosis demo: one agent, four humans, one session");
   s.join(M, ana, "owner");
   s.join(M, bo, "contributor");
   s.join(M, cy, "contributor");

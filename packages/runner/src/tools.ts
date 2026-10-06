@@ -7,8 +7,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, normalize } from "node:path";
-import type { Session } from "@fold/kernel";
-import type { ToolCall } from "@fold/protocol";
+import type { Session } from "@henosis/kernel";
+import type { ToolCall } from "@henosis/protocol";
 import type { ToolSpec } from "./model.js";
 
 /**
@@ -333,7 +333,7 @@ export const shellRun: ToolImpl = {
     const command = str(args.command, "command");
     if (!SHELL_ALLOWLIST.has(command)) throw new Error(`command not allowed: ${command}`);
     const argv = Array.isArray(args.args) ? args.args.map((a) => String(a)) : [];
-    const dir = mkdtempSync(join(tmpdir(), "fold-ws-"));
+    const dir = mkdtempSync(join(tmpdir(), "henosis-ws-"));
     try {
       const ws = ctx.session.state(ctx.branch).workspace;
       for (const [path, hash] of Object.entries(ws)) {

@@ -1,4 +1,4 @@
-import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@fold/protocol";
+import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@henosis/protocol";
 import { describe, expect, it } from "vitest";
 import { renderReport } from "../src/report.js";
 import { Session } from "../src/session.js";

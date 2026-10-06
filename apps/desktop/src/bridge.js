@@ -1,13 +1,13 @@
-// Fold desktop bridge. main.rs injects this into the main window before the web client loads,
-// so `window.__FOLD_DESKTOP__` is the only thing apps/web/src/shell.ts has to know about the
+// Henosis desktop bridge. main.rs injects this into the main window before the web client loads,
+// so `window.__HENOSIS_DESKTOP__` is the only thing apps/web/src/shell.ts has to know about the
 // shell; nothing in apps/web imports @tauri-apps/*. Every method returns a promise and every
 // listener returns a promise of an unlisten function.
 (() => {
-  if (window.__FOLD_DESKTOP__) return;
+  if (window.__HENOSIS_DESKTOP__) return;
   const invoke = (cmd, args) => {
     const t = window.__TAURI_INTERNALS__;
     if (!t || typeof t.invoke !== "function")
-      return Promise.reject(new Error("Fold desktop: Tauri IPC is not available"));
+      return Promise.reject(new Error("Henosis desktop: Tauri IPC is not available"));
     return t.invoke(cmd, args || {});
   };
   const listen = (name, cb) => {
@@ -15,10 +15,10 @@
     if (!ev || typeof ev.listen !== "function") return Promise.resolve(() => {});
     return ev.listen(name, (e) => cb(e.payload));
   };
-  window.__FOLD_DESKTOP__ = {
+  window.__HENOSIS_DESKTOP__ = {
     /** Shell version, platform ("macos" | "windows" | "linux"), server URL and a launch route. */
     info: () => invoke("shell_info"),
-    /** Native notification. One button: clicking brings Fold forward where the OS does that. */
+    /** Native notification. One button: clicking brings Henosis forward where the OS does that. */
     notify: (n) => invoke("notify", { title: n.title, body: n.body, tag: n.tag || null }),
     /** Whom to poll /api/notifications for; null clears the tray and badge. */
     setIdentity: (serverUrl, userId) => invoke("set_identity", { serverUrl, userId }),
@@ -28,7 +28,7 @@
     setPending: (count) => invoke("set_pending", { count }),
     refreshInbox: () => invoke("refresh_inbox"),
     openExternal: (url) => invoke("plugin:opener|open_url", { url }),
-    /** "#/p/<project>/s/<session>" from a fold:// link. */
+    /** "#/p/<project>/s/<session>" from a henosis:// link. */
     onDeepLink: (cb) => listen("deep-link", cb),
     /** "pending" or "open" from the tray menu. */
     onTray: (cb) => listen("tray", cb),

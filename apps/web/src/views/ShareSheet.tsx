@@ -5,11 +5,11 @@
  * - `InviteRow`: the project page's Invite row: the project id and the phase-0 users.json
  *   membership instruction, since identity is a file on the server until phase 1.
  */
-import type { ProjectState } from "@fold/fleet";
-import type { SessionState } from "@fold/kernel";
-import type { Actor, Role } from "@fold/protocol";
+import type { ProjectState } from "@henosis/fleet";
+import type { SessionState } from "@henosis/kernel";
+import type { Actor, Role } from "@henosis/protocol";
 import { useState } from "react";
-import type { FoldClient } from "../client.js";
+import type { HenosisClient } from "../client.js";
 import { paths } from "../router.js";
 import { Avatar, copyText, ErrorLine, ICONS, Icon } from "../ui.js";
 
@@ -67,7 +67,7 @@ export function ShareSheet({
 }: {
   s: SessionState;
   me: Actor;
-  client: FoldClient;
+  client: HenosisClient;
   projectId: string;
   errors: string[];
   onClose: () => void;
@@ -194,7 +194,7 @@ export function InviteRow({
       <p className="small muted">
         Identity is a file on the server for now: add the person to{" "}
         <span className="mono">store/users.json</span> and restart{" "}
-        <span className="mono">fold serve</span>. They sign in with that user id and open the
+        <span className="mono">henosis serve</span>. They sign in with that user id and open the
         project link. {ROLE_RULE}
       </p>
       <pre className="brief">{snippet}</pre>

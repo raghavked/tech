@@ -1,10 +1,10 @@
-# Memory compaction quality: metrics, provenance, when to fold, and an offline eval for Fold summaries
+# Memory compaction quality: metrics, provenance, when to fold, and an offline eval for Henosis summaries
 
 *Research memo, 2 October 2026. Topic: memory-compaction-quality.*
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-Fold's organisation memory (`packages/memory`) already does the structural part right: level-0 entries are attributed to an engineer, session and commit; `MemoryStore.compact()` in `packages/memory/src/store.ts` folds a scope's active level-n entries into one level-(n+1) summary whose `derivedFrom` cites every folded id, whose tags carry `by:<author>`, whose trust is the maximum of the inputs, and which skips anything in an open conflict. The curator (`packages/memory/src/curator.ts`) triggers a fold when a scope@level holds more than `compactAfter` (12) entries and flags an agent-written entry as stale when it has gone unread for `staleAfter` (500) ledger events.
+Henosis's organisation memory (`packages/memory`) already does the structural part right: level-0 entries are attributed to an engineer, session and commit; `MemoryStore.compact()` in `packages/memory/src/store.ts` folds a scope's active level-n entries into one level-(n+1) summary whose `derivedFrom` cites every folded id, whose tags carry `by:<author>`, whose trust is the maximum of the inputs, and which skips anything in an open conflict. The curator (`packages/memory/src/curator.ts`) triggers a fold when a scope@level holds more than `compactAfter` (12) entries and flags an agent-written entry as stale when it has gone unread for `staleAfter` (500) ledger events.
 
 What is missing is any notion of *quality*. The trigger is a count, not a judgement. The default `bulletSummarizer` truncates each entry to its first line and 200 characters, so a fold is lossy by construction. An LLM summariser is pluggable and journaled, but nothing checks that its output is faithful to the inputs, that every claim traces to an id, that a superseded value did not leak back in, or that a retraction was honoured. Staleness is "unread", which conflates "never injected because the 24 kB budget ran out" with "injected and never useful"; a scope with many entries will mark its tail stale and propose retractions in a spiral. And because level-1 summaries are themselves folded into level 2, each pass summarises a summary, so loss compounds. Attribution survives compaction today; accuracy is unmeasured.
 
@@ -19,20 +19,20 @@ What is missing is any notion of *quality*. The trigger is a count, not a judgem
 
 ## What to borrow
 
-- From LSM: treat refolding as write amplification. Fold level-0 originals into the next level directly instead of summarising summaries, and cap depth. Separate the *trigger* (size) from the *policy* (what a fold may lose).
-- From auto dream and `/doctor prompt-audit`: broken evidence (a path or commit that no longer exists) is a stronger staleness signal than "unread"; deletions are proposed, never applied, without a human. Fold already has `proposedRetractions`; keep that gate.
-- From Letta: do compaction off the critical path (Fold's curator already is) and only where the next reads are predictable, i.e. per scope with observed recall traffic.
+- From LSM: treat refolding as write amplification. Henosis level-0 originals into the next level directly instead of summarising summaries, and cap depth. Separate the *trigger* (size) from the *policy* (what a fold may lose).
+- From auto dream and `/doctor prompt-audit`: broken evidence (a path or commit that no longer exists) is a stronger staleness signal than "unread"; deletions are proposed, never applied, without a human. Henosis already has `proposedRetractions`; keep that gate.
+- From Letta: do compaction off the critical path (Henosis's curator already is) and only where the next reads are predictable, i.e. per scope with observed recall traffic.
 - From LongMemEval: evaluate memory by probe questions in the categories that compaction endangers: knowledge update (new value after supersession), temporal (which came first), abstention (retracted content must not be answered).
 - From the faithfulness literature: never trust a single LLM judge; combine deterministic checks (citation validity, leakage) with a judge, and keep human-labelled calibration sets.
 
 ## What is unsolved
 
-No published system measures whether a consolidated memory is *faithful per claim to attributed sources*; auto dream and sleeptime agents rewrite in place and discard the trail Fold keeps. "Latest wins" on contradiction is the industry default and is wrong for a multi-author ledger. Staleness has no accepted metric anywhere; every vendor delegates it to a model. Benchmarks test retrieval over chat histories, not the quality of a summary standing in for deleted context under a byte budget.
+No published system measures whether a consolidated memory is *faithful per claim to attributed sources*; auto dream and sleeptime agents rewrite in place and discard the trail Henosis keeps. "Latest wins" on contradiction is the industry default and is wrong for a multi-author ledger. Staleness has no accepted metric anywhere; every vendor delegates it to a model. Benchmarks test retrieval over chat histories, not the quality of a summary standing in for deleted context under a byte budget.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **Structured, per-claim provenance.** Change `Summarizer` in `packages/memory/src/store.ts` to return `{ claims: { text: string; from: string[] }[] }`; render text from it; `compact()` rejects a summary (emits `memory.compaction.rejected`, falls back to `bulletSummarizer`) if any `from` id is outside `candidates`, if any claim is empty, or if a retracted/superseded entry's content appears verbatim. Add the event to `packages/memory/src/events.ts`.
-2. **Fold from raw, cap depth.** In `compact()`, when `level ≥ 1`, collect the transitive level-0 `derivedFrom` set and summarise those originals, not the summaries. Add `maxLevel: 2` to the policy in `events.ts`; the curator stops folding beyond it and reports the scope as oversized instead.
+2. **Henosis from raw, cap depth.** In `compact()`, when `level ≥ 1`, collect the transitive level-0 `derivedFrom` set and summarise those originals, not the summaries. Add `maxLevel: 2` to the policy in `events.ts`; the curator stops folding beyond it and reports the scope as oversized instead.
 3. **Make staleness mean something.** Extend `memory.read` payload with `via: "inject" | "recall"` and keep `injectedSeq` and `recalledSeq` per entry in `packages/memory/src/state.ts`. In `curator.ts`, stale = injected at least N times and never recalled or cited, or evidence broken (path missing in the project host's tree via `packages/fleet`, commit unknown). Entries never injected because of the budget are "cold", not stale, and are the first fold candidates.
 4. **Deterministic quality gate on every LLM fold.** New `packages/memory/src/eval.ts`: key coverage (every keyed candidate's current value is answerable from the summary), citation validity, leakage of retracted or superseded values, compression ratio, and byte cost against the 24 kB injection budget. The curator runs it before accepting a summary; results go in the `memory.compacted` payload so the management view can show them.
 5. **Offline eval suite.** `packages/memory/eval/fixtures/` with synthetic ledgers (keys, supersessions by the same author, cross-author conflicts, retractions, commit evidence) plus recorded real ledgers, and `packages/memory/test/summary-eval.test.ts` that compacts each and runs LongMemEval-style probes: knowledge update, temporal order, abstention, attribution precision/recall, with judge calls journaled so the suite replays offline in CI. Report a scorecard per summariser; `bulletSummarizer` is the floor any LLM summariser must beat.

@@ -40,15 +40,15 @@ session; nothing in the kernel changes because the kernel never does I/O.
 
 | Package | Role | Depends on |
 |---|---|---|
-| `@fold/protocol` | zod schemas for actors, roles, directives, tool calls, events, wire messages | zod |
-| `@fold/kernel` | pure core: hashing, log, arbitration, approvals, reducer, merge, brief, replay, `Session` command layer | protocol |
-| `@fold/runner` | the agent loop, tool registry, scripted and Claude models | kernel |
-| `@fold/fleet` | project ledger, claims, lead directives, contentions, fleet brief, identity | kernel |
-| `@fold/memory` | organisation memory: attributed entries, conflicts, compaction, curator | kernel |
-| `@fold/server` | websocket and HTTP front door, project and session hosts, notifications, persistence | runner, fleet, memory |
-| `@fold/slack` | Slack adapter (interface, fake, Bolt socket mode) | server |
-| `@fold/cli` | `fold serve / demo / join / replay / verify / report / fleet / slack` | server, slack |
-| `@fold/web` | the product: React client that folds the same events as the server; PWA | kernel, fleet, protocol |
+| `@henosis/protocol` | zod schemas for actors, roles, directives, tool calls, events, wire messages | zod |
+| `@henosis/kernel` | pure core: hashing, log, arbitration, approvals, reducer, merge, brief, replay, `Session` command layer | protocol |
+| `@henosis/runner` | the agent loop, tool registry, scripted and Claude models | kernel |
+| `@henosis/fleet` | project ledger, claims, lead directives, contentions, fleet brief, identity | kernel |
+| `@henosis/memory` | organisation memory: attributed entries, conflicts, compaction, curator | kernel |
+| `@henosis/server` | websocket and HTTP front door, project and session hosts, notifications, persistence | runner, fleet, memory |
+| `@henosis/slack` | Slack adapter (interface, fake, Bolt socket mode) | server |
+| `@henosis/cli` | `henosis serve / demo / join / replay / verify / report / fleet / slack` | server, slack |
+| `@henosis/web` | the product: React client that folds the same events as the server; PWA | kernel, fleet, protocol |
 
 The kernel has **no Node dependency**: it ships its own SHA-256 so the browser, the CLI and
 the server hash identically. The web client imports the kernel directly and runs `reduce` on
@@ -135,7 +135,7 @@ layout: `store/sessions/<id>/`, `store/projects/<id>/ledger.json`, `store/memory
 
 The web app is the product. The desktop shell (Tauri) and the mobile shell (Capacitor)
 load the same built client, add a tray and native push, and open deep links of the form
-`fold://p/<project>/s/<session>` that the notifications carry.
+`henosis://p/<project>/s/<session>` that the notifications carry.
 
 ## What is not here yet
 

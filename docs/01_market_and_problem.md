@@ -68,7 +68,7 @@ Four failures recur:
 | Figma | FY2025 revenue $1.06B (+41%); Q2 2026 $370M (+48%) | secondary |
 
 The Gartner gap between embedded and standalone agent spend ($202B versus $8B) says the
-definition decides the TAM; Fold's revenue attaches to session-hours and approvers, which
+definition decides the TAM; Henosis's revenue attaches to session-hours and approvers, which
 sits inside whichever definition a buyer uses.
 
 Bottom-up for the first product: 10,000 engineering teams running long agent sessions

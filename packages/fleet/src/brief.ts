@@ -1,6 +1,6 @@
 /** The fleet brief: what every agent in the project is doing, computed from the ledger and the sessions. */
-import type { SessionState } from "@fold/kernel";
-import { describeRule, ruleFor } from "@fold/kernel";
+import type { SessionState } from "@henosis/kernel";
+import { describeRule, ruleFor } from "@henosis/kernel";
 import { resourceKey } from "./events.js";
 import { activeClaims, type ProjectState } from "./state.js";
 

@@ -31,8 +31,8 @@ export function Inbox({
       .then((word) => {
         setOutcomes((o) => ({ ...o, [n.id]: { busy: false, word, error: null } }));
         markRead([n.id]);
-        dispatchEvent(new Event("fold:inbox"));
-        dispatchEvent(new Event("fold:fleet"));
+        dispatchEvent(new Event("henosis:inbox"));
+        dispatchEvent(new Event("henosis:fleet"));
       })
       .catch((e: unknown) =>
         setOutcomes((o) => ({

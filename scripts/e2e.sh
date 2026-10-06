@@ -3,7 +3,7 @@
 # two scripted websocket clients. No network beyond localhost; no model API.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-export FOLD_OFFLINE=1
+export HENOSIS_OFFLINE=1
 STORE="${STORE:-./store-e2e}"
 rm -rf "$STORE"
 mkdir -p "$STORE"
@@ -17,13 +17,15 @@ grep -q "hash chain: ok; full replay == snapshot resume: true" "$STORE/demo.out"
 grep -q "contention" "$STORE/demo.out"
 grep -q "deploy \[irreversible\] -> granted" "$STORE/demo.out"
 grep -q "writes refused" "$STORE/demo.out"
-node packages/cli/dist/main.js fleet "$STORE/demo/projects/billing/ledger.json" | grep -q "Fleet brief"
+node packages/cli/dist/main.js fleet "$STORE/demo/projects/billing/ledger.json" > "$STORE/fleet.out"
+grep -q "Fleet brief" "$STORE/fleet.out"
 
 echo "== verify + report"
 node packages/cli/dist/main.js verify "$STORE/demo/sessions/demo/log.json"
 node packages/cli/dist/main.js report "$STORE/demo/sessions/demo/log.json" > "$STORE/report.md"
 grep -q "Session report" "$STORE/report.md"
-node packages/cli/dist/main.js replay "$STORE/demo/sessions/demo/log.json" --branch python-spike | grep -q "Handoff brief"
+node packages/cli/dist/main.js replay "$STORE/demo/sessions/demo/log.json" --branch python-spike > "$STORE/replay.out"
+grep -q "Handoff brief" "$STORE/replay.out"
 
 echo "== live server with two clients"
 PORT=7717

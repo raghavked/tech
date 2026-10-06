@@ -2,8 +2,8 @@
  * Time travel: fold the session up to a point in its own log, in the client.
  * A pure fold over the events already here; nothing is asked of the server.
  */
-import { fold, type SessionState } from "@fold/kernel";
-import type { SessionEvent } from "@fold/protocol";
+import { fold, type SessionState } from "@henosis/kernel";
+import type { SessionEvent } from "@henosis/protocol";
 
 /** One agent turn as a window of the log: from its `agent.turn.started` to just before the next. */
 export interface TurnMark {

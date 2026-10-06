@@ -1,11 +1,11 @@
 /**
  * Read-only HTTP routes for comparing two branches of a session and reading one file of a
- * branch (conflict-marked content after a fold). Mounted from FoldServer.handleHttp.
+ * branch (conflict-marked content after a fold). Mounted from HenosisServer.handleHttp.
  *
  *   GET /api/projects/:project/sessions/:session/compare?a=main&b=try/idea  -> BranchCompare
  *   GET /api/projects/:project/sessions/:session/file?branch=main&path=a.txt -> SessionFile
  */
-import { compareBranches, KernelError } from "@fold/kernel";
+import { compareBranches, KernelError } from "@henosis/kernel";
 import type { ProjectHost } from "./projectHost.js";
 
 export interface SessionFile {

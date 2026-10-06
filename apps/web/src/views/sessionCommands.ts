@@ -1,7 +1,7 @@
 /** The command-palette actions of one session page; SessionView registers them. */
-import type { SessionState } from "@fold/kernel";
-import type { Actor } from "@fold/protocol";
-import type { FoldClient } from "../client.js";
+import type { SessionState } from "@henosis/kernel";
+import type { Actor } from "@henosis/protocol";
+import type { HenosisClient } from "../client.js";
 import type { PaletteAction } from "../palette.js";
 import { ICONS } from "../ui.js";
 
@@ -14,7 +14,7 @@ export function sessionCommands({
 }: {
   s: SessionState | null;
   me: Actor;
-  client: FoldClient;
+  client: HenosisClient;
   details: boolean;
   setDetails: (v: boolean) => void;
 }): PaletteAction[] {
@@ -71,7 +71,7 @@ export function sessionCommands({
     if (b !== s.branch)
       out.push({
         id: `merge:${b}`,
-        label: `Fold ${b} into ${s.branch}`,
+        label: `Henosis ${b} into ${s.branch}`,
         icon: ICONS.branch,
         run: () => client.send({ type: "merge", source: b }),
       });

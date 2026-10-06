@@ -7,8 +7,8 @@
  * React-friendly: a block that changes after it was appended (a tool step completing) is replaced
  * by a fresh object at the same index, so memoised rows re-render only when their block did.
  */
-import type { SessionState } from "@fold/kernel";
-import type { SessionEvent, ToolCall } from "@fold/protocol";
+import type { SessionState } from "@henosis/kernel";
+import type { SessionEvent, ToolCall } from "@henosis/protocol";
 import { copy } from "../copy.js";
 import { ICONS } from "../ui.js";
 
@@ -95,7 +95,7 @@ export class BlockFolder {
     this.version += 1;
   }
 
-  /** Fold whatever is new in `events`; returns the (same, mutated) block array. */
+  /** Henosis whatever is new in `events`; returns the (same, mutated) block array. */
   sync(events: readonly SessionEvent[], s: SessionState, meId: string): Block[] {
     const sameLog = this.count <= events.length && (this.count === 0 || events[0] === this.first);
     if (!sameLog) this.reset();
@@ -108,7 +108,7 @@ export class BlockFolder {
     return this.blocks;
   }
 
-  /** Fold one event. `s` is the state after it (or any later state; names only). */
+  /** Henosis one event. `s` is the state after it (or any later state; names only). */
   push(e: SessionEvent, s: SessionState, meId: string): void {
     const name = (id: string) => s.participants[id]?.actor.name ?? id;
     const out = this.blocks;
@@ -222,7 +222,7 @@ export class BlockFolder {
         );
         break;
       case "handoff.accepted":
-        divider(copy.stream.hasTheFold(name(e.actor)));
+        divider(copy.stream.hasTheBaton(name(e.actor)));
         break;
       case "handoff.declined":
         divider(copy.stream.declined(name(e.actor)));

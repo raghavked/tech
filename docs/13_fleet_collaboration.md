@@ -108,12 +108,12 @@ and a management channel. Every session is a thread in its project channel, open
 session registers ("Ana's agent started 'Invoice PDF'. Reply in this thread to steer it").
 Turn summaries, directives and handoffs are coalesced into one reply per thread every 1.5 s so
 a fleet stays under Slack's per-channel posting limit. Approvals are Block Kit buttons in the
-thread; irreversible ones are broadcast to the channel; a click votes as the mapped Fold
+thread; irreversible ones are broadcast to the channel; a click votes as the mapped Henosis
 user with the role identity gives them, and the message is updated with the outcome. Fleet
 contentions and team-memory conflicts go to the management channel with "X wins" and "X is
 right" buttons that resolve on click, and to the owners' threads. Replies in a thread become
 directives (`[scope] text`, `/constrain`, `/pause`, `/resume`, `/cancel`). Slash commands:
 `/fold brief <project>`, `/fold sessions <project>`, `/fold memory <org>`. The adapter
 runs against an interface with an in-memory fake, so the whole flow is tested offline
-(`packages/slack/test/adapter.test.ts`); `fold slack --config slack.json` runs it on Bolt in
+(`packages/slack/test/adapter.test.ts`); `henosis slack --config slack.json` runs it on Bolt in
 socket mode, which needs no public URL.

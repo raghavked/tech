@@ -23,7 +23,7 @@ interface Team {
   projects: ProjectRef[];
 }
 
-const TEAM_KEY = "fold.team";
+const TEAM_KEY = "henosis.team";
 
 function readTeam(): string | null {
   try {

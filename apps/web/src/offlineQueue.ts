@@ -2,9 +2,9 @@
  * Offline queue: directives, votes and handoff actions typed while the socket is closed wait
  * here, in order, and go out the moment the session is joined again. The queue lives in memory
  * and is mirrored to localStorage (guarded) so a reload while offline does not lose them.
- * Pure, framework-free; `FoldClient` owns one per connection (hook point: client.ts `send`).
+ * Pure, framework-free; `HenosisClient` owns one per connection (hook point: client.ts `send`).
  */
-import { ClientMessage } from "@fold/protocol";
+import { ClientMessage } from "@henosis/protocol";
 
 export interface QueuedMessage {
   id: string;
@@ -27,7 +27,7 @@ export function isQueueable(msg: ClientMessage): boolean {
 }
 
 export const queueKey = (projectId: string, sessionId: string) =>
-  `fold.queue.${projectId}/${sessionId}`;
+  `henosis.queue.${projectId}/${sessionId}`;
 
 /** One line per queued message, in the voice of the stream. */
 export function describeQueued(msg: ClientMessage, who: (id: string) => string = (id) => id) {

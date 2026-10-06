@@ -1,8 +1,8 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MemoryStore } from "@fold/memory";
-import { defaultTools, ScriptedModel } from "@fold/runner";
+import { MemoryStore } from "@henosis/memory";
+import { defaultTools, ScriptedModel } from "@henosis/runner";
 import { describe, expect, it } from "vitest";
 import { ProjectHost } from "../src/projectHost.js";
 
@@ -20,7 +20,7 @@ const sessionPolicy = {
 
 describe("organisation memory through the project host", () => {
   it("an agent's memory write is attributed to its engineer and reaches the next engineer's agent", async () => {
-    const root = mkdtempSync(join(tmpdir(), "fold-mem-"));
+    const root = mkdtempSync(join(tmpdir(), "henosis-mem-"));
     const memory = MemoryStore.create("northwind");
     const host = new ProjectHost({
       root,

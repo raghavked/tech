@@ -1,13 +1,13 @@
 /**
- * Links that open the app from Slack. Slack only linkifies http(s), so the fold:// links the
+ * Links that open the app from Slack. Slack only linkifies http(s), so the henosis:// links the
  * server puts in notifications are rewritten under the web app's base URL as the client's
- * hash routes (`https://fold.example.com/#/p/<project>/s/<session>`). The desktop and mobile
+ * hash routes (`https://henosis.example.com/#/p/<project>/s/<session>`). The desktop and mobile
  * shells open the same routes. Without an `appBaseUrl` nothing is linked.
  */
 
-/** fold://p/<project>/s/<session>, fold://p/<project> and fold://inbox → the client's hash route. */
+/** henosis://p/<project>/s/<session>, henosis://p/<project> and henosis://inbox → the client's hash route. */
 export function routeOfLink(link: string): string | null {
-  const m = link.trim().match(/^fold:\/\/([^?#]*)(?:\?([^#]*))?/i);
+  const m = link.trim().match(/^henosis:\/\/([^?#]*)(?:\?([^#]*))?/i);
   if (!m) return null;
   const parts = (m[1] ?? "").split("/").filter(Boolean);
   const query = m[2] ? `?${m[2]}` : "";
@@ -19,7 +19,7 @@ export function routeOfLink(link: string): string | null {
   return null;
 }
 
-/** The web app URL for a fold:// link, or null without a base URL or for an unknown link. */
+/** The web app URL for a henosis:// link, or null without a base URL or for an unknown link. */
 export function appUrlOf(link: string, appBaseUrl: string | undefined): string | null {
   const base = appBaseUrl
     ?.trim()
@@ -30,12 +30,12 @@ export function appUrlOf(link: string, appBaseUrl: string | undefined): string |
   return route ? `${base}/${route}` : null;
 }
 
-/** The fold:// link of a session or a project, as the server's notifications write it. */
+/** The henosis:// link of a session or a project, as the server's notifications write it. */
 export function linkOf(projectId: string, sessionId?: string): string {
   const enc = encodeURIComponent;
   return sessionId
-    ? `fold://p/${enc(projectId)}/s/${enc(sessionId)}`
-    : `fold://p/${enc(projectId)}`;
+    ? `henosis://p/${enc(projectId)}/s/${enc(sessionId)}`
+    : `henosis://p/${enc(projectId)}`;
 }
 
 /** Slack mrkdwn for a link, or "" when there is no URL to point at. */

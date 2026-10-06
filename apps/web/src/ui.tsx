@@ -1,6 +1,6 @@
 /** Small shared pieces on top of tokens.css v3: the mark, line icons, avatars, status words. */
-import type { Resource } from "@fold/fleet";
-import type { EntryRecord } from "@fold/memory";
+import type { Resource } from "@henosis/fleet";
+import type { EntryRecord } from "@henosis/memory";
 import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { copy, status as statusWords } from "./copy.js";
 import { initials } from "./identity.js";
@@ -9,14 +9,37 @@ import { getToasts, subscribeToasts, toast } from "./toast.js";
 /** `toast("Link copied")`: a short text at the bottom centre that goes away by itself. */
 export { toast };
 
-/** The Fold mark inline (design/mark.svg): sheet, underside, folded corner, crease. */
-export function Mark({ size = 22 }: { size?: number }) {
+/**
+ * The Henosis mark inline (design/mark.svg): a ring open at the top and the newcomer's bead
+ * that completes it. `joining` plays the bead sliding into the gap (the loading motion).
+ */
+export function Mark({ size = 22, joining = false }: { size?: number; joining?: boolean }) {
   return (
-    <svg viewBox="0 0 96 96" width={size} height={size} aria-hidden="true" className="mark">
-      <rect x="12" y="12" width="72" height="72" rx="14" fill="var(--fg, #2A3244)" />
-      <path d="M84 12v34L50 12z" fill="#56352D" />
-      <path d="M84 46L50 12 84 12z" fill="#E2C4A6" />
-      <path d="M50 12L84 46" stroke="#F3EEE7" strokeWidth="3" strokeLinecap="round" />
+    <svg
+      viewBox="0 0 96 96"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={`mark${joining ? " joining" : ""}`}
+    >
+      <circle cx="48" cy="48" r="46" fill="var(--mark-disc, #2A3244)" />
+      <path
+        d="M60.5 22.9 A28 28 0 1 1 35.5 22.9"
+        stroke="var(--mark-ring, #E2C4A6)"
+        strokeWidth="10"
+        fill="none"
+        strokeLinecap="round"
+        className="ring"
+      />
+      <circle
+        cx="48"
+        cy="20"
+        r="7.5"
+        fill="var(--mark-bead, #56352D)"
+        stroke="var(--mark-ring, #E2C4A6)"
+        strokeWidth="2"
+        className="bead"
+      />
     </svg>
   );
 }

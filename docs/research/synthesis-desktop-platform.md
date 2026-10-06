@@ -2,7 +2,7 @@
 
 Lead architect synthesis, 2026-10-02, from ten research memos (cited by slug) plus `docs/04_technical_architecture.md` and `docs/06_roadmap.md`.
 
-Framing. Fold is desktop-and-web first, mobile second. `apps/web` is the product; the Tauri shell adds what wakes an engineer during a multi-day session: tray, badge, notifications, deep links, keychain, updater. One principle runs through the memos: the shell is transport, the kernel is authority, and every native surface that could *look* like authority (toast, tray count, deep link, update) must bind back to the hash-chained log.
+Framing. Henosis is desktop-and-web first, mobile second. `apps/web` is the product; the Tauri shell adds what wakes an engineer during a multi-day session: tray, badge, notifications, deep links, keychain, updater. One principle runs through the memos: the shell is transport, the kernel is authority, and every native surface that could *look* like authority (toast, tray count, deep link, update) must bind back to the hash-chained log.
 
 ## Decisions
 
@@ -14,7 +14,7 @@ Risk: three rendering engines; ship the WebKitGTK DMABUF workaround in `main.rs`
 
 **2. Close the Phase-0 shell holes before any design partner installs it.**
 Evidence: desktop-security-threats (`csp: null`, bearer token in `localStorage`, deep link forwarded unvalidated), identity-sso-device-trust (RFC 8252 keychain storage).
-Changes: real CSP in `tauri.conf.json`; single-instance plugin and strict `fold://` parsing in `src-tauri/src/main.rs`; `keyring` behind `secret_get/secret_set` commands in `capabilities/default.json`; `apps/web/src/identity.ts` branches on `isDesktop()`; web moves to an HttpOnly cookie from `packages/server`.
+Changes: real CSP in `tauri.conf.json`; single-instance plugin and strict `henosis://` parsing in `src-tauri/src/main.rs`; `keyring` behind `secret_get/secret_set` commands in `capabilities/default.json`; `apps/web/src/identity.ts` branches on `isDesktop()`; web moves to an HttpOnly cookie from `packages/server`.
 Phase: now.
 Risk: small and mechanical; skipping it means the hosted product inherits every hole.
 
@@ -37,14 +37,14 @@ Phase: now.
 Risk: a verifying late joiner still wants a Merkle proof, which stays on the roadmap.
 
 **6. Local-first means a durable outbox and an explicit offline policy, not a CRDT.**
-Evidence: local-first-offline-desktop (Replicache, Electric's txid handshake, Linear's idempotency hole; a CRDT merge would silently resolve what Fold deliberately surfaces as a contention).
+Evidence: local-first-offline-desktop (Replicache, Electric's txid handshake, Linear's idempotency hole; a CRDT merge would silently resolve what Henosis deliberately surfaces as a contention).
 Changes: `clientRef` on client messages, echoed on events and deduped in `packages/server/src/host.ts`; `apps/web/src/outbox.ts` (IndexedDB, `tauri-plugin-sql` on desktop); `packages/kernel/src/offline.ts` with `canQueueOffline`; `stale` directive status in `intent.ts`; `observedHead` and `expiresAfterTurns` in `approvals.ts`; provisional rows in `SessionView.tsx`; partition scenarios in the arbitration property test.
 Phase: next quarter.
 Risk: the stale-epoch rule has no prior art, since no sync engine has an autonomous actor advancing state while you are away; `approve` on `external`/`irreversible` stays online-only.
 
 **7. Identity: OIDC with PKCE via the system browser, server-assigned actor ids, signed events with a visible assurance level.**
 Evidence: identity-sso-device-trust (RFC 8252, Sigstore keyless shape, DBSC and passkey BE flag as approval inputs), credential-broker.
-Changes: new `packages/identity` (OIDC and passkey RP); `fold serve --auth oidc`; loopback listener and code exchange in `main.rs`, refresh token in the keychain; optional `sig { keyId, alg, signature, assurance }` on entries in `packages/kernel/src/log.ts` (desktop signs with a keychain key, web entries are server-signed); `ApprovalRule.requires { deviceBound, managed }`; `fold verify` prints assurance. SCIM in `packages/server/src/scim.ts` follows.
+Changes: new `packages/identity` (OIDC and passkey RP); `henosis serve --auth oidc`; loopback listener and code exchange in `main.rs`, refresh token in the keychain; optional `sig { keyId, alg, signature, assurance }` on entries in `packages/kernel/src/log.ts` (desktop signs with a keychain key, web entries are server-signed); `ApprovalRule.requires { deviceBound, managed }`; `henosis verify` prints assurance. SCIM in `packages/server/src/scim.ts` follows.
 Phase: next quarter for OIDC and signatures; later for SCIM.
 Risk: mixed-assurance logs need honest UI.
 
@@ -62,9 +62,9 @@ Risk: composite principals have no token shape; no in-flight revocation.
 
 **10. Telemetry is a tap on the log, never instrumentation in the runner or the clients.**
 Evidence: observability-otel-genai (a pure fold makes export idempotent across crash and replay; `gen_ai.*` is the dialect every backend reads; `response.usage` is discarded today).
-Changes: `usage`, `latencyMs`, `stopReason` on `agent.model.completed` (`packages/protocol`, `packages/runner/src/claude.ts`); new `packages/telemetry` (one trace per turn, ids derived from event hashes, versioned pricing table); cost in the `packages/fleet` ledger and brief; `FOLD_OTEL_CONTENT=none` default; `fold export --otlp`.
+Changes: `usage`, `latencyMs`, `stopReason` on `agent.model.completed` (`packages/protocol`, `packages/runner/src/claude.ts`); new `packages/telemetry` (one trace per turn, ids derived from event hashes, versioned pricing table); cost in the `packages/fleet` ledger and brief; `HENOSIS_OTEL_CONTENT=none` default; `fold export --otlp`.
 Phase: next quarter for usage in the event; later for the exporter.
-Risk: conventions still "Development"; no standard cost attribute; `fold.*` is proprietary by necessity.
+Risk: conventions still "Development"; no standard cost attribute; `henosis.*` is proprietary by necessity.
 
 **11. Extract the actor contract before choosing a hosted substrate.**
 Evidence: realtime-fanout-scaling (Durable Objects, PartyKit and the Agents SDK share one shape: tiny socket attachment, state in storage; a hot runner cannot hibernate), `docs/04`.
@@ -80,7 +80,7 @@ Risk: a device-bound policy can lock out the one person who could unblock the ag
 
 ## What we still do not know
 
-1. Whether bubblewrap works nested inside the containers design partners will run `fold serve` in, or whether phase 1 is effectively `none` on day one.
+1. Whether bubblewrap works nested inside the containers design partners will run `henosis serve` in, or whether phase 1 is effectively `none` on day one.
 2. How to represent a two-owner quorum as one provider principal without lying in GitHub's audit log.
 3. Whether Tauri notification actions are usable on Windows (AUMID, COM activation) and Linux at all.
 4. The correct arbitration outcome for a steer composed at epoch 7 and delivered at epoch 12.

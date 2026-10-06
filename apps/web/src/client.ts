@@ -3,15 +3,15 @@
  * When the socket drops it re-dials with backoff and rejoins from the last event it holds
  * (`sinceSeq`), so the server sends only what was missed and the fold stays identical.
  */
-import type { ProjectClientMessage } from "@fold/fleet";
-import { fold, type SessionState } from "@fold/kernel";
+import type { ProjectClientMessage } from "@henosis/fleet";
+import { fold, type SessionState } from "@henosis/kernel";
 import type {
   Actor,
   ClientMessage,
   PresenceEntry,
   ServerMessage,
   SessionEvent,
-} from "@fold/protocol";
+} from "@henosis/protocol";
 import { isQueueable, OfflineQueue, type QueuedMessage, queueKey } from "./offlineQueue.js";
 import { Reconnector } from "./reconnect.js";
 import { wsBase } from "./shell.js";
@@ -52,7 +52,7 @@ const EMPTY: ClientSnapshot = {
   queued: [],
 };
 
-export class FoldClient {
+export class HenosisClient {
   private ws: WebSocket | null = null;
   snapshot: ClientSnapshot = EMPTY;
   private listeners = new Set<() => void>();

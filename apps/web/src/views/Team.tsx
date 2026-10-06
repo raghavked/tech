@@ -1,4 +1,4 @@
-import type { FleetContention, ProjectState } from "@fold/fleet";
+import type { FleetContention, ProjectState } from "@henosis/fleet";
 import { useEffect, useMemo, useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import {

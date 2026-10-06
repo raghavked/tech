@@ -23,11 +23,11 @@ import {
   type SerializedLedger,
   syncDirectives,
   withdrawPropagated,
-} from "@fold/fleet";
-import type { SessionState } from "@fold/kernel";
-import type { MemoryStore } from "@fold/memory";
-import { type Actor, MAIN_BRANCH, type SessionEvent, type SessionPolicy } from "@fold/protocol";
-import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@fold/runner";
+} from "@henosis/fleet";
+import type { SessionState } from "@henosis/kernel";
+import type { MemoryStore } from "@henosis/memory";
+import { type Actor, MAIN_BRANCH, type SessionEvent, type SessionPolicy } from "@henosis/protocol";
+import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@henosis/runner";
 import { SessionHost } from "./host.js";
 import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
 

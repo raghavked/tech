@@ -36,7 +36,7 @@ build; re-run it after any change to `apps/web` and update the tables.
    context with the service worker blocked and third-party requests (the Google Fonts import)
    cut, so the numbers are about this app's network and JavaScript, not a cache or a font
    host. Two scenarios: the home page with no identity, and a deep link into a session with no
-   Fold server behind it. Two profiles: unthrottled, and Lighthouse's "fast 3G" with a 4x
+   Henosis server behind it. Two profiles: unthrottled, and Lighthouse's "fast 3G" with a 4x
    slower CPU. *View ready* is the moment the view's own content is in the DOM; *interactive*
    is the view being ready and the main thread then having no long task (>50 ms) for 500 ms.
    Median of 7 cold runs.
@@ -105,7 +105,7 @@ After, by chunk:
   came down more than the median because the old path re-rendered every row on every event.
   The gain grows with the length of the session; the old cost was linear in it.
 - A **cold deep link** into a session (a notification opened in a browser that has never
-  loaded Fold) now waits one extra round trip for the session chunk: +28 ms locally, +250 ms
+  loaded Henosis) now waits one extra round trip for the session chunk: +28 ms locally, +250 ms
   on fast 3G. Three things make this the right trade: the view chunks are fetched as soon as
   the page is idle, so a navigation inside the app never waits; the service worker caches
   `/assets/` cache-first, so the second deep link is instant; and the chunk hashes are stable
@@ -146,4 +146,4 @@ PW_CHROMIUM=/path/to/chrome node scripts/perf.mjs --runs 9 --json perf.json
 ```
 
 The script is read-only against `apps/web/dist`, serves it on an ephemeral port, and needs no
-Fold server: the stub websocket inside it plays the long session.
+Henosis server: the stub websocket inside it plays the long session.

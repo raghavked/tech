@@ -24,7 +24,7 @@ export const NOTIFY_KINDS: { kind: NotifyKind; label: string; detail: string }[]
 
 export type NotifyPrefs = Record<NotifyKind, boolean>;
 
-const KEY = "fold.notify";
+const KEY = "henosis.notify";
 const listeners = new Set<() => void>();
 let current: NotifyPrefs = read();
 

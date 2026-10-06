@@ -6,13 +6,13 @@ const src = (p: string) => fileURLToPath(new URL(`./packages/${p}/src/index.ts`,
 export default defineConfig({
   resolve: {
     alias: {
-      "@fold/protocol": src("protocol"),
-      "@fold/kernel": src("kernel"),
-      "@fold/runner": src("runner"),
-      "@fold/fleet": src("fleet"),
-      "@fold/memory": src("memory"),
-      "@fold/slack": src("slack"),
-      "@fold/server": src("server"),
+      "@henosis/protocol": src("protocol"),
+      "@henosis/kernel": src("kernel"),
+      "@henosis/runner": src("runner"),
+      "@henosis/fleet": src("fleet"),
+      "@henosis/memory": src("memory"),
+      "@henosis/slack": src("slack"),
+      "@henosis/server": src("server"),
     },
   },
   test: {

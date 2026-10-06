@@ -1,7 +1,7 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-/** The dev server and the preview server both forward the websocket and the JSON API to the Fold server. */
+/** The dev server and the preview server both forward the websocket and the JSON API to the Henosis server. */
 const proxyFor = (ws: string) => {
   const http = ws.replace(/^ws/, "http");
   return {
@@ -13,10 +13,10 @@ const proxyFor = (ws: string) => {
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173, proxy: proxyFor(process.env.FOLD_WS ?? "ws://127.0.0.1:7700") },
+  server: { port: 5173, proxy: proxyFor(process.env.HENOSIS_WS ?? "ws://127.0.0.1:7700") },
   preview: {
     port: 4173,
-    proxy: proxyFor(process.env.FOLD_WS ?? "ws://127.0.0.1:7730"),
+    proxy: proxyFor(process.env.HENOSIS_WS ?? "ws://127.0.0.1:7730"),
   },
   build: {
     outDir: "dist",

@@ -1,5 +1,5 @@
-import { describeRule, ruleFor, type SessionState } from "@fold/kernel";
-import type { Actor, DirectiveMode, PresenceEntry, SessionEvent } from "@fold/protocol";
+import { describeRule, ruleFor, type SessionState } from "@henosis/kernel";
+import type { Actor, DirectiveMode, PresenceEntry, SessionEvent } from "@henosis/protocol";
 import {
   memo,
   type ReactNode,
@@ -12,7 +12,7 @@ import {
 } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, refOf, type SessionRow, useFetch } from "../api.js";
-import { FoldClient, wsUrl } from "../client.js";
+import { HenosisClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import { EmptyState, OfflineState, useOffline, useOnline } from "../empty.js";
 import { actorOf, type Identity } from "../identity.js";
@@ -79,7 +79,7 @@ export function SessionView({
   me: Me | null;
   ctx: ShellContext;
 }) {
-  const client = useMemo(() => new FoldClient(), []);
+  const client = useMemo(() => new HenosisClient(), []);
   const snap = useSyncExternalStore(
     (fn) => client.subscribe(fn),
     () => client.snapshot,
@@ -149,7 +149,7 @@ export function SessionView({
       if (!FLEET_KINDS.has(e.kind) || timer) return;
       timer = setTimeout(() => {
         timer = null;
-        dispatchEvent(new Event("fold:fleet"));
+        dispatchEvent(new Event("henosis:fleet"));
       }, 400);
     });
     return () => {
@@ -411,7 +411,7 @@ function Stream({
   events: SessionEvent[];
   s: SessionState;
   me: Actor;
-  client: FoldClient;
+  client: HenosisClient;
   showHandoff: boolean;
 }) {
   const { blocks, version } = useBlocks(events, s, me.id);
@@ -615,7 +615,15 @@ const ApprovalNotice = memo(ApprovalNoticeRow, (prev, next) => {
   );
 });
 
-function ApprovalNoticeRow({ s, id, client }: { s: SessionState; id: string; client: FoldClient }) {
+function ApprovalNoticeRow({
+  s,
+  id,
+  client,
+}: {
+  s: SessionState;
+  id: string;
+  client: HenosisClient;
+}) {
   const a = s.approvals[id];
   if (!a) return null;
   const name = (k: string) => s.participants[k]?.actor.name ?? k;
@@ -681,7 +689,7 @@ function Composer({
 }: {
   s: SessionState;
   me: Actor;
-  client: FoldClient;
+  client: HenosisClient;
   connected: boolean;
   /** Offline queue: what waits for the socket (see offlineQueue.ts). */
   queued: QueuedMessage[];
@@ -920,7 +928,7 @@ function TeamPanel({
 }: {
   s: SessionState;
   me: Actor;
-  client: FoldClient;
+  client: HenosisClient;
   presence: PresenceEntry[];
   rows: SessionRow[];
   reload: () => void;
@@ -949,7 +957,7 @@ function TeamPanel({
     // The rail and the panel both read the project listing; tell them the fleet changed.
     const tell = () => {
       reload();
-      dispatchEvent(new Event("fold:fleet"));
+      dispatchEvent(new Event("henosis:fleet"));
     };
     setTimeout(tell, 250);
     setTimeout(tell, 1500);
@@ -1106,7 +1114,7 @@ function QueueList({
 }: {
   queued: QueuedMessage[];
   s: SessionState;
-  client: FoldClient;
+  client: HenosisClient;
 }) {
   const name = (id: string) => s.participants[id]?.actor.name ?? id;
   const when = (at: number) =>
@@ -1150,7 +1158,7 @@ function Drawer({
 }: {
   s: SessionState;
   me: Actor;
-  client: FoldClient;
+  client: HenosisClient;
   brief: string | null;
   errors: string[];
   orgId: string;

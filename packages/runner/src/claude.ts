@@ -1,5 +1,5 @@
 /**
- * Claude adapter. Enabled only when an API key is available and FOLD_OFFLINE is unset.
+ * Claude adapter. Enabled only when an API key is available and HENOSIS_OFFLINE is unset.
  * The runner records every response in the log, so a replay never reaches this file.
  */
 import Anthropic from "@anthropic-ai/sdk";
@@ -9,12 +9,12 @@ export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
 
 export function claudeAvailable(): boolean {
   return (
-    !process.env.FOLD_OFFLINE &&
+    !process.env.HENOSIS_OFFLINE &&
     Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN)
   );
 }
 
-const SYSTEM = `You are the shared agent in a Fold session: several humans watch and steer you at once.
+const SYSTEM = `You are the shared agent in a Henosis session: several humans watch and steer you at once.
 The session's composed intent below is authoritative; it already arbitrates between them.
 Respect every standing constraint. Do not act on scopes marked under discussion.
 Work in small steps, say what you are doing in one or two sentences, and call tools to make progress.

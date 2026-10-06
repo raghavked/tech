@@ -12,16 +12,16 @@ import {
   PROJECT_RANK,
   ProjectClientMessage,
   type ProjectEvent,
-} from "@fold/fleet";
-import { KernelError } from "@fold/kernel";
-import { Curator, MemoryStore, type SerializedMemory } from "@fold/memory";
+} from "@henosis/fleet";
+import { KernelError } from "@henosis/kernel";
+import { Curator, MemoryStore, type SerializedMemory } from "@henosis/memory";
 import {
   ClientMessage,
   DEFAULT_APPROVAL_POLICY,
   type ServerMessage,
   type SessionPolicy,
-} from "@fold/protocol";
-import type { Model, ToolRegistry } from "@fold/runner";
+} from "@henosis/protocol";
+import type { Model, ToolRegistry } from "@henosis/runner";
 import { type WebSocket, WebSocketServer } from "ws";
 import { handleBranchApi } from "./branchApi.js";
 import { EXPORT_PATH, exportHeaders, exportSessionMarkdown } from "./export.js";
@@ -57,7 +57,7 @@ const DEFAULT_POLICY: SessionPolicy = {
 type AnyClientMessage = ClientMessage | ProjectClientMessage;
 const AnyClientMessageSchema = ClientMessage.or(ProjectClientMessage);
 
-export class FoldServer {
+export class HenosisServer {
   readonly projects = new Map<string, ProjectHost>();
   readonly orgs: OrgRegistry;
   readonly memories = new Map<string, MemoryStore>();

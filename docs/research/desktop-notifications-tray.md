@@ -1,18 +1,18 @@
-# Desktop notifications and tray for Fold
+# Desktop notifications and tray for Henosis
 
 Topic: desktop-notifications-tray · 2026-10-02 · scope: Tauri shell (`apps/desktop`), web client, server inbox
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-A Fold session runs for hours or days with many humans attached, and most of them are
+A Henosis session runs for hours or days with many humans attached, and most of them are
 somewhere else most of the time. The two moments where the agent is genuinely blocked on a
 specific person are an **approval** (quorum for `irreversible`, driver for `external`, one
 contributor for `exec`) and a **handoff offer**. Everything else (turn summaries, claims,
 contentions the agent routes around) is ambient. If the desktop shell toasts the ambient
-stream, people turn Fold's notifications off at the OS level and the blocking moments die
+stream, people turn Henosis's notifications off at the OS level and the blocking moments die
 with them. The shell today has the right skeleton (tray item "Pending approvals · N",
 `notifyIfHidden` in the web client, a per-user inbox in `packages/server/src/notify.ts`,
-`fold://` deep links) but no urgency model, no badge, no quiet-hours logic, and a tray item
+`henosis://` deep links) but no urgency model, no badge, no quiet-hours logic, and a tray item
 that counts approvals the viewer may not be eligible to vote on.
 
 ## Prior art
@@ -61,13 +61,13 @@ that counts approvals the viewer may not be eligible to vote on.
 ## What to borrow
 
 - **Three urgency levels, mapped from the kernel, not from the UI.** Apple's passive/active/
-  time-sensitive is exactly the Fold split: ambient (passive, inbox only), needs-you-soon
+  time-sensitive is exactly the Henosis split: ambient (passive, inbox only), needs-you-soon
   (active), agent-blocked-on-you (time-sensitive). Never critical.
 - **GitHub Desktop's scoping rule.** Only notify the person whose action unblocks something:
   the eligible voters for an approval, the named recipient of a handoff, the driver for a
   contention. Observers get the inbox, never a toast.
 - **Microsoft's activation rule.** Click opens the exact notice; a background button never
-  raises the window. This maps to Fold's hash-bound approvals: the thing approved is the
+  raises the window. This maps to Henosis's hash-bound approvals: the thing approved is the
   `approvalId`, so a background "Approve" is safe to wire only when the shell holds a live
   session token and the vote event carries that id.
 - **Slack's override budget.** A driver may escalate one approval to time-sensitive per
@@ -83,7 +83,7 @@ that counts approvals the viewer may not be eligible to vote on.
   Phase 0 should treat the whole toast as one button.
 - **Apps cannot read Focus or DND state.** macOS exposes no public query for Focus; Windows
   has `SHQueryUserNotificationState` only for presentation/full-screen cases. The app can
-  only declare a level and let the OS decide, so Fold needs its own quiet hours as well.
+  only declare a level and let the OS decide, so Henosis needs its own quiet hours as well.
 - **Withdrawing a toast when the agent routes around.** A denied or expired approval, or a
   handoff that was accepted by someone else, should disappear from Notification Center.
   Removal by identifier exists natively; the plugins' `cancel` on desktop is undocumented.
@@ -92,7 +92,7 @@ that counts approvals the viewer may not be eligible to vote on.
 - **Lock-screen leakage.** Tool call arguments (paths, commands, secrets) in a toast body
   are visible on a locked screen (NIST AUT-1). Bodies must be redacted by default.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **Add `urgency` and `audience` to the server inbox.** In `packages/server/src/notify.ts`
    give `Notification` a field `urgency: "passive" | "active" | "time-sensitive"` and compute
@@ -107,7 +107,7 @@ that counts approvals the viewer may not be eligible to vote on.
    apricot dot on Windows; clear both when `n == 0`. Swap the tray icon to a template image
    with a dot variant when `n > 0`.
 3. **Deep-link to the notice, not the session.** Extend the scheme to
-   `fold://p/<project>/s/<session>/a/<approvalId>` and `/h/<handoffId>` in `main.rs` and the
+   `henosis://p/<project>/s/<session>/a/<approvalId>` and `/h/<handoffId>` in `main.rs` and the
    hash router in `apps/web/src/App.tsx`, so a click scrolls to the quiet notice and focuses
    its first button. Every toast gets `tag`/identifier = the approval or handoff id so
    re-notifications replace rather than stack.

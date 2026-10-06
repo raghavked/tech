@@ -188,8 +188,8 @@ export function Shell({
   // The account menu (and any surface without a keyboard) asks for the sheet by this event.
   useEffect(() => {
     const open = () => setHelp(true);
-    addEventListener("fold:shortcuts", open);
-    return () => removeEventListener("fold:shortcuts", open);
+    addEventListener("henosis:shortcuts", open);
+    return () => removeEventListener("henosis:shortcuts", open);
   }, []);
   // A stable handler keeps the memoised sidebar out of the stream's re-renders.
   const closeNav = useCallback(() => setNavOpen(false), []);
@@ -499,13 +499,13 @@ function useProjectSessions(ids: string[], route: Route): Record<string, Session
     const soon = setTimeout(load, 1500);
     const every = setInterval(load, 8_000);
     addEventListener("focus", load);
-    addEventListener("fold:fleet", load);
+    addEventListener("henosis:fleet", load);
     return () => {
       alive = false;
       clearTimeout(soon);
       clearInterval(every);
       removeEventListener("focus", load);
-      removeEventListener("fold:fleet", load);
+      removeEventListener("henosis:fleet", load);
     };
   }, [key]);
   return out;
@@ -590,7 +590,7 @@ function Account({ identity, route }: { identity: Identity | null; route: Route 
             className="btn ghost sm"
             onClick={() => {
               setOpen(false);
-              dispatchEvent(new Event("fold:shortcuts"));
+              dispatchEvent(new Event("henosis:shortcuts"));
             }}
           >
             Keyboard shortcuts

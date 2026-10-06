@@ -1,5 +1,5 @@
-import { Session } from "@fold/kernel";
-import { type Actor, DEFAULT_APPROVAL_POLICY, LEAD_RANK, MAIN_BRANCH } from "@fold/protocol";
+import { Session } from "@henosis/kernel";
+import { type Actor, DEFAULT_APPROVAL_POLICY, LEAD_RANK, MAIN_BRANCH } from "@henosis/protocol";
 import { describe, expect, it } from "vitest";
 import { fleetBrief } from "../src/brief.js";
 import { detectFleetContentions } from "../src/contention.js";

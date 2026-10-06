@@ -1,11 +1,11 @@
-//! Fold desktop shell.
+//! Henosis desktop shell.
 //!
 //! The window loads the built web client (apps/web) with `src/bridge.js` injected first, so the
-//! client finds `window.__FOLD_DESKTOP__` and never imports `@tauri-apps/*`. The shell polls the
-//! Fold server's inbox (`GET /api/notifications?user=<id>&unread=1`) for the signed-in person,
+//! client finds `window.__HENOSIS_DESKTOP__` and never imports `@tauri-apps/*`. The shell polls the
+//! Henosis server's inbox (`GET /api/notifications?user=<id>&unread=1`) for the signed-in person,
 //! shows "Pending approvals · N" in the tray, a badge on the Dock or launcher, and a native
 //! notification for every new approval or handoff that is not already on screen. Notifications
-//! and the tray open the client on the right session through `fold://p/<project>/s/<session>`.
+//! and the tray open the client on the right session through `henosis://p/<project>/s/<session>`.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::collections::HashSet;
@@ -22,9 +22,9 @@ use tauri::{
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_notification::NotificationExt;
 
-/// Injected into the main window before the client loads; defines `window.__FOLD_DESKTOP__`.
+/// Injected into the main window before the client loads; defines `window.__HENOSIS_DESKTOP__`.
 const BRIDGE_JS: &str = include_str!("../../src/bridge.js");
-/// `fold serve` without flags. Overridden by `FOLD_URL`, then by the `server` file in the
+/// `henosis serve` without flags. Overridden by `HENOSIS_URL`, then by the `server` file in the
 /// app's config directory, then by what the client reports through `setIdentity`.
 const DEFAULT_SERVER: &str = "http://127.0.0.1:7700";
 const POLL_EVERY: Duration = Duration::from_secs(15);
@@ -39,7 +39,7 @@ struct Item {
     title: String,
     #[serde(default)]
     body: String,
-    /// fold://p/<project>/s/<session>
+    /// henosis://p/<project>/s/<session>
     #[serde(default)]
     link: String,
     #[serde(default)]
@@ -70,7 +70,7 @@ struct Shell {
     inbox: Mutex<Inbox>,
     /// Tags of toasts already shown by `notify`, so a re-sent one replaces nothing.
     toasted: Mutex<HashSet<String>>,
-    /// The hash route of the `fold://` link the app was launched with, read once by the client.
+    /// The hash route of the `henosis://` link the app was launched with, read once by the client.
     launch_route: Mutex<Option<String>>,
     http: reqwest::Client,
 }
@@ -203,7 +203,7 @@ async fn poll(app: AppHandle) {
         if g.user.as_deref() != Some(user.as_str()) {
             return; // the person changed while the request was out
         }
-        let on_screen = g.route.as_ref().map(|(p, s)| format!("fold://p/{p}/s/{s}"));
+        let on_screen = g.route.as_ref().map(|(p, s)| format!("henosis://p/{p}/s/{s}"));
         let mut awaiting = Vec::new();
         for it in items.into_iter().filter(|i| !i.read) {
             let actionable = it.kind == "approval" || it.kind == "handoff";
@@ -225,7 +225,7 @@ async fn poll(app: AppHandle) {
         if !g.seeded {
             g.seeded = true;
             if approvals + handoffs > 0 {
-                toasts.push(("Fold".to_string(), summary(approvals, handoffs)));
+                toasts.push(("Henosis".to_string(), summary(approvals, handoffs)));
             }
         }
         g.awaiting = awaiting;
@@ -240,7 +240,7 @@ async fn poll(app: AppHandle) {
     if toasts.len() > 3 {
         let rest = toasts.len() - 2;
         toasts.truncate(2);
-        toasts.push(("Fold".to_string(), format!("{rest} more await you")));
+        toasts.push(("Henosis".to_string(), format!("{rest} more await you")));
     }
     for (title, body) in toasts {
         toast(&app, &title, &body);
@@ -294,8 +294,8 @@ fn build_menu(app: &AppHandle, approvals: usize, handoffs: usize) -> tauri::Resu
         None::<&str>,
     )?;
     let sep = PredefinedMenuItem::separator(app)?;
-    let open = MenuItem::with_id(app, "open", "Open Fold", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit Fold", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", "Open Henosis", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit Henosis", true, None::<&str>)?;
     let items: Vec<&dyn IsMenuItem<tauri::Wry>> = if handoffs > 0 {
         vec![&pending, &offered, &sep, &open, &quit]
     } else {
@@ -315,9 +315,9 @@ fn apply_tray(app: &AppHandle, approvals: usize, handoffs: usize) {
         #[cfg(target_os = "macos")]
         let _ = tray.set_icon_as_template(true);
         let _ = tray.set_tooltip(Some(if total == 0 {
-            "Fold".to_string()
+            "Henosis".to_string()
         } else {
-            format!("Fold · {total} awaiting you")
+            format!("Henosis · {total} awaiting you")
         }));
     }
     #[cfg(not(target_os = "windows"))]
@@ -326,7 +326,7 @@ fn apply_tray(app: &AppHandle, approvals: usize, handoffs: usize) {
     }
 }
 
-/// A 22 px sheet with its top-right corner folded (the Fold mark, monochrome), and an apricot
+/// A 22 px sheet with its top-right corner folded (the Henosis mark, monochrome), and an apricot
 /// dot in the lower-right corner when `attention`. Black with alpha on macOS, where the tray
 /// treats it as a template image; linen elsewhere, for the dark trays of Windows and most
 /// Linux desktops.
@@ -388,7 +388,7 @@ fn focus_main(app: &AppHandle) {
     }
 }
 
-/// fold://p/<project>/s/<session> (or fold://m/<team>) → the client's hash route.
+/// henosis://p/<project>/s/<session> (or henosis://m/<team>) → the client's hash route.
 fn route_of(url: &tauri::Url) -> Option<String> {
     if url.scheme() != "fold" {
         return None;
@@ -413,9 +413,9 @@ fn encode(s: &str) -> String {
     percent_encode(s)
 }
 
-/// `FOLD_URL`, else the one-line `server` file in the app's config directory, else localhost.
+/// `HENOSIS_URL`, else the one-line `server` file in the app's config directory, else localhost.
 fn default_server(app: &AppHandle) -> String {
-    if let Ok(v) = std::env::var("FOLD_URL") {
+    if let Ok(v) = std::env::var("HENOSIS_URL") {
         if !v.trim().is_empty() {
             return v.trim().trim_end_matches('/').to_string();
         }
@@ -432,7 +432,7 @@ fn default_server(app: &AppHandle) -> String {
 
 fn main() {
     tauri::Builder::default()
-        // First, so a second launch (a fold:// link on Windows or Linux) reaches this instance.
+        // First, so a second launch (a henosis:// link on Windows or Linux) reaches this instance.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| focus_main(app)))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_notification::init())
@@ -492,7 +492,7 @@ fn main() {
             TrayIconBuilder::with_id("main")
                 .icon(tray_icon(false))
                 .icon_as_template(true)
-                .tooltip("Fold")
+                .tooltip("Henosis")
                 .menu(&build_menu(&handle, 0, 0)?)
                 .show_menu_on_left_click(true)
                 .on_menu_event(|app, event| match event.id().as_ref() {
@@ -522,7 +522,7 @@ fn main() {
                 })
                 .build(app)?;
 
-            // fold:// links. macOS registers the scheme from Info.plist at install; Windows and
+            // henosis:// links. macOS registers the scheme from Info.plist at install; Windows and
             // Linux register it here as well so `tauri dev` builds answer links too.
             #[cfg(any(windows, target_os = "linux"))]
             {
@@ -554,7 +554,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building Fold")
+        .expect("error while building Henosis")
         .run(|app, event| {
             // Clicking the Dock icon with the window hidden brings it back.
             #[cfg(target_os = "macos")]

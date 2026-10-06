@@ -15,7 +15,7 @@ import {
   rowsOf,
   sortRows,
 } from "../approvalsQueue.js";
-import { FoldClient, wsUrl } from "../client.js";
+import { HenosisClient, wsUrl } from "../client.js";
 import { actorOf, type Identity } from "../identity.js";
 import { navigate, paths } from "../router.js";
 import { ErrorLine } from "../ui.js";
@@ -27,7 +27,7 @@ interface Target {
 
 /** One websocket per session with something to approve; every change bumps one version. */
 class Hub {
-  readonly joined = new Map<string, { client: FoldClient; ref: ProjectRef; row: SessionRow }>();
+  readonly joined = new Map<string, { client: HenosisClient; ref: ProjectRef; row: SessionRow }>();
   private listeners = new Set<() => void>();
   private version = 0;
   subscribe = (fn: () => void) => {
@@ -48,7 +48,7 @@ class Hub {
       have.row = t.row;
       return;
     }
-    const client = new FoldClient();
+    const client = new HenosisClient();
     client.subscribe(() => this.bump());
     client.connect(wsUrl(), {
       sessionId: t.row.sessionId,
@@ -105,13 +105,13 @@ function useTargets(projects: ProjectRef[]): {
     const soon = setTimeout(load, 1500);
     const every = setInterval(load, 8_000);
     addEventListener("focus", load);
-    addEventListener("fold:fleet", load);
+    addEventListener("henosis:fleet", load);
     return () => {
       alive = false;
       clearTimeout(soon);
       clearInterval(every);
       removeEventListener("focus", load);
-      removeEventListener("fold:fleet", load);
+      removeEventListener("henosis:fleet", load);
     };
   }, [key]);
   return state;

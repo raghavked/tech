@@ -12,7 +12,7 @@
  * Conflicts are kept when any of their entries survives the filter; compactions are kept
  * when their scope key matches the team/project asked for.
  */
-import type { EntryRecord, MemoryConflict, MemoryState } from "@fold/memory";
+import type { EntryRecord, MemoryConflict, MemoryState } from "@henosis/memory";
 
 export type MemoryLevel = "org" | "team" | "project";
 

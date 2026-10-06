@@ -2,7 +2,7 @@
  * Propagation: project directives enter every live branch of every targeted session as
  * project-origin directives (rank above owner), and withdrawals follow them.
  */
-import type { Session } from "@fold/kernel";
+import type { Session } from "@henosis/kernel";
 import type { ProjectDirective, ProjectState } from "./state.js";
 import { directiveAppliesTo } from "./state.js";
 

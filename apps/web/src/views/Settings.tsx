@@ -2,8 +2,8 @@
  * settings-page: #/settings. One column of quiet sections: Profile, Notifications, Appearance,
  * Keyboard, Team policy (read-only, from the current project) and Integrations.
  */
-import { describeRule, ruleFor } from "@fold/kernel";
-import type { ContentionPolicy, RiskClass, SessionPolicy } from "@fold/protocol";
+import { describeRule, ruleFor } from "@henosis/kernel";
+import type { ContentionPolicy, RiskClass, SessionPolicy } from "@henosis/protocol";
 import { type ReactNode, useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, useFetch } from "../api.js";
@@ -285,7 +285,7 @@ function Integrations() {
               ? slack.error
               : on
                 ? "Channels per team and project; a thread per session"
-                : "Start the server with `fold slack --config slack.json` to connect"
+                : "Start the server with `henosis slack --config slack.json` to connect"
           }
         >
           <span className={`status${on ? " on" : " idle"}`}>

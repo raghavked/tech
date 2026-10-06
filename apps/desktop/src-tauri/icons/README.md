@@ -1,4 +1,4 @@
-The app icon is the Fold mark from `design/favicon.svg` (`icon.svg` here is a copy).
+The app icon is the Henosis mark from `design/favicon.svg` (`icon.svg` here is a copy).
 
 `npm run icons` (`scripts/make-icons.mjs`, Node only) draws `icon.png`, `32x32.png`,
 `128x128.png`, `128x128@2x.png`, `icon.ico` and `icon.icns` from that geometry; they are

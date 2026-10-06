@@ -11,8 +11,8 @@ import {
   requiredVotes,
   ruleFor,
   type SessionState,
-} from "@fold/kernel";
-import type { RiskClass } from "@fold/protocol";
+} from "@henosis/kernel";
+import type { RiskClass } from "@henosis/protocol";
 import type { SessionRow } from "./api.js";
 import { describeCall } from "./calls.js";
 

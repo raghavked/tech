@@ -1,11 +1,11 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MemoryStore } from "@fold/memory";
-import { defaultTools, ScriptedModel } from "@fold/runner";
+import { MemoryStore } from "@henosis/memory";
+import { defaultTools, ScriptedModel } from "@henosis/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { entryMatches, memoryFeed, memoryQueryOf } from "../src/memoryQuery.js";
-import { FoldServer } from "../src/server.js";
+import { HenosisServer } from "../src/server.js";
 
 const org = { orgId: "northwind" };
 const team = { orgId: "northwind", teamId: "payments" };
@@ -102,11 +102,11 @@ describe("memory feed filters", () => {
 
 describe("GET /api/memory/:org with filters", () => {
   let root: string;
-  let server: FoldServer;
+  let server: HenosisServer;
   let base: string;
   beforeAll(async () => {
-    root = mkdtempSync(join(tmpdir(), "fold-memq-"));
-    server = new FoldServer({ root, model: new ScriptedModel(), tools: defaultTools() });
+    root = mkdtempSync(join(tmpdir(), "henosis-memq-"));
+    server = new HenosisServer({ root, model: new ScriptedModel(), tools: defaultTools() });
     const port = await server.listen(0);
     base = `http://127.0.0.1:${port}`;
     const m = server.memory("northwind");

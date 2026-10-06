@@ -6,8 +6,8 @@
  * prints how the costs compare: refolding the history on every event (what the stream did) vs
  * folding only the new event, and how many rows a window of a 5,000-block column mounts.
  */
-import { eventId, fold, reduce } from "@fold/kernel";
-import { MAIN_BRANCH, type SessionEvent, SessionPolicy } from "@fold/protocol";
+import { eventId, fold, reduce } from "@henosis/kernel";
+import { MAIN_BRANCH, type SessionEvent, SessionPolicy } from "@henosis/protocol";
 import { describe, expect, it } from "vitest";
 import { BlockFolder, blocksOf, estimateHeight } from "../src/stream/blocks.js";
 import { atBottom, bottomOf, layoutOf, rangeOf, rowAt } from "../src/stream/window.js";

@@ -1,10 +1,10 @@
 # Competitor deep dive: Codex app, Cursor 3 Agents window and Projects, Devin multiplayer, Zed Delta
 
-Research memo, 2026-10-02. Topic: what the four closest desktop agent products ship for multiple humans and multiple sessions, how they behave as desktop apps, and what Fold should take or avoid. Vendor domains (openai.com, cursor.com, docs.devin.ai, zed.dev, Wikipedia, HN) were egress-blocked; facts verified today come from GitHub only, the rest is from the repo's earlier source list and training knowledge and is marked UNVERIFIED with the best-known date.
+Research memo, 2026-10-02. Topic: what the four closest desktop agent products ship for multiple humans and multiple sessions, how they behave as desktop apps, and what Henosis should take or avoid. Vendor domains (openai.com, cursor.com, docs.devin.ai, zed.dev, Wikipedia, HN) were egress-blocked; facts verified today come from GitHub only, the rest is from the repo's earlier source list and training knowledge and is marked UNVERIFIED with the best-known date.
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-All four have converged on the same desktop shape in 2026: a native window whose first-class object is the *agent run*, not the file. Each gives one person many agents (parallel threads on worktrees). None gives many people one agent with arbitration, quorum approvals, fork/merge of the conversation, or a replayable log. Devin proves there is demand for multiplayer; Zed Delta is the only one syncing the conversation itself. Fold's thesis is the inverse of Codex/Cursor (one human, N agents) and its desktop shell has to feel at least as native as theirs while staying a thin wrapper over the web client.
+All four have converged on the same desktop shape in 2026: a native window whose first-class object is the *agent run*, not the file. Each gives one person many agents (parallel threads on worktrees). None gives many people one agent with arbitration, quorum approvals, fork/merge of the conversation, or a replayable log. Devin proves there is demand for multiplayer; Zed Delta is the only one syncing the conversation itself. Henosis's thesis is the inverse of Codex/Cursor (one human, N agents) and its desktop shell has to feel at least as native as theirs while staying a thin wrapper over the web client.
 
 ## Prior art
 
@@ -16,13 +16,13 @@ All four have converged on the same desktop shape in 2026: a native window whose
 
 ## What to borrow
 
-- **Run-first desktop layout.** Codex and Cursor 3 both put a rail of runs on the left and one conversation in the centre; the editor is optional. Fold's `design/desktop.html` already does this; keep it and resist a file tree.
-- **Worktree-per-branch as the default isolation.** Codex and Cursor isolate parallel agents by git worktree. Fold's fork already snapshots a workspace; mapping a fork to a worktree directory on the desktop makes "open the branch locally" one click.
-- **Server-side follow-up queue with turn-boundary application** (Devin). Fold's arbitration already applies directives at epoch boundaries; the UI should show "queued for next turn" the way Devin does, so a second human does not think their steer was lost.
+- **Run-first desktop layout.** Codex and Cursor 3 both put a rail of runs on the left and one conversation in the centre; the editor is optional. Henosis's `design/desktop.html` already does this; keep it and resist a file tree.
+- **Worktree-per-branch as the default isolation.** Codex and Cursor isolate parallel agents by git worktree. Henosis's fork already snapshots a workspace; mapping a fork to a worktree directory on the desktop makes "open the branch locally" one click.
+- **Server-side follow-up queue with turn-boundary application** (Devin). Henosis's arbitration already applies directives at epoch boundaries; the UI should show "queued for next turn" the way Devin does, so a second human does not think their steer was lost.
 - **Automations** (Codex). A scheduled run that wakes a session is a natural fleet feature: a lead schedules "nightly triage" and the run reports to the project ledger.
-- **Approval modes** (Codex `acceptedForSession`). A per-session "allow this command class for the rest of the session" vote reduces approval fatigue; Fold can keep it hash-bound by scoping it to a command pattern rather than a free pass.
-- **Projects as shared planning files** (Cursor). A project-level planning doc that agents read maps to Fold's project directives and fleet brief; Fold's version is attributed and versioned, which Cursor's is not.
-- **Thread sync of third-party harnesses** (Zed Delta). Delta's harness adapter list (Claude Code first) is the same order Fold's `packages/runner` adapters should follow.
+- **Approval modes** (Codex `acceptedForSession`). A per-session "allow this command class for the rest of the session" vote reduces approval fatigue; Henosis can keep it hash-bound by scoping it to a command pattern rather than a free pass.
+- **Projects as shared planning files** (Cursor). A project-level planning doc that agents read maps to Henosis's project directives and fleet brief; Henosis's version is attributed and versioned, which Cursor's is not.
+- **Thread sync of third-party harnesses** (Zed Delta). Delta's harness adapter list (Claude Code first) is the same order Henosis's `packages/runner` adapters should follow.
 
 ## What is unsolved
 
@@ -33,14 +33,14 @@ All four have converged on the same desktop shape in 2026: a native window whose
 - Replay and verification: no product offers a hash-chained, replayable record a third party can verify.
 - Desktop presence: no product shows *who else is in this run right now* beyond Zed's editor cursors.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
-1. **Expose fork as a local worktree in the desktop shell.** Add a `fold.fork.checkout` Tauri command in `apps/desktop/src-tauri/src/main.rs` that materialises a branch's workspace snapshot into `<project>/.fold/worktrees/<branchId>` and returns the path; show "Open folder" on the branch row in `apps/web/src/views`. Matches the Codex/Cursor worktree expectation with Fold's snapshot semantics.
+1. **Expose fork as a local worktree in the desktop shell.** Add a `henosis.fork.checkout` Tauri command in `apps/desktop/src-tauri/src/main.rs` that materialises a branch's workspace snapshot into `<project>/.fold/worktrees/<branchId>` and returns the path; show "Open folder" on the branch row in `apps/web/src/views`. Matches the Codex/Cursor worktree expectation with Henosis's snapshot semantics.
 2. **Queued-steer affordance.** When a directive arrives mid-turn, render a quiet notice "Queued, applies at next turn" under the composer (`apps/web/src/ui.tsx`), driven by the existing epoch boundary in `packages/kernel`; no kernel change.
 3. **Scoped session approvals.** Add an `approval.scope` event in `packages/protocol` with a command pattern and a `turns` TTL, voted like any approval (quorum for irreversible classes), consumed in `packages/kernel` before emitting a new approval request. This is Codex's `acceptedForSession` without an unbounded grant.
 4. **Automations on the project ledger.** Add `schedule.create` / `schedule.fire` events in `packages/fleet` so a lead can schedule a run that starts a session with a project directive attached; fired runs appear in the fleet brief. Desktop: register the schedule with the OS notification path already researched in `docs/research/desktop-notifications-tray.md`.
 5. **Agent command center keyboard parity.** Codex 0.160.0's keyboard-accessible task browsing is the bar; make the sessions rail in `apps/web/src/views` fully navigable with j/k, Enter, and `/` filter, per `docs/research/keyboard-first-ux.md`.
-6. **Harness adapter order.** Prioritise Claude Code, then Codex app-server (`thread/fork`, `requestApproval`), in `packages/runner`, mirroring Zed Delta's sync order so Fold can import a Delta-synced thread later.
+6. **Harness adapter order.** Prioritise Claude Code, then Codex app-server (`thread/fork`, `requestApproval`), in `packages/runner`, mirroring Zed Delta's sync order so Henosis can import a Delta-synced thread later.
 7. **Competitive table refresh.** Update `docs/02_competitive_landscape.md` rows for Codex (desktop app, Automations, Guardian) and Cursor (Agents window, Projects) with the dates above and the UNVERIFIED flags until vendor pages can be fetched.
 
 ## Sources

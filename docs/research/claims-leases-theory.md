@@ -2,9 +2,9 @@
 
 Research memo, 2026-10-02. Slug: `claims-leases-theory`. Verification note: the egress proxy blocked every primary source (USENIX, Google Research, Kleppmann, Apache, three university mirrors). Statements about Chubby, ZooKeeper, Omega and Kleppmann are reconstructed from search snippets plus background knowledge and are marked UNVERIFIED where a number or quote could not be checked. The dibs README was fetched and is verified.
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-Fold's fleet layer already has a lease model: `ClaimRecord` in `packages/fleet/src/claims.ts` holds a resource (path prefix, service, ticket), a mode (exclusive/shared), a `requestedSeq`, a status and a `lastTouchedTurn`; `Project.claim` in `packages/fleet/src/project.ts` grants deterministically (first active holder wins), `expireStale` expires by holder-turn inactivity, and the guard (`canWrite`) turns a held path into a tool result the model can read. Two things make this different from a datacentre lock service. The lease holder is a *session* whose principal is a *human engineer*, and the arbiter is not a quorum of servers but a hash-chained event log that every replica replays. That second point is why the repo chose turns over wall clock for TTL, and it is also why the classic failure modes (stale holders, herds, starvation, all-or-nothing denials) show up in slightly different clothes. Three present gaps are concrete: `claimTtlTurns` defaults to `0` in `packages/fleet/src/state.ts` (expiry is off), `status: "pending"` exists on the record but nothing queues or grants from it, and `docs/13_fleet_collaboration.md` itself lists partial admission as not implemented.
+Henosis's fleet layer already has a lease model: `ClaimRecord` in `packages/fleet/src/claims.ts` holds a resource (path prefix, service, ticket), a mode (exclusive/shared), a `requestedSeq`, a status and a `lastTouchedTurn`; `Project.claim` in `packages/fleet/src/project.ts` grants deterministically (first active holder wins), `expireStale` expires by holder-turn inactivity, and the guard (`canWrite`) turns a held path into a tool result the model can read. Two things make this different from a datacentre lock service. The lease holder is a *session* whose principal is a *human engineer*, and the arbiter is not a quorum of servers but a hash-chained event log that every replica replays. That second point is why the repo chose turns over wall clock for TTL, and it is also why the classic failure modes (stale holders, herds, starvation, all-or-nothing denials) show up in slightly different clothes. Three present gaps are concrete: `claimTtlTurns` defaults to `0` in `packages/fleet/src/state.ts` (expiry is off), `status: "pending"` exists on the record but nothing queues or grants from it, and `docs/13_fleet_collaboration.md` itself lists partial admission as not implemented.
 
 ## Prior art
 
@@ -17,20 +17,20 @@ Fold's fleet layer already has a lease model: `ClaimRecord` in `packages/fleet/s
 
 ## What to borrow
 
-- **Fencing on every guarded write.** Fold's guard consults current state at write time, which is fine for a live runner, but the crash-resumable runner (`packages/runner/src/runner.ts`) finishes a dead runner's tool calls, possibly after the claim expired or was released by a lead's resolution. A claim generation checked at the write is the Chubby sequencer / Kleppmann token, and it costs one integer.
+- **Fencing on every guarded write.** Henosis's guard consults current state at write time, which is fine for a live runner, but the crash-resumable runner (`packages/runner/src/runner.ts`) finishes a dead runner's tool calls, possibly after the claim expired or was released by a lead's resolution. A claim generation checked at the write is the Chubby sequencer / Kleppmann token, and it costs one integer.
 - **Lock-delay after involuntary expiry.** When a claim lapses because the holder went quiet, do not hand the path to the next session at once; hold it for the former holder for a short grace, and tell its owner. This is the Chubby grace period transposed to a human-fronted session.
 - **Waiter queue by sequence, notify one.** `requestedSeq` already gives a ZooKeeper-style order. Granting the lowest pending claim on release, and notifying only that session, avoids both the herd and the "retry the claim every turn" behaviour an agent will otherwise learn.
 - **Incremental admission.** Omega's incremental transaction is exactly partial admission: a multi-resource claim is granted for what is free and denied for the rest, with holders listed, so the agent can start on the free part.
-- **Model-readable denials.** dibs' denial string (holder, reason, expiry) is the right payload; Fold already routes denials to both owners and the lead, which is the part dibs lacks.
+- **Model-readable denials.** dibs' denial string (holder, reason, expiry) is the right payload; Henosis already routes denials to both owners and the lead, which is the part dibs lacks.
 
 ## What is unsolved
 
 - **Turn TTL versus wall clock.** Turns keep replay pure, but a paused or stalled session never advances its turn and so never expires, which is the opposite of what a lease is for. Wall-clock expiry is impure unless the clock reading is itself an event. Nobody in the prior art has this problem because none of them replays.
-- **Fairness with human principals.** Omega and ZooKeeper assume symmetric clients. In Fold a lead outranks owners, and "first active holder wins" plus a FIFO queue can still starve a junior engineer's session behind a senior's long refactor. Age-based escalation to the lead is a policy, not a theorem.
+- **Fairness with human principals.** Omega and ZooKeeper assume symmetric clients. In Henosis a lead outranks owners, and "first active holder wins" plus a FIFO queue can still starve a junior engineer's session behind a senior's long refactor. Age-based escalation to the lead is a policy, not a theorem.
 - **Shared mode is under-specified.** With shared claims permitted, writer starvation (an exclusive waiter behind a stream of shared readers) is a real risk; phase-fairness is the known answer but interacts with lead rank.
 - **Advisory edges.** The guard is mandatory for tool writes but humans editing in a worktree and merges (`packages/kernel/src/merge.ts`) bypass it; the merge-conflict contention catches it late.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **Add `generation` to `ClaimRecord` and fence the guard** (`packages/fleet/src/claims.ts`, `project.ts`). Increment on every `claim.granted`; have `canWrite(sessionId, path, claimGen?)` return `{ok:false, reason:"stale"}` when the caller's generation differs. Thread the generation through the tool call payload in `packages/runner/src/tools.ts` so a resumed runner fails closed.
 2. **Replace `claimTtlTurns: 0` with a hybrid tick** (`packages/fleet/src/state.ts`, `project.ts`). Have the project host (`packages/server/src/projectHost.ts`) emit a `project.tick {wallMs}` event at a fixed cadence; `expireStale` reads ticks and holder turns from the log, so expiry stays replayable while a stalled session still expires. Default: 30 holder turns or 20 ticks of 1 minute, whichever first.

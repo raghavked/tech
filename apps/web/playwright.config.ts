@@ -20,7 +20,7 @@ export default defineConfig({
         "rm -rf ../../store-web-smoke && mkdir -p ../../store-web-smoke && cp test/fixtures/orgs.json test/fixtures/users.json ../../store-web-smoke/ && node ../../packages/cli/dist/main.js serve --port 7730 --dir ../../store-web-smoke",
       url: "http://127.0.0.1:7730/health",
       reuseExistingServer: false,
-      env: { FOLD_OFFLINE: "1" },
+      env: { HENOSIS_OFFLINE: "1" },
     },
     {
       command: "pnpm exec vite preview --port 4173 --strictPort",

@@ -1,13 +1,13 @@
-# Fold: the multiplayer kernel for long-running agents
+# Henosis: the multiplayer kernel for long-running agents
 
-*One-pager. Working codename "Fold" (the minimum set of people who can decide). Market
+*One-pager. Working codename "Henosis" (the minimum set of people who can decide). Market
 facts are founder notes gathered 2 October 2026 and must be re-verified before external use;
 see `10_sources.md`.*
 
 ## The thesis in one line
 
 Agent runs are becoming hours, days and weeks long, and work at that scale is done by teams.
-Every agent product still gives the run to one person. Fold makes the session itself a
+Every agent product still gives the run to one person. Henosis makes the session itself a
 shared, replayable object with defined semantics for many humans steering one agent, and
 sells that kernel to every surface and every vertical that needs it.
 

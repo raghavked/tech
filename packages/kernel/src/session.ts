@@ -12,8 +12,8 @@ import type {
   SessionPolicy,
   ToolCall,
   ToolResult,
-} from "@fold/protocol";
-import { DirectiveInput as DirectiveInputSchema, MAIN_BRANCH, ROLE_RANK } from "@fold/protocol";
+} from "@henosis/protocol";
+import { DirectiveInput as DirectiveInputSchema, MAIN_BRANCH, ROLE_RANK } from "@henosis/protocol";
 import { requiresApproval } from "./approvals.js";
 import { shortId } from "./hash.js";
 import { type SerializedLog, SessionLog } from "./log.js";

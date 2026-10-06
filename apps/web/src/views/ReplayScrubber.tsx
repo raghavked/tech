@@ -3,8 +3,8 @@
  * hovered, or pinned from the details drawer. Dragging folds the session up to that turn in
  * the client; the newest dot is now.
  */
-import type { SessionState } from "@fold/kernel";
-import type { SessionEvent } from "@fold/protocol";
+import type { SessionState } from "@henosis/kernel";
+import type { SessionEvent } from "@henosis/protocol";
 import { type KeyboardEvent, type PointerEvent, useMemo, useRef } from "react";
 import { foldUpTo, markIndexOf, type TurnMark, turnMarks, viewingLabel } from "../replay.js";
 

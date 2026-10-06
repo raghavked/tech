@@ -1,10 +1,10 @@
-# Onboarding and empty states for Fold
+# Onboarding and empty states for Henosis
 
-Research memo, 2026-10-02. Topic: first-run, joining a team, first session, and the empty project, as done by claude.ai, ChatGPT, Linear, Notion and Slack, and what Fold should take from them. All vendor pages were blocked by the egress proxy; prior-art claims come from search snippets and are marked UNVERIFIED where the primary page was not read.
+Research memo, 2026-10-02. Topic: first-run, joining a team, first session, and the empty project, as done by claude.ai, ChatGPT, Linear, Notion and Slack, and what Henosis should take from them. All vendor pages were blocked by the egress proxy; prior-art claims come from search snippets and are marked UNVERIFIED where the primary page was not read.
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-Fold's whole pitch is that a session is a shared object: one agent, many humans. The empty states are where that claim is either made or lost, because every empty screen in Fold is a question about people, not about content. A project with no sessions is "nobody has started an agent here yet". A session with no events is "no one has given the agent a goal". A teammate opening a running session for the first time is not an empty state at all, but it is the same moment: they do not yet know what belongs on this screen or what they are allowed to do. The handoff brief, which the kernel already computes from the log (`docs/05_kernel_design.md`), is Fold's native answer to the late joiner, and no competitor has one.
+Henosis's whole pitch is that a session is a shared object: one agent, many humans. The empty states are where that claim is either made or lost, because every empty screen in Henosis is a question about people, not about content. A project with no sessions is "nobody has started an agent here yet". A session with no events is "no one has given the agent a goal". A teammate opening a running session for the first time is not an empty state at all, but it is the same moment: they do not yet know what belongs on this screen or what they are allowed to do. The handoff brief, which the kernel already computes from the log (`docs/05_kernel_design.md`), is Henosis's native answer to the late joiner, and no competitor has one.
 
 Today the repo has the minimum. `apps/web/src/views/Home.tsx` opens on an identity form with the hint "unknown to the server; first in owns a session". `apps/web/src/views/Project.tsx:82` renders `No sessions yet.` in muted text. `SessionView.tsx` has no empty-stream state at all. The register the brand doc asks for (quiet sidebar, 760 px column, one accent) is also the register in which claude.ai and ChatGPT do their empty states, so the shape is settled; what is missing is the copy, the three or four distinct moments, and the rule for what a screen says when it is empty because of other people.
 
@@ -20,24 +20,24 @@ Today the repo has the minimum. `apps/web/src/views/Home.tsx` opens on an identi
 
 5. **Slack onboarding teardown** (https://userguiding.com/blog/slack-user-onboarding-teardown, accessed 2026-10-02, blocked, UNVERIFIED). Slack fills empty channels with tips, channel suggestions and shortcuts, keeps the important material for a proper onboarding flow, and uses admin-set default channels so a new member lands inside live conversations rather than in a blank workspace. Slack's own tip page (https://slack.com/slack-tips/welcome-new-employees-to-your-team) recommends a welcome channel with pinned context.
 
-6. **Figma multiplayer** (https://madebyevan.com/figma/multiplayer-editing-in-figma/, accessed 2026-10-02, not fetched). Relevant only as the negative result: presence (named cursors, avatars top-right) is well covered, but no public source documents a "late joiner" catch-up pattern. That gap is Fold's to fill.
+6. **Figma multiplayer** (https://madebyevan.com/figma/multiplayer-editing-in-figma/, accessed 2026-10-02, not fetched). Relevant only as the negative result: presence (named cursors, avatars top-right) is well covered, but no public source documents a "late joiner" catch-up pattern. That gap is Henosis's to fill.
 
 ## What to borrow
 
 - **One line and a composer.** claude.ai and ChatGPT prove that an empty conversation needs a greeting, a composer, and at most three quiet suggestions. No illustration, no card grid. This is already the brand rule in `docs/12_brand.md`.
-- **Pre-filled, not blank.** Notion's first page and Linear's pre-placed cursor both replace "do something" with "edit this". Fold's analogue is a draft goal in the composer and a sample directive, not a tutorial.
-- **Team is the default, and skipping is honest.** Linear says plainly that the product is meant for a team and offers "later". Fold's one-agent-many-humans thesis demands the same sentence on the first screen, with the same escape.
-- **Land inside live work.** Slack's default channels mean a joiner's first screen is never empty. For Fold, a new member of a project should land on the live agents list, or on the one running session, not on the identity form.
-- **Teach by status, in context.** NN/g's three jobs (status, what belongs here, next action) map cleanly onto Fold's status words (running, awaiting approval, blocked, paused, idle), which can carry the empty-state copy without new vocabulary.
+- **Pre-filled, not blank.** Notion's first page and Linear's pre-placed cursor both replace "do something" with "edit this". Henosis's analogue is a draft goal in the composer and a sample directive, not a tutorial.
+- **Team is the default, and skipping is honest.** Linear says plainly that the product is meant for a team and offers "later". Henosis's one-agent-many-humans thesis demands the same sentence on the first screen, with the same escape.
+- **Land inside live work.** Slack's default channels mean a joiner's first screen is never empty. For Henosis, a new member of a project should land on the live agents list, or on the one running session, not on the identity form.
+- **Teach by status, in context.** NN/g's three jobs (status, what belongs here, next action) map cleanly onto Henosis's status words (running, awaiting approval, blocked, paused, idle), which can carry the empty-state copy without new vocabulary.
 
 ## What is unsolved
 
-- **The late joiner.** Nobody has shipped "you arrived at minute 40 of a 3-hour agent run; here is what you need". Fold's handoff brief is the right primitive, but it is currently shown only to an incoming driver (`SessionView.tsx` handoff flow). Whether an observer wants the same brief, a shorter one, or a "since you were last here" delta is untested.
+- **The late joiner.** Nobody has shipped "you arrived at minute 40 of a 3-hour agent run; here is what you need". Henosis's handoff brief is the right primitive, but it is currently shown only to an incoming driver (`SessionView.tsx` handoff flow). Whether an observer wants the same brief, a shorter one, or a "since you were last here" delta is untested.
 - **Empty because of others.** "No sessions yet" in a project with six members is a social fact. Should the copy name who could start one, or stay neutral? Linear and Notion never face this because their empty states are single-player.
 - **Authority on first contact.** An observer who opens a session cannot steer; the composer must say why without scolding. No prior art, since chat products have one user who can always type.
 - **Fleet empty states for a lead.** An empty fleet brief ("no contentions, no denied claims") is good news and should read as such, but a dashboard that says "nothing" risks looking broken. The register forbids tiles, so this is a single sentence problem.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **Three greeting states for the session column, in `apps/web/src/views/SessionView.tsx`** (new `EmptyStream` component next to `Stream`). (a) No events, I am owner or driver: serif title "What is this session for?", one line of sans "Give the agent a goal. Anyone on the project can watch, steer and approve from here.", composer focused with the project's name pre-typed as a draft. (b) No events, I am observer or contributor: same title, line reads "Ana owns this session and has not set a goal yet. You can watch; ask Ana for the driver seat to steer." with a single ghost button "Ask to drive" wired to `handoff.request`. (c) Events exist and I have never been present: render the computed brief inline as a quiet notice above the stream, "You are joining at step 212. Situation, open items, what changed." with "Dismiss" and "Take the driver seat". Reuse `snap.brief`; do not compute a new one.
 
@@ -51,7 +51,7 @@ Today the repo has the minimum. `apps/web/src/views/Home.tsx` opens on an identi
 
 6. **Empty fleet brief, `packages/fleet` and the Slack adapter in `packages/slack`.** When the brief has no contentions, denied claims or merge conflicts, emit the sentence "Quiet: 4 agents running, nothing contended, no approvals waiting." in both the web project page and `/fold brief`, so an empty brief reads as a good report rather than a missing one. Add the case to the fleet brief property tests.
 
-7. **Desktop first launch, `apps/desktop/src-tauri`.** The Tauri shell should open directly on the web client's identity screen with the server URL field pre-filled from `FOLD_SERVER` or the last value; a native "connect to server" dialog would be a second onboarding and must not exist.
+7. **Desktop first launch, `apps/desktop/src-tauri`.** The Tauri shell should open directly on the web client's identity screen with the server URL field pre-filled from `HENOSIS_SERVER` or the last value; a native "connect to server" dialog would be a second onboarding and must not exist.
 
 ## Sources
 

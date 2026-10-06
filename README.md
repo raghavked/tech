@@ -1,12 +1,12 @@
-# Fold
+# Henosis
 
 **The studio where your team and its agents work on one piece.**
 
-<p><img src="design/logo.svg" alt="Fold" height="56"></p>
+<p><img src="design/logo.svg" alt="Henosis" height="56"></p>
 
 Agents now run for hours, days and weeks. Work at that scale pulls in many people, but every
 agent product today gives the run to one person: everyone else gets a read-only link, or a
-Slack thread the model has to make sense of. Fold makes the session itself the shared
+Slack thread the model has to make sense of. Henosis makes the session itself the shared
 object. Anyone on the team drops in, watches, steers, approves, forks, merges and hands off,
 and the kernel decides what happens when two people steer at once.
 
@@ -34,7 +34,7 @@ Claude on the web, Claude Desktop and Claude mobile are one product. Brand and m
 ## What is new here
 
 - **Session as a hash-chained, branchable log.** Model and tool outputs are recorded, so any
-  session replays deterministically and resumes from a snapshot. `fold verify` proves it.
+  session replays deterministically and resumes from a snapshot. `henosis verify` proves it.
 - **Intent arbitration.** Concurrent directives from many humans compose into one intent by
   explicit rules (authority, recency, scope). Peers who disagree in the same epoch produce a
   *contention* the agent works around until a driver resolves it. Composition is independent
@@ -74,7 +74,7 @@ Live, in two terminals plus a browser:
 pnpm serve                                   # ws://127.0.0.1:7700/ws, scripted model
 node packages/cli/dist/main.js join demo --as Ana      # first in: owner and driver
 node packages/cli/dist/main.js join demo --as Bo       # contributor
-pnpm --filter @fold/web dev                # http://localhost:5173, join as a third person
+pnpm --filter @henosis/web dev                # http://localhost:5173, join as a third person
 ```
 
 In Ana's terminal type `Build a doubling helper and deploy it`; in Bo's type
@@ -82,20 +82,20 @@ In Ana's terminal type `Build a doubling helper and deploy it`; in Bo's type
 `/handoff bo` and `/accept <id>` on the other side, and `/brief`.
 
 With `ANTHROPIC_API_KEY` set, `pnpm serve -- --model claude` runs a real model through the
-same kernel. `FOLD_OFFLINE=1` blocks it.
+same kernel. `HENOSIS_OFFLINE=1` blocks it.
 
 ## Commands
 
 | Command | Purpose |
 |---|---|
-| `fold serve [--port] [--dir] [--model scripted\|claude] [--token]` | host sessions over websockets |
-| `fold demo [--dir]` | the offline multiplayer scenario; writes log, brief, report, narrative |
-| `fold join <session> --as <name> [--url] [--token] [--branch]` | terminal participant |
-| `fold replay <log.json> [--branch]` | fold a log and print the brief |
-| `fold verify <log.json>` | hash chain and replay determinism for every branch |
-| `fold report <log.json>` | markdown report of every branch |
-| `fold fleet <ledger.json>` | fleet brief from a project ledger |
-| `fold slack --config slack.json` | serve plus the Slack adapter in socket mode |
+| `henosis serve [--port] [--dir] [--model scripted\|claude] [--token]` | host sessions over websockets |
+| `henosis demo [--dir]` | the offline multiplayer scenario; writes log, brief, report, narrative |
+| `henosis join <session> --as <name> [--url] [--token] [--branch]` | terminal participant |
+| `henosis replay <log.json> [--branch]` | fold a log and print the brief |
+| `henosis verify <log.json>` | hash chain and replay determinism for every branch |
+| `henosis report <log.json>` | markdown report of every branch |
+| `henosis fleet <ledger.json>` | fleet brief from a project ledger |
+| `henosis slack --config slack.json` | serve plus the Slack adapter in socket mode |
 
 ## Repository map
 
@@ -113,7 +113,7 @@ apps/web            the product: React client that folds the same events as the 
                     memory browser, replay scrubber, branch compare, settings, share, export,
                     offline queue and reconnect-resume
 apps/desktop        Tauri 2 shell around the web client: tray, native notifications, deep
-                    links (fold://), auto-update (docs/16_desktop_release.md)
+                    links (henosis://), auto-update (docs/16_desktop_release.md)
 apps/mobile         Capacitor shell around the web client with native push
 design/             brand tokens, logo, static mockups of every surface
 scripts/            e2e.sh and the scripted websocket clients it drives

@@ -1,5 +1,5 @@
-import { checkReplay, replayBranch, Session, stateHash } from "@fold/kernel";
-import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@fold/protocol";
+import { checkReplay, replayBranch, Session, stateHash } from "@henosis/kernel";
+import { type Actor, DEFAULT_APPROVAL_POLICY, MAIN_BRANCH } from "@henosis/protocol";
 import { describe, expect, it } from "vitest";
 import { Runner } from "../src/runner.js";
 import { ScriptedModel } from "../src/scripted.js";

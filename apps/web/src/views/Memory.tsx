@@ -369,7 +369,7 @@ function CuratorList({ orgId, onRan }: { orgId: string; onRan: () => void }) {
       {error && <p className="small danger">{error}</p>}
       {!report && !error && (
         <p className="muted">
-          One pass: fold grown scopes, flag stale agent-written entries, list open conflicts.
+          One pass: compact grown scopes, flag stale agent-written entries, list open conflicts.
         </p>
       )}
       {empty && <p className="muted">Nothing to tidy.</p>}

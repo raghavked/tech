@@ -141,8 +141,8 @@ test("fork, steer the branches apart, fold back with a conflict", async ({ page 
   await expect(approve(page)).toBeVisible({ timeout: 15_000 });
 
   // Folding the branch into main is a three-way merge: both sides changed PLAN.md.
-  await branches.getByRole("button", { name: "Fold into main" }).click();
-  await expect(conversation(page)).toContainText("Folded try/idea into main");
+  await branches.getByRole("button", { name: "Unite into main" }).click();
+  await expect(conversation(page)).toContainText("United try/idea into main");
   await expect(conversation(page)).toContainText(/\d+ conflicts?/);
   await expect(branches).toContainText("conflict");
   await expect(branches).toContainText("PLAN.md · conflict");
@@ -185,7 +185,7 @@ test("the inbox lists an approval waiting and opens the session to it", async ({
   };
   expect(
     notifications.some(
-      (n) => n.kind === "approval" && n.link === `fold://p/e2e-inbox/s/${session}`,
+      (n) => n.kind === "approval" && n.link === `henosis://p/e2e-inbox/s/${session}`,
     ),
   ).toBe(true);
 

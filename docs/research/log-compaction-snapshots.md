@@ -1,10 +1,10 @@
-# Log compaction and snapshots: keeping week-long Fold sessions fast
+# Log compaction and snapshots: keeping week-long Henosis sessions fast
 
 Research memo, 2026-10-02. Topic slug: `log-compaction-snapshots`.
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-A Fold session is a hash-chained event log that everyone on the team folds into state. That is the product's integrity story, and it is also its scaling problem. Three places in the current repo assume the log is small:
+A Henosis session is a hash-chained event log that everyone on the team folds into state. That is the product's integrity story, and it is also its scaling problem. Three places in the current repo assume the log is small:
 
 1. **Persistence rewrites the whole log.** `packages/server/src/storage.ts` serialises the entire `SerializedLog` to `store/sessions/<id>/log.json` on every flush (debounced 20 ms). At one tool call per few seconds, a week-long session is tens of thousands of events and tens of megabytes; every flush becomes an O(log) JSON.stringify plus rename. `FileBlobStore` also reads every blob into memory on boot.
 2. **Join sends everything.** `host.ts` answers `join` with `{ type: "snapshot", events: session.events(branch) }`, the full linear history, and `apps/web/src/client.ts` does `fold(msg.events)` from genesis. A manager opening a day-six session on a laptop pays the full replay in the browser, then pays it again on every reconnect.
@@ -23,26 +23,26 @@ The kernel already has the right primitive. `packages/kernel/src/replay.ts` expo
 
 ## What to borrow
 
-- **Separate snapshot stream with a version pointer** (Kurrent). Fold's equivalent: `snapshots/<branch>/<seq>.json` next to `events/<branch>.jsonl`, never inside the chain. The chain stays the only truth; snapshots are a cache that `checkReplay` can audit.
+- **Separate snapshot stream with a version pointer** (Kurrent). Henosis's equivalent: `snapshots/<branch>/<seq>.json` next to `events/<branch>.jsonl`, never inside the chain. The chain stays the only truth; snapshots are a cache that `checkReplay` can audit.
 - **Compaction as an event** (Claude Code). When the runner summarises turns for the model's context, emit `turn.compacted` with the summary and the covered seq range. The UI then folds a thousand tool lines into one quiet notice, and the brief generator reads the summary instead of raw turns.
-- **Monotonic cursor plus delta** (Linear). Fold already has `seq` per branch and the architecture doc promises "events after a sequence number in phase 1". Make it the only join path: the client sends its last verified `(branch, seq, hash)`, the server replies with a snapshot only when the gap is large.
+- **Monotonic cursor plus delta** (Linear). Henosis already has `seq` per branch and the architecture doc promises "events after a sequence number in phase 1". Make it the only join path: the client sends its last verified `(branch, seq, hash)`, the server replies with a snapshot only when the gap is large.
 - **Payload stripping, not row limits** (LangSmith). Tool outputs are the big payloads. Ship them as blob hashes in the event and fetch the body on expand.
-- **One format for wire and disk** (Figma). Fold's JSONL line and the websocket `event` message should be byte-identical so the client can append straight into its IndexedDB tail.
+- **One format for wire and disk** (Figma). Henosis's JSONL line and the websocket `event` message should be byte-identical so the client can append straight into its IndexedDB tail.
 - **End-anchored virtualisation** (TanStack). The conversation column is a reverse feed; follow the end only when the reader is already there, which is exactly the "watch, then steer" posture.
 
 ## What is unsolved
 
-- **Fork and fold with snapshots.** A fork is a pointer into the parent at a checkpoint. A snapshot taken on the parent *after* the fork point is useless to the child; a snapshot *at* the checkpoint is useful to both. No prior art here covers branch-aware snapshot placement; it has to come from Fold's own log structure.
+- **Fork and fold with snapshots.** A fork is a pointer into the parent at a checkpoint. A snapshot taken on the parent *after* the fork point is useless to the child; a snapshot *at* the checkpoint is useful to both. No prior art here covers branch-aware snapshot placement; it has to come from Henosis's own log structure.
 - **Snapshot schema drift.** Kurrent's caveat: a snapshot encodes the reducer's state shape. When `SessionState` changes, old snapshots must be rebuilt or ignored. Hash them with a reducer version.
 - **Verification versus laziness.** An observer who loads snapshot-plus-tail has not verified the prefix. Merkle inclusion proofs are in the roadmap; until then the client must know and show that it is trusting the server's snapshot.
-- **Numbers.** None of the comparable products publish replay or render latencies for thousand-event sessions; every figure above is a cap, a size or a rule of thumb. Fold should measure its own.
+- **Numbers.** None of the comparable products publish replay or render latencies for thousand-event sessions; every figure above is a cap, a size or a rule of thumb. Henosis should measure its own.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **JSONL per branch with a sidecar snapshot stream** in `packages/server/src/storage.ts`: `events/<branch>.jsonl` appended with `fs.appendFile` per event (no debounce, no whole-log rewrite), `snapshots/<branch>/<seq>.json` written every k = 500 events *and* at every checkpoint event so forks inherit a snapshot. Keep `log.json` readable for migration; `readLog` falls back to it.
 2. **Delta join in the wire protocol** (`packages/protocol/src/index.ts`, `packages/server/src/host.ts`): client `join` carries `{ branch, seq, hash }`; server answers `snapshot { state, seq, stateHash }` + `events` tail when the gap exceeds k, otherwise just the tail. Add a `snapshot` message variant carrying `SessionState` rather than events; `resumeFrom` in `packages/kernel/src/replay.ts` already consumes it.
 3. **IndexedDB event cache in the client** (new `apps/web/src/cache.ts`): object store `events` keyed `[sessionId, branch, seq]`, store `snapshots` keyed `[sessionId, branch]`. On open, fold from the cached snapshot and tail before the socket connects; on `event`, append. Wrap every access in try/catch and degrade to the current in-memory path (private windows, Tauri webviews with cleared data).
-4. **Reducer version in snapshot hashes** (`packages/kernel/src/replay.ts`): export `REDUCER_VERSION`; `stateHash` mixes it in; `resumeFrom` rejects a snapshot from another version and the server rebuilds it lazily. Extend `checkReplay` to test every stored snapshot, not just the midpoint, and expose it as `fold verify --snapshots` in `packages/cli`.
+4. **Reducer version in snapshot hashes** (`packages/kernel/src/replay.ts`): export `REDUCER_VERSION`; `stateHash` mixes it in; `resumeFrom` rejects a snapshot from another version and the server rebuilds it lazily. Extend `checkReplay` to test every stored snapshot, not just the midpoint, and expose it as `henosis verify --snapshots` in `packages/cli`.
 5. **Incremental blocks and windowed rendering** (`apps/web/src/views/SessionView.tsx`): make `blocksOf` incremental (memoise by last seq; append-only except when a tool result closes an open step), move the column onto `@tanstack/react-virtual` with `anchorTo: 'end'`, `followOnAppend`, `measureElement`, `getItemKey = block.id`, overscan 8. Keep the composer and approval notices outside the virtualised list so they never unmount.
 6. **Blob-backed tool outputs** (`packages/protocol`, `packages/runner`): `agent.tool.completed` carries `{ outputHash, preview }` with the full body in the blob store; the client fetches `/api/blob/<hash>` on expand. This is LangSmith's "hide the heavy column" made structural, and it shrinks both the JSONL tail and the IndexedDB cache.
 7. **`turn.compacted` event** (`packages/protocol`, `packages/runner`, `packages/kernel/src/state.ts`): when the runner summarises for context, record the summary and covered range; the reducer keeps raw turns but marks them; `blocksOf` collapses the range into one notice ("Folded 212 steps, day 3", in the quiet divider style), expandable on click.

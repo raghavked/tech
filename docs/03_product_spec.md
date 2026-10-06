@@ -2,7 +2,7 @@
 
 ## One sentence
 
-Fold is the shared, living session for a team's long-running agents: anyone on the team
+Henosis is the shared, living session for a team's long-running agents: anyone on the team
 drops in, sees exactly what the agent is doing and why, steers it with attributed
 directives, approves what needs approving, forks to try something, and hands the wheel to
 the next person with a brief the system wrote.
@@ -53,14 +53,14 @@ the next person with a brief the system wrote.
 - **Web client** (`apps/web`): the agents rail, the event stream with team messages, the
   Team panel (people, crew, chat), the Details drawer (intent, roles, branches, workspace,
   brief), contention and approval notices. One page; folds the same events as the server.
-- **CLI** (`fold join`): the same session from a terminal, for people who live there.
-- **Server** (`fold serve`): hosts sessions, persists logs, runs the agent.
+- **CLI** (`henosis join`): the same session from a terminal, for people who live there.
+- **Server** (`henosis serve`): hosts sessions, persists logs, runs the agent.
 - **Slack** (`packages/slack`): channels per team, project and management; a thread per
   session; approvals as buttons; contentions and memory conflicts with resolve buttons.
 - **Desktop and mobile shells** (`apps/desktop`, `apps/mobile`): the same web client with a
   tray and native push, opened by deep links from notifications.
 - **Phase 1 surfaces:** GitHub PR adapter (a PR is a session), VS Code and Zed panels, and a
-  harness SDK so Claude Agent SDK, LangGraph and OpenAI Agents runs can be hosted as Fold
+  harness SDK so Claude Agent SDK, LangGraph and OpenAI Agents runs can be hosted as Henosis
   sessions.
 
 ## Roles

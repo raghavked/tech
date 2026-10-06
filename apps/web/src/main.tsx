@@ -15,9 +15,9 @@ try {
   // ignore
 }
 
-// Deep links: ?link=fold://… on load, then "fold:link" DOM events (the desktop shell dispatches them).
+// Deep links: ?link=henosis://… on load, then "henosis:link" DOM events (the desktop shell dispatches them).
 connectLinks();
-// Desktop shell (Tauri): learn where the server is, then tray clicks and fold:// deep links
+// Desktop shell (Tauri): learn where the server is, then tray clicks and henosis:// deep links
 // arrive as window events. Resolves at once in a browser.
 connectShell().then(() => {
   const el = document.getElementById("root");

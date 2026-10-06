@@ -1,18 +1,18 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fold, type SessionState } from "@fold/kernel";
+import { fold, type SessionState } from "@henosis/kernel";
 import {
   type Actor,
   type ClientMessage,
   DEFAULT_APPROVAL_POLICY,
   type ServerMessage,
-} from "@fold/protocol";
-import { defaultTools, ScriptedModel } from "@fold/runner";
+} from "@henosis/protocol";
+import { defaultTools, ScriptedModel } from "@henosis/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { SessionHost } from "../src/host.js";
-import { FoldServer } from "../src/server.js";
+import { HenosisServer } from "../src/server.js";
 
 class Client {
   ws: WebSocket;
@@ -56,11 +56,11 @@ const bo: Actor = { id: "bo", kind: "human", name: "Bo" };
 
 describe("websocket server", () => {
   let root: string;
-  let server: FoldServer;
+  let server: HenosisServer;
   let url: string;
   beforeAll(async () => {
-    root = mkdtempSync(join(tmpdir(), "fold-srv-"));
-    server = new FoldServer({
+    root = mkdtempSync(join(tmpdir(), "henosis-srv-"));
+    server = new HenosisServer({
       root,
       model: new ScriptedModel(),
       tools: defaultTools(),

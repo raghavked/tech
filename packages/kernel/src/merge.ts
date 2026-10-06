@@ -6,7 +6,7 @@
  * with whatever the target holds in the same scope, so a scope both branches steered differently
  * becomes a contention instead of a silent override. Constraints are unioned by text.
  */
-import type { DirectiveInput } from "@fold/protocol";
+import type { DirectiveInput } from "@henosis/protocol";
 import { shortId } from "./hash.js";
 import type { SessionLog } from "./log.js";
 import { fold, type SessionState } from "./state.js";

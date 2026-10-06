@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("[fold] view error", error, info.componentStack);
+    console.error("[henosis] view error", error, info.componentStack);
   }
 
   componentDidUpdate(prev: Props): void {

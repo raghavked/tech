@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 export type Theme = "system" | "light" | "dark";
-const KEY = "fold.theme";
+const KEY = "henosis.theme";
 const listeners = new Set<() => void>();
 let current: Theme = readStored();
 

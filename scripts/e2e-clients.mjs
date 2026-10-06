@@ -1,6 +1,6 @@
 // Two humans join one live session: one sets the goal, the other approves and takes over.
 
-import { fold } from "@fold/kernel";
+import { fold } from "@henosis/kernel";
 import WebSocket from "ws";
 
 const [url, token] = process.argv.slice(2);

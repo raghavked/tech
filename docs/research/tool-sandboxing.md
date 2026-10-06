@@ -1,10 +1,10 @@
-# Tool sandboxing for Fold: per-session boundaries on server and desktop
+# Tool sandboxing for Henosis: per-session boundaries on server and desktop
 
 Research memo, 2026-10-02. Topic: per-session sandboxes for agent tools (Firecracker, gVisor, containers, macOS Seatbelt, Windows AppContainer), egress policy, secrets outside the context, what Claude Code, Codex and Devin do, and a phase-1 recommendation.
 
-## Why it matters for Fold
+## Why it matters for Henosis
 
-Fold's own docs name the gap: `shell.run` is allow-listed and runs in a scratch copy with a timeout, "but in the server's process and user" (`docs/07_security_and_compliance.md`), and the threat model lists "the shell runs in-process; fix: per-session container with no network by default" (`docs/09_threat_model.md`). Two properties of Fold make this sharper than for a single-user CLI:
+Henosis's own docs name the gap: `shell.run` is allow-listed and runs in a scratch copy with a timeout, "but in the server's process and user" (`docs/07_security_and_compliance.md`), and the threat model lists "the shell runs in-process; fix: per-session container with no network by default" (`docs/09_threat_model.md`). Two properties of Henosis make this sharper than for a single-user CLI:
 
 - **The log is permanent and shared.** Every `agent.tool.completed` result is appended to a hash-chained, replayable log that the whole team (and the fleet brief, and organisation memory) can read. A secret that leaks into a tool result once is leaked to everyone, forever, and cannot be rewritten without breaking the chain. Scrubbing must happen before the event is appended, not in the UI.
 - **One agent, many humans.** Approvals are bound to the hash of the exact call. That binding is only meaningful if the *boundary* the call runs inside is also part of what was approved; otherwise two drivers approve the same command under different sandboxes.
@@ -23,26 +23,26 @@ Branches have their own runner (`docs/05_kernel_design.md` §4), so a sandbox is
 ## What to borrow
 
 - **The srt shape, verbatim.** Deny-by-default writes, deny-then-allow reads, mandatory deny of rc files and `.git*` config, no network namespace plus a loopback proxy pair. Apache-2.0 TypeScript; depend on it rather than re-deriving Seatbelt profiles.
-- **Boundary-aware auto-approval.** Claude Code's rule "sandboxed means no prompt, unsandboxed means the permission flow" maps directly onto Fold's risk classes: a command inside the boundary can stay `exec` (one contributor); the same command unsandboxed is `external` or `irreversible`.
+- **Boundary-aware auto-approval.** Claude Code's rule "sandboxed means no prompt, unsandboxed means the permission flow" maps directly onto Henosis's risk classes: a command inside the boundary can stay `exec` (one contributor); the same command unsandboxed is `external` or `irreversible`.
 - **Sentinel-and-substitute secrets.** The model and the log only ever see a per-session placeholder; the proxy injects the real token on allow-listed hosts. This is the only design that satisfies "credentials never enter the model context" (`docs/07`) and the per-participant broker in `docs/09` at once.
-- **Named denied host in the tool result.** Claude Code returns the blocked domain in the command's result so the model can ask for it. Fold should turn that into a `contention`-style notice the driver can approve, not a silent failure.
+- **Named denied host in the tool result.** Claude Code returns the blocked domain in the command's result so the model can ask for it. Henosis should turn that into a `contention`-style notice the driver can approve, not a silent failure.
 
 ## What is unsolved
 
 - **Allowlists are not exfiltration control.** Any allowed host with write semantics (github.com, npm, a package registry) is a channel; neither srt nor Codex inspects content.
-- **Nested sandboxing.** bubblewrap needs unprivileged user namespaces, which Ubuntu 24.04 AppArmor and most CI containers deny; Landlock needs a recent kernel. A Fold server deployed in a container will hit this on day one.
-- **Native Windows.** No open, reusable primitive exists; Claude Code punts to WSL2 and OpenAI built bespoke token plumbing. Fold's Tauri desktop must either require WSL2 or mark runs unsandboxed.
+- **Nested sandboxing.** bubblewrap needs unprivileged user namespaces, which Ubuntu 24.04 AppArmor and most CI containers deny; Landlock needs a recent kernel. A Henosis server deployed in a container will hit this on day one.
+- **Native Windows.** No open, reusable primitive exists; Claude Code punts to WSL2 and OpenAI built bespoke token plumbing. Henosis's Tauri desktop must either require WSL2 or mark runs unsandboxed.
 - **What is outside the boundary.** File tools, MCP servers and the model client itself run unsandboxed in every product surveyed.
 - **Whose credentials.** With many approvers, "run with the authority of the humans who approved it" has no precedent in the surveyed products; it needs a broker keyed by approval id, not by session.
 - **Hardware isolation cost.** Firecracker needs KVM and is Linux-only; it fits a hosted phase-2 fleet, not a laptop.
 
-## Concrete recommendations for Fold
+## Concrete recommendations for Henosis
 
 1. **New package `packages/sandbox`** exporting `interface Sandbox { prepare(sessionId, branch, snapshot): Handle; exec(handle, argv, profile): Promise<ExecResult>; destroy(handle) }` with backends `bwrap` (Linux server and desktop), `seatbelt` (macOS desktop) and `none` (native Windows, reports `unsandboxed: true`). Wrap `@anthropic-experimental/sandbox-runtime`. Replace the `spawnSync` scratch-copy path in `packages/runner/src/tools.ts` with `ctx.sandbox.exec`.
 2. **Phase-1 server boundary: rootless Podman/Docker container per session as the outer wall, bubblewrap profile per branch inside it**, started with `--userns=keep-id` and seccomp permitting user namespaces so srt works nested. Defer Firecracker to the hosted fleet in phase 2; document the KVM requirement in `docs/04_technical_architecture.md`.
 3. **Make the boundary part of the approved hash.** Add `sandboxProfileHash` to `ToolCall` in `packages/protocol/src/index.ts` and fold it into the approval id computed in `packages/kernel/src/approvals.ts`. A call executed `unsandboxed` is re-classed to `external` by `ToolRegistry.call` so it needs the driver; the "retry outside the sandbox" escape hatch requires an owner and is itself a logged event.
 4. **Egress policy as a session event.** Add `session.policy.network { allowedDomains, injectHosts }` to the protocol; the proxy in `packages/sandbox/src/proxy.ts` reads it from state. Default allowlist is empty; a blocked host comes back in the tool result and the runner raises a quiet notice with a one-tap "allow github.com for this session" that is an `external`-class approval.
-5. **Credential broker in `packages/server/src/secrets.ts`.** Secrets are stored per participant and keyed to the approving human; the sandbox receives sentinels; the proxy terminates TLS and substitutes on `injectHosts` only. Before `agent.tool.completed` is appended (`packages/kernel/src/log.ts`), scrub every known secret and sentinel from `ToolResult.output`; add a `fold verify` check that no stored secret appears anywhere in a log.
+5. **Credential broker in `packages/server/src/secrets.ts`.** Secrets are stored per participant and keyed to the approving human; the sandbox receives sentinels; the proxy terminates TLS and substitutes on `injectHosts` only. Before `agent.tool.completed` is appended (`packages/kernel/src/log.ts`), scrub every known secret and sentinel from `ToolResult.output`; add a `henosis verify` check that no stored secret appears anywhere in a log.
 6. **Desktop (Tauri) policy in `apps/desktop/src-tauri/capabilities`.** The shell spawns the local runner with the `seatbelt` or `bwrap` backend, workspace writable, `~/.ssh`, `~/.aws`, `~/.config/gh` and shell rc files denied, no Apple Events, Docker socket never allowed. On native Windows require WSL2 or run with `unsandboxed: true` and show the standing notice in the session header, in the same quiet register as a contention.
 7. **Record the boundary for replay.** Each `agent.tool.completed` event carries `{ backend, profileHash, imageDigest }` so `packages/kernel/src/replay.ts` can state whether a replayed result was produced under the same boundary;the brief lists every unsandboxed or egress-widening approval.
 

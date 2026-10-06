@@ -1,5 +1,5 @@
 /** Project-level websocket messages, layered beside the session messages. */
-import { DirectiveInput } from "@fold/protocol";
+import { DirectiveInput } from "@henosis/protocol";
 import { z } from "zod";
 import { ClaimMode, ProjectEventBody, Resource } from "./events.js";
 

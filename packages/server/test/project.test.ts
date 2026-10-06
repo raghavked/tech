@@ -1,10 +1,10 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defaultTools, ScriptedModel } from "@fold/runner";
+import { defaultTools, ScriptedModel } from "@henosis/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ProjectHost } from "../src/projectHost.js";
-import { FoldServer } from "../src/server.js";
+import { HenosisServer } from "../src/server.js";
 
 const sessionPolicy = {
   approvals: {
@@ -21,7 +21,7 @@ const sessionPolicy = {
 describe("project host", () => {
   let root: string;
   beforeAll(() => {
-    root = mkdtempSync(join(tmpdir(), "fold-proj-"));
+    root = mkdtempSync(join(tmpdir(), "henosis-proj-"));
   });
   afterAll(() => rmSync(root, { recursive: true, force: true }));
 
@@ -104,7 +104,7 @@ describe("project host", () => {
   });
 
   it("derives roles from users.json over the websocket front door", async () => {
-    const root2 = mkdtempSync(join(tmpdir(), "fold-srv2-"));
+    const root2 = mkdtempSync(join(tmpdir(), "henosis-srv2-"));
     writeFileSync(
       join(root2, "orgs.json"),
       JSON.stringify({
@@ -128,7 +128,7 @@ describe("project host", () => {
         ],
       }),
     );
-    const server = new FoldServer({
+    const server = new HenosisServer({
       root: root2,
       model: new ScriptedModel(),
       tools: defaultTools(),
@@ -195,7 +195,7 @@ describe("project host", () => {
   });
 
   it("a users.json team lead is a lead in the ledger over the front door: their project direction reaches a session", async () => {
-    const root3 = mkdtempSync(join(tmpdir(), "fold-srv3-"));
+    const root3 = mkdtempSync(join(tmpdir(), "henosis-srv3-"));
     writeFileSync(
       join(root3, "orgs.json"),
       JSON.stringify({
@@ -216,7 +216,7 @@ describe("project host", () => {
         users: [{ id: "dee", name: "Dee", teams: [{ teamId: "pay", role: "lead" }] }],
       }),
     );
-    const server = new FoldServer({
+    const server = new HenosisServer({
       root: root3,
       model: new ScriptedModel(),
       tools: defaultTools(),

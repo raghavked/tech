@@ -1,6 +1,6 @@
 /** Hook point: the conversation blocks of a session, folded incrementally across renders. */
-import type { SessionState } from "@fold/kernel";
-import type { SessionEvent } from "@fold/protocol";
+import type { SessionState } from "@henosis/kernel";
+import type { SessionEvent } from "@henosis/protocol";
 import { useMemo, useRef } from "react";
 import { type Block, BlockFolder } from "./blocks.js";
 

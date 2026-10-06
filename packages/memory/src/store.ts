@@ -3,8 +3,8 @@
  * session to its engineer), conflicts between different authors on the same key become
  * explicit entries, and compaction is copy-on-write into a higher level.
  */
-import { ChainLog, KernelError, type SerializedChain, shortId } from "@fold/kernel";
-import { MAIN_BRANCH } from "@fold/protocol";
+import { ChainLog, KernelError, type SerializedChain, shortId } from "@henosis/kernel";
+import { MAIN_BRANCH } from "@henosis/protocol";
 import {
   type Attribution,
   DEFAULT_MEMORY_POLICY,
@@ -198,7 +198,7 @@ export class MemoryStore {
     this.emit(by, { kind: "memory.redacted", payload: { entryId } });
   }
 
-  /** Fold a scope's active level-n entries into one level-(n+1) summary that cites them. */
+  /** Henosis a scope's active level-n entries into one level-(n+1) summary that cites them. */
   compact(
     scope: Scope,
     level = 0,

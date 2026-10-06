@@ -2,12 +2,12 @@
 
 Theme: `business-and-compliance`. Lead architect note, 2026-10-02, from five research memos (cited by slug below), `docs/04_technical_architecture.md` and `docs/06_roadmap.md`.
 
-Fold's commercial and compliance stories are one story: the hash-chained log (`docs/04`) is both the meter and the evidence, and no competitor has it. The roadmap parks audit export in Phase 3 and names "partners value replay and audit" as a plan-changing milestone. These decisions treat it as triggered: evidence becomes a Phase 1 deliverable and billing is a fold over the same log. Desktop and web carry both; mobile gets the links second.
+Henosis's commercial and compliance stories are one story: the hash-chained log (`docs/04`) is both the meter and the evidence, and no competitor has it. The roadmap parks audit export in Phase 3 and names "partners value replay and audit" as a plan-changing milestone. These decisions treat it as triggered: evidence becomes a Phase 1 deliverable and billing is a fold over the same log. Desktop and web carry both; mobile gets the links second.
 
 ## Decisions
 
 **1. Free observers and contributors; driver and owner are the billable "approver" seat.**
-Evidence: `pricing-packaging` (Figma's free View seat, Claude's $20 identity seat, Linear's missing read-only seat as the cautionary tale). Taxing observers collapses Fold to one person babysitting an agent.
+Evidence: `pricing-packaging` (Figma's free View seat, Claude's $20 identity seat, Linear's missing read-only seat as the cautionary tale). Taxing observers collapses Henosis to one person babysitting an agent.
 Changes: `packages/protocol/src/index.ts` adds `Plan`, `SeatClass = 'approver'` and `seat.granted` / `seat.released`, derived from `role.changed` when the new role is driver or owner; `docs/03_product_spec.md` roles table states free versus seat.
 Phase: now. Risk: managers who read fleet briefs without a driver seat are unpriced; a lead seat may be needed.
 
@@ -48,7 +48,7 @@ Phase: next quarter. Risk: the cache is a tamper target; it must grant nothing a
 
 **9. Chat is a hand-off and voting surface, never a second product; chat votes are hash-checked and idempotent.**
 Evidence: `slack-and-chat-ops-integration` (Claude Code's four-button hand-off, Copilot's write-access gate, GitHub's stale-reply failures, Slack Code APIs partner-only); `compliance-evidence-export` (a shared identity is not attribution).
-Changes: `packages/protocol/src/index.ts` tags directives and actions with `surface: 'chat' | 'app'`; `packages/slack/src/adapter.ts` adds `handoffBlocks` ("Open in Fold" via `fold://`, "Brief", "Open the call") and on `onAction` verifies the approval is pending and the button value equals the call hash, else marks the message superseded; unmapped users are observers with no vote; per-channel token bucket in `packages/slack/src/client.ts`; `fold://` registered in `apps/desktop` via the Tauri deep-link plugin.
+Changes: `packages/protocol/src/index.ts` tags directives and actions with `surface: 'chat' | 'app'`; `packages/slack/src/adapter.ts` adds `handoffBlocks` ("Open in Henosis" via `henosis://`, "Brief", "Open the call") and on `onAction` verifies the approval is pending and the button value equals the call hash, else marks the message superseded; unmapped users are observers with no vote; per-channel token bucket in `packages/slack/src/client.ts`; `henosis://` registered in `apps/desktop` via the Tauri deep-link plugin.
 Phase: now; a transport-neutral `packages/chatops` with a Teams adapter next quarter; Discord later. Risk: a 30-session fleet saturates one channel at 1 message/s; Teams' 1800/hour per thread is tight.
 
 **10. Identity precedes evidence: OIDC login and server-issued actor ids are a compliance prerequisite.**
@@ -68,7 +68,7 @@ Phase: now. Risk: the claim ages the day Anthropic or Zed ships multi-user steer
 3. Whether a lead seat for managers is a third weight or a Business-tier feature.
 4. Whether any design partner sits inside an Annex III high-risk use case, which decides if Art. 12 retention sells.
 5. How to redact secrets and PII in tool I/O so the export verifies and still satisfies an auditor.
-6. Whether any regulator Fold will meet requires an external timestamp over the chain head.
+6. Whether any regulator Henosis will meet requires an external timestamp over the chain head.
 7. Whether SOC 2 auditors accept a DSSE-signed action record as enforcement proof or also want gateway configuration.
 8. The real per-active-hour runner cost once sandboxing and harness adapters land, which sets the overage price.
 9. Whether Slack Code's partner-only channel API opens, which decides if the hand-off block is emulation or permanent.

@@ -46,10 +46,10 @@ test("two people share one live agent session in the browser", async ({ browser 
 
   // Handoff to Bo and read the brief.
   await ana.getByRole("button", { name: "Hand off", exact: true }).click();
-  await expect(conversation(bo)).toContainText("Ana offers the fold to you");
+  await expect(conversation(bo)).toContainText("Ana offers the baton to you");
   await bo.getByRole("button", { name: "Accept", exact: true }).click();
   await expect(details(ana)).toContainText("driving");
-  await expect(conversation(ana)).toContainText("Bo has the fold");
+  await expect(conversation(ana)).toContainText("Bo has the baton");
   await expect(details(bo)).toContainText("driving");
   await bo.getByRole("button", { name: "Ask for brief" }).click();
   await expect(details(bo).locator("pre.brief")).toContainText("Driver: Bo");

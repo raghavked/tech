@@ -1,8 +1,8 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defaultTools, ScriptedModel } from "@fold/runner";
-import { FoldServer } from "@fold/server";
+import { defaultTools, ScriptedModel } from "@henosis/runner";
+import { HenosisServer } from "@henosis/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SlackAdapter } from "../src/adapter.js";
 import { FakeSlackClient } from "../src/client.js";
@@ -17,9 +17,9 @@ function buttons(
 
 describe("slack adapter", () => {
   let root: string;
-  let server: FoldServer;
+  let server: HenosisServer;
   beforeAll(() => {
-    root = mkdtempSync(join(tmpdir(), "fold-slack-"));
+    root = mkdtempSync(join(tmpdir(), "henosis-slack-"));
     writeFileSync(
       join(root, "orgs.json"),
       JSON.stringify({
@@ -44,7 +44,7 @@ describe("slack adapter", () => {
         ],
       }),
     );
-    server = new FoldServer({ root, model: new ScriptedModel(), tools: defaultTools() });
+    server = new HenosisServer({ root, model: new ScriptedModel(), tools: defaultTools() });
   });
   afterAll(async () => {
     // Let the server's debounced memory write (20ms) land before the store directory goes.
@@ -65,7 +65,7 @@ describe("slack adapter", () => {
         users: { U_DEE: "dee", U_BO: "bo", U_ANA: "ana" },
       },
       coalesceMs: 0,
-      appBaseUrl: "https://fold.example.com/",
+      appBaseUrl: "https://henosis.example.com/",
     });
     adapter.watchProject("billing");
     const host = server.project("billing");
@@ -77,7 +77,9 @@ describe("slack adapter", () => {
     const root = slack.posts.find((p) => p.channel === "C_PROJ" && !p.threadTs);
     expect(root?.text).toContain("Ana's agent");
     // The thread root links into the app: the session's hash route under appBaseUrl.
-    expect(root?.text).toContain("<https://fold.example.com/#/p/billing/s/s-ana|Open in Fold>");
+    expect(root?.text).toContain(
+      "<https://henosis.example.com/#/p/billing/s/s-ana|Open in Henosis>",
+    );
 
     // Steering from a thread reply as Bo (contributor via users.json).
     await slack.reply(
@@ -96,7 +98,7 @@ describe("slack adapter", () => {
     );
     expect(approval?.text).toContain("Approval needed");
     expect(approval?.text).toContain(
-      "<https://fold.example.com/#/p/billing/s/s-ana|Review in Fold>",
+      "<https://henosis.example.com/#/p/billing/s/s-ana|Review in Henosis>",
     );
     const approveId = String(buttons(approval)[0]?.action_id);
     await slack.click(approveId, "U_BO");
@@ -142,7 +144,7 @@ describe("slack adapter", () => {
       (p) => p.channel === "C_MGMT" && p.text.includes("Fleet contention"),
     );
     expect(mgmt).toBeDefined();
-    expect(mgmt?.text).toContain("<https://fold.example.com/#/p/billing|Open in Fold>");
+    expect(mgmt?.text).toContain("<https://henosis.example.com/#/p/billing|Open in Henosis>");
     const resolveId = String(buttons(mgmt).find((e) => e.value === "s-bo")?.action_id);
     await slack.click(resolveId, "U_DEE");
     expect(host.state().contentions[verdict.contentionId ?? ""]?.resolved).toBe(true);
@@ -173,10 +175,10 @@ describe("slack adapter", () => {
     expect(memory.state().conflicts[r.conflictId ?? ""]?.resolved).toBe(true);
 
     // Slash commands.
-    const brief = await slack.slash("/fold", "brief billing", "U_DEE", "C_MGMT");
+    const brief = await slack.slash("/henosis", "brief billing", "U_DEE", "C_MGMT");
     expect(brief[0]).toContain("Fleet brief");
-    const sessions = await slack.slash("/fold", "sessions billing", "U_DEE", "C_MGMT");
+    const sessions = await slack.slash("/henosis", "sessions billing", "U_DEE", "C_MGMT");
     expect(sessions[0]).toContain("Ana: Doubling helper");
-    expect(sessions[0]).toContain("<https://fold.example.com/#/p/billing/s/s-ana|open>");
+    expect(sessions[0]).toContain("<https://henosis.example.com/#/p/billing/s/s-ana|open>");
   });
 });

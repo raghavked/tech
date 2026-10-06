@@ -1,6 +1,6 @@
 # Changelog
 
-Fold is one product with one version number: the web client, the server, the CLI and the
+Henosis is one product with one version number: the web client, the server, the CLI and the
 desktop and mobile shells all move together. This file is the source of release notes.
 
 ## Convention

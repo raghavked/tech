@@ -9,8 +9,8 @@ import {
   type ProjectRef,
   type User,
   UsersFile,
-} from "@fold/fleet";
-import type { Role } from "@fold/protocol";
+} from "@henosis/fleet";
+import type { Role } from "@henosis/protocol";
 
 export class OrgRegistry {
   readonly orgs: OrgsFile;

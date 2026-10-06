@@ -1,7 +1,7 @@
 # Desktop release and auto-update
 
 *How a tagged commit becomes signed installers for macOS, Windows and Linux, and how an
-installed Fold shell learns about them. Built 2 October 2026 on the research in
+installed Henosis shell learns about them. Built 2 October 2026 on the research in
 `research/auto-update-release-pipeline.md`.*
 
 ## Why this matters more than a thin shell suggests
@@ -52,7 +52,7 @@ operating systems and signing secrets, none of which belong on every push.
    so `pnpm install` never needs Rust), generates the icons from `icons/icon.svg`, and runs
    `tauri build` through `tauri-apps/tauri-action`, which runs the web client's build first
    via `beforeBuildCommand`.
-7. `tauri-action` creates one **draft** GitHub release named `Fold desktop <version>` with
+7. `tauri-action` creates one **draft** GitHub release named `Henosis desktop <version>` with
    the changelog section as its body and attaches every bundle, every `.sig`, and
    `latest.json` (NSIS preferred over MSI on Windows). A version with a hyphen is marked as a
    pre-release.
@@ -89,7 +89,7 @@ mobile shell never execute it.
 1. `https://github.com/raghavked/tech/releases/latest/download/latest.json`: the static
    manifest `tauri-action` attaches to the published (non-draft, non-pre-release) release.
    This is what Phase 0 uses.
-2. `https://releases.fold.studio/desktop/{{target}}/{{arch}}/{{current_version}}`: reserved
+2. `https://releases.henosis.team/desktop/{{target}}/{{arch}}/{{current_version}}`: reserved
    for the dynamic endpoint in the research memo, which answers 204 below a rollout
    percentage keyed on a per-install id and lets the server say `min_client_version`. It
    does not exist yet; the plugin moves on when a host does not resolve.
@@ -109,7 +109,7 @@ repository secrets, so a tag push alone cannot read them.
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | same | the password given at generation (may be empty) |
 | `APPLE_CERTIFICATE` | macOS codesign | Developer ID Application `.p12`, base64 |
 | `APPLE_CERTIFICATE_PASSWORD` | macOS codesign | the `.p12` password |
-| `APPLE_SIGNING_IDENTITY` | macOS codesign | e.g. `Developer ID Application: Fold Studio (TEAMID)` |
+| `APPLE_SIGNING_IDENTITY` | macOS codesign | e.g. `Developer ID Application: Henosis Studio (TEAMID)` |
 | `APPLE_API_KEY`, `APPLE_API_ISSUER`, `APPLE_API_KEY_CONTENT` | notarytool | App Store Connect API key id, issuer id, and the `.p8` as base64; the workflow writes it to disk and sets `APPLE_API_KEY_PATH` |
 | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_CLIENT_SECRET` | Windows Trusted Signing | a service principal with the Code Signing Certificate Profile Signer role |
 
@@ -126,7 +126,7 @@ npx tauri signer generate -w ~/.tauri/fold-desktop.key     # asks for a password
 ```
 
 Put the printed public key into `plugins.updater.pubkey` in `tauri.conf.json` (replacing
-`REPLACE_WITH_FOLD_DESKTOP_MINISIGN_PUBLIC_KEY`), commit it, and put the private key file's
+`REPLACE_WITH_HENOSIS_DESKTOP_MINISIGN_PUBLIC_KEY`), commit it, and put the private key file's
 contents and the password into the two `TAURI_SIGNING_*` secrets. Generate the key on a
 machine that is not the CI runner and keep an offline copy: Tauri trusts exactly one public
 key per build, so a lost private key means every installed shell is stranded on its version

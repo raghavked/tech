@@ -208,7 +208,7 @@ async function runOnce(browser, server, profile, scenario) {
     if (scenario.identity)
       await context.addInitScript(() => {
         localStorage.setItem(
-          "fold.identity",
+          "henosis.identity",
           JSON.stringify({ name: "Ana", userId: "ana", token: "" }),
         );
       });
