@@ -240,6 +240,30 @@ export const copy = {
     memoryEmptyHint: "Nothing remembered here yet; ask the agent to remember something.",
     writeToAgent: "Write to the agent",
     memoryConflict: "Conflict · ",
+    usage: "Usage",
+  },
+
+  /** Token usage: the chip in the top row, the Usage section of the drawer, card feet. */
+  usage: {
+    /** "12.4k tokens"; `n` is already the short form. */
+    chip: (n: string) => `${n} tokens`,
+    input: "Input",
+    output: "Output",
+    cacheRead: "Cache read",
+    cacheWrite: "Cache write",
+    budget: "Budget",
+    noBudget: "No budget set",
+    /** "12,400 of 50,000 · 25%" */
+    ofBudget: (used: string, budget: string, pct: number) => `${used} of ${budget} · ${pct}%`,
+    left: (n: string) => `about ${n} left`,
+    nearing: "Nearing the budget",
+    over: "Over the budget",
+    byTurn: "By turn",
+    turn: (n: number) => `Turn ${n}`,
+    noTurns: "No turns yet.",
+    /** The chip's accessible name: "Tokens: 12,400 used, 25% of the budget". */
+    label: (used: string, pct: number | null) =>
+      `Tokens: ${used} used${pct === null ? "" : `, ${pct}% of the budget`}`,
   },
 
   project: {
@@ -276,6 +300,7 @@ export const copy = {
     disagree: "Two entries disagree on ",
     memoryEmpty: "Nothing remembered for this project yet.",
     brief: "Brief",
+    tokens: (n: string) => ` · ${n} tokens`,
   },
 
   team: {

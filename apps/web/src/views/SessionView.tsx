@@ -1,4 +1,11 @@
-import { describeRule, ruleFor, type SessionState } from "@henosis/kernel";
+import {
+  budgetStatus,
+  compactTokens,
+  describeRule,
+  formatTokens,
+  ruleFor,
+  type SessionState,
+} from "@henosis/kernel";
 import type { Actor, DirectiveMode, PresenceEntry, SessionEvent } from "@henosis/protocol";
 import {
   memo,
@@ -42,6 +49,7 @@ import {
   Icon,
   Status,
   TeamPill,
+  TokenMeter,
   useConnectionToasts,
   useMediaQuery,
 } from "../ui.js";
@@ -247,6 +255,7 @@ export function SessionView({
           <span className="ellipsis serif">{shownTitle}</span>
           <Status status={s.status} />
           {mine && <TeamPill row={mine} />}
+          <TokenMeter usage={s.usage} budget={s.policy.tokenBudget} />
         </>
       }
       right={
@@ -1397,6 +1406,7 @@ function Drawer({
             </div>
           ))}
         </section>
+        <UsageSection s={s} />
         <section className="group" aria-label={copy.details.memory}>
           <h3>{copy.details.memory}</h3>
           {ctxMem.error && <p className="small danger">{ctxMem.error}</p>}
@@ -1418,6 +1428,37 @@ function Drawer({
         </section>
       </aside>
     </>
+  );
+}
+
+/** token-usage: what this branch has spent, the budget left, and the last turns one by one. */
+function UsageSection({ s }: { s: SessionState }) {
+  const b = budgetStatus(s);
+  const turns = [...s.turns].slice(-8).reverse();
+  return (
+    <section className="group" aria-label={copy.details.usage}>
+      <h3>{copy.details.usage}</h3>
+      <TokenMeter usage={s.usage} budget={s.policy.tokenBudget} open />
+      <p className="small muted">
+        {b.budget === null
+          ? copy.usage.noBudget
+          : b.over
+            ? copy.usage.over
+            : copy.usage.left(compactTokens(b.budget - b.used))}
+      </p>
+      <span className="small faint">{copy.usage.byTurn}</span>
+      {turns.length === 0 && <p className="muted small">{copy.usage.noTurns}</p>}
+      {turns.map((t) => (
+        <div
+          className="row small"
+          key={t.turn}
+          title={`${copy.usage.input} ${formatTokens(t.usage.input)} · ${copy.usage.output} ${formatTokens(t.usage.output)}`}
+        >
+          <span className="grow muted">{copy.usage.turn(t.turn)}</span>
+          <span className="mono">{compactTokens(t.usage.input + t.usage.output)}</span>
+        </div>
+      ))}
+    </section>
   );
 }
 

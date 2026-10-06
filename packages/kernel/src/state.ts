@@ -10,8 +10,16 @@ import type {
   SessionPolicy,
   ToolCall,
   ToolResult,
+  Usage,
 } from "@henosis/protocol";
-import { DEFAULT_SESSION_POLICY, LEAD_RANK, MAIN_BRANCH, ROLE_RANK } from "@henosis/protocol";
+import {
+  addUsage,
+  DEFAULT_SESSION_POLICY,
+  LEAD_RANK,
+  MAIN_BRANCH,
+  ROLE_RANK,
+  ZERO_USAGE,
+} from "@henosis/protocol";
 import { type ApprovalRecord, evaluate, ruleFor } from "./approvals.js";
 import {
   arbitrate,
@@ -48,6 +56,8 @@ export interface TurnRecord {
   modelText: string;
   toolCalls: ToolCall[];
   toolResults: ToolResult[];
+  /** Tokens the model calls of this turn cost, summed from `agent.model.completed`. */
+  usage: Usage;
 }
 
 export interface Checkpoint {
@@ -121,6 +131,8 @@ export interface SessionState {
   blockedWrites: BlockedWrite[];
   /** Fleet-level contentions this session is part of, mirrored from the project ledger. */
   fleetContentions: Record<string, FleetContentionMirror>;
+  /** Tokens used on this branch so far (inherited history included), per `agent.model.completed`. */
+  usage: Usage;
   status: SessionStatus;
 }
 
@@ -161,6 +173,7 @@ export function initialState(branch: string = MAIN_BRANCH): SessionState {
     notes: [],
     blockedWrites: [],
     fleetContentions: {},
+    usage: { ...ZERO_USAGE },
     status: "idle",
   };
 }
@@ -300,6 +313,7 @@ function reduceInto(s: SessionState, e: SessionEvent): SessionState {
         modelText: "",
         toolCalls: [],
         toolResults: [],
+        usage: { ...ZERO_USAGE },
       };
       recompute(s);
       break;
@@ -309,7 +323,9 @@ function reduceInto(s: SessionState, e: SessionEvent): SessionState {
       if (s.currentTurn) {
         s.currentTurn.modelText = e.payload.text;
         s.currentTurn.toolCalls.push(...e.payload.toolCalls);
+        s.currentTurn.usage = addUsage(s.currentTurn.usage, e.payload.usage);
       }
+      s.usage = addUsage(s.usage, e.payload.usage);
       break;
     }
 

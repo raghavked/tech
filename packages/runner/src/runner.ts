@@ -127,7 +127,14 @@ export class Runner {
 
         const req = this.buildRequest();
         const res = await this.model.complete(req);
-        session.modelCompleted(branch, agent.id, res.text, res.toolCalls, this.model.name);
+        session.modelCompleted(
+          branch,
+          agent.id,
+          res.text,
+          res.toolCalls,
+          this.model.name,
+          res.usage,
+        );
         if (res.toolCalls.length === 0) {
           return this.end("done", res.done ? `DONE ${res.text}` : res.text || "(no output)");
         }

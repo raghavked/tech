@@ -75,6 +75,19 @@ roles, everything a driver can). The first human into a new session owns it.
   Default: exec needs a contributor, external the driver, irreversible two drivers.
 - Contention policy: `block` (default), `latest-wins`, `driver-wins`.
 - Turn budget.
+- Token budget (soft): input plus output tokens the branch may spend before the meter turns.
+
+### Token usage
+
+Every model call records what it cost (input, output, cache read, cache write) in the log,
+so a session's spend is a fold like everything else and replays to the same number. The
+session's top row carries a quiet chip, "12.4k tokens", that opens on hover to the breakdown;
+when the policy sets a budget a hairline bar sits under it, amber past 80% and red past 100%.
+The Details drawer has a Usage section with the budget left and the last turns one by one;
+the agents rail and the project page show each agent's spend at the end of its line; the
+handoff brief, the fleet brief and `henosis report` all say what was spent. Leads read totals
+by session, engineer, project and turn from `GET /api/usage`. Nothing stops an agent at the
+budget: it is a number people watch, not a gate (a gate is on the roadmap with plan-first).
 
 ## Non-goals for phase 0
 

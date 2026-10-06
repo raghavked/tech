@@ -1,5 +1,6 @@
-import type { ProjectState, SessionSummary } from "@henosis/fleet";
-import type { DirectiveMode } from "@henosis/protocol";
+import { type ProjectState, type SessionSummary, usageOf } from "@henosis/fleet";
+import { compactTokens } from "@henosis/kernel";
+import { type DirectiveMode, usageTotal } from "@henosis/protocol";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import {
@@ -281,6 +282,7 @@ function SessionRowItem({
   const online = (row?.people ?? []).filter((p) => p.online);
   const others = online.filter((p) => p.id !== s.ownerId).map((p) => p.name);
   const doing = row ? doingOf(row) : null;
+  const tokens = usageTotal(usageOf(s));
   return (
     <div className="rowitem agentrow">
       <a className="ellipsis" href={paths.session(projectId, s.sessionId)}>
@@ -290,6 +292,7 @@ function SessionRowItem({
           {others.length ? copy.project.withOthers(others) : ""}
           {doing ? ` · ${doing.lead} ${doing.text}` : s.report?.goal ? ` · ${s.report.goal}` : ""}
           {pending > 0 ? copy.project.approvalsWaiting(pending) : ""}
+          {tokens > 0 ? copy.project.tokens(compactTokens(tokens)) : ""}
         </span>
       </a>
       <span className="row">

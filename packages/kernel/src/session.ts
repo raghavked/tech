@@ -12,6 +12,7 @@ import type {
   SessionPolicy,
   ToolCall,
   ToolResult,
+  Usage,
 } from "@henosis/protocol";
 import { DirectiveInput as DirectiveInputSchema, MAIN_BRANCH, ROLE_RANK } from "@henosis/protocol";
 import { requiresApproval } from "./approvals.js";
@@ -339,17 +340,21 @@ export class Session {
     });
   }
 
+  /** `usage` is what the call cost; omitted when the model did not count (ids stay stable). */
   modelCompleted(
     branch: string,
     agentId: string,
     text: string,
     toolCalls: ToolCall[],
     model: string,
+    usage?: Usage,
   ) {
     const s = this.state(branch);
     return this.emit(branch, agentId, {
       kind: "agent.model.completed",
-      payload: { turn: s.turn, text, toolCalls, model },
+      payload: usage
+        ? { turn: s.turn, text, toolCalls, model, usage }
+        : { turn: s.turn, text, toolCalls, model },
     });
   }
 

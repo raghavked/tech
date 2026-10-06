@@ -6,6 +6,7 @@
  */
 import { handoffBrief } from "./brief.js";
 import type { Session } from "./session.js";
+import { budgetStatus, describeBudget, describeUsage, formatTokens } from "./usage.js";
 
 export function renderReport(s: Session): string {
   const out: string[] = [];
@@ -71,6 +72,26 @@ export function renderReport(s: Session): string {
       out.push(
         `| ${e.seq} | ${name(branch, e.actor)} | ${e.kind} | ${detail.replace(/\|/g, "\\|")} |`,
       );
+    }
+    out.push("");
+  }
+  out.push("## Tokens");
+  out.push("");
+  for (const branch of s.branches()) {
+    const st = s.state(branch);
+    out.push(
+      `Branch ${branch}: ${describeUsage(st.usage)}; budget ${describeBudget(budgetStatus(st))}.`,
+    );
+    if (st.turns.length) {
+      out.push("");
+      out.push("| turn | input | output | cache read | cache write | total |");
+      out.push("|---|---|---|---|---|---|");
+      for (const t of st.turns) {
+        const u = t.usage;
+        out.push(
+          `| ${t.turn} | ${formatTokens(u.input)} | ${formatTokens(u.output)} | ${formatTokens(u.cacheRead)} | ${formatTokens(u.cacheWrite)} | ${formatTokens(u.input + u.output)} |`,
+        );
+      }
     }
     out.push("");
   }

@@ -3,6 +3,7 @@
  * The runner records every response in the log, so a replay never reaches this file.
  */
 import Anthropic from "@anthropic-ai/sdk";
+import type { Usage } from "@henosis/protocol";
 import type { Model, ModelRequest, ModelResponse } from "./model.js";
 
 export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
@@ -88,6 +89,7 @@ export class ClaudeModel implements Model {
       tools,
       messages,
     });
+    const usage = usageOf(response.usage);
     if (response.stop_reason === "refusal") {
       const details = (response as { stop_details?: { category?: string | null } | null })
         .stop_details;
@@ -95,6 +97,7 @@ export class ClaudeModel implements Model {
         text: `The model declined to continue (${details?.category ?? "unspecified"}).`,
         toolCalls: [],
         done: true,
+        usage,
       };
     }
     let text = "";
@@ -113,6 +116,16 @@ export class ClaudeModel implements Model {
       }
     }
     const done = toolCalls.length === 0 && /^DONE$/m.test(text.trim());
-    return { text: text.trim(), toolCalls, done };
+    return { text: text.trim(), toolCalls, done, usage };
   }
+}
+
+/** The Messages API's counts, as the log records them; cache fields are null on older models. */
+export function usageOf(u: Anthropic.Usage | null | undefined): Usage {
+  return {
+    input: u?.input_tokens ?? 0,
+    output: u?.output_tokens ?? 0,
+    cacheRead: u?.cache_read_input_tokens ?? 0,
+    cacheWrite: u?.cache_creation_input_tokens ?? 0,
+  };
 }

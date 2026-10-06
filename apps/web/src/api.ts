@@ -2,7 +2,7 @@
 import type { ProjectState, SessionSummary } from "@henosis/fleet";
 import type { SessionStatus } from "@henosis/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@henosis/memory";
-import type { SessionPolicy } from "@henosis/protocol";
+import type { SessionPolicy, UsageQuery, UsageReport } from "@henosis/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiUrl } from "./shell.js";
 
@@ -67,7 +67,7 @@ export interface Notification {
   read: boolean;
 }
 
-export type { CuratorReport, EntryRecord, MemoryConflict, ProjectState };
+export type { CuratorReport, EntryRecord, MemoryConflict, ProjectState, UsageQuery, UsageReport };
 
 export async function getJson<T>(url: string): Promise<T> {
   // `apiUrl` is a no-op in a browser; the desktop shell's bundled client prefixes its server.
@@ -101,6 +101,13 @@ export const api = {
   policy: (id: string) => getJson<SessionPolicy>(`/api/projects/${encodeURIComponent(id)}/policy`),
   /** settings-page: which adapters run beside the server. */
   integrations: () => getJson<{ slack: boolean }>("/api/integrations"),
+  /** token-usage: totals by session, user, project and turn bucket (packages/server/src/usageApi.ts). */
+  usage: (q: UsageQuery = {}) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(q)) if (v) p.set(k, v);
+    const qs = p.toString();
+    return getJson<UsageReport>(`/api/usage${qs ? `?${qs}` : ""}`);
+  },
   /** The session rendered as markdown (export-session); opens in a tab, `download` saves a file. */
   exportUrl: (sessionId: string, download = false) =>
     `/api/sessions/${encodeURIComponent(sessionId)}/export.md${download ? "?download=1" : ""}`,

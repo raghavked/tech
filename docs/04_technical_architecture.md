@@ -108,6 +108,27 @@ debounced 20 ms) and `blobs/<sha256>` are workspace file contents. This is delib
 boring. Phase 1 replaces it with an append-only JSONL per branch and a snapshot every k
 events; Phase 2 moves it into the actor's storage.
 
+## Token usage
+
+`agent.model.completed` carries an optional `usage` (`Usage` in the protocol: input, output,
+cache read, cache write). The Claude adapter copies the Messages API's counts; the scripted
+model synthesises them from the prompt it would have sent and the text it emits, so demos and
+tests get stable numbers. The reducer sums usage into the current `TurnRecord` and into
+`SessionState.usage` (cumulative for the branch, inherited history included), which gives the
+brief, the report, the web client and `budgetStatus()` one source. At every turn end the
+runner's status report puts the session's usage on the project ledger, so the fleet brief and
+the agents rail read it without opening the session.
+
+`GET /api/usage?org=&team=&project=&user=&since=` rolls the store up: totals, by session, by
+owner, by project. The logs are the source of the numbers (own events of every branch, so a
+fork's inherited history counts once); the ledgers supply registrations, names and the last
+report of a session whose log is gone. Events carry `ts` as a Lamport clock and nothing in
+`storage.ts` records wall-clock time, so the report cannot be sliced by day: `since` is a seq
+on the logical clock and the time series is `byTurnBucket`, usage grouped by the agent turn it
+was spent in, ten turns per bucket. An ISO `since` is accepted, ignored and named in
+`warnings`. When persistence gains a wall clock (phase 1 JSONL), `byDay` can join it without
+changing the rest of the shape.
+
 ## Wire protocol
 
 Client to server: `join`, `directive`, `withdraw`, `resolve`, `vote`, `handoff.*`, `role`,

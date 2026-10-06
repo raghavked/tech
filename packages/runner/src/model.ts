@@ -3,7 +3,7 @@
  * tool calls. Outputs are recorded in the log so replays never call a model.
  */
 import type { Intent } from "@henosis/kernel";
-import type { RiskClass, ToolCall, ToolResult } from "@henosis/protocol";
+import type { RiskClass, ToolCall, ToolResult, Usage } from "@henosis/protocol";
 
 export interface ToolSpec {
   name: string;
@@ -39,6 +39,8 @@ export interface ModelResponse {
   toolCalls: ToolCall[];
   /** True when the model believes the current goal is complete. */
   done: boolean;
+  /** What the call cost, as the provider counted it; the scripted model synthesises it. */
+  usage?: Usage;
 }
 
 export interface Model {

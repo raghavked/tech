@@ -275,6 +275,7 @@ export class ProjectHost {
           activePaths: activePathsOf(st),
           pendingApprovals: Object.values(st.approvals).filter((a) => a.status === "pending")
             .length,
+          usage: st.usage,
         });
         project.expireStale();
       },

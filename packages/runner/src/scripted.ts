@@ -5,6 +5,7 @@
  * function of the request, so offline demos and tests are reproducible.
  */
 import { hashValue } from "@henosis/kernel";
+import type { ToolCall, Usage } from "@henosis/protocol";
 import type { Model, ModelRequest, ModelResponse } from "./model.js";
 
 const PLAN = "PLAN.md";
@@ -23,6 +24,11 @@ export class ScriptedModel implements Model {
   readonly name = "scripted-v1";
 
   async complete(req: ModelRequest): Promise<ModelResponse> {
+    const res = this.decide(req);
+    return { ...res, usage: syntheticUsage(req, res.text, res.toolCalls) };
+  }
+
+  private decide(req: ModelRequest): ModelResponse {
     const intentKey = hashValue({
       goal: req.intent.goal?.text ?? null,
       steers: req.intent.steers,
@@ -221,4 +227,36 @@ function testSource(python: boolean, module: string, src: string): string {
     `test("${module}", () => { assert.equal(${module}(2), 4); });`,
     "",
   ].join("\n");
+}
+
+/** A rough token count for text: four characters per token, like a real tokenizer on prose. */
+function tokensOf(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Deterministic usage for the scripted model: a function of what the prompt would have held
+ * (intent, history, files, this turn's transcript) and of the text and tool calls it emits.
+ * The system prompt is a fixed 64 tokens; within a turn the earlier transcript reads from
+ * cache, and the first call of a turn writes the prefix to it. Same request, same numbers.
+ */
+export function syntheticUsage(req: ModelRequest, text: string, toolCalls: ToolCall[]): Usage {
+  const SYSTEM = 64;
+  const prefix =
+    SYSTEM +
+    tokensOf(req.title) +
+    tokensOf(req.intentText) +
+    tokensOf(req.history.join("\n")) +
+    tokensOf(req.files.join("\n")) +
+    tokensOf(req.newDirectives.join("\n")) +
+    tokensOf(JSON.stringify(req.tools));
+  const transcript = tokensOf(JSON.stringify(req.transcript));
+  const cacheRead = req.transcript.length ? prefix : 0;
+  const cacheWrite = req.transcript.length ? 0 : prefix;
+  return {
+    input: prefix + transcript,
+    output: tokensOf(text) + tokensOf(JSON.stringify(toolCalls)),
+    cacheRead,
+    cacheWrite,
+  };
 }

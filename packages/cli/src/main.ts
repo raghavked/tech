@@ -24,7 +24,7 @@ const USAGE = `henosis <command> [options]
   join     <session> --as <name> [--url ws://127.0.0.1:7700/ws] [--token T] [--branch main]
   replay   <log.json> [--branch main]                                           fold the log, print the brief
   verify   <log.json>                                                           check hashes and replay determinism
-  report   <log.json>                                                           markdown report of every branch
+  report   <log.json>                                                           markdown report of every branch, with a Tokens section
   fleet    <ledger.json>                                                        fleet brief from a project ledger
   slack    --config slack.json [--port 7700] [--dir ./store] [--model ...]     serve plus the Slack adapter (socket mode)
 

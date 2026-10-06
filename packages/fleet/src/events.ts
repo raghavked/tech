@@ -4,7 +4,7 @@
  * events, hash-chained like a session log, so the fleet replays and audits the same way.
  */
 import type { ChainEvent } from "@henosis/kernel";
-import { DirectiveInput } from "@henosis/protocol";
+import { DirectiveInput, Usage } from "@henosis/protocol";
 import { z } from "zod";
 
 export const Resource = z.discriminatedUnion("type", [
@@ -38,6 +38,8 @@ export const SessionStatusReport = z.object({
   summary: z.string(),
   activePaths: z.array(z.string()),
   pendingApprovals: z.number().int(),
+  /** Tokens the session has used so far; absent in ledgers written before usage was counted. */
+  usage: Usage.optional(),
 });
 export type SessionStatusReport = z.infer<typeof SessionStatusReport>;
 

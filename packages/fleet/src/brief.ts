@@ -1,8 +1,9 @@
 /** The fleet brief: what every agent in the project is doing, computed from the ledger and the sessions. */
 import type { SessionState } from "@henosis/kernel";
-import { describeRule, ruleFor } from "@henosis/kernel";
+import { describeRule, describeUsage, formatTokens, ruleFor } from "@henosis/kernel";
+import { usageTotal } from "@henosis/protocol";
 import { resourceKey } from "./events.js";
-import { activeClaims, type ProjectState } from "./state.js";
+import { activeClaims, type ProjectState, projectUsage, usageOf } from "./state.js";
 
 export interface FleetBriefOptions {
   sinceSeq?: number;
@@ -29,6 +30,7 @@ export function fleetBrief(p: ProjectState, opts: FleetBriefOptions = {}): strin
     .filter((m) => m.role !== "member")
     .map((m) => `${m.name} (${m.role})`);
   lines.push(`Leads: ${leads.join(", ") || "none"}.`);
+  lines.push(`Tokens: ${describeUsage(projectUsage(p))} across the open sessions.`);
   lines.push("");
   lines.push("## Sessions");
   if (!open.length) lines.push("- none");
@@ -43,6 +45,14 @@ export function fleetBrief(p: ProjectState, opts: FleetBriefOptions = {}): strin
       `- ${name(s.ownerId)}'s session "${s.title}"${marker}${crew}: ${r ? `${r.status}, turn ${r.turn}, goal: ${r.goal ?? "none"}` : "no report yet"}${held.length ? `; holds ${held.join(", ")}` : ""}${r?.pendingApprovals ? `; ${r.pendingApprovals} approval(s) pending` : ""}`,
     );
     if (r?.summary) lines.push(`  last: ${r.summary.slice(0, 160)}`);
+    if (r) {
+      const u = usageOf(s);
+      const live = opts.sessions?.[s.sessionId];
+      const budget = live?.policy.tokenBudget ?? null;
+      lines.push(
+        `  tokens: ${describeUsage(u)}${budget ? ` of ${formatTokens(budget)} budget (${Math.round((usageTotal(u) / budget) * 100)}%)` : ""}`,
+      );
+    }
   }
   lines.push("");
   lines.push("## Open items");

@@ -31,6 +31,7 @@ import { Notifier, type PushSubscription } from "./notify.js";
 import { OrgRegistry } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
 import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
+import { computeUsage, USAGE_PATH, usageQueryOf } from "./usageApi.js";
 
 export interface ServerOptions {
   root: string;
@@ -246,6 +247,15 @@ export class HenosisServer {
         });
       }
       if (url.pathname === "/api/orgs") return json(200, this.orgs.orgs);
+      // token-usage: totals and breakdowns from the logs and ledgers on disk (usageApi.ts).
+      if (url.pathname === USAGE_PATH)
+        return json(
+          200,
+          computeUsage(
+            { root: this.opts.root, projects: this.projects, orgs: this.orgs },
+            usageQueryOf(url.searchParams),
+          ),
+        );
       if (url.pathname === "/api/integrations") return json(200, { ...this.integrations });
       if (url.pathname === "/api/notifications") {
         const user = url.searchParams.get("user") ?? "";

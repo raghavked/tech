@@ -166,6 +166,74 @@ export function addUsage(a: Usage, b: Partial<Usage> | undefined): Usage {
     cacheWrite: a.cacheWrite + (b.cacheWrite ?? 0),
   };
 }
+/** What a budget counts: input plus output. Cache reads and writes are reported, not budgeted. */
+export function usageTotal(u: Partial<Usage> | undefined): number {
+  return (u?.input ?? 0) + (u?.output ?? 0);
+}
+
+// ---------------------------------------------------------------------------------------
+// Usage report: GET /api/usage on the server, `api.usage()` in the web client
+// ---------------------------------------------------------------------------------------
+
+export interface UsageQuery {
+  org?: string;
+  team?: string;
+  project?: string;
+  /** The session owner's user id. */
+  user?: string;
+  /** A seq on the logical clock: events after it count. An ISO time is accepted and ignored. */
+  since?: string;
+}
+
+export interface UsageSessionRow {
+  projectId: string;
+  sessionId: string;
+  title: string;
+  ownerId: string;
+  usage: Usage;
+  /** Turns ended in the counted range. */
+  turns: number;
+  /** The session policy's soft budget, when it has one. */
+  budget: number | null;
+}
+
+export interface UsageUserRow {
+  userId: string;
+  name: string;
+  usage: Usage;
+}
+
+export interface UsageProjectRow {
+  projectId: string;
+  name: string;
+  usage: Usage;
+}
+
+/** Usage spent in agent turns `from`..`to` (inclusive) across the sessions in the report. */
+export interface UsageTurnBucket {
+  from: number;
+  to: number;
+  usage: Usage;
+  /** Model calls in the bucket. */
+  calls: number;
+}
+
+export interface UsageReport {
+  totals: Usage;
+  bySession: UsageSessionRow[];
+  byUser: UsageUserRow[];
+  byProject: UsageProjectRow[];
+  /**
+   * The time series. The store keeps a logical clock only (no wall-clock time on any event),
+   * so usage is grouped by the agent turn it was spent in rather than by day.
+   */
+  byTurnBucket: UsageTurnBucket[];
+  /** The seq the report counts from, or null for everything. */
+  since: number | null;
+  clock: "logical";
+  /** Query parts that could not be applied, in words. */
+  warnings: string[];
+}
 
 /** One step of a plan the agent proposes before it acts. */
 export const PlanStep = z.object({

@@ -6,6 +6,7 @@
 import type { SessionEvent } from "@henosis/protocol";
 import { describeRule, ruleFor } from "./approvals.js";
 import type { SessionState } from "./state.js";
+import { budgetStatus, describeBudget, describeUsage, formatTokens } from "./usage.js";
 
 export interface BriefOptions {
   /** Produce the "since you were last here" sections relative to this actor's last seen seq. */
@@ -32,6 +33,9 @@ export function handoffBrief(state: SessionState, opts: BriefOptions = {}): stri
         .map((p) => `${p.actor.name} (${p.role})`)
         .join(", ") || "nobody"
     }.`,
+  );
+  lines.push(
+    `Tokens used: ${describeUsage(state.usage)}; budget ${describeBudget(budgetStatus(state))}.`,
   );
   lines.push("");
 
@@ -93,7 +97,7 @@ export function handoffBrief(state: SessionState, opts: BriefOptions = {}): stri
   for (const t of recent) {
     const marker = t.startedSeq > since ? " (new)" : "";
     lines.push(
-      `- Turn ${t.turn}${marker}: ${t.summary || t.modelText.slice(0, 120) || "(no summary)"} [${t.toolCalls.length} tool calls, ${t.reason}]`,
+      `- Turn ${t.turn}${marker}: ${t.summary || t.modelText.slice(0, 120) || "(no summary)"} [${t.toolCalls.length} tool calls, ${t.reason}, ${formatTokens(t.usage.input + t.usage.output)} tokens]`,
     );
   }
   if (state.currentTurn) {

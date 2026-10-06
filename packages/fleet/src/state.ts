@@ -1,7 +1,7 @@
 /** Project state: the fold of the project ledger. Pure and total, like the session reducer. */
 
-import type { DirectiveInput } from "@henosis/protocol";
-import { MAIN_BRANCH } from "@henosis/protocol";
+import type { DirectiveInput, Usage } from "@henosis/protocol";
+import { addUsage, MAIN_BRANCH, ZERO_USAGE } from "@henosis/protocol";
 import type { ClaimRecord } from "./claims.js";
 import type {
   FleetContentionKind,
@@ -248,6 +248,18 @@ export function crews(s: ProjectState): Record<string, SessionSummary[]> {
   }
   for (const list of Object.values(out)) list.sort((a, b) => a.registeredSeq - b.registeredSeq);
   return out;
+}
+
+/** Tokens a session has reported so far; zero until its first report, or for an old ledger. */
+export function usageOf(s: SessionSummary): Usage {
+  return s.report?.usage ?? { ...ZERO_USAGE };
+}
+
+/** Tokens reported by every open session in the project. */
+export function projectUsage(s: ProjectState): Usage {
+  let total: Usage = { ...ZERO_USAGE };
+  for (const ss of Object.values(s.sessions)) if (ss.open) total = addUsage(total, usageOf(ss));
+  return total;
 }
 
 export function activeClaims(s: ProjectState): ClaimRecord[] {
