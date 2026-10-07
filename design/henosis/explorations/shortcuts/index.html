@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Keyboard shortcuts</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ==========================================================================================
+     The shortcuts sheet. "?" (or ⌘/ while typing) lifts one sheet over the session you were in.
+     It is a register, not a cheat card: every session key says what it would do RIGHT NOW in
+     this session ("a" approves the push that waits, "h" accepts Dee's baton) and a key with
+     nothing to do says so and steps back. The keys the app really has (shortcuts.ts, the
+     palette, the composer, the approvals queue) and nothing invented.
+     ========================================================================================== */
+  :root {
+    --scrim: rgba(42, 50, 68, 0.44);
+    --sheet-bg: var(--surface);
+    --sheet-edge: none;
+    --sheet-shadow: 0 30px 80px rgba(42,50,68,0.28), 0 6px 18px rgba(42,50,68,0.10);
+    --key-bg: var(--surface-2); --key-line: rgba(42,50,68,0.16); --key-fg: var(--ink);
+    --key-shadow: 0 1px 0 rgba(42,50,68,0.18);
+    --live-bg: rgba(226,196,166,0.16);
+    --live-line: rgba(207,167,130,0.5);
+    --idle: var(--ink-3);
+    --ok-dot: var(--ok); --warn-dot: var(--warn);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --scrim: rgba(8, 11, 17, 0.52);
+    --sheet-bg: #242C3C;
+    --sheet-edge: inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(240,234,224,0.06);
+    --sheet-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.35);
+    --key-bg: rgba(240,234,224,0.08); --key-line: rgba(240,234,224,0.16); --key-fg: #F6F0E6;
+    --key-shadow: 0 1px 0 rgba(0,0,0,0.5);
+    --live-bg: rgba(226,196,166,0.10);
+    --live-line: rgba(226,196,166,0.36);
+    --idle: #6F7686;
+    --ok-dot: #8FC386; --warn-dot: #E2B06A;
+    --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18); --ok-soft: rgba(143,195,134,0.18); --warn-soft: rgba(226,176,106,0.18);
+    --rail: #10141C; --rail-2: #1A2030; --rail-line: rgba(240,234,224,0.08);
+  } }
+  :root[data-theme="dark"] {
+    --scrim: rgba(8, 11, 17, 0.52);
+    --sheet-bg: #242C3C;
+    --sheet-edge: inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(240,234,224,0.06);
+    --sheet-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.35);
+    --key-bg: rgba(240,234,224,0.08); --key-line: rgba(240,234,224,0.16); --key-fg: #F6F0E6;
+    --key-shadow: 0 1px 0 rgba(0,0,0,0.5);
+    --live-bg: rgba(226,196,166,0.10);
+    --live-line: rgba(226,196,166,0.36);
+    --idle: #6F7686;
+    --ok-dot: #8FC386; --warn-dot: #E2B06A;
+    --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18); --ok-soft: rgba(143,195,134,0.18); --warn-soft: rgba(226,176,106,0.18);
+    --rail: #10141C; --rail-2: #1A2030; --rail-line: rgba(240,234,224,0.08);
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  .shell { height: 100vh; }
+  .ic { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- the page behind: the session on the Billing page ---------- */
+  .rail .brand .mark { width: 28px; height: 28px; }
+  .rail .search { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13.5px; }
+  .rail .search .keys { margin-left: auto; }
+  .rail kbd { background: rgba(243,237,228,0.08); border-color: rgba(243,237,228,0.14); color: var(--rail-muted); box-shadow: none; }
+  .rail .me .avatar { border-color: var(--rail); }
+  .topbar .crumb { color: var(--ink-3); font-size: 14px; }
+  .topbar .kbd-btn { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 12px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 13px; }
+  .msg.human .text { font-size: 15px; }
+  .out { font-family: var(--mono); font-size: 12.5px; line-height: 1.55; background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); padding: 12px 14px; white-space: pre; overflow: hidden; }
+  .out .k { color: var(--apricot); }
+  .step .ic { color: var(--ink-3); } .step .ok { color: var(--ok); }
+  .notice .head { display: flex; align-items: center; gap: 10px; }
+  .notice .head .serif { font-size: 19px; }
+  .pill.danger { background: var(--danger-soft); color: var(--danger); }
+  .hint { font-size: 12.5px; color: var(--ink-3); text-align: center; padding: 0 24px 10px; }
+
+  /* ---------- keys ---------- */
+  kbd { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 7px; background: var(--key-bg); border: 1px solid var(--key-line); box-shadow: var(--key-shadow); color: var(--key-fg); font: 500 12.5px var(--mono); line-height: 1; white-space: nowrap; }
+  .keys { display: inline-flex; align-items: center; gap: 4px; }
+  .keys .plus { font-size: 11px; color: var(--ink-3); }
+  .keys .or { font-size: 11.5px; color: var(--ink-3); padding: 0 3px; }
+
+  /* ---------- the sheet ---------- */
+  .scrim { position: fixed; inset: 0; z-index: 20; background: var(--scrim); }
+  .sheet { position: fixed; z-index: 21; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(880px, calc(100% - 32px)); max-height: calc(100vh - 48px); display: flex; flex-direction: column; background: var(--sheet-bg); border-radius: 22px; box-shadow: var(--sheet-shadow), var(--sheet-edge); overflow: hidden; }
+  .sheet .head { display: flex; align-items: center; gap: 14px; padding: 20px 20px 16px 24px; border-bottom: 1px solid var(--line); }
+  .sheet .head .mark { width: 34px; height: 34px; flex: none; }
+  .sheet .head .ttl { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .sheet .head h2 { font-size: 24px; line-height: 1.1; }
+  .sheet .head .sub { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sheet .head .sub .serif { font-size: 15px; color: var(--ink); }
+  .sheet .head .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .sheet .head .close { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--ink-2); display: grid; place-items: center; cursor: pointer; }
+  .sheet .head .close:hover { background: var(--surface-2); }
+  .sheet .body { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0; overflow: auto; }
+  .sheet .col { padding: 18px 24px 20px; display: flex; flex-direction: column; gap: 22px; }
+  .sheet .col + .col { border-left: 1px solid var(--line); }
+  .grp { display: flex; flex-direction: column; }
+  .grp h3 { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); padding: 0 0 8px; }
+  .grp h3 .where { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 12px; color: var(--ink-3); }
+  .grp h3 .where .serif { font-size: 14px; color: var(--ink-2); }
+  .krow { display: grid; grid-template-columns: 1fr auto; column-gap: 16px; align-items: center; padding: 8px 10px; margin: 0 -10px; border-radius: 12px; min-height: 42px; }
+  .krow .what { font-size: 14px; color: var(--ink); line-height: 1.35; }
+  .krow .now { font-size: 12.5px; color: var(--ink-2); line-height: 1.4; margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .krow .now .serif { font-size: 14px; color: var(--ink); }
+  .krow .now .mono { font-size: 12px; color: var(--ink-2); }
+  .krow .now .pill { height: 19px; font-size: 10.5px; padding: 0 7px; }
+  .krow .now .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn-dot); box-shadow: 0 0 0 3px var(--warn-soft); flex: none; }
+  .krow .now .dot.ok { background: var(--ok-dot); box-shadow: 0 0 0 3px var(--ok-soft); }
+  .krow .now .stars { gap: 1px; } .krow .now .stars span { width: 14px; height: 14px; font-size: 13px; color: var(--line); } .krow .now .stars .on { color: var(--apricot-deep); }
+  .krow.live { background: var(--live-bg); box-shadow: inset 0 0 0 1px var(--live-line); }
+  .krow.live kbd { background: var(--accent); color: var(--accent-fg); border-color: transparent; box-shadow: none; }
+  .krow.idle .what { color: var(--idle); }
+  .krow.idle .now { color: var(--idle); }
+  .krow.idle kbd { color: var(--idle); box-shadow: none; }
+  .krow.pressed kbd { box-shadow: var(--team-glow); border-color: var(--apricot-deep); }
+  .sheet .foot { display: flex; align-items: center; gap: 18px; padding: 12px 24px 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+  .sheet .foot .legend { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+  .sheet .foot .note { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .sheet .foot .legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--live-bg); box-shadow: inset 0 0 0 1px var(--live-line); }
+  .sheet .foot .legend b { font-weight: 500; color: var(--ink); }
+  .sheet .foot .right { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; flex: none; }
+  .sheet .foot .seg { padding: 2px; } .sheet .foot .seg button { padding: 2px 9px; font-size: 12px; }
+  .sheet .foot .seg .on { background: var(--sheet-bg); }
+
+  /* ---------- phone ---------- */
+  @media (max-width: 600px) {
+    .rail { display: none; }
+    .topbar { padding: 10px 16px; } .topbar .right { display: none; } .topbar .crumb { display: none; }
+    .column { padding: 12px 16px 120px; }
+    .sheet { top: auto; left: 0; right: 0; bottom: 0; transform: none; width: 100%; max-height: calc(100vh - 64px); border-radius: 22px 22px 0 0; }
+    .sheet::before { content: ""; width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 10px auto -4px; }
+    .sheet .head { padding: 14px 16px 12px 18px; } .sheet .head .mark { width: 28px; height: 28px; } .sheet .head h2 { font-size: 21px; }
+    .sheet .head .sub .where-word { display: none; }
+    .sheet .head .sub { display: block; } .sheet .head .ttl { flex: 1; min-width: 0; }
+    .sheet .body { grid-template-columns: 1fr; }
+    .sheet .col { padding: 14px 18px 16px; gap: 18px; } .sheet .col + .col { border-left: 0; border-top: 1px solid var(--line); }
+    .hide-m { display: none !important; } .sheet .foot .keys-as { display: none; }
+    .grp.queue, .grp.palette { display: none; }
+    .sheet .foot { padding: 10px 18px calc(12px + env(safe-area-inset-bottom)); gap: 8px 14px; }
+    .sheet .foot .note { display: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+    <symbol id="i-term" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <!-- rail -->
+  <aside class="rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+      Henosis
+    </div>
+    <button class="new"><svg class="ic"><use href="#i-plus"/></svg> New session</button>
+    <div class="search"><svg class="ic"><use href="#i-search"/></svg> Search <span class="keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
+    <div class="section">Agents <span class="n">4</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Payments</div>
+    <a class="agent active" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Ledger</span><span class="pill team">Team</span></div><div class="doing">Invoice PDF: tax lines and proration · <i>waiting on the push</i></div><div class="foot"><span class="stack"><span class="avatar">A</span><span class="avatar">B</span><span class="avatar">D</span></span> Ana drives · 41k tokens</div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Tally</span><span class="pill team">Team</span></div><div class="doing">Proration on plan change · <i>writing tests</i></div><div class="foot"><span class="stack"><span class="avatar">C</span></span> Cy drives · 18k tokens</div></a>
+    <div class="crew"><span class="serif">Checkout</span> · Payments</div>
+    <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Sable</span><span class="pill solo">Solo</span></div><div class="doing">Checkout: card retry on 3DS fail · <i>reading the spec</i></div><div class="foot"><span class="stack"><span class="avatar">D</span></span> Dee · 7k tokens</div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot"></span><span class="t">Quill</span><span class="pill solo">Solo</span></div><div class="doing">Billing page copy · <i>paused</i></div><div class="foot"><span class="stack"><span class="avatar">B</span></span> Bo · 3k tokens</div></a>
+    <div class="me"><span class="avatar driver">A</span> Ana <span class="pill" style="margin-left:auto">owner</span></div>
+  </aside>
+
+  <!-- main -->
+  <div class="main">
+    <div class="topbar">
+      <span class="title"><span>Invoice PDF: tax lines and proration</span><span class="status awaiting">Awaiting approval</span><span class="pill team">Team</span></span>
+      <span class="crumb">Billing page · Payments</span>
+      <div class="right">
+        <span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span><span class="avatar">D</span></span>
+        <span class="kbd-btn"><svg class="ic"><use href="#i-key"/></svg> Shortcuts <kbd>?</kbd></span>
+      </div>
+    </div>
+    <div class="scroll"><div class="column">
+      <div class="msg human"><div class="meta"><span class="who">Ana</span> 14:02 · goal</div><div class="text">Add the tax lines to the invoice PDF and show proration when a plan changes mid-month. Keep the totals identical to the Billing page.</div></div>
+      <div class="msg agent"><div class="meta"><span class="who">Ledger</span> 14:03</div><div class="text">Reading the Billing page totals first so the PDF and the page agree to the cent.</div>
+        <div class="steps">
+          <div class="step"><svg class="ic ok"><use href="#i-check"/></svg> read <span class="mono">apps/web/src/views/Billing.tsx</span></div>
+          <div class="step"><svg class="ic ok"><use href="#i-check"/></svg> read <span class="mono">packages/billing/proration.ts</span></div>
+          <div class="step"><svg class="ic ok"><use href="#i-check"/></svg> write <span class="mono">packages/invoice-pdf/tax-lines.ts</span></div>
+          <div class="step"><svg class="ic"><use href="#i-term"/></svg> run <span class="mono">pnpm test invoice-pdf</span></div>
+        </div>
+        <div class="out"><span class="k">✓</span> tax lines: 6 passed    <span class="k">✓</span> proration: 4 passed
+<span class="k">✓</span> totals match Billing page for 212 fixtures</div>
+      </div>
+      <div class="msg team"><div class="meta"><span class="who">Dee</span> <span class="to">to the team</span> 14:11</div><div class="text">I rated the plan 4. Ana, take the baton for the push, you own Billing.</div></div>
+      <div class="notice gate">
+        <div class="head"><span class="serif">Release gate</span><span class="pill danger">irreversible</span><span class="muted small">push to main</span></div>
+        <div><span class="mono">git push origin billing/invoice-pdf:main</span> · Bo rated 4 · one more rating at 4+ grants it.</div>
+        <div class="actions"><button class="btn primary sm">Approve · 4 stars</button><button class="btn sm">Deny</button><span class="small faint">or press <kbd>a</kbd> / <kbd>d</kbd></span></div>
+      </div>
+    </div></div>
+    <div class="hint">Enter to send · Shift+Enter for a new line · ? for shortcuts · as Ana, owner, driving</div>
+  </div>
+</div>
+
+<!-- the sheet -->
+<div class="scrim"></div>
+<div class="sheet" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+  <div class="head">
+    <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+    <div class="ttl">
+      <h2>Keyboard shortcuts</h2>
+      <div class="sub"><span class="where-word">What each key does right now in</span> <span class="serif">Invoice PDF: tax lines and proration</span> <span class="faint">· you are driving</span></div>
+    </div>
+    <div class="right">
+      <button class="close" aria-label="Close"><svg class="ic" style="width:14px;height:14px"><use href="#i-x"/></svg></button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="col">
+      <div class="grp">
+        <h3>In this session <span class="where">with <span class="serif">Ledger</span></span></h3>
+        <div class="krow"><div><div class="what">Steer the agent</div><div class="now">Puts the cursor in the composer, Agent side</div></div><span class="keys"><kbd>/</kbd></span></div>
+        <div class="krow live"><div><div class="what">Approve the waiting call</div><div class="now"><span class="dot"></span><span class="mono">git push … :main</span><span class="pill danger">irreversible</span><span class="hide-m">sends</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="hide-m">· grants the gate with Bo's 4</span></div></div><span class="keys"><kbd>a</kbd></span></div>
+        <div class="krow live"><div><div class="what">Deny the waiting call</div><div class="now">Ledger stops before the push and asks what to change</div></div><span class="keys"><kbd>d</kbd></span></div>
+        <div class="krow live"><div><div class="what">Hand off, or accept the fold</div><div class="now">Offers the baton · <span class="serif">Dee</span> and <span class="serif">Bo</span> are here</div></div><span class="keys"><kbd>h</kbd></span></div>
+        <div class="krow"><div><div class="what">Fork a branch</div><div class="now"><span class="hide-m">Off <span class="mono">billing/invoice-pdf</span> ·</span> Details opens with the name ready</div></div><span class="keys"><kbd>f</kbd></span></div>
+        <div class="krow"><div><div class="what">Show or hide details</div><div class="now">Intent, branches, workspace, usage, memory, brief</div></div><span class="keys"><kbd>i</kbd></span></div>
+      </div>
+      <div class="grp">
+        <h3>In the composer</h3>
+        <div class="krow"><div><div class="what">Send to the agent, or to the team</div><div class="now">Whichever side of the Agent / Team toggle is on</div></div><span class="keys"><kbd>↵</kbd></span></div>
+        <div class="krow"><div><div class="what">New line</div></div><span class="keys"><kbd>⇧</kbd><kbd>↵</kbd></span></div>
+        <div class="krow"><div><div class="what">Mention a person or an agent</div><div class="now">Ana, Bo, Cy, Dee, Ledger, Tally …</div></div><span class="keys"><kbd>@</kbd></span></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="grp">
+        <h3>Anywhere</h3>
+        <div class="krow"><div><div class="what">Command palette</div><div class="now">Actions, sessions, places, team memory</div></div><span class="keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
+        <div class="krow"><div><div class="what">Next session in the rail</div><div class="now"><span class="dot ok"></span><span class="serif">Tally</span> · Proration on plan change</div></div><span class="keys"><kbd>j</kbd></span></div>
+        <div class="krow idle"><div><div class="what">Previous session in the rail</div><div class="now">Ledger is first; wraps to Quill</div></div><span class="keys"><kbd>k</kbd></span></div>
+        <div class="krow pressed"><div><div class="what">This sheet</div><div class="now"><kbd style="height:20px;min-width:20px;font-size:11px">⌘</kbd><kbd style="height:20px;min-width:20px;font-size:11px">/</kbd> opens it while you are typing</div></div><span class="keys"><kbd>?</kbd></span></div>
+        <div class="krow"><div><div class="what">Close this, the palette, or a drawer</div></div><span class="keys"><kbd>esc</kbd></span></div>
+      </div>
+      <div class="grp queue">
+        <h3>In the approvals queue</h3>
+        <div class="krow"><div><div class="what">Move down, move up</div></div><span class="keys"><kbd>j</kbd><kbd>k</kbd></span></div>
+        <div class="krow"><div><div class="what">Approve, deny the row</div><div class="now">Under a release gate, approve sends 4 stars</div></div><span class="keys"><kbd>a</kbd><kbd>d</kbd></span></div>
+        <div class="krow"><div><div class="what">Open the row's session</div></div><span class="keys"><kbd>↵</kbd><span class="or">or</span><kbd>o</kbd></span></div>
+      </div>
+      <div class="grp palette">
+        <h3>In the palette</h3>
+        <div class="krow"><div><div class="what">Move, run, back out</div></div><span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>↵</kbd><kbd>esc</kbd></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="legend"><i></i> <b>Would act now</b> <span class="hide-m">on what waits in this session</span></span>
+    <span class="note">Letters work only when you are not typing; <kbd style="height:20px;min-width:20px;font-size:11px">/</kbd> starts typing.</span>
+    <span class="right"><span class="faint keys-as">Keys as</span><span class="seg"><button class="on">⌘ Mac</button><button>Ctrl</button></span></span>
+  </div>
+</div>
+</body>
+</html>

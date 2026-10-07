@@ -12,6 +12,8 @@ A contention is two directions laid side by side, not a warning: the notice name
 - The baton pass: two avatars, a dashed lane, the apricot stick with a chocolate centre, nudging while waiting, landed with a ripple on accept; the driver ring moves with it in the topbar and the drawer.
 - The computed brief as three cards in the offer, with the hot item first; the full brief lands in Details under Intent after accept.
 - Drawer Team tab: "Here now" with the offered row in apricot wash and a 40 s pill, "The baton" as a history, open and resolved contentions, and the contention policy as radios with one line each.
+- In dark, the status greens and ambers lift (page-level overrides of `--ok`, `--warn`, `--danger`) so "matches the PDF", "applied" and "just now" read on the dark surfaces; worth folding into tokens.css.
+- The offer confirm sits in the flow under the person's row (with a caret), not as a floating popover, so it never covers the next person on a phone.
 - Mobile: rail and drawer fold away, the two directions stack, the brief stacks, the baton pass sits above the sentence, keyboard legends disappear.
 
 ## Open questions

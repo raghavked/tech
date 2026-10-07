@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · The agent card</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- page ---------- */
+  body { min-height: 100%; }
+  .page { width: min(1320px, 100%); margin: 0 auto; padding: 44px 48px 96px; display: flex; flex-direction: column; gap: 56px; }
+  .ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .top { display: flex; align-items: flex-end; gap: 28px; }
+  .top .mark { width: 56px; height: 56px; flex: none; }
+  .top h1 { font-size: 44px; }
+  .top .lede { max-width: 640px; color: var(--ink-2); font-size: 16px; margin-top: 6px; }
+  .top .meta { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+
+  section { display: flex; flex-direction: column; gap: 18px; }
+  section > header { display: flex; align-items: baseline; gap: 14px; }
+  section > header h2 { font-size: 28px; }
+  section > header .k { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: 0.04em; }
+  section > header p { margin: 0 0 0 auto; max-width: 520px; font-size: 13.5px; color: var(--ink-2); text-align: right; }
+
+  /* a slice of the navy rail, the card's native ground */
+  .railp { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius-lg); padding: 14px; width: var(--rail-w); display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-soft); }
+  .railp .cap { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rail-muted); padding: 2px 12px 6px; display: flex; gap: 8px; align-items: center; }
+  .railp .cap .n { margin-left: auto; letter-spacing: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(296px, 296px)); gap: 22px 24px; justify-content: space-between; }
+  .cell { display: flex; flex-direction: column; gap: 10px; }
+  .cell .lab { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--ink-2); padding: 0 4px; }
+  .cell .lab b { font-weight: 600; color: var(--ink); }
+  .cell .lab .mono { font-size: 11.5px; color: var(--ink-3); margin-left: auto; }
+  .cell .why { font-size: 12.5px; color: var(--ink-3); padding: 0 4px; line-height: 1.5; }
+
+  /* ---------- the card: additions on top of tokens.css ---------- */
+  .agent { position: relative; transition: background .15s ease, box-shadow .15s ease, transform .12s ease; }
+  .agent .head .dot { transition: background .2s ease; }
+  .agent .head .dot.paused { background: #AEB4C2; box-shadow: 0 0 0 2px rgba(174,180,194,0.22); }
+  .agent .head .dot.idle { background: transparent; box-shadow: inset 0 0 0 1.5px var(--rail-muted); }
+  .agent .head .dot.closed { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(174,180,194,0.45); }
+  .agent.closed { opacity: .62; }
+  .agent.closed .doing i { color: var(--rail-muted); }
+  .agent .head .t { font-family: var(--serif); font-size: 16px; font-weight: 400; letter-spacing: -0.005em; }
+  .agent .head .badge { flex: none; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: #E2B06A; color: #2A3244; font: 600 11.5px/20px var(--mono); text-align: center; }
+  .agent .foot { min-height: 22px; }
+  .agent .foot .with { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .agent .foot .tokens { margin-left: auto; flex: none; font: 11.5px var(--mono); color: var(--rail-muted); display: inline-flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .agent .foot .tokens .bar { width: 44px; height: 2px; border-radius: 2px; background: rgba(243,237,228,0.14); overflow: hidden; }
+  .agent .foot .tokens .bar i { display: block; height: 100%; background: var(--apricot); }
+  .agent .foot .tokens.warn { color: #E2B06A; } .agent .foot .tokens.warn .bar i { background: #E2B06A; }
+  .agent .foot .tokens.over { color: #E2847A; } .agent .foot .tokens.over .bar i { background: #E2847A; }
+  .agent .foot .stack .avatar { width: 20px; height: 20px; font-size: 9px; border-width: 1.5px; }
+  .agent .foot .stack .avatar + .avatar { margin-left: -5px; }
+  .agent .foot .stack .avatar.driver { box-shadow: 0 0 0 1.5px var(--apricot-deep); }
+  .agent .pill { height: 20px; font-size: 11px; padding: 0 8px; }
+  /* interaction states, forced for the board */
+  .agent.is-hover { background: var(--rail-2); }
+  .agent.is-active { background: var(--rail-active); box-shadow: inset 0 0 0 1px rgba(226,196,166,0.35); }
+  .agent.is-active::before { content: ""; position: absolute; left: -14px; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--apricot); }
+  .agent.is-focus { box-shadow: 0 0 0 2px var(--rail), 0 0 0 4px rgba(226,196,166,0.6); }
+  .agent.is-press { background: var(--rail-active); transform: scale(.985); }
+  .agent.is-enter { animation: rise .32s ease both; }
+  .agent.is-enter .badge { animation: pop .36s cubic-bezier(.3,1.4,.4,1) both; }
+  .agent.is-hover .peek { display: flex; }
+  .agent .peek { display: none; gap: 6px; align-items: center; margin-top: 2px; font-size: 12px; color: var(--rail-muted); }
+  .agent .peek kbd { font: 500 10.5px var(--mono); border: 1px solid var(--rail-line); border-radius: 5px; padding: 0 5px; color: var(--rail-muted); }
+  .agent .peek .act { margin-left: auto; display: inline-flex; gap: 4px; }
+  .agent .peek .act button { width: 22px; height: 22px; border-radius: 6px; border: 0; background: rgba(243,237,228,0.08); color: var(--rail-fg); display: grid; place-items: center; cursor: pointer; }
+  .agent .peek .act .ic { width: 13px; height: 13px; }
+
+  /* the anatomy spread */
+  .anat { display: grid; grid-template-columns: 296px 1fr; gap: 40px; align-items: start; }
+  .anat .railp { position: relative; }
+  .anat .pin { position: absolute; z-index: 1; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); font: 600 11px/20px var(--mono); text-align: center; box-shadow: 0 0 0 2px var(--rail); }
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 32px; margin: 0; padding: 0; list-style: none; }
+  .legend li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; font-size: 13.5px; color: var(--ink-2); align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+  .legend li b { display: block; color: var(--ink); font-weight: 600; }
+  .legend .num { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); font: 600 11px/20px var(--mono); text-align: center; margin-top: 2px; }
+
+  /* the states strip: all six in one rail, plus the status list */
+  .states { display: grid; grid-template-columns: 296px 1fr; gap: 40px; align-items: start; }
+  .states table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  .states th { text-align: left; font: 600 11.5px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding: 6px 10px 10px 0; border-bottom: 1px solid var(--line); }
+  .states td { padding: 11px 10px 11px 0; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
+  .states td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+  .states td .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: 8px; box-shadow: 0 0 0 2px var(--rail); background: var(--rail-muted); }
+  .states td i.lead { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 15px; }
+
+  /* specs */
+  .spec { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .spec .card { display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
+  .spec .card h3 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .spec dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+  .spec dt { color: var(--ink-2); } .spec dd { margin: 0; font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+
+  /* mobile rail slice */
+  .mob { display: grid; grid-template-columns: 390px 1fr; gap: 40px; align-items: start; }
+  .sheet { width: 390px; border-radius: 28px 28px 0 0; background: var(--rail); color: var(--rail-fg); padding: 10px 14px 20px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-pop); }
+  .sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: rgba(243,237,228,0.25); margin: 0 auto 8px; }
+  .sheet .agent { padding: 12px 12px; }
+  .sheet .agent .head .t { font-size: 17px; }
+  .sheet .agent .doing { font-size: 14px; }
+  .mob .notes { font-size: 13.5px; color: var(--ink-2); display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
+
+  @media (max-width: 700px) {
+    .page { padding: 24px 16px 64px; gap: 40px; }
+    .top { flex-direction: column; align-items: flex-start; gap: 12px; } .top .meta { margin-left: 0; text-align: left; } .top h1 { font-size: 34px; }
+    section > header { flex-direction: column; gap: 6px; } section > header p { margin: 0; text-align: left; }
+    .anat, .states, .mob, .spec { grid-template-columns: 1fr; gap: 22px; }
+    .grid { grid-template-columns: 1fr; } .railp, .sheet { width: 100%; }
+    .legend { grid-template-columns: 1fr; }
+    .states td:first-child { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-pause" viewBox="0 0 16 16"><path d="M5.5 3.5v9M10.5 3.5v9"/></symbol>
+  <symbol id="i-play" viewBox="0 0 16 16"><path d="M5 3.5l7 4.5-7 4.5z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 16 16"><path d="M9.5 2.5l4 4-2.5 1-2 3.5L5.5 7.5 9 5.5zM5.5 10.5l-3 3"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 16 16"><path d="M3.5 8h.01M8 8h.01M12.5 8h.01" stroke-width="2.4"/></symbol>
+</svg>
+
+<div class="page">
+
+  <div class="top">
+    <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+    <div>
+      <h1>The agent card</h1>
+      <div class="lede">One agent, one card in the rail: what it is called, what it is on, whether it is alone, and whether it needs you. Every state the kernel can report, drawn on the card's own ground.</div>
+    </div>
+    <div class="meta">Henosis · navigation · agent-card<br>Payments team, 7 Oct 2026<br>296 wide · fits the rail at every width</div>
+  </div>
+
+  <!-- ===================== 1. anatomy ===================== -->
+  <section>
+    <header><h2>Anatomy</h2><span class="k">01</span><p>Three lines, every one earning its place: the head says who and whether it needs you, the middle says what it is on, the foot says with whom and at what cost.</p></header>
+    <div class="anat">
+      <div class="railp">
+        <div class="cap">Agents <span class="n">6</span></div>
+        <a class="agent is-active" href="#">
+          <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="badge">1</span></span>
+          <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page: tax lines under the subtotal, proration as its own row</span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span><span class="bar"><i style="width:62%"></i></span></span></span>
+        </a>
+        <span class="pin" style="left:-11px;top:54px">1</span>
+        <span class="pin" style="right:-11px;top:54px">2</span>
+        <span class="pin" style="right:-11px;top:92px">3</span>
+        <span class="pin" style="left:-11px;top:134px">4</span>
+        <span class="pin" style="left:96px;top:160px">5</span>
+        <span class="pin" style="right:-11px;top:134px">6</span>
+      </div>
+      <ol class="legend">
+        <li><span class="num">1</span><span><b>Status dot</b>The five status words as one 8px dot: green pulses while running, amber for an approval, coral when blocked, grey disc when paused, a ring when idle, a faint ring when closed.</span></li>
+        <li><span class="num">2</span><span><b>Pending badge</b>Approvals waiting, in mono on amber. Pops when the count changes. Absent at zero; the card never shows a 0.</span></li>
+        <li><span class="num">3</span><span><b>Doing line</b>An italic serif lead and a plain tail, two lines at most: <i class="serif i">working on</i> the goal, <i class="serif i">waiting on</i> an approval, <i class="serif i">last</i> the summary.</span></li>
+        <li><span class="num">4</span><span><b>Solo / Team pill</b>Team when more than one person is in the session or it is in a crew; apricot so it reads from across the room. Solo is an outline and keeps its place so the foot never jumps.</span></li>
+        <li><span class="num">5</span><span><b>Who</b>Up to three online people, the driver ringed in apricot, then "with Ana, Bo"; a solo card names its owner instead.</span></li>
+        <li><span class="num">6</span><span><b>Tokens</b>Compact spend at the end of the line, with a 2px hairline when the policy sets a budget: apricot, amber past 80%, coral past 100%. It is watched, never a gate.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===================== 2. the six states ===================== -->
+  <section>
+    <header><h2>The six states</h2><span class="k">02</span><p>The status word, the dot and the lead word always agree. Only the head and the lead change between states; the shape of the card does not, so the rail stays still while agents move through their day.</p></header>
+    <div class="states">
+      <div class="railp">
+        <div class="cap">Agents <span class="n">6</span></div>
+        <a class="agent" href="#">
+          <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span></span>
+          <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page</span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span></span></span>
+        </a>
+        <a class="agent" href="#">
+          <span class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines</span><span class="badge">1</span></span>
+          <span class="doing"><i>waiting on</i> an approval · tax lines on Checkout</span>
+          <span class="foot"><span class="pill solo">Solo</span><span class="with">Cy</span><span class="tokens"><span>8.1k</span></span></span>
+        </a>
+        <a class="agent" href="#">
+          <span class="head"><span class="dot blocked"></span><span class="t">Proration</span></span>
+          <span class="doing"><i>blocked on</i> proration for mid-cycle plan changes: two directions for <b>Checkout</b></span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">D</span></span><span class="with">with Dee</span><span class="tokens"><span>21.0k</span></span></span>
+        </a>
+        <a class="agent" href="#">
+          <span class="head"><span class="dot paused"></span><span class="t">Checkout copy</span></span>
+          <span class="doing"><i>paused on</i> the error states of the Checkout form</span>
+          <span class="foot"><span class="pill solo">Solo</span><span class="with">Bo</span><span class="tokens"><span>4.6k</span></span></span>
+        </a>
+        <a class="agent" href="#">
+          <span class="head"><span class="dot idle"></span><span class="t">Billing page</span></span>
+          <span class="doing"><i>last</i> moved the tax lines under the subtotal and left a note for Ana</span>
+          <span class="foot"><span class="pill solo">Solo</span><span class="with">Ana</span><span class="tokens"><span>3.2k</span></span></span>
+        </a>
+        <a class="agent closed" href="#">
+          <span class="head"><span class="dot closed"></span><span class="t">Receipt emails</span></span>
+          <span class="doing"><i>last</i> united receipt-emails into main</span>
+          <span class="foot"><span class="pill solo">Solo</span><span class="with">Cy</span><span class="tokens"><span>17.8k</span></span></span>
+        </a>
+      </div>
+      <table>
+        <thead><tr><th>Status</th><th>Dot</th><th>Lead</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td><span class="sw" style="background:#9BC88F"></span>Running</td><td>green, pulses 1.6s</td><td><i class="lead">working on</i> the goal</td><td>A turn is in flight. The pulse is the only motion a resting rail carries; calm mode stops it.</td></tr>
+          <tr><td><span class="sw" style="background:#E2B06A"></span>Awaiting approval</td><td>amber, 3px halo</td><td><i class="lead">waiting on</i> an approval · the goal</td><td>The agent asked and holds. The badge appears beside the name with the count; the card rises to the top of its crew.</td></tr>
+          <tr><td><span class="sw" style="background:#E2847A"></span>Blocked</td><td>coral, no halo</td><td><i class="lead">blocked on</i> the goal</td><td>Contention or a failed gate. The tail names what blocks it when the report says; the name of the scope is bold.</td></tr>
+          <tr><td><span class="sw" style="background:#AEB4C2"></span>Paused</td><td>grey disc</td><td><i class="lead">paused on</i> the goal</td><td>A person pressed pause. The goal stays so anyone can resume with context.</td></tr>
+          <tr><td><span class="sw" style="background:transparent;box-shadow:inset 0 0 0 1.5px #AEB4C2"></span>Idle</td><td>hollow ring</td><td><i class="lead">last</i> the summary</td><td>Between turns, nothing owed. The summary replaces the goal so the rail reads as a log of what was done.</td></tr>
+          <tr><td><span class="sw" style="background:transparent;box-shadow:inset 0 0 0 1.5px rgba(174,180,194,.5)"></span>Closed</td><td>faint ring, card at 62%</td><td><i class="lead">last</i> the summary</td><td>The session is over. It stays in the rail until the day ends so its spend and its last line are still a glance away.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== 3. solo and team ===================== -->
+  <section>
+    <header><h2>Solo and team</h2><span class="k">03</span><p>The pill answers one question, "is anyone else in here?". The foot answers "who". A crew groups cards under a serif name with the apricot ring.</p></header>
+    <div class="grid">
+      <div class="cell">
+        <div class="lab"><b>Solo</b> owner only <span class="mono">pill.solo</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot running"></span><span class="t">Billing page</span></span>
+            <span class="doing"><i>working on</i> the Billing page summary row</span>
+            <span class="foot"><span class="pill solo">Solo</span><span class="with">Ana</span><span class="tokens"><span>3.2k</span></span></span>
+          </a>
+        </div>
+        <div class="why">The owner's name sits where "with …" would. When the owner is you, the card says "you".</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Team</b> two people, one driving <span class="mono">pill.team</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span></span>
+            <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page</span>
+            <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span></span></span>
+          </a>
+        </div>
+        <div class="why">Ana has the baton, so her avatar wears the apricot ring. The pill crossfades Solo → Team the moment Bo joins.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Team</b> four people, long names <span class="mono">stack ≤ 3</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot awaiting_approval"></span><span class="t">Proration for mid-cycle plan changes</span><span class="badge">3</span></span>
+            <span class="doing"><i>waiting on</i> an approval · proration for mid-cycle plan changes on Checkout and the Billing page</span>
+            <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar">A</span><span class="avatar driver">B</span><span class="avatar">C</span></span><span class="with">with Ana, Bo, Cy, Dee</span><span class="tokens"><span>21.0k</span></span></span>
+          </a>
+        </div>
+        <div class="why">The name truncates, the doing line clamps at two, the stack caps at three, the "with" list ellipsises before the tokens do. Nothing wraps.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Crew</b> two agents on one task <span class="mono">.crew</span></div>
+        <div class="railp">
+          <div class="crew"><span class="serif">Invoice rollout</span> · 2 agents</div>
+          <a class="agent" href="#">
+            <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span></span>
+            <span class="doing"><i>working on</i> the invoice PDF layout</span>
+            <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span></span><span class="with">with Ana</span><span class="tokens"><span>12.4k</span></span></span>
+          </a>
+          <a class="agent" href="#">
+            <span class="head"><span class="dot running"></span><span class="t">Tax lines</span></span>
+            <span class="doing"><i>working on</i> tax lines on Checkout</span>
+            <span class="foot"><span class="pill team">Team</span><span class="with">Cy</span><span class="tokens"><span>8.1k</span></span></span>
+          </a>
+        </div>
+        <div class="why">A crew makes both cards Team even when each has one person: the crewmate is in the other's context.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Team, you alone online</b> <span class="mono">with = []</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot idle"></span><span class="t">Checkout copy</span></span>
+            <span class="doing"><i>last</i> rewrote the three Checkout error states</span>
+            <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">D</span></span><span class="with">you</span><span class="tokens"><span>4.6k</span></span></span>
+          </a>
+        </div>
+        <div class="why">Dee is in the session but offline, so it is still a Team card; the foot names you because nobody else is here now.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>No report yet</b> freshly joined <span class="mono">report = null</span></div>
+        <div class="railp">
+          <a class="agent is-enter" href="#">
+            <span class="head"><span class="dot idle"></span><span class="t">Receipt emails</span></span>
+            <span class="doing"><i>waiting for</i> a goal</span>
+            <span class="foot"><span class="pill solo">Solo</span><span class="with">Bo</span></span>
+          </a>
+        </div>
+        <div class="why">A card with nothing to say says so. No tokens chip until there is spend. It rises in, 8px up and a fade, the only entrance in the rail.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 4. tokens and badge ===================== -->
+  <section>
+    <header><h2>Tokens and the pending badge</h2><span class="k">04</span><p>Two numbers people glance at. The badge is urgent and amber; the tokens are quiet and mono until the budget says otherwise.</p></header>
+    <div class="grid">
+      <div class="cell">
+        <div class="lab"><b>Spend, no budget</b> <span class="mono">compactTokens</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span></span>
+            <span class="doing"><i>working on</i> the invoice PDF layout</span>
+            <span class="foot"><span class="pill solo">Solo</span><span class="with">Ana</span><span class="tokens"><span>12.4k</span></span></span>
+          </a>
+        </div>
+        <div class="why">Rounded to one decimal under 100k, whole thousands above. Hover reads the full "12,412 tokens".</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Budget, 62%</b> <span class="mono">.tokens .bar</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot running"></span><span class="t">Tax lines</span></span>
+            <span class="doing"><i>working on</i> tax lines on Checkout</span>
+            <span class="foot"><span class="pill solo">Solo</span><span class="with">Cy</span><span class="tokens"><span>12.4k</span><span class="bar"><i style="width:62%"></i></span></span></span>
+          </a>
+        </div>
+        <div class="why">A 44px hairline under the number. Apricot while under 80%.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Budget, 91%</b> <span class="mono">.tokens.warn</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot running"></span><span class="t">Proration</span></span>
+            <span class="doing"><i>working on</i> proration for mid-cycle plan changes</span>
+            <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">D</span></span><span class="with">with Dee</span><span class="tokens warn"><span>18.2k</span><span class="bar"><i style="width:91%"></i></span></span></span>
+          </a>
+        </div>
+        <div class="why">Amber number and bar past 80%. The same amber as the approval dot: both mean "look soon".</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Budget, 124%</b> <span class="mono">.tokens.over</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot running"></span><span class="t">Billing page</span></span>
+            <span class="doing"><i>working on</i> the Billing page summary row and the invoice PDF</span>
+            <span class="foot"><span class="pill solo">Solo</span><span class="with">Ana</span><span class="tokens over"><span>24.8k</span><span class="bar"><i style="width:100%"></i></span></span></span>
+          </a>
+        </div>
+        <div class="why">Coral past 100%, bar full. Still running: the budget is watched, not enforced.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>One approval</b> <span class="mono">.badge</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines</span><span class="badge">1</span></span>
+            <span class="doing"><i>waiting on</i> an approval · tax lines on Checkout</span>
+            <span class="foot"><span class="pill solo">Solo</span><span class="with">Cy</span><span class="tokens"><span>8.1k</span></span></span>
+          </a>
+        </div>
+        <div class="why">Amber disc, navy mono digit, 20px. It replaces nothing: the name shortens to make room.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Three, while running</b> <span class="mono">pending 3 · running</span></div>
+        <div class="railp">
+          <a class="agent" href="#">
+            <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="badge pop">3</span></span>
+            <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page</span>
+            <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span></span></span>
+          </a>
+        </div>
+        <div class="why">Approvals can queue from an earlier turn while the agent continues. The dot stays green; the badge carries the ask.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 5. interaction ===================== -->
+  <section>
+    <header><h2>Rest, hover, active, focus, pressed</h2><span class="k">05</span><p>The card is a link. Hover lifts it one shade and reveals a quiet row of actions; active is the apricot wash with a 3px bar in the gutter; focus is the glow. Nothing moves except the pressed scale.</p></header>
+    <div class="grid">
+      <div class="cell">
+        <div class="lab"><b>Rest</b> <span class="mono">.agent</span></div>
+        <div class="railp"><a class="agent" href="#">
+          <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span></span>
+          <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page</span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span></span></span>
+        </a></div>
+        <div class="why">Transparent on the rail. The card's edge is the rail's own padding.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Hover</b> <span class="mono">.agent:hover</span></div>
+        <div class="railp"><a class="agent is-hover" href="#">
+          <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span></span>
+          <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page</span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span></span></span>
+          <span class="peek"><span>turn 14 · Ana driving</span><kbd>⌘2</kbd><span class="act"><button title="Pause"><svg class="ic"><use href="#i-pause"/></svg></button><button title="Pin"><svg class="ic"><use href="#i-pin"/></svg></button><button title="More"><svg class="ic"><use href="#i-dots"/></svg></button></span></span>
+        </a></div>
+        <div class="why">rail-2 background, 150ms. The peek row adds turn, driver, the jump shortcut and three actions; it is also what the Details drawer shows, so nothing is only on hover.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Active</b> this session is open <span class="mono">.agent.active</span></div>
+        <div class="railp"><a class="agent is-active" href="#">
+          <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span></span>
+          <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page</span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span></span></span>
+        </a></div>
+        <div class="why">Apricot wash at 18%, 1px inset ring at 35%, and a 3px apricot bar in the rail gutter so the eye finds it even when the rail scrolls.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Focus</b> keyboard <span class="mono">:focus-visible</span></div>
+        <div class="railp"><a class="agent is-focus" href="#">
+          <span class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines</span><span class="badge">1</span></span>
+          <span class="doing"><i>waiting on</i> an approval · tax lines on Checkout</span>
+          <span class="foot"><span class="pill solo">Solo</span><span class="with">Cy</span><span class="tokens"><span>8.1k</span></span></span>
+        </a></div>
+        <div class="why">Two rings: 2px of rail, then 2px of apricot at 60%. Same on every theme because the rail is navy on both.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Pressed</b> <span class="mono">.agent:active</span></div>
+        <div class="railp"><a class="agent is-press" href="#">
+          <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span></span>
+          <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page</span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span></span></span>
+        </a></div>
+        <div class="why">Scale .985 for the press, 120ms. The wash lands with it so the click feels answered before the view changes.</div>
+      </div>
+      <div class="cell">
+        <div class="lab"><b>Hover on active</b> <span class="mono">.active:hover</span></div>
+        <div class="railp"><a class="agent is-active is-hover" href="#">
+          <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span></span>
+          <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page</span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span></span></span>
+          <span class="peek"><span>turn 14 · Ana driving</span><kbd>⌘2</kbd><span class="act"><button title="Pause"><svg class="ic"><use href="#i-pause"/></svg></button><button title="Pin"><svg class="ic"><use href="#i-pin"/></svg></button><button title="More"><svg class="ic"><use href="#i-dots"/></svg></button></span></span>
+        </a></div>
+        <div class="why">Active wins the background; hover still brings the peek row.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 6. mobile ===================== -->
+  <section>
+    <header><h2>In the mobile rail</h2><span class="k">06</span><p>The rail becomes a sheet. The same card, two points larger, with a 44px tap target per line of the foot.</p></header>
+    <div class="mob">
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="cap" style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rail-muted);padding:2px 12px 6px;display:flex">Agents <span style="margin-left:auto;letter-spacing:0">4</span></div>
+        <a class="agent is-active" href="#">
+          <span class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="badge">1</span></span>
+          <span class="doing"><i>working on</i> the invoice PDF layout for the Billing page</span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">A</span><span class="avatar">B</span></span><span class="with">with Ana, Bo</span><span class="tokens"><span>12.4k</span></span></span>
+        </a>
+        <a class="agent" href="#">
+          <span class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines</span><span class="badge">1</span></span>
+          <span class="doing"><i>waiting on</i> an approval · tax lines on Checkout</span>
+          <span class="foot"><span class="pill solo">Solo</span><span class="with">Cy</span><span class="tokens"><span>8.1k</span></span></span>
+        </a>
+        <a class="agent" href="#">
+          <span class="head"><span class="dot blocked"></span><span class="t">Proration</span></span>
+          <span class="doing"><i>blocked on</i> proration for mid-cycle plan changes</span>
+          <span class="foot"><span class="pill team">Team</span><span class="stack"><span class="avatar driver">D</span></span><span class="with">with Dee</span><span class="tokens"><span>21.0k</span></span></span>
+        </a>
+        <a class="agent" href="#">
+          <span class="head"><span class="dot idle"></span><span class="t">Billing page</span></span>
+          <span class="doing"><i>last</i> moved the tax lines under the subtotal</span>
+          <span class="foot"><span class="pill solo">Solo</span><span class="with">Ana</span><span class="tokens"><span>3.2k</span></span></span>
+        </a>
+      </div>
+      <div class="notes">
+        <p>The sheet opens from the bottom tab. Awaiting-approval cards sort first, then running, then the rest by last activity, so the one that needs a thumb is under it.</p>
+        <p>No hover exists here: the peek row's actions live in a long-press menu with the same three verbs, Pause, Pin, More.</p>
+        <p>The budget hairline is kept; it is 2px and reads at arm's length because it is the only colour in the foot besides the pill.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 7. spec ===================== -->
+  <section>
+    <header><h2>Spec</h2><span class="k">07</span><p>Numbers to build from. Everything else is tokens.css.</p></header>
+    <div class="spec">
+      <div class="card"><h3>Box</h3><dl>
+        <dt>Width</dt><dd>rail-w − 28 = 268</dd>
+        <dt>Padding</dt><dd>10 12</dd>
+        <dt>Radius</dt><dd>var(--radius) 14</dd>
+        <dt>Row gap</dt><dd>5</dd>
+        <dt>Height</dt><dd>84–104 (2-line doing)</dd>
+        <dt>Between cards</dt><dd>6</dd>
+      </dl></div>
+      <div class="card"><h3>Type</h3><dl>
+        <dt>Name</dt><dd>Instrument Serif 16</dd>
+        <dt>Lead</dt><dd>Serif italic 13, apricot</dd>
+        <dt>Doing</dt><dd>Sans 13/1.4, clamp 2</dd>
+        <dt>Foot</dt><dd>Sans 12, rail-muted</dd>
+        <dt>Tokens, badge</dt><dd>JetBrains Mono 11.5</dd>
+      </dl></div>
+      <div class="card"><h3>Colour</h3><dl>
+        <dt>Running</dt><dd>#9BC88F + 3px 25% halo</dd>
+        <dt>Awaiting</dt><dd>#E2B06A + 3px 25% halo</dd>
+        <dt>Blocked</dt><dd>#E2847A</dd>
+        <dt>Paused</dt><dd>#AEB4C2 disc</dd>
+        <dt>Idle / Closed</dt><dd>ring 1.5px, 100% / 45%</dd>
+        <dt>Hover / Active</dt><dd>rail-2 / rail-active</dd>
+      </dl></div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

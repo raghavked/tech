@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Search</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ==========================================================================================
+     Search. One query across everything the team keeps: sessions, messages, memory, people
+     and agents. The query bar carries the scope (Payments) and the live filters as chips; a
+     row of kinds under it carries the counts, and "All" shows every kind as a short group
+     with a "Show all" link. Matches are drawn as weight and ink, never a yellow background.
+     A refine column on the right answers the next question (who said it, where, when).
+     ========================================================================================== */
+  :root {
+    --match: var(--ink); --rest: var(--ink-2);
+    --key-bg: var(--surface-2); --key-line: var(--line); --key-fg: var(--ink-2);
+    --ok-dot: var(--ok); --warn-dot: var(--warn);
+    --agent-grad: var(--gradient-brand);
+    --hit-bg: var(--surface); --hit-on: var(--apricot-soft); --hit-on-line: rgba(207,167,130,0.55);
+    --tab-line: var(--apricot-deep);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --match: #F6F0E6; --rest: #B4BAC6;
+    --key-bg: rgba(240,234,224,0.07); --key-line: rgba(240,234,224,0.12);
+    --ok-dot: #8FC386; --warn-dot: #E2B06A; --ok: #8FC386; --warn: #E2B06A; --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18); --ok-soft: rgba(143,195,134,0.18); --warn-soft: rgba(226,176,106,0.18);
+    --agent-grad: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+    --hit-on: rgba(226,196,166,0.11); --hit-on-line: rgba(226,196,166,0.38);
+    --tab-line: var(--apricot);
+  } }
+  :root[data-theme="dark"] {
+    --match: #F6F0E6; --rest: #B4BAC6;
+    --key-bg: rgba(240,234,224,0.07); --key-line: rgba(240,234,224,0.12);
+    --ok-dot: #8FC386; --warn-dot: #E2B06A; --ok: #8FC386; --warn: #E2B06A; --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18); --ok-soft: rgba(143,195,134,0.18); --warn-soft: rgba(226,176,106,0.18);
+    --agent-grad: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+    --hit-on: rgba(226,196,166,0.11); --hit-on-line: rgba(226,196,166,0.38);
+    --tab-line: var(--apricot);
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  .shell { height: 100vh; }
+  .ic { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--key-bg); border: 1px solid var(--key-line); color: var(--key-fg); font-family: var(--mono); font-size: 11.5px; line-height: 1; }
+  .keys { display: inline-flex; align-items: center; gap: 4px; }
+  b.m { font-weight: 600; color: var(--match); }
+  .name b.m { font-weight: 400; }
+
+  /* ---------- rail ---------- */
+  .rail .brand .mark { width: 28px; height: 28px; }
+  .rail .search { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-active); color: var(--rail-fg); font-size: 13.5px; box-shadow: inset 0 0 0 1px rgba(226,196,166,0.35); }
+  .rail .search .keys { margin-left: auto; }
+  .rail .search .kbd { background: rgba(243,237,228,0.08); border-color: rgba(243,237,228,0.14); color: var(--rail-muted); }
+  .rail .me .avatar { border-color: var(--rail); }
+  .rail .avatar.agent .mark { width: 14px; height: 14px; }
+
+  /* ---------- page ---------- */
+  .topbar .crumb { color: var(--ink-3); font-size: 14px; }
+  .topbar .kbd-btn { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 12px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 13px; }
+  .page { width: min(1120px, 100%); margin: 0 auto; padding: 22px 28px 60px; display: flex; flex-direction: column; gap: 18px; }
+
+  .qbar { display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 18px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--team-glow); }
+  .qbar .ic { width: 20px; height: 20px; color: var(--accent); }
+  .qbar .field { flex: 1; min-width: 0; display: flex; align-items: center; font-size: 20px; color: var(--ink); line-height: 1.3; letter-spacing: -0.005em; }
+  .qbar .field .caret { display: inline-block; width: 1.5px; height: 24px; margin-left: 1px; background: var(--apricot-deep); animation: pulse 1.1s steps(2) infinite; }
+  .qbar .scope { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px 0 9px; border-radius: var(--radius-full); background: var(--apricot-soft); color: var(--ink); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+  .qbar .scope .serif { font-size: 15px; }
+  .qbar .scope::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot-deep); }
+  .qbar .clear { width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--ink-2); display: grid; place-items: center; cursor: pointer; }
+  .qbar .clear .ic { width: 14px; height: 14px; color: inherit; }
+
+  .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: -6px; }
+  .filters .chip { height: 30px; gap: 7px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-weight: 500; }
+  .filters .chip .k { color: var(--ink-3); font-weight: 400; }
+  .filters .chip .x { width: 16px; height: 16px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; color: var(--ink-2); }
+  .filters .chip .x .ic { width: 10px; height: 10px; stroke-width: 2.2; }
+  .filters .chip.add { border-style: dashed; color: var(--ink-2); font-weight: 400; }
+  .filters .syntax { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .filters .syntax code { padding: 1px 6px; border-radius: 6px; background: var(--key-bg); color: var(--ink-2); }
+
+  .tabs { display: flex; align-items: flex-end; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px 11px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: var(--ink-2); font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; }
+  .tab .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); padding: 1px 7px; border-radius: 999px; background: var(--surface-2); }
+  .tab.on { color: var(--ink); border-bottom-color: var(--tab-line); }
+  .tab.on .n { background: var(--apricot-soft); color: var(--ink); }
+  .tab.zero { color: var(--ink-3); }
+  .tabs .sum { margin-left: auto; padding: 8px 4px 11px; font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+  .tabs .sum .mono { font-size: 12.5px; }
+
+  .body { display: grid; grid-template-columns: minmax(0, 1fr) 272px; gap: 36px; align-items: start; }
+  .results { display: flex; flex-direction: column; gap: 26px; min-width: 0; }
+
+  .group { display: flex; flex-direction: column; gap: 6px; }
+  .group > .head { display: flex; align-items: baseline; gap: 10px; padding: 0 4px 6px; }
+  .group > .head h2 { font-size: 22px; }
+  .group > .head .n { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+  .group > .head .why { font-size: 13px; color: var(--ink-3); }
+  .group > .head .all { margin-left: auto; font-size: 13px; color: var(--accent); font-weight: 500; white-space: nowrap; }
+  .group > .head .all .ic { width: 13px; height: 13px; vertical-align: -2px; }
+
+  .hit { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; column-gap: 12px; align-items: start; padding: 11px 14px; border-radius: 14px; color: var(--ink); position: relative; cursor: pointer; }
+  .hit:hover { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .hit.on { background: var(--hit-on); box-shadow: inset 0 0 0 1px var(--hit-on-line); }
+  .hit .lead { width: 30px; height: 30px; display: grid; place-items: center; color: var(--ink-3); }
+  .hit .lead .ic { width: 18px; height: 18px; }
+  .hit.on .lead .ic { color: var(--accent); }
+  .hit .lead .avatar { width: 28px; height: 28px; font-size: 10.5px; border-width: 0; }
+  .hit .lead .avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--agent-grad); }
+  .hit .lead .avatar.agent .mark { width: 16px; height: 16px; }
+  .hit .main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .hit .t { display: flex; align-items: baseline; gap: 10px; min-width: 0; font-size: 15px; line-height: 1.35; }
+  .hit .t .name { font-family: var(--serif); font-size: 17.5px; color: var(--match); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hit .t .in { font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+  .hit .t .in .serif { font-size: 14.5px; color: var(--ink-2); }
+  .hit .t .in .serif.i { font-style: italic; color: var(--accent); }
+  .hit .snip { font-size: 14px; line-height: 1.5; color: var(--rest); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .hit .snip .ell { color: var(--ink-3); }
+  .hit .by { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); flex-wrap: wrap; }
+  .hit .by .serif { font-size: 14px; color: var(--ink-2); }
+  .hit .by .mono { font-size: 12px; }
+  .hit .by .sep { color: var(--line); }
+  .hit .right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; padding-top: 2px; }
+  .hit .right .status { font-size: 12.5px; }
+  .hit .right .status.running::before { background: var(--ok-dot); box-shadow: 0 0 0 3px var(--ok-soft); }
+  .hit .right .status.awaiting::before { background: var(--warn-dot); box-shadow: 0 0 0 3px var(--warn-soft); }
+  .hit .right .pill { height: 20px; font-size: 11px; }
+  .hit .right .pill.conflict { background: var(--danger-soft); color: var(--danger); }
+  .hit .right .pill.united { background: var(--ok-soft); color: var(--ok); }
+  .hit .right .enter { display: none; align-items: center; gap: 6px; color: var(--ink-2); }
+  .hit.on .right .enter { display: inline-flex; }
+  .hit .key { font-family: var(--mono); font-size: 12.5px; padding: 1px 7px; border-radius: 6px; background: var(--key-bg); color: var(--match); }
+  .hit .stack .avatar { width: 22px; height: 22px; font-size: 9px; border-width: 2px; }
+  .hit .stack .avatar + .avatar { margin-left: -4px; }
+  .hit .stack .avatar.agent { border-radius: 7px 7px 7px 2px; background: var(--agent-grad); }
+  .hit .stack .avatar.agent .mark { width: 12px; height: 12px; }
+
+  /* people & agents sit two-up to save height */
+  .group.two-up .list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; }
+  .group.two-up .hit .snip { -webkit-line-clamp: 1; }
+
+  .foot { display: flex; align-items: center; gap: 18px; padding: 14px 4px 0; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); }
+  .foot .k { display: inline-flex; align-items: center; gap: 7px; }
+  .foot .brandline { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; color: var(--ink-3); }
+  .foot .brandline .mark { width: 16px; height: 16px; }
+
+  /* ---------- refine ---------- */
+  .refine { display: flex; flex-direction: column; gap: 22px; position: sticky; top: 0; font-size: 14px; }
+  .refine h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .refine h3 .reset { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 12px; color: var(--accent); }
+  .facet { display: flex; align-items: center; gap: 9px; padding: 6px 8px; margin: 0 -8px; border-radius: 10px; color: var(--ink-2); cursor: pointer; }
+  .facet:hover { background: var(--surface); }
+  .facet .box { width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--ink-3); flex: none; display: grid; place-items: center; }
+  .facet .box.radio { border-radius: 50%; }
+  .facet.on { color: var(--ink); }
+  .facet.on .box { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .facet.on .box .ic { width: 10px; height: 10px; stroke-width: 2.6; }
+  .facet.on .box.radio { background: transparent; border-color: var(--accent); box-shadow: inset 0 0 0 3.5px var(--surface), inset 0 0 0 10px var(--accent); }
+  .facet .lab { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .facet .lab .serif { font-size: 15.5px; }
+  .facet .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .facet.on .n { color: var(--ink-2); }
+  .facet .avatar { width: 22px; height: 22px; font-size: 9px; border-width: 0; flex: none; }
+  .facet .avatar.agent { border-radius: 7px 7px 7px 2px; background: var(--agent-grad); }
+  .facet .avatar.agent .mark { width: 13px; height: 13px; }
+  .facet .bar { height: 4px; border-radius: 2px; background: var(--apricot-soft); flex: none; width: 48px; overflow: hidden; }
+  .facet .bar i { display: block; height: 100%; background: var(--apricot-deep); border-radius: inherit; }
+  .refine .save { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
+  .refine .save .t { font-family: var(--serif); font-size: 17px; }
+  .refine .save p { margin: 0; font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+  .refine .save .btn { align-self: flex-start; }
+  .refine .recent { display: flex; flex-wrap: wrap; gap: 6px; }
+  .refine .recent .chip { height: 26px; font-size: 12.5px; padding: 0 10px; }
+
+  /* ---------- phone ---------- */
+  .mob-filters { display: none; }
+  @media (max-width: 600px) {
+    .rail { display: none; }
+    .topbar { padding: 12px 16px; }
+    .topbar .right .kbd-btn, .topbar .crumb { display: none; }
+    .page { padding: 14px 16px 40px; gap: 14px; }
+    .qbar { padding: 10px 10px 10px 14px; border-radius: 16px; }
+    .qbar .field { font-size: 17px; }
+    .qbar .scope .lab { display: none; }
+    .filters .syntax { display: none; }
+    .filters .chip.add { display: none; }
+    .mob-filters { display: inline-flex; margin-left: auto; }
+    .tabs .sum { display: none; }
+    .body { grid-template-columns: 1fr; gap: 0; }
+    .refine { display: none; }
+    .hit { padding: 10px 10px; grid-template-columns: 28px minmax(0, 1fr); }
+    .hit .right { display: none; }
+    .hit .t { flex-wrap: wrap; gap: 2px 8px; }
+    .hit .t .in { white-space: normal; }
+    .group.two-up .list { grid-template-columns: 1fr; }
+    .group > .head h2 { font-size: 20px; }
+    .foot .k { display: none; } .foot .k.keep { display: inline-flex; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      Henosis
+    </div>
+    <button class="new"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>proration <span class="keys"><span class="kbd">⌘</span><span class="kbd">K</span></span></div>
+
+    <div class="section">Billing page <span class="n">4</span></div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Ana's agent</span><span class="pill team">Team</span></div>
+      <div class="doing">Step 3 of 5 · <i>prorate the first invoice line</i></div>
+      <div class="foot"><span class="stack"><span class="avatar driver">An</span><span class="avatar">De</span></span><span>with Dee</span><span class="mono" style="margin-left:auto">41k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Bo's agent</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Waits on an approval · <i>write tax-lines.ts</i></div>
+      <div class="foot"><span class="avatar">Bo</span><span class="mono" style="margin-left:auto">18k</span></div>
+    </a>
+    <div class="crew"><span class="serif">Invoice rollout</span> · 2 agents</div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Cy's agent</span><span class="pill team">Team</span></div>
+      <div class="doing"><i>invoice PDF</i> · header block and totals</div>
+      <div class="foot"><span class="avatar">Cy</span><span class="mono" style="margin-left:auto">27k</span></div>
+    </a>
+    <div class="section">Checkout <span class="n">1</span></div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div>
+      <div class="doing">United <i>checkout-proration</i> into main</div>
+      <div class="foot"><span class="avatar">De</span><span class="mono" style="margin-left:auto">12k</span></div>
+    </a>
+    <div class="me"><span class="avatar">An</span><span>Ana</span><span class="pill solo" style="margin-left:auto">Payments</span></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="title"><span>Search</span><span class="crumb">Payments · everything the team keeps</span></div>
+      <div class="right">
+        <span class="kbd-btn">Commands <span class="keys"><span class="kbd">⌘</span><span class="kbd">K</span></span></span>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="page">
+
+        <div class="qbar">
+          <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <div class="field">proration<span class="caret"></span></div>
+          <span class="scope"><span class="lab">in</span><span class="serif">Payments</span></span>
+          <button class="clear" aria-label="Clear"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        </div>
+
+        <div class="filters">
+          <span class="chip"><span class="k">when</span>last 30 days<span class="x"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span></span>
+          <span class="chip"><span class="k">in</span>Billing page, Checkout<span class="x"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span></span>
+          <span class="chip add"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M12 5v14M5 12h14"/></svg>Add a filter</span>
+          <span class="btn sm mob-filters">Filters · 2</span>
+          <span class="syntax">try <code>from:bo</code> <code>in:#billing</code> <code>before:friday</code></span>
+        </div>
+
+        <div class="tabs">
+          <span class="tab on">All <span class="n">38</span></span>
+          <span class="tab">Sessions <span class="n">6</span></span>
+          <span class="tab">Messages <span class="n">14</span></span>
+          <span class="tab">Memory <span class="n">9</span></span>
+          <span class="tab">People <span class="n">3</span></span>
+          <span class="tab">Agents <span class="n">6</span></span>
+          <span class="sum">38 results in <span class="mono">0.08 s</span> · newest first</span>
+        </div>
+
+        <div class="body">
+          <div class="results">
+
+            <!-- Sessions -->
+            <section class="group">
+              <div class="head"><h2>Sessions</h2><span class="n">6</span><span class="why">title, goal or intent</span><a class="all" href="#">Show all 6 <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></div>
+              <a class="hit on" href="#">
+                <span class="lead"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 10h8M8 14h5"/></svg></span>
+                <span class="main">
+                  <span class="t"><span class="name"><b class="m">Proration</b> on plan change</span><span class="in">in <span class="serif">Billing page</span></span></span>
+                  <span class="snip">Goal: when a customer moves between plans mid-cycle, credit the unused days and charge the <b class="m">proration</b> as its own invoice line, before tax.</span>
+                  <span class="by"><span class="stack"><span class="avatar driver">An</span><span class="avatar">De</span><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span></span><span class="serif">Ana</span> drives, with <span class="serif">Dee</span> <span class="sep">·</span> plan rated 4 and 5 <span class="sep">·</span> <span class="mono">41k</span> of 60k</span>
+                </span>
+                <span class="right"><span class="status running">Running</span><span class="enter"><span class="kbd">↵</span> open</span></span>
+              </a>
+              <a class="hit" href="#">
+                <span class="lead"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 10h8M8 14h5"/></svg></span>
+                <span class="main">
+                  <span class="t"><span class="name">Tax lines on the invoice PDF</span><span class="in">in <span class="serif">Billing page</span></span></span>
+                  <span class="snip"><span class="ell">…</span>recompute the <b class="m">proration</b> before the tax lines so VAT applies to the prorated amount, not the full month<span class="ell">…</span></span>
+                  <span class="by"><span class="avatar" style="width:20px;height:20px;font-size:9px;border-width:0">Bo</span><span class="serif">Bo</span><span class="sep">·</span> solo <span class="sep">·</span> one approval waits on a rating <span class="sep">·</span> yesterday</span>
+                </span>
+                <span class="right"><span class="status awaiting">Awaiting approval</span><span class="faint">16:12</span></span>
+              </a>
+              <a class="hit" href="#">
+                <span class="lead"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 10h8M8 14h5"/></svg></span>
+                <span class="main">
+                  <span class="t"><span class="name">Checkout: the first invoice</span><span class="in">in <span class="serif">Checkout</span></span></span>
+                  <span class="snip">Intent: show the <b class="m">prorated</b> first charge on the checkout summary with the words "you pay for the rest of this month".</span>
+                  <span class="by"><span class="avatar" style="width:20px;height:20px;font-size:9px;border-width:0">De</span><span class="serif">Dee</span><span class="sep">·</span> solo <span class="sep">·</span> united <span class="mono">checkout-proration</span> into main <span class="sep">·</span> 3 days ago</span>
+                </span>
+                <span class="right"><span class="pill united">United</span><span class="faint">Fri</span></span>
+              </a>
+            </section>
+
+            <!-- Messages -->
+            <section class="group">
+              <div class="head"><h2>Messages</h2><span class="n">14</span><span class="why">human 6 · agent 5 · team 3</span><a class="all" href="#">Show all 14 <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></div>
+              <a class="hit" href="#">
+                <span class="lead"><span class="avatar">Bo</span></span>
+                <span class="main">
+                  <span class="t"><span class="name">Bo</span><span class="in">in <span class="serif">Tax lines on the invoice PDF</span></span></span>
+                  <span class="snip"><b class="m">Proration</b> should land before the tax lines. Otherwise VAT is charged on the full month and the credit note never balances.</span>
+                </span>
+                <span class="right"><span class="faint">yesterday 16:12</span></span>
+              </a>
+              <a class="hit" href="#">
+                <span class="lead"><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span></span>
+                <span class="main">
+                  <span class="t"><span class="name">Ana's agent</span><span class="in">in <span class="serif">Proration on plan change</span></span></span>
+                  <span class="snip">I will compute the <b class="m">proration</b> as days remaining over days in the cycle, rounded half-up to the cent, and write it as its own line on the invoice PDF.</span>
+                </span>
+                <span class="right"><span class="faint">2 h ago</span></span>
+              </a>
+              <a class="hit" href="#">
+                <span class="lead"><span class="avatar">Cy</span></span>
+                <span class="main">
+                  <span class="t"><span class="name">Cy</span><span class="in">to <span class="serif i">Team</span> in <span class="serif">#billing</span></span></span>
+                  <span class="snip">Cy's agent answered in #billing: the <b class="m">proration</b> credit on a downgrade is capped at what was already paid. Ana, does that match your plan?</span>
+                </span>
+                <span class="right"><span class="pill team">Team</span><span class="faint">Mon</span></span>
+              </a>
+              <a class="hit" href="#">
+                <span class="lead"><span class="avatar">De</span></span>
+                <span class="main">
+                  <span class="t"><span class="name">Dee</span><span class="in">to <span class="serif i">Team</span> in <span class="serif">Checkout: the first invoice</span></span></span>
+                  <span class="snip">Keep the wording on the checkout page. "You pay for the rest of this month" tested better than "<b class="m">prorated</b>" with the Payments team.</span>
+                </span>
+                <span class="right"><span class="pill team">Team</span><span class="faint">Fri</span></span>
+              </a>
+            </section>
+
+            <!-- Memory -->
+            <section class="group">
+              <div class="head"><h2>Memory</h2><span class="n">9</span><span class="why">facts, decisions, conventions</span><a class="all" href="#">Show all 9 <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></div>
+              <a class="hit" href="#">
+                <span class="lead"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 1 7 7c0 3-2 4.5-2 7H7c0-2.5-2-4-2-7a7 7 0 0 1 7-7z"/><path d="M9 21h6"/></svg></span>
+                <span class="main">
+                  <span class="t"><span class="key">billing.<b class="m">proration</b></span><span class="in"><span class="pill" style="height:18px;font-size:10.5px">decision</span></span></span>
+                  <span class="snip"><b class="m">Proration</b> is days remaining over days in the billing cycle, rounded half-up to the cent; never more than the full price of the cycle.</span>
+                  <span class="by">added by <span class="serif">Ana</span> <span class="sep">·</span> session <span class="mono">billing-42</span> <span class="sep">·</span> commit <span class="mono">9f3c1a</span> <span class="sep">·</span> Payments</span>
+                </span>
+                <span class="right"><span class="faint">2 h ago</span></span>
+              </a>
+              <a class="hit" href="#">
+                <span class="lead"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 1 7 7c0 3-2 4.5-2 7H7c0-2.5-2-4-2-7a7 7 0 0 1 7-7z"/><path d="M9 21h6"/></svg></span>
+                <span class="main">
+                  <span class="t"><span class="key">invoice.pdf.line-order</span><span class="in"><span class="pill" style="height:18px;font-size:10.5px">convention</span></span></span>
+                  <span class="snip">The invoice PDF lists <b class="m">proration</b> lines before tax lines, so tax is computed on the prorated amount.</span>
+                  <span class="by">added by <span class="serif">Bo</span> <span class="sep">·</span> session <span class="mono">billing-47</span> <span class="sep">·</span> Billing page</span>
+                </span>
+                <span class="right"><span class="faint">yesterday</span></span>
+              </a>
+              <a class="hit" href="#">
+                <span class="lead"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 1 7 7c0 3-2 4.5-2 7H7c0-2.5-2-4-2-7a7 7 0 0 1 7-7z"/><path d="M9 21h6"/></svg></span>
+                <span class="main">
+                  <span class="t"><span class="key">checkout.<b class="m">proration</b>.copy</span><span class="in"><span class="pill" style="height:18px;font-size:10.5px">fact</span></span></span>
+                  <span class="snip">The checkout summary labels the first charge "<b class="m">prorated</b>". Conflicts with Dee's entry from Friday; a lead has not resolved it.</span>
+                  <span class="by">added by <span class="serif">Cy</span> through Cy's agent <span class="sep">·</span> session <span class="mono">checkout-12</span> <span class="sep">·</span> Checkout</span>
+                </span>
+                <span class="right"><span class="pill conflict">Conflict</span><span class="faint">Mon</span></span>
+              </a>
+            </section>
+
+            <!-- People -->
+            <section class="group two-up">
+              <div class="head"><h2>People</h2><span class="n">3</span><span class="why">who said it or owns a session</span></div>
+              <div class="list">
+                <a class="hit" href="#">
+                  <span class="lead"><span class="avatar">An</span></span>
+                  <span class="main">
+                    <span class="t"><span class="name">Ana</span><span class="in">lead · Payments</span></span>
+                    <span class="snip">11 mentions in 4 sessions · drives one now</span>
+                  </span>
+                  <span class="right"><span class="status running">Online</span></span>
+                </a>
+                <a class="hit" href="#">
+                  <span class="lead"><span class="avatar">Bo</span></span>
+                  <span class="main">
+                    <span class="t"><span class="name">Bo</span><span class="in">contributor · Payments</span></span>
+                    <span class="snip">9 mentions in 3 sessions · waits on a rating</span>
+                  </span>
+                  <span class="right"><span class="status running">Online</span></span>
+                </a>
+                <a class="hit" href="#">
+                  <span class="lead"><span class="avatar">De</span></span>
+                  <span class="main">
+                    <span class="t"><span class="name">Dee</span><span class="in">contributor · Checkout</span></span>
+                    <span class="snip">5 mentions in 2 sessions · united one branch</span>
+                  </span>
+                  <span class="right"><span class="status">Away · 40 min</span></span>
+                </a>
+                <a class="hit" href="#">
+                  <span class="lead"><span class="avatar">Cy</span></span>
+                  <span class="main">
+                    <span class="t"><span class="name">Cy</span><span class="in">contributor · Payments</span></span>
+                    <span class="snip">Through Cy's agent only · 7 mentions in #billing</span>
+                  </span>
+                  <span class="right"><span class="faint">by agent</span></span>
+                </a>
+              </div>
+            </section>
+
+            <!-- Agents -->
+            <section class="group two-up">
+              <div class="head"><h2>Agents</h2><span class="n">6</span><span class="why">members on it, or who said it</span><a class="all" href="#">Show all 6 <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></div>
+              <div class="list">
+                <a class="hit" href="#">
+                  <span class="lead"><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span></span>
+                  <span class="main">
+                    <span class="t"><span class="name">Ana's agent</span><span class="in"><span class="pill team" style="height:18px;font-size:10.5px">Team</span></span></span>
+                    <span class="snip">On <b class="m">Proration</b> on plan change · step 3 of 5</span>
+                  </span>
+                  <span class="right"><span class="status running">Running</span></span>
+                </a>
+                <a class="hit" href="#">
+                  <span class="lead"><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span></span>
+                  <span class="main">
+                    <span class="t"><span class="name">Bo's agent</span><span class="in"><span class="pill solo" style="height:18px;font-size:10.5px">Solo</span></span></span>
+                    <span class="snip">On Tax lines on the invoice PDF · write tax-lines.ts</span>
+                  </span>
+                  <span class="right"><span class="status awaiting">Awaiting</span></span>
+                </a>
+                <a class="hit" href="#">
+                  <span class="lead"><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span></span>
+                  <span class="main">
+                    <span class="t"><span class="name">Cy's agent</span><span class="in">crew <span class="serif">Invoice rollout</span></span></span>
+                    <span class="snip">Answered 7 times in #billing · invoice PDF totals</span>
+                  </span>
+                  <span class="right"><span class="status running">Running</span></span>
+                </a>
+                <a class="hit" href="#">
+                  <span class="lead"><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span></span>
+                  <span class="main">
+                    <span class="t"><span class="name">Dee's agent</span><span class="in"><span class="pill solo" style="height:18px;font-size:10.5px">Solo</span></span></span>
+                    <span class="snip">United checkout-<b class="m">proration</b> into main · idle since Fri</span>
+                  </span>
+                  <span class="right"><span class="status paused">Idle</span></span>
+                </a>
+              </div>
+            </section>
+
+            <div class="foot">
+              <span class="k keep"><span class="keys"><span class="kbd">↑</span><span class="kbd">↓</span></span> move</span>
+              <span class="k keep"><span class="kbd">↵</span> open</span>
+              <span class="k"><span class="kbd">⇥</span> next kind</span>
+              <span class="k"><span class="keys"><span class="kbd">⌘</span><span class="kbd">K</span></span> commands</span>
+              <span class="brandline"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>Showing 18 of 38 across Payments</span>
+            </div>
+          </div>
+
+          <aside class="refine">
+            <div>
+              <h3>Said by <a class="reset" href="#">Anyone</a></h3>
+              <div class="facet"><span class="box"></span><span class="avatar">An</span><span class="lab"><span class="serif">Ana</span></span><span class="bar"><i style="width:100%"></i></span><span class="n">11</span></div>
+              <div class="facet"><span class="box"></span><span class="avatar">Bo</span><span class="lab"><span class="serif">Bo</span></span><span class="bar"><i style="width:82%"></i></span><span class="n">9</span></div>
+              <div class="facet"><span class="box"></span><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span><span class="lab"><span class="serif">Cy's agent</span></span><span class="bar"><i style="width:64%"></i></span><span class="n">7</span></div>
+              <div class="facet"><span class="box"></span><span class="avatar">De</span><span class="lab"><span class="serif">Dee</span></span><span class="bar"><i style="width:45%"></i></span><span class="n">5</span></div>
+              <div class="facet"><span class="box"></span><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span><span class="lab"><span class="serif">Ana's agent</span></span><span class="bar"><i style="width:36%"></i></span><span class="n">4</span></div>
+              <div class="facet"><span class="box"></span><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span><span class="lab"><span class="serif">Bo's agent</span></span><span class="bar"><i style="width:18%"></i></span><span class="n">2</span></div>
+            </div>
+            <div>
+              <h3>Where</h3>
+              <div class="facet on"><span class="box"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg></span><span class="lab"><span class="serif">Billing page</span></span><span class="n">26</span></div>
+              <div class="facet on"><span class="box"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg></span><span class="lab"><span class="serif">Checkout</span></span><span class="n">7</span></div>
+              <div class="facet"><span class="box"></span><span class="lab"><span class="serif">#billing</span> <span class="faint">group</span></span><span class="n">5</span></div>
+              <div class="facet"><span class="box"></span><span class="lab"><span class="serif">Platform</span> <span class="faint">project</span></span><span class="n">2</span></div>
+            </div>
+            <div>
+              <h3>When</h3>
+              <div class="facet"><span class="box radio"></span><span class="lab">Today</span><span class="n">4</span></div>
+              <div class="facet"><span class="box radio"></span><span class="lab">This week</span><span class="n">17</span></div>
+              <div class="facet on"><span class="box radio"></span><span class="lab">Last 30 days</span><span class="n">38</span></div>
+              <div class="facet"><span class="box radio"></span><span class="lab">Any time</span><span class="n">61</span></div>
+            </div>
+            <div>
+              <h3>Messages</h3>
+              <div class="facet on"><span class="box"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg></span><span class="lab">People</span><span class="n">6</span></div>
+              <div class="facet on"><span class="box"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg></span><span class="lab">Agents</span><span class="n">5</span></div>
+              <div class="facet on"><span class="box"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg></span><span class="lab">Team messages</span><span class="n">3</span></div>
+              <div class="facet"><span class="box"></span><span class="lab">Tool steps</span><span class="n">12</span></div>
+            </div>
+            <div class="save">
+              <span class="t">Keep this search</span>
+              <p>Saves "proration in Payments" to your rail and tells you when something new matches.</p>
+              <span class="btn sm primary">Save search</span>
+            </div>
+            <div>
+              <h3>Recent</h3>
+              <div class="recent"><span class="chip">invoice pdf</span><span class="chip">tax lines</span><span class="chip">from:bo checkout</span><span class="chip">in:#billing</span></div>
+            </div>
+          </aside>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

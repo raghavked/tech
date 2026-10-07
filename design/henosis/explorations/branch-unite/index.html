@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Compare main with try/monthly</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- two moments stacked: before the unite (one viewport), after the unite (grows) ---- */
+  body { overflow-x: hidden; }
+  .shell { height: 100vh; }
+  .shell.after { height: auto; min-height: 100vh; }
+  .shell.after .scroll { overflow: visible; }
+  .between { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 24px; background: var(--rail); color: var(--rail-muted); font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase; border-top: 1px solid var(--rail-line); border-bottom: 1px solid var(--rail-line); }
+  .between .serif { text-transform: none; letter-spacing: 0; font-size: 16px; color: var(--apricot); }
+  .between::after { content: ""; flex: 1; height: 1px; background: var(--rail-line); }
+
+  /* ---- rail ---- */
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .crew { padding-top: 8px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13px; margin-bottom: 4px; }
+  .rail .search kbd { margin-left: auto; font: 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 1px 5px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 4px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+  .rail .branches { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 0 22px; }
+  .rail .branches a { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 10px; font: 12.5px var(--mono); color: var(--rail-muted); }
+  .rail .branches a.on { color: var(--rail-fg); background: var(--rail-2); }
+  .rail .branches a i { width: 6px; height: 6px; border-radius: 50%; background: var(--rail-muted); flex: none; }
+  .rail .branches a.on i { background: var(--apricot); }
+
+  /* ---- topbar ---- */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .crumb { display: inline-flex; align-items: center; gap: 6px; font: 13px var(--font); color: var(--ink-2); }
+  .topbar .title .crumb svg { width: 14px; height: 14px; color: var(--ink-3); }
+  .topbar .title .crumb .mono { font-size: 12.5px; color: var(--ink); background: var(--surface-2); border-radius: 6px; padding: 1px 7px; }
+  .topbar .btn.sm svg { width: 14px; height: 14px; }
+  .topbar .menu { display: none; }
+  .topbar .btn.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+
+  /* ---- the compare page ---- */
+  .column.compare { --col: 1010px; padding: 18px 28px 14px; gap: 18px; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 0; }
+  .row .looks { margin-left: auto; font-size: 12.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
+  .row .looks i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); animation: pulse 1.6s ease-in-out 1s infinite; }
+  .btn { white-space: nowrap; }
+  .btn svg, .ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .btn.sm svg { width: 14px; height: 14px; }
+  h2 { font-size: 22px; }
+  .group h2 { display: flex; align-items: baseline; gap: 10px; }
+  .group h2 .count { font: 500 12.5px var(--font); color: var(--ink-3); }
+  .group h2 .legend { margin-left: auto; font: 12px var(--font); color: var(--ink-3); }
+  .group h2 .legend .mono { font-size: 12px; color: var(--ink-2); }
+
+  /* two sides with the mark between them */
+  .sides { display: grid; grid-template-columns: 1fr 72px 1fr; align-items: stretch; gap: 10px; }
+  .side { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 18px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 6px; min-width: 0; position: relative; overflow: hidden; }
+  .side.here::before, .side.other::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .side.here::before { background: var(--rail); } .side.other::before { background: var(--apricot); }
+  :root[data-theme="dark"] .side.here::before { background: var(--ink-3); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .side.here::before { background: var(--ink-3); } }
+  .side .name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .side .name .serif { font-size: 24px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side .name .pill { height: 20px; }
+  .side .name .pill.here { background: var(--rail); color: var(--rail-fg); }
+  :root[data-theme="dark"] .side .name .pill.here { background: var(--surface-3); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .side .name .pill.here { background: var(--surface-3); } }
+  .side .name .select { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px 0 11px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface-2); font: 12.5px var(--font); color: var(--ink-2); white-space: nowrap; }
+  .side .name .select .mono { font-size: 12px; color: var(--ink); }
+  .side .name .select svg { width: 12px; height: 12px; }
+  .side .facts { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+  .side .facts .mono { font-size: 12.5px; }
+  .side .facts .who { display: inline-flex; align-items: center; gap: 6px; }
+  .side .facts .who .avatar { width: 20px; height: 20px; font-size: 9px; border: 0; }
+  .side .facts .who .stack .avatar + .avatar { margin-left: -5px; }
+  .side .facts .avatar.driver { box-shadow: 0 0 0 1.5px var(--apricot-deep); }
+  .side .facts .serif { font-size: 15px; color: var(--ink); }
+  .side .fork { font-size: 12.5px; color: var(--ink-3); display: block; line-height: 1.5; }
+  .side .fork svg { width: 13px; height: 13px; color: var(--ink-3); vertical-align: -2px; margin-right: 5px; }
+  .side .fork .serif { color: var(--ink-2); font-size: 14px; }
+  .join { display: grid; place-items: center; position: relative; }
+  .join::before { content: ""; position: absolute; left: -10px; right: -10px; top: 50%; height: 1px; background: var(--line); }
+  .join svg { width: 56px; height: 56px; position: relative; filter: drop-shadow(0 6px 14px rgba(42,50,68,.18)); }
+  .join .arc { transform-origin: 48px 48px; }
+  .join.apart .arc.a { transform: translate(11px, 0); opacity: .9; }
+  .join.apart .arc.b { transform: translate(-11px, 0); opacity: .9; }
+  .join.apart .dot { opacity: 0; }
+  .join.closed .dot { animation: pop .5s cubic-bezier(.3,1.4,.4,1) .2s both; }
+  .join.closed .arc { animation: none; }
+  .join .lbl { position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); white-space: nowrap; font: 11px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+
+  /* files and turns side by side */
+  .grid { display: grid; grid-template-columns: 1.18fr 1fr; gap: 22px; align-items: start; }
+  .group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .frow { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line); min-height: 40px; }
+  .frow:first-child { border-top: 0; }
+  .frow .path { display: flex; align-items: center; gap: 9px; min-width: 0; font-family: var(--mono); font-size: 13px; color: var(--ink); }
+  .frow .path .dir { color: var(--ink-3); }
+  .frow .path span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .frow .path i { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--ink-3); }
+  .frow.other .path i { background: var(--apricot-deep); }
+  .frow.here .path i { background: var(--rail); }
+  :root[data-theme="dark"] .frow.here .path i { background: var(--rail-muted); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .frow.here .path i { background: var(--rail-muted); } }
+  .frow.both .path i { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+  .frow .note { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .frow.both .note { color: var(--warn); font-weight: 500; }
+  .frow .note .serif { font-size: 13.5px; color: inherit; }
+  .counts { font-family: var(--mono); font-size: 12.5px; display: inline-flex; gap: 8px; min-width: 76px; justify-content: flex-end; font-variant-numeric: tabular-nums; }
+  .counts .p { color: var(--ok); } .counts .m { color: var(--danger); }
+  .frow .state { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .frow .state svg { width: 14px; height: 14px; }
+  .frow .state.clean { color: var(--ok); }
+  .frow .state.conflict { color: var(--danger); }
+  .list .foot { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-top: 1px solid var(--line); background: var(--surface-2); font-size: 12.5px; color: var(--ink-2); }
+  .list .foot .mono { font-size: 12px; }
+  .list .foot .warn { color: var(--warn); font-weight: 500; }
+
+  .turns { display: flex; flex-direction: column; gap: 10px; }
+  .tside { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 10px 16px 6px; }
+  .tside .h { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding-bottom: 4px; }
+  .tside .h .serif { font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--ink); }
+  .tside .h .status { margin-left: auto; font-size: 12px; }
+  .turn { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; }
+  .turn .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); padding-top: 2px; }
+  .turn .n b { color: var(--ink); font-weight: 500; }
+  .turn .b { min-width: 0; color: var(--ink); }
+  .turn .b .faint { font-size: 12.5px; }
+  .turn .b .wait { color: var(--warn); }
+  .tside.other .turn:first-of-type .n b { color: var(--accent); }
+
+  /* the unite bar, where the composer would be */
+  .unite-wrap { position: sticky; bottom: 0; padding: 10px 28px 18px; background: linear-gradient(to top, var(--canvas) 70%, transparent); }
+  .unite { width: min(1010px, 100%); margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px 14px 18px; display: grid; grid-template-columns: 44px 1fr auto; gap: 16px; align-items: center; box-shadow: var(--shadow-pop); }
+  .unite .join svg { width: 44px; height: 44px; filter: none; }
+  .unite .join::before { display: none; }
+  .unite .what .t { font-family: var(--serif); font-size: 20px; line-height: 1.2; }
+  .unite .what .t i { color: var(--accent); }
+  .unite .what .s { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+  .unite .what .s b { font-weight: 500; color: var(--ink); }
+  .unite .what .s .warn { color: var(--warn); font-weight: 500; }
+  .unite .act { display: flex; align-items: center; gap: 12px; }
+  .unite .act .you { font-size: 12.5px; color: var(--ink-3); text-align: right; line-height: 1.3; }
+  .unite .act .you b { display: block; color: var(--ink-2); font-weight: 500; }
+  .unite .btn.brand { min-height: 40px; padding: 0 18px; box-shadow: var(--shadow-soft); }
+  .unite .btn.brand svg.mark { width: 18px; height: 18px; stroke: none; }
+  .unite .btn.brand svg.mark .arc.a { stroke: #E2C4A6; } .unite .btn.brand svg.mark .arc.b { stroke: #FFF8F1; } .unite .btn.brand svg.mark .dot { fill: #E2C4A6; }
+  :root[data-theme="dark"] .unite .btn.brand { color: #fff; }
+
+  /* ---- after the unite ---- */
+  .united { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); font-size: 14px; }
+  .united svg.ic { color: var(--ok); }
+  .united .serif { font-size: 17px; }
+  .united .serif i { color: var(--accent); }
+  .united .sep { color: var(--ink-3); }
+  .united .conf { color: var(--danger); font-weight: 500; }
+  .united time { margin-left: auto; font-size: 12.5px; color: var(--ink-3); }
+  .conflicts { gap: 10px; }
+  .conflicts .lead { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .cfile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .cfile .frow { grid-template-columns: 1fr auto auto; }
+  .cfile .frow .path i { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+  .cfile .frow .hunks { font-size: 12.5px; color: var(--ink-2); }
+  .filebody { margin: 0; padding: 12px 16px 14px; background: var(--rail); color: var(--rail-fg); font: 12.5px/1.6 var(--mono); white-space: pre; overflow: auto; }
+  .filebody .ln { display: inline-block; width: 28px; color: var(--rail-muted); opacity: .6; user-select: none; }
+  .filebody .kw { color: #C4A3E8; } .filebody .fn { color: #9BC88F; } .filebody .str { color: #E2C4A6; } .filebody .dim { color: var(--rail-muted); }
+  .filebody .mk { display: block; margin: 0 -16px; padding: 0 16px; font-weight: 500; }
+  .filebody .mk.a { background: rgba(174,180,194,.16); color: #F3EDE4; }
+  .filebody .mk.b { background: rgba(226,196,166,.22); color: #E2C4A6; }
+  .filebody .mk.eq { background: rgba(243,237,228,.08); color: var(--rail-muted); }
+  .filebody .mk .tag { float: right; font: 11px var(--font); letter-spacing: .06em; text-transform: uppercase; opacity: .9; }
+  .filebody .ours { display: block; margin: 0 -16px; padding: 0 16px; background: rgba(174,180,194,.07); }
+  .filebody .theirs { display: block; margin: 0 -16px; padding: 0 16px; background: rgba(226,196,166,.09); }
+  .cfile .resolve { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--line); background: var(--surface-2); flex-wrap: wrap; }
+  .cfile .resolve .lbl { font-size: 13px; color: var(--ink-2); margin-right: 4px; }
+  .cfile .resolve .btn.sm .sw { width: 9px; height: 9px; border-radius: 50%; }
+  .cfile .resolve .hint { margin-left: auto; font-size: 12.5px; color: var(--ink-3); }
+  .notice.contention::before { background: var(--warn); }
+  .notice.contention { gap: 8px; padding: 14px 18px; }
+  .notice.contention .h { display: flex; align-items: center; gap: 8px; font-size: 14.5px; }
+  .notice.contention .h .serif { font-size: 18px; }
+  .notice.contention .h .pill { background: var(--warn-soft); color: var(--warn); }
+  .notice.contention .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13.5px; }
+  .notice.contention .two > div { display: flex; gap: 8px; align-items: flex-start; }
+  .notice.contention .two .avatar { width: 22px; height: 22px; font-size: 9.5px; border: 0; flex: none; margin-top: 1px; }
+  .notice.contention .two .scope { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 0 6px; margin-left: 4px; }
+  .notice.contention .two q { color: var(--ink); }
+  .notice.contention .actions { flex-wrap: wrap; }
+  .notice.contention .actions .hint { font-size: 12.5px; color: var(--ink-3); width: 100%; }
+  .after .unite-wrap { position: static; padding-top: 4px; }
+  .after .unite .what .s .ok { color: var(--ok); font-weight: 500; }
+
+  /* pulses start whole, then breathe */
+  .status.running::before, .rail .agent .head .dot.running { animation-delay: 1s; }
+
+  /* ---- mobile: the rail folds into a menu; sides, files and turns stack ---- */
+  @media (max-width: 760px) {
+    .rail { display: none; }
+    .topbar { padding: 10px 12px; gap: 8px; }
+    .topbar .title .serif { font-size: 19px; }
+    .topbar .title .crumb .mono, .topbar .title .crumb svg + svg, .topbar .title .crumb .mono + svg, .topbar .btn.details, .topbar .btn.share, .topbar .stack { display: none; }
+    .topbar .btn.sm { padding: 0 9px; }
+    .topbar .menu { display: inline-grid; }
+    .column.compare { padding: 14px 16px 10px; gap: 14px; }
+    .row .looks .txt { display: none; }
+    .sides { grid-template-columns: 1fr; gap: 8px; }
+    .join { height: 44px; }
+    .join::before { left: 0; right: 0; }
+    .join svg { width: 40px; height: 40px; }
+    .join .lbl { display: none; }
+    .side { padding: 12px 14px; }
+    .side .name .serif { font-size: 21px; }
+    .side .facts { gap: 10px; row-gap: 4px; }
+    .grid { grid-template-columns: 1fr; gap: 14px; }
+    h2 { font-size: 20px; }
+    .group h2 .legend { display: none; }
+    .frow { grid-template-columns: 1fr auto; padding: 8px 12px; }
+    .frow .note { grid-column: 1; grid-row: 2; margin-left: 17px; margin-top: -2px; }
+    .frow .path .dir { display: none; }
+    .counts { grid-column: 2; grid-row: 1 / span 2; min-width: 0; }
+    .frow .state { grid-column: 2; grid-row: 1 / span 2; }
+    .tside { padding: 8px 12px 4px; }
+    .turn { grid-template-columns: 44px 1fr; }
+    .unite-wrap { padding: 8px 12px 12px; }
+    .unite { grid-template-columns: 1fr; gap: 10px; padding: 12px 14px; }
+    .unite .join { display: none; }
+    .unite .what .t { font-size: 18px; }
+    .unite .act { flex-direction: column-reverse; align-items: stretch; gap: 6px; }
+    .unite .act .you { text-align: center; }
+    .unite .act .you b { display: inline; margin-right: 4px; }
+    .unite .btn.brand { width: 100%; }
+    .notice.contention .two { grid-template-columns: 1fr; }
+    .cfile .resolve .hint { margin-left: 0; width: 100%; }
+    .filebody { font-size: 11.5px; }
+    .united { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====================== moment one: before the unite ====================== -->
+<div class="shell before">
+
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span class="wordmark">Henosis</span>
+    </div>
+    <button class="new" type="button">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New session
+    </button>
+    <div class="search">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Search or jump to
+      <kbd>⌘K</kbd>
+    </div>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Comparing <i>main</i> with <i>try/monthly</i></div>
+      <div class="foot"><span class="with"><span class="avatar">AN</span> with Bo</span><span class="tok">12.4k</span></div>
+      <div class="branches">
+        <a class="on" href="#"><i></i>main</a>
+        <a href="#"><i></i>try/monthly</a>
+        <a href="#"><i></i>try/pdf-first</a>
+      </div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits to <i>run db:migrate</i> · release gate</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana</span><span class="tok">9.1k</span></div>
+    </a>
+
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      Project <span class="n">4 sessions</span>
+    </a>
+    <a class="item" href="#">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>
+      Inbox <span class="n live">3</span>
+    </a>
+    <a class="item" href="#">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+      Approvals <span class="n live">2</span>
+    </a>
+    <a class="item" href="#">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M5 20V9l7-5 7 5v11zM10 20v-6h4v6"/></svg>
+      #billing <span class="n">Cy's agent answered</span>
+    </a>
+
+    <div class="me">
+      <span class="avatar driver">AN</span>
+      <span class="meta"><span>Ana</span><span class="role">owner · driving</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="btn ghost icon sm menu" type="button" aria-label="Open the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title">
+        <span class="serif">Billing page</span>
+        <span class="crumb"><svg class="ic" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span class="lbl">Compare</span><span class="mono">main</span><svg class="ic" viewBox="0 0 24 24"><path d="M4 12h16M14 7l5 5-5 5M10 17l-5-5 5-5"/></svg><span class="mono">try/monthly</span></span>
+      </div>
+      <div class="right">
+        <span class="stack" title="Ana (driving), Bo, Cy are here">
+          <span class="avatar driver" title="Ana, owner, driving">AN</span>
+          <span class="avatar" title="Bo, contributor">BO</span>
+          <span class="avatar" title="Cy, contributor">CY</span>
+        </span>
+        <button class="btn ghost sm share" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg>Share</button>
+        <button class="btn sm" type="button">Team <span class="faint">3</span></button>
+        <button class="btn sm details" type="button">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <section class="column compare" aria-label="Compare main with try/monthly">
+
+        <p class="row">
+          <button class="btn ghost sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Conversation</button>
+          <span class="looks"><i></i><span class="txt">Looks again every 5 s ·</span> last 09:38:52</span>
+        </p>
+
+        <div class="sides">
+          <div class="side here">
+            <div class="name"><span class="serif">main</span><span class="pill here">here</span></div>
+            <div class="facts">
+              <span class="status running">Running · turn 9</span>
+              <span class="who"><span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span><span class="avatar">CY</span></span><span class="serif">Ana</span> driving</span>
+              <span class="mono muted">12.4k tokens</span>
+            </div>
+            <div class="fork"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6"/></svg>Checkpoint 9 · the invoice PDF follows the same rows</div>
+          </div>
+
+          <div class="join apart" aria-label="Not yet united">
+            <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+              <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+              <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <circle class="dot" cx="48" cy="48" r="7"/>
+            </svg>
+            <span class="lbl">apart</span>
+          </div>
+
+          <div class="side other">
+            <div class="name"><span class="serif">try/monthly</span><span class="select" role="combobox" aria-label="Compare with"><span>with</span><span class="mono">try/monthly</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></div>
+            <div class="facts">
+              <span class="status awaiting">Awaiting approval · turn 12</span>
+              <span class="who"><span class="stack"><span class="avatar driver">BO</span></span><span class="serif">Bo</span> driving</span>
+              <span class="mono muted">18.9k tokens</span>
+            </div>
+            <div class="fork"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3v6a6 6 0 0 0 6 6 6 6 0 0 1 6 6M6 15v6"/><circle cx="6" cy="21" r="0.5"/></svg>Forked by <span class="serif">Bo</span> at checkpoint 5 · 2 h ago · <em>credit the unused part of the month, not the cycle</em></div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <section class="group files">
+            <h2>Files that differ <span class="count">6</span><span class="legend"><span class="mono">+</span> is what main adds</span></h2>
+            <div class="list">
+              <div class="frow both"><span class="path"><i></i><span><span class="dir">packages/billing/</span>proration.ts</span></span><span class="note">both sides</span><span class="counts"><span class="p">+38</span><span class="m">−12</span></span></div>
+              <div class="frow both"><span class="path"><i></i><span><span class="dir">apps/web/src/views/</span>Billing.tsx</span></span><span class="note">both sides</span><span class="counts"><span class="p">+21</span><span class="m">−9</span></span></div>
+              <div class="frow other"><span class="path"><i></i><span><span class="dir">packages/billing/</span>tax.ts</span></span><span class="note"><span class="serif">try/monthly</span> only</span><span class="counts"><span class="p">+14</span><span class="m">−3</span></span></div>
+              <div class="frow other"><span class="path"><i></i><span><span class="dir">packages/billing/</span>proration.test.ts</span></span><span class="note"><span class="serif">try/monthly</span> only</span><span class="counts"><span class="p">+41</span></span></div>
+              <div class="frow other"><span class="path"><i></i><span><span class="dir">packages/pdf/</span>invoice.ts</span></span><span class="note"><span class="serif">try/monthly</span> only</span><span class="counts"><span class="p">+9</span><span class="m">−2</span></span></div>
+              <div class="frow here"><span class="path"><i></i><span><span class="dir">apps/web/src/views/</span>Checkout.tsx</span></span><span class="note"><span class="serif">main</span> only</span><span class="counts"><span class="p">+6</span><span class="m">−6</span></span></div>
+              <div class="foot"><span class="mono">+129 −32</span><span>across 6 files ·</span><span class="warn">2 changed on both sides</span><span>· a unite keeps both versions where the hunks overlap</span></div>
+            </div>
+          </section>
+
+          <section class="group turns-group">
+            <h2>Last turns</h2>
+            <div class="turns">
+              <div class="tside here">
+                <div class="h"><span class="serif">main</span> here <span class="status running">running</span></div>
+                <div class="turn"><span class="n"><b>Turn 9</b></span><span class="b">Rendered the credit line above the tax lines in Billing.tsx; VAT now reads the net amount. <span class="faint">· 4 tool calls</span></span></div>
+                <div class="turn"><span class="n"><b>Turn 8</b></span><span class="b">Left Checkout to Bo's tax rows; no change to the PDF. <span class="faint">· 2 tool calls</span></span></div>
+                <div class="turn"><span class="n"><b>Turn 7</b></span><span class="b">Wrote prorate(plan, from, to) as a pure, day-based function with a test per edge. <span class="faint">· 3 tool calls</span></span></div>
+              </div>
+              <div class="tside other">
+                <div class="h"><span class="serif">try/monthly</span> Bo's fork <span class="status awaiting">awaiting approval</span></div>
+                <div class="turn"><span class="n"><b>Turn 12</b></span><span class="b">Credits the unused part of the month, not the cycle; added the 31-day and February cases. <span class="faint">· 5 tool calls · <span class="wait">waits to run the tests on staging</span></span></span></div>
+                <div class="turn"><span class="n"><b>Turn 11</b></span><span class="b">The invoice PDF reads the monthly rows through InvoiceRow. <span class="faint">· 3 tool calls</span></span></div>
+                <div class="turn"><span class="n"><b>Turn 10</b></span><span class="b">Tax lines take the subtotal after the credit, per Bo's directive on tax. <span class="faint">· 2 tool calls</span></span></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+      </section>
+    </div>
+
+    <div class="unite-wrap">
+      <div class="unite" role="group" aria-label="Unite">
+        <div class="join apart" aria-hidden="true">
+          <svg class="mark" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+            <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <circle class="dot" cx="48" cy="48" r="7"/>
+          </svg>
+        </div>
+        <div class="what">
+          <div class="t">Unite <i>try/monthly</i> into <i>main</i></div>
+          <div class="s">A three-way fold from checkpoint 5 · <b>6 files</b> · <span class="warn">2 changed on both sides</span> · Bo's directive on <b>tax</b> meets Ana's and becomes a contention for the driver.</div>
+        </div>
+        <div class="act">
+          <span class="you"><b>You are driving</b>Folding needs the driver or an owner</span>
+          <button class="btn brand" type="button">
+            <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="9"/></svg>
+            Unite try/monthly into main
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="between"><span class="serif">After the unite</span> 09:41 · the same page, one fold later</div>
+
+<!-- ====================== moment two: after the unite, one conflict ====================== -->
+<div class="shell after" id="after">
+
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span class="wordmark">Henosis</span>
+    </div>
+    <button class="new" type="button">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New session
+    </button>
+    <div class="search">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Search or jump to
+      <kbd>⌘K</kbd>
+    </div>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot blocked"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">United <i>try/monthly</i> · 1 conflict in <i>proration.ts</i></div>
+      <div class="foot"><span class="with"><span class="avatar">AN</span> with Bo</span><span class="tok">12.4k</span></div>
+      <div class="branches">
+        <a class="on" href="#"><i></i>main</a>
+        <a href="#"><i></i>try/monthly <span class="faint">· united</span></a>
+        <a href="#"><i></i>try/pdf-first</a>
+      </div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits to <i>run db:migrate</i> · release gate</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana</span><span class="tok">9.1k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Project <span class="n">4 sessions</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>Inbox <span class="n live">4</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Approvals <span class="n live">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V9l7-5 7 5v11zM10 20v-6h4v6"/></svg>#billing <span class="n">Cy's agent answered</span></a>
+
+    <div class="me">
+      <span class="avatar driver">AN</span>
+      <span class="meta"><span>Ana</span><span class="role">owner · driving</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="btn ghost icon sm menu" type="button" aria-label="Open the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title">
+        <span class="serif">Billing page</span>
+        <span class="crumb"><svg class="ic" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span class="lbl">Compare</span><span class="mono">main</span><svg class="ic" viewBox="0 0 24 24"><path d="M4 12h16M14 7l5 5-5 5M10 17l-5-5 5-5"/></svg><span class="mono">try/monthly</span></span>
+      </div>
+      <div class="right">
+        <span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span><span class="avatar">CY</span></span>
+        <button class="btn ghost sm share" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg>Share</button>
+        <button class="btn sm" type="button">Team <span class="faint">3</span></button>
+        <button class="btn sm details" type="button">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <section class="column compare" aria-label="Compare main with try/monthly, after the unite">
+
+        <p class="row">
+          <button class="btn ghost sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Conversation</button>
+          <span class="looks"><i></i><span class="txt">Looks again every 5 s ·</span> last 09:41:07</span>
+        </p>
+
+        <div class="sides">
+          <div class="side here">
+            <div class="name"><span class="serif">main</span><span class="pill here">here</span></div>
+            <div class="facts">
+              <span class="status blocked">Blocked · 1 conflict</span>
+              <span class="who"><span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span><span class="avatar">CY</span></span><span class="serif">Ana</span> driving</span>
+              <span class="mono muted">12.4k tokens</span>
+            </div>
+            <div class="fork"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6"/></svg>Checkpoint 10 · united try/monthly · the agent waits until proration.ts is one version</div>
+          </div>
+
+          <div class="join closed" aria-label="United">
+            <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+              <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+              <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <circle class="dot" cx="48" cy="48" r="7"/>
+            </svg>
+            <span class="lbl">united</span>
+          </div>
+
+          <div class="side other">
+            <div class="name"><span class="serif">try/monthly</span><span class="select" role="combobox" aria-label="Compare with"><span>with</span><span class="mono">try/monthly</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></div>
+            <div class="facts">
+              <span class="status paused">United into main · turn 12</span>
+              <span class="who"><span class="stack"><span class="avatar driver">BO</span></span><span class="serif">Bo</span> driving</span>
+              <span class="mono muted">18.9k tokens</span>
+            </div>
+            <div class="fork"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3v6a6 6 0 0 0 6 6 6 6 0 0 1 6 6M6 15v6"/></svg>Forked by <span class="serif">Bo</span> at checkpoint 5 · its directives on <em>tax</em> and <em>tests</em> now live on main</div>
+          </div>
+        </div>
+
+        <div class="united" role="status">
+          <svg class="ic draw" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg>
+          <span class="serif">United <i>try/monthly</i> into <i>main</i></span>
+          <span class="sep">·</span><span>5 files folded clean</span>
+          <span class="sep">·</span><span class="conf">1 conflict</span>
+          <span class="sep">·</span><span>1 contention for the driver</span>
+          <time>09:41 · by Ana</time>
+        </div>
+
+        <div class="grid">
+          <section class="group files">
+            <h2>Files folded <span class="count">6</span></h2>
+            <div class="list">
+              <div class="frow both"><span class="path"><i></i><span><span class="dir">packages/billing/</span>proration.ts</span></span><span class="counts"><span class="p">+38</span><span class="m">−12</span></span><span class="state conflict"><svg class="ic" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.5"/><path d="M10.3 3.8 2.6 17.2a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0z"/></svg>conflict</span></div>
+              <div class="frow both"><span class="path"><i></i><span><span class="dir">apps/web/src/views/</span>Billing.tsx</span></span><span class="counts"><span class="p">+21</span><span class="m">−9</span></span><span class="state clean"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg>both sides, clean</span></div>
+              <div class="frow other"><span class="path"><i></i><span><span class="dir">packages/billing/</span>tax.ts</span></span><span class="counts"><span class="p">+14</span><span class="m">−3</span></span><span class="state clean"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg>clean</span></div>
+              <div class="frow other"><span class="path"><i></i><span><span class="dir">packages/billing/</span>proration.test.ts</span></span><span class="counts"><span class="p">+41</span></span><span class="state clean"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg>clean</span></div>
+              <div class="frow other"><span class="path"><i></i><span><span class="dir">packages/pdf/</span>invoice.ts</span></span><span class="counts"><span class="p">+9</span><span class="m">−2</span></span><span class="state clean"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg>clean</span></div>
+              <div class="frow here"><span class="path"><i></i><span><span class="dir">apps/web/src/views/</span>Checkout.tsx</span></span><span class="counts"><span class="p">+6</span><span class="m">−6</span></span><span class="state clean"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg>kept</span></div>
+              <div class="foot"><span>Nothing differs now except the conflict.</span><span class="mono">main = try/monthly + Checkout.tsx</span></div>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2>Contention</h2>
+            <section class="notice contention" aria-label="Contention on tax">
+              <div class="h"><span class="serif">Two directives on</span><span class="pill">tax</span><span class="small faint">came in with the fold</span></div>
+              <div class="two">
+                <div><span class="avatar">AN</span><span><b>Ana</b> on main<span class="scope">tax</span><br><q>VAT applies to the net amount after the credit.</q></span></div>
+                <div><span class="avatar">BO</span><span><b>Bo</b> on try/monthly<span class="scope">tax</span><br><q>Tax lines take the subtotal after the credit, per month.</q></span></div>
+              </div>
+              <p class="small muted" style="margin:0">The agent works around both until the driver picks one. They may be the same rule said twice.</p>
+              <div class="actions">
+                <button class="btn primary sm" type="button">Keep both as one rule</button>
+                <button class="btn sm" type="button">Keep Ana's</button>
+                <button class="btn sm" type="button">Keep Bo's</button>
+                <span class="hint">Ana resolves · she is driving</span>
+              </div>
+            </section>
+          </section>
+        </div>
+
+        <section class="group conflicts">
+          <h2>Conflicts <span class="count">1</span></h2>
+          <p class="lead">Both sides changed these lines; the file carries both versions between markers until the agent or a person rewrites it. Nothing runs on main until it is one version.</p>
+          <div class="cfile">
+            <div class="frow"><span class="path"><i></i><span><span class="dir">packages/billing/</span>proration.ts</span></span><span class="hunks">1 hunk · lines 14–21</span><button class="btn ghost sm" type="button" aria-expanded="true">Close</button></div>
+            <pre class="filebody"><span class="ln">12</span><span class="kw">export function</span> <span class="fn">prorate</span>(plan: Plan, from: Date, to: Date): Line {
+<span class="ln">13</span>  <span class="kw">const</span> unused = daysBetween(to, periodEnd(plan, from));
+<span class="mk a"><span class="ln">14</span>&lt;&lt;&lt;&lt;&lt;&lt;&lt; main<span class="tag">here · Ana's agent, turn 7</span></span><span class="ours"><span class="ln">15</span>  <span class="kw">const</span> credit = -round(plan.price * unused / cycleDays(plan));
+<span class="ln">16</span>  <span class="kw">const</span> label = <span class="str">"Prorated credit"</span>;
+</span><span class="mk eq"><span class="ln">17</span>=======</span><span class="theirs"><span class="ln">18</span>  <span class="kw">const</span> credit = -round(plan.monthly * unused / daysInMonth(from));
+<span class="ln">19</span>  <span class="kw">const</span> label = <span class="str">`Prorated credit · ${unused} of ${daysInMonth(from)} days`</span>;
+</span><span class="mk b"><span class="ln">20</span>&gt;&gt;&gt;&gt;&gt;&gt;&gt; try/monthly<span class="tag">Bo's agent, turn 12</span></span><span class="ln">21</span>  <span class="kw">return</span> { kind: <span class="str">"credit"</span>, label, amount: credit };
+<span class="ln">22</span>}</pre>
+            <div class="resolve">
+              <span class="lbl">Make it one version:</span>
+              <button class="btn sm" type="button"><i class="sw" style="background:var(--rail)"></i>Keep main</button>
+              <button class="btn sm" type="button"><i class="sw" style="background:var(--apricot-deep)"></i>Keep try/monthly</button>
+              <button class="btn primary sm" type="button">Ask the agent to rewrite it</button>
+              <span class="hint">The agent reads both versions and the tests on both sides, then proposes one.</span>
+            </div>
+          </div>
+        </section>
+
+      </section>
+    </div>
+
+    <div class="unite-wrap">
+      <div class="unite" role="status" aria-label="After the unite">
+        <div class="join closed" aria-hidden="true">
+          <svg class="mark" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+            <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <circle class="dot" cx="48" cy="48" r="7"/>
+          </svg>
+        </div>
+        <div class="what">
+          <div class="t">United <i>try/monthly</i> into <i>main</i></div>
+          <div class="s"><span class="ok">5 files clean</span> · one conflict waits in <b>proration.ts</b> · Bo's agent is released; Ana's agent resumes at checkpoint 10 once the file is one version.</div>
+        </div>
+        <div class="act">
+          <span class="you"><b>Bo was told</b>in #billing and in the session</span>
+          <button class="btn primary" type="button">Hand the conflict to the agent</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

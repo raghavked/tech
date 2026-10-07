@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · The rail</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- page layout ---------- */
+  html, body { overflow: hidden; }
+  .shell { height: 100vh; }
+  .ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- the rail, expanded ---------- */
+  .rail { padding: 10px 12px 8px; gap: 3px; position: relative; }
+  .rail .brand { padding: 4px 8px 8px; gap: 10px; }
+  .rail .brand .mark { width: 28px; height: 28px; flex: none; }
+  .rail .brand .wordmark { flex: 1; letter-spacing: -0.01em; }
+  .rail .brand .collapse { width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; color: var(--rail-muted); display: grid; place-items: center; cursor: pointer; }
+  .rail .brand .collapse:hover { background: var(--rail-2); color: var(--rail-fg); }
+  .rail .new { position: relative; overflow: hidden; }
+  .rail .new::after { content: ""; position: absolute; right: -38px; top: -34px; width: 76px; height: 76px; border-radius: 50%; border: 9px solid rgba(226,196,166,0.22); pointer-events: none; }
+  .rail .new .ic { stroke-width: 2.2; }
+  .rail .new kbd { margin-left: auto; font: 500 11px var(--mono); color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.12); border-radius: 6px; padding: 1px 6px; }
+  .rail .search { display: flex; align-items: center; gap: 9px; margin: 2px 0 4px; padding: 7px 10px 7px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13.5px; border: 1px solid transparent; cursor: text; }
+  .rail .search:focus-within, .rail .search.focused { border-color: rgba(226,196,166,0.45); box-shadow: 0 0 0 3px rgba(226,196,166,0.16); color: var(--rail-fg); }
+  .rail .search .ic { width: 15px; height: 15px; }
+  .rail .search .ph { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail .search kbd { font: 500 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 6px; padding: 1px 6px; }
+
+  .rail .item { padding: 6px 10px; gap: 10px; font-size: 14px; position: relative; }
+  .rail .item .ic { width: 16px; height: 16px; color: var(--rail-muted); }
+  .rail .item.active .ic, .rail .item:hover .ic { color: var(--apricot); }
+  .rail .item .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rail .item .hint { font-size: 12px; color: var(--rail-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46%; }
+  .rail .item.project { font-family: var(--serif); font-size: 16px; padding-top: 5px; padding-bottom: 5px; }
+  .rail .item.project .n { margin-left: auto; font: 12px var(--font); color: var(--rail-muted); }
+  .rail .item.project .ic { color: var(--rail-muted); }
+  .rail .item.ch .lbl { font-weight: 500; }
+  .rail .item.ch.read .lbl { font-weight: 400; color: var(--rail-muted); }
+  .rail .item.ch .hash { color: var(--rail-muted); font-weight: 400; margin-right: -3px; }
+  .count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--apricot); color: #56352D; font: 600 11.5px var(--mono); font-variant-numeric: tabular-nums; margin-left: auto; flex: none; }
+  .count.pop { animation: pop .36s cubic-bezier(.3,1.4,.4,1) both; }
+  .rail .section { padding: 8px 10px 2px; }
+  .rail .lists { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 1px; margin: 0 -4px; padding: 0 4px; scrollbar-width: thin; scrollbar-color: var(--rail-2) transparent; }
+  .rail .crew { padding: 5px 10px 1px; }
+  .rail .crew .serif { font-size: 15px; }
+  .rail .agent { padding: 6px 10px; gap: 2px; }
+  .rail .agent .head .pill { height: 19px; font-size: 10.5px; padding: 0 7px; }
+  .rail .agent .doing { font-size: 12.5px; }
+  .rail .agent .foot { font-size: 12px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 6px; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
+  .rail .agent .foot .avatar { width: 18px; height: 18px; font-size: 8.5px; border-width: 0; background: var(--rail-2); color: var(--rail-fg); }
+  .rail .agent .foot .avatar.agent { border-radius: 6px 6px 6px 2px; }
+  .rail .agent .foot .tok { font-family: var(--mono); font-size: 11.5px; margin-left: auto; color: var(--rail-muted); }
+  .rail .agent .foot .tok.warn { color: #E2B06A; }
+  .rail .agent .head .dot.paused { background: var(--rail-muted); opacity: .7; }
+  .rail .solo-head { padding: 10px 10px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+  .rail .solo-head::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--rail-line); }
+  .rail .me { margin-top: 2px; padding: 7px 10px 2px; border-top: 1px solid var(--rail-line); border-radius: 0; gap: 10px; }
+  .rail .me:hover { background: var(--rail-2); border-radius: var(--radius); }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; flex: 1; min-width: 0; }
+  .rail .me .meta .name { font-family: var(--serif); font-size: 16px; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .avatar { width: 30px; height: 30px; font-size: 11px; }
+  .rail .me .dots { width: 28px; height: 28px; display: grid; place-items: center; color: var(--rail-muted); border-radius: 8px; }
+  .rail .me .dots:hover { background: var(--rail-2); color: var(--rail-fg); }
+  .rail .avatar.driver { box-shadow: 0 0 0 2px var(--apricot); }
+
+  /* ---------- main: the board ---------- */
+  .main { overflow: hidden; }
+  .topbar .title .faint { font: 13px var(--font); color: var(--ink-3); }
+  .board { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1.12fr) minmax(0, 0.88fr); gap: 20px; padding: 18px 24px 18px; }
+  .lane { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .lane > h3 { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; height: 16px; }
+  .card { padding: 13px 16px; display: flex; flex-direction: column; gap: 9px; }
+  .card h4 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 18px; letter-spacing: -0.01em; }
+  .card p { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.45; }
+  .card p b { font-weight: 600; color: var(--ink); }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 2px; }
+
+  /* a navy slab inside a card, to show rail pieces on their own ground */
+  .slab { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+  .slab .row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; font-size: 13.5px; }
+  .slab .row .ic { width: 15px; height: 15px; color: var(--rail-muted); }
+  .slab .row.hover { background: var(--rail-2); } .slab .row.hover .ic { color: var(--apricot); }
+  .slab .row.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px rgba(226,196,166,0.35); } .slab .row.active .ic { color: var(--apricot); }
+  .slab .row.focus { box-shadow: 0 0 0 2px rgba(226,196,166,0.6); }
+  .slab .row .state { margin-left: auto; font: 11px var(--mono); color: var(--rail-muted); }
+  .slab .row .count { margin-left: 0; }
+  .slab .row .count + .state { margin-left: auto; }
+  .slab .row.spaced { justify-content: space-between; }
+  .slab .pair { display: flex; align-items: center; gap: 10px; padding: 6px 10px; font-size: 12.5px; white-space: nowrap; min-width: 0; } .slab .pair .what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .slab .pair .lbl { color: var(--rail-muted); width: 112px; flex: none; }
+  .slab .pair .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
+  .slab .pair .dot.running { background: #9BC88F; box-shadow: 0 0 0 3px rgba(155,200,143,0.25); animation: pulse 1.6s ease-in-out infinite; }
+  .slab .pair .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,0.25); }
+  .slab .pair .dot.blocked { background: #E2847A; }
+  .slab .pair .dot.paused { opacity: .7; }
+  .slab .pair .dot.done { background: var(--apricot); }
+  .slab .pair i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+  .slab .pair .tok { font-family: var(--mono); font-size: 11.5px; color: var(--rail-muted); margin-left: auto; }
+
+  /* account popover */
+  .popover { background: var(--rail-2); color: var(--rail-fg); border-radius: var(--radius); padding: 8px; display: flex; flex-direction: column; gap: 2px; box-shadow: var(--shadow-pop); border: 1px solid var(--rail-line); font-size: 13.5px; }
+  .popover .row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; }
+  .popover .row .ic { width: 15px; height: 15px; color: var(--rail-muted); }
+  .popover .row.hover { background: rgba(243,237,228,0.08); }
+  .popover .row .seg { margin-left: auto; background: rgba(0,0,0,0.25); }
+  .popover .row .seg span { padding: 2px 9px; font-size: 11.5px; color: var(--rail-muted); border-radius: var(--radius-full); }
+  .popover .row .seg span.on { background: var(--rail); color: var(--rail-fg); }
+  .popover .hr { height: 1px; background: var(--rail-line); margin: 4px 6px; }
+  .popover .who { display: flex; align-items: center; gap: 10px; padding: 6px 10px 10px; }
+  .popover .who .avatar { width: 30px; height: 30px; font-size: 11px; border: 0; background: var(--rail); color: var(--rail-fg); box-shadow: 0 0 0 2px var(--apricot); }
+  .popover .who .meta { display: flex; flex-direction: column; line-height: 1.25; }
+  .popover .who .name { font-family: var(--serif); font-size: 16px; }
+  .popover .who .sub { font-size: 12px; color: var(--rail-muted); }
+  .popover .row .kbd { margin-left: auto; font: 11px var(--mono); color: var(--rail-muted); }
+
+  /* ---------- the rail, collapsed ---------- */
+  .mini { width: 72px; background: var(--rail); color: var(--rail-fg); border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; padding: 12px 0 10px; gap: 6px; box-shadow: var(--shadow-soft); height: 100%; position: relative; }
+  .mini .mark { width: 30px; height: 30px; margin-bottom: 4px; }
+  .mini .sq { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--rail-muted); position: relative; cursor: pointer; }
+  .mini .sq:hover { background: var(--rail-2); color: var(--rail-fg); }
+  .mini .sq.active { background: var(--rail-active); color: var(--apricot); box-shadow: inset 0 0 0 1px rgba(226,196,166,0.35); }
+  .mini .sq.new { background: var(--gradient-brand); color: #fff; box-shadow: var(--shadow-soft); }
+  .mini .sq.new .ic { stroke-width: 2.2; }
+  .mini .sq .ic { width: 18px; height: 18px; }
+  .mini .sq .count { position: absolute; top: -4px; right: -6px; min-width: 18px; height: 18px; font-size: 10.5px; margin: 0; box-shadow: 0 0 0 2px var(--rail); }
+  .mini .hr { width: 36px; height: 1px; background: var(--rail-line); margin: 4px 0; }
+  .mini .sq.av { width: 36px; height: 36px; border-radius: 50%; background: var(--rail-2); color: var(--rail-fg); font: 600 11px var(--font); }
+  .mini .sq.av.me { box-shadow: 0 0 0 2px var(--apricot); margin-top: auto; }
+  .mini .sq.av .st { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--rail); background: var(--rail-muted); }
+  .mini .sq.av .st.running { background: #9BC88F; animation: pulse 1.6s ease-in-out infinite; }
+  .mini .sq.av .st.awaiting { background: #E2B06A; }
+  .mini .sq.av.active { box-shadow: 0 0 0 2px var(--apricot); color: var(--rail-fg); background: var(--rail-2); }
+  .mini .proj { font-family: var(--serif); font-size: 16px; }
+  .mini .tip { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 12px; white-space: nowrap; background: var(--rail-2); color: var(--rail-fg); border: 1px solid var(--rail-line); border-radius: 10px; padding: 7px 11px; font-size: 13px; box-shadow: var(--shadow-pop); display: flex; flex-direction: column; line-height: 1.3; z-index: 2; }
+  .mini .tip::before { content: ""; position: absolute; right: 100%; top: 50%; margin-top: -5px; border: 5px solid transparent; border-right-color: var(--rail-2); }
+  .mini .tip .serif { font-size: 15px; }
+  .mini .tip .sub { font-size: 12px; color: var(--rail-muted); }
+  .mini .tip .sub i { font-family: var(--serif); color: var(--apricot); }
+  .mini .expand { width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; color: var(--rail-muted); display: grid; place-items: center; cursor: pointer; }
+
+  .lane.min { gap: 14px; }
+  .lane.min .mini-wrap { flex: 1; min-height: 0; display: flex; gap: 14px; align-items: flex-start; } .lane.min .mini-wrap .mini { height: 100%; } .lane.min .aside-note { font-size: 12.5px; color: var(--ink-2); line-height: 1.45; padding-top: 2px; } .lane.min .aside-note b { color: var(--ink); font-weight: 600; }
+
+  /* the badge line-up */
+  .badges { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .badges .b { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .badges .b .count { margin: 0; }
+  .badges .b .count.read { background: var(--surface-3); color: var(--ink-2); }
+  .badges .b .count.ring { box-shadow: 0 0 0 4px var(--rail); }
+
+  /* ---------- mobile: the rail is the screen ---------- */
+  .mobile-bar { display: none; }
+  @media (max-width: 480px) {
+    .main { display: none; }
+    .rail { width: 100%; padding-top: 10px; }
+    .mobile-bar { display: flex; align-items: center; gap: 10px; padding: 8px 4px 6px; font-size: 13px; color: var(--rail-muted); }
+    .mobile-bar .x { margin-left: auto; width: 32px; height: 32px; border-radius: 10px; border: 0; background: var(--rail-2); color: var(--rail-fg); display: grid; place-items: center; }
+    .mobile-bar .x .ic { width: 16px; height: 16px; }
+    .rail .brand { padding-top: 2px; }
+    .rail .brand .collapse { display: none; }
+    .rail .item { padding: 10px 10px; font-size: 15px; }
+    .rail .agent { padding: 10px; }
+    .rail .me { padding: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ===== the rail, expanded ===== -->
+  <nav class="rail" aria-label="Rail">
+    <div class="mobile-bar">
+      <span>Ana · Payments</span>
+      <button class="x" type="button" aria-label="Close the rail"><svg class="ic" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span class="wordmark">Henosis</span>
+      <button class="collapse" type="button" title="Collapse the rail ([)" aria-label="Collapse the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM9 5v14M15 10l-2 2 2 2"/></svg></button>
+    </div>
+
+    <button class="new" type="button">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New session
+      <kbd>N</kbd>
+    </button>
+
+    <label class="search">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span class="ph">Search sessions</span>
+      <kbd>⌘K</kbd>
+    </label>
+
+    <a class="item" href="#">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l1.5 2.5h5L16 13h5M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>
+      <span class="lbl">Inbox</span>
+      <span class="count pop">3</span>
+    </a>
+    <a class="item" href="#">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+      <span class="lbl">Approvals</span>
+      <span class="count">2</span>
+    </a>
+
+    <div class="lists">
+      <div class="section">Agents <span class="n">4</span></div>
+
+      <a class="item project" href="#">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 7l3-3h10l3 3"/></svg>
+        <span class="lbl">Payments</span>
+        <span class="n">1 crew · 2 solo</span>
+      </a>
+
+      <div class="crew"><span class="serif">Invoice rollout</span><span class="faint">2 agents</span></div>
+      <a class="agent active" href="#">
+        <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+        <div class="doing">Writing <i>proration.ts</i> · step 3 of 4</div>
+        <div class="foot"><span class="with"><span class="avatar">AN</span>you, with Bo</span><span class="tok">12.4k</span></div>
+      </a>
+      <a class="agent" href="#">
+        <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+        <div class="doing">Waits to <i>run db:migrate</i> · release gate, 1 of 2</div>
+        <div class="foot"><span class="with"><span class="avatar">BO</span>Bo, with you</span><span class="tok">9.1k</span></div>
+      </a>
+
+      <a class="agent" href="#">
+        <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+        <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+        <div class="foot"><span class="with"><span class="avatar">CY</span>Cy</span><span class="tok warn">31.0k</span></div>
+      </a>
+
+      <a class="agent" href="#">
+        <div class="head"><span class="dot paused"></span><span class="t">VAT rounding</span><span class="pill solo">Solo</span></div>
+        <div class="doing">Paused · <i>the plan waits for one rating</i></div>
+        <div class="foot"><span class="with"><span class="avatar">DE</span>Dee</span><span class="tok">4.2k</span></div>
+      </a>
+
+      <a class="item" href="#">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17h13"/></svg>
+        <span class="lbl">Memory</span>
+        <span class="hint">2 conflicts</span>
+      </a>
+
+      <div class="section">Chats <span class="n">3</span></div>
+      <a class="item ch" href="#">
+        <span class="lbl"><span class="hash">#</span>billing</span>
+        <span class="hint">Cy's agent answered</span>
+        <span class="count">2</span>
+      </a>
+      <a class="item ch" href="#">
+        <span class="lbl"><span class="hash">#</span>invoice-rollout</span>
+        <span class="count">1</span>
+      </a>
+      <a class="item ch read" href="#">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="lbl">New group</span>
+      </a>
+    </div>
+
+    <div class="me">
+      <span class="avatar driver">AN</span>
+      <span class="meta"><span class="name">Ana</span><span class="role">owner · driving Billing page</span></span>
+      <span class="dots"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg></span>
+    </div>
+  </nav>
+
+  <!-- ===== the board ===== -->
+  <main class="main">
+    <header class="topbar">
+      <div class="title"><span>The rail</span><span class="faint">navigation · expanded on the left, collapsed and its states here</span></div>
+      <div class="right">
+        <span class="chip on">Payments</span>
+        <span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span></span>
+      </div>
+    </header>
+
+    <div class="board">
+      <!-- collapsed -->
+      <div class="lane min">
+        <h3>Collapsed · 72px</h3>
+        <div class="mini-wrap">
+          <aside class="mini" aria-label="Rail, collapsed">
+            <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+              <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+              <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <circle class="dot" cx="48" cy="48" r="7"/>
+            </svg>
+            <span class="sq new" title="New session"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+            <span class="sq" title="Search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+            <span class="sq" title="Inbox"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l1.5 2.5h5L16 13h5M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg><span class="count">3</span></span>
+            <span class="sq" title="Approvals"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg><span class="count">2</span></span>
+            <span class="hr"></span>
+            <span class="sq proj" title="Payments">P</span>
+            <span class="sq av active" title="Billing page · you, with Bo">AN<span class="st running"></span></span>
+            <span class="sq av" title="Checkout · Bo, with you">BO<span class="st awaiting"></span>
+              <span class="tip"><span class="serif">Checkout</span><span class="sub">Waits to <i>run db:migrate</i> · 1 of 2</span></span>
+            </span>
+            <span class="sq av" title="Invoice PDF · Cy">CY<span class="st running"></span></span>
+            <span class="sq av" title="VAT rounding · Dee">DE<span class="st"></span></span>
+            <span class="hr"></span>
+            <span class="sq" title="Memory"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17h13"/></svg></span>
+            <span class="sq" title="Chats"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="count">3</span></span>
+            <span class="sq av me" title="Ana · owner">AN</span>
+            <button class="expand" type="button" title="Expand the rail (])" aria-label="Expand the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM9 5v14M13 10l2 2-2 2"/></svg></button>
+          </aside>
+          <div class="aside-note"><b>Toggle with [ and ]</b> or the chevron by the brand. Every agent becomes its person's avatar with the status dot at the corner; the active one is ringed in apricot. Hover shows the card as a tooltip. Below <b>1180px</b> the rail collapses by itself; on a phone it is a sheet.</div>
+        </div>
+      </div>
+
+      <!-- items and badges -->
+      <div class="lane">
+        <h3>Items and badges</h3>
+        <div class="card">
+          <h4>One row, four states</h4>
+          <div class="slab">
+            <div class="row"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l1.5 2.5h5L16 13h5M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>Inbox<span class="state">rest</span></div>
+            <div class="row hover"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l1.5 2.5h5L16 13h5M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>Inbox<span class="state">hover</span></div>
+            <div class="row active"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l1.5 2.5h5L16 13h5M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>Inbox<span class="state">active</span></div>
+            <div class="row focus"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l1.5 2.5h5L16 13h5M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>Inbox<span class="count">3</span><span class="state">focus</span></div>
+          </div>
+          <p>Hover is rail-2 with the icon warmed; active is the apricot wash. The count is the only solid apricot in the rail: a badge always means <b>something waits for you</b>.</p>
+        </div>
+
+        <div class="card">
+          <h4>Counts</h4>
+          <div class="badges">
+            <span class="b"><span class="count">3</span>unread in Inbox</span>
+            <span class="b"><span class="count">2</span>approvals waiting</span>
+            <span class="b"><span class="count">12</span>two digits</span>
+            <span class="b"><span class="count read">0</span>never shown</span>
+            <span class="b"><span class="count ring">99+</span>caps at 99+</span>
+          </div>
+          <p>Mono numerals, chocolate on apricot. A new count <b>pops</b> once and sits still in calm mode. Chats sum their unread into the section count.</p>
+        </div>
+
+        <div class="card">
+          <h4>Agent status in one dot</h4>
+          <div class="slab">
+            <div class="pair"><span class="dot running"></span><span class="lbl">Running</span><span class="what">Writing <i>proration.ts</i></span><span class="tok">12.4k</span></div>
+            <div class="pair"><span class="dot awaiting"></span><span class="lbl">Awaiting approval</span><span class="what">Waits to <i>run db:migrate</i></span><span class="tok">9.1k</span></div>
+            <div class="pair"><span class="dot blocked"></span><span class="lbl">Blocked</span><span class="what">Claim on <i>checkout/</i> denied</span><span class="tok">2.0k</span></div>
+            <div class="pair"><span class="dot paused"></span><span class="lbl">Paused</span><span class="what">The plan waits for one rating</span><span class="tok">4.2k</span></div>
+            <div class="pair"><span class="dot done"></span><span class="lbl">Done</span><span class="what">United <i>pdf-layout</i> into main</span><span class="tok">31.0k</span></div>
+          </div>
+          <p>Only the running dot pulses. Spend ends the line in mono and warms past <b>80 %</b> of the budget.</p>
+        </div>
+      </div>
+
+      <!-- structure and account -->
+      <div class="lane">
+        <h3>Structure and account</h3>
+        <div class="card">
+          <h4>Order of the rail</h4>
+          <p><b>1 Brand</b> and the collapse toggle. <b>2 New session</b>, the one gradient on the screen. <b>3 Search</b>, which also opens the palette. <b>4 Inbox and Approvals</b>, pinned because they carry counts. <b>5 Agents</b> by project, crews first in serif, then solos. <b>6 Memory</b>, with its conflicts as a hint. <b>7 Chats</b> with unread. <b>8 You</b>: serif name, role, what you drive.</p>
+        </div>
+
+        <div class="card">
+          <h4>Account menu</h4>
+          <div class="popover">
+            <div class="who"><span class="avatar">AN</span><span class="meta"><span class="name">Ana</span><span class="sub">ana@payments.dev · owner</span></span></div>
+            <div class="hr"></div>
+            <div class="row"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Theme<span class="seg"><span>Auto</span><span class="on">Light</span><span>Dark</span></span></div>
+            <div class="row"><svg class="ic" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></svg>Notifications<span class="kbd">on while hidden</span></div>
+            <div class="row hover"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></svg>Calm mode<span class="kbd">off</span></div>
+            <div class="row"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Team look<span class="kbd">Payments</span></div>
+            <div class="row"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Shortcuts<span class="kbd">?</span></div>
+            <div class="hr"></div>
+            <div class="row"><svg class="ic" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M21 4v16"/></svg>Sign out</div>
+          </div>
+          <p>Rises from the three dots on your row and stays navy, so the rail reads as one piece.</p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Commands</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ==========================================================================================
+     The command palette. ⌘K opens one centred list over the page you were on; the page stays
+     visible but quiet behind a navy scrim. Five groups in this order: Actions (what you can do
+     here), Switch session, Go to, People and agents, Team memory. Typed letters are drawn in
+     ink where they matched; the rest of the label steps back. The highlighted row says what
+     Enter will do; a release-gate approval asks for a rating first (Enter alone sends 4).
+     Dark is the lead theme: the palette is the one lit surface on a dark room.
+     ========================================================================================== */
+  :root {
+    --pal-w: 680px;
+    --scrim: rgba(42, 50, 68, 0.42);
+    --pal-bg: var(--surface);
+    --pal-edge: none;
+    --pal-shadow: 0 30px 80px rgba(42,50,68,0.28), 0 6px 18px rgba(42,50,68,0.10);
+    --row-on: var(--apricot-soft);
+    --row-on-line: rgba(207,167,130,0.55);
+    --key-bg: var(--surface-2); --key-line: var(--line); --key-fg: var(--ink-2);
+    --match: var(--ink); --rest: var(--ink-2);
+    --ok-dot: var(--ok); --warn-dot: var(--warn);
+    --agent-grad: var(--gradient-brand);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --scrim: rgba(8, 11, 17, 0.5);
+    --pal-bg: #242C3C;
+    --pal-edge: inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(240,234,224,0.06);
+    --pal-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.35);
+    --row-on: rgba(226,196,166,0.11);
+    --row-on-line: rgba(226,196,166,0.38);
+    --key-bg: rgba(240,234,224,0.07); --key-line: rgba(240,234,224,0.12); --key-fg: var(--ink-2);
+    --match: #F6F0E6; --rest: #AEB4C0;
+    --ok-dot: #8FC386; --warn-dot: #E2B06A; --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18); --ok-soft: rgba(143,195,134,0.18); --warn-soft: rgba(226,176,106,0.18);
+    --agent-grad: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+    --rail: #10141C; --rail-2: #1A2030; --rail-line: rgba(240,234,224,0.08);
+  } }
+  :root[data-theme="dark"] {
+    --scrim: rgba(8, 11, 17, 0.5);
+    --pal-bg: #242C3C;
+    --pal-edge: inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(240,234,224,0.06);
+    --pal-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.35);
+    --row-on: rgba(226,196,166,0.11);
+    --row-on-line: rgba(226,196,166,0.38);
+    --key-bg: rgba(240,234,224,0.07); --key-line: rgba(240,234,224,0.12); --key-fg: var(--ink-2);
+    --match: #F6F0E6; --rest: #AEB4C0;
+    --ok-dot: #8FC386; --warn-dot: #E2B06A; --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18); --ok-soft: rgba(143,195,134,0.18); --warn-soft: rgba(226,176,106,0.18);
+    --agent-grad: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+    --rail: #10141C; --rail-2: #1A2030; --rail-line: rgba(240,234,224,0.08);
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  .shell { height: 100vh; }
+  .ic { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- the page behind (a session on the Billing page) ---------- */
+  .rail .brand .mark { width: 28px; height: 28px; }
+  .rail .search { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13.5px; }
+  .rail .search .keys { margin-left: auto; }
+  .rail .me .avatar { border-color: var(--rail); }
+  .topbar .crumb { color: var(--ink-3); font-family: var(--font); font-size: 14px; }
+  .topbar .kbd-btn { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 12px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 13px; }
+  .msg.human .text { font-size: 15px; }
+  .out { font-family: var(--mono); font-size: 12.5px; line-height: 1.55; background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); padding: 12px 14px; white-space: pre; overflow: hidden; }
+  .out .k { color: var(--apricot); }
+  .step .ic { color: var(--ink-3); }
+  .step .ok { color: var(--ok); }
+  .notice .head { display: flex; align-items: center; gap: 10px; }
+  .notice .head .serif { font-size: 19px; }
+
+  /* ---------- the palette ---------- */
+  .scrim { position: fixed; inset: 0; z-index: 20; background: var(--scrim); }
+  .palette { position: fixed; z-index: 21; top: 72px; left: 50%; transform: translateX(-50%); width: min(var(--pal-w), calc(100% - 32px)); max-height: calc(100vh - 110px); display: flex; flex-direction: column; background: var(--pal-bg); border-radius: 20px; box-shadow: var(--pal-shadow), var(--pal-edge); overflow: hidden; }
+  .palette .q { display: flex; align-items: center; gap: 12px; padding: 16px 18px 15px 20px; border-bottom: 1px solid var(--line); }
+  .palette .q .ic { width: 18px; height: 18px; color: var(--ink-3); }
+  .palette .q .field { flex: 1; min-width: 0; display: flex; align-items: center; font-size: 17px; color: var(--ink); line-height: 1.3; }
+  .palette .q .field .caret { display: inline-block; width: 1.5px; height: 22px; margin-left: 1px; background: var(--apricot-deep); animation: pulse 1.1s steps(2) infinite; }
+  .palette .q .field .ph { color: var(--ink-3); }
+  .palette .q .scope { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px 0 8px; border-radius: var(--radius-full); background: var(--apricot-soft); color: var(--ink); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+  .palette .q .scope .serif { font-size: 14px; }
+  .palette .q .scope::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot-deep); }
+  .palette .list { overflow: auto; padding: 8px 10px 10px; }
+  .palette .section { display: flex; align-items: baseline; gap: 8px; padding: 12px 12px 5px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .palette .section:first-child { padding-top: 6px; }
+  .palette .section .n { font-family: var(--mono); font-size: 11px; letter-spacing: 0; font-weight: 400; }
+  .palette .section .why { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 400; font-size: 12px; }
+  .row { display: grid; grid-template-columns: 24px 1fr auto; gap: 12px; align-items: center; min-height: 42px; padding: 7px 12px; border-radius: 12px; color: var(--ink); font-size: 14.5px; position: relative; }
+  .row .ic { color: var(--ink-3); width: 17px; height: 17px; justify-self: center; }
+  .row .lab { min-width: 0; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--rest); }
+  .row .lab b { font-weight: 500; color: var(--match); }
+  .row .lab .sub { font-size: 13px; color: var(--ink-3); }
+  .row .lab .sub { margin-left: 6px; } .row .lab .sub::before { content: "·"; margin-right: 8px; }
+  .row .lab .name { font-family: var(--serif); font-size: 16.5px; color: var(--match); }
+  .row .lab .name b { font-weight: 400; }
+  .row .lab code { font-family: var(--mono); font-size: 12.5px; padding: 1px 6px; border-radius: 6px; background: var(--key-bg); color: var(--match); }
+  .row .right { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+  .row .right .status { font-size: 12.5px; color: var(--ink-2); }
+  .row .right .status.running::before { background: var(--ok-dot); box-shadow: 0 0 0 3px var(--ok-soft); }
+  .row .right .status.awaiting::before { background: var(--warn-dot); box-shadow: 0 0 0 3px var(--warn-soft); }
+  .row .right .pill { height: 20px; font-size: 11px; }
+  .row .right .pill.risk { background: var(--danger-soft); color: var(--danger); }
+  .row .enter { display: none; align-items: center; gap: 6px; color: var(--ink-2); }
+  .row.on { background: var(--row-on); box-shadow: inset 0 0 0 1px var(--row-on-line); }
+  .row.on .ic { color: var(--accent); }
+  .row.on .enter { display: inline-flex; }
+  .row.on .hint { display: none; }
+  .row .avatar { width: 24px; height: 24px; font-size: 10px; border-width: 0; }
+  .row .avatar.agent { border-radius: 8px 8px 8px 3px; background: var(--agent-grad); }
+  .row .avatar.agent .mark { width: 14px; height: 14px; }
+  .row.two { grid-template-rows: auto auto; }
+  .row.two .ic { grid-row: 1 / 3; }
+  .row.two .more { grid-column: 2 / 4; margin: -2px 0 2px; font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; }
+  .row.two .more .stars { flex: none; }
+  .row.two .more .stars { gap: 2px; } .row.two .more .stars span { width: 18px; height: 18px; font-size: 16px; }
+  .row.two .more .stars .on { color: var(--apricot-deep); }
+  .mem .lab { white-space: normal; display: block; line-height: 1.4; }
+  .mem .lab .key { font-family: var(--mono); font-size: 12.5px; color: var(--match); margin-right: 8px; }
+  .mem .by { font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
+  .mem .by .serif { font-size: 14px; color: var(--ink-2); }
+  .kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--key-bg); border: 1px solid var(--key-line); color: var(--key-fg); font-family: var(--mono); font-size: 11.5px; line-height: 1; }
+  .keys { display: inline-flex; align-items: center; gap: 4px; }
+  .palette .foot { display: flex; align-items: center; gap: 18px; padding: 10px 18px 11px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); background: color-mix(in srgb, var(--pal-bg) 70%, var(--surface-2)); }
+  .palette .foot .k { display: inline-flex; align-items: center; gap: 7px; }
+  .palette .foot .brandline { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; color: var(--ink-3); }
+  .palette .foot .brandline .mark { width: 16px; height: 16px; }
+
+  /* ---------- phone ---------- */
+  @media (max-width: 600px) {
+    .rail, .drawer { display: none; }
+    .topbar { padding: 12px 16px; }
+    .topbar .right .kbd-btn, .topbar .crumb { display: none; }
+    .column { padding: 12px 16px 100px; }
+    .palette { top: auto; bottom: 0; left: 0; right: 0; transform: none; width: 100%; max-height: 86vh; border-radius: 22px 22px 0 0; }
+    .palette .q { padding: 14px 16px; }
+    .palette .q .scope { display: none; }
+    .palette .list { padding: 6px 8px 10px; }
+    .row { padding: 7px 10px; gap: 10px; }
+    .row .right .hint, .row .right .sub { display: none; }
+    .row .lab .sub { display: none; }
+    .palette .foot { gap: 14px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); }
+    .palette .foot .brandline span { display: none; }
+    .palette .foot .k.tab { display: none; }
+    .row.two .more .long { display: none; }
+    .handle { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 8px auto 0; }
+  }
+  .handle { display: none; }
+  @media (max-width: 600px) { .handle { display: block; } }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search or command <span class="keys"><span class="kbd">⌘</span><span class="kbd">K</span></span></div>
+
+    <div class="section">Billing page <span class="n">4</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span></div>
+    <a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Ana's agent</span><span class="pill team">Team</span></div><div class="doing">Rendering <i>tax lines</i> on the invoice PDF; proration credits as negative lines.</div><div class="foot">with Dee · 41k tokens</div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Bo's agent</span><span class="pill team">Team</span></div><div class="doing">Proration credits on plan change, <i>day boundary</i> in the customer's timezone.</div><div class="foot">with Ana · 18k tokens</div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Cy's agent</span><span class="pill solo">Solo</span></div><div class="doing">Checkout: promo code edge cases. Waiting on <i>push origin main</i>.</div><div class="foot">Checkout · 27k tokens</div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div><div class="doing">Paused · invoice PDF fonts, idle since 14:02.</div><div class="foot">Billing page · 9k tokens</div></a>
+
+    <div class="me"><span class="avatar">An</span><span>Ana</span><span class="pill" style="margin-left:auto">driver</span></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="title"><span>Invoice PDF: tax lines</span><span class="status running">Running</span></div>
+      <span class="crumb">Billing page · Payments</span>
+      <div class="right">
+        <div class="stack"><span class="avatar driver">An</span><span class="avatar">De</span><span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" width="14" height="14" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span></div>
+        <span class="kbd-btn">Commands <span class="keys"><span class="kbd">⌘</span><span class="kbd">K</span></span></span>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="column">
+        <div class="msg human"><div class="meta"><span class="who">Ana</span><span>14:21</span></div><div class="text">Render each tax line from the ledger. Proration credits should appear as negative lines under the plan line, not folded into the total.</div></div>
+        <div class="msg agent"><div class="meta"><span class="who">Ana's agent</span><span>14:22</span></div><div class="text">Taking the ledger rows as the source. Three lines per invoice: plan, VAT at the customer's rate, and a proration credit when the plan changed mid-period.</div>
+          <div class="steps">
+            <div class="step"><svg class="ic ok" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg><span class="mono">read</span> billing/invoice/pdf.ts</div>
+            <div class="step"><svg class="ic ok" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg><span class="mono">write</span> billing/invoice/tax-lines.ts</div>
+            <div class="step"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><span class="mono">run</span> pnpm test billing/invoice</div>
+          </div>
+          <div class="out">$ pnpm test billing/invoice
+<span class="k">✓</span> renders VAT line at 20% for GB customers
+<span class="k">✓</span> proration credit is a negative line
+<span class="k">·</span> day-boundary proration in Europe/Lisbon …</div>
+        </div>
+        <div class="notice gate"><div class="head"><span class="serif">Release gate</span><span class="pill">irreversible</span></div><div>Cy's agent asks to <code class="mono">push origin main</code> on Checkout. Two contributors at 4+ open the gate; Bo rated 4.</div></div>
+        <div class="msg team"><div class="meta"><span class="who">Dee</span><span class="to">to the team</span><span>14:31</span></div><div class="text">Fonts for the PDF are in; I'll pick up the Lisbon case once the gate is through.</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- the palette -->
+<div class="scrim"></div>
+<div class="palette" role="dialog" aria-label="Commands">
+  <div class="handle"></div>
+  <div class="q">
+    <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <div class="field">pro<span class="caret"></span></div>
+    <span class="scope"><span class="serif">Invoice PDF: tax lines</span></span>
+    <span class="kbd">esc</span>
+  </div>
+  <div class="list">
+
+    <div class="section">Actions <span class="n">3</span><span class="why">on this session</span></div>
+    <div class="row two on">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+      <span class="lab">A<b>pro</b>ve <code>push origin main</code> <span class="sub">Cy's agent · Checkout</span></span>
+      <span class="right"><span class="pill risk">irreversible</span><span class="enter"><span class="kbd">↵</span></span></span>
+      <span class="more">Rate it first <span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span> Enter alone sends 4<span class="long"> · Bo already rated 4</span></span>
+    </div>
+    <div class="row">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+      <span class="lab">Open <b>pro</b>ject <span class="name">Billing page</span></span>
+      <span class="right"><span class="hint">project</span><span class="enter"><span class="kbd">↵</span></span></span>
+    </div>
+    <div class="row">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M3 20h18M5 20V9l7-5 7 5v11"/></svg>
+      <span class="lab">A<b>pro</b>vals queue <span class="sub">2 waiting on you</span></span>
+      <span class="right"><span class="hint">page</span><span class="enter"><span class="kbd">↵</span></span></span>
+    </div>
+
+    <div class="section">Switch session <span class="n">2</span></div>
+    <div class="row">
+      <span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span>
+      <span class="lab"><b>Pro</b>ration credits on plan change <span class="sub">Bo's agent · Billing page</span></span>
+      <span class="right"><span class="status running">Running</span></span>
+    </div>
+    <div class="row">
+      <span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span>
+      <span class="lab">Checkout: <b>pro</b>mo code edge cases <span class="sub">Cy's agent · Checkout</span></span>
+      <span class="right"><span class="status awaiting">Awaiting approval</span></span>
+    </div>
+
+    <div class="section">Go to <span class="n">2</span></div>
+    <div class="row">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 10h16"/></svg>
+      <span class="lab"><span class="name">Billing page</span> <span class="sub">4 sessions · 2 crews</span></span>
+      <span class="right"><span class="hint"><b style="font-weight:500;color:var(--ink-2)">pro</b>ject</span></span>
+    </div>
+    <div class="row">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 10h16"/></svg>
+      <span class="lab"><span class="name">Checkout</span> <span class="sub">1 session · gate open</span></span>
+      <span class="right"><span class="hint"><b style="font-weight:500;color:var(--ink-2)">pro</b>ject</span></span>
+    </div>
+
+    <div class="section">People and agents <span class="n">2</span><span class="why">on what matched</span></div>
+    <div class="row">
+      <span class="avatar">Bo</span>
+      <span class="lab"><span class="name">Bo</span> <span class="sub">Payments · driving <b>Pro</b>ration credits</span></span>
+      <span class="right"><span class="hint">person</span></span>
+    </div>
+    <div class="row">
+      <span class="avatar agent"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="12" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="12" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="8"/></svg></span>
+      <span class="lab"><span class="name">Bo's agent</span> <span class="sub">Invoice rollout crew · with Ana</span></span>
+      <span class="right"><span class="status running">Running</span></span>
+    </div>
+
+    <div class="section">Team memory <span class="n">2</span><span class="why">Payments</span></div>
+    <div class="row mem">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 4a4 4 0 0 0-4 4v1a3 3 0 0 0-2 5 3 3 0 0 0 2 5h8a3 3 0 0 0 2-5 3 3 0 0 0-2-5V8a4 4 0 0 0-4-4z"/></svg>
+      <span class="lab"><span class="key"><b>pro</b>ration</span><b>Pro</b>rate on the day boundary in the customer's timezone, never UTC.<div class="by"><span class="serif">Dee</span> · Billing page · 3 days ago</div></span>
+      <span class="right"><span class="hint">memory</span></span>
+    </div>
+    <div class="row mem">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 4a4 4 0 0 0-4 4v1a3 3 0 0 0-2 5 3 3 0 0 0 2 5h8a3 3 0 0 0 2-5 3 3 0 0 0-2-5V8a4 4 0 0 0-4-4z"/></svg>
+      <span class="lab"><span class="key">tax-lines</span>Tax lines are stored per line on the ledger; a <b>pro</b>ration shows as a negative line, not a changed total.<div class="by"><span class="serif">Ana's agent</span> · commit <span class="mono" style="font-size:12px">a3f9c1</span> · today</div></span>
+      <span class="right"><span class="hint">memory</span></span>
+    </div>
+
+  </div>
+  <div class="foot">
+    <span class="k"><span class="keys"><span class="kbd">↑</span><span class="kbd">↓</span></span> move</span>
+    <span class="k"><span class="kbd">↵</span> run</span>
+    <span class="k tab"><span class="kbd">⇥</span> next group</span>
+    <span class="k"><span class="kbd">esc</span> close</span>
+    <span class="brandline"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span>11 of 38 across Payments</span></span>
+  </div>
+</div>
+
+</body>
+</html>
