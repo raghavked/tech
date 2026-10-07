@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Join the circle</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: status colours lift so they read on dark surfaces */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --side: #161B26; --side-2: #1E2432; --disc-ring: rgba(226,196,166,0.22); --code-bg: #0F131B; } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --side: #161B26; --side-2: #1E2432; --disc-ring: rgba(226,196,166,0.22); --code-bg: #0F131B; }
+  :root { --side: #2A3244; --side-2: #333C50; --disc-ring: rgba(226,196,166,0.18); --code-bg: #1F2634; }
+
+  html, body { height: 100%; }
+  body { overflow: hidden; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---- two halves: the navy side (the circle) and the cream page (the steps) ---- */
+  .join { display: grid; grid-template-columns: 540px 1fr; height: 100vh; }
+
+  .side { background: var(--side); color: var(--rail-fg); padding: 36px 44px 32px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .side::before { content: ""; position: absolute; inset: 0; background: radial-gradient(520px 420px at 50% 44%, rgba(226,196,166,0.14), transparent 70%); pointer-events: none; }
+  .side > * { position: relative; }
+  .side .brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 22px; }
+  .side .brand svg { width: 28px; height: 28px; }
+  .side h1 { font-size: 46px; margin-top: 34px; line-height: 1.05; }
+  .side h1 i { color: var(--apricot); font-style: italic; }
+  .side .lede { margin: 12px 0 0; color: var(--rail-muted); font-size: 15px; max-width: 400px; line-height: 1.55; }
+  .side .lede b { color: var(--rail-fg); font-weight: 500; }
+
+  /* the big mark, with the arcs almost closed and the centre not yet settled */
+  .circle { display: grid; place-items: center; margin: 26px 0 18px; }
+  .circle .big { width: 212px; height: 212px; position: relative; display: grid; place-items: center; }
+  .circle .big svg { width: 212px; height: 212px; }
+  .circle .big .halo { position: absolute; inset: -22px; border-radius: 50%; border: 1px solid var(--disc-ring); }
+  .circle .big .halo.b { inset: -46px; border-color: rgba(226,196,166,0.10); }
+  .circle .big .disc { fill: var(--mark-disc); stroke: var(--disc-ring); stroke-width: 1; }
+  .circle .big .arc { transform-origin: 48px 48px; }
+  .circle .big .arc.a { transform: rotate(-9deg); } .circle .big .arc.b { transform: rotate(9deg); }
+  .circle .big .dot-ghost { fill: none; stroke: var(--apricot); stroke-width: 1.2; stroke-dasharray: 2.5 2.5; opacity: .7; }
+  .circle .big .dot { opacity: .28; }
+  .circle .who { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; text-align: center; font-size: 13px; color: var(--rail-muted); }
+  .circle .who .stack .avatar { border-color: var(--side); }
+  .circle .who b { color: var(--rail-fg); font-weight: 500; }
+
+  /* the three stages of the mark, one per step */
+  .stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px 12px; border-radius: var(--radius); background: rgba(243,237,228,0.05); border: 1px solid var(--rail-line); text-align: center; }
+  .stage.now { background: var(--rail-active); border-color: rgba(226,196,166,0.35); }
+  .stage.done { opacity: .92; }
+  .stage svg { width: 40px; height: 40px; }
+  .stage .disc { fill: var(--mark-disc); }
+  .stage .arc { transform-origin: 48px 48px; }
+  .stage .n { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rail-muted); }
+  .stage .t { font-family: var(--serif); font-size: 16px; line-height: 1.15; color: var(--rail-fg); }
+  .stage .s { font-size: 12px; color: var(--rail-muted); line-height: 1.35; }
+  .stage.done .n { color: #9BC88F; display: inline-flex; align-items: center; gap: 4px; }
+  .stage.done .n svg { width: 11px; height: 11px; stroke: #9BC88F; }
+
+  .side .foot { margin-top: auto; padding-top: 18px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--rail-muted); }
+  .side .foot code { white-space: nowrap; font-family: var(--mono); font-size: 12px; color: var(--apricot); background: rgba(0,0,0,0.22); padding: 2px 7px; border-radius: 6px; }
+  .side .foot a { color: var(--rail-fg); margin-left: auto; white-space: nowrap; }
+
+  /* ---- the steps ---- */
+  .page { overflow: auto; display: flex; flex-direction: column; }
+  .page .top { display: flex; align-items: center; gap: 12px; padding: 12px 48px 0; font-size: 13px; color: var(--ink-2); }
+  .page .top .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .page .top .me { display: inline-flex; align-items: center; gap: 8px; }
+  .page .top .me .avatar { width: 24px; height: 24px; font-size: 10px; }
+  .steps { list-style: none; margin: 0; padding: 12px 48px 32px; display: flex; flex-direction: column; gap: 0; width: min(740px, 100%); }
+  .steps .intro { margin-bottom: 14px; }
+  .steps .intro h2 { font-size: 30px; }
+  .steps .intro p { margin: 3px 0 0; color: var(--ink-2); }
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 0 16px; align-items: start; position: relative; padding: 0 0 14px; font-size: inherit; color: inherit; }
+  .step::before { content: ""; position: absolute; left: 14px; top: 34px; bottom: 6px; width: 1.5px; background: var(--line); }
+  .step:last-child::before { display: none; }
+  .step .num { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink-2); margin-top: 1px; }
+  .step.done .num { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .step.now .num { border-color: var(--apricot-deep); box-shadow: 0 0 0 4px var(--apricot-soft); color: var(--ink); }
+  .step .body { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .step h3 { font-family: var(--serif); font-weight: 400; font-size: 21px; line-height: 30px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .step h3 .hint { font-family: var(--font); font-size: 13px; color: var(--ink-3); }
+  .step.done .body { gap: 2px; }
+  .step.done .line { display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--ink-2); flex-wrap: wrap; }
+  .step.done .line .name { font-family: var(--serif); font-size: 17px; color: var(--ink); }
+  .step.done .line .mono { color: var(--ink-3); font-size: 12.5px; }
+  .step.done .line .change { margin-left: auto; color: var(--accent); font-size: 13px; font-weight: 500; }
+  .step.todo h3, .step.todo .body > p { color: var(--ink-3); }
+
+  /* the team rows: a chosen row carries the check and the consequence */
+  .teams { display: flex; flex-direction: column; gap: 6px; }
+  .team { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 10px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); text-align: left; font: inherit; color: inherit; cursor: pointer; }
+  .team.picked { border-color: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft), var(--shadow-soft); }
+  .team .t { font-family: var(--serif); font-size: 18px; line-height: 1.2; display: flex; align-items: baseline; gap: 10px; }
+  .team .t .org { font-family: var(--font); font-size: 12.5px; color: var(--ink-3); }
+  .team .s { font-size: 13px; color: var(--ink-2); margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .team .s .proj { display: inline-flex; align-items: center; gap: 4px; }
+  .team .s .proj::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); }
+  .team .s .proj.live::before { background: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft); }
+  .team .pick { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); font-weight: 500; white-space: nowrap; }
+  .team.picked .pick { color: var(--accent); }
+  .team.picked .pick svg { stroke: var(--accent); }
+  .team .members { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 12.5px; color: var(--ink-3); }
+  .team .members .avatar { width: 22px; height: 22px; font-size: 9px; border-width: 1.5px; border-color: var(--surface); }
+  .team .members .avatar.agent { border-radius: 7px 7px 7px 2px; color: #fff; }
+  .role-line { display: flex; align-items: flex-start; gap: 10px; padding: 9px 14px; border-radius: var(--radius); background: var(--apricot-soft); font-size: 13.5px; color: var(--ink); line-height: 1.45; }
+  .role-line svg { margin-top: 3px; stroke: var(--accent); }
+  .role-line i { font-family: var(--serif); font-style: italic; }
+
+  /* the first session: a card with the choice, the title, the policy and the one primary action */
+  .first { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .first .tabs { display: flex; border-bottom: 1px solid var(--line); padding: 0 6px; }
+  .first .tabs button { border: 0; background: transparent; font: 500 13.5px var(--font); color: var(--ink-2); padding: 11px 12px 9px; border-bottom: 2px solid transparent; white-space: nowrap; margin-bottom: -1px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+  .first .tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+  .first .tabs button .n { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .first .form { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 11px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); letter-spacing: .01em; }
+  .field .input { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 14px; border-radius: 11px; border: 1px solid var(--line); background: var(--canvas); color: var(--ink); font-size: 15px; }
+  .field .input.focus { box-shadow: var(--team-glow); border-color: var(--apricot-deep); }
+  .field .input .caret { width: 1.5px; height: 18px; background: var(--ink); animation: pulse 1s steps(2) infinite; }
+  .field .input .sel { display: inline-flex; align-items: center; gap: 8px; }
+  .field .input .sel svg { margin-left: auto; color: var(--ink-3); }
+  .field .input .sel .proj::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot-deep); display: inline-block; margin-right: 8px; }
+  .field .help { font-size: 12.5px; color: var(--ink-3); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .policy { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pol { display: flex; gap: 10px; padding: 9px 12px; border-radius: 11px; border: 1px solid var(--line); background: var(--canvas); font-size: 13.5px; line-height: 1.4; }
+  .pol .box { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--line); display: grid; place-items: center; flex: none; margin-top: 2px; background: var(--surface); }
+  .pol.on .box { background: var(--accent); border-color: var(--accent); }
+  .pol.on .box svg { width: 11px; height: 11px; stroke: var(--accent-fg); stroke-width: 2.4; }
+  .pol .l { font-weight: 600; }
+  .pol .d { color: var(--ink-2); font-size: 12.5px; }
+  .pol .mono { color: var(--ink); }
+  .first .actions { display: flex; align-items: center; gap: 12px; padding-top: 4px; }
+  .first .actions .btn.brand { min-height: 42px; padding: 0 20px; font-size: 14.5px; }
+  .first .actions .after { font-size: 13px; color: var(--ink-3); line-height: 1.35; }
+  .first .actions .after i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 14px; }
+  .alt { display: block; font-size: 13px; color: var(--ink-2); padding: 0 2px; line-height: 1.5; } .alt > * { margin-right: 6px; }
+  .alt a { font-weight: 500; }
+  .alt .sep { color: var(--ink-3); }
+
+  /* avatars on the page */
+  .avatar.agent { border-radius: 9px 9px 9px 3px; color: #fff; font-size: 10px; }
+
+  /* ---- mobile: the side becomes a short navy header, the steps follow ---- */
+  @media (max-width: 760px) {
+    body { overflow: auto; }
+    .join { display: block; height: auto; }
+    .side { padding: 20px 16px 18px; }
+    .side h1 { font-size: 32px; margin-top: 18px; }
+    .side .lede { font-size: 14px; }
+    .circle { margin: 18px 0 8px; }
+    .circle .big, .circle .big svg { width: 132px; height: 132px; }
+    .circle .big .halo { inset: -14px; } .circle .big .halo.b { inset: -28px; }
+    .circle .who { font-size: 12.5px; }
+    .stages { gap: 6px; }
+    .stage { padding: 10px 6px 8px; gap: 5px; }
+    .stage svg { width: 30px; height: 30px; }
+    .stage .t { font-size: 14px; } .stage .s { display: none; }
+    .side .foot { display: none; }
+    .page .top { padding: 16px 16px 0; }
+    .steps { padding: 18px 16px 32px; width: 100%; }
+    .steps .intro h2 { font-size: 28px; }
+    .step { grid-template-columns: 26px 1fr; gap: 0 12px; }
+    .step .num { width: 26px; height: 26px; }
+    .step::before { left: 12px; }
+    .step h3 { font-size: 20px; line-height: 28px; }
+    .two, .policy { grid-template-columns: 1fr; }
+    .first .actions { flex-direction: column; align-items: stretch; }
+    .first .actions .btn.brand { width: 100%; }
+    .first .tabs button { padding: 10px 8px 8px; font-size: 13px; }
+    .step.done .line .srv { display: none; }
+    .circle .who { font-size: 12.5px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></symbol>
+    <symbol id="chev" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.5 3.2 7.7 7.5 9.5 4.3-1.8 7.5-5 7.5-9.5V6L12 3z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="term" viewBox="0 0 24 24"><path d="m5 7 5 5-5 5M12 17h7"/></symbol>
+  </defs>
+</svg>
+
+<div class="join">
+  <!-- ====== the circle ====== -->
+  <aside class="side">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+      Henosis
+    </div>
+    <h1>Join <i>the circle.</i></h1>
+    <p class="lede"><b>One team of people and agents.</b> You enter the same ring Bo's agent did this morning: the same groups and chats, the same plan-first manners, the same release gate.</p>
+
+    <div class="circle" aria-label="The mark, two arcs nearly closed; the centre settles when you arrive">
+      <div class="big">
+        <span class="halo"></span><span class="halo b"></span>
+        <svg class="mark" viewBox="0 0 96 96">
+          <circle class="disc" cx="48" cy="48" r="46"/>
+          <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+          <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+          <circle class="dot-ghost" cx="48" cy="48" r="9"/>
+          <circle class="dot" cx="48" cy="48" r="7"/>
+        </svg>
+      </div>
+      <div class="who">
+        <span class="stack">
+          <span class="avatar" title="Ana">AN</span>
+          <span class="avatar driver" title="Bo, driving">BO</span>
+          <span class="avatar" title="Cy">CY</span>
+          <span class="avatar agent" title="Bo's agent on Billing page">Bi</span>
+          <span class="avatar agent" title="Cy's agent on Checkout">Ch</span>
+        </span>
+        <span><b>Ana, Bo, Cy</b> and two agents are in. Bo has the baton.</span>
+      </div>
+    </div>
+
+    <div class="stages" aria-label="Three steps">
+      <div class="stage done">
+        <svg viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round" style="transform: rotate(-28deg)"/></svg>
+        <span class="n"><svg class="ic"><use href="#check"/></svg>Done</span>
+        <span class="t">Who you are</span>
+        <span class="s">Your arc, the person's.</span>
+      </div>
+      <div class="stage done">
+        <svg viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a)" stroke-width="10" fill="none" stroke-linecap="round" style="transform: rotate(-24deg)"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round" style="transform: rotate(24deg)"/></svg>
+        <span class="n"><svg class="ic"><use href="#check"/></svg>Done</span>
+        <span class="t">Your teams</span>
+        <span class="s">The agents' arc swings in.</span>
+      </div>
+      <div class="stage now">
+        <svg viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a)" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="7" fill="var(--mark-dot)"/></svg>
+        <span class="n">Step 3</span>
+        <span class="t">Your first session</span>
+        <span class="s">The centre settles when you arrive.</span>
+      </div>
+    </div>
+
+    <div class="foot">
+      <svg class="ic"><use href="#term"/></svg>
+      <span style="white-space:nowrap">In a terminal? <code>henosis join billing-page</code></span>
+      <a href="#">Skip, open the demo</a>
+    </div>
+  </aside>
+
+  <!-- ====== the steps ====== -->
+  <main class="page">
+    <div class="top">
+      <span>Acme · Payments</span>
+      <span class="right">
+        <span class="me"><span class="avatar">DE</span>Signed in as Dee</span>
+      </span>
+    </div>
+
+    <ol class="steps">
+      <li class="intro">
+        <h2>Welcome, Dee.</h2>
+        <p>Two of three. Open a session and you are in the circle.</p>
+      </li>
+
+      <li class="step done">
+        <span class="num" aria-hidden="true"><svg class="ic" style="width:14px;height:14px;stroke:#fff"><use href="#check"/></svg></span>
+        <div class="body">
+          <h3>Who you are</h3>
+          <div class="line">
+            <span class="avatar">DE</span>
+            <span class="name">Dee Okafor</span>
+            <span class="mono">dee<span class="srv"> · as in users.json</span></span>
+            <a class="change" href="#">Change</a>
+          </div>
+        </div>
+      </li>
+
+      <li class="step done">
+        <span class="num" aria-hidden="true"><svg class="ic" style="width:14px;height:14px;stroke:#fff"><use href="#check"/></svg></span>
+        <div class="body">
+          <h3>Your teams <span class="hint">Payments chosen · you can change it later</span></h3>
+          <div class="teams">
+            <button type="button" class="team picked" aria-pressed="true">
+              <span>
+                <span class="t">Payments <span class="org">Acme</span></span>
+                <span class="s"><span class="proj live">Billing page</span><span class="proj">Checkout</span><span class="faint">· 2 projects</span></span>
+                <span class="members">
+                  <span class="stack"><span class="avatar">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar agent">Bi</span><span class="avatar agent">Ch</span></span>
+                  Ana leads · 3 people, 2 agents
+                </span>
+              </span>
+              <span class="pick"><svg class="ic"><use href="#check"/></svg>Chosen</span>
+            </button>
+            <button type="button" class="team" aria-pressed="false">
+              <span>
+                <span class="t">Platform <span class="org">Acme</span></span>
+                <span class="s"><span class="proj">Release train</span><span class="faint">· 1 project</span></span>
+              </span>
+              <span class="pick">Pick</span>
+            </button>
+          </div>
+          <div class="role-line">
+            <svg class="ic"><use href="#shield"/></svg>
+            <span>You join Payments as a <i>contributor</i>: steer, pause, rate plans and vote at the release gate. Ana, the lead, can raise you to owner.</span>
+          </div>
+        </div>
+      </li>
+
+      <li class="step now">
+        <span class="num" aria-hidden="true">3</span>
+        <div class="body">
+          <h3>Your first session</h3>
+          <div class="first">
+            <div class="tabs" role="tablist">
+              <button type="button" class="on" role="tab" aria-selected="true">New session</button>
+              <button type="button" role="tab" aria-selected="false">Join live <span class="n">2</span></button>
+              <button type="button" role="tab" aria-selected="false">Open by id</button>
+            </div>
+            <div class="form">
+              <div class="two">
+                <div class="field">
+                  <label>Project</label>
+                  <div class="input"><span class="sel"><span class="proj">Billing page</span></span><svg class="ic" style="margin-left:auto;color:var(--ink-3)"><use href="#chev"/></svg></div>
+                </div>
+                <div class="field">
+                  <label>Who sits with you</label>
+                  <div class="input"><span class="stack"><span class="avatar" style="width:22px;height:22px;font-size:9px">BO</span><span class="avatar agent" style="width:22px;height:22px;font-size:9px">Bi</span></span><span class="small muted">Bo and his agent, Solo until you team up</span></div>
+                </div>
+              </div>
+              <div class="field">
+                <label>What it is for</label>
+                <div class="input focus">Invoice PDF: tax lines and proration<span class="caret"></span></div>
+                <span class="help">The session title, and the first line of the agent's brief.</span>
+              </div>
+              <div class="policy">
+                <div class="pol on">
+                  <span class="box"><svg class="ic"><use href="#check"/></svg></span>
+                  <span><span class="l">Plan first</span><br><span class="d">The agent proposes steps; one rating at 3+ before any work.</span></span>
+                </div>
+                <div class="pol">
+                  <span class="box"></span>
+                  <span><span class="l">Token budget</span><br><span class="d">Payments' default is <span class="mono">120,000</span> a session. Tick to set your own.</span></span>
+                </div>
+              </div>
+              <div class="actions">
+                <button type="button" class="btn brand">Enter the circle<svg class="ic"><use href="#arrow"/></svg></button>
+                <span class="after">The stream will say <i>Dee joins the circle.</i><br>Ana and Bo are told; the agent reads your brief first.</span>
+              </div>
+            </div>
+          </div>
+          <div class="alt">
+            <span>Not ready?</span>
+            <a href="#">Try the demo session</a>
+            <span class="sep">·</span>
+            <span class="muted">a replay of Bo's <span class="serif i">VAT rounding</span> with a plan, a gate and a unite.</span>
+          </div>
+        </div>
+      </li>
+    </ol>
+  </main>
+</div>
+</body>
+</html>

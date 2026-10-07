@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Tour · five coach marks</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- the screen: a real session, with the tour on top ---- */
+  body { background-repeat: no-repeat; }
+  .screen { position: relative; height: 100vh; overflow: hidden; }
+  .screen .shell { height: 100%; }
+  .scroll .column { align-self: center; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .crew { padding-top: 8px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .brand .wordmark { line-height: 1; }
+  .rail .search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13px; margin-bottom: 4px; }
+  .rail .search kbd { margin-left: auto; font: 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 1px 5px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 4px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+  .rail .me .avatar.new { box-shadow: 0 0 0 2px var(--apricot); }
+
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .status, .topbar .title .pill { font-family: var(--font); }
+  .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font: 12.5px var(--mono); color: var(--ink-2); min-width: 92px; }
+  .tokchip .budget { height: 3px; }
+  .topbar .menu { display: none; }
+  .topbar .btn.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+  .btn { white-space: nowrap; }
+
+  .column { padding-top: 22px; padding-bottom: 40px; gap: 22px; }
+  /* the tour scrolled the stream to its target: the plan card sits first in view */
+  .screen .column { margin-top: -192px; }
+  .composer-wrap { padding-top: 6px; }
+  .msg .meta .scope { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+  .msg .meta time { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .msg.human .text { max-width: 92%; }
+  .msg.human .text .goal-lbl { font-family: var(--serif); font-style: italic; color: var(--accent); margin-right: 6px; }
+  .msg.agent .meta .who { display: inline-flex; align-items: center; gap: 8px; }
+  .msg.agent .text p { margin: 0 0 8px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; }
+  .step { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 5px 10px; border-radius: 10px; }
+  .step svg { width: 15px; height: 15px; color: var(--ink-3); }
+  .step .mono { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .mono b { font-weight: 500; color: var(--ink); }
+  .step .r { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .step.ok svg { color: var(--ok); }
+  .step.live { background: var(--apricot-soft); } .step.live .r { color: var(--accent); }
+  .step .livedot { width: 9px; height: 9px; margin: 0 auto; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.6s ease-in-out infinite; animation-delay: 1s; }
+
+  .plan .head .status { margin-left: auto; }
+  .plan .goal { margin: 0; font-size: 15px; }
+  .plan .pstep .t { display: flex; flex-direction: column; min-width: 0; }
+  .plan .pstep .t .d { font-size: 12.5px; color: var(--ink-3); }
+  .plan .pstep .used { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); min-width: 56px; text-align: right; }
+  .plan .pstep .est { min-width: 60px; text-align: right; }
+  .plan .pstep.pending .used { color: var(--ink-3); }
+  .plan .pstep:first-child { border-top: 0; }
+  .plan .pstep { padding: 7px 0; }
+  .plan { gap: 12px; padding: 16px 20px; }
+  .plan .totals { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+  .plan .totals .budget { width: 160px; }
+  .plan .raters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+  .plan .raters .r { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px 10px 3px 4px; }
+  .plan .raters .r .avatar { width: 22px; height: 22px; font-size: 9.5px; border: 0; }
+  .plan .raters .r b { font-weight: 500; color: var(--ink); }
+  .plan .raters .r .st { color: var(--apricot-deep); letter-spacing: -1px; font-size: 14px; }
+  .plan .raters .by { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--ok); font-weight: 500; }
+  .plan .raters .by svg { width: 15px; height: 15px; }
+  .status.plan-approved::before { background: var(--ok); }
+  .status.running::before, .rail .agent .head .dot.running { animation-delay: 1s; }
+
+  .composer .input { color: var(--ink-3); }
+  .composer .bar .mode { display: inline-flex; align-items: center; gap: 6px; font: 12.5px var(--font); color: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-full); padding: 4px 11px; }
+  .composer .bar .mode .mono { font-size: 12px; color: var(--ink); }
+  .composer .send svg { width: 16px; height: 16px; }
+  .composer-wrap .hint { width: min(var(--col), 100%); margin: 8px auto 0; text-align: center; font-size: 12px; color: var(--ink-3); }
+  .divider .joined { font-family: var(--serif); font-style: italic; font-size: 13.5px; color: var(--accent); }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---- the tour: a dim, one lit target, one coach mark ---- */
+  .dim { position: absolute; inset: 0; z-index: 60; background: rgba(42, 50, 68, 0.52); }
+  :root[data-theme="dark"] .dim { background: rgba(8, 11, 18, 0.62); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dim { background: rgba(8, 11, 18, 0.62); } }
+  .lit { position: relative; z-index: 61; box-shadow: 0 0 0 3px var(--apricot), 0 0 0 10px rgba(226,196,166,0.28), var(--shadow-pop); }
+  .lit-m { position: relative; }
+
+  .coach { position: absolute; z-index: 62; width: 352px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); padding: 16px 20px 16px; display: flex; flex-direction: column; gap: 10px; animation: rise .32s ease both; animation-delay: .1s; }
+  .coach .caret { position: absolute; width: 16px; height: 16px; background: var(--surface); border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
+  .coach .caret.up { top: -9px; }
+  .coach .caret.left { left: -9px; transform: rotate(-45deg); }
+  .coach .top { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ink-2); }
+  .coach .top .skip { margin-left: auto; color: var(--ink-3); font: 500 12.5px var(--font); background: none; border: 0; cursor: pointer; padding: 2px 0; }
+  .coach .top .skip:hover { color: var(--ink); }
+  .coach h2 { font-size: 23px; line-height: 1.15; }
+  .coach p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+  .coach p b { color: var(--ink); font-weight: 500; }
+  .coach p i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 15px; }
+  .coach .tip { display: flex; gap: 9px; align-items: flex-start; padding: 9px 12px; border-radius: 12px; background: var(--apricot-soft); font-size: 13px; line-height: 1.45; color: var(--ink); }
+  .coach .tip svg { width: 15px; height: 15px; flex: none; margin-top: 3px; color: var(--accent); }
+  .coach .foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .coach .foot .kbd { margin-left: auto; font: 11.5px var(--mono); color: var(--ink-3); white-space: nowrap; }
+  .coach .foot .kbd kbd { font: inherit; border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+
+  /* the ring that closes: five segments, the centre comes at the end */
+  .ring { width: 28px; height: 28px; flex: none; }
+  .ring .seg { fill: none; stroke: var(--surface-3); stroke-width: 3.6; stroke-linecap: round; }
+  .ring .seg.on { stroke: var(--apricot-deep); }
+  .ring .seg.now { stroke: var(--accent); }
+  .ring .ghost { fill: none; stroke: var(--apricot-deep); stroke-width: 1.2; stroke-dasharray: 2 2; opacity: .8; }
+  .ring .centre { fill: var(--apricot-deep); }
+  .ring.big { width: 56px; height: 56px; }
+
+  .coach.m { display: none; }
+
+  /* ---- the board under the screen: the five marks, the ring, the rules ---- */
+  .board { padding: 56px 64px 72px; display: flex; flex-direction: column; gap: 40px; border-top: 1px solid var(--line); }
+  .board header { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+  .board header h1 { font-size: 34px; }
+  .board header p { margin: 0; color: var(--ink-2); max-width: 760px; }
+  .board h3.lbl { font-size: 11.5px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; }
+  .marks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+  .marks .coach { position: static; width: auto; animation: none; box-shadow: var(--shadow-soft); }
+  .marks .coach.last .foot .btn.primary { background: var(--gradient-brand); }
+  .marks .where { margin-top: 12px; font-size: 13px; color: var(--ink-2); line-height: 1.5; padding: 0 4px; }
+  .marks .where b { display: block; color: var(--ink); font-weight: 500; }
+  .marks .where .mono { font-size: 12px; color: var(--ink-3); }
+  .ringrow { display: grid; grid-template-columns: repeat(6, auto) 1fr; gap: 26px; align-items: center; }
+  .ringrow .st { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  .toast { display: inline-flex; align-items: center; gap: 12px; padding: 12px 18px 12px 12px; border-radius: var(--radius-lg); background: var(--rail); color: var(--rail-fg); box-shadow: var(--shadow-pop); font-size: 14px; justify-self: end; }
+  .toast .mark { width: 32px; height: 32px; flex: none; }
+  .toast .t { display: flex; flex-direction: column; line-height: 1.3; }
+  .toast .t .serif { font-size: 17px; }
+  .toast .t .s { font-size: 12.5px; color: var(--rail-muted); }
+  .toast .x { margin-left: 12px; color: var(--rail-muted); }
+  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .rules .card { display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--ink-2); }
+  .rules .card h3 { font-family: var(--serif); font-weight: 400; font-size: 19px; color: var(--ink); }
+  .rules .card ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+  .rules .card b { color: var(--ink); font-weight: 500; }
+
+  /* ---- mobile: the rail folds, the mark becomes a sheet ---- */
+  @media (max-width: 760px) {
+    .rail { display: none; }
+    .topbar { padding: 10px 12px; gap: 8px; }
+    .topbar .title .serif { font-size: 19px; }
+    .topbar .lbl, .topbar .tokchip, .topbar .btn.details, .topbar .title .pill, .topbar .title .status, .topbar .btn.share { display: none; }
+    .screen .column { margin-top: -224px; }
+    .topbar .menu { display: inline-grid; }
+    .column { padding: 14px 16px 12px; gap: 16px; }
+    .msg.human .text { max-width: 100%; padding: 11px 14px; }
+    .msg .meta time { display: none; }
+    .plan { padding: 14px 14px; gap: 10px; }
+    .plan .pstep { grid-template-columns: 22px 1fr auto; padding: 6px 0; }
+    .plan .pstep .est { display: none; }
+    .plan .pstep .t .d { display: none; }
+    .plan .totals .budget { width: 90px; }
+    .plan .raters .by { display: none; }
+    .composer-wrap { padding: 10px 12px 14px; }
+    .composer { padding: 12px 12px 10px 14px; }
+    .composer .bar .mode, .composer-wrap .hint { display: none; }
+    .coach.d { display: none; }
+    .coach.m { display: flex; left: 0; right: 0; bottom: 0; width: auto; border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 14px 18px 22px; animation-name: rise; }
+    .coach.m .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: -4px auto 2px; }
+    .coach h2 { font-size: 21px; }
+    .board { padding: 36px 16px 48px; gap: 28px; }
+    .marks, .rules { grid-template-columns: 1fr; }
+    .ringrow { grid-template-columns: repeat(3, 1fr); }
+    .toast { justify-self: start; grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- =========================== the screen =========================== -->
+<div class="screen">
+<div class="shell">
+
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span class="wordmark">Henosis</span>
+    </div>
+    <button class="new" type="button">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New session
+    </button>
+    <div class="search">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Search or jump to
+      <kbd>⌘K</kbd>
+    </div>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Writing <i>proration.ts</i> · step 3 of 4</div>
+      <div class="foot"><span class="with"><span class="avatar">AN</span> with Bo, Dee</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits to <i>run db:migrate</i> · release gate</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana</span><span class="tok">9.1k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Project <span class="n">4 sessions</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>Inbox <span class="n live">1</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Approvals <span class="n live">1</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V9l7-5 7 5v11zM10 20v-6h4v6"/></svg>#billing <span class="n">Cy's agent answered</span></a>
+
+    <div class="me">
+      <span class="avatar new">DE</span>
+      <span class="meta"><span>Dee</span><span class="role">contributor · joined today</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="btn ghost icon sm menu" type="button" aria-label="Open the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title">
+        <span class="serif">Billing page</span>
+        <span class="status running">Running · turn 7</span>
+        <span class="pill team">Team · with Bo, Dee</span>
+        <span class="tokchip" title="9,870 in · 2,530 out · 4,100 cache read"><span>12.4k tokens</span><span class="budget"><i style="width:62%"></i></span></span>
+      </div>
+      <div class="right">
+        <span class="stack" title="Ana (driving), Bo, Cy, Dee are here">
+          <span class="avatar driver" title="Ana, owner, driving">AN</span>
+          <span class="avatar" title="Bo, contributor">BO</span>
+          <span class="avatar" title="Cy, contributor">CY</span>
+          <span class="avatar" title="Dee, contributor, you">DE</span>
+        </span>
+        <button class="btn ghost sm share" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg><span class="lbl">Share</span></button>
+        <button class="btn sm on" type="button">Team <span class="faint">4</span></button>
+        <button class="btn sm details" type="button">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <section class="column" aria-label="Session stream">
+
+        <div class="divider"><span class="joined">Bo joins the circle</span> · 09:14</div>
+
+        <div class="msg human">
+          <div class="meta"><span class="avatar driver">AN</span><span class="who">Ana</span><span class="scope">goal</span><time>09:15</time></div>
+          <div class="text"><span class="goal-lbl">Goal</span>Add proration to the Billing page. When a plan changes mid-cycle, show the prorated credit as its own line above the tax lines, keep the invoice PDF in step, and leave Checkout to Bo.</div>
+        </div>
+
+        <!-- step 3 of the tour lights this card -->
+        <section class="notice plan lit lit-m" aria-label="Plan">
+          <div class="head">
+            <span class="serif">A plan in 4 steps</span>
+            <span class="small faint">proposed on turn 1</span>
+            <span class="status plan-approved">Approved</span>
+          </div>
+          <p class="goal">Proration on the Billing page, with the invoice PDF following the same rows.</p>
+          <div class="steps">
+            <div class="pstep done"><span class="n">✓</span><span class="t"><span>Read the billing model and the tax-line rows</span><span class="d">apps/web/src/views/Billing.tsx, packages/billing/tax.ts</span></span><span class="used">1,920</span><span class="est">~2,000</span></div>
+            <div class="pstep done"><span class="n">✓</span><span class="t"><span>Compute the prorated credit in packages/billing</span><span class="d">pure function, day-based, one test per edge</span></span><span class="used">4,310</span><span class="est">~5,000</span></div>
+            <div class="pstep running"><span class="n">3</span><span class="t"><span>Render the credit line above the tax lines</span><span class="d">Billing.tsx, same row component the invoice PDF reads</span></span><span class="used">3,640</span><span class="est">~6,000</span></div>
+            <div class="pstep pending"><span class="n">4</span><span class="t"><span>Migrate stored invoices with a proration column</span><span class="d">irreversible · waits at the release gate</span></span><span class="used">—</span><span class="est">~3,500</span></div>
+          </div>
+          <div class="totals"><span>16.5k estimated · 9.9k used · budget 20k</span><span class="budget"><i style="width:62%"></i></span></div>
+          <div class="raters">
+            <span class="r"><span class="avatar">BO</span><b>Bo</b><span class="st">★★★★☆</span></span>
+            <span class="r"><span class="avatar">CY</span><b>Cy</b><span class="st">★★★★★</span></span>
+            <span class="muted">2 ratings · 4.5 average · needed 1 at 3+</span>
+            <span class="by"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg>by the team's ratings</span>
+          </div>
+        </section>
+
+        <div class="msg agent">
+          <div class="meta"><span class="who"><span class="avatar agent">A</span>Ana's agent</span><span class="faint">turn 7 · step 3 of 4</span><time>09:31</time></div>
+          <div class="text">
+            <p>The credit is a pure function now: <span class="mono">prorate(plan, from, to)</span> returns the unused days as a negative line, and the tax lines read the subtotal after it, so VAT comes out on the net amount. The invoice PDF uses the same <span class="mono">InvoiceRow</span>, so it follows without a second change.</p>
+          </div>
+          <div class="steps">
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="mono">Wrote <b>packages/billing/proration.ts</b></span><span class="r">+64 −0</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 7 5 5-5 5M12 17h7"/></svg><span class="mono">Ran shell: <b>pnpm test packages/billing</b></span><span class="r">exit 0 · 1.8s</span></div>
+            <div class="step live"><span class="livedot" aria-hidden="true"></span><span class="mono">Writing <b>apps/web/src/views/Billing.tsx</b></span><span class="r">now</span></div>
+          </div>
+        </div>
+
+        <div class="msg team">
+          <div class="meta"><span class="avatar">BO</span><span class="who">Bo</span><span class="to">to the team</span><time>09:33</time></div>
+          <div class="text">Holding the Checkout tax lines until the proration lands so both pages read the same rows.</div>
+        </div>
+
+        <div class="divider"><span class="joined">Dee joins the circle</span> · 09:36</div>
+
+      </section>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="input" role="textbox" aria-label="Steer the agent">Steer the agent</div>
+        <div class="bar">
+          <div class="seg" role="radiogroup" aria-label="Send to"><button type="button" class="on">Agent</button><button type="button">Team</button></div>
+          <span class="mode">steer · <span class="mono">goal</span><svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="m6 9 6 6 6-6"/></svg></span>
+          <div class="right">
+            <button class="btn ghost icon sm" type="button" aria-label="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="m20 12-8.5 8.5a5 5 0 0 1-7-7L13 5a3.3 3.3 0 0 1 4.7 4.7L9.5 18a1.7 1.7 0 0 1-2.4-2.4L15 7.7"/></svg></button>
+            <button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Enter to send · Shift+Enter for a new line · ? for shortcuts · as Dee, contributor</p>
+    </div>
+  </main>
+</div>
+
+<!-- the tour layer -->
+<div class="dim" aria-hidden="true"></div>
+
+<!-- desktop: step 3, anchored under the plan card, caret up -->
+<section class="coach d" role="dialog" aria-label="Tour, step 3 of 5" style="left: 882px; top: 538px;">
+  <span class="caret up" style="left: 296px;" aria-hidden="true"></span>
+  <div class="top">
+    <svg class="ring" viewBox="0 0 32 32" aria-hidden="true">
+      <path class="seg on" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/>
+      <path class="seg on" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/>
+      <path class="seg now" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/>
+      <path class="seg" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/>
+      <path class="seg" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/>
+      <circle class="ghost" cx="16" cy="16" r="3.2"/>
+    </svg>
+    <span>Step 3 of 5 · <span class="muted">the plan</span></span>
+    <button class="skip" type="button">Skip the tour</button>
+  </div>
+  <h2>Plans come first.</h2>
+  <p>Ana's agent proposed four steps with token estimates before it wrote a line. <b>Bo and Cy rated it</b>; one rating at 3+ opened it. Each step records what it took beside its estimate, against the session's budget.</p>
+  <div class="tip"><svg class="ic" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.3.9-4.5 4.4 1 6.1L12 17l-5.5 3 1-6.1L3 9.5l6.3-.9z"/></svg><span>Your rating counts once. A note with it helps the next person who reads this plan.</span></div>
+  <div class="foot">
+    <button class="btn sm" type="button">Back</button>
+    <button class="btn primary sm" type="button">Next · the release gate</button>
+    <span class="kbd"><kbd>→</kbd> <kbd>esc</kbd></span>
+  </div>
+</section>
+
+<!-- mobile: the same step as a sheet from the bottom -->
+<section class="coach m" role="dialog" aria-label="Tour, step 3 of 5">
+  <span class="grab" aria-hidden="true"></span>
+  <div class="top">
+    <svg class="ring" viewBox="0 0 32 32" aria-hidden="true">
+      <path class="seg on" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/>
+      <path class="seg on" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/>
+      <path class="seg now" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/>
+      <path class="seg" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/>
+      <path class="seg" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/>
+      <circle class="ghost" cx="16" cy="16" r="3.2"/>
+    </svg>
+    <span>Step 3 of 5 · <span class="muted">the plan</span></span>
+    <button class="skip" type="button">Skip</button>
+  </div>
+  <h2>Plans come first.</h2>
+  <p>Four steps with token estimates before a line was written. <b>Bo and Cy rated it</b>; one rating at 3+ opened it. Each step records what it took beside its estimate.</p>
+  <div class="foot">
+    <button class="btn sm" type="button">Back</button>
+    <button class="btn primary sm" type="button" style="flex:1">Next · the release gate</button>
+  </div>
+</section>
+</div>
+
+<!-- =========================== the board =========================== -->
+<section class="board" aria-label="Tour specification">
+  <header>
+    <h1>Five coach marks, in the register</h1>
+    <p>The tour starts the first time a new member opens a session after <i class="serif i">joins the circle</i>. One dim, one lit target, one mark at a time; the stream scrolls the target into view before the mark rises. The ring in the corner closes a segment per step and gets its centre at the end.</p>
+  </header>
+
+  <div>
+    <h3 class="lbl">The five, in order</h3>
+    <div class="marks">
+
+      <div>
+        <section class="coach">
+          <div class="top"><svg class="ring" viewBox="0 0 32 32" aria-hidden="true"><path class="seg now" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="ghost" cx="16" cy="16" r="3.2"/></svg><span>Step 1 of 5</span><button class="skip" type="button">Skip the tour</button></div>
+          <h2>The rail is the team.</h2>
+          <p>Every live agent is a card: what it is on, Solo or Team, who it is with, and what it has spent. Ana's and Bo's agents share the <i>Invoice rollout</i> crew. Yours, <b>Tax lines</b>, is paused until its plan has a rating.</p>
+          <div class="foot"><button class="btn primary sm" type="button">Next · the stream</button><span class="kbd"><kbd>→</kbd></span></div>
+        </section>
+        <p class="where"><b>Lights the agent cards</b>The mark sits to the right of the rail, caret left. <span class="mono">scrollIntoView · Tax lines</span></p>
+      </div>
+
+      <div>
+        <section class="coach">
+          <div class="top"><svg class="ring" viewBox="0 0 32 32" aria-hidden="true"><path class="seg on" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg now" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="ghost" cx="16" cy="16" r="3.2"/></svg><span>Step 2 of 5</span><button class="skip" type="button">Skip the tour</button></div>
+          <h2>Everything is attributed.</h2>
+          <p>Ana set the goal. Her agent answers with its tool steps underneath, each with what it cost. <b>Bo's note on apricot</b> went to the people here and never to the agent. All of it replays, in order, for whoever comes next.</p>
+          <div class="foot"><button class="btn sm" type="button">Back</button><button class="btn primary sm" type="button">Next · the plan</button></div>
+        </section>
+        <p class="where"><b>Lights the goal, the reply and the team note</b>One halo around three messages; caret up from the goal. <span class="mono">scrollIntoView · goal</span></p>
+      </div>
+
+      <div>
+        <section class="coach">
+          <div class="top"><svg class="ring" viewBox="0 0 32 32" aria-hidden="true"><path class="seg on" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg on" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg now" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="ghost" cx="16" cy="16" r="3.2"/></svg><span>Step 3 of 5</span><button class="skip" type="button">Skip the tour</button></div>
+          <h2>Plans come first.</h2>
+          <p>Ana's agent proposed four steps with token estimates before it wrote a line. <b>Bo and Cy rated it</b>; one rating at 3+ opened it. Each step records what it took beside its estimate.</p>
+          <div class="tip"><svg class="ic" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.3.9-4.5 4.4 1 6.1L12 17l-5.5 3 1-6.1L3 9.5l6.3-.9z"/></svg><span>Your rating counts once. A note helps the next person.</span></div>
+          <div class="foot"><button class="btn sm" type="button">Back</button><button class="btn primary sm" type="button">Next · the release gate</button></div>
+        </section>
+        <p class="where"><b>Lights the plan card</b>The mark hangs under the card, right-aligned, caret up. <span class="mono">scrollIntoView · plan</span></p>
+      </div>
+
+      <div>
+        <section class="coach">
+          <div class="top"><svg class="ring" viewBox="0 0 32 32" aria-hidden="true"><path class="seg on" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg on" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg on" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg now" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="ghost" cx="16" cy="16" r="3.2"/></svg><span>Step 4 of 5</span><button class="skip" type="button">Skip the tour</button></div>
+          <h2>The gate is held by the people who consume the code.</h2>
+          <p>Step 4 migrates stored invoices, which cannot be undone. <b>Two contributors at 4+</b> open the gate. Bo is in with a 4; the agent waits at step 4 until the second rating lands. An approve without a pick sends 4.</p>
+          <div class="foot"><button class="btn sm" type="button">Back</button><button class="btn primary sm" type="button">Next · the composer</button></div>
+        </section>
+        <p class="where"><b>Lights the approval notice</b>Its Approve stays live under the dim: a tour never blocks a vote. <span class="mono">scrollIntoView · gate</span></p>
+      </div>
+
+      <div>
+        <section class="coach last">
+          <div class="top"><svg class="ring" viewBox="0 0 32 32" aria-hidden="true"><path class="seg on" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg on" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg on" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg on" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg now" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="ghost" cx="16" cy="16" r="3.2"/></svg><span>Step 5 of 5</span><button class="skip" type="button">Skip the tour</button></div>
+          <h2>Agent, or Team.</h2>
+          <p><b>Agent</b> steers Ana's agent with a scope: goal, api, tests. It is weighed against everyone else's and applied at the next safe point. <b>Team</b> talks to Ana, Bo and Cy; it is kept in the log and never sent to the agent.</p>
+          <div class="foot"><button class="btn sm" type="button">Back</button><button class="btn primary sm" type="button">Close the ring</button></div>
+        </section>
+        <p class="where"><b>Lights the composer</b>The mark sits above it, caret down. The last button carries the one gradient on the screen.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div>
+    <h3 class="lbl">The ring closes, then the centre appears</h3>
+    <div class="ringrow">
+      <div class="st"><svg class="ring big" viewBox="0 0 32 32"><path class="seg" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="ghost" cx="16" cy="16" r="3.2"/></svg><span>before</span></div>
+      <div class="st"><svg class="ring big" viewBox="0 0 32 32"><path class="seg now" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="ghost" cx="16" cy="16" r="3.2"/></svg><span>step 1 · chocolate is now</span></div>
+      <div class="st"><svg class="ring big" viewBox="0 0 32 32"><path class="seg on" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg on" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg now" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="ghost" cx="16" cy="16" r="3.2"/></svg><span>step 3 · apricot is done</span></div>
+      <div class="st"><svg class="ring big" viewBox="0 0 32 32"><path class="seg on" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg on" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg on" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg on" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg now" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="ghost" cx="16" cy="16" r="3.2"/></svg><span>step 5 · the centre is a ghost</span></div>
+      <div class="st"><svg class="ring big" viewBox="0 0 32 32"><path class="seg on" d="M16.84 4.03 A12 12 0 0 1 27.13 11.50"/><path class="seg on" d="M27.64 13.10 A12 12 0 0 1 23.71 25.19"/><path class="seg on" d="M22.36 26.18 A12 12 0 0 1 9.64 26.18"/><path class="seg on" d="M8.29 25.19 A12 12 0 0 1 4.36 13.10"/><path class="seg on" d="M4.87 11.50 A12 12 0 0 1 15.16 4.03"/><circle class="centre" cx="16" cy="16" r="3.4"/></svg><span>closed · the dot pops</span></div>
+      <div class="st"><svg class="mark ring big" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span>the mark, in the toast</span></div>
+      <div class="toast" role="status">
+        <svg class="mark joining" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        <span class="t"><span class="serif">Dee is in the circle.</span><span class="s">The tour lives in Settings and under ? whenever you want it back.</span></span>
+        <span class="x">✕</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h3 class="lbl">Rules</h3>
+    <div class="rules">
+      <div class="card">
+        <h3>When it shows</h3>
+        <ul>
+          <li>Once, on the first session a member opens after <b>joins the circle</b>; never on the demo session, never for an agent.</li>
+          <li>Starts 600 ms after the stream has folded, so the targets exist. If the rail is folded (mobile), step 1 opens it first.</li>
+          <li>Reopen from <b>Settings · Help · Take the tour</b> or the <b>?</b> sheet. Replays from step 1.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What it never does</h3>
+        <ul>
+          <li>Never covers an approval that is yours: step 4's notice stays live under the dim, and a new approval for you <b>pauses the tour</b> with the notice lit.</li>
+          <li>Never moves the composer or the rail; the dim is a layer, the targets are the real elements, lit with the apricot halo.</li>
+          <li>Never auto-advances. <b>Esc</b> skips, <b>→ / ←</b> step, focus stays in the mark; the dim is <span class="mono">aria-hidden</span>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Motion and themes</h3>
+        <ul>
+          <li>Each mark rises (<span class="mono">rise .32s</span>) after the target scrolls into view; the ring segment fills with a <span class="mono">draw</span>. Calm mode and reduced motion: cut, no scroll animation.</li>
+          <li>Dark: the dim is near-black at 62 %, the halo keeps the apricot, the lit card keeps its surface, the primary button is apricot on navy as the tokens say.</li>
+          <li>Mobile: the mark is a sheet from the bottom; the target sits above it; a swipe down is Skip.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

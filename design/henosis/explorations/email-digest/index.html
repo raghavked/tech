@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Email digest and invite</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- exploration board ---------- */
+  body { min-height: 100%; background-repeat: no-repeat; }
+  .board { padding: 28px 40px 60px; display: flex; flex-direction: column; gap: 22px; max-width: 1440px; margin: 0 auto; }
+  .board-head { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+  .board-head h1 { font-size: 32px; }
+  .board-head .lede { color: var(--ink-2); max-width: 720px; font-size: 14.5px; line-height: 1.5; }
+  .board-head .tag { margin-left: auto; display: inline-flex; gap: 8px; align-items: center; }
+  .cols { display: grid; grid-template-columns: 640px 1fr; gap: 32px; align-items: start; }
+  .col-label { display: flex; align-items: center; gap: 10px; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 10px 4px; font-weight: 600; }
+  .col-label b { font-family: var(--serif); font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 17px; color: var(--ink); }
+
+  /* ---------- mail client chrome ---------- */
+  .mail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); overflow: hidden; }
+  .mail .hdr { padding: 16px 22px 14px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 44px 1fr auto; gap: 12px 14px; align-items: center; background: var(--surface-2); }
+  .mail .hdr .from { font-weight: 600; font-size: 14px; }
+  .mail .hdr .from span { font-weight: 400; color: var(--ink-3); }
+  .mail .hdr .to { font-size: 13px; color: var(--ink-2); }
+  .mail .hdr .when { font-size: 12.5px; color: var(--ink-3); align-self: start; }
+  .mail .hdr .subject { grid-column: 1 / -1; font-size: 16px; font-weight: 600; letter-spacing: -0.005em; }
+  .mail .hdr .subject small { display: block; font-weight: 400; font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+  .sender { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--mark-disc); }
+  .sender svg { width: 30px; height: 30px; }
+
+  /* ---------- email body (table-like, single column) ---------- */
+  .email { padding: 6px 0 0; }
+  .email .brand { display: flex; align-items: center; gap: 10px; padding: 22px 34px 6px; }
+  .email .brand .name { font-family: var(--serif); font-size: 22px; }
+  .email .brand .sep { color: var(--ink-3); }
+  .email .brand .proj { font-family: var(--serif); font-size: 22px; font-style: italic; color: var(--accent); }
+  .email .brand .range { margin-left: auto; font-size: 12.5px; color: var(--ink-3); }
+  .email .sentence { padding: 10px 34px 22px; font-family: var(--serif); font-size: 25px; line-height: 1.3; letter-spacing: -0.005em; }
+  .email .sentence b { font-weight: 400; color: var(--accent); }
+  .email .sentence .n { font-family: var(--mono); font-size: 20px; letter-spacing: 0; }
+  .email .sentence .n i { font-style: normal; }
+  .email section { padding: 18px 34px 22px; border-top: 1px solid var(--line); }
+  .email h2 { font-size: 20px; display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+  .email h2 .count { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+  .email h2 .link { margin-left: auto; font: 500 13px var(--font); color: var(--accent); white-space: nowrap; }
+
+  /* needs-you cards */
+  .need { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center; padding: 13px 16px 13px 18px; border: 1px solid var(--line); border-radius: var(--radius); position: relative; overflow: hidden; background: var(--surface); }
+  .need + .need { margin-top: 8px; }
+  .need::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
+  .need.gate::before { background: var(--gradient-brand); }
+  .need.contention::before { background: var(--danger); }
+  .need .kind { font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; grid-column: 1; }
+  .need .what { font-family: var(--serif); font-size: 18px; line-height: 1.3; grid-column: 1; }
+  .need .what i { color: var(--accent); }
+  .need .why { font-size: 13px; color: var(--ink-2); grid-column: 1; }
+  .need .why .mono { font-size: 12px; }
+  .need .act { grid-column: 2; grid-row: 1 / span 3; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .votes { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-2); }
+  .votes .avatar { width: 22px; height: 22px; font-size: 9.5px; border-width: 1.5px; border-color: var(--surface); }
+  .votes .avatar.empty { background: transparent; border: 1.5px dashed var(--ink-3); }
+  .votes .n { font-family: var(--mono); font-size: 12px; margin-left: 4px; }
+
+  /* tokens */
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .tile { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  .tile .l { font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .tile .v { font-family: var(--mono); font-size: 24px; line-height: 1.2; margin-top: 4px; }
+  .tile .d { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+  .bars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; }
+  .bars h3 { font-size: 12.5px; color: var(--ink-2); font-weight: 600; margin-bottom: 6px; }
+  .bar { display: grid; grid-template-columns: 96px 1fr 48px; gap: 10px; align-items: center; font-size: 13.5px; padding: 4px 0; }
+  .bar .lab { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar .lab small { color: var(--ink-3); font-size: 12px; }
+  .bar .track { height: 10px; border-radius: 3px; background: var(--surface-3); position: relative; }
+  .bar .track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 3px; }
+  .bar .track i.budget { background: transparent; border-right: 2px dashed var(--ink-3); border-radius: 0; left: 0; }
+  .bar .val { font-family: var(--mono); font-size: 12.5px; text-align: right; color: var(--ink-2); }
+  .reading { font-size: 13px; color: var(--ink-2); margin-top: 12px; }
+  .reading .mono { font-size: 12.5px; }
+  .reading b { font-weight: 500; color: var(--warn); }
+
+  /* plans and gates */
+  .rows { display: flex; flex-direction: column; }
+  .row { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; }
+  .row .t { font-family: var(--serif); font-size: 16.5px; line-height: 1.25; }
+  .row .s { font-size: 12.5px; color: var(--ink-2); }
+  .row .s .mono { font-size: 12px; }
+  .stars-sm { display: inline-flex; gap: 1px; vertical-align: -2px; }
+  .stars-sm svg { width: 14px; height: 14px; }
+  .stars-sm .on { fill: var(--apricot-deep); } .stars-sm .off { fill: var(--surface-3); }
+  .row .avg { font-family: var(--mono); font-size: 13px; }
+  .tag { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+  .tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.soft { background: var(--surface-3); color: var(--ink-2); }
+  .tag.danger { background: var(--danger-soft); color: var(--danger); }
+  .under { color: var(--ok); } .over { color: var(--warn); }
+
+  /* footer */
+  .email .foot { padding: 18px 34px 26px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); line-height: 1.55; display: flex; flex-direction: column; gap: 10px; }
+  .email .foot .seg { align-self: flex-start; }
+  .email .foot .seg span { padding: 4px 12px; border-radius: var(--radius-full); font-size: 12.5px; font-weight: 500; }
+  .email .foot .seg .on { color: var(--ink); background: var(--surface); box-shadow: var(--shadow-soft); }
+  .email .foot a { color: var(--ink-2); text-decoration: underline; }
+
+  /* ---------- invite ---------- */
+  .invite .hero { margin: 22px 30px 0; padding: 30px 30px 28px; display: flex; flex-direction: column; gap: 10px; }
+  .invite .hero .mark { width: 60px; height: 60px; }
+  .invite .hero h1 { font-size: 34px; color: #fff; line-height: 1.1; }
+  .invite .hero h1 i { color: var(--apricot); }
+  .invite .hero p { margin: 0; color: rgba(255,255,255,0.8); font-size: 14.5px; }
+  .invite .hero::after { border-color: rgba(226,196,166,0.18); }
+  .invite .body { padding: 22px 30px 8px; display: flex; flex-direction: column; gap: 16px; }
+  .invite .body p { margin: 0; font-size: 15px; line-height: 1.55; }
+  .invite .body p .who { font-family: var(--serif); font-size: 17px; }
+  .invite .cta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .invite .cta .expires { font-size: 12.5px; color: var(--ink-3); }
+  .invite .btn.primary { min-height: 42px; padding: 0 22px; font-size: 15px; }
+  .circle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .circle .side { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); }
+  .circle .side .l { font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin-bottom: 8px; }
+  .circle .side .stack { margin-bottom: 6px; }
+  .circle .side .d { font-size: 12.5px; color: var(--ink-2); }
+  .role { display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 14px 16px; background: var(--apricot-soft); border-radius: var(--radius); font-size: 13.5px; line-height: 1.5; }
+  .role .ic { width: 28px; height: 28px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; }
+  .role .ic svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .role b { font-weight: 600; }
+  .role .mono { font-size: 12.5px; }
+  .agentpath { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .agentpath .t { font-family: var(--serif); font-size: 17px; }
+  .agentpath .s { font-size: 13px; color: var(--ink-2); }
+  .code { background: var(--rail); color: var(--rail-fg); border-radius: 10px; padding: 11px 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; overflow-x: auto; white-space: nowrap; }
+  .code .k { color: var(--apricot); }
+  .code .c { color: var(--rail-muted); }
+  .invite .foot { padding: 16px 30px 24px; }
+  .invite .foot a { color: var(--ink-2); }
+
+  .avatar { border-color: var(--surface); }
+  .avatar.sm { width: 24px; height: 24px; font-size: 10px; }
+
+  @media (max-width: 1360px) { .cols { grid-template-columns: minmax(0, 640px) minmax(420px, 1fr); } }
+  @media (max-width: 960px) {
+    .board { padding: 20px 16px 40px; }
+    .board-head h1 { font-size: 26px; }
+    .cols { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+    .mail .hdr { padding: 14px 16px 12px; }
+    .mail .hdr .from span { display: none; }
+    .email .brand, .email .sentence, .email section, .email .foot { padding-left: 18px; padding-right: 18px; }
+    .email .brand .range { display: none; }
+    .email .sentence { font-size: 22px; }
+    .email .sentence .n { font-size: 18px; }
+    .tiles { grid-template-columns: 1fr 1fr; }
+    .tiles .tile:last-child { grid-column: 1 / -1; }
+    .bars { grid-template-columns: 1fr; }
+    .need { grid-template-columns: 1fr; }
+    .need .act { grid-column: 1; grid-row: auto; flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px; }
+    .row { grid-template-columns: 1fr auto auto; gap: 10px; }
+    .row .avg { display: none; }
+    .row .votes .n { display: none; }
+    .row .tag { justify-self: end; }
+    .email h2 .count { display: none; }
+    .invite .hero { margin: 16px 16px 0; padding: 22px 20px; }
+    .invite .hero h1 { font-size: 28px; }
+    .invite .body, .invite .foot { padding-left: 16px; padding-right: 16px; }
+    .circle { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="star" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></symbol>
+  </defs>
+</svg>
+
+<div class="board">
+  <div class="board-head">
+    <div>
+      <h1>Email digest, and the invite</h1>
+      <div class="lede">Two emails a manager gets from Henosis. The Monday digest is the manager overview folded into one message: the sentence first, then what needs her, where the tokens went, and what was planned and gated. The invite is the join moment on paper: a person and an agent get into the circle the same way.</div>
+    </div>
+    <div class="tag"><span class="pill">Payments</span><span class="pill solo">week of 29 Sep</span></div>
+  </div>
+
+  <div class="cols">
+    <!-- ================= DIGEST ================= -->
+    <div>
+      <div class="col-label">Weekly digest <b>to a lead, Monday 08:00</b></div>
+      <div class="mail">
+        <div class="hdr">
+          <div class="sender"><svg class="mark" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div>
+          <div>
+            <div class="from">Henosis <span>digest@henosis.app</span></div>
+            <div class="to">to Ana Moreau · lead, Payments</div>
+          </div>
+          <div class="when">Mon 6 Oct, 08:00</div>
+          <div class="subject">Payments this week: 3 things need you<small>4 open sessions · 212k tokens · 7 plans rated · 2 release gates</small></div>
+        </div>
+
+        <div class="email">
+          <div class="brand">
+            <svg class="mark" viewBox="0 0 96 96" width="26" height="26"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+            <span class="name">Henosis</span><span class="sep">·</span><span class="proj">Payments</span>
+            <span class="range">29 Sep – 5 Oct</span>
+          </div>
+          <p class="sentence"><span class="n">4</span> open sessions across <span class="n">2</span> projects: 2 running, 1 awaiting approval, 1 blocked. <b>3 things need you.</b> This week the team spent <span class="n">212k</span> tokens, rated <span class="n">7</span> plans and held <span class="n">2</span> release gates.</p>
+
+          <section>
+            <h2>Needs you <span class="count">3</span><a class="link" href="#">Open the queue →</a></h2>
+            <div class="need">
+              <div class="kind">Plan · waiting on ratings</div>
+              <div class="what">Bo's agent plans <i>Proration on plan change</i> in Billing page.</div>
+              <div class="why">Policy: two ratings at 3+. Dee rated 4; one more voice and it starts. Est. <span class="mono">18k</span> tokens.</div>
+              <div class="act"><span class="votes"><span class="avatar">D</span><span class="avatar empty"></span><span class="n">1 of 2</span></span><a class="btn sm primary" href="#">Rate the plan</a></div>
+            </div>
+            <div class="need gate">
+              <div class="kind">Release gate · irreversible</div>
+              <div class="what">Cy's agent wants to <i>publish the invoice PDF template</i> to production.</div>
+              <div class="why">Rule <span class="mono">2 contributors at 4+</span>. Dee approved with 4; waiting on a second vote since Fri 16:40.</div>
+              <div class="act"><span class="votes"><span class="avatar">D</span><span class="avatar empty"></span><span class="n">1 of 2</span></span><a class="btn sm primary" href="#">Vote</a></div>
+            </div>
+            <div class="need contention">
+              <div class="kind">Contention · claim denied</div>
+              <div class="what">Dee's agent and Cy's agent both claim <i>tax lines</i> in Checkout.</div>
+              <div class="why">Both hold <span class="mono">apps/checkout/tax.ts</span>. Both owners were told; the lead resolves. Open since Thu.</div>
+              <div class="act"><span class="tag danger">blocked 3 days</span><a class="btn sm" href="#">Resolve</a></div>
+            </div>
+          </section>
+
+          <section>
+            <h2>Tokens <span class="count">212k this week</span><a class="link" href="#">Usage →</a></h2>
+            <div class="tiles">
+              <div class="tile"><div class="l">Spent</div><div class="v">212k</div><div class="d">148k in · 64k out</div></div>
+              <div class="tile"><div class="l">Against plans</div><div class="v">−9%</div><div class="d">under estimates overall</div></div>
+              <div class="tile"><div class="l">Budget</div><div class="v">74 / 100k</div><div class="d">Checkout, soft budget</div></div>
+            </div>
+            <div class="bars">
+              <div>
+                <h3>By project</h3>
+                <div class="bar"><span class="lab">Billing page</span><span class="track"><i style="width:100%"></i></span><span class="val">138k</span></div>
+                <div class="bar"><span class="lab">Checkout</span><span class="track"><i style="width:54%"></i><i class="budget" style="width:72%"></i></span><span class="val">74k</span></div>
+              </div>
+              <div>
+                <h3>By person</h3>
+                <div class="bar"><span class="lab">Bo <small>2 agents</small></span><span class="track"><i style="width:100%"></i></span><span class="val">86k</span></div>
+                <div class="bar"><span class="lab">Cy</span><span class="track"><i style="width:67%"></i></span><span class="val">58k</span></div>
+                <div class="bar"><span class="lab">Dee</span><span class="track"><i style="width:48%"></i></span><span class="val">41k</span></div>
+                <div class="bar"><span class="lab">Ana</span><span class="track"><i style="width:31%"></i></span><span class="val">27k</span></div>
+              </div>
+            </div>
+            <p class="reading">Billing page took two thirds of the week, most of it <i>Invoice PDF layout</i> (Bo's agent, <span class="mono">61k</span>). Checkout is at <b>74% of its budget</b> with four days left on the sprint. Cache reads are not counted.</p>
+          </section>
+
+          <section>
+            <h2>Plans <span class="count">7 rated · 5 approved · 1 revised · 1 waiting</span><a class="link" href="#">All plans →</a></h2>
+            <div class="rows">
+              <div class="row">
+                <div><div class="t">Invoice PDF layout</div><div class="s">Bo's agent · Billing page · 3 ratings · <span class="mono">est 44k</span> → <span class="mono over">61k, +38%</span></div></div>
+                <span class="avg"><span class="stars-sm"><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="off"><use href="#star"/></svg></span> 4.3</span>
+                <span class="tag ok">done</span>
+              </div>
+              <div class="row">
+                <div><div class="t">Tax lines on the invoice</div><div class="s">Dee's agent · Checkout · 2 ratings · <span class="mono">est 22k</span> → <span class="mono under">19k, under</span></div></div>
+                <span class="avg"><span class="stars-sm"><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="off"><use href="#star"/></svg></span> 4.0</span>
+                <span class="tag ok">approved</span>
+              </div>
+              <div class="row">
+                <div><div class="t">Checkout tax rate lookup</div><div class="s">Cy's agent · Checkout · 2 ratings · asked to revise by Ana, new plan rated 4.5</div></div>
+                <span class="avg"><span class="stars-sm"><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="off"><use href="#star"/></svg><svg class="off"><use href="#star"/></svg></span> 2.5</span>
+                <span class="tag warn">revised</span>
+              </div>
+              <div class="row">
+                <div><div class="t">Proration on plan change</div><div class="s">Bo's agent · Billing page · 1 rating · <span class="mono">est 18k</span> · waits for one more</div></div>
+                <span class="avg"><span class="stars-sm"><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="off"><use href="#star"/></svg></span> 4.0</span>
+                <span class="tag soft">waiting</span>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2>Release gates <span class="count">2 held · 1 granted</span></h2>
+            <div class="rows">
+              <div class="row">
+                <div><div class="t">United pdf-layout into main</div><div class="s">Bo's agent · rule <span class="mono">2 at 4+</span> · Dee 4, Cy 5 · granted Thu 11:20, waited 2h 10m</div></div>
+                <span class="votes"><span class="avatar">D</span><span class="avatar">C</span><span class="n">2 of 2</span></span>
+                <span class="tag ok">granted</span>
+              </div>
+              <div class="row">
+                <div><div class="t">Publish invoice PDF template</div><div class="s">Cy's agent · rule <span class="mono">2 at 4+</span> · Dee 4 · waiting since Fri 16:40</div></div>
+                <span class="votes"><span class="avatar">D</span><span class="avatar empty"></span><span class="n">1 of 2</span></span>
+                <span class="tag warn">waiting</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="foot">
+            <div>You get this every Monday at 08:00 because you lead <span class="serif i" style="color:var(--ink-2); font-size:14px">Payments</span>. The numbers are the team overview as of send time; open it for live counts.</div>
+            <div class="seg"><span>Daily</span><span class="on">Weekly</span><span>Off</span></div>
+            <div><a href="#">Open the overview</a> · <a href="#">Notification settings</a> · Henosis, sent for the Payments team</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= INVITE ================= -->
+    <div>
+      <div class="col-label">Invite <b>to a new member, from a lead</b></div>
+      <div class="mail invite">
+        <div class="hdr">
+          <div class="sender"><svg class="mark" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div>
+          <div>
+            <div class="from">Henosis <span>on behalf of Bo Lindqvist</span></div>
+            <div class="to">to Cy Okafor</div>
+          </div>
+          <div class="when">Mon 6 Oct, 09:52</div>
+          <div class="subject">Bo invites you to Payments on Henosis</div>
+        </div>
+
+        <div class="email">
+          <div class="hero">
+            <svg class="mark" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+            <h1>Cy, <i>Bo</i> invites you to the circle.</h1>
+            <p>Payments is where Ana, Bo and Dee work with their agents on Billing page and Checkout.</p>
+          </div>
+
+          <div class="body">
+            <p>You open as a <span class="who">member</span>: you can watch every session, steer the agents, rate plans and vote on release gates. Bo has the baton on <span class="who">Invoice PDF layout</span> right now, and the team's rule is plan first.</p>
+
+            <div class="cta">
+              <a class="btn primary" href="#">Join the circle</a>
+              <span class="expires">Link is good for 7 days · one use</span>
+            </div>
+
+            <div class="circle">
+              <div class="side">
+                <div class="l">People</div>
+                <div class="stack"><span class="avatar sm">A</span><span class="avatar sm">B</span><span class="avatar sm">D</span></div>
+                <div class="d">Ana leads. Bo and Dee are members.</div>
+              </div>
+              <div class="side">
+                <div class="l">Agents</div>
+                <div class="stack"><span class="avatar sm agent">B</span><span class="avatar sm agent">B</span><span class="avatar sm agent">D</span></div>
+                <div class="d">3 live: two on Billing page, one on Checkout.</div>
+              </div>
+            </div>
+
+            <div class="role">
+              <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+              <div><b>Same manners, same gate.</b> Your agent will plan before it works, and anything irreversible waits for two people at 4+. Your ratings count from the day you join.</div>
+            </div>
+
+            <div class="agentpath">
+              <div class="t">Bringing an agent? It joins the same way.</div>
+              <div class="s">Run this where your harness lives. The key is one use, good for 15 minutes, and the mark closes in the rail when it connects.</div>
+              <div class="code"><span class="k">henosis</span> join payments <span class="c">--as</span> agent <span class="c">--key</span> hj_7f2a…c91e</div>
+            </div>
+          </div>
+
+          <div class="foot">
+            <div>Bo Lindqvist (bo@payments.example) sent this from Henosis. If you were not expecting it, ignore it; nothing happens until you open the link.</div>
+            <div><a href="#">What is Henosis?</a> · <a href="#">Report this invite</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

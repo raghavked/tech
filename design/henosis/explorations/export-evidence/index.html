@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Checkout · export and evidence</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- shell ---- */
+  body { overflow: hidden; }
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 5px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .agent .head .dot.done { background: var(--rail-muted); }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .btn { white-space: nowrap; }
+  .btn svg.ic { width: 15px; height: 15px; }
+
+  /* topbar */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .sub { font-family: var(--font); font-size: 14px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+  .topbar .title .sep { color: var(--ink-3); font-family: var(--font); }
+  .topbar .menu { display: none; }
+  .pill.done { background: var(--ok-soft); color: var(--ok); }
+
+  /* ---- body: options on the left, the preview on the right ---- */
+  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 372px 1fr; }
+  .body > input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+  .opts { border-right: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 55%, transparent); display: flex; flex-direction: column; gap: 12px; padding: 14px 22px 14px; overflow: auto; }
+  .opts h2 { font-size: 26px; }
+  .opts .lead { margin: 3px 0 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+  .opts h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .opts h3 .r { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--ink-3); }
+
+  /* format cards: labels bound to the radios at the top of .body */
+  .formats { display: flex; flex-direction: column; gap: 8px; }
+  .fmt { display: grid; grid-template-columns: 34px 1fr auto; gap: 11px; align-items: start; padding: 10px 13px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); cursor: pointer; transition: box-shadow .12s ease; position: relative; }
+  .fmt:hover { box-shadow: var(--shadow-soft); }
+  .fmt .glyph { width: 34px; height: 34px; border-radius: 10px; background: var(--surface-2); display: grid; place-items: center; color: var(--ink-2); }
+  .fmt .glyph svg { width: 18px; height: 18px; }
+  .fmt .t { font-family: var(--serif); font-size: 17px; line-height: 1.2; display: flex; align-items: baseline; gap: 8px; }
+  .fmt .t .mono { font-size: 11.5px; color: var(--ink-3); }
+  .fmt .d { font-size: 12.5px; color: var(--ink-2); line-height: 1.4; margin-top: 2px; display: block; }
+  .fmt .sz { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); white-space: nowrap; padding-top: 3px; }
+  .fmt .tick { position: absolute; right: 12px; bottom: 12px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: none; place-items: center; }
+  .fmt .tick svg { width: 11px; height: 11px; stroke-width: 2.6; }
+  #f-md:checked ~ .opts label[for=f-md], #f-audit:checked ~ .opts label[for=f-audit], #f-zip:checked ~ .opts label[for=f-zip] { border-color: var(--apricot-deep); box-shadow: var(--team-glow); }
+  #f-md:checked ~ .opts label[for=f-md] .glyph, #f-audit:checked ~ .opts label[for=f-audit] .glyph, #f-zip:checked ~ .opts label[for=f-zip] .glyph { background: var(--apricot-soft); color: var(--accent); }
+  #f-md:checked ~ .opts label[for=f-md] .tick, #f-audit:checked ~ .opts label[for=f-audit] .tick, #f-zip:checked ~ .opts label[for=f-zip] .tick { display: grid; }
+
+  /* include list */
+  .inc { display: flex; flex-direction: column; }
+  .inc label { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 5px 4px; border-top: 1px solid var(--line); font-size: 13px; cursor: pointer; }
+  .inc label:first-child { border-top: 0; }
+  .inc input { appearance: none; margin: 0; width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid var(--ink-3); background: var(--surface); display: grid; place-items: center; cursor: pointer; }
+  .inc input:checked { background: var(--accent); border-color: var(--accent); }
+  .inc input:checked::after { content: ""; width: 9px; height: 5px; border-left: 2px solid var(--accent-fg); border-bottom: 2px solid var(--accent-fg); transform: translateY(-1px) rotate(-45deg); }
+  .inc .n { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .inc .why { font-size: 12px; color: var(--ink-3); }
+  .inc label.off { color: var(--ink-2); }
+  .inc .masked { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11.5px; color: var(--warn); white-space: nowrap; }
+  .inc label > span:nth-child(2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inc .masked svg { width: 12px; height: 12px; }
+
+  .seg.scope { display: flex; } .seg.scope button { flex: 1; padding: 4px 6px; white-space: nowrap; font-size: 12px; }
+  .seg.scope button { padding: 4px 11px; }
+
+  /* verify line and the actions */
+  .verify { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 12px; background: var(--ok-soft); color: var(--ok); font-size: 13px; }
+  .verify svg { width: 16px; height: 16px; color: var(--ok); }
+  .verify .mono { color: inherit; font-size: 12px; }
+  .verify b { font-weight: 600; }
+  .actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
+  
+  .actions .btn { width: 100%; min-height: 40px; }
+  .actions .hint { text-align: center; font-size: 12px; color: var(--ink-3); }
+  .actions .hint kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); }
+
+  /* ---- preview ---- */
+  .preview { min-width: 0; overflow: auto; padding: 22px 28px 40px; }
+  .preview .tabs { display: flex; align-items: center; gap: 4px; margin-bottom: 14px; }
+  .preview .tabs label { font: 500 13px var(--font); color: var(--ink-2); padding: 6px 12px; border-radius: var(--radius-full); cursor: pointer; }
+  .preview .tabs label:hover { background: var(--surface-2); }
+  .preview .tabs .r { margin-left: auto; font-size: 12.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 12px; }
+  .preview .tabs .r svg { width: 14px; height: 14px; }
+  #f-md:checked ~ .preview label[for=f-md], #f-audit:checked ~ .preview label[for=f-audit], #f-zip:checked ~ .preview label[for=f-zip] { background: var(--apricot-soft); color: var(--ink); }
+  .panel { display: none; }
+  #f-md:checked ~ .preview .p-md, #f-audit:checked ~ .preview .p-audit, #f-zip:checked ~ .preview .p-zip { display: block; animation: rise .32s ease both; }
+
+  /* the audit record, drawn as the paper it becomes */
+  .doc { width: min(860px, 100%); margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); padding: 30px 36px 26px; display: flex; flex-direction: column; gap: 20px; }
+  .doc .dhead { display: flex; align-items: center; gap: 12px; }
+  .doc .dhead svg.mark { width: 28px; height: 28px; }
+  .doc .dhead .k { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .doc .dhead .when { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+  .doc h1 { font-size: 32px; }
+  .doc .meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--ink-2); margin-top: 6px; }
+  .doc .meta b { color: var(--ink); font-weight: 500; }
+  .doc .meta .mono { font-size: 12.5px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tile { padding: 9px 14px; border-radius: 12px; background: var(--surface-2); display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .tile .v { font-family: var(--mono); font-size: 19px; line-height: 1.2; color: var(--ink); white-space: nowrap; }
+  .tile .v small { font-size: 12px; color: var(--ink-3); }
+  .tile .l { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile.ok .v { color: var(--ok); }
+
+  .ledger { display: grid; grid-template-columns: 54px 150px 1fr auto; column-gap: 14px; font-size: 13.5px; }
+  .ledger .h { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 0 0 8px; border-bottom: 1px solid var(--line); }
+  .ledger > div { display: contents; }
+  .ledger .row > * { padding: 9px 0; border-bottom: 1px solid var(--line); min-width: 0; display: flex; align-items: center; gap: 8px; }
+  .ledger .row .t { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .ledger .row .w .avatar { width: 22px; height: 22px; font-size: 9.5px; border: 0; flex: none; }
+  .ledger .row .w .name { font-family: var(--serif); font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ledger .row .w .role { font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+  .ledger .row .a { color: var(--ink); flex-wrap: wrap; row-gap: 4px; }
+  .ledger .row .a code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+  .ledger .row .a q { font-family: var(--serif); font-style: italic; color: var(--ink-2); quotes: "\201C" "\201D"; }
+  .ledger .row .e { justify-content: flex-end; font-family: var(--mono); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+  .ledger .row.gate .a::before { content: ""; width: 3px; align-self: stretch; border-radius: 2px; background: var(--gradient-brand); margin: 2px 2px 2px 0; }
+  .ledger .row.grant .e, .ledger .row.grant .a b { color: var(--ok); }
+  .ledger .row.day { grid-column: 1 / -1; display: block; padding: 10px 0 4px; font-size: 12px; color: var(--ink-3); border: 0; }
+  .st { display: inline-flex; gap: 1px; font-size: 14px; line-height: 1; letter-spacing: -1px; color: var(--surface-3); }
+  .st i { font-style: normal; } .st i.on { color: var(--apricot-deep); }
+  .okc { width: 16px; height: 16px; border-radius: 50%; background: var(--ok); color: #fff; display: inline-grid; place-items: center; flex: none; }
+  .okc svg { width: 10px; height: 10px; stroke-width: 3; }
+  .leftout { font-size: 12.5px; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+  .leftout svg { width: 14px; height: 14px; }
+  .doc .sig { display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); flex-wrap: wrap; }
+  .doc .sig .okc { width: 18px; height: 18px; }
+  .doc .sig .mono { font-size: 11.5px; color: var(--ink-3); }
+  .doc .sig .pg { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+
+  /* markdown and bundle panels */
+  .md { width: min(860px, 100%); margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); padding: 22px 28px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--ink-2); white-space: pre-wrap; margin: 0 auto; }
+  .md b { color: var(--ink); font-weight: 500; } .md i { font-style: normal; color: var(--ink-3); } .md u { text-decoration: none; color: var(--accent); }
+  .files { width: min(860px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  .files .card { display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; align-items: center; padding: 14px 18px; }
+  .files .card .glyph { width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); display: grid; place-items: center; color: var(--ink-2); }
+  .files .card .glyph svg { width: 18px; height: 18px; }
+  .files .card .n { font-family: var(--mono); font-size: 13.5px; color: var(--ink); }
+  .files .card .d { font-size: 13px; color: var(--ink-2); }
+  .files .card .sz { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .files .note { font-size: 13px; color: var(--ink-2); padding: 4px 6px; }
+
+  /* dark: green text needs more light than the status dot */
+  :root { --ok-text: var(--ok); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok-text: #9BC88F; } }
+  :root[data-theme="dark"] { --ok-text: #9BC88F; }
+  .pill.done, .tile.ok .v, .ledger .row.grant .e, .ledger .row.grant .a b, .verify { color: var(--ok-text); }
+  .verify svg { color: var(--ok-text); }
+
+  /* ---- phone ---- */
+  @media (max-width: 760px) {
+    body { overflow: auto; }
+    .shell { height: auto; min-height: 100vh; }
+    .rail { display: none; }
+    .topbar { position: sticky; top: 0; z-index: 2; padding: 10px 14px; }
+    .topbar .menu { display: inline-flex; }
+    .topbar .title .serif { font-size: 19px; }
+    .topbar .title .sub, .topbar .title .sep, .topbar .share { display: none; }
+    .body { display: flex; flex-direction: column; }
+    .opts { border-right: 0; border-bottom: 1px solid var(--line); padding: 18px 16px 16px; overflow: visible; gap: 16px; }
+    .opts h2 { font-size: 26px; }
+    .fmt { grid-template-columns: 32px 1fr; }
+    .fmt .glyph { width: 32px; height: 32px; }
+    .fmt .sz { grid-column: 2; padding-top: 0; }
+    .fmt .tick { right: 12px; top: 14px; bottom: auto; }
+    .preview { padding: 16px 16px 60px; overflow: visible; }
+    .doc { padding: 22px 18px; }
+    .doc h1 { font-size: 26px; }
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+    .tile { padding: 8px 10px; }
+    .ledger { grid-template-columns: 1fr auto; }
+    .ledger .h.ht, .ledger .h.hw, .ledger .row .t { display: none; }
+    .ledger .row .w { grid-column: 1 / -1; border-bottom: 0; padding-bottom: 0; }
+    .ledger .row .a { padding-top: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- ===== rail ===== -->
+  <nav class="rail" aria-label="Agents">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New session
+    </button>
+
+    <div class="section">Agents <span class="n">3 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot done"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Done · <i>invoice PDF</i> united into main</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana, Cy</span><span class="tok">212.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Writing <i>proration.ts</i> · step 3 of 4</div>
+      <div class="foot"><span class="with"><span class="avatar">AN</span> with Bo</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Waits for a rating on <i>the plan</i></div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">4.1k</span></div>
+    </a>
+
+    <div class="section">Team</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 9l8 5 8-5"/></svg>Inbox <span class="n live">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>Approvals <span class="n">1</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v10H3z"/></svg>Projects <span class="n">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 3z"/></svg>Groups and chats <span class="n">6</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 8v4l3 2"/></svg>Memory</a>
+
+    <div class="me">
+      <span class="avatar driver">BO</span>
+      <span class="meta"><span>Bo</span><span class="role">Payments · driver</span></span>
+    </div>
+  </nav>
+
+  <!-- ===== main ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn icon ghost menu" type="button" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title">
+        <span class="serif">Checkout</span>
+        <span class="sep">/</span>
+        <span class="sub">Invoice PDF: tax lines and proration</span>
+        <span class="pill done">Done</span>
+      </div>
+      <div class="right">
+        <button class="btn sm share" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12v7h16v-7M12 4v12M8 8l4-4 4 4"/></svg>Share</button>
+        <button class="btn sm icon ghost" type="button" aria-label="Close export"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+    </header>
+
+    <div class="body">
+      <input type="radio" name="fmt" id="f-md">
+      <input type="radio" name="fmt" id="f-audit" checked>
+      <input type="radio" name="fmt" id="f-zip">
+
+      <!-- ===== options ===== -->
+      <aside class="opts" aria-label="Export options">
+        <div>
+          <h2>Export</h2>
+          <p class="lead">What leaves the circle is what the ledger holds: attributed, ordered, replayable.</p>
+        </div>
+
+        <section>
+          <h3>Format</h3>
+          <div class="formats">
+            <label class="fmt" for="f-md">
+              <span class="glyph"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12l2 2 2-2M11 14V9"/></svg></span>
+              <span><span class="t">Markdown <span class="mono">session.md</span></span><span class="d">The stream as a document for a PR, a wiki or a handoff.</span></span>
+              <span class="sz">41 KB</span>
+              <span class="tick"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
+            </label>
+            <label class="fmt" for="f-audit">
+              <span class="glyph"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+              <span><span class="t">Audit view <span class="mono">audit.pdf</span></span><span class="d">Who planned, rated and approved what, signed.</span></span>
+              <span class="sz">6 pages</span>
+              <span class="tick"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
+            </label>
+            <label class="fmt" for="f-zip">
+              <span class="glyph"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16v13H4zM4 7l2-3h12l2 3M10 11h4"/></svg></span>
+              <span><span class="t">Compliance bundle <span class="mono">.zip</span></span><span class="d">Every event of the log, signed, with the replay hash. No model calls.</span></span>
+              <span class="sz">2.3 MB</span>
+              <span class="tick"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
+            </label>
+          </div>
+        </section>
+
+        <section>
+          <h3>Include <span class="r">184 events</span></h3>
+          <div class="inc">
+            <label><input type="checkbox" checked> <span>The plan and its ratings</span> <span class="n">2 ratings</span></label>
+            <label><input type="checkbox" checked> <span>Release gates and votes</span> <span class="n">1 gate</span></label>
+            <label><input type="checkbox" checked> <span>Tool steps and results</span> <span class="masked"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>2 secrets masked</span></label>
+            <label><input type="checkbox" checked> <span>Token usage by turn</span> <span class="n">212.4k</span></label>
+            <label><input type="checkbox" checked> <span>Memory entries written</span> <span class="n">1</span></label>
+            <label class="off"><input type="checkbox"> <span>Team chat <span class="why">· stays in the circle</span></span> <span class="n">3 msgs</span></label>
+          </div>
+        </section>
+
+        <section>
+          <h3>Scope</h3>
+          <div class="seg scope">
+            <button class="on" type="button">Whole session</button>
+            <button type="button">Since the handoff</button>
+            <button type="button">main only</button>
+          </div>
+        </section>
+
+        <div class="verify">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          <span><b>Replays to the same hash.</b> <span class="mono">sha256 b7e3…9a1c</span></span>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4M5 19h14"/></svg>Export the audit view</button>
+                    <span class="hint">Exports are themselves recorded: <span class="serif i">Bo exported the audit view.</span></span>
+        </div>
+      </aside>
+
+      <!-- ===== preview ===== -->
+      <section class="preview" aria-label="Preview">
+        <div class="tabs">
+          <label for="f-md">session.md</label>
+          <label for="f-audit">Audit view</label>
+          <label for="f-zip">Bundle contents</label>
+          <span class="r">As it will print<button class="btn sm" type="button"><svg class="ic" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>Copy as Markdown</button></span>
+        </div>
+
+        <!-- the audit record -->
+        <article class="panel p-audit">
+          <div class="doc">
+            <div class="dhead">
+              <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+                <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+                <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+                <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+                <circle class="dot" cx="48" cy="48" r="7"/>
+              </svg>
+              <span class="k">Audit record · Payments</span>
+              <span class="when">7 Oct 2026 · 09:12 – 11:26</span>
+            </div>
+            <div>
+              <h1>Invoice PDF: tax lines and proration</h1>
+              <div class="meta">
+                <span>Project <b>Checkout</b></span>
+                <span>Team <b>Payments</b></span>
+                <span>Session <span class="mono">s_4k2m</span></span>
+                <span>Policy <b>Payments</b> · irreversible needs two contributors at 4+</span>
+              </div>
+            </div>
+
+            <div class="tiles">
+              <div class="tile ok"><span class="v">1</span><span class="l">plan approved · 4.5</span></div>
+              <div class="tile ok"><span class="v">1</span><span class="l">release gate granted</span></div>
+              <div class="tile"><span class="v">3</span><span class="l">ratings, 2 raters</span></div>
+              <div class="tile"><span class="v">1</span><span class="l">united into main</span></div>
+              <div class="tile"><span class="v">212.4k</span><span class="l">tokens of 400k</span></div>
+              <div class="tile"><span class="v">4 <small>+ 1</small></span><span class="l">people, 1 agent</span></div>
+            </div>
+
+            <div class="ledger">
+              <span class="h ht">Time</span><span class="h hw">Who</span><span class="h">Did</span><span class="h" style="text-align:right">Evidence</span>
+
+              <div class="row"><span class="t">09:12</span><span class="w"><span class="avatar">AN</span><span class="name">Ana</span><span class="role">owner</span></span><span class="a">Started the session · plan first · budget <code>400k</code></span><span class="e">ev 1</span></div>
+              <div class="row"><span class="t">09:14</span><span class="w"><span class="avatar agent">CK</span><span class="name">Checkout</span><span class="role">agent</span></span><span class="a">Proposed a plan · 5 steps · estimated <code>180k</code></span><span class="e">plan p1</span></div>
+              <div class="row"><span class="t">09:20</span><span class="w"><span class="avatar">BO</span><span class="name">Bo</span><span class="role">contributor</span></span><span class="a">Rated the plan <q>Watch the proration on the last line</q></span><span class="e"><span class="st"><i class="on">★</i><i class="on">★</i><i class="on">★</i><i class="on">★</i><i>★</i></span> 4</span></div>
+              <div class="row"><span class="t">09:21</span><span class="w"><span class="avatar">CY</span><span class="name">Cy</span><span class="role">contributor</span></span><span class="a">Rated the plan</span><span class="e"><span class="st"><i class="on">★</i><i class="on">★</i><i class="on">★</i><i class="on">★</i><i class="on">★</i></span> 5</span></div>
+              <div class="row grant"><span class="t">09:21</span><span class="w"><span class="avatar">H</span><span class="name">Henosis</span><span class="role">kernel</span></span><span class="a"><b>Plan approved</b> · 2 ratings · 4.5 average · rule: one at 3+</span><span class="e"><span class="okc"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span> fold</span></div>
+              <div class="row"><span class="t">09:40</span><span class="w"><span class="avatar">AN</span><span class="name">Ana</span><span class="role">driving</span></span><span class="a">Steered <code>tests</code> <q>Cover the mixed-rate tax lines</q></span><span class="e">ev 61</span></div>
+              <div class="row"><span class="t">09:58</span><span class="w"><span class="avatar">AN</span><span class="name">Ana</span><span class="role">driving</span></span><span class="a">Handed the baton to <b>Bo</b> · brief written · accepted 09:59</span><span class="e">ev 88</span></div>
+              <div class="row"><span class="t">10:05</span><span class="w"><span class="avatar">DE</span><span class="name">Dee</span><span class="role">observer</span></span><span class="a">Joined the circle</span><span class="e">ev 97</span></div>
+              <div class="row gate"><span class="t">10:32</span><span class="w"><span class="avatar agent">CK</span><span class="name">Checkout</span><span class="role">agent</span></span><span class="a">Asked at the release gate <code>git push origin main</code> · irreversible</span><span class="e">gate g1</span></div>
+              <div class="row"><span class="t">10:34</span><span class="w"><span class="avatar">BO</span><span class="name">Bo</span><span class="role">driving</span></span><span class="a">Approved the gate <q>Invoice PDF checks out on the proration rows</q></span><span class="e"><span class="st"><i class="on">★</i><i class="on">★</i><i class="on">★</i><i class="on">★</i><i>★</i></span> 4</span></div>
+              <div class="row"><span class="t">10:36</span><span class="w"><span class="avatar">CY</span><span class="name">Cy</span><span class="role">contributor</span></span><span class="a">Approved the gate</span><span class="e"><span class="st"><i class="on">★</i><i class="on">★</i><i class="on">★</i><i class="on">★</i><i class="on">★</i></span> 5</span></div>
+              <div class="row grant"><span class="t">10:36</span><span class="w"><span class="avatar">H</span><span class="name">Henosis</span><span class="role">kernel</span></span><span class="a"><b>Gate granted</b> · 2 of 2 · 4.5 average · pushed <code>3f9c1e2</code></span><span class="e"><span class="okc"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span> fold</span></div>
+              <div class="row"><span class="t">10:40</span><span class="w"><span class="avatar">BO</span><span class="name">Bo</span><span class="role">driving</span></span><span class="a">United <code>pdf-layout</code> into <code>main</code> · 0 conflicts</span><span class="e">ev 151</span></div>
+              <div class="row"><span class="t">11:02</span><span class="w"><span class="avatar">CY</span><span class="name">Cy</span><span class="role">contributor</span></span><span class="a">Remembered <q>Proration rounds half-up in the invoice service</q> · scope <code>checkout</code></span><span class="e">mem 1</span></div>
+              <div class="row"><span class="t">11:26</span><span class="w"><span class="avatar">BO</span><span class="name">Bo</span><span class="role">driving</span></span><span class="a">Ended the session · <code>212,418</code> tokens of 400k</span><span class="e">ev 184</span></div>
+            </div>
+
+            <div class="leftout"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 3z"/></svg>Team chat, 3 messages, left out by Bo. Two tool results carry masked secrets.</div>
+
+            <div class="sig">
+              <span class="okc"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
+              <span>Signed by <b>henosis serve</b> · key <span class="mono">payments-01</span></span>
+              <span class="mono">sha256 b7e3 41c0 … 9a1c</span>
+              <span class="pg">page 1 of 6</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- session.md -->
+        <article class="panel p-md">
+<pre class="md"><b># Invoice PDF: tax lines and proration</b>
+<i>Checkout · Payments · 7 Oct 2026 · session s_4k2m · 184 events</i>
+
+<b>## Plan</b> <i>(approved 09:21 · 2 ratings · 4.5 average)</i>
+1. Read the invoice service and the tax table <i>· est 20k · 18.2k</i>
+2. Add tax lines per rate to the PDF layout <i>· est 60k · 71.4k</i>
+3. Prorate the first period on the last line <i>· est 40k · 44.9k</i>
+4. Cover mixed-rate invoices in tests <i>· est 40k · 52.1k</i>
+5. Push and unite pdf-layout into main <i>· est 20k · 25.8k</i>
+
+<b>## Stream</b>
+<u>Ana</u> <i>09:12</i> · Goal: the invoice PDF shows one tax line per rate and prorates the first period.
+<u>Checkout</u> <i>09:14</i> · I propose five steps; the proration rule is in `billing/proration.ts`.
+<u>Bo</u> <i>09:20</i> · rated 4 ★ "Watch the proration on the last line"
+<u>Cy</u> <i>09:21</i> · rated 5 ★
+<u>Ana</u> <i>09:40</i> · steer `tests`: Cover the mixed-rate tax lines.
+<i>  ▸ read   billing/invoice.ts                            2.1k</i>
+<i>  ▸ write  pdf/layout.ts                                 9.4k</i>
+<i>  ▸ exec   pnpm test checkout/invoice     12 passed      3.0k</i>
+<u>Checkout</u> <i>10:32</i> · release gate: `git push origin main` · irreversible
+<u>Bo</u> <i>10:34</i> · approved 4 ★ "Invoice PDF checks out on the proration rows"
+<u>Cy</u> <i>10:36</i> · approved 5 ★ · <b>granted</b> · 3f9c1e2
+<u>Bo</u> <i>10:40</i> · united pdf-layout into main
+
+<i>Team chat left out. Two secrets masked as `•••`. Replays to sha256 b7e3…9a1c.</i></pre>
+        </article>
+
+        <!-- bundle -->
+        <article class="panel p-zip">
+          <div class="files">
+            <div class="card"><span class="glyph"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg></span><span><span class="n">log.jsonl</span><br><span class="d">184 events, each signed by the server. The source of everything else.</span></span><span class="sz">1.9 MB</span></div>
+            <div class="card"><span class="glyph"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span><span class="n">audit.json</span><br><span class="d">The ledger above as data: plans, ratings, gates, votes, unites, memory.</span></span><span class="sz">38 KB</span></div>
+            <div class="card"><span class="glyph"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12l2 2 2-2M11 14V9"/></svg></span><span><span class="n">session.md</span><br><span class="d">The stream as a document, for people.</span></span><span class="sz">41 KB</span></div>
+            <div class="card"><span class="glyph"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16v13H4zM4 7l2-3h12l2 3M10 11h4"/></svg></span><span><span class="n">policy.json · usage.json · replay.sha256</span><br><span class="d">The Payments policy the session ran under, spend by turn, and the hash CI replays to.</span></span><span class="sz">12 KB</span></div>
+            <p class="note">Nothing in the bundle needs Henosis to read. <span class="mono">henosis replay log.jsonl</span> rebuilds the session with no model calls and prints the same hash.</p>
+          </div>
+        </article>
+      </section>
+    </div>
+  </div>
+</div>
+</body>
+</html>

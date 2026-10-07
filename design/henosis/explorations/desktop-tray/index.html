@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Desktop tray</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- board: a title band, the macOS corner, the Windows corner, then the rules ---- */
+  :root {
+    --wall-mac: linear-gradient(180deg, #EBDFCF 0%, #C9B5A3 45%, #5C5A6B 80%, #2A3244 100%);
+    --wall-win: linear-gradient(180deg, #D9DEE8 0%, #AEB7C9 50%, #3B4357 100%);
+    --wall-glow: none;
+    --menubar: rgba(251,247,241,0.70); --menubar-fg: #1F2634;
+    --nmenu: rgba(246,244,240,0.94); --nmenu-fg: #1E2230; --nmenu-muted: rgba(30,34,48,0.55); --nmenu-line: rgba(0,0,0,0.09); --nmenu-hi: #2A64D8; --nmenu-hi-fg: #fff;
+    --banner: rgba(250,248,245,0.92); --banner-fg: #1E2230; --banner-muted: rgba(30,34,48,0.6); --banner-btn: rgba(0,0,0,0.06); --banner-line: rgba(0,0,0,0.08);
+    --taskbar: rgba(240,242,246,0.92); --taskbar-fg: #1B1B1B; --taskbar-line: rgba(0,0,0,0.08);
+    --wmenu: rgba(249,249,251,0.97); --wmenu-fg: #1B1B1B; --wmenu-muted: rgba(27,27,27,0.55); --wmenu-line: rgba(0,0,0,0.08); --wmenu-hi: rgba(0,0,0,0.06);
+    --toast: rgba(249,249,251,0.98); --toast-fg: #1B1B1B; --toast-muted: rgba(27,27,27,0.6); --toast-btn: rgba(0,0,0,0.05); --toast-line: rgba(0,0,0,0.08);
+    --frame-line: rgba(0,0,0,0.18); --frame-hi: rgba(255,255,255,0.45);
+    --cap-fg: #2A3244; --cap-shadow: none;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --wall-mac: linear-gradient(180deg, #171C27 0%, #2A3244 50%, #3E2E2B 85%, #56352D 100%);
+    --wall-win: linear-gradient(180deg, #1A1F2B 0%, #262D3C 50%, #121620 100%);
+    --wall-glow: none;
+    --menubar: rgba(22,27,38,0.66); --menubar-fg: #F0EAE0;
+    --nmenu: rgba(46,50,60,0.94); --nmenu-fg: #F0EAE0; --nmenu-muted: rgba(240,234,224,0.55); --nmenu-line: rgba(255,255,255,0.10); --nmenu-hi: #3B73E0; --nmenu-hi-fg: #fff;
+    --banner: rgba(44,47,56,0.92); --banner-fg: #F0EAE0; --banner-muted: rgba(240,234,224,0.6); --banner-btn: rgba(255,255,255,0.10); --banner-line: rgba(255,255,255,0.08);
+    --taskbar: rgba(32,32,36,0.92); --taskbar-fg: #F3F3F3; --taskbar-line: rgba(255,255,255,0.08);
+    --wmenu: rgba(44,44,48,0.97); --wmenu-fg: #F3F3F3; --wmenu-muted: rgba(243,243,243,0.55); --wmenu-line: rgba(255,255,255,0.08); --wmenu-hi: rgba(255,255,255,0.08);
+    --toast: rgba(44,44,48,0.98); --toast-fg: #F3F3F3; --toast-muted: rgba(243,243,243,0.6); --toast-btn: rgba(255,255,255,0.08); --toast-line: rgba(255,255,255,0.08);
+    --frame-line: rgba(0,0,0,0.6); --frame-hi: rgba(255,255,255,0.12);
+    --cap-fg: #FBF7F1; --cap-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  } }
+  :root[data-theme="dark"] {
+    --wall-mac: linear-gradient(180deg, #171C27 0%, #2A3244 50%, #3E2E2B 85%, #56352D 100%);
+    --wall-win: linear-gradient(180deg, #1A1F2B 0%, #262D3C 50%, #121620 100%);
+    --wall-glow: none;
+    --menubar: rgba(22,27,38,0.66); --menubar-fg: #F0EAE0;
+    --nmenu: rgba(46,50,60,0.94); --nmenu-fg: #F0EAE0; --nmenu-muted: rgba(240,234,224,0.55); --nmenu-line: rgba(255,255,255,0.10); --nmenu-hi: #3B73E0; --nmenu-hi-fg: #fff;
+    --banner: rgba(44,47,56,0.92); --banner-fg: #F0EAE0; --banner-muted: rgba(240,234,224,0.6); --banner-btn: rgba(255,255,255,0.10); --banner-line: rgba(255,255,255,0.08);
+    --taskbar: rgba(32,32,36,0.92); --taskbar-fg: #F3F3F3; --taskbar-line: rgba(255,255,255,0.08);
+    --wmenu: rgba(44,44,48,0.97); --wmenu-fg: #F3F3F3; --wmenu-muted: rgba(243,243,243,0.55); --wmenu-line: rgba(255,255,255,0.08); --wmenu-hi: rgba(255,255,255,0.08);
+    --toast: rgba(44,44,48,0.98); --toast-fg: #F3F3F3; --toast-muted: rgba(243,243,243,0.6); --toast-btn: rgba(255,255,255,0.08); --toast-line: rgba(255,255,255,0.08);
+    --frame-line: rgba(0,0,0,0.6); --frame-hi: rgba(255,255,255,0.12);
+    --cap-fg: #FBF7F1; --cap-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  body { width: 1440px; margin: 0 auto; background-image: none; } /* flat canvas on this board: the wash costs the shot budget */
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .sys { font-family: -apple-system, "Segoe UI", "Instrument Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* title band */
+  .band { padding: 44px 56px 32px; display: grid; grid-template-columns: 1fr 420px; gap: 40px; align-items: end; }
+  .band h1 { font-size: 44px; }
+  .band p { margin: 10px 0 0; max-width: 720px; color: var(--ink-2); font-size: 16px; }
+  .band .legend { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .band .legend div { display: flex; gap: 10px; align-items: baseline; }
+  .band .legend b { font-family: var(--serif); font-weight: 400; font-size: 16px; color: var(--ink); min-width: 92px; }
+
+  /* a desk strip: wallpaper with the native bits over it */
+  .desk { position: relative; width: 1440px; height: 680px; overflow: hidden; background: var(--wall-mac); color: var(--menubar-fg); }
+  .desk::before { content: ""; position: absolute; inset: 0; background: var(--wall-glow); }
+  .desk.win { background: var(--wall-win); }
+  .caption { position: absolute; left: 56px; top: 60px; width: 340px; display: flex; flex-direction: column; gap: 8px; color: var(--cap-fg); text-shadow: var(--cap-shadow); }
+  .caption h2 { font-size: 30px; color: inherit; }
+  .caption p { margin: 0; font-size: 14px; line-height: 1.55; opacity: 0.92; }
+  .caption .k { font-family: var(--mono); font-size: 12px; opacity: 0.8; }
+  .desk.win .caption { top: 48px; }
+  .desk.win { height: 720px; }
+  .callout { position: absolute; font-size: 12px; letter-spacing: 0.02em; color: var(--cap-fg); text-shadow: var(--cap-shadow); display: flex; align-items: center; gap: 8px; opacity: 0.9; }
+  .callout::before { content: ""; width: 22px; height: 1px; background: currentColor; opacity: 0.7; }
+  .callout.r { flex-direction: row-reverse; }
+
+  /* macOS menubar */
+  .menubar { position: absolute; top: 0; left: 0; right: 0; height: 28px; background: var(--menubar); backdrop-filter: blur(18px); display: flex; align-items: center; padding: 0 14px 0 18px; gap: 18px; font-size: 13px; font-weight: 500; }
+  .menubar .apple { width: 14px; height: 16px; }
+  .menubar .app { font-weight: 700; }
+  .menubar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-weight: 400; }
+  .menubar .right .ic { width: 17px; height: 17px; stroke-width: 1.7; }
+  .tray { position: relative; display: inline-grid; place-items: center; width: 24px; height: 22px; border-radius: 5px; }
+  .tray.open { background: rgba(127,127,127,0.28); }
+  .tray svg { width: 17px; height: 17px; }
+  .tray .att { position: absolute; right: 2px; bottom: 2px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* macOS menu */
+  .nmenu { position: absolute; top: 33px; width: 352px; border-radius: 11px; background: var(--nmenu); backdrop-filter: blur(24px); color: var(--nmenu-fg); padding: 5px; font-size: 13px; box-shadow: 0 0 0 0.5px var(--frame-line), 0 8px 18px rgba(0,0,0,0.28), 0 1px 3px rgba(0,0,0,0.15); }
+  .nmenu .row { display: flex; align-items: center; gap: 9px; height: 24px; padding: 0 9px 0 10px; border-radius: 6px; white-space: nowrap; }
+  .nmenu .row .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .nmenu .row .m { color: var(--nmenu-muted); font-size: 12px; }
+  .nmenu .row .k { color: var(--nmenu-muted); font-size: 12px; letter-spacing: 0.06em; }
+  .nmenu .row.head { color: var(--nmenu-muted); font-size: 11.5px; font-weight: 600; height: 22px; margin-top: 2px; }
+  .nmenu .row.head .n { margin-left: auto; font-weight: 500; }
+  .nmenu .row.hi { background: var(--nmenu-hi); color: var(--nmenu-hi-fg); }
+  .nmenu .row.hi .m, .nmenu .row.hi .k, .nmenu .row.hi .av { color: inherit; }
+  .nmenu .row.hi .av { background: rgba(255,255,255,0.22); color: #fff; box-shadow: none; }
+  .nmenu .row .ic { width: 15px; height: 15px; opacity: 0.85; }
+  .nmenu .row .chev { margin-left: auto; width: 12px; height: 12px; opacity: 0.7; }
+  .nmenu .sep { height: 1px; background: var(--nmenu-line); margin: 5px 10px; }
+  .nmenu .row .who { font-family: var(--serif); font-size: 14.5px; }
+  .av { width: 17px; height: 17px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 9px; font-weight: 700; background: #E2C4A6; color: #56352D; flex: none; }
+  .av.agent { border-radius: 6px 6px 6px 2px; background: #56352D; color: #FFF8F1; }
+  .nmenu.sub { width: 300px; }
+
+  /* macOS notification banners */
+  .banners { position: absolute; top: 44px; display: flex; flex-direction: column; gap: 10px; width: 380px; }
+  .banner { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; padding: 11px 12px 11px 12px; border-radius: 16px; background: var(--banner); backdrop-filter: blur(24px); color: var(--banner-fg); box-shadow: 0 0 0 0.5px var(--frame-line), 0 6px 16px rgba(0,0,0,0.22); font-size: 13px; }
+  .banner.alert { grid-template-columns: 36px 1fr auto; }
+  .banner .ico { width: 36px; height: 36px; border-radius: 9px; overflow: hidden; }
+  .banner .ico svg { width: 100%; height: 100%; display: block; }
+  .banner .body { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .banner .ttl { display: flex; align-items: baseline; gap: 8px; font-weight: 600; font-size: 13px; }
+  .banner .ttl > span:first-child { flex: 1; min-width: 0; }
+  .banner .ttl .ago { white-space: nowrap; }
+  .banner .ttl .ago { margin-left: auto; font-weight: 400; font-size: 11px; color: var(--banner-muted); }
+  .banner .txt { color: var(--banner-fg); line-height: 1.35; }
+  .banner .txt .q { color: var(--banner-muted); }
+  .banner .acts { display: flex; flex-direction: column; gap: 4px; }
+  .banner .acts span { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 7px; background: var(--banner-btn); text-align: center; white-space: nowrap; }
+  .banner.alert .acts span:first-child { background: #56352D; color: #FFF8F1; }
+
+  /* Windows taskbar */
+  .taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: var(--taskbar); backdrop-filter: blur(18px); border-top: 1px solid var(--taskbar-line); color: var(--taskbar-fg); font-size: 12px; }
+  .taskbar .centre { position: absolute; left: 50%; top: 0; bottom: 0; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; }
+  .taskbar .tb { width: 40px; height: 40px; border-radius: 6px; display: grid; place-items: center; }
+  .taskbar .tb.on { background: rgba(127,127,127,0.16); position: relative; }
+  .taskbar .tb.on::after { content: ""; position: absolute; bottom: 2px; left: 14px; right: 14px; height: 3px; border-radius: 2px; background: #2A64D8; }
+  .taskbar .tb svg { width: 22px; height: 22px; }
+  .taskbar .tb .ic { width: 20px; height: 20px; }
+  .taskbar .tb .appmark { width: 24px; height: 24px; border-radius: 6px; }
+  .taskbar .badge { position: absolute; right: 6px; top: 6px; min-width: 16px; height: 16px; border-radius: 8px; background: #A8463A; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; padding: 0 4px; }
+  .taskbar .sysright { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: center; gap: 2px; padding-right: 10px; }
+  .taskbar .sysright .ic { width: 16px; height: 16px; stroke-width: 1.7; }
+  .taskbar .chev { width: 24px; height: 36px; display: grid; place-items: center; border-radius: 4px; }
+  .taskbar .wtray { width: 28px; height: 36px; display: grid; place-items: center; border-radius: 4px; position: relative; }
+  .taskbar .wtray.open { background: rgba(127,127,127,0.22); }
+  .taskbar .wtray svg { width: 16px; height: 16px; }
+  .taskbar .wtray .att { position: absolute; right: 3px; bottom: 7px; width: 6px; height: 6px; border-radius: 50%; background: #E2C4A6; box-shadow: 0 0 0 1.5px var(--taskbar); }
+  .taskbar .sysicons { display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 36px; border-radius: 4px; }
+  .taskbar .clock { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; padding: 0 8px; font-size: 12px; }
+
+  /* Windows context menu */
+  .wmenu { position: absolute; width: 352px; border-radius: 8px; background: var(--wmenu); backdrop-filter: blur(24px); color: var(--wmenu-fg); padding: 4px; font-size: 13px; box-shadow: 0 0 0 1px var(--wmenu-line), 0 8px 18px rgba(0,0,0,0.26); }
+  .wmenu .row { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px 0 10px; border-radius: 4px; white-space: nowrap; }
+  .wmenu .row .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .wmenu .row .m, .wmenu .row .k { color: var(--wmenu-muted); font-size: 12px; }
+  .wmenu .row.head { color: var(--wmenu-muted); font-size: 11.5px; font-weight: 600; height: 26px; }
+  .wmenu .row.head .n { margin-left: auto; font-weight: 500; }
+  .wmenu .row.hi { background: var(--wmenu-hi); }
+  .wmenu .row .ic { width: 16px; height: 16px; opacity: 0.85; }
+  .wmenu .row .chev { margin-left: auto; width: 12px; height: 12px; opacity: 0.7; }
+  .wmenu .sep { height: 1px; background: var(--wmenu-line); margin: 4px 8px; }
+  .wmenu .row .who { font-family: var(--serif); font-size: 14.5px; }
+  .wmenu.sub { width: 300px; }
+
+  /* Windows toasts */
+  .toasts { position: absolute; display: flex; flex-direction: column; gap: 10px; width: 364px; }
+  .toast { border-radius: 8px; background: var(--toast); color: var(--toast-fg); box-shadow: 0 0 0 1px var(--toast-line), 0 6px 16px rgba(0,0,0,0.22); font-size: 13px; padding: 12px 14px 12px 14px; display: grid; grid-template-columns: 48px 1fr; gap: 12px; position: relative; }
+  .toast .app { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--toast-muted); }
+  .toast .app .mini { width: 16px; height: 16px; border-radius: 4px; }
+  .toast .app .x { margin-left: auto; font-size: 14px; }
+  .toast .ico { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; }
+  .toast .ico svg { width: 100%; height: 100%; display: block; }
+  .toast .ico.av { width: 48px; height: 48px; font-size: 16px; border-radius: 50%; }
+  .toast .body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .toast .ttl { font-weight: 600; }
+  .toast .txt { color: var(--toast-muted); line-height: 1.4; }
+  .toast .acts { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
+  .toast .acts span { height: 32px; display: grid; place-items: center; border-radius: 4px; background: var(--toast-btn); font-weight: 500; }
+  .toast .acts span.primary { background: #56352D; color: #FFF8F1; }
+  .toast .acts.one { grid-template-columns: 1fr; }
+
+  /* spec strip */
+  .spec .card { box-shadow: 0 1px 2px rgba(42,50,68,0.06); } /* flat cards on this board: soft shadows cost the shot budget */
+  .spec { padding: 40px 56px 48px; display: flex; flex-direction: column; gap: 22px; }
+  .spec .intro { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: end; }
+  .spec .intro p { margin: 8px 0 0; color: var(--ink-2); max-width: 600px; }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card h3 { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 14px; }
+  .card ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+  .card li b { color: var(--ink); font-weight: 500; }
+  .icons { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .icons .st { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  .icons .st .sw { width: 100%; height: 56px; border-radius: 10px; display: grid; place-items: center; position: relative; }
+  .icons .st .sw.mac { background: #E8E2D8; color: #1F2634; } .icons .st .sw.mac.d { background: #2C3140; color: #F0EAE0; }
+  .icons .st .sw.wn { background: #2A2A2E; color: #ECE8E1; }
+  .icons .st .sw .tray { width: 26px; height: 24px; } .icons .st .sw .tray svg { width: 18px; height: 18px; }
+  .icons .st .sw .tray .att.ap { background: #E2C4A6; }
+  .icons .st .sw .tray .moon { position: absolute; right: 0; bottom: 0; width: 9px; height: 9px; }
+  .icons .st .sw .dock { width: 36px; height: 36px; border-radius: 9px; position: relative; }
+  .icons .st .sw .dock svg { width: 100%; height: 100%; }
+  .icons .st .sw .dock .cnt { position: absolute; top: -6px; right: -8px; min-width: 18px; height: 18px; border-radius: 9px; background: #EC3B3B; color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0 5px; box-shadow: 0 0 0 1.5px #E8E2D8; }
+  table.gram { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.gram th { text-align: left; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 0 10px 10px 0; border-bottom: 1px solid var(--line); }
+  table.gram td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
+  table.gram td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+  table.gram td .mono { font-size: 12.5px; }
+  table.gram td .who { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+</style>
+</head>
+<body>
+
+<!-- ============ title band ============ -->
+<header class="band">
+  <div>
+    <h1>Desktop tray</h1>
+    <p>Henosis lives in the menu bar and the system tray as the same three questions: what awaits you, where were you, and how do you get back in one click. The native menu lists the actual items, not counts; the native notification says one sentence with the first two buttons; every row and every banner is a <span class="mono">henosis://</span> link to the right session.</p>
+  </div>
+  <div class="legend">
+    <div><b>Counts</b><span>the badge counts approvals and handoffs; mentions sit in the menu, not on the badge.</span></div>
+    <div><b>Grammar</b><span>who · verb · what, then where and what it means for you.</span></div>
+    <div><b>Quick open</b><span>the five sessions and rooms you were in last, by name.</span></div>
+  </div>
+</header>
+
+<!-- ============ macOS ============ -->
+<section class="desk mac sys" aria-label="macOS menu bar with the Henosis tray menu open and three notifications">
+  <div class="menubar">
+    <svg class="apple" viewBox="0 0 14 16" aria-hidden="true"><path fill="currentColor" d="M11.6 8.5c0-2 1.6-2.9 1.7-3-1-1.4-2.4-1.6-2.9-1.6-1.3-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7C3.4 3.9 2.1 4.7 1.4 6c-1.4 2.5-.4 6.2 1 8.2.7 1 1.5 2.1 2.5 2 1-.1 1.4-.7 2.6-.7 1.2 0 1.6.7 2.6.6 1.1 0 1.8-1 2.4-2 .8-1.1 1.1-2.2 1.1-2.3 0 0-2-.8-2-3.3zM9.6 2.6c.5-.7.9-1.6.8-2.6-.8 0-1.8.5-2.3 1.2-.5.6-1 1.5-.8 2.5.9.1 1.8-.5 2.3-1.1z"/></svg>
+    <span class="app">Henosis</span><span>File</span><span>Edit</span><span>Session</span><span>Team</span><span>View</span><span>Window</span><span>Help</span>
+    <div class="right">
+      <span class="tray open" title="Henosis · 3 awaiting you"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" opacity=".55"/><circle cx="48" cy="48" r="9" fill="currentColor"/></svg><i class="att"></i></span>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a6 6 0 0 1 8 0M11 18.5a2 2 0 0 1 2 0"/></svg>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="16" height="8" rx="2"/><path d="M21 11v2"/><rect x="5" y="10" width="11" height="4" fill="currentColor" stroke="none"/></svg>
+      <span>Tue 7 Oct&nbsp; 09:41</span>
+    </div>
+  </div>
+
+  <div class="caption">
+    <h2>macOS</h2>
+    <p>The tray item is a template image: the mark in black with alpha, the attention dot in the corner when something waits. One click drops the native menu. Banners stack under the menu bar when the window is behind; decisions use the alert style and keep their first two buttons.</p>
+    <span class="k">tray tooltip: "Henosis · 3 awaiting you"</span>
+  </div>
+
+  <!-- the dropped menu, anchored under the tray icon -->
+  <div class="nmenu" style="right: 196px;" role="menu" aria-label="Henosis tray menu">
+    <div class="row head"><span class="t">Pending approvals</span><span class="n">2</span></div>
+    <div class="row hi"><span class="av agent">B</span><span class="t"><span class="who">Bo's agent</span> wants to write <span class="m">views/Billing.tsx</span></span><span class="k">4m</span></div>
+    <div class="row"><span class="av agent">C</span><span class="t"><span class="who">Cy's agent</span> wants to run <span class="m">pnpm test · Checkout</span></span><span class="k">11m</span></div>
+    <div class="row head"><span class="t">Handoffs offered</span><span class="n">1</span></div>
+    <div class="row"><span class="av">D</span><span class="t"><span class="who">Dee</span> offers you the baton <span class="m">· Checkout</span></span><span class="k">2m</span></div>
+    <div class="row head"><span class="t">Mentions</span><span class="n">2</span></div>
+    <div class="row"><span class="av">C</span><span class="t"><span class="who">Cy</span> in #billing: <span class="m">“@Ana are the tax lines prorated on the PDF?”</span></span></div>
+    <div class="row"><span class="av">B</span><span class="t"><span class="who">Bo</span> in #payments: <span class="m">“@Ana invoice PDF is ready to look at”</span></span></div>
+    <div class="sep"></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg><span class="t">Quick open</span><svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13A8 8 0 1 1 11 4a6 6 0 0 0 9 9z"/></svg><span class="t">Pause notifications</span><svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="sep"></div>
+    <div class="row"><span class="t">Open Henosis</span><span class="k">⌥⇧H</span></div>
+    <div class="row"><span class="t">Quit Henosis</span><span class="k">⌘Q</span></div>
+  </div>
+
+  <!-- the Quick open submenu, opened to the left -->
+  <div class="nmenu sub" style="right: 552px; top: 252px;" role="menu" aria-label="Quick open">
+    <div class="row head"><span class="t">Sessions</span></div>
+    <div class="row hi"><span class="av agent">B</span><span class="t"><span class="who">Billing page</span> <span class="m">· Bo's agent · Team with Ana, Bo</span></span></div>
+    <div class="row"><span class="av agent">C</span><span class="t"><span class="who">Checkout</span> <span class="m">· Cy's agent · Dee has the baton</span></span></div>
+    <div class="row"><span class="av agent">D</span><span class="t"><span class="who">Invoice PDF</span> <span class="m">· Dee's agent · done, 2 to unite</span></span></div>
+    <div class="row head"><span class="t">Rooms</span></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg><span class="t">#billing <span class="m">· Payments</span></span></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg><span class="t">#payments <span class="m">· Payments</span></span></div>
+    <div class="sep"></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l3-7h12l3 7v7H3z"/><path d="M3 12h5l2 3h4l2-3h5"/></svg><span class="t">Inbox</span><span class="k">3 new</span></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span class="t">Approvals queue</span></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span class="t">New session…</span></div>
+  </div>
+  <span class="callout r" style="right: 860px; top: 274px;">opens leftward at the screen edge</span>
+
+  <!-- native banners, where they stack when the window is behind -->
+  <div class="banners" style="left: 56px; top: 322px;">
+    <div class="banner alert">
+      <div class="ico"><svg viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="20" fill="#2A3244"/><path d="M48 24 A24 24 0 0 1 48 72" stroke="#56352D" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M48 72 A24 24 0 0 1 48 24" stroke="#E2C4A6" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="6" fill="#E2C4A6"/></svg></div>
+      <div class="body">
+        <div class="ttl"><span>Bo's agent wants to write Billing.tsx</span><span class="ago">now</span></div>
+        <div class="txt">Billing page · Payments. Proration lines in the invoice table. <span class="q">You can approve, Ana.</span></div>
+      </div>
+      <div class="acts"><span>Approve · 4</span><span>Open</span></div>
+    </div>
+    <div class="banner">
+      <div class="ico"><svg viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="20" fill="#2A3244"/><path d="M48 24 A24 24 0 0 1 48 72" stroke="#56352D" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M48 72 A24 24 0 0 1 48 24" stroke="#E2C4A6" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="6" fill="#E2C4A6"/></svg></div>
+      <div class="body">
+        <div class="ttl"><span>Cy mentioned you in #billing</span><span class="ago">3m ago</span></div>
+        <div class="txt">“@Ana are the tax lines prorated on the invoice PDF, or only the subtotal?”</div>
+      </div>
+      <div class="acts"><span>Reply</span></div>
+    </div>
+    <div class="banner alert">
+      <div class="ico"><svg viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="20" fill="#2A3244"/><path d="M48 24 A24 24 0 0 1 48 72" stroke="#56352D" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M48 72 A24 24 0 0 1 48 24" stroke="#E2C4A6" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="6" fill="#E2C4A6"/></svg></div>
+      <div class="body">
+        <div class="ttl"><span>Dee offers you the baton</span><span class="ago">2m ago</span></div>
+        <div class="txt">Checkout · Dee's agent waits at step 3 of 5. <span class="q">Take it or leave it with Dee.</span></div>
+      </div>
+      <div class="acts"><span>Take it</span><span>Later</span></div>
+    </div>
+  </div>
+  <span class="callout" style="left: 56px; top: 640px;">decisions alert-style and stay · news is a banner and slides away</span>
+</section>
+
+<!-- ============ Windows ============ -->
+<section class="desk win sys" aria-label="Windows 11 taskbar with the Henosis tray menu open and two toasts">
+  <div class="caption">
+    <h2>Windows</h2>
+    <p>The same menu as a tray context menu, rising from the notification area. The icon is linen on the dark tray, with an apricot dot when something waits; Windows has no Dock badge, so the taskbar button carries the count instead. Toasts come in at the bottom right, above the taskbar, and keep their buttons until dismissed.</p>
+    <span class="k">henosis://p/payments/s/billing-page</span>
+  </div>
+
+  <div class="taskbar">
+    <div class="centre">
+      <div class="tb"><svg viewBox="0 0 22 22" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1.5" fill="#2A64D8"/><rect x="12" y="2" width="8" height="8" rx="1.5" fill="#2A64D8"/><rect x="2" y="12" width="8" height="8" rx="1.5" fill="#2A64D8"/><rect x="12" y="12" width="8" height="8" rx="1.5" fill="#2A64D8"/></svg></div>
+      <div class="tb"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></div>
+      <div class="tb"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg></div>
+      <div class="tb"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+      <div class="tb on"><svg class="appmark" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="20" fill="#2A3244"/><path d="M48 24 A24 24 0 0 1 48 72" stroke="#56352D" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M48 72 A24 24 0 0 1 48 24" stroke="#E2C4A6" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="6" fill="#E2C4A6"/></svg><span class="badge">3</span></div>
+      <div class="tb"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg></div>
+    </div>
+    <div class="sysright">
+      <span class="chev"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></span>
+      <span class="wtray open" title="Henosis · 3 awaiting you"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" opacity=".55"/><circle cx="48" cy="48" r="9" fill="currentColor"/></svg><i class="att"></i></span>
+      <span class="sysicons">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a6 6 0 0 1 8 0M11 18.5a2 2 0 0 1 2 0"/></svg>
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="16" height="8" rx="2"/><path d="M21 11v2"/><rect x="5" y="10" width="11" height="4" fill="currentColor" stroke="none"/></svg>
+      </span>
+      <span class="clock"><span>09:41</span><span>07/10/2026</span></span>
+    </div>
+  </div>
+
+  <!-- the context menu, above the tray icon -->
+  <div class="wmenu" style="right: 124px; bottom: 58px;" role="menu" aria-label="Henosis tray menu">
+    <div class="row head"><span class="t">Pending approvals</span><span class="n">2</span></div>
+    <div class="row hi"><span class="av agent">B</span><span class="t"><span class="who">Bo's agent</span> wants to write <span class="m">views/Billing.tsx</span></span><span class="k">4m</span></div>
+    <div class="row"><span class="av agent">C</span><span class="t"><span class="who">Cy's agent</span> wants to run <span class="m">pnpm test · Checkout</span></span><span class="k">11m</span></div>
+    <div class="row head"><span class="t">Handoffs offered</span><span class="n">1</span></div>
+    <div class="row"><span class="av">D</span><span class="t"><span class="who">Dee</span> offers you the baton <span class="m">· Checkout</span></span><span class="k">2m</span></div>
+    <div class="row head"><span class="t">Mentions</span><span class="n">2</span></div>
+    <div class="row"><span class="av">C</span><span class="t"><span class="who">Cy</span> in #billing: <span class="m">“@Ana are the tax lines prorated on the PDF?”</span></span></div>
+    <div class="row"><span class="av">B</span><span class="t"><span class="who">Bo</span> in #payments: <span class="m">“@Ana invoice PDF is ready to look at”</span></span></div>
+    <div class="sep"></div>
+    <div class="row hi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg><span class="t">Quick open</span><svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13A8 8 0 1 1 11 4a6 6 0 0 0 9 9z"/></svg><span class="t">Pause notifications</span><svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="sep"></div>
+    <div class="row"><span class="t">Open Henosis</span><span class="k">Ctrl+Shift+H</span></div>
+    <div class="row"><span class="t">Quit Henosis</span></div>
+  </div>
+
+  <!-- Quick open submenu, opened leftward -->
+  <div class="wmenu sub" style="right: 480px; bottom: 164px;" role="menu" aria-label="Quick open">
+    <div class="row head"><span class="t">Sessions</span></div>
+    <div class="row"><span class="av agent">B</span><span class="t"><span class="who">Billing page</span> <span class="m">· Bo's agent · Team with Ana, Bo</span></span></div>
+    <div class="row"><span class="av agent">C</span><span class="t"><span class="who">Checkout</span> <span class="m">· Cy's agent · Dee has the baton</span></span></div>
+    <div class="row"><span class="av agent">D</span><span class="t"><span class="who">Invoice PDF</span> <span class="m">· Dee's agent · done, 2 to unite</span></span></div>
+    <div class="row head"><span class="t">Rooms</span></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg><span class="t">#billing <span class="m">· Payments</span></span></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg><span class="t">#payments <span class="m">· Payments</span></span></div>
+    <div class="sep"></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l3-7h12l3 7v7H3z"/><path d="M3 12h5l2 3h4l2-3h5"/></svg><span class="t">Inbox</span><span class="k">3 new</span></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><span class="t">Approvals queue</span></div>
+    <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span class="t">New session…</span></div>
+  </div>
+
+  <!-- toasts, where Windows puts them when the window is behind -->
+  <div class="toasts" style="left: 56px; bottom: 96px;">
+    <div class="toast">
+      <div class="app"><svg class="mini" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="20" fill="#2A3244"/><path d="M48 24 A24 24 0 0 1 48 72" stroke="#56352D" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M48 72 A24 24 0 0 1 48 24" stroke="#E2C4A6" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="6" fill="#E2C4A6"/></svg><span>Henosis</span><span class="x">×</span></div>
+      <div class="ico av agent" style="border-radius: 14px 14px 14px 5px;">B</div>
+      <div class="body">
+        <div class="ttl">Bo's agent wants to write Billing.tsx</div>
+        <div class="txt">Billing page · Payments. Proration lines in the invoice table. You can approve, Ana.</div>
+      </div>
+      <div class="acts"><span class="primary">Approve · 4</span><span>Open session</span></div>
+    </div>
+    <div class="toast">
+      <div class="app"><svg class="mini" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="20" fill="#2A3244"/><path d="M48 24 A24 24 0 0 1 48 72" stroke="#56352D" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M48 72 A24 24 0 0 1 48 24" stroke="#E2C4A6" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="6" fill="#E2C4A6"/></svg><span>Henosis</span><span class="x">×</span></div>
+      <div class="ico av">C</div>
+      <div class="body">
+        <div class="ttl">Cy mentioned you in #billing</div>
+        <div class="txt">“@Ana are the tax lines prorated on the invoice PDF, or only the subtotal?”</div>
+      </div>
+      <div class="acts one"><span>Open #billing</span></div>
+    </div>
+  </div>
+  <span class="callout" style="left: 56px; bottom: 64px;">the first two buttons of the notice · the avatar is the one who asks</span>
+  <span class="callout r" style="right: 790px; bottom: 300px;">opens leftward at the screen edge</span>
+</section>
+
+<!-- ============ spec ============ -->
+<section class="spec" aria-label="Rules">
+  <div class="intro">
+    <div>
+      <h2>The rules</h2>
+      <p>The tray does not try to be the inbox. It answers what awaits you and gets you back in; everything else happens in the window, which every row and every banner opens on the right session.</p>
+    </div>
+    <div class="icons">
+      <div class="st"><div class="sw mac"><span class="tray"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" opacity=".55"/><circle cx="48" cy="48" r="9" fill="currentColor"/></svg></span></div><span>macOS · quiet<br>template image</span></div>
+      <div class="st"><div class="sw mac d"><span class="tray"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" opacity=".55"/><circle cx="48" cy="48" r="9" fill="currentColor"/></svg><i class="att"></i></span></div><span>macOS · attention<br>the dot, same ink</span></div>
+      <div class="st"><div class="sw wn"><span class="tray"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" opacity=".55"/><circle cx="48" cy="48" r="9" fill="currentColor"/></svg><i class="att ap"></i></span></div><span>Windows · attention<br>linen, apricot dot</span></div>
+      <div class="st"><div class="sw wn"><span class="tray" style="opacity:.55"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" opacity=".55"/><circle cx="48" cy="48" r="9" fill="currentColor"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13A8 8 0 1 1 11 4a6 6 0 0 0 9 9z" fill="currentColor"/></svg></span></div><span>paused<br>dimmed, a moon</span></div>
+      <div class="st"><div class="sw mac"><span class="dock"><svg viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="20" fill="#2A3244"/><path d="M48 24 A24 24 0 0 1 48 72" stroke="#56352D" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M48 72 A24 24 0 0 1 48 24" stroke="#E2C4A6" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="6" fill="#E2C4A6"/></svg><span class="cnt">3</span></span></div><span>Dock · badge<br>approvals + handoffs</span></div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h3>What the menu holds</h3>
+      <ul>
+        <li><b>Pending approvals</b> and <b>Handoffs offered</b> list the items, newest first, five each; a sixth becomes "and 3 more… in the queue".</li>
+        <li><b>Mentions</b> appear only when there are some, and never add to the badge; they clear when the room is read.</li>
+        <li><b>Quick open</b> is the five sessions and rooms you were in last, by their names, plus Inbox, Approvals queue, New session.</li>
+        <li><b>Pause notifications</b> for an hour, until tomorrow, or until you say; the icon dims and a moon sits in the corner. Approvals still badge.</li>
+        <li>A row has one line: the serif who, the verb, the what in muted, the age at the right. Native menus take no second line, so the where moves into the banner.</li>
+        <li>Empty: the menu says "Nothing awaits you, Ana." and keeps Quick open.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What rings and what counts</h3>
+      <ul>
+        <li><b>The badge</b> (Dock, launcher, Windows taskbar button) counts approvals plus handoffs addressed to you. Nothing else.</li>
+        <li><b>A banner</b> for every approval, handoff, blocked, contention and mention that is not on screen; done and plan only when you asked for them in Settings.</li>
+        <li><b>Decisions</b> (approval, handoff) are alert-style on macOS and keep their buttons on Windows; they stay until answered. News slides away.</li>
+        <li><b>Sound</b> once per decision, and only after a minute away from the window.</li>
+        <li><b>Same ref twice</b> replaces the notification by <span class="mono">tag</span>; approving in the window withdraws it.</li>
+        <li>Items of the session on screen never notify; they are already in the stream in front of you.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Where a click goes</h3>
+      <ul>
+        <li>Every row and every banner body opens <span class="mono">henosis://p/&lt;project&gt;/s/&lt;session&gt;</span> and scrolls to the notice.</li>
+        <li>A mention opens the room at the message; a Quick open room opens it at the last read line.</li>
+        <li><b>Approve · 4</b> on a banner votes the default rating without opening the window; under a ratings rule it opens the notice instead.</li>
+        <li><b>Take it</b> accepts the handoff and brings the window forward with the baton in your hand; <b>Later</b> leaves the row in the menu.</li>
+        <li>The tray's title click opens the first pending item; a plain Open Henosis restores the last window and route.</li>
+        <li><span class="mono">⌥⇧H</span> / <span class="mono">Ctrl+Shift+H</span> is a global shortcut that brings Henosis forward from anywhere.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Notification grammar · one sentence, said the same way everywhere</h3>
+    <table class="gram">
+      <thead><tr><th>Kind</th><th>Title</th><th>Body</th><th>Buttons</th><th>tag</th></tr></thead>
+      <tbody>
+        <tr><td>approval</td><td><span class="who">Bo's agent</span> wants to write Billing.tsx</td><td>Billing page · Payments. Proration lines in the invoice table. You can approve, Ana.</td><td>Approve · 4 &nbsp;·&nbsp; Open</td><td><span class="mono">approval:ap_8f2</span></td></tr>
+        <tr><td>handoff</td><td><span class="who">Dee</span> offers you the baton</td><td>Checkout · Dee's agent waits at step 3 of 5. Take it or leave it with Dee.</td><td>Take it &nbsp;·&nbsp; Later</td><td><span class="mono">handoff:ho_21c</span></td></tr>
+        <tr><td>mention</td><td><span class="who">Cy</span> mentioned you in #billing</td><td>“@Ana are the tax lines prorated on the invoice PDF, or only the subtotal?”</td><td>Reply</td><td><span class="mono">mention:msg_4a9</span></td></tr>
+        <tr><td>blocked</td><td><span class="who">Cy's agent</span> is blocked on Checkout</td><td>pnpm test failed twice on tax lines; it needs a steer.</td><td>Open</td><td><span class="mono">blocked:s_chk</span></td></tr>
+        <tr><td>contention</td><td><span class="who">Bo's agent</span> and <span class="who">Dee's agent</span> both touch invoice.ts</td><td>Billing page and Invoice PDF · write on packages/billing/invoice.ts.</td><td>Resolve</td><td><span class="mono">contention:c_07</span></td></tr>
+        <tr><td>done</td><td><span class="who">Dee's agent</span> finished Invoice PDF</td><td>Two branches to unite into main. 38k tokens, 12% under the plan.</td><td>Open</td><td><span class="mono">done:s_pdf</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</body>
+</html>

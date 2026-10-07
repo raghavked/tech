@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · PR comment template</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- board layout ---------- */
+  html, body { height: auto; } body { min-height: 100vh; background-repeat: no-repeat; }
+  .board { max-width: 1392px; margin: 0 auto; padding: 28px 24px 64px; display: flex; flex-direction: column; gap: 28px; }
+  .board-head { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+  .board-head .mark { flex: none; }
+  .board-head h1 { font-size: 36px; }
+  .board-head .lede { max-width: 640px; color: var(--ink-2); font-size: 14.5px; }
+  .board-head .right { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 24px; align-items: start; }
+  .sec-title { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+  .sec-title h2 { font-size: 22px; }
+  .sec-title .hint { font-size: 12.5px; color: var(--ink-3); }
+  .side { display: flex; flex-direction: column; gap: 24px; }
+
+  /* ---------- the PR timeline frame ---------- */
+  .pr { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .pr .pr-top { padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; }
+  .pr .pr-top .num { font-family: var(--mono); color: var(--ink-3); }
+  .pr .pr-top .t { color: var(--ink); font-weight: 600; font-size: 14px; }
+  .pr .pr-top .open { display: inline-flex; align-items: center; gap: 5px; background: var(--ok); color: #fff; border-radius: var(--radius-full); height: 22px; padding: 0 9px; font-size: 11.5px; font-weight: 600; }
+  .pr .pr-top .branches { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+  .pr .pr-top code, .cm code { font-family: var(--mono); font-size: 12px; background: var(--surface-3); border-radius: 6px; padding: 1px 6px; color: var(--ink); }
+  .timeline { padding: 18px 20px 22px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .tl-event { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); padding-left: 6px; }
+  .tl-event .ic { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; color: var(--ink-2); flex: none; }
+  .tl-event b { color: var(--ink); font-weight: 600; }
+  .tl-event time { color: var(--ink-3); white-space: nowrap; margin-left: auto; }
+
+  /* ---------- the comment ---------- */
+  .comment { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; }
+  .comment .av { width: 40px; height: 40px; border-radius: 50%; background: var(--rail); display: grid; place-items: center; }
+  .cm { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); position: relative; min-width: 0; }
+  .cm::before { content: ""; position: absolute; left: -7px; top: 14px; width: 12px; height: 12px; background: var(--surface-2); border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); transform: rotate(45deg); }
+  .cm-head { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line); border-radius: 12px 12px 0 0; font-size: 13.5px; color: var(--ink-2); flex-wrap: wrap; }
+  .cm-head b { color: var(--ink); font-weight: 600; }
+  .cm-head .app { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 5px; border: 1px solid var(--line); font-size: 11px; color: var(--ink-2); }
+  .cm-head .right { margin-left: auto; display: inline-flex; gap: 10px; align-items: center; color: var(--ink-3); }
+  .cm-body { padding: 16px 18px 14px; font-size: 14.5px; line-height: 1.55; display: flex; flex-direction: column; gap: 14px; }
+  .cm-body p { margin: 0; }
+  .cm-body h3 { font-size: 15.5px; font-weight: 600; margin: 8px 0 -4px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+  .cm-body h3 .state { margin-left: auto; font-size: 12px; font-weight: 600; letter-spacing: .02em; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); }
+  .state.ok { background: var(--ok-soft); color: var(--ok); }
+  .state.warn { background: var(--warn-soft); color: var(--warn); }
+  .state.quiet { background: var(--surface-3); color: var(--ink-2); }
+  .cm-body a.sess { font-weight: 500; }
+  .lead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .lead .who { font-family: var(--serif); font-size: 17px; color: var(--ink); }
+  .lead .sep { color: var(--ink-3); }
+
+  .cm table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .cm th { text-align: left; font-weight: 600; font-size: 12px; color: var(--ink-2); padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+  .cm td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .cm tr:last-child td { border-bottom: 0; }
+  .cm .tbl { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .cm td.num, .cm th.num { text-align: right; font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cm td.c { text-align: center; width: 36px; }
+  .cm td .chk { color: var(--ok); }
+  .cm td .run { color: var(--apricot-deep); }
+  .cm td .saved { color: var(--ok); }
+  .cm td .over { color: var(--warn); }
+  .cm .n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line); font-size: 11px; color: var(--ink-2); font-family: var(--mono); }
+  .cm tr.done .n { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+  .stars { font-family: var(--mono); font-size: 13px; letter-spacing: .06em; color: var(--apricot-deep); white-space: nowrap; }
+  .stars .off { color: var(--surface-3); }
+  .stars .v { color: var(--ink-2); letter-spacing: 0; margin-left: 6px; }
+  .voice { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .voice:first-child { border-top: 0; }
+  .voice .who { font-family: var(--serif); font-size: 16px; color: var(--ink); }
+  .voice .who small { font-family: var(--font); font-size: 12px; color: var(--ink-3); margin-left: 6px; }
+  .voice .note { color: var(--ink-2); font-style: italic; }
+  .voice.vo .note, .voice.vo .who { color: var(--ink-3); }
+  .voice.vo .stars { color: var(--ink-3); }
+  .voices { border: 1px solid var(--line); border-radius: 8px; padding: 2px 12px; }
+  .verdict { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); flex-wrap: wrap; }
+  .verdict .ok, .verdict > span { white-space: nowrap; }
+  .verdict .rule { white-space: normal; }
+  .verdict .ok { color: var(--ok); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  .verdict .rule { color: var(--ink-3); }
+  .callmono { font-family: var(--mono); font-size: 13px; }
+  .risk { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: var(--radius-full); background: var(--danger-soft); color: var(--danger); font-size: 11.5px; font-weight: 600; }
+
+  .tokens { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .tk { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .tk .lbl { font-size: 12px; color: var(--ink-3); display: flex; justify-content: space-between; }
+  .tk .big { font-family: var(--mono); font-size: 20px; color: var(--ink); line-height: 1.1; }
+  .tk .big small { font-size: 12.5px; color: var(--ink-3); margin-left: 4px; }
+  .tk .budget { margin: 2px 0 4px; }
+  .tk .rows { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-size: 12.5px; color: var(--ink-2); }
+  .tk .rows .v { font-family: var(--mono); text-align: right; color: var(--ink); }
+  .cm-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-3); padding-top: 12px; border-top: 1px solid var(--line); }
+  .cm-foot .links { display: inline-flex; gap: 14px; }
+  .cm-foot .links a { display: inline-flex; align-items: center; gap: 5px; }
+  .cm-foot .marker { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .reactions { padding: 0 18px 12px; display: flex; gap: 6px; }
+  .reactions span { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: var(--radius-full); border: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
+
+  /* ---------- source + states ---------- */
+  .src { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius-lg); padding: 16px 18px; font-family: var(--mono); font-size: 12px; line-height: 1.55; overflow: hidden; box-shadow: var(--shadow-soft); }
+  .src .fn { display: flex; align-items: center; gap: 8px; font-family: var(--font); font-size: 12.5px; color: var(--rail-muted); margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--rail-line); }
+  .src .fn b { color: var(--rail-fg); font-weight: 500; }
+  .src .fn .n { margin-left: auto; }
+  .src pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+  .src .ph { color: var(--apricot); }
+  .src .k { color: #9BC88F; }
+  .src .c { color: var(--rail-muted); }
+  .states { display: flex; flex-direction: column; gap: 10px; }
+  .st { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 12px; align-items: start; padding: 12px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+  .st .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); }
+  .st.now { box-shadow: inset 0 0 0 1.5px var(--apricot-deep); }
+  .st.now .ic { background: var(--apricot-soft); color: var(--accent); }
+  .st.done .ic { background: var(--ok-soft); color: var(--ok); }
+  .st .t { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .st .t .when { margin-left: auto; font-family: var(--mono); font-size: 11.5px; font-weight: 400; color: var(--ink-3); }
+  .st .d { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+  .st .d code { font-family: var(--mono); font-size: 12px; background: var(--surface-3); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; font-size: 13px; }
+  .rules .r { display: flex; gap: 10px; align-items: flex-start; color: var(--ink-2); }
+  .rules .r .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); flex: none; margin-top: 7px; }
+  .rules .r b { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 1100px) {
+    .grid { grid-template-columns: 1fr; }
+    .rules { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .board { padding: 18px 16px 48px; gap: 20px; }
+    .sec-title { flex-direction: column; gap: 2px; }
+    .board-head .right { margin-left: 0; }
+    .board-head h1 { font-size: 28px; }
+    .timeline { padding: 14px 12px 18px; }
+    .comment { grid-template-columns: 1fr; gap: 8px; }
+    .comment .av { width: 28px; height: 28px; }
+    .cm::before { display: none; }
+    .cm-body { padding: 14px 12px; }
+    .tokens { grid-template-columns: 1fr; }
+    .voice { grid-template-columns: 1fr; gap: 2px; }
+    .voice .stars { order: -1; }
+    .cm .tbl { overflow-x: auto; }
+    .cm table { min-width: 460px; }
+    .pr .pr-top .branches { margin-left: 0; }
+    .cm-foot .marker { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mark" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+    <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a)" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <circle cx="48" cy="48" r="7" fill="var(--mark-dot)"/>
+  </symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 11l-1 1a2.5 2.5 0 0 1-3.5-3.5l2-2M9 5l1-1a2.5 2.5 0 0 1 3.5 3.5l-2 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 16 16"><circle cx="4" cy="3.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="4" cy="12.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4 5v6M12 6.6c0 2.6-8 1.6-8 4.4" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="i-plan" viewBox="0 0 16 16"><path d="M3 4h10M3 8h10M3 12h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-replay" viewBox="0 0 16 16"><path d="M3.5 8a4.5 4.5 0 1 0 1.3-3.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 16 16"><path d="M4 2h5l3 3v9H4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 2v3h3M6 8h4M6 11h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 16 16"><path d="M11 2.5l2.5 2.5L6 12.5H3.5V10z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-push" viewBox="0 0 16 16"><path d="M8 13V4M4.5 7.5L8 4l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pr" viewBox="0 0 16 16"><circle cx="4" cy="3.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="4" cy="12.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12.5" r="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4 5v6M12 11V7a2 2 0 0 0-2-2H8.5M10 3.2L8.3 5 10 6.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="board">
+  <header class="board-head">
+    <svg class="mark" width="52" height="52" aria-hidden="true"><use href="#i-mark"/></svg>
+    <div>
+      <h1>The PR comment</h1>
+      <p class="lede">A PR is a session. Henosis posts one comment on the pull request and edits it in place as the session moves: the plan with its ratings, the release gate with its voices, the tokens against the budget, and one link back to the session. Plain Markdown only, so it renders the same in every PR view and in e-mail.</p>
+    </div>
+    <div class="right">
+      <span class="chip on">GitHub PR adapter · phase 1</span>
+      <span class="chip">surfaces</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- ======================= rendered on the PR ======================= -->
+    <section>
+      <div class="sec-title"><h2>As it reads on the pull request</h2><span class="hint">final state · gate granted, branch pushed</span></div>
+      <div class="pr">
+        <div class="pr-top">
+          <span class="open"><svg width="12" height="12"><use href="#i-pr"/></svg> Open</span>
+          <span class="t">Invoice PDF: proration rows and tax lines</span>
+          <span class="num">#418</span>
+          <span class="branches"><svg width="14" height="14" style="color:var(--ink-3)"><use href="#i-branch"/></svg> <code>pdf-layout</code> <span class="faint">into</span> <code>main</code></span>
+        </div>
+        <div class="timeline">
+          <div class="tl-event"><span class="ic"><svg width="14" height="14"><use href="#i-branch"/></svg></span><span><b>Ana</b> opened this pull request from <code>pdf-layout</code></span><time>Tue 11:04</time></div>
+
+          <div class="comment">
+            <div class="av"><svg width="30" height="30"><use href="#i-mark"/></svg></div>
+            <div class="cm">
+              <div class="cm-head">
+                <b>henosis</b> <span class="app">app</span>
+                <span>commented Tue 11:05</span>
+                <span class="right"><span>edited 14:33</span><svg width="14" height="14"><use href="#i-pencil"/></svg></span>
+              </div>
+              <div class="cm-body">
+                <div class="lead">
+                  <span class="who">Ana's agent</span><span class="sep">·</span>
+                  <span class="pill team">Team</span><span class="muted">with Bo and Cy</span><span class="sep">·</span>
+                  <span class="muted">the Payments team</span><span class="sep">·</span>
+                  <a class="sess" href="#"><svg width="13" height="13" style="vertical-align:-2px"><use href="#i-link"/></svg> Open the session</a>
+                </div>
+                <p>Add proration rows and tax lines to the invoice PDF, and keep the Billing page and Checkout totals on the same numbers.</p>
+
+                <h3>The plan <span class="state ok"><svg width="12" height="12"><use href="#i-check"/></svg> approved · 5 of 5 steps done</span></h3>
+                <div class="tbl"><table>
+                  <thead><tr><th class="c">#</th><th>Step</th><th class="num">Estimate</th><th class="num">Actual</th><th class="c"></th></tr></thead>
+                  <tbody>
+                    <tr class="done"><td class="c"><span class="n">1</span></td><td>Read the invoice PDF renderer and the tax-line model</td><td class="num">4k</td><td class="num">3.1k</td><td class="c"><svg class="chk" width="14" height="14"><use href="#i-check"/></svg></td></tr>
+                    <tr class="done"><td class="c"><span class="n">2</span></td><td>Add proration rows to the invoice PDF, one per partial period</td><td class="num">14k</td><td class="num">12.8k</td><td class="c"><svg class="chk" width="14" height="14"><use href="#i-check"/></svg></td></tr>
+                    <tr class="done"><td class="c"><span class="n">3</span></td><td>Align tax lines in the totals block; round per line, not per total</td><td class="num">10k</td><td class="num">11.6k</td><td class="c"><svg class="chk" width="14" height="14"><use href="#i-check"/></svg></td></tr>
+                    <tr class="done"><td class="c"><span class="n">4</span></td><td>Billing page preview and Checkout summary read the same totals</td><td class="num">12k</td><td class="num">9.4k</td><td class="c"><svg class="chk" width="14" height="14"><use href="#i-check"/></svg></td></tr>
+                    <tr class="done"><td class="c"><span class="n">5</span></td><td>Tests: proration across a month boundary, tax rounding, PDF snapshot</td><td class="num">12k</td><td class="num">11.3k</td><td class="c"><svg class="chk" width="14" height="14"><use href="#i-check"/></svg></td></tr>
+                  </tbody>
+                </table></div>
+                <div class="voices">
+                  <div class="voice"><span class="who">Ana<small>driver</small></span><span class="note">“Proration first, the tax lines follow from it.”</span><span class="stars">★★★★<span class="off">★</span><span class="v">4</span></span></div>
+                  <div class="voice"><span class="who">Bo<small>contributor</small></span><span class="note">“Step 3 is the one Checkout has been waiting on.”</span><span class="stars">★★★★★<span class="v">5</span></span></div>
+                </div>
+                <div class="verdict"><span class="ok"><svg width="13" height="13"><use href="#i-check"/></svg> Plan approved</span><span>2 ratings · 4.5 average</span><span class="rule">· policy: one rating at 3+ · decided in the fold</span></div>
+
+                <h3>Release gate <span class="state ok"><svg width="12" height="12"><use href="#i-check"/></svg> granted 14:32</span></h3>
+                <p><span class="callmono">git push origin pdf-layout</span> &nbsp;<span class="risk">irreversible</span> &nbsp;<span class="muted">two contributors rating 4+ on average · the Payments policy</span></p>
+                <div class="voices">
+                  <div class="voice"><span class="who">Bo<small>contributor</small></span><span class="note">“Tax lines match the ledger to the cent.”</span><span class="stars">★★★★<span class="off">★</span><span class="v">4</span></span></div>
+                  <div class="voice"><span class="who">Cy<small>contributor</small></span><span class="note">“Proration rounds the right way across the boundary.”</span><span class="stars">★★★★★<span class="v">5</span></span></div>
+                  <div class="voice vo"><span class="who">Dee<small>observer</small></span><span class="note">approved without a rating · a voice, not a vote</span><span class="stars">—</span></div>
+                </div>
+                <div class="verdict"><span class="ok"><svg width="13" height="13"><use href="#i-check"/></svg> Gate granted</span><span>2 of 2 · 4.5 average</span><span class="rule">· pushed <span class="callmono">b7e41c0</span> · 14 files, +412 −96</span></div>
+
+                <h3>Tokens <span class="state quiet">48.2k of 80k budget</span></h3>
+                <div class="tokens">
+                  <div class="tk">
+                    <div class="lbl"><span>Spent</span><span>60% of budget</span></div>
+                    <div class="big">48.2k<small>tokens</small></div>
+                    <div class="budget" aria-label="60% of budget"><i style="width:60%"></i></div>
+                    <div class="rows"><span>input</span><span class="v">31.4k</span><span>output</span><span class="v">9.6k</span><span>cache read</span><span class="v">6.8k</span><span>cache write</span><span class="v">0.4k</span></div>
+                  </div>
+                  <div class="tk">
+                    <div class="lbl"><span>Plan estimate vs actual</span><span class="saved" style="color:var(--ok)">saved 3.8k · 7%</span></div>
+                    <div class="big">52k <small>estimated</small></div>
+                    <div class="budget" aria-label="actual 93% of estimate"><i style="width:93%;background:var(--ok)"></i></div>
+                    <div class="rows"><span>steps under estimate</span><span class="v">4 of 5</span><span>over on step 3</span><span class="v over" style="color:var(--warn)">+1.6k</span><span>turns</span><span class="v">23</span><span>people present</span><span class="v">4</span></div>
+                  </div>
+                </div>
+
+                <div class="cm-foot">
+                  <span class="links">
+                    <a href="#"><svg width="13" height="13"><use href="#i-link"/></svg> Session</a>
+                    <a href="#"><svg width="13" height="13"><use href="#i-replay"/></svg> Replay</a>
+                    <a href="#"><svg width="13" height="13"><use href="#i-doc"/></svg> Audit record</a>
+                  </span>
+                  <span>Replays to the same hash · <span class="callmono" style="font-size:11.5px">3f9a…c21e</span></span>
+                  <span class="marker">henosis:session=pdf-layout-7f2</span>
+                </div>
+              </div>
+              <div class="reactions"><span>👍 3</span><span>🎉 1</span></div>
+            </div>
+          </div>
+
+          <div class="tl-event"><span class="ic" style="background:var(--ok-soft);color:var(--ok)"><svg width="14" height="14"><use href="#i-push"/></svg></span><span><b>Ana's agent</b> pushed <code>b7e41c0</code> after the release gate was granted</span><time>Tue 14:32</time></div>
+          <div class="tl-event"><span class="ic"><svg width="14" height="14"><use href="#i-check"/></svg></span><span><b>Cy</b> approved these changes</span><time>Tue 14:40</time></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= source and states ======================= -->
+    <aside class="side">
+      <section>
+        <div class="sec-title"><h2>The template</h2><span class="hint">plain Markdown · edited in place</span></div>
+        <div class="src">
+          <div class="fn"><svg width="14" height="14"><use href="#i-doc"/></svg> <b>pr-comment.md</b> <span class="n">one comment per PR</span></div>
+<pre><span class="c">&lt;!-- henosis:session=<span class="ph">{session.id}</span> --&gt;</span>
+<span class="k">**</span><span class="ph">{agent.name}</span><span class="k">**</span> · <span class="ph">{mode}</span> with <span class="ph">{people}</span> · <span class="ph">{team}</span> · [Open the session](<span class="ph">{session.url}</span>)
+
+<span class="ph">{goal}</span>
+
+<span class="k">### The plan</span> — <span class="ph">{plan.state}</span> · <span class="ph">{plan.done}</span> of <span class="ph">{plan.steps}</span> steps done
+| # | Step | Estimate | Actual | |
+|--:|------|---------:|-------:|--|
+<span class="ph">{for step}</span> | <span class="ph">{n}</span> | <span class="ph">{title}</span> | <span class="ph">{est}</span> | <span class="ph">{actual}</span> | <span class="ph">{✓|…}</span> |
+
+<span class="ph">{for rating}</span> **<span class="ph">{who}</span>** <span class="ph">{role}</span> · <span class="ph">{stars}</span> <span class="ph">{n}</span> · _“<span class="ph">{note}</span>”_
+<span class="k">✓ Plan approved</span> · <span class="ph">{count}</span> ratings · <span class="ph">{avg}</span> average · policy: <span class="ph">{rule}</span>
+
+<span class="k">### Release gate</span> — <span class="ph">{gate.state}</span>
+`<span class="ph">{call}</span>` · <span class="ph">{risk}</span> · <span class="ph">{rule.words}</span>
+<span class="ph">{for voice}</span> **<span class="ph">{who}</span>** <span class="ph">{role}</span> · <span class="ph">{stars|“a voice, not a vote”}</span> · _“<span class="ph">{note}</span>”_
+<span class="ph">{✓ Gate granted|⏳ Waits on {names}|✕ Held by {who}}</span> · <span class="ph">{count}</span> of <span class="ph">{min}</span> · <span class="ph">{avg}</span> average
+
+<span class="k">### Tokens</span> — <span class="ph">{spent}</span> of <span class="ph">{budget}</span>
+<span class="ph">{bar}</span> · input <span class="ph">{in}</span> · output <span class="ph">{out}</span> · cache <span class="ph">{cache}</span>
+estimate <span class="ph">{est}</span> → actual <span class="ph">{spent}</span> · <span class="ph">{saved|over}</span>
+
+[Session](<span class="ph">{url}</span>) · [Replay](<span class="ph">{replay}</span>) · [Audit record](<span class="ph">{audit}</span>) · replays to `<span class="ph">{hash}</span>`</pre>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-title"><h2>One comment, four edits</h2><span class="hint">what each state says</span></div>
+        <div class="states">
+          <div class="st done"><span class="ic"><svg width="16" height="16"><use href="#i-plan"/></svg></span><div><div class="t">The plan waits <span class="when">11:05</span></div><div class="d">Steps with estimates, no actuals. “The plan waits for one rating.” Tool calls above <code>read</code> are refused until it is approved.</div></div></div>
+          <div class="st done"><span class="ic"><svg width="16" height="16"><use href="#i-check"/></svg></span><div><div class="t">Approved, in progress <span class="when">11:21</span></div><div class="d">Ratings and the verdict land; the step the agent is on carries the apricot ring; actuals fill in step by step.</div></div></div>
+          <div class="st done"><span class="ic"><svg width="16" height="16"><use href="#i-lock"/></svg></span><div><div class="t">Held at the release gate <span class="when">14:10</span></div><div class="d"><code>git push</code> is held. “Waits on one more contributor at 3 or above.” The people who can vote are named; Approve without a pick sends 4.</div></div></div>
+          <div class="st now"><span class="ic"><svg width="16" height="16"><use href="#i-push"/></svg></span><div><div class="t">Granted and pushed <span class="when">14:32</span></div><div class="d">The gate line turns green with the commit and the diff size; the comment stops editing itself and the audit record is linked.</div></div></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-title"><h2>Rules</h2></div>
+        <div class="rules">
+          <div class="r"><span class="dot"></span><span><b>Plain Markdown.</b> Tables, bold, code and links only. No images except the mark as the app avatar, so e-mail and mobile read the same.</span></div>
+          <div class="r"><span class="dot"></span><span><b>Edit, never append.</b> The HTML marker finds the comment; a second comment is a bug.</span></div>
+          <div class="r"><span class="dot"></span><span><b>Stars as glyphs plus the number.</b> ★★★★☆ 4, the same drawing as the rating control and the audit record.</span></div>
+          <div class="r"><span class="dot"></span><span><b>The gate sentence is computed.</b> From the rule and what has landed, never restated from the policy.</span></div>
+          <div class="r"><span class="dot"></span><span><b>Team chat stays in the circle.</b> Notes attached to ratings travel; the Team panel does not.</span></div>
+          <div class="r"><span class="dot"></span><span><b>The link is the point.</b> Session, replay and audit record at the foot; the session link again in the first line.</span></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

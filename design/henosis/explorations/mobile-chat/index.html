@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Henosis · Chats on a phone</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* Mobile chat: the groups list and #billing. Wide: a board with both phones. Narrow (390):
+     the phone is the viewport; #chat is shown, index.html#groups shows the list. */
+  html, body { height: 100%; }
+  body { font-size: 15px; }
+  .ic { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .board { min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 30px 24px 40px; }
+  .board .cap { display: flex; align-items: center; gap: 12px; color: var(--ink-2); font-size: 13.5px; }
+  .board .cap h1 { font-size: 24px; }
+  .board .cap .mark { width: 28px; height: 28px; }
+  .phones { display: flex; gap: 40px; align-items: flex-start; }
+  .phone { width: 408px; height: 862px; }
+  .screen { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--canvas); background-image: var(--canvas-wash); }
+
+  /* navy top block: the rail folded flat */
+  .top { flex: none; background: var(--rail); color: var(--rail-fg); padding: 0 12px 10px; position: relative; z-index: 2; }
+  .sys { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 0; font: 600 14px var(--font); letter-spacing: .01em; }
+  .sys .r { display: flex; gap: 6px; align-items: center; }
+  .sys .r i { display: block; width: 24px; height: 11px; border: 1.5px solid currentColor; border-radius: 3.5px; position: relative; opacity: .9; }
+  .sys .r i::after { content: ""; position: absolute; left: 2px; top: 2px; bottom: 2px; width: 70%; background: currentColor; border-radius: 1.5px; }
+  .bar { display: flex; align-items: center; gap: 6px; height: 48px; }
+  .ib { width: 40px; height: 40px; border-radius: var(--radius); border: 0; background: transparent; color: var(--rail-fg); display: grid; place-items: center; flex: none; position: relative; padding: 0; cursor: pointer; }
+  .ib .n { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--apricot); color: #56352D; font: 700 10px/16px var(--font); text-align: center; padding: 0 4px; }
+  .bar .title { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+  .bar .title .t { font-family: var(--serif); font-size: 21px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar .title .s { font-size: 12.5px; color: var(--rail-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar .members { height: 40px; padding: 0 10px 0 6px; border-radius: var(--radius-full); border: 1px solid var(--rail-line); background: var(--rail-active); color: var(--rail-fg); display: flex; align-items: center; gap: 7px; font: 500 13px var(--font); flex: none; cursor: pointer; }
+  .bar .members .avatar { width: 24px; height: 24px; font-size: 10px; border-color: var(--rail); }
+  .bar .members .stack .avatar + .avatar { margin-left: -7px; }
+  .newg { height: 40px; padding: 0 14px 0 10px; border-radius: var(--radius-full); border: 0; background: var(--gradient-brand); color: #fff; display: inline-flex; align-items: center; gap: 6px; font: 500 13.5px var(--font); box-shadow: var(--shadow-soft); flex: none; cursor: pointer; }
+  .search { margin-top: 2px; height: 38px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 14px; }
+
+  /* the list */
+  .scroll { flex: 1; min-height: 0; overflow: hidden; }
+  .needs { margin: 14px 16px 6px; display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: var(--radius); background: var(--apricot-soft); font-size: 13.5px; color: var(--ink); }
+  .needs .mark { width: 22px; height: 22px; flex: none; }
+  .needs b { font-weight: 600; }
+  .needs .chev { margin-left: auto; color: var(--ink-2); }
+  .filters { display: flex; gap: 6px; padding: 8px 16px 4px; }
+  .filters .chip { height: 30px; font-size: 13px; }
+  .filters .chip .n { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .filters .chip.on .n { color: var(--accent); }
+  .list { display: flex; flex-direction: column; padding: 2px 16px; }
+  .row { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; min-width: 0; }
+  .row:hover { text-decoration: none; }
+  .row .em { width: 44px; height: 44px; border-radius: 14px; background: var(--surface-2); display: grid; place-items: center; font-family: var(--serif); font-size: 22px; color: var(--ink-2); position: relative; }
+  .row.unread .em { background: var(--apricot-soft); color: var(--accent); }
+  .row .em .live { position: absolute; right: -3px; bottom: -3px; width: 12px; height: 12px; border-radius: 50%; background: var(--ok); border: 2px solid var(--canvas); }
+  .row .em .live.wait { background: var(--warn); }
+  .row .body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .row .name { font-family: var(--serif); font-size: 18px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .name small { font-family: var(--font); font-size: 12.5px; color: var(--ink-3); margin-left: 6px; }
+  .row .last { font-size: 13.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+  .row .last .who { font-family: var(--serif); color: var(--ink); font-size: 14.5px; }
+  .row .last .m { color: var(--accent); font-weight: 500; }
+  .row .last .you { color: var(--ink-3); }
+  .row.unread .last { color: var(--ink); }
+  .row .side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .row.unread .side .when { color: var(--accent); font-weight: 500; }
+  .badge { min-width: 20px; height: 20px; border-radius: 10px; padding: 0 6px; background: var(--apricot); color: #56352D; font: 700 11.5px/20px var(--font); text-align: center; }
+  .badge.at { background: var(--accent); color: var(--accent-fg); font-family: var(--serif); font-weight: 400; font-size: 14px; }
+  .row .side .quiet { width: 14px; height: 14px; color: var(--ink-3); }
+  .list h2 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-family: var(--font); font-weight: 600; padding: 18px 0 2px; }
+
+  /* tab bar */
+  .tabs { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 8px 4px; border-top: 1px solid var(--line); background: var(--surface); }
+  .tabs a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; color: var(--ink-3); padding: 4px 0; position: relative; }
+  .tabs a:hover { text-decoration: none; }
+  .tabs a.on { color: var(--accent); }
+  .tabs a .ic { width: 24px; height: 24px; }
+  .tabs a .n { position: absolute; top: 0; left: calc(50% + 6px); min-width: 16px; height: 16px; border-radius: 8px; background: var(--apricot); color: #56352D; font: 700 10px/16px var(--font); text-align: center; padding: 0 4px; }
+  .home { flex: none; height: 24px; display: grid; place-items: center; background: var(--surface); }
+  .home i { width: 134px; height: 5px; border-radius: 3px; background: var(--ink); opacity: .85; }
+  .chat .home { background: transparent; }
+
+  /* messages, anchored to the latest */
+  .chat .scroll { display: flex; flex-direction: column-reverse; }
+  .column { width: 100%; padding: 16px 16px 10px; gap: 16px; }
+  .divider { margin: 2px 0; }
+  .msg .meta { font-size: 12.5px; gap: 7px; flex-wrap: nowrap; min-width: 0; }
+  .msg .meta .who { font-size: 15.5px; }
+  .msg .meta .when { margin-left: auto; color: var(--ink-3); font-variant-numeric: tabular-nums; flex: none; }
+  .msg .meta .faint { white-space: nowrap; }
+  .msg .meta .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .msg.human .text { max-width: 92%; padding: 11px 15px; font-size: 14.5px; line-height: 1.5; }
+  .msg.human.mine { align-items: flex-end; }
+  .msg.human.mine .meta { flex-direction: row-reverse; }
+  .msg.human.mine .meta .when { margin-left: 0; margin-right: auto; }
+  .msg.human.mine .text { align-self: flex-end; background: color-mix(in srgb, var(--accent) 9%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 22%, transparent); border-bottom-right-radius: 6px; }
+  .msg.human:not(.mine) .text { border-bottom-left-radius: 6px; }
+  .mention { background: var(--apricot-soft); color: var(--accent); font-weight: 500; border-radius: 5px; padding: 0 3px; }
+  .avatar { width: 24px; height: 24px; font-size: 10px; }
+  .avatar-wrap { position: relative; display: inline-flex; flex: none; }
+  .livedot { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--canvas); background: var(--ink-3); }
+  .livedot.running { background: var(--ok); } .livedot.awaiting { background: var(--warn); }
+  .msg.agent .text { font-size: 15px; line-height: 1.5; padding-left: 31px; }
+  .msg.agent .text p { margin: 0 0 6px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg.agent .text code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+  .msg.agent .steps { margin-left: 31px; }
+  .step { font-size: 12.5px; padding: 2px 0; min-width: 0; }
+  .step .ic { width: 14px; height: 14px; color: var(--ok); }
+  .step .mono { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .step .r { margin-left: auto; color: var(--ink-3); white-space: nowrap; }
+  .join { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .join .mark { width: 20px; height: 20px; }
+  .join .serif { color: var(--ink); font-size: 15px; }
+  .working { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); padding-left: 2px; }
+  .working .loader.orbit { width: 24px; height: 24px; }
+  .working .loader.orbit i { top: 8px; left: 8px; width: 6px; height: 6px; }
+  .working .serif { color: var(--ink); font-size: 15px; }
+
+  /* composer with the @ sheet open */
+  .composer-wrap { padding: 10px 12px 8px; }
+  .mentions { width: 100%; margin: 0 auto 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); overflow: hidden; }
+  .mentions .h { display: flex; align-items: center; gap: 8px; padding: 9px 14px 6px; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .mentions .h .k { margin-left: auto; font-family: var(--mono); font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--ink-3); }
+  .mentions .opt { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font-size: 14.5px; min-height: 46px; }
+  .mentions .opt.on { background: var(--apricot-soft); }
+  .mentions .opt .name { font-family: var(--serif); font-size: 16.5px; }
+  .mentions .opt .name mark { background: transparent; color: var(--accent); }
+  .mentions .opt .role { font-size: 12.5px; color: var(--ink-3); margin-left: auto; white-space: nowrap; }
+  .mentions .opt .status { font-size: 12.5px; }
+  .composer { padding: 10px 10px 10px 16px; gap: 8px; }
+  .composer .input { font-size: 15px; line-height: 1.45; }
+  .composer .input .caret { display: inline-block; width: 1.5px; height: 18px; background: var(--accent); vertical-align: -4px; margin-left: 1px; animation: pulse 1s steps(2) infinite; }
+  .composer .bar { height: auto; }
+  .composer .bar .ghost { min-height: 32px; padding: 0 8px; }
+  .composer .bar .in { font-size: 12.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
+  .composer .bar .in .serif { color: var(--ink-2); font-size: 14px; }
+  .send { width: 40px; height: 40px; }
+
+  /* phone as viewport */
+  @media (max-width: 600px) {
+    html, body { overflow: hidden; }
+    .board { padding: 0; gap: 0; display: block; height: 100%; }
+    .board .cap { display: none; }
+    .phones { display: block; height: 100%; }
+    .phone { width: 100%; height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+    .phone:has(#groups) { display: none; }
+    body:has(#groups:target) .phone:has(#groups) { display: block; }
+    body:has(#groups:target) .phone:has(#chat) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="cap">
+    <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+    <h1>Chats on a phone</h1>
+    <span>· the groups list and #billing, 390 × 844</span>
+  </div>
+  <div class="phones">
+
+  <!-- ============ groups list ============ -->
+  <div class="phone"><section class="screen" id="groups" aria-label="Chats">
+    <header class="top">
+      <div class="sys" aria-hidden="true">
+        <span>14:34</span>
+        <span class="r"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M4 16h2v4H4zM9 12h2v8H9zM14 8h2v12h-2zM19 4h2v16h-2z" fill="currentColor" stroke="none"/></svg><i></i></span>
+      </div>
+      <div class="bar">
+        <button class="ib" aria-label="Agents rail">
+          <svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          <span class="n">3</span>
+        </button>
+        <div class="title">
+          <div class="t">Chats</div>
+          <div class="s">The Payments team · 5 groups</div>
+        </div>
+        <button class="newg"><svg class="ic" viewBox="0 0 24 24" style="stroke-width:2"><path d="M12 5v14M5 12h14"/></svg>New group</button>
+      </div>
+      <div class="search"><svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>Search groups, people, agents</div>
+    </header>
+
+    <main class="scroll">
+      <a class="needs" href="#chat">
+        <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        <span><b>Two mentions</b> wait for you in #billing and #invoice-pdf.</span>
+        <svg class="ic chev" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+      <div class="filters">
+        <span class="chip on">All <span class="n">5</span></span>
+        <span class="chip">Unread <span class="n">2</span></span>
+        <span class="chip">Mentions <span class="n">2</span></span>
+      </div>
+      <div class="list">
+        <a class="row unread" href="#chat">
+          <span class="em">#<span class="live" title="Ana's agent is running"></span></span>
+          <span class="body">
+            <span class="name">billing <small>5 members</small></span>
+            <span class="last"><span class="who">Cy's agent</span> · The period is 31 days this month; the credit used 30. Fixed.</span>
+          </span>
+          <span class="side"><span class="when">14:31</span><span class="badge">2</span></span>
+        </a>
+        <a class="row unread" href="#chat">
+          <span class="em">#<span class="live wait" title="Bo's agent waits for an approval"></span></span>
+          <span class="body">
+            <span class="name">invoice-pdf <small>4 members</small></span>
+            <span class="last"><span class="who">Bo</span> · <span class="m">@Cy</span> can you rate the plan for the tax lines? It waits for two.</span>
+          </span>
+          <span class="side"><span class="when">13:58</span><span class="badge at">@</span></span>
+        </a>
+        <a class="row" href="#chat">
+          <span class="em">#</span>
+          <span class="body">
+            <span class="name">checkout <small>3 members</small></span>
+            <span class="last"><span class="who">Dee</span> · Proration credit shows on Checkout now, below the plan line.</span>
+          </span>
+          <span class="side"><span class="when">12:40</span></span>
+        </a>
+        <a class="row" href="#chat">
+          <span class="em">#</span>
+          <span class="body">
+            <span class="name">payments-team <small>7 members</small></span>
+            <span class="last"><span class="who">Ana</span> · United pdf-layout into main. Billing page ships Thursday.</span>
+          </span>
+          <span class="side"><span class="when">Yesterday</span><svg class="ic quiet" viewBox="0 0 24 24" aria-label="Muted"><path d="M4 10v4h3l5 4V6l-5 4H4zM16 9l5 6M21 9l-5 6"/></svg></span>
+        </a>
+        <a class="row" href="#chat">
+          <span class="em">#</span>
+          <span class="body">
+            <span class="name">tax-lines <small>3 members</small></span>
+            <span class="last"><span class="you">You</span> · Thanks, the VAT split reads right on the invoice PDF.</span>
+          </span>
+          <span class="side"><span class="when">Mon</span></span>
+        </a>
+        <h2>Agents replied</h2>
+        <a class="row" href="#chat">
+          <span class="em"><span class="avatar agent">An</span><span class="live"></span></span>
+          <span class="body">
+            <span class="name">Ana's agent <small>in #billing</small></span>
+            <span class="last">Tax lines sit under the subtotal on the invoice PDF · turn 12</span>
+          </span>
+          <span class="side"><span class="when">14:04</span></span>
+        </a>
+      </div>
+    </main>
+
+    <nav class="tabs" aria-label="Sections">
+      <a href="#"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>Sessions</a>
+      <a href="#groups" class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M5 6h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4 3v-3H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg>Chats<span class="n">2</span></a>
+      <a href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4 4L19 7"/></svg>Approvals<span class="n">3</span></a>
+      <a href="#"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.5"/><path d="M5 20c1-4 4-5.5 7-5.5s6 1.5 7 5.5"/></svg>Me</a>
+    </nav>
+    <div class="home" aria-hidden="true"><i></i></div>
+  </section></div>
+
+  <!-- ============ chat view: #billing ============ -->
+  <div class="phone"><section class="screen chat" id="chat" aria-label="#billing">
+    <header class="top">
+      <div class="sys" aria-hidden="true">
+        <span>14:34</span>
+        <span class="r"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M4 16h2v4H4zM9 12h2v8H9zM14 8h2v12h-2zM19 4h2v16h-2z" fill="currentColor" stroke="none"/></svg><i></i></span>
+      </div>
+      <div class="bar">
+        <a class="ib" href="#groups" aria-label="Back to chats">
+          <svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M15 5l-7 7 7 7"/></svg>
+        </a>
+        <div class="title">
+          <div class="t">#billing</div>
+          <div class="s">Billing page and Checkout · 5 members</div>
+        </div>
+        <button class="members" aria-label="Members: Ana, Bo, Cy, Dee and Ana's agent">
+          <span class="stack"><span class="avatar">An</span><span class="avatar">Bo</span><span class="avatar agent">An</span></span>
+          5
+        </button>
+      </div>
+    </header>
+
+    <main class="scroll">
+      <div class="column">
+        <div class="divider">Today</div>
+
+        <div class="msg human">
+          <div class="meta"><span class="avatar">An</span><span class="who">Ana</span><span class="when">14:02</span></div>
+          <div class="text">Checkout shows the total before the tax lines land. <mark class="mention">@Ana's agent</mark> can the invoice PDF carry each tax line under the subtotal?</div>
+        </div>
+
+        <div class="msg agent">
+          <div class="meta">
+            <span class="avatar-wrap"><span class="avatar agent">An</span><span class="livedot running"></span></span>
+            <span class="who serif">Ana's agent</span>
+            <span class="faint">replied</span>
+            <span class="faint ellipsis">in reply to Ana · turn 12</span>
+            <span class="when">14:04</span>
+          </div>
+          <div class="text"><p>Yes. The invoice PDF now lists each tax line under the subtotal: VAT 20% on the plan, 0% on the proration credit. Preview at <code>INV-2041.pdf</code>.</p></div>
+          <div class="steps">
+            <div class="step"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4 4L19 7"/></svg><span class="mono">edit apps/web/src/billing/InvoicePdf.tsx</span><span class="r">+41 −6</span></div>
+            <div class="step"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4 4L19 7"/></svg><span class="mono">test billing/invoice.test.ts</span><span class="r">9 pass</span></div>
+          </div>
+        </div>
+
+        <div class="msg human">
+          <div class="meta"><span class="avatar">Bo</span><span class="who">Bo</span><span class="when">14:18</span></div>
+          <div class="text">Proration on Checkout looks off: −€12.50 for 9 days of the Pro plan should be −€11.61.</div>
+        </div>
+
+        <div class="msg human mine">
+          <div class="meta"><span class="avatar">Cy</span><span class="who">Cy</span><span class="when">14:27</span></div>
+          <div class="text"><mark class="mention">@Cy's agent</mark> check the proration against the billing period on Checkout, Bo's number first.</div>
+        </div>
+
+        <div class="msg agent">
+          <div class="meta">
+            <span class="avatar-wrap"><span class="avatar agent">Cy</span><span class="livedot running"></span></span>
+            <span class="who serif">Cy's agent</span>
+            <span class="faint">replied</span>
+            <span class="faint ellipsis">in reply to Cy · turn 4</span>
+            <span class="when">14:31</span>
+          </div>
+          <div class="text"><p>The period is 31 days this month; the credit used 30. Fixed in <code>checkout/proration.ts</code>, now −€11.61. Bo's number is right.</p></div>
+        </div>
+
+        <div class="join">
+          <svg class="mark joining" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+          <span><span class="serif">Dee</span> joins #billing · 14:33</span>
+        </div>
+
+        <div class="working">
+          <span class="loader orbit" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span><span class="serif">Ana's agent</span> is working on turn 13</span>
+        </div>
+      </div>
+    </main>
+
+    <div class="composer-wrap">
+      <div class="mentions" role="listbox" aria-label="Mention">
+        <div class="h">Mention <span class="k">@b</span></div>
+        <div class="opt on" role="option" aria-selected="true"><span class="avatar">Bo</span><span class="name"><mark>B</mark>o</span><span class="role">Payments</span></div>
+        <div class="opt" role="option"><span class="avatar-wrap"><span class="avatar agent">Bo</span><span class="livedot awaiting"></span></span><span class="name"><mark>B</mark>o's agent</span><span class="status awaiting">waits on invoice-pdf</span></div>
+      </div>
+      <div class="composer">
+        <div class="input">Thanks both, the tax lines read right. @b<span class="caret"></span></div>
+        <div class="bar">
+          <button class="btn ghost" aria-label="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12.5l-7.8 7.8a5 5 0 0 1-7-7l8.5-8.5a3.2 3.2 0 0 1 4.5 4.5l-8.5 8.5a1.4 1.4 0 0 1-2-2l7.8-7.8"/></svg></button>
+          <span class="in"><span class="serif">#billing</span> · Enter sends</span>
+          <span class="right"><button class="send" aria-label="Send"><svg class="ic" viewBox="0 0 24 24" style="stroke-width:2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></span>
+        </div>
+      </div>
+    </div>
+    <div class="home" aria-hidden="true"><i></i></div>
+  </section></div>
+
+  </div>
+</div>
+</body>
+</html>

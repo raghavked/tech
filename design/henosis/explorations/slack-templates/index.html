@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Slack templates · session started, approval, contention, mention reply, daily brief</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: status colours lift so they read on dark surfaces (as on notifications, contention-handoff) */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); }
+
+  /* Slack's own canvas: these are Slack's colours, not ours. The templates must read inside them. */
+  :root {
+    --sl-font: "Lato", -apple-system, "Segoe UI", system-ui, sans-serif;
+    --sl-bg: #FFFFFF; --sl-fg: #1D1C1D; --sl-muted: #616061; --sl-faint: #868686; --sl-line: #DDDDDD;
+    --sl-hover: #F8F8F8; --sl-code-bg: #F8F8F8; --sl-code-fg: #E01E5A; --sl-link: #1264A3;
+    --sl-btn-bg: #FFFFFF; --sl-btn-line: #BBBABB; --sl-btn-fg: #1D1C1D;
+    --sl-primary: #007A5A; --sl-danger: #E01E5A; --sl-app: #E8E8E8; --sl-app-fg: #616061;
+    --sl-header: #FFFFFF; --sl-side: #3F0E40; --sl-side-fg: #CFC3CF; --sl-side-active: #1164A3;
+    --sl-quote: #DDDDDD; --sl-thread-bg: #F8F8F8;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --sl-bg: #1A1D21; --sl-fg: #D1D2D3; --sl-muted: #ABABAD; --sl-faint: #8D8D8E; --sl-line: #35373B;
+    --sl-hover: #222529; --sl-code-bg: #222529; --sl-code-fg: #E8912D; --sl-link: #1D9BD1;
+    --sl-btn-bg: #1A1D21; --sl-btn-line: #868686; --sl-btn-fg: #D1D2D3;
+    --sl-app: #35373B; --sl-app-fg: #ABABAD; --sl-header: #1A1D21; --sl-side: #19171D; --sl-side-fg: #9B9A9C;
+    --sl-quote: #4A4A4C; --sl-thread-bg: #222529;
+  } }
+  :root[data-theme="dark"] {
+    --sl-bg: #1A1D21; --sl-fg: #D1D2D3; --sl-muted: #ABABAD; --sl-faint: #8D8D8E; --sl-line: #35373B;
+    --sl-hover: #222529; --sl-code-bg: #222529; --sl-code-fg: #E8912D; --sl-link: #1D9BD1;
+    --sl-btn-bg: #1A1D21; --sl-btn-line: #868686; --sl-btn-fg: #D1D2D3;
+    --sl-app: #35373B; --sl-app-fg: #ABABAD; --sl-header: #1A1D21; --sl-side: #19171D; --sl-side-fg: #9B9A9C;
+    --sl-quote: #4A4A4C; --sl-thread-bg: #222529;
+  }
+
+  html, body { height: auto; }
+  body { min-width: 1440px; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+
+  /* ================= the board ================= */
+  .board { width: 1440px; margin: 0 auto; padding: 44px 48px 72px; display: flex; flex-direction: column; gap: 40px; }
+  .head { display: grid; grid-template-columns: 64px 1fr 360px; gap: 22px; align-items: start; }
+  .head .mark { width: 64px; height: 64px; }
+  .head h1 { font-size: 44px; }
+  .head .lede { margin: 8px 0 0; max-width: 720px; color: var(--ink-2); font-size: 16px; }
+  .head .lede b { font-weight: 500; color: var(--ink); }
+  .legend { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); font-size: 13px; color: var(--ink-2); }
+  .legend .row { display: flex; align-items: center; gap: 10px; }
+  .legend .row .k { font-family: var(--mono); font-size: 12px; color: var(--ink); min-width: 150px; }
+  .legend .ch { font-family: var(--mono); font-size: 12px; }
+
+  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .rule { padding: 14px 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+  .rule b { display: block; margin-bottom: 4px; font-family: var(--serif); font-weight: 400; font-size: 18px; color: var(--ink); }
+
+  section.t { scroll-margin-top: 16px; display: grid; grid-template-columns: 820px 1fr; gap: 32px; align-items: start; }
+  section.t > .l { display: flex; flex-direction: column; gap: 14px; }
+  .tt { display: flex; align-items: baseline; gap: 12px; }
+  .tt .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .tt h2 { font-size: 30px; }
+  .tt .where { margin-left: auto; font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tt .where code { font-size: 12px; }
+  .cap { font-size: 13.5px; color: var(--ink-2); max-width: 760px; }
+  .cap b { font-weight: 500; color: var(--ink); }
+
+  /* the spec column */
+  .spec { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 24px; }
+  .spec .box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px 18px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
+  .spec h3 { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .spec .kv { display: grid; grid-template-columns: 92px 1fr; gap: 6px 12px; font-size: 13px; }
+  .spec .kv dt { color: var(--ink-3); } .spec .kv dd { margin: 0; color: var(--ink); }
+  .spec pre { margin: 0; font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--ink-2); white-space: pre-wrap; word-break: break-word; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+  .spec pre b { color: var(--ink); font-weight: 500; }
+  .spec ul { margin: 0; padding-left: 18px; color: var(--ink-2); display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+  .spec ul b { color: var(--ink); font-weight: 500; }
+  .spec .acts { display: flex; flex-direction: column; gap: 5px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  .spec .acts span { display: grid; grid-template-columns: 84px 1fr; gap: 10px; }
+  .spec .acts span b { color: var(--ink); font-weight: 500; }
+  .spec .acts span em { font-style: normal; } .spec .acts span em i { color: var(--ink-3); }
+
+  /* ================= Slack ================= */
+  .slack { font-family: var(--sl-font); background: var(--sl-bg); color: var(--sl-fg); border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow-pop); overflow: hidden; font-size: 15px; line-height: 1.46; }
+  .slack .chh { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-bottom: 1px solid var(--sl-line); font-size: 15px; font-weight: 900; background: var(--sl-header); }
+  .slack .chh .star { color: var(--sl-faint); } .slack .chh .cnt { margin-left: auto; font-weight: 400; font-size: 13px; color: var(--sl-muted); display: inline-flex; align-items: center; gap: 4px; }
+  .slack .day { display: flex; align-items: center; gap: 12px; padding: 10px 20px 2px; font-size: 13px; font-weight: 700; color: var(--sl-fg); }
+  .slack .day::before, .slack .day::after { content: ""; flex: 1; height: 1px; background: var(--sl-line); }
+  .slack .day span { border: 1px solid var(--sl-line); border-radius: 24px; padding: 3px 12px; }
+  .m { display: grid; grid-template-columns: 36px 1fr; gap: 10px; padding: 8px 20px; }
+  .m:hover { background: var(--sl-hover); }
+  .m .av { width: 36px; height: 36px; border-radius: 6px; overflow: hidden; display: grid; place-items: center; font-weight: 700; font-size: 14px; color: #fff; }
+  .m .av svg { width: 36px; height: 36px; display: block; }
+  .m .av.p { background: #4A6B8A; } .m .av.p.ana { background: #7A5C8A; } .m .av.p.bo { background: #4A6B8A; } .m .av.p.cy { background: #3E7A6E; } .m .av.p.dee { background: #9A6A3E; }
+  .m .b { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .m .who { display: flex; align-items: baseline; gap: 6px; line-height: 1.3; }
+  .m .who .nm { font-weight: 900; }
+  .m .who .app { font-size: 10px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: var(--sl-app); color: var(--sl-app-fg); letter-spacing: 0.02em; align-self: center; }
+  .m .who time { font-size: 12px; color: var(--sl-muted); }
+  .m .txt { }
+  .m .txt b { font-weight: 900; }
+  .m .txt i { font-style: italic; }
+  .m .txt a { color: var(--sl-link); }
+  .m .txt code, .ctx code, .sec code { font-family: var(--mono); font-size: 12.5px; background: var(--sl-code-bg); color: var(--sl-code-fg); border: 1px solid var(--sl-line); border-radius: 3px; padding: 1px 4px; }
+  .m .txt .em { display: inline-block; vertical-align: -3px; width: 18px; height: 18px; margin-right: 2px; }
+  .m .txt .em svg { width: 18px; height: 18px; display: block; }
+  .m .txt .em.ic16 { color: var(--sl-fg); }
+  .m .txt .em.ic16 svg { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .m .txt .em.warn { color: #E8A317; } .m .txt .em.ok { color: #2EB67D; } .m .txt .em.no { color: #E01E5A; } .m .txt .em.hand { color: #E8A317; } .m .txt .em.sun { color: #ECB22E; }
+  .mention { background: rgba(29,155,209,0.12); color: var(--sl-link); border-radius: 3px; padding: 0 2px; font-weight: 700; }
+  .mention.me { background: rgba(255,222,0,0.35); color: #0B4C2F; }
+  :root[data-theme="dark"] .mention.me { background: rgba(255,222,0,0.22); color: #FFE066; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mention.me { background: rgba(255,222,0,0.22); color: #FFE066; } }
+  .hdr { font-size: 19px; font-weight: 900; line-height: 1.3; margin: 2px 0; }
+  .sec { }
+  .sec p { margin: 0; }
+  .sec ul { margin: 2px 0 0; padding-left: 22px; }
+  .sec ul li { margin: 0; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin: 2px 0; }
+  .fields .f > b:first-child { display: block; } .fields .f b { font-weight: 900; }
+  .ctx { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--sl-muted); flex-wrap: wrap; margin-top: 2px; }
+  .ctx .dot::before { content: "·"; }
+  .ctx .mk { width: 14px; height: 14px; display: inline-block; vertical-align: -2px; }
+  .ctx .mk svg { width: 14px; height: 14px; display: block; }
+  .ctx .ava { width: 16px; height: 16px; border-radius: 3px; display: inline-grid; place-items: center; color: #fff; font-size: 9px; font-weight: 700; }
+  .ctx img { display: none; }
+  .div { height: 1px; background: var(--sl-line); margin: 6px 0; }
+  .acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .sb { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 30px; padding: 0 12px; border-radius: 4px; border: 1px solid var(--sl-btn-line); background: var(--sl-btn-bg); color: var(--sl-btn-fg); font: 700 13px var(--sl-font); white-space: nowrap; }
+  .sb.pri { background: var(--sl-primary); border-color: var(--sl-primary); color: #fff; }
+  .sb.dan { background: var(--sl-danger); border-color: var(--sl-danger); color: #fff; }
+  .sb .st { font-size: 12px; }
+  .sb.rate { min-width: 48px; padding: 0 9px; }
+  .acts .sep { width: 1px; height: 22px; background: var(--sl-line); margin: 0 2px; }
+  .acts .lnk { font-size: 13px; color: var(--sl-link); font-weight: 700; }
+  .edited { font-size: 12px; color: var(--sl-faint); }
+  .thr { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--sl-link); font-weight: 700; }
+  .thr .stack { display: inline-flex; gap: 2px; }
+  .thr .stack i { width: 24px; height: 24px; border-radius: 4px; display: inline-grid; place-items: center; color: #fff; font-size: 11px; font-weight: 700; font-style: normal; }
+  .thr .stack i svg { width: 24px; height: 24px; display: block; }
+  .thr .last { font-weight: 400; color: var(--sl-muted); }
+  .thread { border-top: 1px solid var(--sl-line); background: var(--sl-thread-bg); }
+  .thread .tl { display: flex; align-items: center; gap: 10px; padding: 8px 20px; font-size: 13px; font-weight: 700; border-bottom: 1px solid var(--sl-line); }
+  .thread .tl span { color: var(--sl-muted); font-weight: 400; }
+  .thread .m:hover { background: transparent; }
+  .thread .m { padding: 8px 20px; }
+  .thread .m.compact { padding-top: 2px; padding-bottom: 2px; }
+  .thread .m.compact .who { display: none; }
+  .thread .m.compact .av { visibility: hidden; height: 0; }
+  .m .txt ul { margin: 0; padding-left: 20px; }
+  .sl-input { margin: 8px 20px 14px; border: 1px solid var(--sl-btn-line); border-radius: 8px; padding: 9px 12px; font-size: 14px; color: var(--sl-faint); display: flex; align-items: center; gap: 8px; }
+  .sl-input svg { margin-left: auto; color: var(--sl-faint); }
+
+  /* the bot avatar: the mark on a navy disc, in Slack's 36 px rounded square */
+  .av.bot { background: #2A3244; }
+  .av.bot.team { background: var(--gradient-brand); }
+
+  /* anatomy callouts */
+  .anat { position: relative; }
+  .anat .frame { position: relative; }
+  .callouts { display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; color: var(--ink-2); }
+  .callouts .c { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; }
+  .callouts .c i { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; font-style: normal; font: 600 11px var(--font); margin-top: 2px; }
+  .callouts .c b { color: var(--ink); font-weight: 500; }
+  .num { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; font: 600 11px var(--font); box-shadow: 0 0 0 3px var(--canvas); z-index: 2; }
+
+  /* states row under a template */
+  .states { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .states .slack { font-size: 14px; }
+  .states .lbl { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 0 0 6px; }
+
+  .wrap { display: flex; flex-direction: column; gap: 10px; }
+  .mobile-only { display: none; }
+
+  /* phone width: the board stacks, Slack narrows to its mobile client */
+  @media (max-width: 520px) {
+    body { min-width: 0; }
+    .board { width: 100%; padding: 20px 16px 48px; gap: 28px; }
+    .head { grid-template-columns: 44px 1fr; }
+    .head .mark { width: 44px; height: 44px; } .head h1 { font-size: 30px; } .head .lede { font-size: 14.5px; }
+    .legend { grid-column: 1 / -1; }
+    .rules { grid-template-columns: 1fr; }
+    section.t { grid-template-columns: 1fr; gap: 16px; }
+    .spec { position: static; }
+    .tt { flex-wrap: wrap; } .tt h2 { font-size: 24px; } .tt .where { margin-left: 0; width: 100%; }
+    .states { grid-template-columns: 1fr; }
+    .m { padding: 8px 12px; grid-template-columns: 32px 1fr; } .m .av { width: 32px; height: 32px; } .m .av svg { width: 32px; height: 32px; }
+    .slack .chh, .slack .day, .thread .tl, .thread .m { padding-left: 12px; padding-right: 12px; }
+    .sl-input { margin: 8px 12px 12px; }
+    .fields { grid-template-columns: 1fr; }
+    .anat .num { display: none; }
+    .acts { gap: 6px; } .sb.rate { min-width: 44px; padding: 0 7px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mk" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" fill="#2A3244"/>
+      <path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="7" fill="#E2C4A6"/>
+    </symbol>
+    <symbol id="mk-sq" viewBox="0 0 96 96">
+      <rect width="96" height="96" fill="#2A3244"/>
+      <path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="7" fill="#E2C4A6"/>
+    </symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 12V4.5a1.5 1.5 0 0 1 3 0V12M14 12V6.5a1.5 1.5 0 0 1 3 0V13M17 13v-2.5a1.5 1.5 0 0 1 3 0V15a7 7 0 0 1-7 7h-1.5a6 6 0 0 1-4.8-2.4L4 15.5a1.6 1.6 0 0 1 2.5-2L8 15"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 9v5M12 17.5v.5"/></symbol>
+    <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-7"/></symbol>
+    <symbol id="i-no" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m8.5 8.5 7 7M15.5 8.5l-7 7"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></symbol>
+    <symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-hash" viewBox="0 0 24 24"><path d="M9.5 3 7 21M17 3l-2.5 18M3.5 9h17M3 15h17"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4.5-6.2"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M3 11.5 21 3l-8.5 18-2-7.5-7.5-2z"/></symbol>
+    <symbol id="i-baton" viewBox="0 0 24 24"><path d="M4 20 20 4M14 4h6v6"/></symbol>
+  </defs>
+</svg>
+
+<div class="board">
+
+  <!-- ================= head ================= -->
+  <header class="head">
+    <svg class="mark" viewBox="0 0 96 96" aria-label="Henosis"><use href="#mk"/></svg>
+    <div>
+      <h1>Slack templates</h1>
+      <p class="lede">Henosis in Slack is the same team at a third distance: one sentence first, in the product's voice, with the buttons the app has. <b>A session is a thread</b> in its project channel. <b>Approvals and contentions are buttons</b> that vote and resolve without opening the app. <b>Mentions in a team channel reach the agent</b>, which answers in the thread. <b>Leads get a brief every morning.</b> The link into Henosis is always last.</p>
+    </div>
+    <aside class="legend">
+      <div class="row"><span class="k">#payments</span><span>the project channel · a thread per session</span></div>
+      <div class="row"><span class="k">#billing</span><span>the team channel · people and agents as members</span></div>
+      <div class="row"><span class="k">#payments-leads</span><span>management · contentions, memory conflicts, the brief</span></div>
+      <div class="row"><span class="k">/henosis brief</span><span>the same brief on demand, to you only</span></div>
+    </aside>
+  </header>
+
+  <!-- ================= anatomy ================= -->
+  <section class="t anat">
+    <div class="l">
+      <div class="tt"><span class="n">00</span><h2>Anatomy of a Henosis message</h2><span class="where"><svg class="ic"><use href="#i-hash"/></svg> any channel</span></div>
+      <div class="frame">
+      <div class="slack">
+        <div class="chh"><svg class="ic" style="width:15px;height:15px"><use href="#i-hash"/></svg> payments <span class="star"><svg class="ic" style="width:14px;height:14px"><use href="#i-people"/></svg></span><span class="cnt"><svg class="ic" style="width:14px;height:14px"><use href="#i-people"/></svg> 9</span></div>
+        <div class="m" style="padding-top:14px;padding-bottom:14px">
+          <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+          <div class="b">
+            <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>9:02 AM</time></div>
+            <div class="txt"><span class="em"><svg viewBox="0 0 96 96"><use href="#mk"/></svg></span><b>Bo</b> has the baton in <i>Invoice PDF: tax lines and proration</i>. Ana handed off with a brief: two open items, the plan approved, <code>pdf-layout</code> ahead of <code>main</code> by 6 commits.</div>
+            <div class="ctx"><span class="mk"><svg viewBox="0 0 96 96"><use href="#mk"/></svg></span> Payments <span class="dot"></span> crew <b>Invoice rollout</b> <span class="dot"></span> driver <span class="ava" style="background:#4A6B8A">B</span> Bo <span class="dot"></span> 188k tokens of 300k</div>
+            <div class="acts"><span class="sb pri">Take the baton</span><span class="sb">Read the brief</span><span class="sep"></span><a class="lnk">Open in Henosis</a></div>
+          </div>
+        </div>
+      </div>
+        <span class="num" style="left:-11px;top:60px">1</span>
+        <span class="num" style="right:-11px;top:48px">2</span>
+        <span class="num" style="right:-11px;top:82px">3</span>
+        <span class="num" style="right:-11px;top:122px">4</span>
+        <span class="num" style="right:-11px;top:158px">5</span>
+      </div>
+      <p class="cap">Slack cannot do serif, so names are <b>bold</b> and session titles are <i>italic</i>: the two things the app sets in Instrument Serif. Tool names and paths stay in backticks. One emoji at most, at the front, and it is the kind: <b>:henosis:</b> for joining and the baton, <b>:raised_hand:</b> for an approval, <b>:warning:</b> for a contention, <b>:white_check_mark:</b> / <b>:x:</b> for the decision, <b>:sunrise:</b> for the brief.</p>
+    </div>
+    <div class="spec">
+      <div class="box">
+        <h3>Five parts, always in this order</h3>
+        <div class="callouts">
+          <div class="c"><i>1</i><div><b>The emblem.</b> The mark on navy in Slack's 36 px square. A team with its own emblem (Team look) posts with that emblem on the brand gradient.</div></div>
+          <div class="c"><i>2</i><div><b>Henosis · APP · time.</b> Never "bot", never "AI-powered". The app name is the product; the person is named in the sentence.</div></div>
+          <div class="c"><i>3</i><div><b>The sentence.</b> The same words as the toast and the inbox row. The <code>text</code> fallback carries it whole, so push notifications read correctly.</div></div>
+          <div class="c"><i>4</i><div><b>The context line.</b> Project, crew, driver, and the one number that matters (tokens, ratings, commits ahead). Slack's <code>context</code> block, 12.5 px, grey.</div></div>
+          <div class="c"><i>5</i><div><b>The buttons, then the link.</b> At most five buttons; one <code>primary</code> (the recommended answer), one <code>danger</code> at the far side. "Open in Henosis" is a link, not a button, and is always last.</div></div>
+        </div>
+      </div>
+      <div class="box">
+        <h3>After a decision</h3>
+        <ul>
+          <li>The message <b>edits itself</b>: buttons go, the result line takes their place, and an <i>(edited)</i> mark shows it.</li>
+          <li>A thread reply says who answered and how ("Bo rated 4"), so the thread reads as the stream does.</li>
+          <li>Lines about one session within 1.5 s are <b>folded into one reply</b>, as the adapter does today.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= rules ================= -->
+  <div class="rules">
+    <div class="rule"><b>Voice</b> Calm, specific, warm. "Ana joins the circle." "The plan waits for two ratings." The sentence names the person, the session and what it means for the reader.</div>
+    <div class="rule"><b>Where</b> Project channel for sessions; team channel for mentions; management channel for contentions, memory conflicts and the brief. A contention also lands in both owners' threads.</div>
+    <div class="rule"><b>Buttons</b> Slack has three styles only: default, green <code>primary</code>, red <code>danger</code>. Primary marks the recommended answer. Rating buttons are five defaults with the 4 as primary under a ratings rule.</div>
+    <div class="rule"><b>Roles</b> A click is a vote by the Slack user's linked member. A contributor's rating counts; an observer's click answers "you can watch; ask for a brief". Unlinked users are asked to join first.</div>
+  </div>
+
+  <!-- ================= 1. session started ================= -->
+  <section class="t" id="t-started">
+    <div class="l">
+      <div class="tt"><span class="n">01</span><h2>Session started</h2><span class="where"><svg class="ic"><use href="#i-hash"/></svg> <code>#payments</code> · the thread opens here</span></div>
+      <div class="slack">
+        <div class="chh"><svg class="ic" style="width:15px;height:15px"><use href="#i-hash"/></svg> payments <span class="cnt"><svg class="ic" style="width:14px;height:14px"><use href="#i-people"/></svg> 9</span></div>
+        <div class="day"><span>Today</span></div>
+        <div class="m">
+          <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+          <div class="b">
+            <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>8:41 AM</time></div>
+            <div class="txt"><span class="em"><svg viewBox="0 0 96 96"><use href="#mk"/></svg></span><b>Ana's agent</b> started <i>Invoice PDF: tax lines and proration</i> in Payments. Reply in this thread to steer it.</div>
+            <div class="ctx"><span class="mk"><svg viewBox="0 0 96 96"><use href="#mk"/></svg></span> plan first <span class="dot"></span> crew <b>Invoice rollout</b> with Cy's agent <span class="dot"></span> driver <span class="ava" style="background:#7A5C8A">A</span> Ana <span class="dot"></span> budget 300k</div>
+            <div class="acts"><span class="sb">Watch</span><span class="sb">Join as contributor</span><span class="sep"></span><a class="lnk">Open in Henosis</a></div>
+            <div class="thr"><span class="stack"><i style="background:#7A5C8A">A</i><i style="background:#2A3244"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></i><i style="background:#4A6B8A">B</i></span> 4 replies <span class="last">Last reply today at 9:14 AM</span></div>
+          </div>
+        </div>
+        <div class="thread">
+          <div class="tl">Thread <span>#payments</span></div>
+          <div class="m">
+            <div class="av p ana">A</div>
+            <div class="b"><div class="who"><span class="nm">Ana</span><time>8:43 AM</time></div><div class="txt">[main] Keep proration on its own line, under the plan line, never folded into tax.</div></div>
+          </div>
+          <div class="m">
+            <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+            <div class="b"><div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>8:43 AM</time></div><div class="txt"><b>Ana</b> [steer/main]: Keep proration on its own line, under the plan line, never folded into tax.<br>The plan waits for one rating at 3+. <a>Rate it in Henosis</a></div></div>
+          </div>
+          <div class="m">
+            <div class="av p bo">B</div>
+            <div class="b"><div class="who"><span class="nm">Bo</span><time>8:52 AM</time></div><div class="txt">/constrain Don't touch <code>Checkout.tsx</code>, Cy has it this morning.</div></div>
+          </div>
+          <div class="m">
+            <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+            <div class="b"><div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>9:14 AM</time></div><div class="txt"><b>Bo</b> [constrain/main]: Don't touch <code>Checkout.tsx</code>, Cy has it this morning.<br><span class="em ic16 ok"><svg><use href="#i-ok"/></svg></span>The plan is approved (Ana 4). Step 1 of 5: <code>read packages/billing/src/invoice.ts</code></div></div>
+          </div>
+          <div class="sl-input">Reply in thread… <svg class="ic"><use href="#i-send"/></svg></div>
+        </div>
+      </div>
+      <p class="cap">The root message is the session's address in Slack. Replies are directives: plain text steers <code>main</code>, <code>[scope]</code> aims at a branch, <code>/constrain</code>, <code>/pause</code>, <code>/resume</code>, <code>/cancel</code> do what they say. The app echoes each directive as a line so the thread reads like the stream, and folds progress lines that land within 1.5 s into one reply.</p>
+    </div>
+    <div class="spec">
+      <div class="box">
+        <h3>When · where</h3>
+        <dl class="kv">
+          <dt>Event</dt><dd><code>session.registered</code> on a project host</dd>
+          <dt>Channel</dt><dd>the project's channel; the post becomes the thread root</dd>
+          <dt>Audience</dt><dd>the project's members; the owner is named, not @mentioned</dd>
+        </dl>
+      </div>
+      <div class="box">
+        <h3>text fallback</h3>
+        <pre>:henosis: *Ana's agent* started "Invoice PDF: tax lines and proration" in Payments. Reply in this thread to steer it. &lt;https://henosis.example.com/#/p/payments/s/s_7f2|Open in Henosis&gt;</pre>
+      </div>
+      <div class="box">
+        <h3>blocks</h3>
+        <ul>
+          <li><b>section</b> · the sentence (mrkdwn)</li>
+          <li><b>context</b> · plan first · crew · driver · budget</li>
+          <li><b>actions</b> · Watch · Join as contributor · link</li>
+        </ul>
+        <div class="acts">
+          <span><b>Watch</b><em>join:payments:s_7f2:observer</em></span>
+          <span><b>Join as…</b><em>join:payments:s_7f2:contributor</em></span>
+        </div>
+      </div>
+      <div class="box">
+        <h3>Lines queued into the thread</h3>
+        <ul>
+          <li>Directive echo: <b>Bo</b> [constrain/main]: …</li>
+          <li>Plan: "The plan waits for one rating at 3+." → "The plan is approved (Ana 4)."</li>
+          <li>Baton: ":handshake: Bo is now driving." → written as "Bo has the baton."</li>
+          <li>Refused write: ":no_entry: A write to <code>path</code> was refused: another session holds it."</li>
+          <li>End: "Done. United <code>pdf-layout</code> into <code>main</code>. 212k tokens, 41k under the plan."</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 2. approval with ratings ================= -->
+  <section class="t" id="t-approval">
+    <div class="l">
+      <div class="tt"><span class="n">02</span><h2>Approval with rating buttons</h2><span class="where"><svg class="ic"><use href="#i-hash"/></svg> <code>#payments</code> · in the session's thread</span></div>
+      <div class="slack">
+        <div class="thread" style="border-top:0">
+          <div class="tl">Thread <span>#payments · Invoice PDF: tax lines and proration</span></div>
+          <div class="m">
+            <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+            <div class="b">
+              <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>10:27 AM</time></div>
+              <div class="txt"><span class="em ic16 hand"><svg><use href="#i-hand"/></svg></span><b>Approval needed</b> in Ana's session: <code>git push</code> [irreversible] <code>origin pdf-layout</code> · 6 commits, the invoice PDF with tax lines and proration. Needs two contributors at 4+.</div>
+              <div class="ctx"><span class="mk"><svg viewBox="0 0 96 96"><use href="#mk"/></svg></span> step 5 of 5 <span class="dot"></span> tests green, 48 passed <span class="dot"></span> 0 of 2 ratings <span class="dot"></span> <b>You can rate, Bo</b></div>
+              <div class="acts">
+                <span class="sb rate">1 <span class="st">★</span></span><span class="sb rate">2 <span class="st">★</span></span><span class="sb rate">3 <span class="st">★</span></span><span class="sb rate pri">4 <span class="st">★</span></span><span class="sb rate">5 <span class="st">★</span></span>
+                <span class="sep"></span><span class="sb dan">Deny</span><span class="sep"></span><a class="lnk">Review in Henosis</a>
+              </div>
+            </div>
+          </div>
+          <div class="m">
+            <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+            <div class="b">
+              <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>10:31 AM</time></div>
+              <div class="txt"><b>Bo</b> rated 4 · "Proration line reads right in the PDF." The push waits for one more rating at 4+.</div>
+            </div>
+          </div>
+          <div class="sl-input">Reply in thread… <svg class="ic"><use href="#i-send"/></svg></div>
+        </div>
+      </div>
+      <div class="states">
+        <div class="wrap">
+          <div class="lbl">After the gate opens · the root message edits itself</div>
+          <div class="slack">
+            <div class="m">
+              <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+              <div class="b">
+                <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>10:27 AM</time></div>
+                <div class="txt"><span class="em ic16 ok"><svg><use href="#i-ok"/></svg></span><code>git push</code> <b>granted</b> · Bo 4, Cy 5 · average 4.5 of 4 needed <span class="edited">(edited)</span></div>
+                <div class="ctx">Pushed <code>pdf-layout</code> to <code>origin</code>, 6 commits <span class="dot"></span> <a class="lnk" style="font-weight:400">Open in Henosis</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wrap">
+          <div class="lbl">Denied · and a plain rule without ratings</div>
+          <div class="slack">
+            <div class="m">
+              <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+              <div class="b">
+                <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>10:27 AM</time></div>
+                <div class="txt"><span class="em ic16 no"><svg><use href="#i-no"/></svg></span><code>git push</code> <b>denied</b> · Dee: "Not before the tax lines ship." The agent waits for a steer. <span class="edited">(edited)</span></div>
+              </div>
+            </div>
+            <div class="div" style="margin:0 20px"></div>
+            <div class="m">
+              <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+              <div class="b">
+                <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>10:40 AM</time></div>
+                <div class="txt"><span class="em ic16 hand"><svg><use href="#i-hand"/></svg></span><b>Approval needed</b> in Ana's session: <code>rm -rf dist/</code> [exec]. Any contributor.</div>
+                <div class="acts"><span class="sb pri">Approve</span><span class="sb dan">Deny</span><span class="sep"></span><a class="lnk">Review in Henosis</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">Under a ratings rule the five buttons <b>are</b> the vote: a tap sends <code>vote(approve, rating)</code> with that number and no note. The 4 is Slack-green because it is the default the app sends for a bare Approve, so the quickest tap and the app agree. Without a ratings rule the message shows Approve and Deny, nothing more. A note goes in the thread reply ("4 · reads right"), which the adapter parses as a rating with a note.</p>
+    </div>
+    <div class="spec">
+      <div class="box">
+        <h3>When · where</h3>
+        <dl class="kv">
+          <dt>Event</dt><dd><code>approval.requested</code> with the risk class and the rule</dd>
+          <dt>Channel</dt><dd>the session's thread; a copy to the owner's DM when the thread is muted</dd>
+          <dt>Who</dt><dd>contributors and above; an observer's tap answers in an ephemeral: "You can watch this session; ask Ana to join you as a contributor."</dd>
+        </dl>
+      </div>
+      <div class="box">
+        <h3>text fallback</h3>
+        <pre>:raised_hand: *Approval needed* in Ana's session: `git push` [irreversible] origin pdf-layout (needs two contributors at 4+) &lt;…|Review in Henosis&gt;</pre>
+      </div>
+      <div class="box">
+        <h3>actions · action_id</h3>
+        <div class="acts">
+          <span><b>1★ … 5★</b><em>vote:payments:s_7f2:ap_19:approve:<i>n</i></em></span>
+          <span><b>Approve</b><em>vote:payments:s_7f2:ap_19:approve <i>(sends 4)</i></em></span>
+          <span><b>Deny</b><em>vote:payments:s_7f2:ap_19:deny</em></span>
+        </div>
+        <ul>
+          <li>Buttons carry <b>value</b> = the rating; the handler maps it to the app's <code>vote</code> call with <code>rating</code>.</li>
+          <li>Slack allows five elements per actions block comfortably; the Deny and the link go in a second actions block on narrow clients.</li>
+          <li>One rating per person: a second tap replaces the first and the thread says "Bo changed to 5".</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Result states</h3>
+        <ul>
+          <li><b>granted</b> · names each rater and rating, the average and the bar.</li>
+          <li><b>denied</b> · names who and quotes the note; "The agent waits for a steer."</li>
+          <li><b>expired</b> · "Nobody answered in 2 h; the agent paused." with Resume.</li>
+          <li><b>superseded</b> · the plan was revised; buttons go, the line says which plan replaced it.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 3. contention ================= -->
+  <section class="t" id="t-contention">
+    <div class="l">
+      <div class="tt"><span class="n">03</span><h2>Contention</h2><span class="where"><svg class="ic"><use href="#i-lock"/></svg> <code>#payments-leads</code> · and both owners' threads</span></div>
+      <div class="slack">
+        <div class="chh"><svg class="ic" style="width:15px;height:15px"><use href="#i-lock"/></svg> payments-leads <span class="cnt"><svg class="ic" style="width:14px;height:14px"><use href="#i-people"/></svg> 3</span></div>
+        <div class="m">
+          <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+          <div class="b">
+            <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>11:06 AM</time></div>
+            <div class="txt"><span class="em ic16 warn"><svg><use href="#i-warn"/></svg></span><b>Contention</b> on <code>apps/web/src/views/Billing.tsx</code> between <b>Ana</b> and <b>Bo</b>. Both sessions edit the Billing page: Ana's agent holds the claim for the invoice table, Bo's agent wanted the invoice history list. Bo's write was refused and his agent is working around it.</div>
+            <div class="fields">
+              <div class="f"><b>Ana · Invoice PDF: tax lines and proration</b>claims <code>Billing.tsx</code> since 9:14 · step 3 of 5 · 112k tokens</div>
+              <div class="f"><b>Bo · Billing page: invoice history</b>wanted it at 11:05 · step 2 of 4 · 46k tokens</div>
+            </div>
+            <div class="ctx"><span class="mk"><svg viewBox="0 0 96 96"><use href="#mk"/></svg></span> policy <b>block</b> <span class="dot"></span> waits on a lead <span class="dot"></span> <b>You can resolve, Dee</b></div>
+            <div class="acts"><span class="sb">Ana wins</span><span class="sb">Bo wins</span><span class="sb">Split the file</span><span class="sep"></span><a class="lnk">Open the project</a></div>
+            <div class="thr"><span class="stack"><i style="background:#9A6A3E">D</i><i style="background:#2A3244"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></i></span> 2 replies <span class="last">Last reply today at 11:12 AM</span></div>
+          </div>
+        </div>
+        <div class="thread">
+          <div class="tl">Thread <span>#payments-leads</span></div>
+          <div class="m">
+            <div class="av p dee">D</div>
+            <div class="b"><div class="who"><span class="nm">Dee</span><time>11:11 AM</time></div><div class="txt">Ana was there first and the PDF ships this week. Bo, take the history list to its own component.</div></div>
+          </div>
+          <div class="m">
+            <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+            <div class="b"><div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>11:12 AM</time></div><div class="txt"><span class="em ic16 ok"><svg><use href="#i-ok"/></svg></span><b>Dee</b> resolved it: <b>Ana wins</b>. Bo's claims on <code>Billing.tsx</code> release; Bo's agent has the note and continues in <code>InvoiceHistory.tsx</code>.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="states">
+        <div class="wrap">
+          <div class="lbl">In each owner's thread · the same event, addressed to them</div>
+          <div class="slack">
+            <div class="m">
+              <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+              <div class="b">
+                <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>11:06 AM</time></div>
+                <div class="txt"><span class="em ic16 warn"><svg><use href="#i-warn"/></svg></span>Your write to <code>Billing.tsx</code> was refused: <b>Ana</b>'s session holds it (claim <code>c_41</code>). Your agent is working around it. Dee can resolve it in <code>#payments-leads</code>.</div>
+                <div class="acts"><span class="sb">Ask Ana for the file</span><span class="sb">Wait for Dee</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wrap">
+          <div class="lbl">Memory conflict · same shape, same channel</div>
+          <div class="slack">
+            <div class="m">
+              <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+              <div class="b">
+                <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>11:30 AM</time></div>
+                <div class="txt"><span class="em ic16 warn"><svg><use href="#i-warn"/></svg></span><b>Team memory disagrees</b> on <code>billing.proration</code>: <b>Cy</b> says "credit the old plan's unused days as a line" and <b>Ana</b> says "charge only the difference".</div>
+                <div class="acts"><span class="sb">Cy is right</span><span class="sb">Ana is right</span><span class="sb">Keep both</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">A contention is one event seen from three seats. Leads see both sides with the numbers that decide (who was first, how far along, what it cost) and the three resolutions; each owner sees their own write refused in their own thread, with what they can do now; nobody is @mentioned, the context line says whose turn it is. Resolution is one line in all three places.</p>
+    </div>
+    <div class="spec">
+      <div class="box">
+        <h3>When · where</h3>
+        <dl class="kv">
+          <dt>Event</dt><dd><code>fleet.contention.opened</code> (kind: path, service, ticket)</dd>
+          <dt>Channel</dt><dd>management channel, plus a line queued into each session's thread</dd>
+          <dt>Who</dt><dd>leads and owners resolve; a contributor's tap gets "Only a lead or an owner can resolve this."</dd>
+        </dl>
+      </div>
+      <div class="box">
+        <h3>text fallback</h3>
+        <pre>:warning: Fleet contention (path) on `apps/web/src/views/Billing.tsx` between Ana and Bo: both sessions edit the Billing page; Bo's write was refused. &lt;…|Open the project&gt;</pre>
+      </div>
+      <div class="box">
+        <h3>blocks</h3>
+        <ul>
+          <li><b>section</b> · the sentence, both names bold</li>
+          <li><b>section · fields</b> · one field per session: owner, title, claim age, step, tokens</li>
+          <li><b>context</b> · policy · who it waits on</li>
+          <li><b>actions</b> · <i>X</i> wins · <i>Y</i> wins · Split the file · link</li>
+        </ul>
+        <div class="acts">
+          <span><b>Ana wins</b><em>resolve:payments:ct_8:s_7f2</em></span>
+          <span><b>Bo wins</b><em>resolve:payments:ct_8:s_9c1</em></span>
+          <span><b>Split</b><em>resolve:payments:ct_8:split</em></span>
+        </div>
+      </div>
+      <div class="box">
+        <h3>Notes</h3>
+        <ul>
+          <li>No button is primary: the app does not recommend a winner.</li>
+          <li>Under <b>latest-wins</b> or <b>driver-wins</b> the message has no buttons and states the verdict.</li>
+          <li>Resolved: the root edits to the result line; the loser's thread gets "Your claims on … release."</li>
+          <li>Memory conflicts use the same template with "<i>X</i> is right" buttons and go to the same channel.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 4. mention reply ================= -->
+  <section class="t" id="t-mention">
+    <div class="l">
+      <div class="tt"><span class="n">04</span><h2>Mention reply</h2><span class="where"><svg class="ic"><use href="#i-hash"/></svg> <code>#billing</code> · the team channel, in a thread</span></div>
+      <div class="slack">
+        <div class="chh"><svg class="ic" style="width:15px;height:15px"><use href="#i-hash"/></svg> billing <span class="cnt"><svg class="ic" style="width:14px;height:14px"><use href="#i-people"/></svg> 14</span></div>
+        <div class="m">
+          <div class="av p cy">C</div>
+          <div class="b">
+            <div class="who"><span class="nm">Cy</span><time>2:18 PM</time></div>
+            <div class="txt"><span class="mention">@Ana's agent</span> when a plan changes mid-month, does the proration line credit the old plan or just charge the difference? Checkout needs to show the same thing the PDF will.</div>
+            <div class="thr"><span class="stack"><i style="background:#2A3244"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></i><i style="background:#7A5C8A">A</i></span> 2 replies <span class="last">Last reply today at 2:24 PM</span></div>
+          </div>
+        </div>
+        <div class="thread">
+          <div class="tl">Thread <span>#billing</span></div>
+          <div class="m">
+            <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+            <div class="b">
+              <div class="who"><span class="nm">Ana's agent</span><span class="app">APP</span><time>2:19 PM</time></div>
+              <div class="txt">It credits, then charges. The unused days of the old plan become a negative line, and the new plan is charged from the change date. Each of the two carries its own tax line, so an invoice for a mid-month change shows four lines, not two:
+                <ul><li><code>Pro · 1–14 Oct</code> credit −$23.33, tax −$1.87</li><li><code>Team · 15–31 Oct</code> $54.84, tax $4.39</li></ul>
+                Checkout should show the same four lines before the person confirms; today it folds the credit into the total. <code>packages/billing/src/proration.ts</code>, <code>prorate()</code>, line 48.</div>
+              <div class="ctx"><span class="mk"><svg viewBox="0 0 96 96"><use href="#mk"/></svg></span> answered from <i>Invoice PDF: tax lines and proration</i> <span class="dot"></span> read 3 files, 2.1k tokens <span class="dot"></span> not a directive: the session did not change</div>
+              <div class="acts"><span class="sb">Steer the session with this</span><span class="sb">Remember for the team</span><span class="sep"></span><a class="lnk">Open the session</a></div>
+            </div>
+          </div>
+          <div class="m">
+            <div class="av p ana">A</div>
+            <div class="b"><div class="who"><span class="nm">Ana</span><time>2:24 PM</time></div><div class="txt">That is what the PDF will mirror. Cy, take the four-lines rule into Checkout, I'll have the agent remember it.</div></div>
+          </div>
+          <div class="sl-input">Reply in thread… <svg class="ic"><use href="#i-send"/></svg></div>
+        </div>
+      </div>
+      <div class="states">
+        <div class="wrap">
+          <div class="lbl">While it reads · a placeholder that edits into the answer</div>
+          <div class="slack">
+            <div class="m">
+              <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+              <div class="b">
+                <div class="who"><span class="nm">Ana's agent</span><span class="app">APP</span><time>2:18 PM</time></div>
+                <div class="txt"><i>Reading proration.ts and the last invoice…</i></div>
+                <div class="ctx">answers here within a minute <span class="dot"></span> <a class="lnk" style="font-weight:400">Watch in Henosis</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wrap">
+          <div class="lbl">Back in the app · the same answer, one line in the stream</div>
+          <div class="slack" style="background:var(--surface);font-family:var(--font);color:var(--ink)">
+            <div class="m" style="grid-template-columns:1fr;padding:12px 20px">
+              <div class="b">
+                <div class="notice" style="padding:12px 16px;gap:6px;box-shadow:none">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:14px"><span class="serif" style="font-size:17px">Ana's agent</span> <span class="muted small">answered Cy in</span> <code style="font-size:12px">#billing</code> <span class="faint small" style="margin-left:auto">2:19 PM</span></div>
+                  <div class="small muted">"It credits, then charges. The unused days of the old plan become a negative line…" · 2.1k tokens</div>
+                  <div class="actions"><span class="btn sm">Open the thread</span><span class="btn sm ghost">Make it a directive</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">An agent is a member of <code>#billing</code> like anyone else, under its owner's name. A mention routes to the owner's running session, which answers in the thread as <b>Ana's agent</b>, not as "Henosis": the voice belongs to the session. The answer is read-only by default; the context line says so, and the two buttons turn it into a directive or a team memory. The owner's stream gets one line, "Ana's agent answered Cy in #billing", so nothing happens behind the driver's back.</p>
+    </div>
+    <div class="spec">
+      <div class="box">
+        <h3>When · where</h3>
+        <dl class="kv">
+          <dt>Trigger</dt><dd><code>app_mention</code> of an agent's user, or the app with "@Ana's agent" in the text</dd>
+          <dt>Routes to</dt><dd>the owner's running session; with none, the newest paused one; with none, the project memory and "no session is running"</dd>
+          <dt>Posts as</dt><dd>"<i>Owner</i>'s agent" with the owner's emblem; APP badge stays</dd>
+        </dl>
+      </div>
+      <div class="box">
+        <h3>Shape</h3>
+        <ul>
+          <li>Placeholder first (<i>Reading …</i>), edited into the answer; never two messages.</li>
+          <li>Answers are at most ~120 words and one list; longer answers link to the session.</li>
+          <li><b>context</b>: which session, what it read, the cost, and that the session did not change.</li>
+          <li><b>actions</b>: Steer the session with this · Remember for the team · link.</li>
+        </ul>
+        <div class="acts">
+          <span><b>Steer</b><em>steer:payments:s_7f2:msg_ts</em></span>
+          <span><b>Remember</b><em>memory.add:org_pay:msg_ts</em></span>
+        </div>
+      </div>
+      <div class="box">
+        <h3>Rules</h3>
+        <ul>
+          <li>A mention in a <b>DM</b> answers in the DM; in a channel the agent is not a member of, it answers ephemerally with "Add Ana's agent to #billing to let it answer here."</li>
+          <li>An answer costs the owner's budget; the context line shows it and the rail's token meter moves.</li>
+          <li>Mentions of a person ("@Bo") are Slack's own; the app only listens for agents.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 5. daily brief ================= -->
+  <section class="t" id="t-brief">
+    <div class="l">
+      <div class="tt"><span class="n">05</span><h2>Daily brief</h2><span class="where"><svg class="ic"><use href="#i-lock"/></svg> <code>#payments-leads</code> · 8:00 each working day</span></div>
+      <div class="slack">
+        <div class="chh"><svg class="ic" style="width:15px;height:15px"><use href="#i-lock"/></svg> payments-leads <span class="cnt"><svg class="ic" style="width:14px;height:14px"><use href="#i-people"/></svg> 3</span></div>
+        <div class="day"><span>Tuesday, 7 October</span></div>
+        <div class="m">
+          <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+          <div class="b">
+            <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>8:00 AM</time></div>
+            <div class="hdr"><span class="em ic16 sun" style="display:inline-block;vertical-align:-2px;width:20px;height:20px;margin-right:4px;color:#ECB22E"><svg style="width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round"><use href="#i-sun"/></svg></span>Payments · Tuesday</div>
+            <div class="txt">Four sessions ran yesterday and three are still open. <b>Two need you</b> this morning: a push waits for one more rating, and a contention on the Billing page waits for a lead.</div>
+            <div class="div"></div>
+            <div class="sec"><p><b>Needs you</b></p>
+              <ul>
+                <li><code>git push</code> in <b>Ana</b>'s session waits for one rating at 4+ · Bo rated 4 · <a>Rate it</a></li>
+                <li><b>Ana</b> and <b>Bo</b> contend for <code>Billing.tsx</code> since 11:06 yesterday · <a>Resolve</a></li>
+              </ul></div>
+            <div class="sec"><p><b>Sessions</b></p>
+              <ul>
+                <li><b>Ana</b> · <i>Invoice PDF: tax lines and proration</i> · awaiting approval · step 5 of 5 · 188k</li>
+                <li><b>Bo</b> · <i>Billing page: invoice history</i> · running · step 3 of 4 · 61k</li>
+                <li><b>Cy</b> · <i>Checkout: proration on plan change</i> · done, united into <code>main</code> · 93k</li>
+                <li><b>Dee</b> · <i>Tax lines for EU invoices</i> · paused since Friday · 14k</li>
+              </ul></div>
+            <div class="fields">
+              <div class="f"><b>Tokens this week</b>356k of 600k · Ana 188k · Bo 61k · Cy 93k · Dee 14k</div>
+              <div class="f"><b>Plans</b>3 rated and approved, average 4.2 · 1 waits for a rating</div>
+              <div class="f"><b>Release gates</b>1 granted (Cy, 4.5) · 1 waits</div>
+              <div class="f"><b>Joined</b>Dee's agent joined the circle yesterday · crew <b>Invoice rollout</b> is Ana + Cy</div>
+            </div>
+            <div class="ctx"><span class="mk"><svg viewBox="0 0 96 96"><use href="#mk"/></svg></span> computed from the ledger at 7:59 <span class="dot"></span> direction: <i>invoices right by the 15th</i> <span class="dot"></span> <code>/henosis brief payments</code></div>
+            <div class="acts"><span class="sb pri">Open the overview</span><span class="sb">Approvals · 1</span><span class="sb">Contentions · 1</span><span class="sep"></span><a class="lnk">Open in Henosis</a></div>
+          </div>
+        </div>
+      </div>
+      <div class="states">
+        <div class="wrap">
+          <div class="lbl">A quiet morning · the brief is one line</div>
+          <div class="slack">
+            <div class="m">
+              <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+              <div class="b">
+                <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>8:00 AM</time></div>
+                <div class="txt"><span class="em ic16 sun" style="color:#ECB22E"><svg><use href="#i-sun"/></svg></span><b>Payments</b> · Nothing needs you. Two sessions run (Bo, Cy), one plan approved overnight, 41k tokens since yesterday.</div>
+                <div class="ctx"><a class="lnk" style="font-weight:400">Open the overview</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wrap">
+          <div class="lbl">On demand · <code>/henosis brief payments</code>, only you see it</div>
+          <div class="slack">
+            <div class="m">
+              <div class="av bot"><svg viewBox="0 0 96 96"><use href="#mk-sq"/></svg></div>
+              <div class="b">
+                <div class="who"><span class="nm">Henosis</span><span class="app">APP</span><time>3:41 PM</time> <span class="edited" style="margin-left:4px">Only visible to you</span></div>
+                <div class="txt"><b>Payments, now.</b> Three sessions open; one needs you: the push in Ana's session waits for your rating. Bo's agent is on step 3 of 4 (<code>InvoiceHistory.tsx</code>). 402k of 600k this week.</div>
+                <div class="acts"><span class="sb pri">Rate the push</span><span class="sb">Sessions</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">The brief is the manager overview said in Slack: the sentence summary first, then what needs you, with the button that answers it, then the roster of sessions, then the numbers in Slack's two-column fields. It is computed from the ledger, never written by a model, so a lead can trust every number. When nothing needs anyone, the brief is one line and no buttons.</p>
+    </div>
+    <div class="spec">
+      <div class="box">
+        <h3>When · where</h3>
+        <dl class="kv">
+          <dt>Schedule</dt><dd>8:00 in the project's timezone on working days; skipped when nothing ran and nothing waits</dd>
+          <dt>Channel</dt><dd>management channel; also to a lead's DM when they ask</dd>
+          <dt>Source</dt><dd><code>project.brief()</code>, the same fleet brief the overview and the handoff use</dd>
+        </dl>
+      </div>
+      <div class="box">
+        <h3>blocks · in order</h3>
+        <ul>
+          <li><b>header</b> · "Payments · Tuesday"</li>
+          <li><b>section</b> · the sentence summary; "<i>n</i> need you" bold</li>
+          <li><b>divider</b></li>
+          <li><b>section</b> · Needs you, each item with its link</li>
+          <li><b>section</b> · Sessions, one line each: owner · title · status · step · tokens</li>
+          <li><b>section · fields</b> · Tokens, Plans, Release gates, Joined</li>
+          <li><b>context</b> · computed at · direction · the slash command</li>
+          <li><b>actions</b> · Open the overview (primary) · Approvals · <i>n</i> · Contentions · <i>n</i> · link</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Rules</h3>
+        <ul>
+          <li>Needs-you items are ordered as the inbox orders them: approvals, contentions, handoffs, then news.</li>
+          <li>Sessions are listed by owner, people first, paused last; a session older than a week says so.</li>
+          <li>Numbers are tabular and rounded to the nearest k; the budget bar is words, not a meter.</li>
+          <li>Six sessions or more fold into "and 4 more" with the link; the Slack message stays under 2,000 characters.</li>
+          <li>The brief never @mentions; the context line names the lead whose turn it is.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

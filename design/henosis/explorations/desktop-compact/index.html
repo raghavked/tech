@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Desktop compact</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- the board: a 960-wide window on the left, the rules on the right ---------- */
+  body { overflow: hidden; }
+  .board { height: 100vh; display: grid; grid-template-columns: 960px 1fr; gap: 28px; padding: 36px 36px 28px; align-content: start; }
+  .board .win-col { position: relative; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .board .win-col .cap { display: flex; align-items: baseline; gap: 12px; font-size: 13px; color: var(--ink-2); padding: 0 2px; }
+  .board .win-col .cap .serif { font-size: 20px; color: var(--ink); }
+  .board .win-col .cap .mono { font-size: 12px; color: var(--ink-3); }
+  .board .win-col .cap .mono.dim { margin-left: auto; }
+  .ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- the window: 960 × 720, titlebar + shell ---------- */
+  .window { width: 960px; height: 760px; display: flex; flex-direction: column; position: relative; }
+  .window .titlebar { flex: none; justify-content: flex-start; }
+  .window .titlebar .tt { margin: 0 auto; font-family: var(--serif); font-size: 13.5px; color: var(--rail-fg); letter-spacing: .01em; display: inline-flex; align-items: center; gap: 8px; }
+  .window .titlebar .tt .sep { color: var(--rail-muted); font-family: var(--font); font-size: 11px; }
+  .window .titlebar .win-w { font: 11px var(--mono); color: var(--rail-muted); position: absolute; right: 14px; }
+  .window .shell { flex: 1; min-height: 0; height: auto; }
+
+  /* ---------- the rail, collapsed to 72 ---------- */
+  .mini { width: 72px; flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; align-items: center; padding: 12px 0 10px; gap: 4px; position: relative; }
+  .mini .mark { width: 30px; height: 30px; margin-bottom: 4px; flex: none; }
+  .mini .sq { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--rail-muted); position: relative; cursor: pointer; flex: none; }
+  .mini .sq:hover { background: var(--rail-2); color: var(--rail-fg); }
+  .mini .sq.hover { background: var(--rail-2); color: var(--rail-fg); }
+  .mini .sq.active { background: var(--rail-active); color: var(--apricot); box-shadow: inset 0 0 0 1px rgba(226,196,166,0.35); }
+  .mini .sq.new { background: var(--gradient-brand); color: #fff; box-shadow: var(--shadow-soft); }
+  .mini .sq.new .ic { stroke-width: 2.2; }
+  .mini .sq .ic { width: 18px; height: 18px; }
+  .mini .count { position: absolute; top: -4px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--radius-full); background: var(--apricot); color: #56352D; font: 600 10.5px var(--mono); display: inline-grid; place-items: center; box-shadow: 0 0 0 2px var(--rail); }
+  .mini .hr { width: 36px; height: 1px; background: var(--rail-line); margin: 4px 0; flex: none; }
+  .mini .sq.av { width: 36px; height: 36px; border-radius: 50%; background: var(--rail-2); color: var(--rail-fg); font: 600 11px var(--font); }
+  .mini .sq.av .st { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--rail); background: var(--rail-muted); }
+  .mini .sq.av .st.running { background: #9BC88F; animation: pulse 1.6s ease-in-out infinite; }
+  .mini .sq.av .st.awaiting { background: #E2B06A; }
+  .mini .sq.av.active { box-shadow: 0 0 0 2px var(--apricot); color: var(--rail-fg); background: var(--rail-2); }
+  .mini .sq.av.me { box-shadow: 0 0 0 2px var(--apricot); margin-top: auto; }
+  .mini .proj { font-family: var(--serif); font-size: 17px; color: var(--apricot); }
+  .mini .tip { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 14px; white-space: nowrap; background: var(--rail-2); color: var(--rail-fg); border: 1px solid var(--rail-line); border-radius: 10px; padding: 8px 12px; font-size: 13px; box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 2px; line-height: 1.3; z-index: 3; cursor: default; }
+  .mini .tip::before { content: ""; position: absolute; right: 100%; top: 50%; margin-top: -5px; border: 5px solid transparent; border-right-color: var(--rail-2); }
+  .mini .tip .serif { font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
+  .mini .tip .serif .pill { height: 18px; font-size: 10.5px; padding: 0 7px; }
+  .mini .tip .sub { font-size: 12px; color: var(--rail-muted); }
+  .mini .tip .sub i { font-family: var(--serif); color: var(--apricot); }
+  .mini .tip .sub .tok { font-family: var(--mono); font-size: 11px; margin-left: 8px; }
+  .mini .expand { width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; color: var(--rail-muted); display: grid; place-items: center; cursor: pointer; flex: none; }
+  .mini .expand .ic { width: 16px; height: 16px; }
+
+  /* ---------- main: topbar, stream, composer ---------- */
+  .main { background: var(--canvas); background-image: var(--canvas-wash); }
+  .topbar { padding: 10px 18px; min-height: 54px; gap: 10px; }
+  .topbar .title { font-size: 20px; gap: 10px; }
+  .topbar .title .status, .topbar .title .pill { font-family: var(--font); flex: none; }
+  .topbar .title .status { font-size: 12.5px; }
+  .topbar .right { gap: 6px; flex: none; }
+  .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font: 12px var(--mono); color: var(--ink-2); min-width: 72px; }
+  .tokchip .budget { height: 3px; }
+  .topbar .btn.icon { width: 34px; min-height: 34px; }
+  .topbar .btn.icon.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+  .topbar .stack .avatar { width: 26px; height: 26px; font-size: 10px; }
+  .topbar .stack .avatar.agent { border-radius: 8px 8px 8px 3px; }
+
+  .scroll { display: flex; flex-direction: column-reverse; }
+  .column { flex: none; align-self: center; padding: 18px 24px 10px; gap: 20px; }
+  .composer-wrap { padding: 6px 24px 16px; }
+  .composer { padding: 12px 12px 10px 16px; gap: 8px; }
+  .composer .input { color: var(--ink-3); }
+  .composer .bar .right .btn.ghost.icon { width: 32px; min-height: 32px; }
+  .composer .send { width: 34px; height: 34px; }
+  .composer .send .ic { width: 15px; height: 15px; }
+  .composer .bar .mode { display: inline-flex; align-items: center; gap: 6px; font: 12.5px var(--font); color: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-full); padding: 3px 10px; }
+  .composer .bar .mode .mono { font-size: 11.5px; color: var(--ink); }
+  .btn { white-space: nowrap; }
+
+  .msg .meta .scope { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+  .msg .meta time { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .msg.human .text { max-width: 92%; padding: 11px 16px; }
+  .msg.human .text .goal-lbl { font-family: var(--serif); font-style: italic; color: var(--accent); margin-right: 6px; }
+  .msg.agent .meta .who { display: inline-flex; align-items: center; gap: 8px; }
+  .msg.agent .text { font-size: 15px; }
+  .msg.agent .text p { margin: 0 0 6px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; }
+  .msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 10px 14px; align-self: flex-start; max-width: 85%; font-size: 14.5px; }
+  .step { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 4px 10px; border-radius: 10px; }
+  .step .ic { width: 15px; height: 15px; color: var(--ink-3); }
+  .step .mono { font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .mono b { font-weight: 500; color: var(--ink); }
+  .step .r { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .step.ok .ic { color: var(--ok); }
+  .step.live { background: var(--apricot-soft); } .step.live .r { color: var(--accent); }
+  .step .livedot { width: 9px; height: 9px; margin: 0 auto; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.6s ease-in-out infinite; }
+
+  /* the release-gate notice, compact: one row of rating + progress */
+  .notice { padding: 14px 16px 14px 18px; gap: 10px; }
+  .notice .ask { font-size: 14.5px; }
+  .notice .ask code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+  .notice .risk { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; letter-spacing: .02em; border-radius: var(--radius-full); padding: 1px 8px; background: var(--danger-soft); color: var(--danger); vertical-align: 2px; margin-left: 4px; }
+  .notice .votes { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .notice .votes .avatar { width: 22px; height: 22px; font-size: 9.5px; border: 0; }
+  .notice .votes .q { color: var(--ink-3); font-style: italic; }
+  .notice .rating { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+  .notice .rating .note { height: 32px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); padding: 0 11px; font: 13px var(--font); color: var(--ink-3); display: flex; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; }
+  .notice .rating .progress { font-size: 12px; color: var(--ink-2); text-align: right; line-height: 1.3; }
+  .notice .rating .progress b { display: block; font-family: var(--mono); color: var(--ink); font-weight: 500; }
+  .stars { gap: 2px; } .stars span { width: 24px; height: 24px; font-size: 20px; }
+  .notice .actions .seg-dots { display: inline-flex; gap: 4px; margin-left: auto; }
+  .notice .actions .seg-dots i { width: 22px; height: 5px; border-radius: 3px; background: var(--surface-3); }
+  .notice .actions .seg-dots i.on { background: var(--apricot-deep); }
+  .notice .actions .hint { font-size: 12px; color: var(--ink-3); margin-left: 2px; }
+
+  /* the details drawer as an overlay, peeking in from the right (compact replaces the 340 drawer) */
+  .peek { position: absolute; right: 0; top: 40px; bottom: 0; width: 300px; background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow-pop); transform: translateX(calc(100% - 10px)); pointer-events: none; }
+
+  /* numbered pins on the window */
+  .pin { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: var(--rail); color: var(--apricot); font: 600 11px var(--mono); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--canvas), var(--shadow-soft); z-index: 4; }
+  :root[data-theme="dark"] .pin { background: var(--apricot); color: #2A3244; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pin { background: var(--apricot); color: #2A3244; } }
+
+  /* ---------- the rules, on the right ---------- */
+  .rules { display: flex; flex-direction: column; gap: 13px; height: calc(100vh - 64px); min-width: 0; padding-top: 2px; }
+  .rules h1 { font-size: 32px; line-height: 1.05; }
+  .rules .lede { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; margin: 0; }
+  .rules .lede b { color: var(--ink); font-weight: 600; }
+  .rule { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; font-size: 13px; line-height: 1.42; color: var(--ink-2); }
+  .rule .pin { position: static; box-shadow: none; margin-top: 2px; }
+  .rule b { color: var(--ink); font-weight: 600; }
+  .rule .serif { font-size: 16px; color: var(--ink); display: block; margin-bottom: 1px; }
+  .rule .mono { font-size: 12px; color: var(--ink-3); }
+
+  .spec { display: grid; grid-template-columns: 1fr auto auto; gap: 0 14px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line); }
+  .spec > span { padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .spec .h { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 6px 0 4px; }
+  .spec .v { font-family: var(--mono); font-size: 12.5px; text-align: right; color: var(--ink); }
+  .spec .v.same { color: var(--ink-3); }
+  .spec .v.was { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--ink-3); }
+
+  .ruler { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+  .ruler .lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .ruler .bar { position: relative; height: 8px; border-radius: var(--radius-full); background: var(--surface-3); overflow: visible; }
+  .ruler .bar i { position: absolute; top: 0; bottom: 0; border-radius: var(--radius-full); }
+  .ruler .bar .full { left: 0; right: 0; background: var(--surface-3); }
+  .ruler .bar .mid { background: var(--apricot-soft); }
+  .ruler .bar .here { background: var(--apricot); }
+  .ruler .ticks { position: relative; height: 34px; font: 11px var(--mono); color: var(--ink-3); }
+  .ruler .ticks span { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; white-space: nowrap; line-height: 1.3; }
+  .ruler .ticks span::before { content: ""; width: 1px; height: 6px; background: var(--ink-3); }
+  .ruler .ticks span.on { color: var(--ink); }
+  .ruler .ticks span.on::before { background: var(--apricot-deep); height: 8px; }
+  .ruler .ticks span em { font-style: normal; font-family: var(--font); color: var(--ink-3); font-size: 11px; }
+
+  /* ---------- the real thing: under 1000 the board is the window ---------- */
+  @media (max-width: 1000px) {
+    .board { display: block; padding: 0; height: 100vh; }
+    .board .win-col .cap, .rules, .pin, .peek { display: none; }
+    .window { width: 100%; height: 100vh; border-radius: 0; border: 0; box-shadow: none; }
+    .window .titlebar .win-w { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <div class="win-col">
+    <div class="cap">
+      <span class="serif">Billing page, at 960</span>
+      <span>the rail folds to icons; the column keeps its 780</span>
+      <span class="mono dim">960 × 760 · Bo's tooltip on hover</span>
+    </div>
+
+    <!-- ===== the window ===== -->
+    <div class="window" aria-label="Henosis desktop window, compact">
+      <div class="titlebar"><i></i><i></i><i></i>
+        <span class="tt">Billing page <span class="sep">·</span> Payments <span class="sep">·</span> Henosis</span>
+        <span class="win-w">960 × 760</span>
+      </div>
+
+      <div class="shell">
+        <!-- rail, collapsed -->
+        <nav class="mini" aria-label="Rail, collapsed">
+          <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+            <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+            <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <circle class="dot" cx="48" cy="48" r="7"/>
+          </svg>
+          <span class="sq new" title="New session (N)"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span class="sq" title="Search (⌘K)"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+          <span class="sq" title="Inbox · 3"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l1.5 2.5h5L16 13h5M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg><span class="count">3</span></span>
+          <span class="sq" title="Approvals · 2"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg><span class="count">2</span></span>
+          <span class="hr"></span>
+          <span class="sq proj" title="Payments">P</span>
+          <span class="sq av active" title="Billing page · you, with Bo">AN<span class="st running"></span></span>
+          <span class="sq av hover" title="Checkout · Bo, with you">BO<span class="st awaiting"></span>
+            <span class="tip"><span class="serif">Checkout <span class="pill team">Team · with you</span></span><span class="sub">Waits to <i>run db:migrate</i> · 1 of 2 ratings <span class="tok">8.1k</span></span></span>
+          </span>
+          <span class="sq av" title="Invoice PDF · Cy">CY<span class="st running"></span></span>
+          <span class="sq av" title="VAT rounding · Dee, paused">DE<span class="st"></span></span>
+          <span class="hr"></span>
+          <span class="sq" title="Memory"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17h13"/></svg></span>
+          <span class="sq" title="Chats · 3 unread"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="count">3</span></span>
+          <span class="sq av me" title="Ana · owner · driving Billing page">AN</span>
+          <button class="expand" type="button" title="Expand the rail (])" aria-label="Expand the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM9 5v14M13 10l2 2-2 2"/></svg></button>
+        </nav>
+
+        <!-- main -->
+        <div class="main">
+          <div class="topbar">
+            <div class="title">
+              <span>Billing page</span>
+              <span class="status running">Running · turn 7</span>
+              <span class="pill team">Team · with Bo</span>
+            </div>
+            <div class="right">
+              <span class="tokchip" title="12.4k of 40k tokens"><span>12.4k</span><span class="budget"><i style="width:31%"></i></span></span>
+              <span class="stack">
+                <span class="avatar driver" title="Ana, driving">AN</span>
+                <span class="avatar" title="Bo">BO</span>
+                <span class="avatar agent" title="Ana's agent">a</span>
+              </span>
+              <button class="btn icon on" type="button" title="Team panel"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 19a4.5 4.5 0 0 1 5-4.5"/></svg></button>
+              <button class="btn icon" type="button" title="Details"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM15 5v14"/></svg></button>
+            </div>
+          </div>
+
+          <div class="scroll">
+            <div class="column">
+              <div class="divider">Today · 14:02 · Bo joins the circle</div>
+
+              <div class="msg human">
+                <div class="meta"><span class="who">Ana</span><span class="scope">goal</span><time>14:03</time></div>
+                <div class="text"><span class="goal-lbl">Goal</span>Show tax lines and proration on the Billing page the way the invoice PDF does: one row per tax, the prorated credit above the total.</div>
+              </div>
+
+              <div class="msg agent">
+                <div class="meta"><span class="who"><span class="avatar agent">a</span>Ana's agent</span><span class="faint small">turn 7 · step 3 of 4</span><time>14:19</time></div>
+                <div class="text">
+                  <p>The PDF already builds its tax rows from <code class="mono">invoice.taxLines</code>; the page was summing them into one line. I am reusing the PDF's grouping so both read the same, then adding the proration row above the total.</p>
+                </div>
+                <div class="steps">
+                  <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="m8 12 3 3 5-6"/></svg><span class="mono"><b>read</b> apps/web/src/billing/InvoicePdf.tsx</span><span class="r">212 lines</span></div>
+                  <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"/></svg><span class="mono"><b>edit</b> apps/web/src/billing/BillingPage.tsx · taxLines, proration</span><span class="r">+41 −9</span></div>
+                  <div class="step live"><span class="livedot"></span><span class="mono"><b>test</b> pnpm test billing · proration credit rounds to cents</span><span class="r">running</span></div>
+                </div>
+              </div>
+
+              <div class="msg team">
+                <div class="meta"><span class="who">Bo</span><span class="to">to the team</span><time>14:21</time></div>
+                <div class="text">Checkout needs the same proration row once this lands. I will hold my migration until your gate clears.</div>
+              </div>
+
+              <div class="notice gate">
+                <div class="ask">Ana's agent asks to <code>git push origin pdf-layout</code> <span class="risk">irreversible</span></div>
+                <div class="votes"><span class="avatar">BO</span><span><b>Bo</b> rated 4 <span class="q">"matches the PDF now"</span></span></div>
+                <div class="rating">
+                  <span class="stars" aria-label="Your rating, 4 of 5"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span>
+                  <span class="note">Add a note for the team (optional)</span>
+                  <span class="progress"><b>1 of 2</b>contributors at 4+</span>
+                </div>
+                <div class="actions">
+                  <button class="btn primary sm" type="button">Approve with 4</button>
+                  <button class="btn sm" type="button">Ask to revise</button>
+                  <span class="hint">Release gate · two at 4+</span>
+                  <span class="seg-dots" aria-hidden="true"><i class="on"></i><i></i></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer-wrap">
+            <div class="composer">
+              <div class="input">Steer the agent, or say something to the team</div>
+              <div class="bar">
+                <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+                <span class="mode">scope <span class="mono">goal</span></span>
+                <div class="right">
+                  <button class="btn ghost icon" type="button" title="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="m8 12 7-7a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l8-8"/></svg></button>
+                  <button class="send" type="button" title="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- pins -->
+    <span class="pin" style="left:-11px;top:154px">1</span>
+    <span class="pin" style="left:560px;top:92px">2</span>
+    <span class="pin" style="left:949px;top:408px">3</span>
+    <span class="pin" style="left:508px;top:691px">4</span>
+  </div>
+
+  <!-- ===== the rules ===== -->
+  <aside class="rules">
+    <h1>Desktop compact</h1>
+    <p class="lede">Between <b>1180</b> and <b>720</b> the window gives the rail's width to the column, not the other way round. An expanded rail at 960 would leave the stream 616 wide; folded to 72 it keeps the full 780, so nothing in the stream reflows.</p>
+
+    <div class="rule"><span class="pin">1</span><div><span class="serif">The rail folds to icons</span>Same order as the full rail: mark, New, Search, Inbox and Approvals with counts at the corner, the project initial, one avatar per agent with its status dot, Memory, Chats, you. <b>Hover</b> shows the card as a navy tooltip; <b>[</b> and <b>]</b> still toggle.</div></div>
+    <div class="rule"><span class="pin">2</span><div><span class="serif">The title row drops words, not facts</span>Status, the Team pill and the token chip stay; the title truncates first. Team and Details become icon buttons; the open one keeps its wash.</div></div>
+    <div class="rule"><span class="pin">3</span><div><span class="serif">The drawer rides over, not beside</span>Details and the Team panel open as a 300 overlay from the right with a scrim on the stream, so the column is never squeezed. Escape closes it.</div></div>
+    <div class="rule"><span class="pin">4</span><div><span class="serif">The column is untouched</span>Same 780, same 24 gutters, same type sizes. Only the gate's rating row tightens to one line: stars, note, progress.</div></div>
+
+    <div class="spec" aria-label="What changes at 960">
+      <span class="h">Part</span><span class="h v">full</span><span class="h v">compact</span>
+      <span>Rail</span><span class="v was">296</span><span class="v">72</span>
+      <span>Column</span><span class="v same">780</span><span class="v same">780</span>
+      <span>Side gutters</span><span class="v same">24</span><span class="v same">24</span>
+      <span>Drawer, Team panel</span><span class="v was">340 beside</span><span class="v">300 over</span>
+      <span>Topbar buttons</span><span class="v was">label</span><span class="v">icon + tip</span>
+    </div>
+
+    <div class="ruler" aria-label="Breakpoints">
+      <span class="lbl">Where it changes</span>
+      <div class="bar"><i class="full"></i><i class="mid" style="left:25%;right:27%"></i><i class="here" style="left:48.5%;width:3%"></i></div>
+      <div class="ticks">
+        <span style="left:3%">480<em>phone</em></span>
+        <span style="left:25%">720<em>drawer overlays</em></span>
+        <span class="on" style="left:50%">960<em>this page</em></span>
+        <span style="left:73%">1180<em>rail folds</em></span>
+        <span style="left:96%">1440<em>full</em></span>
+      </div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

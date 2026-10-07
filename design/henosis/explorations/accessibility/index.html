@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessibility audit</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  body { min-height: 100%; }
+  .board { width: min(1344px, 100%); margin: 0 auto; padding: 40px 48px 56px; display: flex; flex-direction: column; gap: 40px; }
+  .hd { display: grid; grid-template-columns: 64px 1fr auto; gap: 20px; align-items: start; }
+  .hd h1 { font-size: 44px; }
+  .hd .lede { max-width: 820px; margin-top: 6px; color: var(--ink-2); font-size: 15.5px; }
+  .hd .meta { text-align: right; font-size: 12.5px; color: var(--ink-2); line-height: 1.7; padding-top: 10px; }
+  .hd .meta b { font-weight: 500; font-family: var(--mono); font-size: 12px; }
+  .kicker { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; }
+  .ic { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* lens strip */
+  .lenses { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .lens { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-soft); }
+  .lens .top { display: flex; align-items: center; gap: 8px; }
+  .lens .top .ic { color: var(--accent); width: 16px; height: 16px; }
+  .lens h3 { font-family: var(--serif); font-weight: 400; font-size: 22px; }
+  .lens p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .lens .tally { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .tag { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+  .tag.fail { background: var(--danger-soft); color: var(--danger); }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.pass { background: var(--ok-soft); color: var(--ok); }
+  .tag.fix { background: var(--apricot-soft); color: var(--ink); }
+  .tag .ic { width: 11px; height: 11px; stroke-width: 2.4; }
+  /* AA text needs 4.5:1; the status tokens as shipped fall short in one theme (see the table), so the tags carry darker ink */
+  .tag.fail { color: #8C3A30; } .tag.warn { color: #7D5219; } .tag.pass { color: #3C6338; }
+  :root[data-theme="dark"] .tag.fail { color: #F0A399; } :root[data-theme="dark"] .tag.warn { color: #E9B86E; } :root[data-theme="dark"] .tag.pass { color: #A3D39A; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tag.fail { color: #F0A399; } :root:not([data-theme="light"]) .tag.warn { color: #E9B86E; } :root:not([data-theme="light"]) .tag.pass { color: #A3D39A; } }
+
+  /* sections */
+  .sec { display: flex; flex-direction: column; gap: 16px; }
+  .sec > .t { display: grid; grid-template-columns: 34px 1fr; gap: 14px; align-items: baseline; }
+  .sec > .t .n { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+  .sec > .t h2 { font-size: 28px; }
+  .sec > .t p { margin: 4px 0 0; color: var(--ink-2); max-width: 900px; font-size: 14.5px; }
+  .sec > .t p b { color: var(--ink); font-weight: 600; }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-soft); }
+  table.wrap { display: block; } table.wrap thead, table.wrap tbody { display: table; width: 100%; }
+  th { text-align: left; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; padding: 12px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  td { padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: middle; }
+  tr:first-child td { border-top: 0; }
+  td .m { font-family: var(--mono); font-size: 12.5px; }
+  td .use { display: block; color: var(--ink-2); font-size: 12.5px; margin-top: 2px; }
+  td.r { white-space: nowrap; }
+  .ratio { display: inline-flex; align-items: center; gap: 8px; }
+  .ratio .m { min-width: 44px; }
+  .sw { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; gap: 4px; width: 92px; height: 34px; border-radius: 8px; border: 1px solid var(--line); font: 500 12.5px var(--font); }
+  .sw.big { font-size: 20px; width: 72px; }
+  .pair { display: flex; gap: 6px; }
+
+  /* contrast demo */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .stage { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px 24px 24px; position: relative; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .stage .lbl { position: absolute; top: 10px; right: 14px; font: 11px var(--mono); color: var(--ink-2); }
+  .stage > .kicker { display: flex; align-items: center; gap: 8px; }
+  .stage .why { font-size: 13.5px; color: var(--ink-2); margin: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+  .stage .why b { color: var(--ink); font-weight: 600; }
+  .plan .head .serif { font-size: 19px; }
+  .plan .pstep { font-size: 13.5px; }
+  .after { --ink-3: #6A7183; --warn: #946021; --apricot-deep: #B4865C; }
+  :root[data-theme="dark"] .after { --ink-3: #9CA3B2; --warn: #D8A05A; --apricot-deep: #CFA782; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .after { --ink-3: #9CA3B2; --warn: #D8A05A; --apricot-deep: #CFA782; } }
+  .stars.outline span { color: transparent; -webkit-text-stroke: 1.5px var(--ink-3); }
+  .stars.outline .on { color: var(--apricot-deep); -webkit-text-stroke: 0; }
+  .meter { display: flex; flex-direction: column; gap: 6px; }
+  .meter .row { display: flex; justify-content: space-between; font-size: 12.5px; }
+  .meter .row .w { color: var(--warn); font-weight: 600; }
+  .focusdemo { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .fx-old { box-shadow: var(--glow); }
+  .fx-new { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 5px var(--apricot-soft); }
+  .fx-lbl { font-size: 12.5px; color: var(--ink-2); }
+
+  /* focus-order fragment */
+  .frag { background: var(--canvas); background-image: var(--canvas-wash); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-soft); font-size: 14px; display: flex; height: 640px; position: relative; }
+  .frag .rail { width: 236px; padding: 12px; gap: 4px; }
+  .frag .rail .brand { font-size: 20px; padding: 6px 8px 12px; }
+  .frag .rail .new { padding: 9px 12px; font-size: 13px; }
+  .frag .agent { padding: 8px 10px; gap: 3px; } .frag .agent .head { font-size: 13px; } .frag .agent .doing { font-size: 12px; } .frag .agent .foot { font-size: 11.5px; }
+  .frag .topbar { padding: 10px 16px; min-height: 48px; }
+  .frag .topbar .title { font-size: 18px; }
+  .frag .column { padding: 14px 22px 90px; gap: 16px; }
+  .frag .msg .meta .who { font-size: 15px; } .frag .msg .text { font-size: 14px; }
+  .frag .notice { padding: 14px 16px; gap: 10px; }
+  .frag .composer { padding: 12px 12px 10px 16px; }
+  .frag .composer-wrap { padding: 10px 22px 16px; }
+  .frag .skipbar { display: flex; align-items: center; padding: 6px 16px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .frag .skip { display: inline-block; background: var(--accent); color: var(--accent-fg); padding: 4px 12px; border-radius: var(--radius-full); font: 500 12.5px var(--font); outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 5px var(--apricot-soft); }
+  .fo { position: relative; }
+  .fo > .badge { position: absolute; z-index: 2; min-width: 22px; height: 22px; padding: 0 6px; border-radius: var(--radius-full); background: var(--accent); color: var(--accent-fg); font: 600 11.5px var(--mono); display: grid; place-items: center; box-shadow: 0 0 0 2px var(--canvas); }
+  .fo > .badge.old { background: var(--danger); color: #fff; }
+  .fo > .badge.tl { top: -8px; left: -8px; } .fo > .badge.tr { top: -8px; right: -8px; }
+  .focus-notes { display: flex; flex-direction: column; gap: 10px; }
+  .fn { display: grid; grid-template-columns: auto 1fr; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 13.5px; }
+  .fn .k { min-width: 24px; height: 24px; padding: 0 6px; border-radius: var(--radius-full); justify-self: start; background: var(--accent); color: var(--accent-fg); font: 600 12px var(--mono); display: grid; place-items: center; }
+  .fn .k.old { background: var(--danger); color: #fff; }
+  .fn b { font-weight: 600; } .fn p { margin: 2px 0 0; color: var(--ink-2); }
+  .fn code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+  .grid-fo { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+
+  /* names table */
+  .say { font-family: var(--mono); font-size: 12.5px; color: var(--ink); background: var(--surface-2); padding: 6px 9px; border-radius: 8px; display: inline-block; max-width: 420px; line-height: 1.5; }
+  .say.bad { background: var(--danger-soft); }
+  .say.good { background: var(--ok-soft); }
+  td .el { display: inline-flex; align-items: center; gap: 8px; }
+
+  /* motion */
+  .motion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .mstage { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mcell { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: 150px; justify-content: center; }
+  .mcell .cap { font-size: 12.5px; color: var(--ink-2); text-align: center; }
+  .mark { width: 56px; height: 56px; }
+  .mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; }
+  .mark.apart .arc.a { transform: rotate(40deg); transform-origin: 48px 48px; opacity: .8; }
+  .mark.apart .arc.b { transform: rotate(-40deg); transform-origin: 48px 48px; opacity: .8; }
+  .mark.apart .dot { opacity: 0; }
+  .chk { width: 26px; height: 26px; fill: none; stroke: var(--ok); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .chk.broken path { stroke-dasharray: 40; stroke-dashoffset: 40; }
+  .toast { display: inline-flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: var(--radius-full); background: var(--rail); color: var(--rail-fg); font-size: 13px; box-shadow: var(--shadow-pop); }
+  .toast .mark { width: 20px; height: 20px; }
+  .loader.orbit.still { animation: none; }
+  .loader.orbit.still i { animation: none; transform: none; }
+  .loader.orbit.still i:nth-child(2) { transform: translate(-6px, 4px); } .loader.orbit.still i:nth-child(3) { transform: translate(6px, 4px); }
+
+  /* fixes */
+  .fixes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .fix { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 18px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-soft); }
+  .fix .top { display: flex; align-items: center; gap: 8px; }
+  .fix .p { font: 600 11px var(--mono); padding: 2px 7px; border-radius: 6px; background: var(--accent); color: var(--accent-fg); }
+  .fix .p.p1 { background: var(--surface-3); color: var(--ink); }
+  .fix h3 { font-size: 15px; }
+  .fix .who { margin-left: auto; font-size: 12px; color: var(--ink-2); }
+  .fix p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .fix pre { margin: 4px 0 0; font: 12px/1.55 var(--mono); background: var(--surface-2); border-radius: 10px; padding: 10px 12px; color: var(--ink); white-space: pre-wrap; overflow: hidden; }
+  .foot { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 18px; }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- header -->
+  <header class="hd">
+    <svg class="mark" viewBox="0 0 96 96" width="64" height="64" role="img" aria-label="Henosis"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+    <div>
+      <div class="kicker">System · accessibility</div>
+      <h1>Accessibility audit of the key screens</h1>
+      <p class="lede">Four lenses over the session view, the approvals queue, the rail and the plan card, read with the Payments team's work in them: Bo's agent on the invoice PDF for Checkout, Ana rating the proration plan, Dee holding the release gate. Every finding carries its measurement and the fix we propose, so the fixes land as token and markup changes rather than a redesign.</p>
+    </div>
+    <div class="meta">Target <b>WCAG 2.2 AA</b><br>Screens <b>4</b> · Findings <b>16</b><br>Blocking <b>6</b> · Should fix <b>10</b><br>Reviewed with <b>VoiceOver, NVDA</b></div>
+  </header>
+
+  <!-- lenses -->
+  <section class="lenses" aria-label="Summary by lens">
+    <div class="lens"><div class="top"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg><span class="kicker">Contrast</span></div><h3>Three tokens sit under the line</h3><p>Tertiary ink, the amber budget state and the star fill. Dark mode loses the green and red status text too.</p><div class="tally"><span class="tag fail">5 fail</span><span class="tag pass">7 pass</span></div></div>
+    <div class="lens"><div class="top"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg><span class="kicker">Focus order</span></div><h3>Eleven stops to the composer</h3><p>The rail comes first, every star is a tab stop, the drawer does not take focus and nothing lets you skip ahead.</p><div class="tally"><span class="tag fail">2 fail</span><span class="tag warn">3 should fix</span></div></div>
+    <div class="lens"><div class="top"><svg class="ic" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6l-5 4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg><span class="kicker">Screen reader names</span></div><h3>Status is colour only</h3><p>A running dot, a Team pill and a budget bar say nothing; the icon-only send button has no name; approvals arrive in silence.</p><div class="tally"><span class="tag fail">3 fail</span><span class="tag warn">3 should fix</span></div></div>
+    <div class="lens"><div class="top"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span class="kicker">Reduced motion</span></div><h3>One switch, one bug</h3><p>Calm mode and the system setting share a switch, which is right. The blanket <span class="m">animation: none</span> leaves the approval check undrawn.</p><div class="tally"><span class="tag fail">1 fail</span><span class="tag warn">2 should fix</span><span class="tag pass">6 pass</span></div></div>
+  </section>
+
+  <!-- 01 contrast -->
+  <section class="sec">
+    <div class="t"><span class="n">01</span><div><h2>Contrast, measured pair by pair</h2><p>Ratios from the token hex values in <b>tokens.css</b>, light and dark. Text needs 4.5:1 (3:1 at 24px or 19px bold); component boundaries and focus rings need 3:1 against what surrounds them. The proposed values keep the palette's temperature, they only move the ink a step toward the frame.</p></div></div>
+    <table class="wrap">
+      <thead><tr><th style="width:30%">Pair and where it is read</th><th>Light</th><th>Dark</th><th>Verdict</th><th style="width:30%">Proposed</th></tr></thead>
+      <tbody>
+        <tr><td><span class="m">--ink-3</span> on <span class="m">--canvas</span><span class="use">Timestamps, token estimates, the "12.4k tokens" chip, drawer headings</span></td><td class="r"><span class="ratio"><span class="sw" style="background:#FBF7F1;color:#8E94A3">10:42</span><span class="m">2.85</span></span></td><td class="r"><span class="ratio"><span class="sw" style="background:#1C2230;color:#7E8595">10:42</span><span class="m">4.30</span></span></td><td><span class="tag fail">Fails both</span></td><td><span class="pair"><span class="sw" style="background:#FBF7F1;color:#6A7183">#6A7183</span><span class="sw" style="background:#1C2230;color:#9CA3B2">#9CA3B2</span></span><span class="use">4.57 light · 6.28 dark</span></td></tr>
+        <tr><td><span class="m">--warn</span> on <span class="m">--canvas</span><span class="use">"82% of budget" under the meter, awaiting status text</span></td><td class="r"><span class="ratio"><span class="sw" style="background:#FBF7F1;color:#B9792E">82%</span><span class="m">3.37</span></span></td><td class="r"><span class="ratio"><span class="sw" style="background:#1C2230;color:#B9792E">82%</span><span class="m">4.42</span></span></td><td><span class="tag fail">Fails both</span></td><td><span class="pair"><span class="sw" style="background:#FBF7F1;color:#946021">#946021</span><span class="sw" style="background:#1C2230;color:#D8A05A">#D8A05A</span></span><span class="use">4.98 light · 6.89 dark</span></td></tr>
+        <tr><td><span class="m">--ok</span> and <span class="m">--danger</span> on dark canvas<span class="use">"Running", "Blocked", the budget "over" label</span></td><td class="r"><span class="ratio"><span class="sw" style="background:#FBF7F1;color:#4F7D4A">4.51</span><span class="sw" style="background:#FBF7F1;color:#A8463A">5.46</span></span></td><td class="r"><span class="ratio"><span class="sw" style="background:#1C2230;color:#4F7D4A">3.30</span><span class="sw" style="background:#1C2230;color:#A8463A">2.73</span></span></td><td><span class="tag fail">Fails dark</span></td><td><span class="pair"><span class="sw" style="background:#1C2230;color:#7DB577">#7DB577</span><span class="sw" style="background:#1C2230;color:#D77A6D">#D77A6D</span></span><span class="use">Dark only: 6.62 and 5.22</span></td></tr>
+        <tr><td>Star fill <span class="m">--apricot-deep</span>, empty star <span class="m">--surface-3</span>, on <span class="m">--surface</span><span class="use">Plan ratings, release-gate votes (a UI component, 3:1)</span></td><td class="r"><span class="ratio"><span class="sw big" style="background:#FFFFFF;color:#CFA782">★<span style="color:#ECE3D6">★</span></span><span class="m">2.21 · 1.27</span></span></td><td class="r"><span class="ratio"><span class="sw big" style="background:#232B3B;color:#CFA782">★<span style="color:#343E52">★</span></span><span class="m">6.42 · 1.32</span></span></td><td><span class="tag fail">Fails light</span></td><td><span class="pair"><span class="sw big" style="background:#FFFFFF;color:#B4865C">★<span style="color:transparent;-webkit-text-stroke:1.5px #6A7183">★</span></span></span><span class="use">Fill #B4865C (3.23); empty stars drawn as a 1.5px outline in ink-3</span></td></tr>
+        <tr><td>Focus ring: apricot glow at 35% on <span class="m">--canvas</span><span class="use">Every focused control in the design tokens</span></td><td class="r"><span class="ratio"><span class="sw" style="background:#FBF7F1;box-shadow:0 0 0 4px rgba(226,196,166,.35)">&nbsp;</span><span class="m">≈1.2</span></span></td><td class="r"><span class="ratio"><span class="sw" style="background:#1C2230;box-shadow:0 0 0 4px rgba(226,196,166,.35)">&nbsp;</span><span class="m">≈2.0</span></span></td><td><span class="tag fail">Fails both</span></td><td><span class="pair"><span class="sw" style="background:#FBF7F1;outline:2px solid #56352D;outline-offset:2px;box-shadow:0 0 0 5px rgba(226,196,166,.3)">&nbsp;</span></span><span class="use">2px ring in --accent (10.1 light, 9.6 dark) with the apricot halo kept outside it</span></td></tr>
+        <tr><td><span class="m">--ink-2</span> on <span class="m">--canvas</span><span class="use">Secondary text, meta lines, "what it is on"</span></td><td class="r"><span class="ratio"><span class="sw" style="background:#FBF7F1;color:#5B6273">Ana · 10:42</span><span class="m">5.72</span></span></td><td class="r"><span class="ratio"><span class="sw" style="background:#1C2230;color:#B4BAC6">Ana · 10:42</span><span class="m">8.16</span></span></td><td><span class="tag pass">Passes</span></td><td><span class="use">Keep</span></td></tr>
+        <tr><td><span class="m">--accent-fg</span> on <span class="m">--accent</span><span class="use">Every primary action: Approve, Send, Unite</span></td><td class="r"><span class="ratio"><span class="sw" style="background:#56352D;color:#FFF8F1">Approve</span><span class="m">10.27</span></span></td><td class="r"><span class="ratio"><span class="sw" style="background:#E2C4A6;color:#1C2230">Approve</span><span class="m">9.60</span></span></td><td><span class="tag pass">Passes</span></td><td><span class="use">Keep; hover state holds 8.0</span></td></tr>
+        <tr><td>Team pill, chocolate on apricot<span class="use">Rail cards, topbar, the composer toggle</span></td><td class="r"><span class="ratio"><span class="sw" style="background:#E2C4A6;color:#56352D">TEAM</span><span class="m">6.53</span></span></td><td class="r"><span class="ratio"><span class="sw" style="background:#E2C4A6;color:#56352D">TEAM</span><span class="m">6.53</span></span></td><td><span class="tag pass">Passes</span></td><td><span class="use">Keep; the pill is a brand constant</span></td></tr>
+        <tr><td><span class="m">--rail-muted</span> on <span class="m">--rail</span><span class="use">"On invoice PDF", crew names, section labels</span></td><td class="r"><span class="ratio"><span class="sw" style="background:#2A3244;color:#AEB4C2">on pdf</span><span class="m">6.17</span></span></td><td class="r"><span class="ratio"><span class="sw" style="background:#161B26;color:#8E95A5">on pdf</span><span class="m">5.74</span></span></td><td><span class="tag pass">Passes</span></td><td><span class="use">Keep; the rail is the best-read surface in the app</span></td></tr>
+        <tr><td>White on the brand gradient<span class="use">New session button, hero, gate stripe</span></td><td class="r"><span class="ratio"><span class="sw" style="background:linear-gradient(135deg,#2A3244,#56352D);color:#fff">New</span><span class="m">≥ 10.5</span></span></td><td class="r"><span class="ratio"><span class="sw" style="background:linear-gradient(135deg,#2A3244,#56352D);color:#fff">New</span><span class="m">≥ 10.5</span></span></td><td><span class="tag pass">Passes</span></td><td><span class="use">Keep; measured at the lightest stop</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="grid2">
+      <div class="stage"><span class="lbl">plan card · today</span><span class="kicker">Before</span>
+        <div class="plan">
+          <div class="head"><span class="serif">Proration for mid-cycle plan changes</span><span class="pill" style="margin-left:auto">Waits for one rating</span></div>
+          <div class="steps">
+            <div class="pstep done"><span class="n">✓</span><span>Read Checkout's billing cycle rules</span><span class="est">4.1k · 3.8k</span><span></span></div>
+            <div class="pstep running"><span class="n">2</span><span>Add proration lines to the invoice PDF</span><span class="est">≈ 9k</span><span></span></div>
+            <div class="pstep"><span class="n">3</span><span>Tax lines recomputed per prorated line</span><span class="est">≈ 6k</span><span></span></div>
+          </div>
+          <div class="meter"><div class="budget warn"><i style="width:82%"></i></div><div class="row"><span class="faint">12.4k of 15k tokens</span><span class="w">82% of budget</span></div></div>
+          <div style="display:flex;align-items:center;gap:12px"><span class="faint small">Your rating</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span></span><button class="btn primary sm" style="margin-left:auto">Approve</button><button class="btn sm fx-old">Ask to revise</button></div>
+        </div>
+        <p class="why"><b>What a reader meets:</b> the estimates and the budget line sit at 2.85:1, the empty stars at 1.27:1, and the focused button is marked only by a pale glow.</p>
+      </div>
+      <div class="stage after"><span class="lbl">plan card · proposed</span><span class="kicker">After</span>
+        <div class="plan">
+          <div class="head"><span class="serif">Proration for mid-cycle plan changes</span><span class="pill" style="margin-left:auto">Waits for one rating</span></div>
+          <div class="steps">
+            <div class="pstep done"><span class="n">✓</span><span>Read Checkout's billing cycle rules</span><span class="est">4.1k · 3.8k</span><span></span></div>
+            <div class="pstep running"><span class="n">2</span><span>Add proration lines to the invoice PDF</span><span class="est">≈ 9k</span><span></span></div>
+            <div class="pstep"><span class="n">3</span><span>Tax lines recomputed per prorated line</span><span class="est">≈ 6k</span><span></span></div>
+          </div>
+          <div class="meter"><div class="budget warn"><i style="width:82%"></i></div><div class="row"><span class="faint">12.4k of 15k tokens</span><span class="w">82% of budget</span></div></div>
+          <div style="display:flex;align-items:center;gap:12px"><span class="faint small">Your rating</span><span class="stars outline"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span></span><button class="btn primary sm" style="margin-left:auto">Approve</button><button class="btn sm fx-new">Ask to revise</button></div>
+        </div>
+        <p class="why"><b>Same card, three token changes:</b> ink-3 and warn one step darker, stars outlined and filled in a deeper apricot, focus drawn as a chocolate ring with the apricot halo outside it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 focus order -->
+  <section class="sec">
+    <div class="t"><span class="n">02</span><div><h2>Focus order on the session view</h2><p>Tab through "Invoice PDF for Checkout" as Ana, newly joined, wanting to rate Bo's plan. <b>Today it takes eleven stops</b> to reach the composer and the first five of them are the rail. The proposed order is drawn on the screen: red badges are stops that go away, chocolate badges are the order we keep.</p></div></div>
+    <div class="grid-fo">
+      <div class="frag">
+                <aside class="rail" aria-label="Agents">
+          <div class="brand"><svg class="mark" viewBox="0 0 96 96" width="26" height="26" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>Henosis</div>
+          <div class="fo"><button class="new">+ New session</button><span class="badge old tr">2</span></div>
+          <div class="section">Payments <span class="n">3</span></div>
+          <div class="crew"><span class="serif">Invoice rollout</span></div>
+          <div class="fo"><a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Bo's agent</span><span class="pill team">Team</span></div><div class="doing">On <i>invoice PDF for Checkout</i>: adding proration lines</div><div class="foot"><span class="stack"><span class="avatar">A</span><span class="avatar">D</span></span><span>with Ana, Dee</span><span class="mono" style="margin-left:auto;font-size:11px">12.4k</span></div></a><span class="badge old tr">3</span></div>
+          <div class="fo"><a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Cy's agent</span><span class="pill solo">Solo</span></div><div class="doing">On <i>tax lines on the Billing page</i>: waits for approval</div><div class="foot"><span class="mono" style="font-size:11px">8.9k</span></div></a><span class="badge old tr">4</span></div>
+          <div class="fo"><a class="agent" href="#"><div class="head"><span class="dot"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div><div class="doing">Paused on <i>Checkout address form</i></div></a><span class="badge old tr">5</span></div>
+          <div class="me fo"><span class="avatar">A</span><span>Ana</span><span class="badge tr">8</span></div>
+        </aside>
+        <div class="main">
+          <div class="skipbar"><span class="fo"><a class="skip" href="#stream">Skip to the session</a><span class="badge tl" style="left:-12px;top:-9px">1</span></span><span class="faint small" style="margin-left:12px">shown when focused</span></div>
+          <div class="topbar"><div class="title"><span>Invoice PDF for Checkout</span><span class="pill team">Team</span></div><div class="right"><span class="stack"><span class="avatar driver">B</span><span class="avatar">A</span><span class="avatar">D</span></span><span class="fo"><button class="btn sm">Share</button><span class="badge old tr">6</span></span><span class="fo"><button class="btn sm">Details</button><span class="badge tr">7</span></span></div></div>
+          <div class="scroll" id="stream"><div class="column">
+            <div class="msg human"><div class="meta"><span class="who">Bo</span><span>10:12</span></div><div class="text">Add the proration lines to the invoice PDF and keep the tax lines per line, not per total.</div></div>
+            <div class="fo"><div class="plan"><div class="head"><span class="serif">Proration for mid-cycle plan changes</span><span class="pill" style="margin-left:auto">Waits for one rating</span></div>
+              <div style="display:flex;align-items:center;gap:12px"><span class="faint small">Your rating</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span></span><button class="btn primary sm" style="margin-left:auto">Approve</button><button class="btn sm">Ask to revise</button></div></div><span class="badge tl" style="left:-10px">2</span><span class="badge old tr" style="right:40px;top:-8px">7–11</span><span class="badge tr" style="top:-8px">3</span></div>
+            <div class="fo"><div class="notice gate"><div><b>Release gate</b> · <span class="muted">Bo's agent asks to run <span class="mono">stripe prorations --apply</span></span></div><div class="actions"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="small muted">1 of 2 ratings, average 4.0</span><button class="btn primary sm" style="margin-left:auto">Approve</button><button class="btn sm">Reject</button></div></div><span class="badge tl" style="left:-10px">4</span><span class="badge tr">5</span></div>
+          </div></div>
+          <div class="composer-wrap"><div class="composer fo"><div class="input faint">Steer Bo's agent, or say something to the team…</div><div class="bar"><div class="seg"><button class="on">Agent</button><button>Team</button></div><div class="right"><button class="send" aria-label="Send">➤</button></div></div><span class="badge tl" style="left:-10px">6</span></div></div>
+        </div>
+      </div>
+      <div class="focus-notes">
+        <div class="fn"><span class="k">1</span><div><b>A skip link first</b><p>"Skip to the session" lands on the stream. The rail keeps its links, but a keyboard user no longer pays for them on every page.</p></div></div>
+        <div class="fn"><span class="k old">7–11</span><div><b>Stars take one stop, not five</b><p>Each star is a button today. Make the five a <code>radiogroup</code> with roving tabindex: Tab lands on the current value, arrows change it, Space confirms.</p></div></div>
+        <div class="fn"><span class="k">7</span><div><b>Details takes focus and gives it back</b><p>Opening the drawer moves focus to its heading, Escape closes it and returns focus to the button. The rail's Share sheet gets the same.</p></div></div>
+        <div class="fn"><span class="k">6</span><div><b>The composer is reachable by key</b><p>Keep it last in the DOM, but give it <code>/</code> as a shortcut and announce it in the shortcuts sheet. The Agent/Team toggle becomes one stop with arrow keys.</p></div></div>
+        <div class="fn"><span class="k">8</span><div><b>Rail after the stream for readers</b><p>Order the DOM main first, rail second; the visual layout stays. Rail cards stay links with one stop each, numbered after the composer.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 screen reader names -->
+  <section class="sec">
+    <div class="t"><span class="n">03</span><div><h2>What a screen reader hears</h2><p>Read with VoiceOver on Safari and NVDA on Firefox. Left is today's announcement, right is the proposed one. The rule: <b>every live thing that shows colour also says its state</b>, and every name is the same name a teammate would say out loud.</p></div></div>
+    <table class="wrap">
+      <thead><tr><th style="width:24%">Element</th><th style="width:30%">Today</th><th style="width:30%">Proposed</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td><span class="el"><span class="status running">Status dot</span></span><span class="use">Rail cards, topbar, approvals queue</span></td><td><span class="say bad">(nothing)</span></td><td><span class="say good">running</span></td><td>Visually hidden text inside the dot; the colour stays</td></tr>
+        <tr><td><span class="el"><span class="serif">Bo's agent</span> card</span><span class="use">Rail</span></td><td><span class="say bad">Bo's agent, Team, link</span></td><td><span class="say good">Bo's agent, running, on invoice PDF for Checkout, Team with Ana and Dee, 12.4 thousand tokens, link</span></td><td>One <span class="m">aria-label</span> composed by the card; children hidden</td></tr>
+        <tr><td><span class="el"><span class="pill team">Team</span></span><span class="use">Rail, topbar, composer</span></td><td><span class="say bad">Team</span></td><td><span class="say good">Team session with Ana and Dee</span></td><td><span class="m">title</span> is not read; use hidden text</td></tr>
+        <tr><td><span class="el"><span class="budget warn" style="width:80px"><i style="width:82%"></i></span> Budget bar</span><span class="use">Topbar chip, plan card, drawer</span></td><td><span class="say bad">82%</span></td><td><span class="say good">Token budget, 12.4 thousand of 15 thousand, 82 percent, amber</span></td><td><span class="m">role="meter"</span> with <span class="m">aria-valuenow</span>, <span class="m">aria-valuetext</span></td></tr>
+        <tr><td><span class="el"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span></span></span><span class="use">Plan card, release gate, queue</span></td><td><span class="say bad">Rate 4, toggle button, not pressed … (five times)</span></td><td><span class="say good">Your rating, radio group. 3 of 5 stars, selected, 3 of 5</span></td><td><span class="m">radiogroup</span> of five radios; arrow keys move</td></tr>
+        <tr><td><span class="el"><span class="send" style="width:28px;height:28px;font-size:12px">➤</span> Send</span><span class="use">Composer</span></td><td><span class="say bad">button</span></td><td><span class="say good">Send to Bo's agent, button</span> · <span class="say good">Say to the team, button</span></td><td>Name follows the Agent/Team toggle</td></tr>
+        <tr><td><span class="el"><b>Release gate</b> notice</span><span class="use">Stream, inbox, queue</span></td><td><span class="say bad">(arrives silently; found by reading down)</span></td><td><span class="say good">Release gate: Bo's agent asks to run stripe prorations apply. Needs two ratings at 4 or above; Dee rated 4.</span></td><td>Polite live region fed once per notice; the toasts region already exists</td></tr>
+        <tr><td><span class="el"><span class="stack"><span class="avatar driver">B</span><span class="avatar">A</span><span class="avatar">D</span></span> Presence</span><span class="use">Topbar</span></td><td><span class="say bad">B A D</span></td><td><span class="say good">Bo, Ana and Dee are here. Bo is driving.</span></td><td>One sentence on the stack; letters hidden</td></tr>
+        <tr><td><span class="el">Join toast "Ana joins the circle"</span><span class="use">Stream, rail</span></td><td><span class="say good">Ana joins the circle</span></td><td><span class="say good">Ana joins the circle</span></td><td>Already polite; keep. The arcs motion is decorative</td></tr>
+        <tr><td><span class="el"><svg class="mark" viewBox="0 0 96 96" width="20" height="20" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg> The mark</span><span class="use">Rail, onboarding, loaders</span></td><td><span class="say bad">Henosis mark: two arcs, a person's and an agent's… (every time)</span></td><td><span class="say good">Henosis</span> in the brand, nothing elsewhere</td><td><span class="m">aria-hidden</span> on decorative copies; the loader says "Joining…"</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 04 reduced motion -->
+  <section class="sec">
+    <div class="t"><span class="n">04</span><div><h2>Reduced motion and calm mode</h2><p>The brief is right that one switch should turn all of it off, and it does: <b>prefers-reduced-motion</b> and <b>data-motion="calm"</b> share a rule. What the audit checks is what is left on screen when the motion is gone. Each animation needs a rest state that still carries the meaning.</p></div></div>
+    <div class="motion-grid">
+      <div class="mstage">
+        <div class="mcell"><svg class="mark joining" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="cap">Arcs close · motion on</span></div>
+        <div class="mcell"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="cap">Reduced: the closed ring, dot present<br><span class="tag pass" style="margin-top:6px">rest state is the meaning</span></span></div>
+        <div class="mcell"><svg class="chk" viewBox="0 0 24 24" aria-hidden="true"><path class="draw" d="M5 12.5l4.5 4.5L19 7"/></svg><span class="cap">Granted check · motion on</span></div>
+        <div class="mcell"><svg class="chk broken" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><span class="cap">Reduced: the check never appears<br><span class="tag fail" style="margin-top:6px">dashoffset stays at 40</span></span></div>
+        <div class="mcell"><div class="loader orbit"><i></i><i></i><i></i></div><span class="cap">Orbit-converge · motion on</span></div>
+        <div class="mcell"><div class="loader orbit still"><i></i><i></i><i></i></div><span class="cap">Reduced: three dots frozen apart<br><span class="tag warn" style="margin-top:6px">show one dot and "Joining…"</span></span></div>
+      </div>
+      <table class="wrap">
+        <thead><tr><th>Motion</th><th>With motion off, today</th><th>Proposed rest state</th></tr></thead>
+        <tbody>
+          <tr><td>Arcs close (joining)</td><td>Closed ring</td><td><span class="tag pass">Keep</span></td></tr>
+          <tr><td>Granted check draws</td><td>Invisible check</td><td>Set <span class="m">stroke-dashoffset: 0</span> under the reduce rule</td></tr>
+          <tr><td>Orbit-converge loader</td><td>Three dots apart, no progress cue</td><td>One apricot dot plus the word "Joining…"</td></tr>
+          <tr><td>Weave strand (connecting)</td><td>Static gradient bar</td><td>Static bar plus "Reconnecting…" text, which the line already has</td></tr>
+          <tr><td>Shimmer skeleton</td><td>Flat surface-2 blocks</td><td><span class="tag pass">Keep</span></td></tr>
+          <tr><td>Status dot pulse</td><td>Solid dot with halo</td><td><span class="tag pass">Keep</span>, with the hidden "running" text from 03</td></tr>
+          <tr><td>Cards rise, badges pop</td><td>Appear in place</td><td><span class="tag pass">Keep</span></td></tr>
+          <tr><td>Joined avatar ripple</td><td>No ripple</td><td><span class="tag pass">Keep</span>; the toast carries the news</td></tr>
+          <tr><td>Toasts rise, Team pill crossfade</td><td>Appear in place; toasts still time out</td><td>Under reduce, toasts stay until dismissed or 8s, whichever is later</td></tr>
+          <tr><td>Hover transitions on buttons</td><td>Instant</td><td><span class="tag pass">Keep</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 05 fixes -->
+  <section class="sec">
+    <div class="t"><span class="n">05</span><div><h2>Fixes proposed, in order</h2><p>Six blocking fixes land in tokens and one component; the rest are markup. Nothing here changes how a screen looks to a sighted teammate at a glance, except the stars and the focus ring, which get sharper on purpose.</p></div></div>
+    <div class="fixes">
+      <div class="fix"><div class="top"><span class="p">P0</span><h3>Darken ink-3 and warn in both themes</h3><span class="who">tokens.css</span></div><p>Lifts timestamps, estimates, the budget label and drawer headings to AA. Dark gets the green and red fixed too.</p><pre>--ink-3: #6A7183;   --warn: #946021;
+/* dark */ --ink-3: #9CA3B2; --warn: #D8A05A;
+           --ok: #7DB577;    --danger: #D77A6D;</pre></div>
+      <div class="fix"><div class="top"><span class="p">P0</span><h3>Focus is a ring, not a glow</h3><span class="who">tokens.css</span></div><p>The app's tokens already carry <span class="m">--focus-ring</span>; the design tokens still ship the glow. Align them.</p><pre>:focus-visible { outline: 2px solid var(--accent);
+  outline-offset: 2px; box-shadow: 0 0 0 5px var(--apricot-soft); }</pre></div>
+      <div class="fix"><div class="top"><span class="p">P0</span><h3>Stars as one radio group</h3><span class="who">ui.tsx · Stars</span></div><p>Five buttons become five radios with roving tabindex. One tab stop, arrows to choose, and the group names itself "Your rating".</p><pre>&lt;div role="radiogroup" aria-label="Your rating"&gt;
+  &lt;button role="radio" aria-checked tabindex="0|-1"
+    aria-label="3 of 5 stars"&gt;</pre></div>
+      <div class="fix"><div class="top"><span class="p">P0</span><h3>State in words next to every colour</h3><span class="who">ui.tsx · Status, TeamPill, TokenMeter</span></div><p>Hidden text for the dot, a sentence for the pill, <span class="m">role="meter"</span> for the budget bar with a value text in tokens.</p><pre>&lt;span class="status running"&gt;&lt;span class="sr"&gt;running&lt;/span&gt;…
+&lt;div role="meter" aria-valuenow="82"
+  aria-valuetext="12.4k of 15k tokens, 82%, amber"&gt;</pre></div>
+      <div class="fix"><div class="top"><span class="p">P0</span><h3>Approvals and gates announce once</h3><span class="who">SessionView, Approvals</span></div><p>Feed the existing polite toasts region one sentence when a notice arrives, written in the product voice. Never re-announce on re-render.</p><pre>Release gate: Bo's agent asks to run stripe
+prorations --apply. Needs two ratings at 4+.</pre></div>
+      <div class="fix"><div class="top"><span class="p">P0</span><h3>The check draws without motion</h3><span class="who">tokens.css</span></div><p>Under the reduce rule and calm mode, put the stroke at its end state so a granted approval still shows its mark.</p><pre>@media (prefers-reduced-motion: reduce) {
+  .draw { stroke-dashoffset: 0; } }
+:root[data-motion="calm"] .draw { stroke-dashoffset: 0; }</pre></div>
+      <div class="fix"><div class="top"><span class="p p1">P1</span><h3>Skip link, drawer focus, composer key</h3><span class="who">App shell</span></div><p>"Skip to the session" first in the DOM; Details and Share move focus in and return it; <span class="m">/</span> focuses the composer and is listed in the shortcuts sheet.</p></div>
+      <div class="fix"><div class="top"><span class="p p1">P1</span><h3>Names that teammates would say</h3><span class="who">AgentCard, Avatar stack, Send</span></div><p>Compose one label per rail card; one sentence per presence stack; the send button named after the toggle; the mark hidden wherever it is decoration.</p></div>
+      <div class="fix"><div class="top"><span class="p p1">P1</span><h3>Loaders rest with a word</h3><span class="who">Loader</span></div><p>Orbit and weave fall back to a single dot or bar beside "Joining…" or "Reconnecting…", which the Loader's existing <span class="m">role="status"</span> label already reads.</p></div>
+      <div class="fix"><div class="top"><span class="p p1">P1</span><h3>Toasts wait under reduced motion</h3><span class="who">Toasts</span></div><p>With no rise to catch the eye, a toast holds for at least 8s and gains a Dismiss. Approvals never live only in a toast.</p></div>
+    </div>
+    <div class="foot"><span>Henosis · accessibility audit · Payments team screens</span><span>Ratios computed from tokens.css v5 · WCAG 2.2 AA</span></div>
+  </section>
+
+</div>
+</body>
+</html>

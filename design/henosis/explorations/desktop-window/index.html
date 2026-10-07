@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Desktop window</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- the desks: a 1440×900 macOS desktop with the 1280×840 window, then the Windows desk, then the trays ---- */
+  :root {
+    --wall: linear-gradient(165deg, #E9DCCB 0%, #B9A799 55%, #2A3244 100%);
+    --wall-glow: radial-gradient(900px 500px at 78% 92%, rgba(86,53,45,0.45), transparent 65%);
+    --menubar: rgba(251,247,241,0.72); --menubar-fg: #1F2634;
+    --taskbar: rgba(243,243,243,0.92); --taskbar-fg: #1B1B1B; --taskbar-line: rgba(0,0,0,0.08);
+    --flyout: rgba(249,249,249,0.96); --flyout-line: rgba(0,0,0,0.1);
+    --native-menu: rgba(246,243,238,0.9); --native-fg: #1F2634; --native-line: rgba(0,0,0,0.08);
+    --frame-line: rgba(0,0,0,0.22); --frame-hi: rgba(255,255,255,0.35);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --wall: linear-gradient(165deg, #171C27 0%, #2A3244 55%, #4A322C 100%);
+    --wall-glow: radial-gradient(900px 500px at 78% 92%, rgba(226,196,166,0.16), transparent 65%);
+    --menubar: rgba(22,27,38,0.7); --menubar-fg: #F0EAE0;
+    --taskbar: rgba(32,32,32,0.92); --taskbar-fg: #F3F3F3; --taskbar-line: rgba(255,255,255,0.08);
+    --flyout: rgba(44,44,44,0.96); --flyout-line: rgba(255,255,255,0.1);
+    --native-menu: rgba(44,48,58,0.92); --native-fg: #F0EAE0; --native-line: rgba(255,255,255,0.1);
+    --frame-line: rgba(0,0,0,0.6); --frame-hi: rgba(255,255,255,0.12);
+  } }
+  :root[data-theme="dark"] {
+    --wall: linear-gradient(165deg, #171C27 0%, #2A3244 55%, #4A322C 100%);
+    --wall-glow: radial-gradient(900px 500px at 78% 92%, rgba(226,196,166,0.16), transparent 65%);
+    --menubar: rgba(22,27,38,0.7); --menubar-fg: #F0EAE0;
+    --taskbar: rgba(32,32,32,0.92); --taskbar-fg: #F3F3F3; --taskbar-line: rgba(255,255,255,0.08);
+    --flyout: rgba(44,44,44,0.96); --flyout-line: rgba(255,255,255,0.1);
+    --native-menu: rgba(44,48,58,0.92); --native-fg: #F0EAE0; --native-line: rgba(255,255,255,0.1);
+    --frame-line: rgba(0,0,0,0.6); --frame-hi: rgba(255,255,255,0.12);
+  }
+  body { width: 1440px; margin: 0 auto; background: var(--canvas); }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .desk { position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--wall); }
+  .desk .win { position: absolute; left: 80px; width: 1280px; height: 840px; }
+
+  /* ---- macOS: the menubar, then a window whose titlebar is the app's own (hiddenInset traffic lights in the rail) ---- */
+  .menubar { position: absolute; left: 0; right: 0; top: 0; height: 26px; display: flex; align-items: center; gap: 18px; padding: 0 14px 0 16px; background: var(--menubar); color: var(--menubar-fg); backdrop-filter: blur(20px); font: 13px/1 -apple-system, "Instrument Sans", system-ui, sans-serif; z-index: 2; }
+  .menubar b { font-weight: 600; }
+  .menubar .sys { margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 12.5px; }
+  .menubar .apple { width: 14px; height: 14px; }
+  .menubar .tray { position: relative; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 5px; }
+  .menubar .tray.open { background: rgba(127,127,127,0.25); }
+  .menubar .tray svg { width: 16px; height: 16px; }
+  .menubar .tray .att { position: absolute; right: 2px; bottom: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--menubar-fg); }
+  .desk.mac .win { top: 42px; border-radius: 11px; overflow: hidden; box-shadow: 0 0 0 1px var(--frame-line), 0 30px 70px rgba(0,0,0,0.38), 0 2px 8px rgba(0,0,0,0.18); }
+  .desk.mac .win::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px var(--frame-hi); pointer-events: none; }
+  .lights { display: flex; gap: 8px; padding: 4px 8px 10px; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; border: 0.5px solid rgba(0,0,0,0.18); }
+  .lights i:nth-child(1) { background: #FF5F57; } .lights i:nth-child(2) { background: #FEBC2E; } .lights i:nth-child(3) { background: #28C840; }
+  .desk.mac .rail { padding-top: 12px; }
+  .desk.mac .rail .brand { padding-top: 0; }
+
+  /* ---- the window's shell (same client as the web) ---- */
+  .win .shell { height: 100%; }
+  .win .rail { overflow: hidden; gap: 4px; }
+  .rail .brand { padding-bottom: 8px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .brand .wordmark { line-height: 1; }
+  .rail .agent { padding: 7px 12px; gap: 3px; }
+  .rail .section { padding: 10px 10px 3px; }
+  .rail .crew { padding-top: 8px; }
+  .rail .item { padding: 6px 12px; }
+  .rail .search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13px; margin-bottom: 4px; }
+  .rail .search kbd { margin-left: auto; font: 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 1px 5px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 4px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .item svg { opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+
+  .topbar { -webkit-app-region: drag; }
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .status, .topbar .title .pill { font-family: var(--font); }
+  .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font: 12.5px var(--mono); color: var(--ink-2); min-width: 92px; }
+  .tokchip .budget { height: 3px; }
+  .topbar .btn.sm svg { width: 14px; height: 14px; }
+  .btn { white-space: nowrap; }
+
+  .win .main { background: var(--canvas); }
+  .scroll { display: flex; flex-direction: column-reverse; }
+  .scroll .column { flex: none; align-self: center; padding-top: 22px; padding-bottom: 10px; gap: 18px; }
+  .composer-wrap { padding: 6px 24px 14px; }
+  .msg .meta .scope { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+  .msg .meta time { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .msg.human .text { max-width: 92%; padding: 11px 18px; }
+  .msg.human .text .goal-lbl { font-family: var(--serif); font-style: italic; color: var(--accent); margin-right: 6px; }
+  .msg.agent .meta .who { display: inline-flex; align-items: center; gap: 8px; }
+  .msg.agent .text p { margin: 0; }
+  .msg.agent .text code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+  .msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 12px 16px; align-self: flex-start; max-width: 85%; }
+  .msg .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; }
+  .step { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 5px 10px; border-radius: 10px; }
+  .step svg { width: 15px; height: 15px; color: var(--ink-3); margin: 0 auto; }
+  .step .mono { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .mono b { font-weight: 500; color: var(--ink); }
+  .step .r { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .step.ok svg { color: var(--ok); }
+  .step.live { background: var(--apricot-soft); } .step.live .r { color: var(--accent); }
+  .step .livedot { width: 9px; height: 9px; margin: 0 auto; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.6s ease-in-out infinite; }
+
+  .notice { gap: 10px; padding: 14px 18px; }
+  .notice .meta-row { display: flex; align-items: center; gap: 12px; }
+  .notice .meta-row .lbl { font-size: 19px; }
+  .notice .ask { font-size: 15px; }
+  .notice .ask code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+  .notice .risk { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; border-radius: var(--radius-full); padding: 1px 8px; background: var(--danger-soft); color: var(--danger); margin-left: auto; }
+  .notice .votes { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .notice .votes b { font-weight: 500; color: var(--ink); } .notice .votes .q { color: var(--ink-3); }
+  .notice .votes .avatar { width: 22px; height: 22px; font-size: 9.5px; border: 0; }
+  .notice .rating { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+  .notice .rating .lbl { font-size: 12.5px; color: var(--ink-3); display: block; margin-bottom: 2px; }
+  .notice .rating .note { height: 34px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); padding: 0 12px; font: 13.5px var(--font); color: var(--ink-3); display: flex; align-items: center; }
+  .notice .rating .progress { font-size: 12.5px; color: var(--ink-2); text-align: right; line-height: 1.35; }
+  .notice .rating .progress b { display: block; font-family: var(--mono); color: var(--ink); font-weight: 500; }
+  .stars { gap: 2px; } .stars span.on { color: var(--apricot-deep); }
+  .notice .actions .hint { font-size: 12.5px; color: var(--ink-3); margin-left: 4px; }
+  .divider .joined { font-family: var(--serif); font-style: italic; font-size: 13.5px; color: var(--accent); }
+
+  .composer .input { color: var(--ink-3); }
+  .composer .bar .mode { display: inline-flex; align-items: center; gap: 6px; font: 12.5px var(--font); color: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-full); padding: 4px 11px; }
+  .composer .bar .mode .mono { font-size: 12px; color: var(--ink); }
+  .composer .send svg { width: 16px; height: 16px; }
+  .composer-wrap .hint { width: min(var(--col), 100%); margin: 6px auto 0; text-align: center; font-size: 12px; color: var(--ink-3); }
+  .composer-wrap .hint kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+  .status.running::before, .rail .agent .head .dot.running, .step .livedot { animation-delay: 1s; }
+
+  /* ---- Windows 11: a 36px app titlebar carries the caption buttons; the taskbar holds the tray ---- */
+  .desk.w11 { height: 924px; }
+  .desk.w11 .win { top: 20px; left: 40px; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px var(--frame-line), 0 24px 60px rgba(0,0,0,0.4); }
+  .desk.w11 .win .shell { flex: 1; min-height: 0; }
+  .w11bar { height: 36px; flex: none; display: flex; align-items: center; background: var(--rail); color: var(--rail-fg); font: 12.5px/1 "Segoe UI Variable", "Segoe UI", "Instrument Sans", system-ui, sans-serif; -webkit-app-region: drag; }
+  .w11bar .app { display: flex; align-items: center; gap: 8px; padding: 0 12px; width: var(--rail-w); }
+  .w11bar .app svg { width: 16px; height: 16px; }
+  .w11bar .doc { color: var(--rail-muted); display: flex; align-items: center; gap: 6px; padding-left: 20px; }
+  .w11bar .doc b { font-weight: 400; color: var(--rail-fg); }
+  .w11bar .doc .ring { width: 7px; height: 7px; border-radius: 50%; background: #9BC88F; }
+  .w11bar .caps { margin-left: auto; display: flex; height: 100%; }
+  .w11bar .caps span { width: 46px; height: 100%; display: grid; place-items: center; }
+  .w11bar .caps span:hover { background: rgba(255,255,255,0.08); } .w11bar .caps span.close:hover { background: #C42B1C; }
+  .w11bar .caps svg { width: 10px; height: 10px; stroke-width: 1; }
+  .desk.w11 .rail { padding-top: 8px; }
+  .desk.w11 .rail .brand { display: none; }
+  .taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: var(--taskbar); color: var(--taskbar-fg); backdrop-filter: blur(20px); border-top: 1px solid var(--taskbar-line); display: flex; align-items: center; justify-content: center; gap: 4px; font: 12px "Segoe UI Variable", "Segoe UI", "Instrument Sans", system-ui, sans-serif; z-index: 2; }
+  .taskbar .app { width: 40px; height: 40px; border-radius: 6px; display: grid; place-items: center; position: relative; }
+  .taskbar .app.active { background: rgba(127,127,127,0.14); }
+  .taskbar .app.active::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 2px; height: 3px; border-radius: 2px; background: var(--apricot-deep); }
+  .taskbar .app svg { width: 22px; height: 22px; }
+  .taskbar .app .glyph { width: 20px; height: 20px; border-radius: 5px; background: rgba(127,127,127,0.35); }
+  .taskbar .app .badge { position: absolute; right: 5px; top: 5px; min-width: 16px; height: 16px; border-radius: 8px; background: #C42B1C; color: #fff; font-size: 10px; font-weight: 600; display: grid; place-items: center; padding: 0 4px; }
+  .taskbar .corner { position: absolute; right: 12px; top: 0; height: 100%; display: flex; align-items: center; gap: 12px; }
+  .taskbar .corner .ti { position: relative; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 4px; }
+  .taskbar .corner .ti.open { background: rgba(127,127,127,0.25); }
+  .taskbar .corner .ti svg { width: 16px; height: 16px; }
+  .taskbar .corner .ti .att { position: absolute; right: 3px; bottom: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); }
+  .taskbar .corner .clock { text-align: right; line-height: 1.3; font-size: 12px; }
+  .flyout { position: absolute; right: 16px; bottom: 60px; width: 226px; padding: 6px; border-radius: 8px; background: var(--flyout); border: 1px solid var(--flyout-line); box-shadow: 0 8px 24px rgba(0,0,0,0.3); color: var(--taskbar-fg); font: 13px/1 "Segoe UI Variable", "Segoe UI", "Instrument Sans", system-ui, sans-serif; z-index: 3; }
+  .flyout div { padding: 9px 10px; border-radius: 4px; }
+  .flyout div.hover { background: rgba(127,127,127,0.18); }
+  .flyout hr { border: 0; border-top: 1px solid var(--flyout-line); margin: 4px 2px; }
+
+  /* ---- the macOS tray menu, shown beside the Windows flyout on its own strip ---- */
+  .strip { width: 1440px; padding: 36px 80px 44px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 28px; }
+  .strip h2 { grid-column: 1 / -1; font-size: 24px; display: flex; align-items: baseline; gap: 12px; }
+  .strip h2 small { font-family: var(--font); font-size: 13px; color: var(--ink-3); }
+  .strip .card { display: flex; flex-direction: column; gap: 14px; padding: 18px; min-height: 230px; }
+  .strip .card h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .strip .card p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .macmenu { width: 236px; padding: 5px; border-radius: 8px; background: var(--native-menu); border: 1px solid var(--native-line); box-shadow: 0 10px 30px rgba(0,0,0,0.22); color: var(--native-fg); font: 13px/1 -apple-system, "Instrument Sans", system-ui, sans-serif; backdrop-filter: blur(20px); }
+  .macmenu div { padding: 6px 10px; border-radius: 5px; }
+  .macmenu div.hover { background: var(--accent); color: var(--accent-fg); }
+  .macmenu hr { border: 0; border-top: 1px solid var(--native-line); margin: 5px 10px; }
+  .dock { display: inline-flex; align-items: flex-end; gap: 10px; padding: 8px; border-radius: 16px; background: rgba(127,127,127,0.18); border: 1px solid var(--native-line); }
+  .dock .ic-app { width: 52px; height: 52px; border-radius: 12px; background: rgba(127,127,127,0.3); position: relative; }
+  .dock .ic-app.henosis { background: var(--gradient-brand); display: grid; place-items: center; box-shadow: var(--shadow-soft); }
+  .dock .ic-app.henosis svg { width: 36px; height: 36px; }
+  .dock .ic-app .badge { position: absolute; right: -6px; top: -6px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #FF3B30; color: #fff; font: 600 12px -apple-system, "Instrument Sans", sans-serif; display: grid; place-items: center; border: 1.5px solid rgba(255,255,255,0.6); }
+  .dock .ic-app.henosis::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--ink-2); }
+  .toast { width: 340px; display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--native-menu); border: 1px solid var(--native-line); box-shadow: 0 10px 30px rgba(0,0,0,0.22); color: var(--native-fg); font: 13px/1.35 -apple-system, "Instrument Sans", system-ui, sans-serif; backdrop-filter: blur(20px); }
+  .toast .ic-app { width: 36px; height: 36px; border-radius: 9px; background: var(--gradient-brand); display: grid; place-items: center; }
+  .toast .ic-app svg { width: 26px; height: 26px; }
+  .toast b { display: block; font-weight: 600; margin-bottom: 2px; } .toast .when { float: right; font-size: 11px; opacity: .6; }
+  .caption { width: 1440px; padding: 0 80px 36px; font-size: 13px; color: var(--ink-3); }
+  .caption i { font-family: var(--serif); font-size: 14.5px; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ============ macOS · 1440×900 display, the 1280×840 window ============ -->
+<div class="desk mac">
+  <div class="menubar">
+    <svg class="apple" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.8 3-.8s1.8.8 3 .7c1.3 0 2-1.1 2.8-2.3.9-1.3 1.2-2.6 1.3-2.6-.1 0-2.5-.9-2.5-3.7zM14.1 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg>
+    <b>Henosis</b><span>File</span><span>Edit</span><span>View</span><span>Session</span><span>Team</span><span>Window</span><span>Help</span>
+    <div class="sys">
+      <span class="tray" title="Pending approvals · 2, handoffs offered · 1"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" opacity=".55"/><circle cx="48" cy="48" r="9" fill="currentColor"/></svg><i class="att"></i></span>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a6 6 0 0 1 8 0M11 18.5a2 2 0 0 1 2 0"/></svg>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="16" height="8" rx="2"/><path d="M21 11v2"/><rect x="5" y="10" width="11" height="4" fill="currentColor" stroke="none"/></svg>
+      <span>Tue 7 Oct&nbsp; 09:41</span>
+    </div>
+  </div>
+  <div class="win" role="application" aria-label="Henosis window">
+    <div class="shell">
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span class="wordmark">Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search or jump to<kbd>⌘K</kbd></div>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Writing <i>proration.ts</i> · step 3 of 4</div>
+      <div class="foot"><span class="with"><span class="avatar">AN</span> with Bo</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits to <i>run db:migrate</i> · release gate</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana</span><span class="tok">9.1k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Project <span class="n">4 sessions</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>Inbox <span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Approvals <span class="n live">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V9l7-5 7 5v11zM10 20v-6h4v6"/></svg>#billing <span class="n">Cy's agent answered</span></a>
+
+    <div class="me">
+      <span class="avatar driver">AN</span>
+      <span class="meta"><span>Ana</span><span class="role">owner · driving</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header class="topbar" data-drag>
+      <div class="title">
+        <span class="serif">Billing page</span>
+        <span class="status running">Running · turn 7</span>
+        <span class="pill team">Team · with Bo</span>
+        <span class="tokchip" title="9,870 in · 2,530 out · 4,100 cache read"><span>12.4k tokens</span><span class="budget"><i style="width:62%"></i></span></span>
+      </div>
+      <div class="right">
+        <span class="stack"><span class="avatar driver" title="Ana, owner, driving">AN</span><span class="avatar" title="Bo, contributor">BO</span><span class="avatar" title="Cy, contributor">CY</span></span>
+        <button class="btn ghost sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg>Share</button>
+        <button class="btn sm" type="button">Team <span class="faint">3</span></button>
+        <button class="btn sm" type="button">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <section class="column" aria-label="Session stream">
+        <div class="msg human">
+          <div class="meta"><span class="avatar driver">AN</span><span class="who">Ana</span><span class="scope">goal</span><time>09:15</time></div>
+          <div class="text"><span class="goal-lbl">Goal</span>Add proration to the Billing page: the prorated credit as its own line above the tax lines, the invoice PDF in step, Checkout left to Bo.</div>
+        </div>
+
+        <div class="msg agent">
+          <div class="meta"><span class="who"><span class="avatar agent">Bp</span>Billing page</span><span class="faint">turn 7 · step 3 of 4</span><time>09:31</time></div>
+          <div class="text"><p>The credit now has its own line. <code>proration.ts</code> prices the unused days against the old plan and writes the amount above the tax lines, so the invoice PDF reads the same rows.</p></div>
+          <div class="steps">
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>read</b> apps/web/src/billing/Invoice.tsx</span><span class="r">212 lines</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>edit</b> apps/web/src/billing/proration.ts</span><span class="r">+64 −3</span></div>
+            <div class="step live"><span class="livedot"></span><span class="mono"><b>run</b> pnpm test billing/proration</span><span class="r">running · 14s</span></div>
+          </div>
+        </div>
+
+        <div class="notice gate">
+          <div class="meta-row"><span class="serif lbl">Release gate</span><span class="status awaiting">Waits for you · 1 of 2</span><span class="risk">irreversible</span></div>
+          <div class="ask">Checkout asks to <code>run db:migrate</code> on <code>payments-prod</code>, adding <code>proration_cents</code> to invoices.</div>
+          <div class="votes"><span class="avatar">BO</span><b>Bo</b> approved with 4 <span class="q">· “the down migration is in place”</span></div>
+          <div class="rating">
+            <div><span class="lbl">Your rating</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></div>
+            <div class="note">Add a note for the plan's memory</div>
+            <div class="progress"><b>1 / 2</b>held by Ana and Bo</div>
+          </div>
+          <div class="actions"><button class="btn primary" type="button">Approve with 4</button><button class="btn" type="button">Hold</button><span class="hint">The gate opens when both of you approve.</span></div>
+        </div>
+      </section>
+
+    </div>
+    <div class="composer-wrap">
+        <div class="composer">
+          <div class="input">Steer the Billing page, or write to the team…</div>
+          <div class="bar">
+            <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+            <span class="mode">Plan first · <span class="mono">4 steps</span></span>
+            <div class="right"><button class="btn ghost icon sm" type="button" aria-label="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="m21 12-8.5 8.5a5 5 0 0 1-7-7L14 5a3.3 3.3 0 0 1 4.7 4.7L10.5 18a1.7 1.7 0 0 1-2.4-2.4L16 7.7"/></svg></button><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+          </div>
+        </div>
+        <div class="hint"><kbd>⌘ ↵</kbd> sends · <kbd>⌘ K</kbd> jumps · the window closes into the tray</div>
+      </div>
+  </main>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ Windows 11 · the same window with the app titlebar, caption buttons, the taskbar tray ============ -->
+<div class="desk w11">
+  <div class="win" role="application" aria-label="Henosis window, Windows">
+    <div class="w11bar">
+      <div class="app"><svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="8" fill="#E2C4A6"/></svg>Henosis</div>
+      <div class="doc"><i class="ring"></i><b>Billing page</b> · Payments · with Bo</div>
+      <div class="caps">
+        <span aria-label="Minimise"><svg class="ic" viewBox="0 0 10 10"><path d="M0 5h10"/></svg></span>
+        <span aria-label="Maximise"><svg class="ic" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.5"/></svg></span>
+        <span class="close" aria-label="Close"><svg class="ic" viewBox="0 0 10 10"><path d="m0 0 10 10M10 0 0 10"/></svg></span>
+      </div>
+    </div>
+    <div class="shell">
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span class="wordmark">Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search or jump to<kbd>Ctrl K</kbd></div>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Writing <i>proration.ts</i> · step 3 of 4</div>
+      <div class="foot"><span class="with"><span class="avatar">AN</span> with Bo</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits to <i>run db:migrate</i> · release gate</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana</span><span class="tok">9.1k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering <i>tax lines</i> into the PDF layout</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Project <span class="n">4 sessions</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 7l8 6 8-6"/></svg>Inbox <span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Approvals <span class="n live">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 20V9l7-5 7 5v11zM10 20v-6h4v6"/></svg>#billing <span class="n">Cy's agent answered</span></a>
+
+    <div class="me">
+      <span class="avatar driver">AN</span>
+      <span class="meta"><span>Ana</span><span class="role">owner · driving</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header class="topbar" data-drag>
+      <div class="title">
+        <span class="serif">Billing page</span>
+        <span class="status running">Running · turn 7</span>
+        <span class="pill team">Team · with Bo</span>
+        <span class="tokchip" title="9,870 in · 2,530 out · 4,100 cache read"><span>12.4k tokens</span><span class="budget"><i style="width:62%"></i></span></span>
+      </div>
+      <div class="right">
+        <span class="stack"><span class="avatar driver" title="Ana, owner, driving">AN</span><span class="avatar" title="Bo, contributor">BO</span><span class="avatar" title="Cy, contributor">CY</span></span>
+        <button class="btn ghost sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg>Share</button>
+        <button class="btn sm" type="button">Team <span class="faint">3</span></button>
+        <button class="btn sm" type="button">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <section class="column" aria-label="Session stream">
+        <div class="msg human">
+          <div class="meta"><span class="avatar driver">AN</span><span class="who">Ana</span><span class="scope">goal</span><time>09:15</time></div>
+          <div class="text"><span class="goal-lbl">Goal</span>Add proration to the Billing page: the prorated credit as its own line above the tax lines, the invoice PDF in step, Checkout left to Bo.</div>
+        </div>
+
+        <div class="msg agent">
+          <div class="meta"><span class="who"><span class="avatar agent">Bp</span>Billing page</span><span class="faint">turn 7 · step 3 of 4</span><time>09:31</time></div>
+          <div class="text"><p>The credit now has its own line. <code>proration.ts</code> prices the unused days against the old plan and writes the amount above the tax lines, so the invoice PDF reads the same rows.</p></div>
+          <div class="steps">
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>read</b> apps/web/src/billing/Invoice.tsx</span><span class="r">212 lines</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg><span class="mono"><b>edit</b> apps/web/src/billing/proration.ts</span><span class="r">+64 −3</span></div>
+            <div class="step live"><span class="livedot"></span><span class="mono"><b>run</b> pnpm test billing/proration</span><span class="r">running · 14s</span></div>
+          </div>
+        </div>
+
+        <div class="notice gate">
+          <div class="meta-row"><span class="serif lbl">Release gate</span><span class="status awaiting">Waits for you · 1 of 2</span><span class="risk">irreversible</span></div>
+          <div class="ask">Checkout asks to <code>run db:migrate</code> on <code>payments-prod</code>, adding <code>proration_cents</code> to invoices.</div>
+          <div class="votes"><span class="avatar">BO</span><b>Bo</b> approved with 4 <span class="q">· “the down migration is in place”</span></div>
+          <div class="rating">
+            <div><span class="lbl">Your rating</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></div>
+            <div class="note">Add a note for the plan's memory</div>
+            <div class="progress"><b>1 / 2</b>held by Ana and Bo</div>
+          </div>
+          <div class="actions"><button class="btn primary" type="button">Approve with 4</button><button class="btn" type="button">Hold</button><span class="hint">The gate opens when both of you approve.</span></div>
+        </div>
+      </section>
+
+    </div>
+    <div class="composer-wrap">
+        <div class="composer">
+          <div class="input">Steer the Billing page, or write to the team…</div>
+          <div class="bar">
+            <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+            <span class="mode">Plan first · <span class="mono">4 steps</span></span>
+            <div class="right"><button class="btn ghost icon sm" type="button" aria-label="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="m21 12-8.5 8.5a5 5 0 0 1-7-7L14 5a3.3 3.3 0 0 1 4.7 4.7L10.5 18a1.7 1.7 0 0 1-2.4-2.4L16 7.7"/></svg></button><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+          </div>
+        </div>
+        <div class="hint"><kbd>Ctrl ↵</kbd> sends · <kbd>Ctrl K</kbd> jumps · closing hides to the tray</div>
+      </div>
+  </main>
+
+    </div>
+  </div>
+  <div class="flyout" role="menu">
+    <div class="hover">Pending approvals · 2</div>
+    <div>Handoffs offered · 1</div>
+    <hr>
+    <div>Open Henosis</div>
+    <div>Quit Henosis</div>
+  </div>
+  <div class="taskbar">
+    <span class="app"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg></span>
+    <span class="app"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+    <span class="app"><i class="glyph"></i></span>
+    <span class="app active"><svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="8" fill="#E2C4A6"/></svg><i class="badge">3</i></span>
+    <span class="app"><i class="glyph"></i></span>
+    <div class="corner">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 15 5-5 5 5"/></svg>
+      <span class="ti open" title="Henosis · Pending approvals · 2"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" opacity=".55"/><circle cx="48" cy="48" r="9" fill="currentColor"/></svg><i class="att"></i></span>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a6 6 0 0 1 8 0M11 18.5a2 2 0 0 1 2 0"/></svg>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM15 9a4 4 0 0 1 0 6"/></svg>
+      <span class="clock">09:41<br>07/10/2026</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ the tray, the Dock badge and a native notification ============ -->
+<div class="strip">
+  <h2>What lives outside the window <small>tray menu · Dock badge · native notification · the strings are the shell's own</small></h2>
+  <div class="card">
+    <h3>macOS tray menu</h3>
+    <div class="macmenu" role="menu">
+      <div class="hover">Pending approvals · 2</div>
+      <div>Handoffs offered · 1</div>
+      <hr>
+      <div>Open Henosis</div>
+      <div>Quit Henosis</div>
+    </div>
+    <p>A template icon: the ring in the menubar's own colour, a dot in the corner while something waits for you. "Handoffs offered" only appears when there is one. Clicking the first item opens that session by its <span class="mono">henosis://</span> link.</p>
+  </div>
+  <div class="card">
+    <h3>Dock and taskbar badge</h3>
+    <div class="dock">
+      <span class="ic-app"></span><span class="ic-app"></span>
+      <span class="ic-app henosis"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="9" fill="#E2C4A6"/></svg><i class="badge">3</i></span>
+      <span class="ic-app"></span>
+    </div>
+    <p>The badge is approvals plus handoffs awaiting you, never unread chat. On Windows the same count sits on the taskbar button. Closing the window on macOS leaves the app in the Dock and the tray; Quit lives in the tray menu.</p>
+  </div>
+  <div class="card">
+    <h3>Native notification</h3>
+    <div class="toast">
+      <span class="ic-app"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="9" fill="#E2C4A6"/></svg></span>
+      <span><span class="when">now</span><b>Checkout waits for you</b>Release gate · run db:migrate on payments-prod. Bo approved with 4.</span>
+    </div>
+    <p>Sent only while the window is not focused, tagged by the item so a repeat replaces rather than stacks. Clicking lands on the gate notice in the session.</p>
+  </div>
+</div>
+<div class="caption">Above: <i>macOS</i> with hiddenInset traffic lights sitting in the rail and the session's own title row as the drag region; <i>Windows 11</i> with a 36px app titlebar in Dress Blues that carries the document name and the caption buttons, so the rail reads as one navy column from the very top. Both windows are 1280×840, the shell's default.</div>
+
+</body>
+</html>

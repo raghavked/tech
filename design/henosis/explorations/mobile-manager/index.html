@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Henosis · Mobile manager overview</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* Board of four phones (390x844 each): the manager overview on the go. The sentence is the titlebar. */
+:root { --scrim: rgba(42, 50, 68, 0.46); --phone-r: 44px; --gate: linear-gradient(180deg, #2A3244, #56352D); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --scrim: rgba(0, 0, 0, 0.58); } }
+:root[data-theme="dark"] { --scrim: rgba(0, 0, 0, 0.58); }
+html, body { height: auto; }
+body { padding: 36px 40px 40px; }
+.ic { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ic.sm { width: 15px; height: 15px; }
+
+/* board chrome */
+.board-head { display: flex; align-items: flex-end; gap: 28px; margin-bottom: 28px; }
+.board-head h1 { font-size: 40px; }
+.board-head p { margin: 8px 0 0; max-width: 760px; color: var(--ink-2); font-size: 15.5px; }
+.board-head .legend { margin-left: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.board-head .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; }
+.row { display: grid; grid-template-columns: repeat(4, 320px); gap: 24px 20px; justify-content: start; margin-bottom: 8px; }
+.row > div { zoom: .82; }
+.cap { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; font-size: 13.5px; color: var(--ink-2); }
+.cap b { font-family: var(--serif); font-weight: 400; font-size: 18px; color: var(--ink); }
+.cap .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--apricot); color: #56352D; font: 700 11.5px var(--font); margin-right: 8px; vertical-align: 2px; }
+
+/* the phone */
+.phone { position: relative; width: 390px; height: 844px; border-radius: var(--phone-r); overflow: hidden; background: var(--canvas); background-image: var(--canvas-wash); border: 1px solid var(--line); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; color: var(--ink); }
+.phone .home { position: absolute; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: var(--ink); opacity: .7; z-index: 9; }
+.sys { height: 48px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 8px 22px 0; font: 600 14px var(--font); letter-spacing: .01em; }
+.sys .r { display: flex; gap: 7px; align-items: center; }
+.sys .r svg { width: 16px; height: 11px; fill: currentColor; }
+.sys .r i { display: block; width: 24px; height: 11px; border: 1.5px solid currentColor; border-radius: 3.5px; position: relative; opacity: .9; }
+.sys .r i::after { content: ""; position: absolute; left: 2px; top: 2px; bottom: 2px; width: 70%; background: currentColor; border-radius: 1.5px; }
+
+/* navy top block: the rail folded flat, with the sentence as its title */
+.top { flex: none; background: var(--rail); color: var(--rail-fg); padding: 0 12px 14px; position: relative; z-index: 2; }
+.bar { display: flex; align-items: center; gap: 8px; height: 44px; }
+.ib { width: 40px; height: 40px; border-radius: var(--radius); border: 0; background: transparent; color: inherit; display: grid; place-items: center; flex: none; position: relative; padding: 0; cursor: pointer; }
+.ib .n { position: absolute; top: 4px; right: 4px; min-width: 17px; height: 17px; border-radius: 9px; background: var(--apricot); color: #56352D; font: 700 10.5px/17px var(--mono); text-align: center; padding: 0 4px; }
+.bar .title { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+.bar .title .t { font-family: var(--serif); font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .title .s { font-size: 12px; color: var(--rail-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .range { height: 34px; padding: 0 10px 0 12px; border-radius: var(--radius-full); border: 1px solid var(--rail-line); background: var(--rail-2); color: var(--rail-fg); display: flex; align-items: center; gap: 5px; font: 500 12.5px var(--font); white-space: nowrap; }
+.bar .range .ic { width: 14px; height: 14px; color: var(--rail-muted); }
+.sentence { font-family: var(--serif); font-size: 23px; line-height: 1.22; padding: 8px 10px 6px; letter-spacing: -0.005em; text-wrap: pretty; }
+.sentence b { font-weight: 400; color: #fff; }
+.sentence .needs { color: var(--apricot); }
+.sentence .needs::after { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot); margin-left: 7px; vertical-align: 3px; box-shadow: 0 0 0 3px rgba(226,196,166,.25); animation: pulse 1.6s ease-in-out infinite; }
+.sentence .calm { color: #9BC88F; }
+.tags { display: flex; gap: 6px; padding: 4px 10px 0; flex-wrap: wrap; }
+.tags .tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: var(--radius-full); background: var(--rail-2); font: 500 12px var(--font); color: var(--rail-muted); white-space: nowrap; }
+.tags .tag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rail-muted); }
+.tags .tag.running::before { background: #9BC88F; box-shadow: 0 0 0 3px rgba(155,200,143,.22); }
+.tags .tag.awaiting::before { background: #E2B06A; } .tags .tag.blocked::before { background: #E2847A; }
+.tags .tag b { color: var(--rail-fg); font-weight: 600; }
+
+/* the page */
+.phone .scroll { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+.phone .scroll.up > .page { transform: translateY(-926px); }
+.page { padding: 18px 16px 40px; display: flex; flex-direction: column; gap: 22px; }
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec-head { display: flex; align-items: baseline; gap: 8px; }
+.sec-head h2 { font-size: 22px; }
+.sec-head .count { font-family: var(--mono); font-size: 12px; color: #56352D; background: var(--apricot); border-radius: 10px; min-width: 20px; height: 20px; line-height: 20px; text-align: center; padding: 0 6px; align-self: center; }
+.sec-head .more { margin-left: auto; font-size: 13px; color: var(--accent); white-space: nowrap; }
+
+/* needs-you cards */
+.need { display: flex; flex-direction: column; gap: 7px; padding: 13px 14px 12px 18px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); position: relative; overflow: hidden; }
+.need::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
+.need.gate::before { background: var(--gate); } .need.clash::before { background: var(--danger); }
+.need .kind { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.need .kind .ic { width: 14px; height: 14px; }
+.need .kind .ago { margin-left: auto; font-weight: 500; letter-spacing: 0; text-transform: none; font-family: var(--mono); font-size: 11.5px; }
+.need .what { font-family: var(--serif); font-size: 18px; line-height: 1.25; }
+.need .what i { color: var(--accent); }
+.need .why { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+.need .foot { display: flex; align-items: center; gap: 8px; margin-top: 3px; min-width: 0; }
+.need .foot .who { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.need .foot .avatar { width: 22px; height: 22px; font-size: 9px; border-color: var(--surface); }
+.need .foot .btn { margin-left: auto; min-height: 34px; }
+.votes { display: inline-flex; gap: 4px; }
+.votes i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px dashed var(--ink-3); }
+.votes i.on { background: var(--apricot-deep); border: 0; }
+
+/* stat tiles two-up, tokens full width */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px 11px; display: flex; flex-direction: column; gap: 2px; min-width: 0; box-shadow: var(--shadow-soft); }
+.tile.wide { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 12px; }
+.tile .l { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.tile .v { font-family: var(--mono); font-size: 24px; line-height: 1.15; color: var(--ink); font-weight: 500; }
+.tile .d { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.wide .spark { grid-row: 1 / 4; width: 120px; height: 44px; }
+.tile.wide .spark path { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linejoin: round; }
+.tile.wide .spark .wash { fill: var(--accent); opacity: .1; stroke: none; }
+.tile.wide .spark circle { fill: var(--apricot-deep); }
+
+/* bars: one hue, value at the tip */
+.bars { display: flex; flex-direction: column; gap: 9px; }
+.bar-row { display: grid; grid-template-columns: 92px 1fr auto; gap: 10px; align-items: center; font-size: 13.5px; }
+.bar-row .n { font-family: var(--serif); font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-row .n .avatar { width: 20px; height: 20px; font-size: 8px; margin-right: 6px; border-color: var(--canvas); vertical-align: -5px; }
+.bar-row .track { height: 14px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.bar-row .track i { display: block; height: 100%; background: var(--accent); border-radius: 4px 0 0 4px; }
+.bar-row .track i.live { background: var(--accent); position: relative; }
+.bar-row .track i.live::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot-deep); }
+.bar-row .val { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); min-width: 42px; text-align: right; }
+.reading { font-size: 13px; color: var(--ink-2); margin: 0; }
+.reading b { font-weight: 500; color: var(--ink); }
+.seg.sm { align-self: flex-start; }
+.seg.sm button { font-size: 12px; padding: 4px 11px; }
+
+/* plans and gates as rows */
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+.item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 11px 14px; border-top: 1px solid var(--line); align-items: center; }
+.item:first-child { border-top: 0; }
+.item .t { grid-column: 1; grid-row: 1; font-family: var(--serif); font-size: 16.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .s { grid-column: 1; grid-row: 2; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .r { grid-column: 2; grid-row: 1 / 3; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
+.item .r .delta.over { color: var(--warn); } .item .r .delta.under { color: var(--ok); }
+.item .stars { gap: 2px; } .item .stars .st { width: 13px; height: 13px; fill: var(--apricot-deep); }
+.item .stars .st.off { fill: var(--surface-3); }
+.item .gvotes { display: inline-flex; align-items: center; }
+.item .gvotes .avatar { width: 20px; height: 20px; font-size: 8px; border-color: var(--surface); }
+.item .gvotes .avatar + .avatar { margin-left: -5px; }
+.item .gvotes .avatar.empty { background: transparent; border: 1.5px dashed var(--ink-3); }
+.item .tag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 10px; font: 600 11px var(--font); background: var(--surface-3); color: var(--ink-2); }
+.item .tag.wait { background: var(--warn-soft); color: var(--warn); } .item .tag.ok { background: var(--ok-soft); color: var(--ok); }
+.item .stack { margin-top: 2px; }
+.item .stack .avatar { width: 22px; height: 22px; font-size: 8.5px; border-color: var(--surface); }
+.item .stack .avatar + .avatar { margin-left: -6px; }
+.rowlist { display: flex; flex-direction: column; gap: 8px; }
+.crewcard { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
+.crewcard .ring { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--apricot-deep); flex: none; }
+.crewcard .t { font-family: var(--serif); font-size: 16.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crewcard .s { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crewcard .body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.crewcard .mono { font-size: 12px; color: var(--ink-2); }
+
+/* quiet state */
+.quiet { display: flex; align-items: center; gap: 14px; padding: 16px 16px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
+.quiet .mark { width: 44px; height: 44px; flex: none; }
+.quiet .t { font-family: var(--serif); font-size: 18px; line-height: 1.25; }
+.quiet .s { font-size: 13px; color: var(--ink-2); line-height: 1.45; margin-top: 3px; }
+.quiet .s i { font-family: var(--serif); color: var(--accent); }
+.roster { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.member { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.member .avatar { width: 30px; height: 30px; font-size: 11px; border-color: var(--surface); }
+.member .avatar.on { box-shadow: 0 0 0 2px var(--ok); }
+.member .b { min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.member .n { font-family: var(--serif); font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.member .s { font-size: 11.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* the rating sheet */
+.scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 5; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--canvas); border-radius: 28px 28px 0 0; box-shadow: 0 -18px 50px rgba(0,0,0,.22); padding: 10px 18px 36px; display: flex; flex-direction: column; gap: 14px; }
+.sheet .handle { width: 40px; height: 5px; border-radius: 3px; background: var(--ink-3); opacity: .5; margin: 0 auto 4px; }
+.sheet .kind { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.sheet .kind .gbar { width: 18px; height: 4px; border-radius: 2px; background: var(--gradient-brand); }
+.sheet .kind .x { margin-left: auto; color: var(--ink-2); }
+.sheet h2 { font-size: 24px; line-height: 1.2; }
+.sheet h2 i { color: var(--accent); }
+.sheet .why { font-size: 13.5px; color: var(--ink-2); line-height: 1.45; margin: 0; }
+.sheet .change { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); font-size: 13px; }
+.sheet .change .f { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sheet .change .f .mono { font-size: 12.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet .change .f .pm { font-family: var(--mono); font-size: 11.5px; white-space: nowrap; }
+.sheet .change .f .pm b { color: var(--ok); font-weight: 500; } .sheet .change .f .pm s { color: var(--danger); text-decoration: none; }
+.sheet .change .ic { width: 14px; height: 14px; color: var(--ink-3); }
+.rate { display: flex; flex-direction: column; gap: 8px; }
+.rate .lab { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--ink-2); white-space: nowrap; min-width: 0; }
+.rate .lab .ell { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.rate .lab b { font-family: var(--serif); font-weight: 400; font-size: 16px; color: var(--ink); }
+.rate .lab .mono { margin-left: auto; font-size: 12.5px; color: var(--accent); }
+.rate .stars { display: flex; gap: 8px; }
+.rate .stars button { flex: 1; height: 52px; width: auto; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; }
+.rate .stars button .st { width: 24px; height: 24px; fill: var(--surface-3); }
+.rate .stars button.on .st { fill: var(--apricot-deep); }
+.rate .stars button.on { border-color: var(--apricot-deep); background: var(--apricot-soft); }
+.rate .stars button.on.last { box-shadow: var(--glow); }
+.sheet .note { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); font-size: 14px; color: var(--ink); }
+.sheet .note .ph { color: var(--ink-3); }
+.sheet .note .mono { margin-left: auto; font-size: 11.5px; color: var(--ink-3); }
+.sheet .actions { display: flex; gap: 10px; margin-top: 2px; }
+.sheet .actions .btn { min-height: 46px; flex: 1; font-size: 15px; }
+.sheet .actions .btn.ghost { flex: 0 0 auto; padding: 0 18px; }
+.sheet .fine { font-size: 12px; color: var(--ink-3); text-align: center; margin: 0; }
+.sheet .fine b { font-weight: 500; color: var(--ink-2); }
+
+/* the phone is the viewport: show the key screen only */
+@media (max-width: 430px) {
+html, body { height: 100%; overflow: hidden; }
+body { padding: 0; }
+.board-head, .cap, .row > div:not(.key) { display: none; }
+.row { display: block; margin: 0; }
+.row > div { zoom: 1; }
+.phone { width: 100vw; height: 100vh; border-radius: 0; border: 0; box-shadow: none; }
+}
+</style>
+</head>
+<body>
+<svg style="display:none" aria-hidden="true"><symbol id="star" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></symbol></svg>
+
+<header class="board-head">
+<div>
+<h1>Manager overview, on the go</h1>
+<p>The manager's page keeps its one sentence and puts it where the title goes: in the navy top block, the rail folded flat. Below it the sentence unfolds in the order a manager asks on the move: what needs me, where the week went, what was planned and gated, who is in which crew.</p>
+</div>
+<div class="legend">
+<span><i style="background: var(--apricot)"></i>solid apricot: waits for you</span>
+<span><i style="background: var(--apricot-soft); border: 1px solid var(--apricot-deep)"></i>apricot wash: your rating, where you are</span>
+<span><i style="background: var(--accent); box-shadow: inset 0 0 0 1px rgba(226,196,166,.35)"></i>chocolate: the hand, and the only chart hue</span>
+</div>
+</header>
+
+<div class="row">
+
+<!-- 1 · overview, top -->
+<div class="key">
+<div class="phone">
+  <div class="top">
+    <div class="sys"><span>9:41</span><span class="r"><svg viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx=".6"/><rect x="4.3" y="5" width="3" height="6" rx=".6"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".6"/><rect x="13" y="0" width="3" height="11" rx=".6"/></svg><i></i></span></div>
+    <div class="bar">
+      <button class="ib" type="button" aria-label="Menu, 3 things need you"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="n">3</span></button>
+      <div class="title"><span class="t">Payments</span><span class="s">Overview · 8 members · 2 projects</span></div>
+      <button class="range" type="button">7 days<svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    </div>
+    <p class="sentence"><b>4 open sessions</b> across <b>2 projects</b>. <span class="needs">3 things need you.</span></p>
+    <div class="tags"><span class="tag running"><b>2</b> running</span><span class="tag awaiting"><b>1</b> awaiting approval</span><span class="tag blocked"><b>1</b> blocked</span></div>
+  </div>
+  <div class="scroll"><div class="page">
+
+    <section class="sec" aria-label="Needs you">
+      <div class="sec-head"><h2>Needs you</h2><span class="count">3</span><a class="more" href="#">Approvals queue</a></div>
+      <article class="need gate">
+        <div class="kind"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V8l8-5 8 5v12"/><path d="M9 20v-6h6v6"/></svg>Release gate<span class="ago">14 min</span></div>
+        <div class="what">Checkout deploy wants to ship <i>checkout-v2</i> to production.</div>
+        <div class="why">Two contributors at 4+. Ana gave 4; the gate waits for one more voice from someone who consumes the code.</div>
+        <div class="foot"><span class="who"><span class="avatar agent">B</span>Bo's agent · Checkout</span><span class="votes" aria-label="1 of 2 ratings"><i class="on"></i><i></i></span><button class="btn primary sm" type="button">Rate</button></div>
+      </article>
+      <article class="need">
+        <div class="kind"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>Plan<span class="ago">32 min</span></div>
+        <div class="what">The <i>Invoice PDF</i> plan waits for two ratings.</div>
+        <div class="why">Five steps, 38k tokens estimated. Plan approval needs two ratings averaging 4.</div>
+        <div class="foot"><span class="who"><span class="avatar agent">A</span>Ana's agent · Billing page</span><span class="votes" aria-label="0 of 2 ratings"><i></i><i></i></span><button class="btn primary sm" type="button">Rate</button></div>
+      </article>
+      <article class="need clash">
+        <div class="kind"><svg class="ic" viewBox="0 0 24 24"><path d="M8 4 4 12l4 8M16 4l4 8-4 8"/><path d="M10 12h4"/></svg>Contention<span class="ago">1 h</span></div>
+        <div class="what">Cy's agent and Dee's agent both claim <i>tax lines</i>.</div>
+        <div class="why">The lead resolves. The loser's claims release and its session pauses on the file.</div>
+        <div class="foot"><span class="who"><span class="stack"><span class="avatar agent">C</span><span class="avatar agent">D</span></span>Checkout</span><button class="btn sm" type="button">Resolve</button></div>
+      </article>
+    </section>
+
+    <section class="sec" aria-label="The week">
+      <div class="sec-head"><h2>Where the week went</h2></div>
+      <div class="tiles">
+        <div class="tile wide">
+          <span class="l">Tokens</span><span class="v">212k</span><span class="d">131k in · 81k out · cache reads not counted</span>
+          <svg class="spark" viewBox="0 0 120 44" aria-label="Tokens per day, 7 days">
+            <path class="wash" d="M4 34 L22 28 L40 31 L58 18 L76 22 L94 12 L116 15 L116 44 L4 44 Z"/>
+            <path d="M4 34 L22 28 L40 31 L58 18 L76 22 L94 12 L116 15"/>
+            <circle cx="116" cy="15" r="3"/>
+          </svg>
+        </div>
+        <div class="tile"><span class="l">Agents</span><span class="v">4</span><span class="d">3 in teams · 1 solo</span></div>
+        <div class="tile"><span class="l">Plans</span><span class="v">7</span><span class="d">5 approved · 1 revised · 1 waits</span></div>
+        <div class="tile"><span class="l">Release gates</span><span class="v">2</span><span class="d">1 granted · 1 waits</span></div>
+        <div class="tile"><span class="l">Members</span><span class="v">8</span><span class="d">4 people · 4 agents</span></div>
+      </div>
+    </section>
+
+    <section class="sec" aria-label="Tokens by project">
+      <div class="sec-head"><h2>Tokens by</h2><div class="seg sm"><button class="on" type="button">Project</button><button type="button">Person</button><button type="button">Agent</button></div></div>
+      <div class="bars">
+        <div class="bar-row"><span class="n">Checkout</span><span class="track"><i class="live" style="width: 100%"></i></span><span class="val">128k</span></div>
+        <div class="bar-row"><span class="n">Billing page</span><span class="track"><i style="width: 66%"></i></span><span class="val">84k</span></div>
+      </div>
+      <p class="reading"><b>Checkout</b> took 60% of the week, most of it on proration.</p>
+    </section>
+
+  </div></div>
+  <span class="home"></span>
+</div>
+<p class="cap"><b><span class="n">1</span>The sentence is the title</b><span>The navy block carries the sentence, the status tags and the range. The three cards under it are the sentence unfolded; each has one action.</span></p>
+</div>
+
+<!-- 2 · overview, scrolled -->
+<div>
+<div class="phone">
+  <div class="top">
+    <div class="sys"><span>9:41</span><span class="r"><svg viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx=".6"/><rect x="4.3" y="5" width="3" height="6" rx=".6"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".6"/><rect x="13" y="0" width="3" height="11" rx=".6"/></svg><i></i></span></div>
+    <div class="bar">
+      <button class="ib" type="button" aria-label="Menu, 3 things need you"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="n">3</span></button>
+      <div class="title"><span class="t">Payments</span><span class="s">4 open · <span style="color:var(--apricot)">3 need you</span> · 212k this week</span></div>
+      <button class="range" type="button">7 days<svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    </div>
+  </div>
+  <div class="scroll"><div class="page">
+
+    <section class="sec" aria-label="Tokens by person">
+      <div class="sec-head"><h2>Tokens by</h2><div class="seg sm"><button type="button">Project</button><button class="on" type="button">Person</button><button type="button">Agent</button></div></div>
+      <div class="bars">
+        <div class="bar-row"><span class="n"><span class="avatar">AN</span>Ana</span><span class="track"><i style="width: 100%"></i></span><span class="val">71k</span></div>
+        <div class="bar-row"><span class="n"><span class="avatar">BO</span>Bo</span><span class="track"><i class="live" style="width: 82%"></i></span><span class="val">58k</span></div>
+        <div class="bar-row"><span class="n"><span class="avatar">CY</span>Cy</span><span class="track"><i style="width: 69%"></i></span><span class="val">49k</span></div>
+        <div class="bar-row"><span class="n"><span class="avatar">DE</span>Dee</span><span class="track"><i style="width: 48%"></i></span><span class="val">34k</span></div>
+      </div>
+      <p class="reading"><b>Ana</b> spent the most, across two sessions; the apricot tip marks a session running now.</p>
+    </section>
+
+    <section class="sec" aria-label="Plans">
+      <div class="sec-head"><h2>Plans</h2><span class="count" style="background: var(--surface-3); color: var(--ink-2)">7</span><a class="more" href="#">All plans</a></div>
+      <div class="list">
+        <div class="item"><span class="t">Invoice PDF</span><span class="s">Ana's agent · 5 steps · est 38k</span><span class="r"><span class="tag wait">waits for 2 ratings</span><span>—</span></span></div>
+        <div class="item"><span class="t">Checkout proration</span><span class="s">Bo's agent · 6 steps · est 42k</span><span class="r"><span class="stars"><svg class="st"><use href="#star"/></svg><svg class="st"><use href="#star"/></svg><svg class="st"><use href="#star"/></svg><svg class="st"><use href="#star"/></svg><svg class="st off"><use href="#star"/></svg></span><span>58k <span class="delta over">+38%</span></span></span></div>
+        <div class="item"><span class="t">Tax lines</span><span class="s">Cy's agent · 4 steps · est 21k</span><span class="r"><span class="stars"><svg class="st"><use href="#star"/></svg><svg class="st"><use href="#star"/></svg><svg class="st"><use href="#star"/></svg><svg class="st"><use href="#star"/></svg><svg class="st"><use href="#star"/></svg></span><span>17k <span class="delta under">under</span></span></span></div>
+        <div class="item"><span class="t">Tax rate lookup</span><span class="s">Dee's agent · 3 steps · revised once</span><span class="r"><span class="stars"><svg class="st"><use href="#star"/></svg><svg class="st"><use href="#star"/></svg><svg class="st"><use href="#star"/></svg><svg class="st off"><use href="#star"/></svg><svg class="st off"><use href="#star"/></svg></span><span>12k <span class="delta under">under</span></span></span></div>
+      </div>
+    </section>
+
+    <section class="sec" aria-label="Release gates">
+      <div class="sec-head"><h2>Release gates</h2></div>
+      <div class="list">
+        <div class="item"><span class="t">checkout-v2 → production</span><span class="s mono" style="font-family: var(--mono); font-size: 12px">2 contributors at 4+</span><span class="r"><span class="gvotes"><span class="avatar">AN</span><span class="avatar empty"></span></span><span class="tag wait">1 of 2</span></span></div>
+        <div class="item"><span class="t">invoice-pdf-layout → main</span><span class="s" style="font-family: var(--mono); font-size: 12px">2 contributors at 4+ · 41 min</span><span class="r"><span class="gvotes"><span class="avatar">AN</span><span class="avatar">CY</span></span><span class="tag ok">granted</span></span></div>
+      </div>
+      <p class="reading">Gate health: second vote arrives in <b>38 min</b> on median.</p>
+    </section>
+
+    <section class="sec" aria-label="Crews">
+      <div class="sec-head"><h2>Crews</h2><a class="more" href="#">Groups 2</a></div>
+      <div class="rowlist">
+        <div class="crewcard"><span class="ring"></span><span class="body"><span class="t">Invoice rollout</span><span class="s">Ana's and Cy's agents · Ana has the baton</span></span><span class="mono">96k</span></div>
+        <div class="crewcard"><span class="ring"></span><span class="body"><span class="t">Checkout proration</span><span class="s">Bo's agent · solo · Dee watching</span></span><span class="mono">58k</span></div>
+      </div>
+    </section>
+
+  </div></div>
+  <span class="home"></span>
+</div>
+<p class="cap"><b><span class="n">2</span>Further down the sentence</b><span>Once the sentence scrolls away, the bar keeps its three figures. Bars in one hue, value at the tip; plans with stars and estimate against actual; gates with votes.</span></p>
+</div>
+
+<!-- 3 · rate a gate -->
+<div>
+<div class="phone">
+  <div class="top">
+    <div class="sys"><span>9:41</span><span class="r"><svg viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx=".6"/><rect x="4.3" y="5" width="3" height="6" rx=".6"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".6"/><rect x="13" y="0" width="3" height="11" rx=".6"/></svg><i></i></span></div>
+    <div class="bar">
+      <button class="ib" type="button" aria-label="Menu, 3 things need you"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="n">3</span></button>
+      <div class="title"><span class="t">Payments</span><span class="s">Overview · 8 members · 2 projects</span></div>
+      <button class="range" type="button">7 days<svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    </div>
+    <p class="sentence"><b>4 open sessions</b> across <b>2 projects</b>. <span class="needs">3 things need you.</span></p>
+    <div class="tags"><span class="tag running"><b>2</b> running</span><span class="tag awaiting"><b>1</b> awaiting approval</span><span class="tag blocked"><b>1</b> blocked</span></div>
+  </div>
+  <div class="scroll"><div class="page">
+    <section class="sec" aria-label="Needs you">
+      <div class="sec-head"><h2>Needs you</h2><span class="count">3</span><a class="more" href="#">Approvals queue</a></div>
+      <article class="need gate">
+        <div class="kind"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V8l8-5 8 5v12"/><path d="M9 20v-6h6v6"/></svg>Release gate<span class="ago">14 min</span></div>
+        <div class="what">Checkout deploy wants to ship <i>checkout-v2</i> to production.</div>
+      </article>
+    </section>
+  </div></div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <span class="handle"></span>
+    <div class="kind"><span class="gbar"></span>Release gate · Checkout<svg class="ic x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></div>
+    <h2>Ship <i>checkout-v2</i> to production</h2>
+    <p class="why">Bo's agent finished the proration rollout. Ana gave 4 at 9:27. Your rating is the second voice; the gate opens at two contributors averaging 4 or more.</p>
+    <div class="change">
+      <div class="f"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="mono">checkout/proration.ts</span><span class="pm"><b>+84</b> <s>−31</s></span></div>
+      <div class="f"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="mono">checkout/tax-lines.ts</span><span class="pm"><b>+22</b> <s>−6</s></span></div>
+      <div class="f"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg><span class="mono">invoice/pdf.test.ts</span><span class="pm"><b>+40</b></span></div>
+      <div class="f" style="color: var(--ink-2)"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg><span>47 tests pass · proration against 12 invoices</span></div>
+    </div>
+    <div class="rate">
+      <div class="lab"><b>Your rating</b><span class="ell">as a contributor who consumes the code</span><span class="mono">4 · ships</span></div>
+      <div class="stars" role="radiogroup" aria-label="Rate 1 to 5">
+        <button class="on" type="button"><svg class="st"><use href="#star"/></svg></button><button class="on" type="button"><svg class="st"><use href="#star"/></svg></button><button class="on" type="button"><svg class="st"><use href="#star"/></svg></button><button class="on last" type="button"><svg class="st"><use href="#star"/></svg></button><button type="button"><svg class="st"><use href="#star"/></svg></button>
+      </div>
+    </div>
+    <div class="note"><span class="ph">Why this rating, in a line</span><span class="mono">optional</span></div>
+    <div class="actions"><button class="btn ghost" type="button">Later</button><button class="btn primary" type="button">Approve at 4</button></div>
+    <p class="fine">With Ana's 4 the gate opens and <b>Bo's agent ships</b>. Your name goes on the release.</p>
+  </div>
+  <span class="home"></span>
+</div>
+<p class="cap"><b><span class="n">3</span>Rate from the phone</b><span>Rate on a need-you card opens the sheet: what, why, the files, five big stars, the line that says what the rating does. Approve is the only chocolate.</span></p>
+</div>
+
+<!-- 4 · quiet -->
+<div>
+<div class="phone">
+  <div class="top">
+    <div class="sys"><span>9:41</span><span class="r"><svg viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx=".6"/><rect x="4.3" y="5" width="3" height="6" rx=".6"/><rect x="8.6" y="2.5" width="3" height="8.5" rx=".6"/><rect x="13" y="0" width="3" height="11" rx=".6"/></svg><i></i></span></div>
+    <div class="bar">
+      <button class="ib" type="button" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title"><span class="t">Payments</span><span class="s">Overview · 8 members · 2 projects</span></div>
+      <button class="range" type="button">Today<svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    </div>
+    <p class="sentence"><b>3 open sessions</b> across <b>2 projects</b>. <span class="calm">Nothing needs you right now.</span></p>
+    <div class="tags"><span class="tag running"><b>3</b> running</span></div>
+  </div>
+  <div class="scroll"><div class="page">
+
+    <section class="sec" aria-label="Needs you">
+      <div class="sec-head"><h2>Needs you</h2></div>
+      <div class="quiet">
+        <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        <div><div class="t">Nothing waiting.</div><div class="s">Bo's agent is on <i>proration</i>, Ana's agent is writing the <i>invoice PDF</i>. You will hear when a plan or a gate wants a rating.</div></div>
+      </div>
+    </section>
+
+    <section class="sec" aria-label="Today">
+      <div class="sec-head"><h2>Where today went</h2></div>
+      <div class="tiles">
+        <div class="tile wide">
+          <span class="l">Tokens</span><span class="v">31k</span><span class="d">19k in · 12k out · since 7:00</span>
+          <svg class="spark" viewBox="0 0 120 44" aria-label="Tokens per hour, today">
+            <path class="wash" d="M4 40 L22 38 L40 30 L58 32 L76 20 L94 24 L116 10 L116 44 L4 44 Z"/>
+            <path d="M4 40 L22 38 L40 30 L58 32 L76 20 L94 24 L116 10"/>
+            <circle cx="116" cy="10" r="3"/>
+          </svg>
+        </div>
+        <div class="tile"><span class="l">Agents</span><span class="v">3</span><span class="d">2 in a team · 1 solo</span></div>
+        <div class="tile"><span class="l">Plans and gates</span><span class="v">3</span><span class="d">2 approved · 1 granted</span></div>
+      </div>
+    </section>
+
+    <section class="sec" aria-label="Members and agents">
+      <div class="sec-head"><h2>Members and agents</h2><a class="more" href="#">Roster</a></div>
+      <div class="roster">
+        <div class="member"><span class="avatar on">AN</span><span class="b"><span class="n">Ana</span><span class="s">lead · 71k</span></span></div>
+        <div class="member"><span class="avatar agent">A</span><span class="b"><span class="n">Ana's agent</span><span class="s">running · Invoice rollout</span></span></div>
+        <div class="member"><span class="avatar on">BO</span><span class="b"><span class="n">Bo</span><span class="s">driving · 58k</span></span></div>
+        <div class="member"><span class="avatar agent">B</span><span class="b"><span class="n">Bo's agent</span><span class="s">running · proration</span></span></div>
+        <div class="member"><span class="avatar on">CY</span><span class="b"><span class="n">Cy</span><span class="s">49k</span></span></div>
+        <div class="member"><span class="avatar agent">C</span><span class="b"><span class="n">Cy's agent</span><span class="s">running · tax lines</span></span></div>
+        <div class="member"><span class="avatar">DE</span><span class="b"><span class="n">Dee</span><span class="s">away 2 h · 34k</span></span></div>
+        <div class="member"><span class="avatar agent">D</span><span class="b"><span class="n">Dee's agent</span><span class="s">paused · solo</span></span></div>
+      </div>
+    </section>
+
+  </div></div>
+  <span class="home"></span>
+</div>
+<p class="cap"><b><span class="n">4</span>Nothing needs you</b><span>The quiet state: the ring is closed, the sentence turns green, the badge leaves the menu. Today's figures and the roster, people and agents in the same grid.</span></p>
+</div>
+
+</div>
+
+</body>
+</html>

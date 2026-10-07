@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Henosis · Invoice PDF on Billing</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* Mobile session, 390x844. One column, the phone is the viewport. */
+  html, body { height: 100%; overflow: hidden; }
+  body { display: flex; flex-direction: column; font-size: 15px; }
+  .ic { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* status bar + top bar, one navy block so the frame reads as the rail folded flat */
+  .top { flex: none; background: var(--rail); color: var(--rail-fg); padding: 0 12px 10px; box-shadow: 0 1px 0 var(--rail-line); position: relative; z-index: 2; }
+  .sys { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 0; font: 600 14px var(--font); letter-spacing: 0.01em; }
+  .sys .r { display: flex; gap: 6px; align-items: center; }
+  .sys .r i { display: block; width: 24px; height: 11px; border: 1.5px solid currentColor; border-radius: 3.5px; position: relative; opacity: .9; }
+  .sys .r i::after { content: ""; position: absolute; left: 2px; top: 2px; bottom: 2px; width: 70%; background: currentColor; border-radius: 1.5px; }
+  .bar { display: flex; align-items: center; gap: 8px; height: 44px; }
+  .bar .ib { width: 40px; height: 40px; border-radius: var(--radius); border: 0; background: transparent; color: var(--rail-fg); display: grid; place-items: center; flex: none; position: relative; }
+  .bar .ib .n { position: absolute; top: 5px; right: 5px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--apricot); color: #56352D; font: 700 10px/16px var(--font); text-align: center; padding: 0 4px; }
+  .bar .title { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+  .bar .title .t { font-family: var(--serif); font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar .title .s { font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
+  .bar .title .s b { font-weight: 500; color: #9BC88F; display: inline-flex; align-items: center; gap: 5px; }
+  .bar .title .s b::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #9BC88F; box-shadow: 0 0 0 3px rgba(155,200,143,.25); animation: pulse 1.6s ease-in-out infinite; }
+  .bar .team { height: 40px; padding: 0 10px 0 6px; border-radius: var(--radius-full); border: 1px solid var(--rail-line); background: var(--rail-active); color: var(--rail-fg); display: flex; align-items: center; gap: 6px; font: 500 13px var(--font); flex: none; }
+  .bar .team .stack .avatar { width: 24px; height: 24px; font-size: 10px; border-color: var(--rail); }
+  /* the strip under the title: team pill, tokens, who is here */
+  .strip { display: flex; align-items: center; gap: 8px; padding: 6px 2px 0; overflow: hidden; }
+  .strip .pill { height: 24px; }
+  .strip .tok { font-family: var(--mono); font-size: 12px; color: var(--rail-muted); display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; white-space: nowrap; }
+  .strip .tok .budget { height: 3px; background: var(--rail-2); width: 84px; }
+  .strip .me { font-size: 12px; color: var(--rail-muted); white-space: nowrap; margin-left: auto; }
+
+  /* the stream: anchored to the latest, so the thing that needs you sits above the composer */
+  .scroll { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column-reverse; }
+  .column { width: 100%; padding: 18px 16px 12px; gap: 20px; }
+  .msg .meta { font-size: 12.5px; }
+  .msg .meta .who { font-size: 15.5px; }
+  .msg .meta .time { margin-left: auto; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .msg.human .text { max-width: 100%; padding: 12px 15px; font-size: 14.5px; }
+  .msg.human .scope { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: var(--radius-full); background: var(--surface-2); font: 600 11px var(--font); color: var(--ink-2); letter-spacing: .03em; }
+  .msg.agent .text { font-size: 15px; }
+  .msg.agent .text p { margin: 0 0 8px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 11px 14px; font-size: 14.5px; }
+  .avatar { width: 24px; height: 24px; font-size: 10px; }
+  .steps { gap: 0; }
+  .step { font-size: 13px; padding: 5px 0; min-width: 0; }
+  .step .mono { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+  .step .r { margin-left: auto; color: var(--ink-3); font-size: 12px; white-space: nowrap; }
+  .step .ic { width: 15px; height: 15px; color: var(--ink-3); }
+  .step.ok .ic { color: var(--ok); }
+  .step.wait .ic { color: var(--warn); }
+
+  /* plan, folded: a one-line ledger on a phone */
+  .planline { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); font-size: 13.5px; }
+  .planline .serif { font-size: 16px; }
+  .planline .dots { display: flex; gap: 4px; margin-left: auto; }
+  .planline .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+  .planline .dots i.now { background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
+  .planline .dots i.todo { background: var(--surface-3); }
+  .planline .chev { color: var(--ink-3); }
+
+  /* release gate, sized for a thumb */
+  .notice { padding: 14px 14px 14px 18px; gap: 10px; }
+  .notice .h { display: flex; align-items: center; gap: 8px; }
+  .notice .h .serif { font-size: 18px; }
+  .notice .h .pill { margin-left: auto; }
+  .pill.irr { background: var(--danger-soft); color: var(--danger); }
+  .notice .ask { font-size: 14px; line-height: 1.5; }
+  .notice .ask code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+  .notice .cmd { font-family: var(--mono); font-size: 12px; color: var(--rail-fg); background: var(--rail); padding: 9px 12px; border-radius: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vote { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .vote .st { font-family: var(--mono); font-size: 12px; color: var(--apricot-deep); letter-spacing: 2px; }
+  .vote .note { color: var(--ink-3); font-style: italic; font-family: var(--serif); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .rate { display: flex; flex-direction: column; gap: 8px; padding: 10px 0 2px; border-top: 1px solid var(--line); }
+  .rate .lab { font-size: 12.5px; color: var(--ink-2); display: flex; justify-content: space-between; }
+  .rate .lab .cur { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 15px; }
+  .stars.big { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .stars.big button { width: auto; height: 48px; border-radius: 12px; background: var(--surface-2); color: var(--ink-3); opacity: .55; font-size: 26px; display: grid; place-items: center; }
+  .stars.big button.on, .stars.big button.pick { opacity: 1; }
+  .stars.big button.on { background: var(--apricot-soft); color: var(--apricot-deep); }
+  .stars.big button.pick { background: var(--apricot); color: #56352D; box-shadow: var(--glow); }
+  .rate .input { border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 13.5px; color: var(--ink-3); background: var(--surface); }
+  .progress { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ink-2); }
+  .progress .segs { display: flex; gap: 4px; flex: 1; }
+  .progress .segs i { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-3); }
+  .progress .segs i.on { background: var(--apricot-deep); }
+  .notice .actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .notice .actions .btn { min-height: 46px; font-size: 15px; }
+  .notice .actions .btn .k { font-family: var(--mono); font-size: 12px; opacity: .8; }
+
+  /* composer, with the Agent/Team toggle at the thumb */
+  .composer-wrap { flex: none; padding: 10px 12px 0; background: linear-gradient(to top, var(--canvas) 60%, transparent); }
+  .composer { padding: 10px 10px 8px 14px; gap: 8px; border-radius: 20px; }
+  .composer .input { font-size: 15px; color: var(--ink-3); min-height: 22px; }
+  .composer .bar { height: auto; }
+  .seg button { padding: 6px 13px; font-size: 13px; }
+  .scopechip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: var(--radius-full); background: var(--surface-2); font: 500 12.5px var(--font); color: var(--ink-2); }
+  .send { width: 38px; height: 38px; }
+  .home { flex: none; height: 30px; display: grid; place-items: center; background: var(--canvas); }
+  .home i { width: 134px; height: 5px; border-radius: 3px; background: var(--ink); opacity: .85; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .msg.human .text { background: var(--surface-2); } }
+  :root[data-theme="dark"] .msg.human .text { background: var(--surface-2); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="sys" aria-hidden="true">
+    <span>14:32</span>
+    <span class="r"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M4 16h2v4H4zM9 12h2v8H9zM14 8h2v12h-2zM19 4h2v16h-2z" fill="currentColor" stroke="none"/></svg><i></i></span>
+  </div>
+  <div class="bar">
+    <button class="ib" aria-label="Agents rail">
+      <svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <span class="n">3</span>
+    </button>
+    <div class="title">
+      <div class="t">Invoice PDF on Billing</div>
+      <div class="s"><b>Running</b><span>· turn 7</span><span>· Ana drives</span></div>
+    </div>
+    <button class="team" aria-label="Team panel: Ana, Bo, Cy">
+      <span class="stack"><span class="avatar driver">An</span><span class="avatar">Bo</span><span class="avatar">Cy</span></span>
+      Team
+    </button>
+  </div>
+  <div class="strip">
+    <span class="pill team"><svg class="ic" style="width:12px;height:12px;stroke-width:2.2" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><circle cx="16" cy="9" r="2.6"/><path d="M3.5 19c.5-3.5 3-5 5.5-5s5 1.5 5.5 5M14.5 19c.3-2.6 2-4 3.5-4s2.5 1.4 2.5 4"/></svg>Team · with Bo</span>
+    <span class="tok"><span>12.4k / 20k</span><span class="budget"><i style="width:62%"></i></span></span>
+    <span class="me"><span class="serif" style="font-size:14px;color:var(--apricot)">Invoice rollout</span> · Payments</span>
+  </div>
+</header>
+
+<main class="scroll">
+  <div class="column">
+
+    <div class="msg human">
+      <div class="meta"><span class="avatar driver">An</span><span class="who">Ana</span><span class="serif i" style="color:var(--accent)">goal</span><span class="time">13:58</span></div>
+      <div class="text">Put a <b>Download PDF</b> button on the Billing page for every invoice. The PDF must carry the tax lines and the proration note the Checkout page already shows. <span class="scope">goal</span></div>
+    </div>
+
+    <div class="msg agent">
+      <div class="meta"><span class="avatar agent">H</span><span class="who">Agent</span><span>turn 7 · step 3 of 4</span><span class="time">14:29</span></div>
+      <div class="text">
+        <p>The layout renders both tax lines (VAT 20 %, reverse charge) and the proration note for mid-cycle changes. Snapshot tests pass on all three fixtures.</p>
+        <p>Next I need to publish the <code class="mono" style="font-size:13px">invoice-pdf</code> package so Checkout can read the same template. That is a release, so I am asking before I push.</p>
+      </div>
+      <div class="steps">
+        <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono">edit billing/invoice_pdf.ts</span><span class="r">+184 −12</span></div>
+        <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono">pnpm test billing --filter pdf</span><span class="r">3 passed</span></div>
+        <div class="step wait"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.5l3 2"/></svg><span class="mono">npm publish @pay/invoice-pdf@2.4.0</span><span class="r">waits</span></div>
+      </div>
+    </div>
+
+    <div class="msg team">
+      <div class="meta"><span class="avatar">Bo</span><span class="who">Bo</span><span class="to">to the team</span><span class="time">14:30</span></div>
+      <div class="text">Proration note reads right on the staging invoice. I gave it a 4; Dee is on the bus and will rate from the inbox.</div>
+    </div>
+
+    <a class="planline" href="#plan">
+      <span class="serif">Plan</span>
+      <span class="muted">3 of 4 steps · 11.9k of 13.2k est.</span>
+      <span class="dots"><i></i><i></i><i></i><i class="now"></i></span>
+      <svg class="ic chev" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
+
+    <section class="notice gate rise" aria-label="Release gate">
+      <div class="h"><span class="serif">Release gate</span><span class="pill irr">irreversible</span></div>
+      <div class="ask">The agent wants to <b>publish invoice-pdf 2.4.0</b>; needs two contributors at 4+ on average.</div>
+      <div class="cmd">npm publish @pay/invoice-pdf@2.4.0 --tag latest</div>
+      <div class="vote"><span class="avatar">Bo</span><span>Bo approved</span><span class="st">★★★★</span><span class="note">“tax lines match Checkout”</span></div>
+      <div class="rate">
+        <div class="lab"><span>Your rating</span><span class="cur">4 if you leave it</span></div>
+        <div class="stars big" role="radiogroup" aria-label="Rate it 1 to 5">
+          <button class="on" aria-label="1">★</button>
+          <button class="on" aria-label="2">★</button>
+          <button class="on" aria-label="3">★</button>
+          <button class="on pick" aria-label="4" aria-checked="true">★</button>
+          <button aria-label="5">★</button>
+        </div>
+        <div class="input">A note with your vote (optional)</div>
+      </div>
+      <div class="progress"><span>1 of 2 raters · 4.0 average</span><span class="segs"><i class="on"></i><i></i></span></div>
+      <div class="actions">
+        <button class="btn primary">Approve with 4</button>
+        <button class="btn">Deny</button>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<div class="composer-wrap">
+  <div class="composer">
+    <div class="input">Steer the agent</div>
+    <div class="bar">
+      <div class="seg" role="radiogroup" aria-label="Send to"><button class="on">Agent</button><button>Team</button></div>
+      <span class="scopechip">goal <svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+      <div class="right"><button class="send" aria-label="Send"><svg class="ic" viewBox="0 0 24 24" style="stroke-width:2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+    </div>
+  </div>
+</div>
+<div class="home" aria-hidden="true"><i></i></div>
+
+</body>
+</html>

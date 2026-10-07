@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · First run on the desktop</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  :root {
+    --side: #2A3244; --side-2: #333C50;
+    --menubar: rgba(255,255,255,0.62); --menubar-ink: #1F2634;
+    --dock: rgba(255,255,255,0.55); --dock-line: rgba(42,50,68,0.14);
+    --wall-ring: rgba(42,50,68,0.06);
+    --code-bg: #1F2634;
+    --ok: #4F7D4A;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --side: #161B26; --side-2: #1E2432;
+    --menubar: rgba(15,19,27,0.72); --menubar-ink: #F0EAE0;
+    --dock: rgba(15,19,27,0.55); --dock-line: rgba(240,234,224,0.12);
+    --wall-ring: rgba(226,196,166,0.07);
+    --code-bg: #0F131B;
+    --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16);
+  } }
+  :root[data-theme="dark"] {
+    --side: #161B26; --side-2: #1E2432;
+    --menubar: rgba(15,19,27,0.72); --menubar-ink: #F0EAE0;
+    --dock: rgba(15,19,27,0.55); --dock-line: rgba(240,234,224,0.12);
+    --wall-ring: rgba(226,196,166,0.07);
+    --code-bg: #0F131B;
+    --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16);
+  }
+
+  body { min-width: 1440px; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .mark .disc { fill: var(--mark-disc); }
+
+  /* ================= the desktop: 1440 x 900 ================= */
+  .desktop { position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--canvas); background-image: var(--canvas-wash); }
+  .desktop .wallring { position: absolute; border-radius: 50%; border: 90px solid var(--wall-ring); pointer-events: none; }
+  .desktop .wallring.a { width: 980px; height: 980px; right: -320px; top: -420px; }
+  .desktop .wallring.b { width: 620px; height: 620px; left: -260px; bottom: -300px; border-width: 60px; }
+
+  /* menu bar */
+  .menubar { position: absolute; left: 0; right: 0; top: 0; height: 30px; display: flex; align-items: center; padding: 0 16px; gap: 18px; font-size: 13px; font-weight: 500; color: var(--menubar-ink); background: var(--menubar); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+  .menubar .apple { width: 14px; height: 14px; }
+  .menubar .app { font-weight: 600; }
+  .menubar .right { margin-left: auto; display: flex; align-items: center; gap: 16px; font-weight: 400; }
+  .menubar .tray { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 24px; border-radius: 6px; background: var(--apricot-soft); }
+  .trayicon { width: 18px; height: 18px; }
+  .trayicon .arc { fill: none; stroke: currentColor; stroke-width: 10; stroke-linecap: round; }
+  .trayicon .dot { fill: currentColor; }
+  .trayicon.pending .pend { fill: var(--apricot-deep); stroke: var(--canvas); stroke-width: 6; }
+  .menubar .clock { font-variant-numeric: tabular-nums; }
+
+  /* the tray menu, dropped from the icon */
+  .traymenu { position: absolute; top: 36px; right: 110px; width: 292px; padding: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-pop); font-size: 13.5px; z-index: 4; }
+  .traymenu::before { content: ""; position: absolute; top: -7px; right: 98px; width: 12px; height: 12px; background: var(--surface); border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
+  .traymenu .row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 7px 10px; border-radius: 8px; align-items: center; color: var(--ink); }
+  .traymenu .row.hot { background: var(--apricot-soft); }
+  .traymenu .row .n { font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+  .traymenu .row .sub { grid-column: 1 / -1; font-size: 12px; color: var(--ink-2); line-height: 1.35; }
+  .traymenu .row .sub i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 13px; }
+  .traymenu .sep { height: 1px; background: var(--line); margin: 5px 8px; }
+  .traymenu .row .kbd { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .traymenu .status { padding: 6px 10px 5px; font-size: 12px; color: var(--ink-3); white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+  .traymenu .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+
+
+  /* the dock */
+  .dock { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 10px; padding: 8px 12px; border-radius: 20px; background: var(--dock); border: 1px solid var(--dock-line); backdrop-filter: blur(14px); }
+  .dock .app { width: 50px; height: 50px; border-radius: 12px; background: var(--surface-3); position: relative; display: grid; place-items: center; }
+  .dock .app.henosis { background: var(--mark-disc); box-shadow: 0 0 0 1px rgba(226,196,166,0.25); }
+  .dock .app.henosis svg { width: 36px; height: 36px; }
+  .dock .app .badge { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #E0463A; color: #fff; font: 600 12px/20px var(--font); text-align: center; box-shadow: 0 0 0 2px var(--canvas); }
+  .dock .app .running { position: absolute; bottom: -7px; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); transform: translateX(-50%); }
+  .dock .app.fin { background: linear-gradient(180deg, #7FB3E8, #3F7FC8); }
+  .dock .app.mail { background: linear-gradient(180deg, #8EC6F3, #3C8AE0); }
+  .dock .app.term { background: #2A2A2E; }
+  .dock .app.cal { background: #fff; border: 1px solid var(--dock-line); }
+  .dock .app.msgs { background: linear-gradient(180deg, #7AD67D, #35B14A); }
+  .dock .app .glyph { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .dock .app.cal .glyph { stroke: #D33; }
+  .dock .sep { width: 1px; height: 44px; background: var(--dock-line); margin: 0 2px 3px; }
+
+  /* ================= the first-run window ================= */
+  .win { position: absolute; left: 60px; top: 96px; width: 960px; height: 724px; border-radius: 14px; overflow: hidden; background: var(--canvas); box-shadow: var(--shadow-pop), 0 0 0 1px var(--line); display: grid; grid-template-columns: 312px 1fr; }
+  .side { background: var(--side); color: var(--rail-fg); padding: 16px 24px 22px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .side::before { content: ""; position: absolute; inset: 0; background: radial-gradient(360px 300px at 30% 20%, rgba(226,196,166,0.14), transparent 70%); pointer-events: none; }
+  .side > * { position: relative; }
+  .lights { display: flex; gap: 8px; height: 24px; align-items: center; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; background: #E2847A; } .lights i + i { background: #E2B06A; } .lights i + i + i { background: #9BC88F; }
+  .side .brand { display: flex; align-items: center; gap: 9px; margin-top: 18px; font-family: var(--serif); font-size: 21px; }
+  .side .brand svg { width: 26px; height: 26px; }
+  .side .kicker { margin-top: 26px; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--rail-muted); }
+  .side h1 { font-size: 34px; margin-top: 6px; line-height: 1.08; }
+  .side h1 i { color: var(--apricot); font-style: italic; }
+  .side .lede { margin: 8px 0 0; color: var(--rail-muted); font-size: 13.5px; line-height: 1.5; }
+
+  .stepslist { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; }
+  .stepslist li { display: grid; grid-template-columns: 34px 1fr; gap: 0 12px; padding: 9px 0; position: relative; }
+  .stepslist li + li::before { content: ""; position: absolute; left: 17px; top: -9px; height: 14px; width: 1.5px; background: var(--rail-line); }
+  .stepslist .stage { width: 34px; height: 34px; }
+  .stepslist .stage .arc { transform-origin: 48px 48px; }
+  .stepslist .t { font-family: var(--serif); font-size: 17px; line-height: 1.2; display: flex; align-items: center; gap: 7px; }
+  .stepslist .t .check { width: 13px; height: 13px; stroke: #9BC88F; }
+  .stepslist .s { font-size: 12.5px; color: var(--rail-muted); line-height: 1.35; margin-top: 1px; }
+  .stepslist .s code { font-family: var(--mono); font-size: 11.5px; color: var(--apricot); }
+  .stepslist li.now { background: var(--rail-active); margin: 0 -12px; padding: 9px 12px; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(226,196,166,0.3); }
+  .stepslist li.now::before { display: none; }
+  .stepslist li.now .s { color: var(--rail-fg); }
+  .stepslist li.todo { opacity: .55; }
+
+  .side .already { margin-top: auto; padding-top: 18px; font-size: 12.5px; color: var(--rail-muted); line-height: 1.45; }
+  .side .already .stack { display: inline-flex; margin-bottom: 8px; }
+  .side .already .avatar { border-color: var(--side); width: 26px; height: 26px; font-size: 10px; }
+  .side .already b { color: var(--rail-fg); font-weight: 500; }
+  .side .already i { font-family: var(--serif); font-style: italic; color: var(--apricot); font-size: 13.5px; }
+
+  .page { padding: 18px 34px 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .page .top { display: flex; align-items: center; font-size: 12.5px; color: var(--ink-3); }
+  .page .top a { margin-left: auto; color: var(--ink-2); }
+  .page h2 { font-size: 30px; }
+  .page .lede { margin: 2px 0 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.5; max-width: 560px; }
+
+  /* the three tray states as tiles */
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tile { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); font-size: 12.5px; color: var(--ink-2); line-height: 1.4; }
+  .tile .pic { height: 44px; display: flex; align-items: center; gap: 8px; }
+  .tile .mini { display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 9px; border-radius: 7px; background: var(--surface-2); color: var(--ink); font-size: 12px; }
+  .tile .mini.on { background: var(--apricot-soft); }
+  .tile b { color: var(--ink); font-weight: 600; }
+  .tile .bubble { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 9px; background: var(--surface-2); font-size: 11.5px; color: var(--ink); min-width: 0; }
+  .tile .bubble .m { width: 20px; height: 20px; flex: none; }
+  .tile .bubble .txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .tile .bubble .txt span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .bubble .txt .faint { font-size: 11px; }
+  .tile .dockmini { width: 30px; height: 30px; border-radius: 8px; background: var(--mark-disc); position: relative; display: grid; place-items: center; flex: none; }
+  .tile .dockmini svg { width: 22px; height: 22px; }
+  .tile .dockmini .badge { position: absolute; top: -6px; right: -7px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #E0463A; color: #fff; font: 600 10.5px/16px var(--font); text-align: center; }
+
+  /* preferences */
+  .prefs { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  .pref { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .pref:first-child { border-top: 0; }
+  .pref .s { font-size: 12px; color: var(--ink-3); line-height: 1.3; }
+  .switch { width: 36px; height: 21px; border-radius: 11px; background: var(--surface-3); position: relative; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 2.5px; left: 2.5px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .switch.on { background: var(--accent); } .switch.on::after { left: 17.5px; }
+  .pref .seg button { padding: 3px 10px; font-size: 12px; }
+
+  /* what waits now */
+  .waits { display: grid; grid-template-columns: 1fr auto; gap: 12px 20px; align-items: center; padding: 14px 18px; border-radius: var(--radius-lg); background: var(--apricot-soft); border: 1px solid rgba(207,167,130,0.35); }
+  .waits .h { font-family: var(--serif); font-size: 19px; line-height: 1.2; }
+  .waits .h i { font-style: italic; color: var(--accent); }
+  .waits ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: var(--ink-2); }
+  .waits li { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .waits li .avatar { width: 20px; height: 20px; font-size: 9px; border-width: 1.5px; }
+  .waits li .avatar.agent { border-radius: 7px 7px 7px 2px; }
+  .waits li code { font-family: var(--mono); font-size: 11.5px; background: rgba(255,255,255,0.5); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+  :root[data-theme="dark"] .waits li code { background: rgba(0,0,0,0.3); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .waits li code { background: rgba(0,0,0,0.3); } }
+  .waits .serifname { font-family: var(--serif); font-size: 14px; color: var(--ink); }
+  .waits .cta { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  .waits .cta .btn.brand { min-height: 40px; padding: 0 20px; font-size: 14.5px; }
+  .waits .cta .cap { font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+  .waits .cta .cap i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 12.5px; }
+
+  /* ================= the board below the fold ================= */
+  .board { width: 1440px; padding: 56px 72px 72px; display: flex; flex-direction: column; gap: 40px; border-top: 1px solid var(--line); }
+  .board .head { display: flex; align-items: baseline; gap: 16px; }
+  .board .head h2 { font-size: 34px; }
+  .board .head p { margin: 0; color: var(--ink-2); max-width: 760px; }
+  .board h3.sec { font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin-bottom: 14px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+
+  /* a small window frame: the page half of the first run */
+  .frame { border-radius: 12px; overflow: hidden; background: var(--canvas); box-shadow: var(--shadow-soft), 0 0 0 1px var(--line); display: flex; flex-direction: column; }
+  .frame .bar { height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: var(--side); color: var(--rail-muted); font-size: 12px; }
+  .frame .bar .lights { height: auto; } .frame .bar .lights i { width: 10px; height: 10px; }
+  .frame .bar .t { margin-left: 6px; color: var(--rail-fg); font-family: var(--serif); font-size: 14px; }
+  .frame .bar .stepn { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .frame .body { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 12px; }
+  .frame h2 { font-size: 25px; }
+  .frame .lede { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+  .frame .lede b { color: var(--ink); font-weight: 500; }
+  .field { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--ink-2); }
+  .field .input { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; }
+  .field .input.mono { font-family: var(--mono); font-size: 13px; }
+  .field .input.focus { box-shadow: var(--team-glow); border-color: var(--apricot-deep); }
+  .field .input .ph { color: var(--ink-3); }
+  .field .input .caret { width: 1.5px; height: 18px; background: var(--ink); }
+  .field .input .right { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--ink-3); font-size: 12px; }
+  .field .hint { font-size: 12px; color: var(--ink-3); line-height: 1.4; }
+  .field .hint code { font-family: var(--mono); font-size: 11.5px; }
+  .field .input.bad { border-color: var(--danger); }
+  .okline { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border-radius: 10px; background: var(--ok-soft); font-size: 12.5px; line-height: 1.4; color: var(--ink); }
+  .okline svg { width: 15px; height: 15px; stroke: var(--ok); margin-top: 2px; }
+  .okline .faint { display: block; }
+  .badline { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border-radius: 10px; background: var(--danger-soft); font-size: 12.5px; line-height: 1.4; color: var(--ink); }
+  .badline svg { width: 15px; height: 15px; stroke: var(--danger); margin-top: 2px; }
+  .badline .faint { display: block; }
+  .badline a { margin-left: auto; white-space: nowrap; align-self: center; }
+  .frame .divider { font-size: 11.5px; }
+  .frame .actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .frame .actions .skip { margin-left: auto; font-size: 12.5px; color: var(--ink-3); }
+  .welcome { align-items: center; text-align: center; padding-top: 30px; }
+  .welcome .big { width: 136px; height: 136px; margin-bottom: 6px; }
+  .welcome .big .disc { stroke: rgba(226,196,166,0.25); stroke-width: 1; }
+  .welcome .lede { max-width: 320px; }
+  .welcome .who { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .welcome .who .avatar { width: 24px; height: 24px; font-size: 9.5px; } .welcome .who .avatar.agent { border-radius: 8px 8px 8px 2px; }
+  .welcome .foot { font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+  .welcome .foot code { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; }
+  .tick { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .tick .box { width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--line); background: var(--surface); display: grid; place-items: center; flex: none; }
+  .tick .box.on { background: var(--accent); border-color: var(--accent); } .tick .box.on svg { width: 10px; height: 10px; stroke: var(--accent-fg); stroke-width: 2.4; }
+  .roleline { font-size: 12px; color: var(--ink-2); padding: 9px 12px; border-radius: 10px; background: var(--apricot-soft); line-height: 1.4; }
+  .roleline i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 13px; }
+
+  /* tray states strip */
+  .strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+  .state { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); font-size: 12.5px; color: var(--ink-2); line-height: 1.4; }
+  .state .pic { height: 100px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--surface-2); position: relative; overflow: hidden; }
+  .state b { color: var(--ink); font-weight: 600; display: block; margin-bottom: 2px; }
+  .state .menubit { display: inline-flex; align-items: center; gap: 12px; height: 28px; padding: 0 10px; border-radius: 8px; background: var(--menubar); color: var(--menubar-ink); font-size: 12px; border: 1px solid var(--line); }
+  .state .notif { width: 92%; display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 11px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); font-size: 11.5px; color: var(--ink); }
+  .state .notif .m { width: 26px; height: 26px; flex: none; }
+  .state .notif .txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .state .notif .txt span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .state .dockbit { width: 46px; height: 46px; border-radius: 11px; background: var(--mark-disc); position: relative; display: grid; place-items: center; }
+  .state .dockbit svg { width: 32px; height: 32px; }
+  .state .dockbit .badge { position: absolute; top: -7px; right: -8px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; background: #E0463A; color: #fff; font: 600 11.5px/19px var(--font); text-align: center; }
+  .state .menu2 { width: 86%; padding: 3px; border-radius: 9px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); font-size: 11px; color: var(--ink); }
+  .state .menu2 div { display: flex; justify-content: space-between; padding: 3px 7px; border-radius: 5px; }
+  .state .menu2 div.hot { background: var(--apricot-soft); }
+  .state .menu2 hr { border: 0; border-top: 1px solid var(--line); margin: 3px 5px; }
+
+  /* spec table */
+  .spec { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 40px; font-size: 13.5px; }
+  .spec dl { margin: 0; display: grid; grid-template-columns: 170px 1fr; gap: 8px 16px; }
+  .spec dt { color: var(--ink-3); font-size: 12.5px; }
+  .spec dd { margin: 0; color: var(--ink); line-height: 1.45; }
+  .spec dd code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+  .spec dd i { font-family: var(--serif); font-style: italic; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ================= 1440 x 900: the desktop at step 4 ================= -->
+<section class="desktop" aria-label="Desktop with the first-run window at step four">
+  <div class="wallring a"></div><div class="wallring b"></div>
+
+  <div class="menubar">
+    <svg class="apple" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.7c0-2.4 2-3.5 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.2.9-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.6-1-2.6-4zM14 5.6c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4z"/></svg>
+    <span class="app">Henosis</span><span>File</span><span>Edit</span><span>View</span><span>Session</span><span>Window</span><span>Help</span>
+    <div class="right">
+      <span class="tray" aria-label="Henosis in the menu bar, three items waiting">
+        <svg class="trayicon pending" viewBox="0 0 96 96" aria-hidden="true"><path class="arc" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="8"/><circle class="pend" cx="80" cy="18" r="13"/></svg>
+      </span>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9a16 16 0 0 1 20 0M5.5 12.5a11 11 0 0 1 13 0M9 16a5.5 5.5 0 0 1 6 0"/><circle cx="12" cy="19.5" r=".8" fill="currentColor"/></svg>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width:22px"><rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M21 10.5v3"/><rect x="4" y="9" width="11" height="6" rx="1" fill="currentColor" stroke="none"/></svg>
+      <span class="clock">Tue 7 Oct&nbsp; 14:32</span>
+    </div>
+  </div>
+
+  <div class="traymenu" role="menu" aria-label="Henosis tray menu">
+    <div class="status">Connected · henosis.payments.internal</div>
+    <div class="row hot"><span>Pending approvals</span><span class="n">2</span><span class="sub">Next: Bo's agent asks to write <i>invoice-pdf.ts</i> · Invoice PDF: tax lines</span></div>
+    <div class="row"><span>Handoffs offered</span><span class="n">1</span><span class="sub">Ana offers you the baton on <i>Tax lines and proration</i></span></div>
+    <div class="sep"></div>
+    <div class="row"><span>Open Henosis</span><span class="kbd">⌘ O</span></div>
+    <div class="row"><span>Quit Henosis</span><span class="kbd">⌘ Q</span></div>
+  </div>
+
+
+  <div class="win" aria-label="Henosis first run, step four">
+    <aside class="side">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        Henosis
+      </div>
+      <div class="kicker">First run · macOS</div>
+      <h1>Welcome, <i>Dee</i>.</h1>
+      <p class="lede">Four short steps, then the circle. Three are done.</p>
+
+      <ol class="stepslist">
+        <li class="done">
+          <svg class="stage mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><circle cx="48" cy="48" r="28" fill="none" stroke="rgba(226,196,166,0.28)" stroke-width="8"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+          <div><div class="t">Welcome <svg class="check ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></div><div class="s">Henosis 0.9.2 · henosis:// links registered</div></div>
+        </li>
+        <li class="done">
+          <svg class="stage mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc" d="M48 76 A28 28 0 0 1 48 20" stroke="rgba(226,196,166,0.22)" stroke-width="10" fill="none" stroke-linecap="round"/></svg>
+          <div><div class="t">Connect to a server <svg class="check ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></div><div class="s"><code>henosis.payments.internal</code> · Payments team · 4 projects</div></div>
+        </li>
+        <li class="done">
+          <svg class="stage mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round" style="transform:rotate(-12deg)"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round" style="transform:rotate(12deg)"/></svg>
+          <div><div class="t">Sign in <svg class="check ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></div><div class="s">Dee · <code>dee</code> · token kept in the keychain</div></div>
+        </li>
+        <li class="now">
+          <svg class="stage mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+          <div><div class="t">The tray</div><div class="s">Where Henosis waits for you when the window is closed</div></div>
+        </li>
+      </ol>
+
+      <div class="already">
+        <span class="stack"><span class="avatar">AN</span><span class="avatar driver">BO</span><span class="avatar">CY</span><span class="avatar agent">◌</span><span class="avatar agent">◌</span></span>
+        <div><b>Ana, Bo, Cy</b> and two agents are in. <i>Bo has the baton.</i></div>
+      </div>
+    </aside>
+
+    <main class="page">
+      <div class="top"><span>Step 4 of 4</span><a href="#">Skip, open Henosis</a></div>
+      <h2>Henosis lives in your menu bar.</h2>
+      <p class="lede">Close the window whenever you like. The tray keeps counting what waits for you and opens the right session in one click.</p>
+
+      <div class="tiles">
+        <div class="tile">
+          <div class="pic"><span class="mini"><svg class="trayicon" viewBox="0 0 96 96" aria-hidden="true"><path class="arc" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="8"/></svg> 14:32</span></div>
+          <div><b>Quiet.</b> Nothing waits. The ring sits with the clock and stays out of your way.</div>
+        </div>
+        <div class="tile">
+          <div class="pic"><span class="mini on"><svg class="trayicon pending" viewBox="0 0 96 96" aria-hidden="true"><path class="arc" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="8"/><circle class="pend" cx="80" cy="18" r="13"/></svg> 14:32</span><span class="dockmini"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="badge">3</span></span></div>
+          <div><b>A dot.</b> An approval or a handoff waits. The Dock badge carries the count; the menu names the first.</div>
+        </div>
+        <div class="tile">
+          <div class="pic"><div class="bubble"><svg class="m mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><div class="txt"><span><b>Approval · write · medium risk</b></span><span class="faint">Bo's agent · Invoice PDF: tax lines</span></div></div></div>
+          <div><b>A notification.</b> Names the tool and its risk class, never the arguments. Click to land in the session.</div>
+        </div>
+      </div>
+
+      <div class="prefs">
+        <div class="pref"><div>Open at login<div class="s">Henosis starts in the tray, window closed.</div></div><span class="switch on" role="switch" aria-checked="true"></span></div>
+        <div class="pref"><div>Notify me about<div class="s">Items in the session on screen never notify twice.</div></div><span class="seg"><button class="on">Approvals and handoffs</button><button>Approvals</button><button>Nothing</button></span></div>
+        <div class="pref"><div>Badge on the Dock<div class="s">The total of both, read as you look.</div></div><span class="switch on" role="switch" aria-checked="true"></span></div>
+      </div>
+
+      <div class="waits">
+        <div>
+          <div class="h">Three things already wait for you, <i>Dee</i>.</div>
+          <ul>
+            <li><span class="avatar agent">◌</span><span><span class="serifname">Bo's agent</span> asks to write <code>invoice-pdf.ts</code> · Invoice PDF: tax lines</span></li>
+            <li><span class="avatar agent">◌</span><span><span class="serifname">Cy's agent</span> asks to run <code>pnpm test</code> · Checkout</span></li>
+            <li><span class="avatar">AN</span><span><span class="serifname">Ana</span> offers you the baton on Tax lines and proration</span></li>
+          </ul>
+        </div>
+        <div class="cta">
+          <button class="btn brand">Enter the circle <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <span class="cap">The stream will say <i>Dee joins the circle.</i></span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="dock" aria-label="Dock">
+    <span class="app fin"><svg class="glyph" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 13l3-3 2 2 3-4"/></svg></span>
+    <span class="app mail"><svg class="glyph" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 8l9 6 9-6"/></svg></span>
+    <span class="app cal"><svg class="glyph" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+    <span class="app msgs"><svg class="glyph" viewBox="0 0 24 24"><path d="M4 6h16v10H9l-4 4V6z"/></svg></span>
+    <span class="app term"><svg class="glyph" viewBox="0 0 24 24"><path d="M6 8l4 4-4 4M12 16h6"/></svg><span class="running"></span></span>
+    <span class="sep"></span>
+    <span class="app henosis" aria-label="Henosis, 3 waiting"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="badge">3</span><span class="running"></span></span>
+  </div>
+</section>
+
+<!-- ================= the board: the other three steps, tray states, spec ================= -->
+<section class="board">
+  <div class="head">
+    <h2>The four moments</h2>
+    <p>One window, one column, done steps fold to a line. The desktop adds exactly two things the web client cannot: where the server is, and where Henosis waits when the window is closed.</p>
+  </div>
+
+  <div>
+    <h3 class="sec">Steps 1 to 3 · the page half of the window</h3>
+    <div class="cards">
+      <div class="frame">
+        <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="t">Henosis</span><span class="stepn">1 / 4</span></div>
+        <div class="body welcome">
+          <svg class="big mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+          <h2>Welcome to Henosis.</h2>
+          <p class="lede">One team of people and agents. Agents are members, not tools. A new engineer and a new agent join the same circle the same way.</p>
+          <div class="who"><span class="stack"><span class="avatar">AN</span><span class="avatar driver">BO</span><span class="avatar">CY</span><span class="avatar agent">◌</span></span>The Payments team is already in.</div>
+          <div class="actions" style="justify-content:center"><button class="btn primary">Begin</button></div>
+          <div class="foot">Henosis 0.9.2 · opens <code>henosis://</code> links from Slack and mail</div>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="t">Henosis</span><span class="stepn">2 / 4</span></div>
+        <div class="body">
+          <h2>Where does your team's server run?</h2>
+          <p class="lede">The address where someone ran <b>henosis serve</b>. Ask your lead, or use the local one to try it alone.</p>
+          <div class="field"><span>Server</span><div class="input mono focus">https://henosis.payments.internal<span class="caret"></span></div><div class="hint">Local: <code>http://127.0.0.1:7700</code> · remembered for the next launch</div></div>
+          <div class="okline"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg><div>Henosis 0.9.2 answered. Payments team · 4 projects.<span class="faint">Billing page, Checkout, Invoice PDF, Tax lines</span></div></div>
+          <div class="divider">or, when it fails</div>
+          <div class="badline"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><div>Could not reach henosis.payments.internal.<span class="faint">Timed out after 8 s. Is the VPN on?</span></div><a href="#">Retry</a></div>
+          <div class="actions"><button class="btn primary">Connect</button><a class="skip" href="#">Use the local server</a></div>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="t">Henosis</span><span class="stepn">3 / 4</span></div>
+        <div class="body">
+          <h2>Who are you on this server?</h2>
+          <p class="lede">A name for the stream, your id as in <b>users.json</b>, and the token your lead gave you.</p>
+          <div class="field"><span>Name</span><div class="input">Dee</div></div>
+          <div class="field"><span>User id</span><div class="input mono">dee<span class="right"><svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;stroke:var(--ok)"><path d="M5 12.5l4.5 4.5L19 7"/></svg> known</span></div></div>
+          <div class="field"><span>Token</span><div class="input mono focus">••••••••••••••••<span class="caret"></span><span class="right">optional</span></div></div>
+          <div class="tick"><span class="box on"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>Keep the token in the keychain</div>
+          <div class="roleline">You join as a <i>contributor</i>: steer, constrain, pause, fork. Ana, the lead, can raise you.</div>
+          <div class="actions"><button class="btn primary">Sign in</button><a class="skip" href="#">I have no token</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h3 class="sec">Tray and Dock · every state</h3>
+    <div class="strip">
+      <div class="state">
+        <div class="pic"><span class="menubit"><svg class="trayicon" viewBox="0 0 96 96" aria-hidden="true"><path class="arc" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="8"/></svg> 14:32</span></div>
+        <div><b>Quiet</b>Monochrome template icon: the ring and its centre, 18 px, follows the menu bar's ink.</div>
+      </div>
+      <div class="state">
+        <div class="pic"><span class="menubit"><svg class="trayicon pending" viewBox="0 0 96 96" aria-hidden="true"><path class="arc" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="8"/><circle class="pend" cx="80" cy="18" r="13"/></svg> 14:32</span></div>
+        <div><b>Waiting</b>An apricot dot at the top right, the only colour the menu bar gets. Pops in on the first item.</div>
+      </div>
+      <div class="state">
+        <div class="pic"><div class="menu2"><div class="hot"><span>Pending approvals</span><span>2</span></div><div><span>Handoffs offered</span><span>1</span></div><hr><div><span>Open Henosis</span><span>⌘O</span></div><div><span>Quit Henosis</span><span>⌘Q</span></div></div></div>
+        <div><b>The menu</b>Four rows. The first two open the first item's session; each shows the next item under it.</div>
+      </div>
+      <div class="state">
+        <div class="pic"><div class="notif"><svg class="m mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><div class="txt"><span><b>2 approvals and 1 handoff wait</b></span><span class="faint">Payments team · since you were away</span></div></div></div>
+        <div><b>First poll</b>One summary line after sign-in instead of a toast per item. More than three at once collapse too.</div>
+      </div>
+      <div class="state">
+        <div class="pic"><span class="dockbit"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="badge">3</span></span></div>
+        <div><b>Dock badge</b>Approvals plus handoffs. Drops as you look: items of the session on screen are marked read while focused.</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h3 class="sec">Spec</h3>
+    <div class="spec">
+      <dl>
+        <dt>Window</dt><dd>960 × 724, not resizable during first run; side 312 navy, page cream. Traffic lights sit on the navy side.</dd>
+        <dt>Steps</dt><dd>Welcome · Connect to a server · Sign in · The tray. Steps 2 and 3 are the web client's step 1 split by what the shell must know first (<code>setIdentity(serverUrl, userId)</code>).</dd>
+        <dt>Stage marks</dt><dd>The four stages of the mark: a faint ring, one arc, two arcs apart, the closed ring with its centre. Done steps gain a green check; the current step sits on apricot wash.</dd>
+        <dt>Server</dt><dd>Defaults to the last remembered URL, then <code>http://127.0.0.1:7700</code>. Connect checks <code>GET /api/me</code> and shows version, team and projects.</dd>
+      </dl>
+      <dl>
+        <dt>Sign in</dt><dd>Name, user id (checked against users.json as you type), token optional and kept in the keychain when ticked. The role line reads from memberships.</dd>
+        <dt>Tray</dt><dd>Polls <code>/api/notifications?unread=1</code> every 15 s and on focus. Rows: Pending approvals · N, Handoffs offered · N, Open, Quit. Windows carries the count in the tray; no badge.</dd>
+        <dt>Motion</dt><dd>Arcs-close on the welcome mark; the dot pops in on the tray icon; the badge pops. Calm mode and reduced motion turn all of it off.</dd>
+        <dt>Voice</dt><dd><i>Dee joins the circle.</i> · <i>Bo has the baton.</i> · "Three things already wait for you." Never "AI-powered".</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

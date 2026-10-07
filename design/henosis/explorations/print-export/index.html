@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Billing page · print and export</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ----- board chrome (screen only) ----- */
+  :root { --paper: #FFFFFF; --paper-ink: #1F2634; --paper-ink-2: #5B6273; --paper-ink-3: #8E94A3; --paper-line: rgba(42,50,68,0.14); --paper-wash: #FBF7F1; }
+  body { min-height: 100%; }
+  .board { max-width: 1392px; margin: 0 auto; padding: 36px 24px 72px; display: flex; flex-direction: column; gap: 40px; }
+  .board-head { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+  .board-head .eyebrow { display: flex; align-items: center; gap: 12px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 14px; }
+  .board-head .eyebrow .mark { width: 28px; height: 28px; }
+  .board-head p { margin: 10px 0 0; max-width: 720px; color: var(--ink-2); }
+  .legend { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-2); padding: 14px 18px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); min-width: 280px; }
+  .legend b { color: var(--ink); font-weight: 600; }
+  .legend .row { display: flex; align-items: center; gap: 8px; }
+  .legend .sw { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line); flex: none; }
+
+  .section-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; } .section-h h2 { white-space: nowrap; }
+  .section-h .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .section-h .sub { color: var(--ink-2); font-size: 14px; }
+
+  /* the two sheets */
+  .sheets { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: stretch; }
+  .sheet-wrap .paper { flex: 1; }
+  .sheet-wrap { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .sheet-cap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--ink-2); }
+  .sheet-cap .file { font-family: var(--mono); font-size: 12.5px; color: var(--ink); background: var(--surface-2); padding: 2px 8px; border-radius: 6px; }
+  .sheet-cap .sz { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+
+  /* ----- paper: the same in every theme ----- */
+  .paper { background: var(--paper); color: var(--paper-ink); border-radius: 3px; box-shadow: 0 1px 0 rgba(42,50,68,0.06), var(--shadow-pop); padding: 44px 48px 40px; font: 13px/1.55 var(--font); position: relative; min-height: 1000px; display: flex; flex-direction: column; gap: 0; color-scheme: light; }
+  .paper .muted { color: var(--paper-ink-2); } .paper .faint { color: var(--paper-ink-3); }
+  .paper .mono { color: inherit; font-size: 11.5px; }
+  .paper a { color: var(--paper-ink); text-decoration: underline; text-decoration-color: var(--paper-line); text-underline-offset: 2px; }
+  .paper .mark { width: 30px; height: 30px; }
+  .paper .mark .disc { fill: var(--paper-wash); }
+  .paper .mark .arc.a { stroke: #56352D; } .paper .mark .arc.b { stroke: #2A3244; } .paper .mark .dot { fill: #E2C4A6; }
+
+  .run-head { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--paper-line); font-size: 11.5px; color: var(--paper-ink-2); }
+  .run-head .wm { font-family: var(--serif); font-size: 17px; color: var(--paper-ink); line-height: 1; }
+  .run-head .wm small { display: block; font-family: var(--font); font-size: 11px; color: var(--paper-ink-2); margin-top: 3px; }
+  .run-head .right { text-align: right; font-family: var(--mono); font-size: 11px; line-height: 1.5; }
+
+  .paper h1 { font-size: 28px; line-height: 1.12; margin: 22px 0 4px; color: var(--paper-ink); }
+  .paper h1 i { font-style: italic; }
+  .paper .sub { font-size: 12.5px; color: var(--paper-ink-2); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .paper .sub b { font-weight: 500; color: var(--paper-ink); font-family: var(--serif); font-size: 14px; }
+
+  .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 18px 0 20px; border-top: 1px solid var(--paper-ink); border-bottom: 1px solid var(--paper-line); }
+  .facts div { padding: 9px 12px 9px 0; border-right: 1px solid var(--paper-line); }
+  .facts div + div { padding-left: 12px; } .facts div:last-child { border-right: 0; }
+  .facts .k { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--paper-ink-3); }
+  .facts .v { font-family: var(--mono); font-size: 14px; margin-top: 2px; }
+  .facts .v small { font-family: var(--font); font-size: 11.5px; color: var(--paper-ink-2); }
+
+  .p-stream { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; }
+  .p-msg { display: grid; grid-template-columns: 54px 1fr; gap: 12px; align-items: start; }
+  .p-msg .t { font-family: var(--mono); font-size: 10.5px; color: var(--paper-ink-3); padding-top: 3px; }
+  .p-msg .who { font-family: var(--serif); font-size: 15px; line-height: 1.3; }
+  .p-msg .who .role { font-family: var(--font); font-size: 11px; color: var(--paper-ink-3); margin-left: 6px; }
+  .p-msg.human .body { margin-top: 3px; padding: 8px 12px; border-left: 2px solid var(--paper-ink); background: var(--paper-wash); border-radius: 0 6px 6px 0; }
+  .p-msg.ai .body { margin-top: 3px; }
+  .p-msg .body p { margin: 0; }
+  .p-plan { margin-top: 8px; border: 1px solid var(--paper-ink); border-radius: 8px; padding: 10px 12px; break-inside: avoid; }
+  .p-plan .ph { display: flex; align-items: baseline; gap: 10px; font-family: var(--serif); font-size: 14.5px; }
+  .p-plan .ph .st { margin-left: auto; font-family: var(--font); font-size: 11px; color: #3E6A39; font-weight: 600; }
+  .p-plan .row { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; padding: 5px 0; border-top: 1px solid var(--paper-line); font-size: 12.5px; align-items: baseline; }
+  .p-plan .row:first-of-type { border-top: 1px solid var(--paper-ink); margin-top: 8px; }
+  .p-plan .row .n { font-family: var(--mono); font-size: 11px; color: var(--paper-ink-3); }
+  .p-plan .row .est { font-family: var(--mono); font-size: 11px; color: var(--paper-ink-2); }
+  .p-plan .row .est .act { color: var(--paper-ink); }
+  .p-plan .rate { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--paper-ink-2); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--paper-line); }
+  .p-plan .rate .who { font-family: var(--serif); font-size: 13.5px; color: var(--paper-ink); }
+  .stars-p { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em; color: var(--paper-ink); white-space: nowrap; }
+  .stars-p .off { color: var(--paper-ink-3); }
+  .p-steps { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+  .p-step { display: grid; grid-template-columns: 14px 1fr auto; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--paper-ink-2); align-items: center; }
+  .p-step svg { width: 12px; height: 12px; }
+  .p-step .r { color: var(--paper-ink-3); }
+  .p-step .mask { color: #8A5A1E; }
+  .p-gate { margin-top: 8px; border-left: 3px solid var(--paper-ink); padding: 8px 12px; background: var(--paper-wash); border-radius: 0 6px 6px 0; break-inside: avoid; }
+  .p-gate .gh { display: flex; align-items: baseline; gap: 10px; font-family: var(--serif); font-size: 14px; }
+  .p-gate .gh .rule { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--paper-ink-2); }
+  .p-gate .votes { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; margin-top: 4px; }
+  .p-gate .votes .who { font-family: var(--serif); font-size: 13.5px; }
+  .p-gate .granted { margin-top: 6px; font-size: 12px; color: #3E6A39; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .p-omit { font-size: 11.5px; color: var(--paper-ink-3); font-style: italic; font-family: var(--serif); text-align: center; padding: 4px 0; }
+
+  .run-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--paper-line); display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; font-family: var(--mono); font-size: 10.5px; color: var(--paper-ink-3); align-items: center; }
+  .run-foot .c { text-align: center; color: var(--paper-ink-2); font-family: var(--font); font-size: 11px; }
+  .run-foot .r { text-align: right; }
+
+  /* audit ledger */
+  .ledger { margin-top: 16px; flex: 1; min-height: 0; }
+  .ledger .lh, .ledger .lr { display: grid; grid-template-columns: 52px 112px 1fr 118px; gap: 10px; align-items: baseline; }
+  .ledger .lh { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--paper-ink-3); padding-bottom: 6px; border-bottom: 1px solid var(--paper-ink); }
+  .ledger .lr { padding: 7px 0; border-bottom: 1px solid var(--paper-line); font-size: 12.5px; }
+  .ledger .lr .t { font-family: var(--mono); font-size: 10.5px; color: var(--paper-ink-2); }
+  .ledger .lr .w { font-family: var(--serif); font-size: 14px; line-height: 1.25; }
+  .ledger .lr .w small { display: block; font-family: var(--font); font-size: 10.5px; color: var(--paper-ink-3); }
+  .ledger .lr .a q { font-family: var(--serif); font-style: italic; quotes: "“" "”"; color: var(--paper-ink-2); }
+  .ledger .lr .e { font-family: var(--mono); font-size: 10.5px; color: var(--paper-ink-2); text-align: right; }
+  .ledger .lr .e .ok { color: #3E6A39; font-weight: 500; }
+  .ledger .lr.kernel .w, .ledger .lr.kernel .a { color: #3E6A39; }
+  .ledger .lr.kernel .a .rl { color: var(--paper-ink-3); font-family: var(--mono); font-size: 10.5px; }
+  .ledger .lr.gate { border-left: 3px solid var(--paper-ink); padding-left: 8px; margin-left: -11px; }
+  .ledger .lr.exp { background: var(--paper-wash); margin: 0 -12px; padding-left: 12px; padding-right: 12px; }
+  .counts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; margin: 16px 0 0; border-top: 1px solid var(--paper-ink); border-bottom: 1px solid var(--paper-line); }
+  .counts div { padding: 8px 10px 8px 0; border-right: 1px solid var(--paper-line); }
+  .counts div + div { padding-left: 10px; } .counts div:last-child { border-right: 0; }
+  .counts .k { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--paper-ink-3); white-space: nowrap; }
+  .counts .v { font-family: var(--mono); font-size: 14px; }
+  .sig { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--paper-ink); display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; font-size: 11px; color: var(--paper-ink-2); }
+  .sig .mark { width: 24px; height: 24px; }
+  .sig .mono { font-size: 10.5px; }
+  .verify { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #3E6A39; font-weight: 500; margin-top: 10px; }
+  .verify .mono { color: var(--paper-ink-2); font-weight: 400; }
+
+  /* ----- spec rows ----- */
+  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .rule { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); font-size: 13.5px; color: var(--ink-2); }
+  .rule h3 { font-family: var(--serif); font-weight: 400; font-size: 19px; color: var(--ink); display: flex; align-items: center; gap: 10px; }
+  .rule h3 svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+  .rule p { margin: 0; }
+  .rule ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+  .rule .sample { margin-top: 2px; padding: 10px 12px; border-radius: 8px; background: var(--paper); color: var(--paper-ink); border: 1px solid var(--paper-line); font-size: 12.5px; color-scheme: light; }
+  .rule .sample .mono { font-size: 11px; color: var(--paper-ink-2); }
+  .rule .sample .faint { color: var(--paper-ink-3); }
+  .rule .sample .who { font-family: var(--serif); font-size: 14px; }
+  .rule .sample .q { font-family: var(--serif); font-style: italic; color: var(--paper-ink-2); }
+  .rule .sample .ok { color: #3E6A39; font-weight: 600; }
+  .rule .sample .mask { color: #8A5A1E; }
+  .rule .sample .link { text-decoration: underline; text-decoration-color: var(--paper-line); text-underline-offset: 2px; }
+  .rule .sample .st { font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; }
+  .rule .sample .st .off { color: var(--paper-ink-3); }
+  .marks { display: flex; gap: 14px; align-items: center; }
+  .marks .m { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--paper-ink-3); }
+  .marks .m .mark { width: 40px; height: 40px; }
+  .mark-cream .disc { fill: #FBF7F1; } .mark-cream .arc.a { stroke: #56352D; } .mark-cream .arc.b { stroke: #2A3244; } .mark-cream .dot { fill: #E2C4A6; }
+  .mark-ink .disc { fill: #fff; } .mark-ink .arc.a { stroke: #1F2634; } .mark-ink .arc.b { stroke: #1F2634; } .mark-ink .dot { fill: #1F2634; }
+  .mark-ink .arc.b { stroke-dasharray: 2 4; }
+  .mark-navy .disc { fill: #2A3244; } .mark-navy .arc.a { stroke: #56352D; } .mark-navy .arc.b { stroke: #E2C4A6; } .mark-navy .dot { fill: #E2C4A6; }
+  .scale { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-size: 12.5px; }
+  .scale .mono { font-size: 11px; color: var(--paper-ink-2); text-align: right; }
+  .scale .s1 { font-family: var(--serif); font-size: 21px; line-height: 1.2; } .scale .s2 { font-family: var(--serif); font-size: 15px; }
+  .scale .s3 { font-size: 12.5px; } .scale .s4 { font-family: var(--mono); font-size: 11px; } .scale .s5 { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--paper-ink-3); }
+
+  /* the print dialog as the app shows it */
+  .dialog-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+  .dialog { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .dialog .dh { display: flex; align-items: center; gap: 12px; }
+  .dialog .dh h2 { font-size: 24px; }
+  .dialog .dh .x { margin-left: auto; }
+  .opt { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: center; padding: 11px 12px; border-radius: var(--radius); border: 1px solid var(--line); }
+  .opt.on { border-color: transparent; box-shadow: var(--team-glow); background: var(--apricot-soft); }
+  .opt .rb { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--ink-3); display: grid; place-items: center; }
+  .opt.on .rb { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+  .opt .t { font-weight: 500; } .opt .s { font-size: 12.5px; color: var(--ink-2); }
+  .opt .mono { margin-left: auto; color: var(--ink-3); }
+  .inc { display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
+  .inc .l { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .inc .l:last-child { border-bottom: 0; }
+  .inc .cb { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--ink-3); display: grid; place-items: center; }
+  .inc .cb.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .inc .why { font-size: 12px; color: var(--ink-3); font-style: italic; font-family: var(--serif); font-size: 13.5px; }
+  .inc .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .dialog .foot { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
+  .dialog .foot .hint { font-size: 12.5px; color: var(--ink-3); }
+  .dialog .foot .btns { margin-left: auto; display: flex; gap: 8px; }
+  .pagemap { display: flex; flex-direction: column; gap: 12px; }
+  .thumbs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .thumb { aspect-ratio: 210/297; background: var(--paper); border-radius: 2px; box-shadow: var(--shadow-soft); border: 1px solid var(--paper-line); padding: 8px 9px; display: flex; flex-direction: column; gap: 3px; position: relative; color-scheme: light; }
+  .thumb i { display: block; height: 3px; border-radius: 2px; background: rgba(42,50,68,0.16); }
+  .thumb i.h { height: 5px; width: 70%; background: rgba(42,50,68,0.5); margin-bottom: 3px; }
+  .thumb i.s { width: 55%; } .thumb i.q { background: rgba(42,50,68,0.08); }
+  .thumb i.box { height: 22px; border-radius: 3px; border: 1px solid rgba(42,50,68,0.5); background: transparent; }
+  .thumb i.gate { height: 16px; border-radius: 0 3px 3px 0; border-left: 2px solid rgba(42,50,68,0.7); background: #FBF7F1; }
+  .thumb i.tbl { height: 2px; background: rgba(42,50,68,0.22); }
+  .thumb .pn { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--paper-ink-3); }
+  .thumb .nm { position: absolute; top: -4px; right: -4px; background: var(--accent); color: var(--accent-fg); font-size: 10px; font-weight: 600; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; }
+  .thumb-cap { font-size: 12px; color: var(--ink-2); text-align: center; margin-top: 6px; line-height: 1.35; }
+  .pagemap p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+
+  @media (max-width: 1100px) { .rules { grid-template-columns: 1fr 1fr; } .thumbs { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 900px) {
+    .board { padding: 24px 16px 56px; gap: 32px; }
+    .board-head { grid-template-columns: 1fr; align-items: start; }
+    .sheets, .dialog-row, .rules { grid-template-columns: 1fr; }
+    .paper { padding: 22px 20px 18px; min-height: 0; font-size: 12.5px; }
+    .paper h1 { font-size: 24px; }
+    .facts { grid-template-columns: 1fr 1fr; } .facts div:nth-child(2) { border-right: 0; } .facts div:nth-child(n+3) { border-top: 1px solid var(--paper-line); } .facts div:nth-child(3) { padding-left: 0; }
+    .counts { grid-template-columns: repeat(3, 1fr); } .counts div:nth-child(3) { border-right: 0; } .counts div:nth-child(n+4) { border-top: 1px solid var(--paper-line); } .counts div:nth-child(4) { padding-left: 0; }
+    .ledger .lh { display: none; }
+    .ledger .lr { grid-template-columns: 52px 1fr; grid-template-areas: "t w" "t a" "t e"; }
+    .ledger .lr .t { grid-area: t; } .ledger .lr .w { grid-area: w; } .ledger .lr .a { grid-area: a; } .ledger .lr .e { grid-area: e; text-align: left; }
+    .ledger .lr.gate { margin-left: 0; padding-left: 8px; }
+    .p-msg { grid-template-columns: 1fr; gap: 2px; }
+    .run-head { grid-template-columns: auto 1fr; } .run-head .right { grid-column: 1 / -1; text-align: left; }
+    .run-foot, .sig { grid-template-columns: 1fr; text-align: left; } .run-foot .r, .run-foot .c { text-align: left; }
+    .legend { min-width: 0; }
+  }
+
+  /* ----- print: the board prints as the two sheets, nothing else ----- */
+  @page { size: A4; margin: 16mm 14mm; }
+  @media print {
+    body { background: #fff; background-image: none; color: #1F2634; }
+    .board { padding: 0; gap: 0; max-width: none; }
+    .board-head, .legend, .section-h, .sheet-cap, .rules, .dialog-row, .noprint { display: none !important; }
+    .sheets { display: block; }
+    .sheet-wrap + .sheet-wrap { break-before: page; }
+    .paper { box-shadow: none; border-radius: 0; padding: 0; min-height: 0; overflow: visible; font-size: 11pt; }
+    .paper h1 { font-size: 24pt; }
+    .p-plan, .p-gate, .ledger .lr { break-inside: avoid; }
+    .p-msg.human .body, .p-gate, .ledger .lr.exp { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    a[href^="http"]::after { content: " (" attr(href) ")"; font-family: var(--mono); font-size: 9pt; color: #5B6273; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mark" viewBox="0 0 96 96">
+      <circle class="disc" cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+      <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="7"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-term" viewBox="0 0 16 16"><path d="M3 4l4 4-4 4M8 12h5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-file" viewBox="0 0 16 16"><path d="M4 2h5l3 3v9H4z M9 2v3h3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 16 16"><path d="M3 13l1-4 7-7 3 3-7 7z M10 3l3 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 16 16"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+    <symbol id="i-cut" viewBox="0 0 16 16"><path d="M2 8h12M8 2v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 2"/></symbol>
+    <symbol id="i-type" viewBox="0 0 16 16"><path d="M3 4h10M8 4v9M6 13h4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-page" viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3 11h10" stroke="currentColor" stroke-width="1.4"/></symbol>
+    <symbol id="i-ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-sign" viewBox="0 0 16 16"><path d="M2 12c2-4 3-5 4-5s1 4 2 4 2-5 3-5 1 3 3 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M5 7L3.5 8.5a2.1 2.1 0 003 3L8 10M8 6l1.5-1.5a2.1 2.1 0 013 3L11 9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-print" viewBox="0 0 16 16"><path d="M4 6V2h8v4M4 12H2V6h12v6h-2M4 9h8v5H4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<main class="board">
+
+  <header class="board-head">
+    <div>
+      <div class="eyebrow"><svg class="mark"><use href="#mark"/></svg> Henosis · system · print and export</div>
+      <h1>What the session looks like on paper</h1>
+      <p>A session exported to PDF and the audit trail printed. Paper is one theme: white, ink, cream for the few things that need a ground. The rail, the composer, the buttons, the glows and every animation stay in the app; the names, the acts, the ratings, the ids and the hash go on the page.</p>
+    </div>
+    <aside class="legend">
+      <div class="row"><b>Paper does not follow the theme.</b></div>
+      <div class="row"><i class="sw" style="background:#fff"></i> White page, ink <span class="mono" style="font-size:12px">#1F2634</span></div>
+      <div class="row"><i class="sw" style="background:#FBF7F1"></i> Cream only for a quoted human and a gate</div>
+      <div class="row"><i class="sw" style="background:#3E6A39"></i> One green: what the kernel decided</div>
+      <div class="row"><i class="sw" style="background:#8A5A1E"></i> One amber: what was masked</div>
+      <div class="row faint">No apricot glow, no gradient, no shadow on paper.</div>
+    </aside>
+  </header>
+
+  <!-- ===== the two sheets ===== -->
+  <section>
+    <div class="section-h" style="margin-bottom:18px"><span class="n">01</span><h2>Two sheets</h2><span class="sub">left: the session as a document; right: the audit trail as a ledger. Same running head, same foot, same fonts.</span></div>
+    <div class="sheets">
+
+      <!-- Sheet A: session PDF -->
+      <div class="sheet-wrap">
+        <div class="sheet-cap"><svg width="14" height="14"><use href="#i-file"/></svg> Session export <span class="file">billing-page_invoice-pdf_2026-10-07.pdf</span><span class="sz">page 1 of 6 · 184 KB</span></div>
+        <article class="paper" aria-label="Session export, page 1">
+          <div class="run-head">
+            <svg class="mark"><use href="#mark"/></svg>
+            <div class="wm">Henosis <small>Payments team · Billing page · session</small></div>
+            <div class="right">exported 7 Oct 2026 14:32 by Bo<br>ses_7f3a9c · main</div>
+          </div>
+          <h1>Invoice PDF: <i>tax lines and proration</i></h1>
+          <div class="sub"><span>Ana <span class="muted">owner, driving</span></span><span><b>Ana's agent</b> <span class="muted">member</span></span><span>Bo, Cy <span class="muted">contributors</span></span><span>Dee <span class="muted">lead</span></span></div>
+          <div class="facts">
+            <div><div class="k">Ran</div><div class="v">3h 41m <small>6 → 7 Oct</small></div></div>
+            <div><div class="k">Tokens</div><div class="v">412k <small>of 600k</small></div></div>
+            <div><div class="k">Plan</div><div class="v">7/7 <small>steps done</small></div></div>
+            <div><div class="k">United</div><div class="v">1 <small>pdf-layout → main</small></div></div>
+          </div>
+
+          <div class="p-stream">
+            <div class="p-msg human">
+              <div class="t">10:51</div>
+              <div>
+                <div class="who">Ana <span class="role">owner, driving</span></div>
+                <div class="body"><p>The invoice PDF shows one total. Add a line per tax rate and a proration line when a plan changes mid-cycle. Rounding must match Checkout to the cent.</p></div>
+              </div>
+            </div>
+            <div class="p-msg ai">
+              <div class="t">10:52</div>
+              <div>
+                <div class="who">Ana's agent</div>
+                <div class="body"><p>I read <span class="mono">invoice/render.ts</span> and the Checkout totals. Three rates apply across the fixture set (0%, 7%, 20%); proration already exists in Checkout as <span class="mono">prorate(line, from, to)</span>, so the PDF should reuse it rather than compute its own. Plan:</p></div>
+                <div class="p-plan">
+                  <div class="ph">Plan · tax lines and proration <span class="st">Approved 10:58 · 2 ratings, avg 4.5</span></div>
+                  <div class="row"><span class="n">1</span><span>Group invoice lines by tax rate, one subtotal each</span><span class="est"><span class="act">38k</span> / 40k</span></div>
+                  <div class="row"><span class="n">2</span><span>Reuse Checkout <span class="mono">prorate()</span> for mid-cycle plan changes</span><span class="est"><span class="act">61k</span> / 55k</span></div>
+                  <div class="row"><span class="n">3</span><span>Render tax and proration lines in the PDF layout</span><span class="est"><span class="act">74k</span> / 80k</span></div>
+                  <div class="row"><span class="n">4</span><span>Cent-rounding parity test against Checkout, 212 fixtures</span><span class="est"><span class="act">52k</span> / 50k</span></div>
+                  <div class="row"><span class="n">5–7</span><span>Branch <span class="mono">pdf-layout</span>, review, unite into main</span><span class="est"><span class="act">187k</span> / 190k</span></div>
+                  <div class="rate"><span><span class="who">Bo</span> <span class="stars-p">★★★★<span class="off">★</span> 4</span> <q class="serif i">reuse prorate, yes</q></span><span><span class="who">Cy</span> <span class="stars-p">★★★★★ 5</span></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="p-msg ai">
+              <div class="t">11:04</div>
+              <div>
+                <div class="who">Ana's agent</div>
+                <div class="body"><p>Step 1. Grouping by rate; the 0% lines keep their own subtotal so a zero-rated invoice still shows the rate.</p></div>
+                <div class="p-steps">
+                  <div class="p-step"><svg><use href="#i-file"/></svg><span>read invoice/render.ts, invoice/lines.ts</span><span class="r">2 files</span></div>
+                  <div class="p-step"><svg><use href="#i-pen"/></svg><span>edit invoice/lines.ts · groupByRate()</span><span class="r">+41 −6</span></div>
+                  <div class="p-step"><svg><use href="#i-term"/></svg><span>shell pnpm test invoice</span><span class="r">exit 0 · 212 passed</span></div>
+                  <div class="p-step"><svg><use href="#i-term"/></svg><span>shell STRIPE_KEY=<span class="mask">••••</span> pnpm fixtures:pull</span><span class="r mask">1 masked</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="p-msg ai">
+              <div class="t">13:47</div>
+              <div>
+                <div class="who">Ana's agent</div>
+                <div class="p-gate">
+                  <div class="gh">Release gate · unite pdf-layout into main <span class="rl">irreversible · 2 contributors at 4+</span></div>
+                  <div class="votes"><span><span class="who">Bo</span> <span class="stars-p">★★★★<span class="off">★</span> 4</span></span><span><span class="who">Cy</span> <span class="stars-p">★★★★★ 5</span> <q class="serif i">parity test is the proof</q></span><span><span class="who">Dee</span> <span class="muted">voice, unrated</span></span></div>
+                  <div class="granted"><svg width="12" height="12"><use href="#i-check"/></svg> Granted 13:52 by the rule, avg 4.5 · united as a3f9c21</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-omit">Team chat, 14 messages, stays in the circle · continued on page 2</div>
+          </div>
+
+          <div class="run-foot">
+            <span>sha256 9b1e…c47d · 1 secret masked</span>
+            <span class="c">Henosis · Payments team · Invoice PDF: tax lines and proration</span>
+            <span class="r">page 1 of 6</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- Sheet B: audit trail -->
+      <div class="sheet-wrap">
+        <div class="sheet-cap"><svg width="14" height="14"><use href="#i-print"/></svg> Audit trail, printed <span class="file">audit_ses_7f3a9c.pdf</span><span class="sz">page 1 of 2 · 61 KB</span></div>
+        <article class="paper" aria-label="Audit trail, page 1">
+          <div class="run-head">
+            <svg class="mark"><use href="#mark"/></svg>
+            <div class="wm">Henosis <small>Payments team · Billing page · audit trail</small></div>
+            <div class="right">printed 7 Oct 2026 14:35 by Bo<br>ses_7f3a9c · policy payments-default</div>
+          </div>
+          <h1>Who planned, rated and <i>approved what</i></h1>
+          <div class="sub"><span>Invoice PDF: tax lines and proration</span><span class="muted">6 → 7 Oct 2026</span><span class="muted">plan first · budget 600k</span></div>
+          <div class="counts">
+            <div><div class="k">Plan approved</div><div class="v">10:58</div></div>
+            <div><div class="k">Gate granted</div><div class="v">13:52</div></div>
+            <div><div class="k">Ratings</div><div class="v">4</div></div>
+            <div><div class="k">Unites</div><div class="v">1</div></div>
+            <div><div class="k">Tokens</div><div class="v">412k</div></div>
+            <div><div class="k">People · agent</div><div class="v">4 · 1</div></div>
+          </div>
+
+          <div class="ledger">
+            <div class="lh"><span>Time</span><span>Who</span><span>Did</span><span style="text-align:right">Evidence</span></div>
+            <div class="lr"><span class="t">10:49</span><span class="w">Ana<small>owner</small></span><span class="a">Opened the session, plan first, budget 600k</span><span class="e">ev_0001</span></div>
+            <div class="lr"><span class="t">10:49</span><span class="w">Ana's agent<small>member</small></span><span class="a">Joined the circle</span><span class="e">ev_0002</span></div>
+            <div class="lr"><span class="t">10:51</span><span class="w">Ana<small>driving</small></span><span class="a">Steered <span class="mono faint">goal</span> <q>one line per tax rate, proration mid-cycle, cents match Checkout</q></span><span class="e">ev_0004</span></div>
+            <div class="lr"><span class="t">10:52</span><span class="w">Ana's agent<small>member</small></span><span class="a">Proposed a plan, 7 steps, 465k estimated</span><span class="e">plan_01</span></div>
+            <div class="lr"><span class="t">10:55</span><span class="w">Bo<small>contributor</small></span><span class="a">Rated the plan <q>reuse prorate, yes</q></span><span class="e"><span class="stars-p">★★★★<span class="off">★</span></span> 4</span></div>
+            <div class="lr"><span class="t">10:58</span><span class="w">Cy<small>contributor</small></span><span class="a">Rated the plan</span><span class="e"><span class="stars-p">★★★★★</span> 5</span></div>
+            <div class="lr kernel"><span class="t">10:58</span><span class="w">kernel</span><span class="a">Plan approved <span class="rl">1 at 3+ · got 2, avg 4.5</span></span><span class="e"><span class="ok">✓ fold</span></span></div>
+            <div class="lr"><span class="t">11:04</span><span class="w">Ana's agent<small>member</small></span><span class="a">Ran step 1, 38k of 40k; one secret masked by <span class="mono faint">redact.env</span></span><span class="e">ev_0019–0031</span></div>
+            <div class="lr"><span class="t">12:10</span><span class="w">Dee<small>lead</small></span><span class="a">Constrained <span class="mono faint">[project]</span> <q>no new rounding helpers; Checkout is the source</q></span><span class="e">ev_0044</span></div>
+            <div class="lr"><span class="t">12:31</span><span class="w">Ana → Bo<small>handoff</small></span><span class="a">Offered the baton; Bo accepted with the brief</span><span class="e">ev_0052</span></div>
+            <div class="lr gate"><span class="t">13:47</span><span class="w">Ana's agent<small>member</small></span><span class="a">Asked the release gate: unite pdf-layout into main <span class="mono faint">irreversible</span></span><span class="e">appr_03</span></div>
+            <div class="lr"><span class="t">13:49</span><span class="w">Bo<small>driving</small></span><span class="a">Approved</span><span class="e"><span class="stars-p">★★★★<span class="off">★</span></span> 4</span></div>
+            <div class="lr"><span class="t">13:51</span><span class="w">Cy<small>contributor</small></span><span class="a">Approved <q>parity test is the proof</q></span><span class="e"><span class="stars-p">★★★★★</span> 5</span></div>
+            <div class="lr"><span class="t">13:51</span><span class="w">Dee<small>lead</small></span><span class="a">Approved without a rating, a voice not a vote</span><span class="e">appr_03/v3</span></div>
+            <div class="lr kernel"><span class="t">13:52</span><span class="w">kernel</span><span class="a">Gate granted <span class="rl">2 contributors at 4+ · got 2, avg 4.5</span></span><span class="e"><span class="ok">✓ fold</span></span></div>
+            <div class="lr"><span class="t">13:53</span><span class="w">Ana's agent<small>member</small></span><span class="a">United pdf-layout into main</span><span class="e">a3f9c21</span></div>
+            <div class="lr exp"><span class="t">14:35</span><span class="w">Bo<small>driving</small></span><span class="a">Printed the audit trail, this page</span><span class="e">ev_0098</span></div>
+          </div>
+          <div class="verify"><svg width="12" height="12"><use href="#i-check"/></svg> Replays to the same hash. <span class="mono">henosis replay ses_7f3a9c --verify 9b1e…c47d</span></div>
+
+          <div class="sig">
+            <svg class="mark"><use href="#mark"/></svg>
+            <span>Signed by <span class="mono">henosis serve</span> with key <span class="mono">payments-01</span> · 98 events, 1 masked · nothing on this page needs Henosis to read</span>
+            <span class="mono">page 1 of 2</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== rules ===== -->
+  <section>
+    <div class="section-h" style="margin-bottom:18px"><span class="n">02</span><h2>Rules for paper</h2><span class="sub">the print stylesheet in nine decisions; this board itself prints as the two sheets.</span></div>
+    <div class="rules">
+      <div class="rule">
+        <h3><svg><use href="#i-cut"/></svg> What leaves the page</h3>
+        <p>Rail, composer, topbar, buttons, stars you can click, budget meters, avatars, toasts, the apricot glow, every gradient and every animation. A printed page has nothing to press.</p>
+        <div class="sample"><span class="faint">on screen:</span> <span class="mono">[Approve 4★] [Revise] [Reject]</span><br><span class="faint">on paper:</span> Bo approved <span class="st">★★★★<span class="off">★</span></span> <span class="mono">4</span> · 13:49</div>
+      </div>
+      <div class="rule">
+        <h3><svg><use href="#i-eye"/></svg> What stays</h3>
+        <ul>
+          <li>Every name in Instrument Serif, with the role as it was at that moment.</li>
+          <li>Every id, hash, token count and time in JetBrains Mono.</li>
+          <li>Quotes and notes as serif italic, in quotation marks.</li>
+          <li>The kernel's decisions in green, with the rule beside them.</li>
+          <li>Masked secrets stay masked, counted in amber.</li>
+        </ul>
+      </div>
+      <div class="rule">
+        <h3><svg><use href="#i-ring"/></svg> The mark on paper</h3>
+        <p>The cream variant by default: chocolate and navy arcs, apricot centre, on a cream disc. In one ink the agent's arc is dotted so the two arcs still read as two. Never the navy disc on white; it prints as a black coin.</p>
+        <div class="sample marks">
+          <div class="m"><svg class="mark mark-cream"><use href="#mark"/></svg>colour</div>
+          <div class="m"><svg class="mark mark-ink"><use href="#mark"/></svg>one ink</div>
+          <div class="m" style="opacity:.45"><svg class="mark mark-navy"><use href="#mark"/></svg>not on paper</div>
+        </div>
+      </div>
+      <div class="rule">
+        <h3><svg><use href="#i-type"/></svg> Type on paper</h3>
+        <p>Sizes in points, one serif, one sans, one mono. Body at 11pt reads at arm's length; mono runs a size smaller so an id never outweighs the sentence it sits in.</p>
+        <div class="sample scale">
+          <span class="s1">Title, serif</span><span class="mono">24pt</span>
+          <span class="s2">A name, serif</span><span class="mono">13pt</span>
+          <span class="s3">Body, sans</span><span class="mono">11pt</span>
+          <span class="s4">ev_0044 · a3f9c21</span><span class="mono">9.5pt</span>
+          <span class="s5">Column label</span><span class="mono">8.5pt</span>
+        </div>
+      </div>
+      <div class="rule">
+        <h3><svg><use href="#i-page"/></svg> Running head and foot</h3>
+        <p>Head: the mark, the wordmark, team · project · kind, then who exported it and when, the session id and the branch. Foot: the hash and the masked count, the title, the page of pages. The same on every page so a single sheet out of the stack still says where it came from.</p>
+        <div class="sample mono">sha256 9b1e…c47d · 1 secret masked &nbsp;&nbsp;·&nbsp;&nbsp; <span class="faint">title</span> &nbsp;&nbsp;·&nbsp;&nbsp; page 3 of 6</div>
+      </div>
+      <div class="rule">
+        <h3><svg><use href="#i-file"/></svg> Page breaks</h3>
+        <ul>
+          <li>A plan card never splits; it moves whole to the next page with its ratings.</li>
+          <li>A release gate keeps its votes and its grant together.</li>
+          <li>A ledger row never splits; the header row repeats on every page.</li>
+          <li>A long tool result folds to one line and its exit; the full text is in the bundle, not on paper.</li>
+          <li>Human messages keep with the agent's first reply.</li>
+        </ul>
+      </div>
+      <div class="rule">
+        <h3><svg><use href="#i-link"/></svg> Links and references</h3>
+        <p>A link prints its text, then its address in mono and brackets. Internal references (an event, a plan, an approval) print as their id only, since the id and the hash are enough to find them in the bundle.</p>
+        <div class="sample"><span class="link">Checkout totals</span> <span class="mono">(henosis.app/payments/checkout/ses_51b0)</span><br>rated plan <span class="mono">plan_01</span> · united as <span class="mono">a3f9c21</span></div>
+      </div>
+      <div class="rule">
+        <h3><svg><use href="#i-sign"/></svg> Signature and verify line</h3>
+        <p>Both documents end with the same two lines: the green verify line with the replay command, and the signature row with the key name and the event count. A reader with a terminal can check the paper; a reader without one can see that it was signed.</p>
+        <div class="sample"><span class="ok">✓ Replays to the same hash.</span> <span class="mono">henosis replay ses_7f3a9c --verify</span></div>
+      </div>
+      <div class="rule">
+        <h3><svg><use href="#i-cut"/></svg> What is omitted says so</h3>
+        <p>Where the export leaves something out, the page says it in one italic serif line where it would have been: team chat stays in the circle, a branch was not united, a secret was masked. A silence on paper would look like a gap in the record.</p>
+        <div class="sample"><span class="q">Team chat, 14 messages, stays in the circle.</span><br><span class="q">Branch tax-rounding-v2, 11 events, abandoned by Ana 12:40, not printed.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== the dialog and the page map ===== -->
+  <section>
+    <div class="section-h" style="margin-bottom:18px"><span class="n">03</span><h2>Where it starts</h2><span class="sub">the Export sheet in the app chooses the document; the page map shows what it will be.</span></div>
+    <div class="dialog-row">
+      <div class="dialog" role="dialog" aria-label="Export">
+        <div class="dh"><svg class="mark" width="26" height="26"><use href="#mark"/></svg><h2>Export this session</h2><button class="btn icon ghost x" aria-label="Close"><svg width="14" height="14"><use href="#i-x"/></svg></button></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="opt on"><span class="rb"><svg width="11" height="11"><use href="#i-check"/></svg></span><div><div class="t">Session as PDF</div><div class="s">The stream as a document, for people who were not in the room.</div></div><span class="mono">6 pages</span></div>
+          <div class="opt"><span class="rb"></span><div><div class="t">Audit trail</div><div class="s">Who planned, rated and approved what, one row per act.</div></div><span class="mono">2 pages</span></div>
+          <div class="opt"><span class="rb"></span><div><div class="t">Markdown</div><div class="s">For the PR, the wiki, the handoff.</div></div><span class="mono">38 KB</span></div>
+        </div>
+        <div>
+          <h3 style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px">Include</h3>
+          <div class="inc">
+            <div class="l"><span class="cb on"><svg width="10" height="10"><use href="#i-check"/></svg></span><span>Messages, plan and ratings</span><span class="n">61</span></div>
+            <div class="l"><span class="cb on"><svg width="10" height="10"><use href="#i-check"/></svg></span><span>Tool steps, folded <span class="faint">· 1 secret masked</span></span><span class="n">23</span></div>
+            <div class="l"><span class="cb on"><svg width="10" height="10"><use href="#i-check"/></svg></span><span>Release gates and unites</span><span class="n">4</span></div>
+            <div class="l"><span class="cb"></span><span>Team chat <span class="why">stays in the circle</span></span><span class="n">14</span></div>
+            <div class="l"><span class="cb"></span><span>Abandoned branches <span class="why">named where they were</span></span><span class="n">1</span></div>
+          </div>
+        </div>
+        <div class="foot"><span class="hint">Recorded as an act: "Bo exported the session."</span><div class="btns"><button class="btn">Print…</button><button class="btn primary">Export PDF</button></div></div>
+      </div>
+
+      <div class="pagemap">
+        <div class="thumbs">
+          <div><div class="thumb"><i class="h"></i><i class="s"></i><i class="tbl"></i><i></i><i class="q"></i><i class="box"></i><i></i><i class="gate"></i><span class="pn">1</span></div><div class="thumb-cap">Head, facts, the goal, the plan</div></div>
+          <div><div class="thumb"><i class="h" style="width:40%"></i><i></i><i class="q"></i><i class="q"></i><i></i><i class="q"></i><i class="q"></i><i></i><i class="q"></i><span class="pn">2</span></div><div class="thumb-cap">Steps 1–3, tool lines folded</div></div>
+          <div><div class="thumb"><i></i><i class="q"></i><i class="q"></i><i></i><i class="gate"></i><i></i><i class="q"></i><span class="pn">3</span></div><div class="thumb-cap">Dee's constraint, the handoff brief</div></div>
+          <div><div class="thumb"><i></i><i class="q"></i><i class="q"></i><i class="q"></i><i></i><i class="q"></i><span class="pn">4</span></div><div class="thumb-cap">Steps 4–7, parity test</div></div>
+          <div><div class="thumb"><i class="gate"></i><i></i><i class="q"></i><i class="s"></i><i class="tbl"></i><i class="q"></i><span class="pn">5</span></div><div class="thumb-cap">Release gate, votes, the unite</div></div>
+          <div><div class="thumb"><i class="h" style="width:50%"></i><i class="tbl"></i><i class="q"></i><i class="q"></i><i class="q"></i><i class="q"></i><i class="tbl"></i><i class="s"></i><span class="pn">6</span><span class="nm">✓</span></div><div class="thumb-cap">Roster, usage, verify line, signature</div></div>
+        </div>
+        <p>Six pages for a three-hour session with seven steps. Tool lines fold to one row each, which is what keeps it to six; unfolded, the same session is forty-one pages, and the bundle has them. The last page is the one a reviewer reads first: who was in the circle with their final roles, tokens by person and agent, the verify line, the signature.</p>
+        <p class="small faint">Print from the browser gives the same sheets: the board's own <span class="mono">@media print</span> hides everything but the paper, sets A4 with 16mm margins, and breaks the audit trail onto its own page.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>

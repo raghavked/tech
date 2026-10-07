@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis illustration: the ring as a system</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- illustration colours ----------
+     Every spot is drawn with four inks and nothing else: the person's arc (a), the agent's arc (b),
+     the centre dot, and a ghost for what has not happened yet. On cream the arcs are chocolate and
+     navy, as the brief says for the mark on cream. On the dark canvas chocolate would vanish, so it
+     lifts two steps to a warm brown and navy becomes cream. Amber is allowed once, for contention. */
+  :root {
+    --il-a: #56352D; --il-b: #2A3244; --il-dot: #E2C4A6;
+    --il-ghost: rgba(42,50,68,0.30); --il-track: rgba(42,50,68,0.10); --il-warn: #B9792E;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --il-a: #B27A66; --il-b: #E9E1D4; --il-dot: #E2C4A6;
+    --il-ghost: rgba(240,234,224,0.34); --il-track: rgba(240,234,224,0.12); --il-warn: #D49A4E;
+  } }
+  :root[data-theme="dark"] {
+    --il-a: #B27A66; --il-b: #E9E1D4; --il-dot: #E2C4A6;
+    --il-ghost: rgba(240,234,224,0.34); --il-track: rgba(240,234,224,0.12); --il-warn: #D49A4E;
+  }
+  /* on the brand gradient and on navy, the arcs are apricot and cream in both themes */
+  .on-brand, .on-navy { --il-a: #CFA782; --il-b: #FBF7F1; --il-dot: #E2C4A6;
+    --il-ghost: rgba(251,247,241,0.38); --il-track: rgba(251,247,241,0.14); --il-warn: #E2B06A; }
+
+  .spot { display: block; width: 96px; height: 96px; flex: none; overflow: visible; }
+  .spot.s24 { width: 24px; height: 24px; } .spot.s48 { width: 48px; height: 48px; }
+  .spot.s160 { width: 160px; height: 160px; } .spot.s120 { width: 120px; height: 120px; }
+
+  /* ---------- board ---------- */
+  html, body { height: auto; }
+  body { min-height: 100vh; background-repeat: no-repeat; }
+  .board { width: min(1440px, 100%); margin: 0 auto; padding: 56px 72px 96px; display: flex; flex-direction: column; gap: 72px; }
+  .board > header { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; }
+  .board > header h1 { font-size: 48px; max-width: 760px; }
+  .board > header p { margin: 14px 0 0; font-size: 16px; color: var(--ink-2); max-width: 640px; }
+  .board > header .meta { font-size: 12.5px; color: var(--ink-3); display: flex; flex-direction: column; gap: 4px; text-align: right; }
+  .board > section { display: grid; grid-template-columns: 260px 1fr; gap: 40px; align-items: start; }
+  .board > section > header { position: sticky; top: 24px; }
+  .board > section > header .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: 0.08em; display: block; margin-bottom: 10px; }
+  .board > section > header h2 { font-size: 30px; }
+  .board > section > header p { margin: 10px 0 0; font-size: 14px; color: var(--ink-2); max-width: 220px; }
+  .stack-v { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .grid { display: grid; gap: 18px; }
+  .g2 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g4 { grid-template-columns: repeat(4, 1fr); }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .tile .cap { font-size: 12.5px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .tile .cap b { font-weight: 600; color: var(--ink); }
+  .tile .cap .mono { font-size: 11.5px; color: var(--ink-3); }
+  .tile p { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+  .tile .say { font-family: var(--serif); font-size: 18px; color: var(--ink); line-height: 1.25; }
+  .tile .say i { color: var(--accent); }
+  .tile .where { font-size: 12px; color: var(--ink-3); }
+  .figure { display: grid; place-items: center; padding: 18px 0 6px; }
+
+  /* 01 grammar */
+  .anatomy { display: grid; grid-template-columns: 300px 1fr; gap: 28px; align-items: center; }
+  .anatomy .big { display: grid; place-items: center; background: var(--surface-2); border-radius: var(--radius-lg); padding: 28px; }
+  .anatomy .big svg { width: 240px; height: 240px; overflow: visible; }
+  .anatomy .label { font-family: var(--mono); font-size: 5.5px; fill: var(--ink-3); }
+  .anatomy .guide { stroke: var(--ink-3); stroke-width: 0.6; stroke-dasharray: 2 2; fill: none; }
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+  .rules li { display: flex; flex-direction: column; gap: 3px; padding: 10px 0; border-top: 1px solid var(--line); line-height: 1.5; }
+  .rules li b { font-weight: 600; color: var(--ink); white-space: nowrap; }
+  .rules li span { color: var(--ink-2); }
+  .stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .stages .tile { align-items: center; text-align: center; }
+  .stages .tile .cap { flex-direction: column; align-items: center; gap: 2px; }
+  .inks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .ink { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); font-size: 13px; }
+  .ink i { width: 28px; height: 28px; border-radius: 50%; flex: none; border: 1px solid var(--line); }
+  .ink .mono { font-size: 11.5px; color: var(--ink-3); display: block; }
+
+  /* 02 twelve spots */
+  .twelve .tile { gap: 10px; }
+  .twelve .tile .num { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .twelve .tile .name { font-family: var(--serif); font-size: 22px; line-height: 1.1; }
+  .twelve .tile .figure { padding: 10px 0 4px; }
+
+  /* 03 in situ */
+  .window { display: flex; flex-direction: column; }
+  .window .body { padding: 0; display: flex; min-height: 0; }
+  .window .rail { width: 220px; padding: 12px; gap: 4px; }
+  .window .rail .brand { font-size: 20px; padding: 6px 8px 12px; }
+  .window .rail .item { font-size: 13px; padding: 7px 10px; }
+  .window .main { background: var(--canvas); }
+  .window .topbar { padding: 10px 18px; min-height: 48px; }
+  .window .topbar .title { font-size: 18px; }
+  .empty-page { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 56px 32px 48px; }
+  .empty-page .say { font-family: var(--serif); font-size: 26px; line-height: 1.15; margin-top: 10px; }
+  .empty-page .say i { color: var(--accent); }
+  .empty-page .line { color: var(--ink-2); font-size: 14px; max-width: 420px; }
+  .empty-page .actions { display: flex; gap: 8px; margin-top: 14px; }
+  .ghost-row { margin-top: 26px; width: min(520px, 100%); border: 1.5px dashed var(--il-ghost); border-radius: var(--radius); padding: 12px 16px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; text-align: left; color: var(--ink-3); font-size: 13px; }
+  .ghost-row .t { font-family: var(--serif); font-size: 16px; color: var(--ink-2); }
+  .empty-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px dashed var(--il-ghost); border-radius: var(--radius); color: var(--ink-2); font-size: 14px; }
+  .empty-row .say { font-family: var(--serif); font-size: 17px; color: var(--ink); }
+  .empty-row .btn { margin-left: auto; }
+  .queue { display: flex; flex-direction: column; gap: 10px; padding: 18px 22px 24px; }
+  .queue h2 { font-size: 22px; }
+  .queue .decided { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 10px 6px; border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
+  .queue .decided .ok { color: var(--ok); font-weight: 600; }
+  .empty-card { display: flex; gap: 18px; align-items: center; }
+  .empty-card .say { font-family: var(--serif); font-size: 20px; line-height: 1.2; }
+  .empty-card p { margin: 4px 0 0; }
+  .phone-wrap { display: grid; grid-template-columns: 1fr 390px; gap: 18px; align-items: start; }
+  .phone { height: 720px; }
+  .phone .bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 8px; font-size: 12px; color: var(--ink-2); }
+  .phone .top { display: flex; align-items: center; gap: 10px; padding: 6px 18px 12px; border-bottom: 1px solid var(--line); font-family: var(--serif); font-size: 22px; }
+  .phone .top .pill { margin-left: auto; }
+  .phone .tabs { margin-top: auto; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding: 10px 0 18px; font-size: 11px; color: var(--ink-3); text-align: center; }
+  .phone .tabs div { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .phone .tabs .on { color: var(--accent); }
+  .phone .tabs svg { width: 22px; height: 22px; }
+  .phone .empty-page { padding: 54px 22px 32px; }
+  .phone .empty-page .say { font-size: 24px; }
+
+  /* 04 marketing */
+  .mhero { background: var(--gradient-brand); color: #fff; border-radius: var(--radius-lg); padding: 48px 52px; display: grid; grid-template-columns: 1fr 520px; gap: 32px; align-items: center; position: relative; overflow: hidden; }
+  .mhero h2 { font-size: 46px; color: #fff; line-height: 1.05; }
+  .mhero p { margin: 16px 0 0; font-size: 16px; color: rgba(255,255,255,0.78); max-width: 440px; }
+  .mhero .actions { display: flex; gap: 10px; margin-top: 26px; }
+  .mhero .btn { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: #fff; }
+  .mhero .btn.primary { background: var(--apricot); color: #56352D; border-color: transparent; }
+  .mhero .comp { width: 100%; height: auto; display: block; overflow: visible; }
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .features .tile { padding: 24px; gap: 14px; }
+  .features .tile h3 { font-family: var(--serif); font-weight: 400; font-size: 24px; }
+  .social { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .ogcard { aspect-ratio: 1200 / 630; border-radius: var(--radius); overflow: hidden; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 28px 32px; box-shadow: var(--shadow-soft); border: 1px solid var(--line); }
+  .ogcard.navy { background: var(--rail); color: var(--rail-fg); }
+  .ogcard.cream { background: var(--canvas); background-image: var(--canvas-wash); color: var(--ink); }
+  .ogcard .comp { position: absolute; right: 36px; top: 50%; transform: translateY(-50%); width: 168px; height: 168px; overflow: visible; }
+  .ogcard .wordmark { font-family: var(--serif); font-size: 22px; display: flex; align-items: center; gap: 8px; }
+  .ogcard .line { font-family: var(--serif); font-size: 30px; line-height: 1.1; max-width: 270px; margin-top: 8px; }
+  .ogcard .sub { font-size: 13px; opacity: .72; margin-top: 8px; }
+  .ogcard.navy .line i { color: var(--apricot); }
+  .ogcard.cream .line i { color: var(--accent); }
+
+  /* 05 sizes, grounds, motion */
+  .sizes { display: flex; align-items: flex-end; gap: 36px; padding: 10px 6px 0; }
+  .sizes div { display: flex; flex-direction: column; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .grounds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .ground { border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 12.5px; border: 1px solid var(--line); }
+  .ground.cream { background: #FBF7F1; color: #5B6273; --il-a: #56352D; --il-b: #2A3244; --il-dot: #E2C4A6; --il-ghost: rgba(42,50,68,0.30); --il-track: rgba(42,50,68,0.10); }
+  .ground.navy { background: #2A3244; color: #AEB4C2; }
+  .ground.dark { background: #1C2230; color: #B4BAC6; --il-a: #B27A66; --il-b: #E9E1D4; --il-dot: #E2C4A6; --il-ghost: rgba(240,234,224,0.34); --il-track: rgba(240,234,224,0.12); }
+  .ground.brand { background: var(--gradient-brand); color: rgba(255,255,255,.75); }
+  .motion-row { display: grid; grid-template-columns: 120px 1fr; gap: 18px; align-items: center; }
+  .motion-row .mark { width: 96px; height: 96px; overflow: visible; }
+  .motion-row .mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; }
+  .motion-row .mark .arc.a { stroke: var(--il-a); } .motion-row .mark .arc.b { stroke: var(--il-b); } .motion-row .mark .dot { fill: var(--il-dot); }
+  .dont { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .dont .tile { align-items: center; text-align: center; gap: 8px; }
+  .dont .tile .spot { opacity: .9; }
+  .dont .tile .x { font-size: 12.5px; color: var(--danger); font-weight: 600; }
+  .dont .tile p { font-size: 12.5px; }
+
+  /* ---------- narrow screens: a phone is a phone ---------- */
+  @media (max-width: 720px) {
+    .board { padding: 0 0 56px; gap: 48px; }
+    .board > header, .board > section { padding: 0 16px; }
+    .board > header { grid-template-columns: 1fr; gap: 12px; padding-top: 28px; }
+    .board > header h1 { font-size: 34px; }
+    .board > header .meta { text-align: left; }
+    .board > section { grid-template-columns: 1fr; gap: 20px; }
+    .board > section > header { position: static; }
+    .board > section > header p { max-width: none; }
+    .g4, .g3, .inks, .grounds, .dont, .stages, .features { grid-template-columns: repeat(2, 1fr); }
+    .g2, .social, .rules { grid-template-columns: 1fr; }
+    .anatomy { grid-template-columns: 1fr; }
+    .anatomy .big svg { width: 200px; height: 200px; }
+    .mhero { grid-template-columns: 1fr; padding: 28px 22px; }
+    .mhero h2 { font-size: 32px; }
+    .window { display: none; }
+    .sizes { gap: 20px; flex-wrap: wrap; }
+    /* the mobile section comes first and the phone fills the screen */
+    section.situ { order: -1; padding: 0; }
+    section.situ > header, section.situ .desk { display: none; }
+    .phone-wrap { grid-template-columns: 1fr; gap: 0; }
+    .phone { width: 100%; height: 100vh; border: 0; border-radius: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======== the twelve spots, drawn once. Every spot lives in a 96-unit box, ring radius 28, stroke 10, round caps. ======== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- 01 Open: the two arcs apart; a dashed ghost where the centre will be -->
+    <symbol id="sp-open" viewBox="0 0 96 96" overflow="visible">
+      <path d="M58 20 A28 28 0 0 1 58 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M38 76 A28 28 0 0 1 38 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="7" fill="none" style="stroke:var(--il-ghost)" stroke-width="2" stroke-dasharray="3 3"/>
+    </symbol>
+    <!-- 02 Joining: arcs swinging in, the dot appearing -->
+    <symbol id="sp-join" viewBox="0 0 96 96" overflow="visible">
+      <path d="M48 20 A28 28 0 0 1 48 76" transform="rotate(22 48 48)" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" transform="rotate(-22 48 48)" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="4.5" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- 03 Whole: the mark on cream -->
+    <symbol id="sp-whole" viewBox="0 0 96 96" overflow="visible">
+      <path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- 04 Crew: two rings linked, one centre they share -->
+    <symbol id="sp-crew" viewBox="0 0 96 96" overflow="visible">
+      <path d="M33 30 A18 18 0 0 1 33 66" style="stroke:var(--il-a)" fill="none" stroke-width="7" stroke-linecap="round"/>
+      <path d="M33 66 A18 18 0 0 1 33 30" style="stroke:var(--il-b)" fill="none" stroke-width="7" stroke-linecap="round"/>
+      <path d="M63 30 A18 18 0 0 1 63 66" style="stroke:var(--il-a)" fill="none" stroke-width="7" stroke-linecap="round"/>
+      <path d="M63 66 A18 18 0 0 1 63 30" style="stroke:var(--il-b)" fill="none" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="6" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- 05 Baton: the live bead runs the rim from one arc to the other -->
+    <symbol id="sp-baton" viewBox="0 0 96 96" overflow="visible">
+      <path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M28 28 A28 28 0 0 1 48 20" style="stroke:var(--il-dot)" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 5"/>
+      <circle cx="67.8" cy="28.2" r="6.5" style="fill:var(--il-dot)"/>
+      <circle cx="48" cy="48" r="4" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- 06 Gate: the ring holds; two empty beads wait for their rating -->
+    <symbol id="sp-gate" viewBox="0 0 96 96" overflow="visible">
+      <path d="M40 20 A28 28 0 0 1 40 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M40 76 A28 28 0 0 1 40 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="40" cy="48" r="7" fill="none" style="stroke:var(--il-ghost)" stroke-width="2" stroke-dasharray="3 3"/>
+      <circle cx="84" cy="38" r="6" fill="none" style="stroke:var(--il-ghost)" stroke-width="2" stroke-dasharray="3 3"/>
+      <circle cx="84" cy="58" r="6" fill="none" style="stroke:var(--il-ghost)" stroke-width="2" stroke-dasharray="3 3"/>
+    </symbol>
+    <!-- 07 Plan: the ring in steps -->
+    <symbol id="sp-plan" viewBox="0 0 96 96" overflow="visible">
+      <path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="14 15.3" stroke-dashoffset="0"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="14 15.3"/>
+      <circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- 08 Unite: a branch leaves the ring and comes back to it -->
+    <symbol id="sp-unite" viewBox="0 0 96 96" overflow="visible">
+      <path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M48 8 A40 40 0 0 1 48 88" style="stroke:var(--il-ghost)" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6"/>
+      <circle cx="48" cy="88" r="5.5" style="fill:var(--il-dot)"/>
+      <circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- 09 Memory: rings inside rings -->
+    <symbol id="sp-memory" viewBox="0 0 96 96" overflow="visible">
+      <circle cx="48" cy="48" r="42" fill="none" style="stroke:var(--il-track)" stroke-width="3"/>
+      <path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="13" fill="none" style="stroke:var(--il-ghost)" stroke-width="2"/>
+      <circle cx="48" cy="48" r="5" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- 10 Inbox: a ripple leaving the ring, something said -->
+    <symbol id="sp-inbox" viewBox="0 0 96 96" overflow="visible">
+      <path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M61 12.3 A38 38 0 0 1 83.7 35" style="stroke:var(--il-dot)" fill="none" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M63.4 5.7 A45 45 0 0 1 90.3 32.6" style="stroke:var(--il-dot)" fill="none" stroke-width="3.5" stroke-linecap="round" opacity=".55"/>
+      <circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- 11 Contention: two arcs claim the same stretch of rim -->
+    <symbol id="sp-contention" viewBox="0 0 96 96" overflow="visible">
+      <path d="M48 20 A28 28 0 0 1 48 76" transform="rotate(-38 48 48)" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" transform="rotate(38 48 48)" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round" opacity=".92"/>
+      <circle cx="48" cy="20" r="6.5" style="fill:var(--il-warn)"/>
+      <circle cx="48" cy="48" r="7" fill="none" style="stroke:var(--il-ghost)" stroke-width="2" stroke-dasharray="3 3"/>
+    </symbol>
+    <!-- 12 Meter: the ring as a budget; the filled part is the spend -->
+    <symbol id="sp-meter" viewBox="0 0 96 96" overflow="visible">
+      <circle cx="48" cy="48" r="28" fill="none" style="stroke:var(--il-track)" stroke-width="10"/>
+      <path d="M48 20 A28 28 0 0 1 75.2 41.9" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- 12b Meter at 72 percent, for the usage page and marketing -->
+    <symbol id="sp-meter72" viewBox="0 0 96 96" overflow="visible">
+      <circle cx="48" cy="48" r="28" fill="none" style="stroke:var(--il-track)" stroke-width="10"/>
+      <path d="M48 20 A28 28 0 1 1 20.5 53.3" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/>
+    </symbol>
+    <!-- row size (24): heavier stroke, slightly smaller radius, no satellites -->
+    <symbol id="sp-whole-row" viewBox="0 0 96 96" overflow="visible">
+      <path d="M48 22 A26 26 0 0 1 48 74" style="stroke:var(--il-a)" fill="none" stroke-width="14" stroke-linecap="round"/>
+      <path d="M48 74 A26 26 0 0 1 48 22" style="stroke:var(--il-b)" fill="none" stroke-width="14" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="8" style="fill:var(--il-dot)"/>
+    </symbol>
+    <symbol id="sp-open-row" viewBox="0 0 96 96" overflow="visible">
+      <path d="M60 22 A26 26 0 0 1 60 74" style="stroke:var(--il-a)" fill="none" stroke-width="14" stroke-linecap="round"/>
+      <path d="M36 74 A26 26 0 0 1 36 22" style="stroke:var(--il-b)" fill="none" stroke-width="14" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="8" fill="none" style="stroke:var(--il-ghost)" stroke-width="3" stroke-dasharray="4 4"/>
+    </symbol>
+    <!-- the mark on its navy disc, for wordmarks -->
+    <symbol id="mk-disc" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" style="fill:var(--mark-disc)"/>
+      <path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="7" fill="#E2C4A6"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="board">
+
+  <header>
+    <div>
+      <h1>The ring is the illustration.</h1>
+      <p>Henosis does not need characters, hands or isometric desks. The mark already says the whole product: two arcs, a person's and an agent's, closing around one centre. Every spot illustration is that ring in a different moment: open, joining, whole, shared, handed over, waiting, stepped, branched, remembered, rippled, contested, spent. Twelve spots, four inks, one grammar.</p>
+    </div>
+    <div class="meta"><span>Exploration · illustration</span><span>Spot system for empty states and marketing</span><span>12 spots · 96-unit box · stroke 10</span></div>
+  </header>
+
+  <!-- ======================================================= 01 grammar -->
+  <section>
+    <header>
+      <span class="n">01</span>
+      <h2>Grammar</h2>
+      <p>One box, one radius, one stroke, four inks. Everything a spot can do is a change of position, length or presence, never a change of shape.</p>
+    </header>
+    <div class="stack-v">
+      <div class="anatomy">
+        <div class="big">
+          <svg viewBox="-24 -18 144 132" aria-label="Anatomy of the ring">
+            <circle cx="48" cy="48" r="46" class="guide"/>
+            <circle cx="48" cy="48" r="28" class="guide"/>
+            <line x1="48" y1="-10" x2="48" y2="106" class="guide"/>
+            <line x1="-10" y1="48" x2="106" y2="48" class="guide"/>
+            <path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/>
+            <path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/>
+            <circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/>
+            <text x="84" y="8" class="label">a · person</text>
+            <text x="-22" y="92" class="label">b · agent</text>
+            <text x="-22" y="8" class="label">● dot · live</text>
+            <text x="52" y="-12" class="label">r 28 · stroke 10</text>
+            <text x="98" y="104" class="label">96</text>
+          </svg>
+        </div>
+        <ul class="rules">
+          <li><b>Box</b><span>96 units. The ring sits at the centre with radius 28 and stroke 10, round caps. Satellites may leave the box; nothing may leave the 46 safe circle by more than a stroke.</span></li>
+          <li><b>Four inks</b><span>Chocolate for the person's arc, navy for the agent's, apricot for what is live, a dashed ghost for what has not happened. Amber appears once, in Contention.</span></li>
+          <li><b>Arcs move, never bend</b><span>A spot is the two arcs translated, rotated, dashed or shortened. No new curves except smaller rings of the same family and ripples concentric to the centre.</span></li>
+          <li><b>The dot is a promise</b><span>Solid apricot means something is here. Dashed means it is expected. Absent means the illustration is not about presence at all (Meter).</span></li>
+          <li><b>No faces, no fills, no shadows</b><span>Never fill the ring, never outline it, never add a hand or a screen. The ring is the person and the agent; drawing them again would be saying it twice.</span></li>
+          <li><b>One spot per screen</b><span>An empty state shows one spot at 96. A card shows one at 48. A row shows one at 24. Marketing may compose many rings, but still one composition per screen.</span></li>
+        </ul>
+      </div>
+
+      <div class="stages">
+        <div class="tile"><div class="figure"><svg class="spot s120"><use href="#sp-open"/></svg></div><div class="cap"><b>Open</b><span>Before anything joins</span></div></div>
+        <div class="tile"><div class="figure"><svg class="spot s120"><use href="#sp-join"/></svg></div><div class="cap"><b>Joining</b><span>The arcs-close motion, mid-frame</span></div></div>
+        <div class="tile"><div class="figure"><svg class="spot s120"><use href="#sp-whole"/></svg></div><div class="cap"><b>Whole</b><span>The mark on cream</span></div></div>
+      </div>
+
+      <div class="inks">
+        <div class="ink"><i style="background:#56352D"></i><div>Person's arc<span class="mono">chocolate · dark: #B27A66</span></div></div>
+        <div class="ink"><i style="background:#2A3244"></i><div>Agent's arc<span class="mono">navy · dark: #E9E1D4</span></div></div>
+        <div class="ink"><i style="background:#E2C4A6"></i><div>Live dot, bead, ripple<span class="mono">apricot · both themes</span></div></div>
+        <div class="ink"><i style="background:transparent;border:2px dashed var(--il-ghost)"></i><div>Ghost<span class="mono">ink at 30% · dashed 3 3</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= 02 twelve spots -->
+  <section class="twelve">
+    <header>
+      <span class="n">02</span>
+      <h2>Twelve spots</h2>
+      <p>Each one names a moment the product has, carries its own sentence in the product's voice, and knows which page it belongs to.</p>
+    </header>
+    <div class="grid g4">
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-open"/></svg></div>
+        <span class="num">01 · open</span><span class="name">Nothing yet</span>
+        <span class="say">No sessions on <i>Billing page</i> yet.</span>
+        <span class="where">Sessions, Groups, the project page before its first row</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-join"/></svg></div>
+        <span class="num">02 · joining</span><span class="name">Arriving</span>
+        <span class="say"><i>Ana</i> joins the circle.</span>
+        <span class="where">Onboarding, an accepted invite, a session connecting</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-whole"/></svg></div>
+        <span class="num">03 · whole</span><span class="name">Done</span>
+        <span class="say">United <i>pdf-layout</i> into main.</span>
+        <span class="where">A finished plan, a granted gate, a completed export</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-crew"/></svg></div>
+        <span class="num">04 · crew</span><span class="name">Shared task</span>
+        <span class="say">No crews on <i>Checkout</i> yet.</span>
+        <span class="where">Project page crews, "Team up" before the first crew is named</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-baton"/></svg></div>
+        <span class="num">05 · baton</span><span class="name">Handoff</span>
+        <span class="say"><i>Bo</i> has the baton.</span>
+        <span class="where">Handoff notice, recent handoffs when there are none</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-gate"/></svg></div>
+        <span class="num">06 · gate</span><span class="name">Release gate</span>
+        <span class="say">The gate waits for <i>two ratings</i>.</span>
+        <span class="where">Approvals queue, release gate notice at 0 of 2</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-plan"/></svg></div>
+        <span class="num">07 · plan</span><span class="name">Plan first</span>
+        <span class="say">The plan waits for <i>one rating</i>.</span>
+        <span class="where">Plan card while planning, manager overview with no plans rated</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-unite"/></svg></div>
+        <span class="num">08 · unite</span><span class="name">Branches</span>
+        <span class="say">No branches to <i>compare</i>.</span>
+        <span class="where">Branch compare and unite before the first fork</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-memory"/></svg></div>
+        <span class="num">09 · memory</span><span class="name">Remembered</span>
+        <span class="say">Nothing <i>remembered</i> yet.</span>
+        <span class="where">Memory browser, the curator with nothing to tidy</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-inbox"/></svg></div>
+        <span class="num">10 · inbox</span><span class="name">Something said</span>
+        <span class="say">Nothing has <i>needed you</i> yet.</span>
+        <span class="where">Inbox, notifications, #billing before its first message</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-contention"/></svg></div>
+        <span class="num">11 · contention</span><span class="name">Two hands</span>
+        <span class="say"><i>Ana</i> and <i>Cy's agent</i> both steer tax lines.</span>
+        <span class="where">Contention notice; the contentions list reads "none" with 03</span>
+      </div>
+      <div class="tile">
+        <div class="figure"><svg class="spot"><use href="#sp-meter"/></svg></div>
+        <span class="num">12 · meter</span><span class="name">Spent</span>
+        <span class="say">Nothing spent of <i>120k</i> yet.</span>
+        <span class="where">Usage, token budgets, the optimisation page</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= 03 in situ -->
+  <section class="situ">
+    <header>
+      <span class="n">03</span>
+      <h2>In the product</h2>
+      <p>Three sizes, three pages. The spot never gets a caption of its own; the sentence under it is the page's sentence.</p>
+    </header>
+    <div class="stack-v">
+      <div class="desk window">
+        <div class="titlebar"><i></i><i></i><i></i><span style="margin-left:8px">Henosis · Billing page</span></div>
+        <div class="body">
+          <aside class="rail">
+            <div class="brand"><svg width="22" height="22"><use href="#mk-disc"/></svg>Henosis</div>
+            <button class="new">New session</button>
+            <div class="section">Projects</div>
+            <a class="item active">Billing page</a>
+            <a class="item">Checkout</a>
+            <div class="section">Agents <span class="n">0</span></div>
+            <div class="empty-row on-navy" style="border-color:var(--rail-line);color:var(--rail-muted);padding:10px 12px;font-size:12.5px;gap:10px"><svg class="spot s24"><use href="#sp-open-row"/></svg>No agents running</div>
+            <div class="me"><span class="avatar">D</span>Dee</div>
+          </aside>
+          <div class="main">
+            <div class="topbar"><span class="title">Billing page</span><span class="right"><span class="chip">Payments team · 4</span></span></div>
+            <div class="empty-page">
+              <svg class="spot"><use href="#sp-open"/></svg>
+              <div class="say">No sessions on <i>Billing page</i> yet.</div>
+              <div class="line">Start one and the agent plans first; the Payments team rates the plan before any code is written.</div>
+              <div class="actions"><button class="btn brand">New session</button><button class="btn ghost">Invite Ana</button></div>
+              <div class="ghost-row">
+                <span class="t">Invoice PDF with tax lines</span><span class="mono">0 of 120k</span>
+                <span>Plan first · release gate 2 of 4 at 4+ · Dee, Ana, Bo, Cy</span><span>Planning</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-wrap">
+        <div class="desk stack-v">
+          <div class="card">
+            <div class="queue" style="padding:0">
+              <h2>Approvals</h2>
+              <div class="empty-row"><svg class="spot s48"><use href="#sp-gate"/></svg><div><div class="say">Nothing is waiting for approval.</div><div class="small muted">The next release gate on Checkout needs two of the Payments team at 4+.</div></div><button class="btn sm">Open Checkout</button></div>
+              <div class="decided"><span class="ok">Granted</span><span>Proration rounding in <span class="serif">invoice-pdf</span> · Ana 5, Bo 4</span><span class="mono">14:02</span></div>
+              <div class="decided"><span class="ok">Granted</span><span>Tax lines by region · Cy 4, Dee 4</span><span class="mono">yesterday</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="empty-card">
+              <svg class="spot s48"><use href="#sp-memory"/></svg>
+              <div><div class="say">Nothing remembered yet.</div><p class="small muted">The first fact lands here as you, Dee, scoped to Billing page. "Proration rounds half up" is a good first one.</p></div>
+              <button class="btn sm primary" style="margin-left:auto">Remember</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="empty-card">
+              <svg class="spot s48"><use href="#sp-unite"/></svg>
+              <div><div class="say">No branches to compare.</div><p class="small muted">Fork at a checkpoint to try proration another way; unite brings it back with the conflicts named.</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="bar"><span class="mono">9:41</span><span class="mono">●●●</span></div>
+          <div class="top"><svg width="22" height="22"><use href="#mk-disc"/></svg>Inbox<span class="pill">Payments</span></div>
+          <div class="empty-page">
+            <svg class="spot"><use href="#sp-inbox"/></svg>
+            <div class="say">Nothing has needed you yet.</div>
+            <div class="line">Approvals, handoffs and mentions from #billing arrive here. Bo's agent is planning the invoice PDF; the plan will ask for your rating.</div>
+            <div class="actions"><button class="btn primary">Open Billing page</button></div>
+          </div>
+          <div class="tabs">
+            <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/></svg>Sessions</div>
+            <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Chats</div>
+            <div class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8l8 5 8-5M4 8v9h16V8H4z"/></svg>Inbox</div>
+            <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12l4 4L19 6"/></svg>Approvals</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= 04 marketing -->
+  <section>
+    <header>
+      <span class="n">04</span>
+      <h2>Marketing</h2>
+      <p>Outside the app the same ring composes: many small rings, open and closing, converging on one. Arcs go apricot and cream on the brand gradient and on navy.</p>
+    </header>
+    <div class="stack-v">
+      <div class="mhero on-brand">
+        <div>
+          <h2>One team of people and agents.</h2>
+          <p>A new engineer and a new agent join the same circle on the same day: the same groups and chats, the same plan-first manners, the same release gate held by the people who use the code.</p>
+          <div class="actions"><button class="btn primary">Join the circle</button><button class="btn">See a session</button></div>
+        </div>
+        <svg class="comp" viewBox="0 0 520 320" aria-label="Rings converging on one">
+          <circle cx="260" cy="160" r="128" fill="none" style="stroke:var(--il-track)" stroke-width="2" stroke-dasharray="2 7"/>
+          <!-- satellites: people and agents on their way in -->
+          <g transform="translate(260 32)"><use href="#sp-open" width="56" height="56" x="-28" y="-28"/></g>
+          <g transform="translate(371 54) rotate(0)"><use href="#sp-join" width="56" height="56" x="-28" y="-28"/></g>
+          <g transform="translate(388 160)"><use href="#sp-whole" width="56" height="56" x="-28" y="-28"/></g>
+          <g transform="translate(371 266)"><use href="#sp-join" width="56" height="56" x="-28" y="-28"/></g>
+          <g transform="translate(260 288)"><use href="#sp-whole" width="56" height="56" x="-28" y="-28"/></g>
+          <g transform="translate(149 266)"><use href="#sp-open" width="56" height="56" x="-28" y="-28"/></g>
+          <g transform="translate(132 160)"><use href="#sp-whole" width="56" height="56" x="-28" y="-28"/></g>
+          <g transform="translate(149 54)"><use href="#sp-join" width="56" height="56" x="-28" y="-28"/></g>
+          <!-- the centre -->
+          <g transform="translate(260 160)">
+            <path d="M0 -56 A56 56 0 0 1 0 56" style="stroke:var(--il-a)" fill="none" stroke-width="20" stroke-linecap="round"/>
+            <path d="M0 56 A56 56 0 0 1 0 -56" style="stroke:var(--il-b)" fill="none" stroke-width="20" stroke-linecap="round"/>
+            <circle r="14" style="fill:var(--il-dot)"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="features">
+        <div class="tile"><svg class="spot s48"><use href="#sp-plan"/></svg><h3>Plan first</h3><p>The agent proposes steps with token estimates before it touches anything. Ana rates the plan; the kernel approves it when the policy is met.</p></div>
+        <div class="tile"><svg class="spot s48"><use href="#sp-gate"/></svg><h3>Release gates</h3><p>Irreversible work waits for two of the people who consume it, rating it four or better. An unrated approve is a voice, not a vote.</p></div>
+        <div class="tile"><svg class="spot s48"><use href="#sp-baton"/></svg><h3>Handoff with a brief</h3><p>Bo takes the baton from Dee with a brief the system wrote: the situation, the open items, what changed since she was last here.</p></div>
+      </div>
+
+      <div class="social">
+        <div class="ogcard navy on-navy">
+          <svg class="comp" viewBox="0 0 96 96"><use href="#sp-join"/></svg>
+          <div class="wordmark"><svg width="22" height="22"><use href="#mk-disc"/></svg>Henosis</div>
+          <div class="line">Agents are <i>members</i>, not tools.</div>
+          <div class="sub">henosis.dev · 1200 × 630</div>
+        </div>
+        <div class="ogcard cream">
+          <svg class="comp" viewBox="0 0 96 96"><use href="#sp-crew"/></svg>
+          <div class="wordmark"><svg width="22" height="22"><use href="#mk-disc"/></svg>Henosis</div>
+          <div class="line">The Payments team, <i>plus two</i>.</div>
+          <div class="sub">Case study · Billing page and Checkout in one circle</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= 05 sizes, grounds, motion, don'ts -->
+  <section>
+    <header>
+      <span class="n">05</span>
+      <h2>Sizes, grounds, motion</h2>
+      <p>Four sizes, four grounds, one motion. Below 48 the stroke thickens so the ring stays a ring.</p>
+    </header>
+    <div class="stack-v">
+      <div class="card">
+        <div class="sizes">
+          <div><svg class="spot s24"><use href="#sp-whole-row"/></svg>24 · row</div>
+          <div><svg class="spot s48"><use href="#sp-whole"/></svg>48 · card</div>
+          <div><svg class="spot"><use href="#sp-whole"/></svg>96 · page</div>
+          <div><svg class="spot s160"><use href="#sp-whole"/></svg>160 · marketing</div>
+          <div style="margin-left:auto;align-items:flex-start;max-width:300px;font-family:var(--font);font-size:13px;color:var(--ink-2);text-align:left">Satellites (the beads in Gate, the ripple in Inbox, the branch in Unite) drop out at 24 and the spot falls back to Open, Whole or the dashed ring. A row never carries more than the ring.</div>
+        </div>
+      </div>
+
+      <div class="grounds">
+        <div class="ground cream"><svg class="spot"><use href="#sp-gate"/></svg>On cream · chocolate and navy</div>
+        <div class="ground navy on-navy"><svg class="spot"><use href="#sp-gate"/></svg>On navy · apricot and cream</div>
+        <div class="ground dark"><svg class="spot"><use href="#sp-gate"/></svg>On the dark canvas · lifted chocolate and cream</div>
+        <div class="ground brand on-brand"><svg class="spot"><use href="#sp-gate"/></svg>On the brand gradient · as on navy</div>
+      </div>
+
+      <div class="card motion-row">
+        <svg class="mark joining" viewBox="0 0 96 96" aria-label="Arcs close into the ring">
+          <path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/>
+          <path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/>
+          <circle class="dot" cx="48" cy="48" r="7"/>
+        </svg>
+        <div>
+          <h3>Only one motion</h3>
+          <p class="muted" style="margin:6px 0 0;font-size:14px">Open becomes Whole with the brand's arcs-close keyframes (1.8s, the same ones a joining member gets), and the first real row crossfades in beneath it. No other spot animates: Baton's bead does not run, Inbox's ripple does not grow. Calm mode and reduced motion leave every spot at its final frame, which is designed to be read still.</p>
+        </div>
+      </div>
+
+      <div class="dont">
+        <div class="tile"><svg class="spot s48" style="filter:grayscale(1)"><use href="#sp-whole"/></svg><span class="x">Don't recolour</span><p>No team accent inside a spot; the Team look editor changes the glow, not the arcs.</p></div>
+        <div class="tile"><svg class="spot s48" viewBox="0 0 96 96"><circle cx="48" cy="48" r="28" fill="none" style="stroke:var(--il-a)" stroke-width="10"/><circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/></svg><span class="x">Don't close the gap</span><p>One continuous circle is the older ring-and-bead. The arcs stay two arcs.</p></div>
+        <div class="tile"><svg class="spot s48" viewBox="0 0 96 96"><path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--il-a)" fill="none" stroke-width="10"/><path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--il-b)" fill="none" stroke-width="10"/><circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/></svg><span class="x">Don't cut the caps</span><p>Round caps always. Flat ends read as a loading spinner.</p></div>
+        <div class="tile"><svg class="spot s48" viewBox="0 0 96 96"><circle cx="48" cy="48" r="33" style="fill:var(--il-track)"/><path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--il-a)" fill="none" stroke-width="10" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--il-b)" fill="none" stroke-width="10" stroke-linecap="round"/><circle cx="48" cy="48" r="7" style="fill:var(--il-dot)"/></svg><span class="x">Don't add a ground</span><p>No disc, blob or shadow behind a spot on cream. The navy disc belongs to the mark alone.</p></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

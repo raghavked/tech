@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Tablet</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- the board: two tablets, each with its rules beside it ---------- */
+  .board { width: 1440px; margin: 0 auto; padding: 36px 36px 40px; display: flex; flex-direction: column; gap: 44px; }
+  .row { display: grid; gap: 28px; align-items: start; }
+  .row.land { grid-template-columns: 1048px 1fr; }
+  .row.port { grid-template-columns: 792px 1fr; }
+  .fcol { position: relative; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .cap { display: flex; align-items: baseline; gap: 12px; font-size: 13px; color: var(--ink-2); padding: 0 2px; }
+  .cap .serif { font-size: 20px; color: var(--ink); }
+  .cap .mono { font-size: 12px; color: var(--ink-3); }
+  .cap .mono.dim { margin-left: auto; }
+  .ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- the tablet frame ---------- */
+  .tablet { position: relative; border: 12px solid #1C2230; border-radius: 30px; background: var(--canvas); overflow: hidden; box-shadow: 0 0 0 1px var(--line), 0 1px 0 rgba(42,50,68,.18); flex: none; }
+  .tablet.land { width: 1048px; height: 792px; }
+  .tablet.port { width: 792px; height: 1048px; }
+  .tablet .cam { position: absolute; z-index: 9; width: 8px; height: 8px; border-radius: 50%; background: #0F131B; box-shadow: inset 0 0 0 2px #2A3244; pointer-events: none; }
+  .tablet.land .cam { left: 6px; top: 50%; margin-top: -4px; }
+  .tablet.port .cam { top: 6px; left: 50%; margin-left: -4px; }
+  .tablet .shell { height: 100%; position: relative; }
+  .tablet .main { background: var(--canvas); background-image: var(--canvas-wash); position: relative; }
+  .tablet .sysbar { height: 24px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font: 500 11.5px var(--mono); color: var(--ink-2); }
+  .tablet .sysbar .mid { display: inline-flex; align-items: center; gap: 6px; }
+  .tablet .sysbar .ic { width: 13px; height: 13px; }
+  .tablet .home { position: absolute; left: 50%; bottom: 6px; width: 120px; height: 5px; margin-left: -60px; border-radius: 3px; background: var(--ink); opacity: .55; z-index: 8; }
+
+  /* ---------- the rail, collapsed to 72 (landscape) ---------- */
+  .mini { width: 72px; flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; align-items: center; padding: 12px 0 14px; gap: 4px; position: relative; }
+  .mini .mark { width: 32px; height: 32px; margin-bottom: 6px; flex: none; }
+  .mini .sq { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; color: var(--rail-muted); position: relative; flex: none; }
+  .mini .sq.active { background: var(--rail-active); color: var(--apricot); box-shadow: inset 0 0 0 1px rgba(226,196,166,0.35); }
+  .mini .sq.new { background: var(--gradient-brand); color: #fff; box-shadow: var(--shadow-soft); }
+  .mini .sq.new .ic { stroke-width: 2.2; }
+  .mini .sq .ic { width: 19px; height: 19px; }
+  .mini .count { position: absolute; top: -3px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--radius-full); background: var(--apricot); color: #56352D; font: 600 10.5px var(--mono); display: inline-grid; place-items: center; box-shadow: 0 0 0 2px var(--rail); }
+  .mini .hr { width: 36px; height: 1px; background: var(--rail-line); margin: 6px 0; flex: none; }
+  .mini .sq.av { width: 40px; height: 40px; border-radius: 50%; background: var(--rail-2); color: var(--rail-fg); font: 600 11.5px var(--font); }
+  .mini .sq.av .st { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--rail); background: var(--rail-muted); }
+  .mini .sq.av .st.running { background: #9BC88F; animation: pulse 1.6s ease-in-out infinite; }
+  .mini .sq.av .st.awaiting { background: #E2B06A; }
+  .mini .sq.av.active { box-shadow: 0 0 0 2px var(--apricot); color: var(--rail-fg); background: var(--rail-2); }
+  .mini .sq.av.me { box-shadow: 0 0 0 2px var(--apricot); margin-top: auto; }
+  .mini .proj { font-family: var(--serif); font-size: 18px; color: var(--apricot); }
+  .mini .expand { width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; color: var(--rail-muted); display: grid; place-items: center; flex: none; margin-top: 2px; }
+  /* long-press peek: the collapsed card opens as a navy card beside the avatar */
+  .mini .peek { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 12px; white-space: nowrap; background: var(--rail-2); color: var(--rail-fg); border: 1px solid var(--rail-line); border-radius: 12px; padding: 10px 14px; font-size: 13px; box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 3px; line-height: 1.3; z-index: 6; }
+  .mini .peek::before { content: ""; position: absolute; right: 100%; top: 50%; margin-top: -6px; border: 6px solid transparent; border-right-color: var(--rail-2); }
+  .mini .peek .serif { font-size: 16px; display: inline-flex; align-items: center; gap: 8px; }
+  .mini .peek .serif .pill { height: 18px; font-size: 10.5px; padding: 0 7px; }
+  .mini .peek .sub { font-size: 12.5px; color: var(--rail-muted); }
+  .mini .peek .sub i { font-family: var(--serif); color: var(--apricot); }
+  .mini .peek .sub .tok { font-family: var(--mono); font-size: 11px; margin-left: 8px; }
+  .mini .peek .open { margin-top: 4px; font-size: 12px; color: var(--apricot); }
+
+  /* ---------- the full rail as a left sheet (portrait) ---------- */
+  .scrim { position: absolute; inset: 0; background: rgba(42,50,68,0.28); z-index: 4; }
+  :root[data-theme="dark"] .scrim { background: rgba(0,0,0,0.45); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .scrim { background: rgba(0,0,0,0.45); } }
+  .railsheet { position: absolute; left: 0; top: 0; bottom: 0; width: 300px; z-index: 5; box-shadow: 12px 0 24px rgba(0,0,0,.18); display: flex; flex-direction: column; }
+  .railsheet .rail { width: 100%; height: 100%; padding: 36px 12px 14px; gap: 4px; overflow: hidden; }
+  .railsheet .brand { font-size: 22px; padding: 4px 8px 14px; }
+  .railsheet .brand .mark { width: 30px; height: 30px; }
+  .railsheet .brand .x { margin-left: auto; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: var(--rail-muted); }
+  .railsheet .new { min-height: 44px; }
+  .railsheet .section { padding: 14px 10px 6px; }
+  .railsheet .item { min-height: 44px; padding: 8px 12px; }
+  .railsheet .item .n { margin-left: auto; font: 600 11px var(--mono); background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; }
+  .railsheet .agent { padding: 9px 12px; gap: 4px; }
+  .railsheet .agent .doing { -webkit-line-clamp: 1; }
+  .railsheet .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .railsheet .me { min-height: 48px; }
+  .railsheet .grab { position: absolute; right: 8px; top: 50%; width: 4px; height: 44px; margin-top: -22px; border-radius: 2px; background: rgba(243,237,228,0.25); }
+
+  /* ---------- main: topbar, stream, composer ---------- */
+  .topbar { padding: 8px 16px; min-height: 56px; gap: 10px; }
+  .topbar .title { font-size: 20px; gap: 10px; }
+  .topbar .title .status, .topbar .title .pill { font-family: var(--font); flex: none; }
+  .topbar .title .status { font-size: 12.5px; }
+  .topbar .right { gap: 6px; flex: none; }
+  .topbar .btn.icon { width: 44px; min-height: 44px; position: relative; }
+  .topbar .btn.icon .ic { width: 18px; height: 18px; }
+  .topbar .btn.icon.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+  .topbar .btn.icon .count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--radius-full); background: var(--accent); color: var(--accent-fg); font: 600 10.5px var(--mono); display: inline-grid; place-items: center; box-shadow: 0 0 0 2px var(--canvas); }
+  .topbar .stack .avatar { width: 28px; height: 28px; font-size: 10.5px; }
+  .topbar .stack .avatar.agent { border-radius: 8px 8px 8px 3px; }
+  .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font: 12px var(--mono); color: var(--ink-2); min-width: 72px; }
+  .tokchip .budget { height: 3px; }
+  /* portrait: two-line title */
+  .topbar.two .title { flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.15; }
+  .topbar.two .title .sub { display: inline-flex; align-items: center; gap: 8px; }
+
+  .scroll { display: flex; flex-direction: column-reverse; }
+  .column { flex: none; align-self: center; padding: 18px 24px 8px; gap: 20px; }
+  .tablet.port .column { width: 100%; padding: 16px 20px 8px; gap: 18px; }
+  .composer-wrap { padding: 6px 24px 22px; }
+  .tablet.port .composer-wrap { padding: 6px 20px 26px; }
+  .composer { padding: 12px 12px 10px 16px; gap: 8px; }
+  .composer .input { color: var(--ink-3); min-height: 26px; }
+  .composer .bar .right .btn.ghost.icon { width: 40px; min-height: 40px; }
+  .composer .send { width: 40px; height: 40px; }
+  .composer .send .ic { width: 16px; height: 16px; }
+  .composer .seg button { padding: 7px 14px; font-size: 13px; }
+  .composer .bar .mode { display: inline-flex; align-items: center; gap: 6px; font: 12.5px var(--font); color: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-full); padding: 6px 12px; }
+  .composer .bar .mode .mono { font-size: 11.5px; color: var(--ink); }
+  .composer .kb { margin-left: 2px; font: 11.5px var(--mono); color: var(--ink-3); display: inline-flex; align-items: center; gap: 4px; }
+  .btn { white-space: nowrap; }
+
+  .msg .meta .scope { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+  .msg .meta time { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .msg.human .text { max-width: 92%; padding: 11px 16px; }
+  .msg.human .text .goal-lbl { font-family: var(--serif); font-style: italic; color: var(--accent); margin-right: 6px; }
+  .msg.agent .meta .who { display: inline-flex; align-items: center; gap: 8px; }
+  .msg.agent .text { font-size: 15px; }
+  .msg.agent .text p { margin: 0 0 6px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; }
+  .msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 10px 14px; align-self: flex-start; max-width: 85%; font-size: 14.5px; }
+  .step { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 6px 10px; border-radius: 10px; }
+  .step .ic { width: 15px; height: 15px; color: var(--ink-3); }
+  .step .mono { font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .mono b { font-weight: 500; color: var(--ink); }
+  .step .r { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .step.ok .ic { color: var(--ok); }
+  .step.live { background: var(--apricot-soft); } .step.live .r { color: var(--accent); }
+  .step .livedot { width: 9px; height: 9px; margin: 0 auto; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.6s ease-in-out infinite; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+
+  /* the release gate, with touch-sized stars */
+  .notice { padding: 14px 16px 14px 18px; gap: 10px; }
+  .notice .ask { font-size: 14.5px; }
+  .notice .risk { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; letter-spacing: .02em; border-radius: var(--radius-full); padding: 1px 8px; background: var(--danger-soft); color: var(--danger); vertical-align: 2px; margin-left: 4px; }
+  .notice .votes { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .notice .votes .avatar { width: 22px; height: 22px; font-size: 9.5px; border: 0; }
+  .notice .votes .q { color: var(--ink-3); font-style: italic; }
+  .notice .rating { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+  .notice .rating .note { height: 40px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); padding: 0 12px; font: 13px var(--font); color: var(--ink-3); display: flex; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; }
+  .notice .rating .progress { font-size: 12px; color: var(--ink-2); text-align: right; line-height: 1.3; }
+  .notice .rating .progress b { display: block; font-family: var(--mono); color: var(--ink); font-weight: 500; }
+  .stars { gap: 2px; } .stars span { width: 32px; height: 32px; font-size: 26px; display: grid; place-items: center; }
+  .notice .actions .btn.sm { min-height: 40px; padding: 0 14px; }
+  .notice .actions .hint { font-size: 12px; color: var(--ink-3); margin-left: auto; }
+
+  /* the plan card */
+  .plan { padding: 16px 18px; gap: 10px; }
+  .plan .head { gap: 10px; } .plan .head .serif { font-size: 19px; }
+  .plan .head .pill { margin-left: auto; }
+  .plan .pstep { padding: 8px 0; font-size: 14px; grid-template-columns: 22px 1fr auto; }
+  .plan .pstep .est b { color: var(--ink-2); font-weight: 500; }
+  .plan .foot { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 12px; }
+  .plan .foot .stars { margin-left: auto; }
+  .plan .foot .btn.sm { min-height: 40px; padding: 0 14px; }
+  .plan .sum { font-size: 13px; color: var(--ink-2); display: flex; gap: 14px; }
+  .plan .sum .mono { color: var(--ink); font-size: 12.5px; }
+
+  /* ---------- the details sheet (landscape): a 320 sheet over the right edge, no scrim ---------- */
+  .sheet { position: absolute; right: 0; top: 80px; bottom: 0; width: 320px; background: var(--surface); border-left: 1px solid var(--line); box-shadow: -12px 0 24px rgba(42,50,68,.10); z-index: 5; display: flex; flex-direction: column; gap: 18px; padding: 16px 20px 20px; font-size: 13.5px; overflow: hidden; border-top-left-radius: 18px; }
+  .sheet .grab { position: absolute; left: 6px; top: 50%; width: 4px; height: 44px; margin-top: -22px; border-radius: 2px; background: var(--line); }
+  .sheet .shead { display: flex; align-items: center; gap: 8px; }
+  .sheet .shead .serif { font-size: 19px; }
+  .sheet .shead .x { margin-left: auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--ink-2); border: 1px solid var(--line); background: var(--surface); }
+  .sheet .shead .pinbtn { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--ink-3); border: 1px solid var(--line); }
+  .sheet h3 { font-size: 11px; color: var(--ink-3); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 7px; }
+  .sheet .g { display: flex; flex-direction: column; gap: 5px; }
+  .sheet .kv { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+  .sheet .kv .k { color: var(--ink-2); } .sheet .kv .v { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink); }
+  .sheet .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sheet .chip { height: 30px; font-size: 12.5px; }
+  .sheet .br { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; min-height: 36px; padding: 2px 0; border-top: 1px solid var(--line); }
+  .sheet .br .name { font-family: var(--serif); font-size: 16px; display: inline-flex; align-items: center; gap: 8px; }
+  .sheet .br .name .here { font: 600 10.5px var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
+  .sheet .br .s { font-size: 12px; color: var(--ink-3); }
+  .sheet .br .btn.sm { min-height: 34px; }
+  .sheet .usage .big { font-family: var(--mono); font-size: 15px; color: var(--ink); }
+  .sheet .usage .budget { height: 5px; margin: 6px 0 8px; }
+  .sheet .turn { display: grid; grid-template-columns: 1fr auto; font-family: var(--mono); font-size: 12px; color: var(--ink-2); padding: 3px 0; }
+  .sheet .turn .n { color: var(--ink); }
+  .sheet .mem { font-size: 13px; color: var(--ink-2); padding: 6px 0; border-top: 1px solid var(--line); line-height: 1.4; }
+  .sheet .mem .by { font-family: var(--serif); color: var(--ink); }
+
+  .smallwrap { position: relative; display: flex; flex-direction: column; gap: 8px; margin: 4px 0 6px; }
+  .smallcap { display: flex; align-items: baseline; gap: 10px; font-size: 13px; color: var(--ink-2); }
+  .smallcap .serif { font-size: 17px; color: var(--ink); } .smallcap .mono { font-size: 11.5px; color: var(--ink-3); }
+  .tablet.port.small { zoom: .5; }
+  .tablet.port.small .pin { display: none; }
+
+  /* numbered pins */
+  .pin { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: var(--rail); color: var(--apricot); font: 600 11px var(--mono); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--canvas), var(--shadow-soft); z-index: 10; }
+  :root[data-theme="dark"] .pin { background: var(--apricot); color: #2A3244; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pin { background: var(--apricot); color: #2A3244; } }
+
+  /* ---------- the rules ---------- */
+  .rules { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding-top: 2px; }
+  .rules h1 { font-size: 34px; line-height: 1.05; }
+  .rules h2 { font-size: 24px; }
+  .rules .lede { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; margin: 0; }
+  .rules .lede b { color: var(--ink); font-weight: 600; }
+  .rule { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; font-size: 13px; line-height: 1.42; color: var(--ink-2); }
+  .rule .pin { position: static; box-shadow: none; margin-top: 2px; }
+  .rule b { color: var(--ink); font-weight: 600; }
+  .rule .serif { font-size: 16px; color: var(--ink); display: block; margin-bottom: 1px; }
+  .spec { display: grid; grid-template-columns: 1fr auto auto; gap: 0 14px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line); }
+  .spec > span { padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .spec .h { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 6px 0 4px; }
+  .spec .v { font-family: var(--mono); font-size: 12.5px; text-align: right; color: var(--ink); }
+  .spec .v.same { color: var(--ink-3); }
+  .ruler { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+  .ruler .lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .ruler .bar { position: relative; height: 8px; border-radius: var(--radius-full); background: var(--surface-3); }
+  .ruler .bar i { position: absolute; top: 0; bottom: 0; border-radius: var(--radius-full); }
+  .ruler .bar .mid { background: var(--apricot-soft); }
+  .ruler .bar .here { background: var(--apricot); }
+  .ruler .ticks { position: relative; height: 36px; font: 11px var(--mono); color: var(--ink-3); }
+  .ruler .ticks span { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; white-space: nowrap; line-height: 1.3; }
+  .ruler .ticks span::before { content: ""; width: 1px; height: 6px; background: var(--ink-3); }
+  .ruler .ticks span.on { color: var(--ink); }
+  .ruler .ticks span.on::before { background: var(--apricot-deep); height: 8px; }
+  .ruler .ticks span em { font-style: normal; font-family: var(--font); color: var(--ink-3); font-size: 11px; }
+  .touch { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 10px; }
+  .touch .g { font-family: var(--mono); font-size: 12px; color: var(--ink); white-space: nowrap; }
+
+  /* ---------- the real thing: on a tablet the page is the tablet ---------- */
+  @media (max-width: 1100px) {
+    body { overflow: hidden; }
+    .board { width: 100%; display: block; padding: 0; }
+    .cap, .rules, .pin, .row.port, .tablet .cam, .tablet .home { display: none; }
+    .tablet.land { width: 100vw; height: 100vh; border: 0; border-radius: 0; box-shadow: none; }
+    .tablet.land .sysbar { display: none; }
+    .tablet.land .sheet { top: 56px; }
+    @media (orientation: portrait) {
+      .row.land { display: none; } .row.port { display: block; }
+      .tablet.port { width: 100vw; height: 100vh; border: 0; border-radius: 0; box-shadow: none; }
+      .tablet.port .sysbar { display: none; }
+      .railsheet .rail { padding-top: 12px; }
+    }
+  }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- ===================================================== landscape ===================================================== -->
+  <section class="row land">
+    <div class="fcol">
+      <div class="cap">
+        <span class="serif">Landscape, 1024 × 768</span>
+        <span>the rail folds to 72; the column keeps its 780; Details rides over the right</span>
+        <span class="mono dim">Invoice PDF layout · Bo's card on long-press</span>
+      </div>
+
+      <div class="tablet land" aria-label="Henosis on a tablet, landscape">
+        <span class="cam"></span>
+        <div class="shell">
+          <!-- rail, collapsed -->
+          <nav class="mini" aria-label="Rail, collapsed">
+            <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+              <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+              <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <circle class="dot" cx="48" cy="48" r="7"/>
+            </svg>
+            <span class="sq new" title="New session"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+            <span class="sq" title="Search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+            <span class="sq" title="Inbox · 3"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l1.5 2.5h5L16 13h5M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg><span class="count">3</span></span>
+            <span class="sq" title="Approvals · 2"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg><span class="count">2</span></span>
+            <span class="hr"></span>
+            <span class="sq proj" title="Payments">P</span>
+            <span class="sq av active" title="Invoice PDF layout · you, with Bo">AN<span class="st running"></span></span>
+            <span class="sq av" title="Checkout proration · Bo">BO<span class="st awaiting"></span>
+              <span class="peek"><span class="serif">Checkout proration <span class="pill team">Team · with you</span></span><span class="sub">Waits to <i>run db:migrate</i> · 1 of 2 ratings <span class="tok">8.1k</span></span><span class="open">Tap to open · release to dismiss</span></span>
+            </span>
+            <span class="sq av" title="Tax lines · Cy">CY<span class="st running"></span></span>
+            <span class="sq av" title="Billing page copy · Dee, paused">DE<span class="st"></span></span>
+            <span class="hr"></span>
+            <span class="sq" title="Memory"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17h13"/></svg></span>
+            <span class="sq" title="Chats · 1 unread"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="count">1</span></span>
+            <span class="sq av me" title="Ana · owner · driving">AN</span>
+            <button class="expand" type="button" aria-label="Expand the rail"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM9 5v14M13 10l2 2-2 2"/></svg></button>
+          </nav>
+
+          <div class="main">
+            <div class="sysbar"><span>14:24</span><span class="mid"><svg class="ic" viewBox="0 0 24 24"><path d="M3 10a14 14 0 0 1 18 0M6.5 13.5a9 9 0 0 1 11 0M10 17a3.5 3.5 0 0 1 4 0"/></svg><span>Payments · Henosis</span></span><span class="mid"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 11v2M6 10v4h8v-4z" /></svg>84%</span></div>
+            <div class="topbar">
+              <div class="title">
+                <span>Invoice PDF layout</span>
+                <span class="status running">Running · turn 7</span>
+                <span class="pill team">Team · with Bo</span>
+              </div>
+              <div class="right">
+                <span class="tokchip" title="12.4k of 40k tokens"><span>12.4k</span><span class="budget"><i style="width:31%"></i></span></span>
+                <span class="stack">
+                  <span class="avatar driver" title="Ana, driving">AN</span>
+                  <span class="avatar" title="Bo">BO</span>
+                  <span class="avatar agent" title="Ana's agent">a</span>
+                </span>
+                <button class="btn icon" type="button" title="Team panel"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 19a4.5 4.5 0 0 1 5-4.5"/></svg></button>
+                <button class="btn icon on" type="button" title="Details"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM15 5v14"/></svg></button>
+              </div>
+            </div>
+
+            <div class="scroll">
+              <div class="column">
+                <div class="msg human">
+                  <div class="meta"><span class="who">Ana</span><span class="scope">goal</span><time>14:03</time></div>
+                  <div class="text"><span class="goal-lbl">Goal</span>Lay the invoice PDF out the way the Billing page reads: one row per tax line, the prorated credit above the total.</div>
+                </div>
+
+                <div class="msg agent">
+                  <div class="meta"><span class="who"><span class="avatar agent">a</span>Ana's agent</span><span class="faint small">turn 7 · step 3 of 4</span><time>14:19</time></div>
+                  <div class="text">
+                    <p>The page groups <code>invoice.taxLines</code> by rate; the PDF summed them. Reusing the page's grouping, then the proration row.</p>
+                  </div>
+                  <div class="steps">
+                    <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="m8 12 3 3 5-6"/></svg><span class="mono"><b>read</b> apps/web/src/billing/BillingPage.tsx</span><span class="r">212 lines</span></div>
+                    <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"/></svg><span class="mono"><b>edit</b> apps/web/src/billing/InvoicePdf.tsx · taxLines, proration</span><span class="r">+41 −9</span></div>
+                    <div class="step live"><span class="livedot"></span><span class="mono"><b>test</b> pnpm test billing · proration credit rounds to cents</span><span class="r">running</span></div>
+                  </div>
+                </div>
+
+                                <div class="notice gate">
+                  <div class="ask">Ana's agent asks to <code>git push origin pdf-layout</code> <span class="risk">irreversible</span></div>
+                  <div class="votes"><span class="avatar">BO</span><span><b>Bo</b> rated 4 <span class="q">"matches the page now"</span></span></div>
+                  <div class="rating">
+                    <span class="stars" aria-label="Your rating, 4 of 5"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span>
+                    <span class="note">Add a note for the team (optional)</span>
+                    <span class="progress"><b>1 of 2</b>contributors at 4+</span>
+                  </div>
+                  <div class="actions">
+                    <button class="btn primary sm" type="button">Approve with 4</button>
+                    <button class="btn sm" type="button">Ask to revise</button>
+                    <span class="hint">Release gate · two at 4+</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="composer-wrap">
+              <div class="composer">
+                <div class="input">Steer the agent, or say something to the team</div>
+                <div class="bar">
+                  <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+                  <span class="mode">scope <span class="mono">goal</span></span>
+                  <span class="kb"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg>⌘↩ sends</span>
+                  <div class="right">
+                    <button class="btn ghost icon" type="button" title="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="m8 12 7-7a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l8-8"/></svg></button>
+                    <button class="send" type="button" title="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Details, as a sheet over the right edge -->
+            <aside class="sheet" aria-label="Details">
+              <span class="grab" aria-hidden="true"></span>
+              <div class="shead"><span class="serif">Details</span><span class="pinbtn" title="Pin beside the stream (column becomes 640)"><svg class="ic" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3zM12 15v5"/></svg></span><span class="x" title="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span></div>
+              <div class="g"><h3>Intent</h3>
+                <div class="kv"><span class="k">Goal</span><span class="v">Ana · 14:03</span></div>
+                <div class="chips"><span class="chip on">goal</span><span class="chip">tests</span><span class="chip">api</span><span class="chip">[project] no new deps</span></div>
+              </div>
+              <div class="g"><h3>Branches</h3>
+                <div class="br"><span class="name">pdf-layout <span class="here">here</span></span><span class="s">+41 −9 · 3 files</span></div>
+                <div class="br"><span class="name">tax-lines</span><button class="btn sm" type="button">Compare</button></div>
+                <div class="br"><span class="name">main</span><span class="s">united 11:40</span></div>
+              </div>
+              <div class="g usage"><h3>Usage</h3>
+                <span class="big">12.4k <span class="muted small">of 40k</span></span>
+                <span class="budget"><i style="width:31%"></i></span>
+                <div class="turn"><span>turn 7 · edit, test</span><span class="n">2.1k</span></div>
+                <div class="turn"><span>turn 6 · read</span><span class="n">1.4k</span></div>
+                <div class="turn"><span>turn 5 · plan</span><span class="n">3.2k</span></div>
+              </div>
+              <div class="g"><h3>Memory</h3>
+                <div class="mem"><span class="by">Cy</span> · Tax lines round per line, not on the sum. <span class="faint">#billing · 2d</span></div>
+                <div class="mem"><span class="by">Dee's agent</span> · Proration credits show above the total. <span class="faint">stale?</span></div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+      <!-- pins -->
+      <span class="pin" style="left:1px;top:303px">1</span>
+      <span class="pin" style="left:352px;top:418px">2</span>
+      <span class="pin" style="left:478px;top:100px">3</span>
+      <span class="pin" style="left:1040px;top:460px">4</span>
+      <span class="pin" style="left:520px;top:752px">5</span>
+    </div>
+
+    <aside class="rules">
+      <h1>Tablet</h1>
+      <p class="lede">A tablet is a desktop you hold. In landscape, <b>1024</b> sits inside the desktop's compact range, so the same rules apply, with every target grown to <b>44</b> and hover replaced by a press. Turning the tablet moves the rail, never the stream.</p>
+      <div class="rule"><span class="pin">1</span><div><span class="serif">The rail folds to 72, as on a compact desktop</span>Same order, same counts; the squares grow to 44 and the avatars to 40 so a thumb can land on them. <b>[</b> and <b>]</b> still toggle on a hardware keyboard; a swipe from the left edge expands it.</div></div>
+      <div class="rule"><span class="pin">2</span><div><span class="serif">Long-press is the new hover</span>Bo's collapsed card opens as a navy peek while the finger rests; sliding onto it opens the session, lifting dismisses it. The same peek serves the token chip's breakdown and the presence stack.</div></div>
+      <div class="rule"><span class="pin">3</span><div><span class="serif">The title row keeps its facts</span>Status, the Team pill and the token chip stay in one line at 952 wide. Team and Details are 44 icon buttons; the open one keeps its apricot wash.</div></div>
+      <div class="rule"><span class="pin">4</span><div><span class="serif">Details is a sheet, not a scrim</span>A 320 sheet rides over the right edge with a grab bar; the stream still scrolls under it. Swipe it right to close, or pin it: the column drops to 640 and the sheet docks, the one case where the column gives way.</div></div>
+      <div class="rule"><span class="pin">5</span><div><span class="serif">The composer knows which keyboard it has</span>With a hardware keyboard it says <b>⌘↩ sends</b>; with the soft keyboard the hint goes, the composer lifts with the keys and the stream keeps the last message in view.</div></div>
+
+      <div class="spec" aria-label="What changes at 1024 landscape">
+        <span class="h">Part</span><span class="h v">desktop</span><span class="h v">tablet land.</span>
+        <span>Rail</span><span class="v">296</span><span class="v">72</span>
+        <span>Column</span><span class="v same">780</span><span class="v same">780</span>
+        <span>Details, Team</span><span class="v">340 beside</span><span class="v">320 over</span>
+        <span>Buttons</span><span class="v">36</span><span class="v">44</span>
+        <span>Stars</span><span class="v">26</span><span class="v">32</span>
+        <span>Peek</span><span class="v">hover</span><span class="v">press</span>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ===================================================== portrait ===================================================== -->
+  <section class="row port">
+    <div class="fcol">
+      <div class="cap">
+        <span class="serif">Portrait, 768 × 1024</span>
+        <span>the rail leaves the shell and comes back as a sheet; the column is the page</span>
+        <span class="mono dim">Plan waits for one rating</span>
+      </div>
+
+      <div class="tablet port" aria-label="Henosis on a tablet, portrait">
+        <span class="cam"></span>
+        <div class="shell">
+          <div class="main">
+            <div class="sysbar"><span>14:26</span><span class="mid"><span>Payments · Henosis</span></span><span class="mid"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 11v2M6 10v4h8v-4z" /></svg>84%</span></div>
+            <div class="topbar two">
+              <button class="btn icon" type="button" title="Agents"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="count">2</span></button>
+              <div class="title">
+                <span>Invoice PDF layout</span>
+                <span class="sub"><span class="status running">Running · turn 7</span><span class="pill team">Team · with Bo</span></span>
+              </div>
+              <div class="right">
+                <span class="tokchip" title="12.4k of 40k tokens"><span>12.4k</span><span class="budget"><i style="width:31%"></i></span></span>
+                <span class="stack">
+                  <span class="avatar driver" title="Ana, driving">AN</span>
+                  <span class="avatar" title="Bo">BO</span>
+                  <span class="avatar agent" title="Ana's agent">a</span>
+                </span>
+                <button class="btn icon" type="button" title="Team panel"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 19a4.5 4.5 0 0 1 5-4.5"/></svg></button>
+                <button class="btn icon" type="button" title="Details"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM15 5v14"/></svg></button>
+              </div>
+            </div>
+
+            <div class="scroll">
+              <div class="column">
+                <div class="msg human">
+                  <div class="meta"><span class="who">Ana</span><span class="scope">goal</span><time>14:03</time></div>
+                  <div class="text"><span class="goal-lbl">Goal</span>Lay the invoice PDF out the way the Billing page reads: one row per tax line, the prorated credit above the total, the same totals to the cent.</div>
+                </div>
+
+                <div class="plan">
+                  <div class="head"><span class="serif">Plan · Invoice PDF layout</span><span class="pill">waits for 1 rating</span></div>
+                  <div class="sum"><span>4 steps</span><span class="mono">est. 9.8k tokens</span><span class="mono">risk: write, irreversible</span></div>
+                  <div class="steps">
+                    <div class="pstep done"><span class="n">✓</span><span>Read the page's tax grouping and the PDF builder</span><span class="est"><b>1.4k</b> / 1.2k</span></div>
+                    <div class="pstep done"><span class="n">✓</span><span>Group PDF tax rows by rate; add proration above the total</span><span class="est"><b>2.1k</b> / 2.6k</span></div>
+                    <div class="pstep running"><span class="n">3</span><span>Test rounding to the cent against the Billing page</span><span class="est">2.0k</span></div>
+                    <div class="pstep"><span class="n">4</span><span>Push pdf-layout, release gate</span><span class="est">4.0k</span></div>
+                  </div>
+                  <div class="foot"><span class="stack"><span class="avatar">BO</span></span><span>Bo rated 4 · <i>"one more look at step 3"</i></span><span class="stars" aria-label="Rate this plan"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><button class="btn primary sm" type="button">Approve now</button></div>
+                </div>
+
+                <div class="msg agent">
+                  <div class="meta"><span class="who"><span class="avatar agent">a</span>Ana's agent</span><span class="faint small">turn 7 · step 3 of 4</span><time>14:19</time></div>
+                  <div class="text"><p>The page groups <code>invoice.taxLines</code> by rate and the PDF was summing them into one line. I am reusing the page's grouping in the PDF, then adding the proration row above the total.</p></div>
+                  <div class="steps">
+                    <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"/></svg><span class="mono"><b>edit</b> apps/web/src/billing/InvoicePdf.tsx · taxLines, proration</span><span class="r">+41 −9</span></div>
+                    <div class="step live"><span class="livedot"></span><span class="mono"><b>test</b> pnpm test billing · proration credit rounds to cents</span><span class="r">running</span></div>
+                  </div>
+                </div>
+
+                <div class="msg team">
+                  <div class="meta"><span class="who">Bo</span><span class="to">to the team</span><time>14:21</time></div>
+                  <div class="text">Checkout needs the same proration row once this lands. Holding my migration until your gate clears.</div>
+                </div>
+
+                <div class="divider">Cy's agent answered in #billing · 14:23</div>
+              </div>
+            </div>
+
+            <div class="composer-wrap">
+              <div class="composer">
+                <div class="input">Steer the agent, or say something to the team</div>
+                <div class="bar">
+                  <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+                  <span class="mode">scope <span class="mono">goal</span></span>
+                  <div class="right">
+                    <button class="btn ghost icon" type="button" title="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="m8 12 7-7a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l8-8"/></svg></button>
+                    <button class="send" type="button" title="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <span class="home" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+      <!-- pins -->
+            <span class="pin" style="left:-11px;top:100px">7</span>
+      <span class="pin" style="left:540px;top:330px">8</span>
+      <span class="pin" style="left:390px;top:968px">9</span>
+    </div>
+
+    <aside class="rules">
+      <h2>Portrait</h2>
+      <p class="lede">At <b>768</b> there is no room for a rail and a 780 column. The rail leaves the shell; the column becomes the page with <b>20</b> gutters, 728 wide, and nothing in the stream is restyled.</p>
+      <div class="smallwrap"><div class="smallcap"><span class="serif">The Agents sheet</span><span class="mono">1/2 size · open from the Agents button or an edge swipe</span></div>
+        <div class="tablet port small" aria-label="Henosis on a tablet, portrait">
+        <span class="cam"></span>
+        <div class="shell">
+          <div class="main">
+            <div class="sysbar"><span>14:26</span><span class="mid"><span>Payments · Henosis</span></span><span class="mid"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 11v2M6 10v4h8v-4z" /></svg>84%</span></div>
+            <div class="topbar two">
+              <button class="btn icon" type="button" title="Agents"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="count">2</span></button>
+              <div class="title">
+                <span>Invoice PDF layout</span>
+                <span class="sub"><span class="status running">Running · turn 7</span><span class="pill team">Team · with Bo</span></span>
+              </div>
+              <div class="right">
+                <span class="tokchip" title="12.4k of 40k tokens"><span>12.4k</span><span class="budget"><i style="width:31%"></i></span></span>
+                <span class="stack">
+                  <span class="avatar driver" title="Ana, driving">AN</span>
+                  <span class="avatar" title="Bo">BO</span>
+                  <span class="avatar agent" title="Ana's agent">a</span>
+                </span>
+                <button class="btn icon" type="button" title="Team panel"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 19a4.5 4.5 0 0 1 5-4.5"/></svg></button>
+                <button class="btn icon" type="button" title="Details"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM15 5v14"/></svg></button>
+              </div>
+            </div>
+
+            <div class="scroll">
+              <div class="column">
+                <div class="msg human">
+                  <div class="meta"><span class="who">Ana</span><span class="scope">goal</span><time>14:03</time></div>
+                  <div class="text"><span class="goal-lbl">Goal</span>Lay the invoice PDF out the way the Billing page reads: one row per tax line, the prorated credit above the total, the same totals to the cent.</div>
+                </div>
+
+                <div class="plan">
+                  <div class="head"><span class="serif">Plan · Invoice PDF layout</span><span class="pill">waits for 1 rating</span></div>
+                  <div class="sum"><span>4 steps</span><span class="mono">est. 9.8k tokens</span><span class="mono">risk: write, irreversible</span></div>
+                  <div class="steps">
+                    <div class="pstep done"><span class="n">✓</span><span>Read the page's tax grouping and the PDF builder</span><span class="est"><b>1.4k</b> / 1.2k</span></div>
+                    <div class="pstep done"><span class="n">✓</span><span>Group PDF tax rows by rate; add proration above the total</span><span class="est"><b>2.1k</b> / 2.6k</span></div>
+                    <div class="pstep running"><span class="n">3</span><span>Test rounding to the cent against the Billing page</span><span class="est">2.0k</span></div>
+                    <div class="pstep"><span class="n">4</span><span>Push pdf-layout, release gate</span><span class="est">4.0k</span></div>
+                  </div>
+                  <div class="foot"><span class="stack"><span class="avatar">BO</span></span><span>Bo rated 4 · <i>"one more look at step 3"</i></span><span class="stars" aria-label="Rate this plan"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><button class="btn primary sm" type="button">Approve now</button></div>
+                </div>
+
+                <div class="msg agent">
+                  <div class="meta"><span class="who"><span class="avatar agent">a</span>Ana's agent</span><span class="faint small">turn 7 · step 3 of 4</span><time>14:19</time></div>
+                  <div class="text"><p>The page groups <code>invoice.taxLines</code> by rate and the PDF was summing them into one line. I am reusing the page's grouping in the PDF, then adding the proration row above the total.</p></div>
+                  <div class="steps">
+                    <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"/></svg><span class="mono"><b>edit</b> apps/web/src/billing/InvoicePdf.tsx · taxLines, proration</span><span class="r">+41 −9</span></div>
+                    <div class="step live"><span class="livedot"></span><span class="mono"><b>test</b> pnpm test billing · proration credit rounds to cents</span><span class="r">running</span></div>
+                  </div>
+                </div>
+
+                <div class="msg team">
+                  <div class="meta"><span class="who">Bo</span><span class="to">to the team</span><time>14:21</time></div>
+                  <div class="text">Checkout needs the same proration row once this lands. Holding my migration until your gate clears.</div>
+                </div>
+
+                <div class="divider">Cy's agent answered in #billing · 14:23</div>
+              </div>
+            </div>
+
+            <div class="composer-wrap">
+              <div class="composer">
+                <div class="input">Steer the agent, or say something to the team</div>
+                <div class="bar">
+                  <span class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></span>
+                  <span class="mode">scope <span class="mono">goal</span></span>
+                  <div class="right">
+                    <button class="btn ghost icon" type="button" title="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="m8 12 7-7a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l8-8"/></svg></button>
+                    <button class="send" type="button" title="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- the rail as a left sheet -->
+            <div class="scrim" aria-hidden="true"></div>
+            <div class="railsheet" aria-label="Agents">
+              <nav class="rail">
+                <div class="brand">
+                  <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+                    <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+                    <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+                    <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+                    <circle class="dot" cx="48" cy="48" r="7"/>
+                  </svg>
+                  Henosis
+                  <span class="x" title="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span>
+                </div>
+                <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+                <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</a>
+                <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l1.5 2.5h5L16 13h5M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>Inbox<span class="n">3</span></a>
+                <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Approvals<span class="n">2</span></a>
+                <div class="section">Payments <span class="n">4 agents</span></div>
+                <div class="crew"><span class="serif">Invoice rollout</span>crew · 2</div>
+                <a class="agent active" href="#">
+                  <div class="head"><span class="dot running"></span><span class="t">Invoice PDF layout</span><span class="pill team">Team</span></div>
+                  <div class="doing">Testing <i>proration rounds to cents</i></div>
+                  <div class="foot"><span class="stack"><span class="avatar">AN</span><span class="avatar">BO</span></span>you, with Bo<span class="tok">12.4k</span></div>
+                </a>
+                <a class="agent" href="#">
+                  <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout proration</span><span class="pill team">Team</span></div>
+                  <div class="doing">Waits to <i>run db:migrate</i> · 1 of 2 ratings</div>
+                  <div class="foot"><span class="stack"><span class="avatar">BO</span><span class="avatar">AN</span></span>Bo, with you<span class="tok">8.1k</span></div>
+                </a>
+                <a class="agent" href="#">
+                  <div class="head"><span class="dot running"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+                  <div class="doing">Editing <i>TaxLine.ts</i> · per-line rounding</div>
+                  <div class="foot"><span class="stack"><span class="avatar">CY</span></span>Cy<span class="tok">5.6k</span></div>
+                </a>
+                <a class="agent" href="#">
+                  <div class="head"><span class="dot"></span><span class="t">Billing page copy</span><span class="pill solo">Solo</span></div>
+                  <div class="doing">Paused by Dee · <i>waits for a steer</i></div>
+                  <div class="foot"><span class="stack"><span class="avatar">DE</span></span>Dee<span class="tok">2.2k</span></div>
+                </a>
+                <div class="section">More</div>
+                <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17h13"/></svg>Memory</a>
+                <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>Chats<span class="n">1</span></a>
+                <div class="me"><span class="avatar driver">AN</span>Ana<span class="faint small" style="margin-left:auto">owner</span></div>
+              </nav>
+              <span class="grab" aria-hidden="true"></span>
+            </div>
+            <span class="home" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+            <span class="pin" style="left:150px;top:118px">6</span></div>
+      <div class="rule"><span class="pin">6</span><div><span class="serif">The rail comes back as a sheet</span>The full 296 rail, unchanged from the desktop, slides in over a scrim from the Agents button or an edge swipe. It is the one place agent cards live on a tablet in portrait; tapping a card opens the session and the sheet goes. The stream stays where it was under the scrim.</div></div>
+      <div class="rule"><span class="pin">7</span><div><span class="serif">Agents, with the needs-you count</span>The menu button carries the number of sessions that wait for you (approvals and ratings), in chocolate, so the folded rail never hides a release gate.</div></div>
+      <div class="rule"><span class="pin">8</span><div><span class="serif">The title takes two lines</span>Name on the first, status and the Team pill on the second; the token chip, presence and the two icon buttons keep the right. The plan card keeps its step rows and its token column.</div></div>
+      <div class="rule"><span class="pin">9</span><div><span class="serif">The composer clears the home indicator</span>26 below the composer, 40 send button, the Agent / Team toggle as 36-high segments. No keyboard hint: the soft keyboard is the default in portrait.</div></div>
+
+      <div class="rule"><span class="pin">↻</span><div><span class="serif">Turning keeps the place</span>The last read message stays anchored on rotation; an open Details sheet stays open, becoming the same 320 sheet over the right in portrait; an open rail sheet closes, because the rail is now a column.</div></div>
+
+      <div class="touch" aria-label="Touch and keyboard">
+        <span class="g">tap</span><span>open, pick, rate a star</span>
+        <span class="g">long-press</span><span>peek a collapsed card, the token breakdown, a presence avatar</span>
+        <span class="g">edge swipe</span><span>left: the rail; right: Details</span>
+        <span class="g">swipe on a sheet</span><span>closes it in its own direction</span>
+        <span class="g">⌘K · [ · ]</span><span>unchanged with a hardware keyboard</span>
+        <span class="g">1/2 split</span><span>at 507 wide the phone layout takes over; at 2/3 (678) portrait rules</span>
+      </div>
+
+      <div class="ruler" aria-label="Breakpoints">
+        <span class="lbl">Where it changes</span>
+        <div class="bar"><i class="mid" style="left:24%;right:34%"></i><i class="here" style="left:24%;width:3%"></i><i class="here" style="left:50%;width:3%"></i></div>
+        <div class="ticks">
+          <span style="left:4%">480<em>phone</em></span>
+          <span class="on" style="left:25.5%">768<em>portrait</em></span>
+          <span class="on" style="left:51.5%">1024<em>landscape</em></span>
+          <span style="left:70%">1180<em>rail unfolds</em></span>
+          <span style="left:95%">1440<em>full</em></span>
+        </div>
+      </div>
+    </aside>
+  </section>
+</div>
+</body>
+</html>

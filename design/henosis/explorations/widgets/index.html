@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Henosis · Widgets</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* Widgets, mobile (390 wide). The first 844px is the phone's home screen with the three widgets
+     in place; below it the board lays out the whole family: small, medium, large, the lock screen
+     and the menu bar, with the states each one can be in. Shoot 390x844 for the home screen, and
+     390 wide full-page for the board. */
+  html, body { height: auto; }
+  body { width: 390px; margin: 0; font-size: 15px; }
+  .ic { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  svg.mark { display: block; }
+  /* on a cream or white surface the second arc is navy, on a dark surface it stays apricot (brief: the mark) */
+  :root { --surface-arc-b: #2A3244; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --surface-arc-b: #E2C4A6; } }
+  :root[data-theme="dark"] { --surface-arc-b: #E2C4A6; }
+  .w .head svg.mark, .panel .ph svg.mark { --mark-arc-b: var(--surface-arc-b); }
+
+  /* ---------- the home screen ---------- */
+  .home { width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column;
+    background: #F4E6D6; background-image: radial-gradient(90% 60% at 20% 0%, #FBF7F1 0%, rgba(251,247,241,0) 70%), radial-gradient(70% 50% at 100% 100%, rgba(226,196,166,.95) 0%, rgba(226,196,166,0) 70%), linear-gradient(180deg, #F6EBDD 0%, #E9CFB3 100%);
+    --label: #3A3027; --label-shadow: none; --wg: rgba(255,255,255,.78); --wg-line: rgba(255,255,255,.9); --glass: rgba(255,255,255,.45); }
+  :root[data-theme="dark"] .home { background: #1C2230; background-image: radial-gradient(80% 50% at 15% 0%, rgba(86,53,45,.55) 0%, rgba(86,53,45,0) 70%), radial-gradient(70% 50% at 100% 100%, rgba(226,196,166,.22) 0%, rgba(226,196,166,0) 70%), linear-gradient(180deg, #1C2230 0%, #11151E 100%);
+    --label: #F0EAE0; --label-shadow: 0 1px 2px rgba(0,0,0,.4); --wg: rgba(35,43,59,.86); --wg-line: rgba(240,234,224,.08); --glass: rgba(240,234,224,.12); }
+  .sys { height: 54px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 32px 0; font: 600 15px var(--font); color: var(--label); }
+  .sys .r { display: flex; gap: 6px; align-items: center; }
+  .sys .r i { display: block; width: 25px; height: 12px; border: 1.5px solid currentColor; border-radius: 4px; position: relative; opacity: .9; }
+  .sys .r i::after { content: ""; position: absolute; left: 2px; top: 2px; bottom: 2px; width: 72%; background: currentColor; border-radius: 1.5px; }
+  .grid { padding: 10px 26px 0; display: flex; flex-direction: column; gap: 18px; }
+  .wrow { display: flex; gap: 22px; }
+  .apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 0; justify-items: center; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 66px; font-size: 11px; color: var(--label); text-shadow: var(--label-shadow); position: relative; }
+  .app .tile { width: 60px; height: 60px; border-radius: 15px; display: grid; place-items: center; color: #fff; box-shadow: 0 6px 16px rgba(42,50,68,.14); }
+  .app .tile .ic { width: 28px; height: 28px; stroke-width: 1.6; }
+  .app .badge { position: absolute; top: -6px; right: -3px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--danger); color: #fff; font: 700 12px/20px var(--font); text-align: center; padding: 0 6px; border: 2px solid rgba(255,255,255,.6); }
+  .t-msg { background: linear-gradient(180deg, #7EC07A, #4F7D4A); } .t-cal { background: #fff; color: #A8463A !important; } .t-mail { background: linear-gradient(180deg, #7FA7D6, #4E6E9E); }
+  .t-hen { background: var(--mark-disc); } .t-hen svg.mark { width: 44px; height: 44px; }
+  .t-notes { background: linear-gradient(180deg, #F3E0A8, #E2B06A); color: #56352D !important; } .t-photos { background: linear-gradient(135deg, #E2C4A6, #CFA782 50%, #B9792E); }
+  .t-music { background: linear-gradient(180deg, #D97A6C, #A8463A); } .t-maps { background: linear-gradient(180deg, #8ECF9C, #5B6273); }
+  .dots { display: flex; justify-content: center; gap: 7px; margin-top: auto; padding-bottom: 14px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--label); opacity: .3; } .dots i.on { opacity: .85; }
+  .dock { margin: 0 14px 10px; height: 92px; border-radius: 30px; background: var(--glass); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: space-evenly; }
+  .dock .app { gap: 0; width: 60px; }
+  .homebar { height: 24px; flex: none; display: grid; place-items: center; }
+  .homebar i { width: 134px; height: 5px; border-radius: 3px; background: var(--label); opacity: .8; }
+
+  /* ---------- widgets ---------- */
+  .w { background: var(--wg, var(--surface)); border: 1px solid var(--wg-line, var(--line)); border-radius: 22px; padding: 13px 14px 12px; display: flex; flex-direction: column; gap: 7px; box-shadow: 0 10px 28px rgba(42,50,68,.12); position: relative; overflow: hidden; color: var(--ink); flex: none; }
+  .w.sm { width: 158px; height: 158px; gap: 6px; } .w.md { width: 338px; height: 158px; } .w.lg { width: 338px; height: 354px; gap: 6px; }
+  .w .head { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); min-width: 0; white-space: nowrap; }
+  .w .head svg.mark { width: 18px; height: 18px; } .w .head .t { overflow: hidden; text-overflow: ellipsis; flex: 1 1 auto; } .w .head .n, .w .head .age { flex: none; }
+  .w .head .n { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--apricot); color: #56352D; font: 700 11.5px/20px var(--font); letter-spacing: 0; text-align: center; }
+  .w .head .n.quiet { background: var(--surface-3); color: var(--ink-2); }
+  .w .head .age { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 500; font-family: var(--mono); font-size: 10.5px; }
+  .w .big { font-family: var(--serif); font-size: 34px; line-height: 1; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 7px; }
+  .w .big .u { font-family: var(--font); font-size: 13px; color: var(--ink-2); letter-spacing: 0; }
+  .w .mono { font-size: 12px; }
+  .w .num { font-family: var(--mono); font-size: 26px; white-space: nowrap; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .w .num .u { font-size: 12px; color: var(--ink-2); margin-left: 5px; letter-spacing: 0; }
+  .w .lines { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--ink-2); line-height: 1.3; }
+  .w .lines .l { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+  .w .lines .l .t { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .w .lines .l .serif { font-size: 13.5px; color: var(--ink); }
+  .w .lines .l .k { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); flex: none; }
+  .d { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); flex: none; }
+  .d.run { background: var(--ok); box-shadow: 0 0 0 2.5px var(--ok-soft); animation: pulse 1.6s ease-in-out infinite; }
+  .d.wait { background: var(--warn); box-shadow: 0 0 0 2.5px var(--warn-soft); } .d.blk { background: var(--danger); } .d.off { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+  .w .meter { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+  .w .meter i { display: block; height: 100%; border-radius: inherit; background: var(--gradient-live); background-size: 200% 100%; }
+  .w .meter.warn i { background: var(--warn); } .w .meter.over i { background: var(--danger); }
+  .w .sub { font-size: 11.5px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; white-space: nowrap; min-width: 0; }
+  .w .sub b { font-weight: 500; color: var(--ink); } .w .sub .k { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+  .w .sub .ellip { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .w .by { display: flex; flex-direction: column; gap: 4px; }
+  .w .by .r { display: grid; grid-template-columns: 34px 1fr 40px; gap: 7px; align-items: center; font-size: 11px; color: var(--ink-2); }
+  .w .by .r .serif { font-size: 13px; color: var(--ink); } .w .by .r .bar { height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+  .w .by .r .bar i { display: block; height: 100%; background: var(--apricot-deep); border-radius: inherit; } .w .by .r .k { font-family: var(--mono); font-size: 10.5px; text-align: right; color: var(--ink-3); }
+  /* an approval row inside a widget */
+  .ap { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 7px 0 6px; border-top: 1px solid var(--line); min-width: 0; }
+  .ap:first-of-type { border-top: 0; padding-top: 2px; }
+  .ap .who { font-family: var(--serif); font-size: 14.5px; line-height: 1.2; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ap .who i { font-style: italic; color: var(--ink-2); }
+  .ap .what { font-size: 11.5px; color: var(--ink-2); display: flex; align-items: center; gap: 5px; white-space: nowrap; min-width: 0; margin-top: 2px; }
+  .ap .what .t { overflow: hidden; text-overflow: ellipsis; min-width: 0; } .ap .what code { font-family: var(--mono); font-size: 10.5px; background: var(--surface-2); padding: 0 5px; border-radius: 5px; color: var(--ink); }
+  .ap .what .q { display: inline-flex; gap: 2px; flex: none; } .ap .what .q i { width: 9px; height: 4px; border-radius: 2px; background: var(--surface-3); } .ap .what .q i.on { background: var(--apricot-deep); } .ap .what .q i.next { box-shadow: inset 0 0 0 1.5px var(--apricot-deep); }
+  .ap .what .gate { color: var(--accent); font-weight: 600; flex: none; }
+  .ap .act { display: flex; gap: 5px; flex: none; }
+  .wb { height: 30px; padding: 0 11px; border-radius: 15px; border: 0; background: var(--accent); color: var(--accent-fg); font: 600 12px var(--font); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+  .wb.quiet { background: var(--surface-3); color: var(--ink-2); padding: 0 9px; } .wb.icon { width: 30px; padding: 0; justify-content: center; }
+  .wb.done { background: var(--ok-soft); color: var(--ok); }
+  .w .foot { margin-top: auto; font-size: 11px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; white-space: nowrap; min-width: 0; }
+  .w .foot .ellip { overflow: hidden; text-overflow: ellipsis; }
+  .w.empty { align-items: center; justify-content: center; text-align: center; gap: 8px; } .w.empty .head { align-self: stretch; }
+  .w.empty .say { font-family: var(--serif); font-size: 17px; line-height: 1.2; color: var(--ink); margin-top: auto; } .w.empty .hint { font-size: 11px; color: var(--ink-3); margin-bottom: auto; }
+  .w.empty > svg.mark { width: 34px; height: 34px; }
+  .w.paused .head .n.moon { background: var(--surface-3); color: var(--ink-2); display: inline-grid; place-items: center; width: 20px; padding: 0; } .w.paused .head .n.moon .ic { width: 12px; height: 12px; }
+  .w .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .w .cols .head { margin-top: 2px; }
+  .w .divider { height: 1px; background: var(--line); margin: 2px 0; }
+
+  /* ---------- the board ---------- */
+  .board { padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 34px; }
+  .board section { display: flex; flex-direction: column; gap: 12px; }
+  .board h2 { font-size: 24px; }
+  .board h1 { font-size: 34px; }
+  .board p { margin: 0; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+  .board .lead { display: flex; flex-direction: column; gap: 8px; }
+  .board .lead .brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 22px; } .board .lead .brand svg.mark { width: 28px; height: 28px; }
+  .board .kk { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .board .cap { font-size: 12.5px; color: var(--ink-3); } .board .cap b { font-weight: 500; color: var(--ink-2); }
+  .board .wrow { gap: 14px; flex-wrap: wrap; } .board .w { --wg: var(--surface); --wg-line: var(--line); }
+  .stackw { display: flex; flex-direction: column; gap: 14px; }
+  .item { display: flex; flex-direction: column; gap: 6px; }
+  /* lock screen */
+  .lock { width: 350px; height: 300px; border-radius: 28px; overflow: hidden; position: relative; color: #F3EDE4; padding: 22px 22px 0; display: flex; flex-direction: column; align-items: center; gap: 8px; background: #1C2230; background-image: radial-gradient(80% 50% at 15% 0%, rgba(86,53,45,.6) 0%, rgba(86,53,45,0) 70%), radial-gradient(70% 50% at 100% 100%, rgba(226,196,166,.25) 0%, rgba(226,196,166,0) 70%), linear-gradient(180deg, #1C2230 0%, #11151E 100%); box-shadow: var(--shadow-pop); }
+  .lock .inline { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: rgba(243,237,228,.85); } .lock .inline svg.mark { width: 14px; height: 14px; }
+  .lock .time { font: 500 72px/1 var(--font); letter-spacing: -0.03em; }
+  .lock .lw { display: flex; gap: 10px; margin-top: 6px; }
+  .lock .lwc { width: 72px; height: 72px; border-radius: 50%; background: rgba(243,237,228,.12); display: grid; place-items: center; position: relative; }
+  .lock .lwc svg { position: absolute; inset: 0; width: 72px; height: 72px; } .lock .lwc .v { font: 600 15px var(--mono); line-height: 1; } .lock .lwc .u { font-size: 9px; opacity: .7; text-align: center; margin-top: 2px; }
+  .lock .lwr { width: 156px; height: 72px; border-radius: 18px; background: rgba(243,237,228,.12); padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .lock .lwr .h { font-size: 10px; letter-spacing: .05em; text-transform: uppercase; opacity: .7; display: flex; gap: 5px; align-items: center; } .lock .lwr .h svg.mark { width: 12px; height: 12px; }
+  .lock .lwr .s { font-family: var(--serif); font-size: 15px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lock .lwr .q { font-size: 10.5px; opacity: .8; display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; } .lock .lwr .q b { color: var(--apricot); font-weight: 500; }
+  .lock .lwr .q .segs { display: inline-flex; gap: 2px; } .lock .lwr .q .segs i { width: 10px; height: 4px; border-radius: 2px; background: rgba(243,237,228,.25); } .lock .lwr .q .segs i.on { background: var(--apricot); }
+  /* menu bar */
+  .mac { display: flex; flex-direction: column; gap: 0; width: 350px; }
+  .menubar { height: 28px; border-radius: 12px 12px 0 0; background: var(--rail); color: var(--rail-fg); display: flex; align-items: center; padding: 0 12px; font-size: 12.5px; gap: 14px; }
+  .menubar .l { font-weight: 600; } .menubar .sp { flex: 1; }
+  .menubar .tray { display: flex; align-items: center; gap: 5px; padding: 0 7px; height: 22px; border-radius: 6px; background: var(--rail-active); box-shadow: inset 0 0 0 1px rgba(226,196,166,.35); font: 500 12px var(--mono); }
+  .menubar .tray svg.mark { width: 14px; height: 14px; } .menubar .tray .d { width: 6px; height: 6px; }
+  .menubar .clock { font-variant-numeric: tabular-nums; flex: none; } .menubar .tray { flex: none; }
+  .panel { margin: 6px 0 0 auto; width: 320px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-pop); padding: 8px 0 6px; display: flex; flex-direction: column; font-size: 13px; position: relative; }
+  .panel::before { content: ""; position: absolute; right: 54px; top: -7px; width: 12px; height: 12px; background: var(--surface); border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
+  .panel .ph { display: flex; align-items: center; gap: 8px; padding: 8px 14px 10px; } .panel .ph svg.mark { width: 20px; height: 20px; } .panel .ph .t { font-family: var(--serif); font-size: 18px; } .panel .ph .s { margin-left: auto; font-size: 12px; color: var(--accent); font-weight: 500; }
+  .panel .sec { display: flex; align-items: center; padding: 8px 14px 4px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; border-top: 1px solid var(--line); margin-top: 4px; } .panel .sec .n { margin-left: auto; font-family: var(--mono); letter-spacing: 0; }
+  .panel .pr { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 6px 10px 6px 14px; min-width: 0; border-radius: 10px; margin: 0 6px; }
+  .panel .pr:hover, .panel .pr.hi { background: var(--surface-2); }
+  .panel .pr .who { font-family: var(--serif); font-size: 15px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .panel .pr .who i { color: var(--ink-2); }
+  .panel .pr .what { font-size: 11.5px; color: var(--ink-2); display: flex; align-items: center; gap: 5px; white-space: nowrap; min-width: 0; } .panel .pr .what .t { overflow: hidden; text-overflow: ellipsis; } .panel .pr .what code { font-family: var(--mono); font-size: 10.5px; background: var(--surface-2); padding: 0 5px; border-radius: 5px; color: var(--ink); }
+  .panel .pr .what .gate { color: var(--accent); font-weight: 600; flex: none; }
+  .panel .pr .act { display: flex; gap: 5px; } .panel .pr .wb { height: 26px; font-size: 11.5px; }
+  .panel .pr .k { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .panel .pr.ag .who { font-size: 14px; } .panel .pr.ag .what .d { margin-right: 1px; }
+  .panel .tok { padding: 6px 14px 8px; display: flex; flex-direction: column; gap: 6px; } .panel .tok .l { display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; color: var(--ink-2); } .panel .tok .l b { font: 500 15px var(--mono); color: var(--ink); } .panel .tok .l .k { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .panel .tok .meter { height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; } .panel .tok .meter i { display: block; height: 100%; background: var(--gradient-live); background-size: 200% 100%; border-radius: inherit; }
+  .panel .mi { display: flex; align-items: center; gap: 8px; padding: 7px 14px; margin: 0 6px; border-radius: 10px; color: var(--ink); } .panel .mi .ic { width: 15px; height: 15px; color: var(--ink-2); } .panel .mi .kb { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-3); } .panel .mi .sub { margin-left: auto; font-size: 11.5px; color: var(--ink-3); }
+  .panel .mi.sep { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 10px; border-radius: 0; }
+  /* spec table */
+  .spec { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+  .spec .r { display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); align-items: start; }
+  .spec .r .h { font-family: var(--serif); font-size: 15px; color: var(--ink); } .spec .r code { font-family: var(--mono); font-size: 11.5px; color: var(--ink); word-break: break-all; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mk" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a)" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="7" fill="var(--mark-dot)"/></symbol>
+  <symbol id="mk-ring" viewBox="0 0 96 96"><path d="M48 18 A30 30 0 0 1 48 78" stroke="var(--mark-arc-a)" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M48 78 A30 30 0 0 1 48 18" stroke="var(--mark-arc-b)" stroke-width="13" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="9" fill="var(--mark-dot)"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13h4l2 3h4l2-3h4M4 13l2-8h12l2 8v6H4z"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4z"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 8l9 6 9-6"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M7 4h10a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM9 9h6M9 13h6M9 17h3"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 3 3 3-2 5 3"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M4 7l5-2 6 2 5-2v12l-5 2-6-2-5 2zM9 5v12M15 7v12"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6 4h3l2 5-2 1.5a10 10 0 0 0 4.5 4.5L15 13l5 2v3a2 2 0 0 1-2 2A14 14 0 0 1 4 6a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 5-4 2 2-5z"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+</svg>
+
+<!-- ============ THE HOME SCREEN, 390x844 ============ -->
+<div class="home">
+  <div class="sys"><span>9:41</span><span class="r"><svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;stroke:none"><rect x="2" y="14" width="3" height="6" rx="1"/><rect x="7" y="11" width="3" height="9" rx="1"/><rect x="12" y="8" width="3" height="12" rx="1"/><rect x="17" y="5" width="3" height="15" rx="1"/></svg><svg class="ic" viewBox="0 0 24 24"><path d="M3 9a14 14 0 0 1 18 0M6.5 12.5a9 9 0 0 1 11 0M10 16a4 4 0 0 1 4 0"/><circle cx="12" cy="19" r=".8" fill="currentColor"/></svg><i></i></span></div>
+
+  <div class="grid">
+    <!-- medium: Needs you -->
+    <div class="w md">
+      <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Needs you</span><span class="n">2</span></div>
+      <div class="ap">
+        <div style="min-width:0"><div class="who">Bo's agent <i>· Checkout</i></div><div class="what"><span class="t">wants to <code>deploy</code></span><span class="gate">Gate</span><span class="q"><i class="on"></i><i class="next"></i></span></div></div>
+        <div class="act"><button class="wb">Approve · 4</button><button class="wb quiet icon" aria-label="Deny"><svg class="ic" style="width:13px;height:13px"><use href="#i-x"/></svg></button></div>
+      </div>
+      <div class="ap">
+        <div style="min-width:0"><div class="who">Dee's agent <i>· Billing page</i></div><div class="what"><span class="t">wants to run <code>pnpm test</code> in billing</span></div></div>
+        <div class="act"><button class="wb">Approve</button><button class="wb quiet icon" aria-label="Deny"><svg class="ic" style="width:13px;height:13px"><use href="#i-x"/></svg></button></div>
+      </div>
+    </div>
+
+    <div class="wrow">
+      <!-- small: Agents -->
+      <div class="w sm">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Agents</span><span class="age">9:40</span></div>
+        <div class="big">3 <span class="u">running</span></div>
+        <div class="lines">
+          <div class="l"><i class="d run"></i><span class="t"><span class="serif">Ana</span> · Billing page</span></div>
+          <div class="l"><i class="d run"></i><span class="t"><span class="serif">Bo</span> · Checkout</span></div>
+          <div class="l"><i class="d run"></i><span class="t"><span class="serif">Cy</span> · Invoice PDF</span></div>
+          <div class="l"><i class="d wait"></i><span class="t"><span class="serif">Dee</span> · waits for you</span></div>
+        </div>
+      </div>
+      <!-- small: Tokens today -->
+      <div class="w sm">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Tokens today</span></div>
+        <div class="num">142.6k</div>
+        <div class="sub"><span class="ellip">of <b>200k</b> · 57.4k left</span></div>
+        <div class="meter"><i style="width:71%"></i></div>
+        <div class="by">
+          <div class="r"><span class="serif">Ana</span><span class="bar"><i style="width:100%"></i></span><span class="k">61.2k</span></div>
+          <div class="r"><span class="serif">Bo</span><span class="bar"><i style="width:80%"></i></span><span class="k">48.9k</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="apps">
+      <div class="app"><div class="tile t-msg"><svg class="ic"><use href="#i-msg"/></svg></div>Messages</div>
+      <div class="app"><div class="tile t-cal"><svg class="ic"><use href="#i-cal"/></svg></div>Calendar</div>
+      <div class="app"><div class="tile t-mail"><svg class="ic"><use href="#i-mail"/></svg></div>Mail</div>
+      <div class="app"><div class="tile t-hen"><svg class="mark"><use href="#mk-ring"/></svg></div><span class="badge">2</span>Henosis</div>
+      <div class="app"><div class="tile t-notes"><svg class="ic"><use href="#i-note"/></svg></div>Notes</div>
+      <div class="app"><div class="tile t-photos"><svg class="ic"><use href="#i-photo"/></svg></div>Photos</div>
+      <div class="app"><div class="tile t-music"><svg class="ic"><use href="#i-music"/></svg></div>Music</div>
+      <div class="app"><div class="tile t-maps"><svg class="ic"><use href="#i-map"/></svg></div>Maps</div>
+    </div>
+  </div>
+
+  <div class="dots"><i class="on"></i><i></i><i></i></div>
+  <div class="dock">
+    <div class="app"><div class="tile t-msg"><svg class="ic"><use href="#i-phone"/></svg></div></div>
+    <div class="app"><div class="tile t-mail"><svg class="ic"><use href="#i-compass"/></svg></div></div>
+    <div class="app"><div class="tile t-msg" style="background:linear-gradient(180deg,#9BC88F,#4F7D4A)"><svg class="ic"><use href="#i-msg"/></svg></div></div>
+    <div class="app"><div class="tile t-music" style="background:linear-gradient(180deg,#5B6273,#2A3244)"><svg class="ic"><use href="#i-cam"/></svg></div></div>
+  </div>
+  <div class="homebar"><i></i></div>
+</div>
+
+<!-- ============ THE BOARD ============ -->
+<div class="board">
+  <section class="lead">
+    <div class="brand"><svg class="mark"><use href="#mk"/></svg>Henosis</div>
+    <h1>Widgets</h1>
+    <p>Three questions a glance should answer without opening the app: what waits for me, who is running, and what today has cost. Each widget answers one of them; the medium and large ones answer two or three. Every row is a deep link into the notice it names, and the approve button on a widget is the same vote as in the session.</p>
+  </section>
+
+  <section>
+    <div class="kk">Small · 158 × 158</div>
+    <div class="wrow">
+      <div class="item"><div class="w sm">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Needs you</span><span class="n">1</span></div>
+        <div class="ap" style="grid-template-columns:1fr;padding-top:0">
+          <div style="min-width:0"><div class="who">Bo's agent</div><div class="what"><span class="t">wants to <code>deploy</code></span></div></div>
+        </div>
+        <div class="what" style="font-size:11px;color:var(--ink-2);display:flex;gap:5px;align-items:center;white-space:nowrap"><span class="gate" style="color:var(--accent);font-weight:600">Release gate</span><span class="q" style="display:inline-flex;gap:2px"><i style="width:9px;height:4px;border-radius:2px;background:var(--apricot-deep)"></i><i style="width:9px;height:4px;border-radius:2px;box-shadow:inset 0 0 0 1.5px var(--apricot-deep)"></i></span><span class="k" style="margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);flex:none">4 min</span></div>
+        <div class="foot"><button class="wb" style="width:100%;justify-content:center">Approve · 4</button></div>
+      </div><div class="cap"><b>Needs you</b> · one row, the oldest</div></div>
+
+      <div class="item"><div class="w sm">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Agents</span><span class="age">9:40</span></div>
+        <div class="big">3 <span class="u">running</span></div>
+        <div class="lines">
+          <div class="l"><i class="d run"></i><span class="t"><span class="serif">Ana</span> · Billing page</span></div>
+          <div class="l"><i class="d run"></i><span class="t"><span class="serif">Bo</span> · Checkout</span></div>
+          <div class="l"><i class="d run"></i><span class="t"><span class="serif">Cy</span> · Invoice PDF</span></div>
+          <div class="l"><i class="d wait"></i><span class="t"><span class="serif">Dee</span> · waits for you</span></div>
+        </div>
+      </div><div class="cap"><b>Agents</b> · the count, then who and where</div></div>
+
+      <div class="item"><div class="w sm">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Tokens today</span></div>
+        <div class="num">142.6k</div>
+        <div class="sub"><span class="ellip">of <b>200k</b> · 57.4k left</span></div>
+        <div class="meter"><i style="width:71%"></i></div>
+        <div class="by">
+          <div class="r"><span class="serif">Ana</span><span class="bar"><i style="width:100%"></i></span><span class="k">61.2k</span></div>
+          <div class="r"><span class="serif">Bo</span><span class="bar"><i style="width:80%"></i></span><span class="k">48.9k</span></div>
+        </div>
+      </div><div class="cap"><b>Tokens today</b> · spend against the Payments budget</div></div>
+
+      <div class="item"><div class="w sm empty">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Needs you</span><span class="n quiet">0</span></div>
+        <svg class="mark"><use href="#mk"/></svg>
+        <div class="say">Nothing waits for you.</div>
+        <div class="hint">Last decision 9:12</div>
+      </div><div class="cap"><b>Empty</b> · the ring is closed, nothing pulses</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kk">Small · states</div>
+    <div class="wrow">
+      <div class="item"><div class="w sm">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Tokens today</span></div>
+        <div class="num" style="color:var(--danger)">212.4k</div>
+        <div class="sub"><span class="ellip" style="color:var(--danger)"><b style="color:var(--danger)">12.4k</b> over · nothing stops</span></div>
+        <div class="meter over"><i style="width:100%"></i></div>
+        <div class="by">
+          <div class="r"><span class="serif">Ana</span><span class="bar"><i style="width:100%;background:var(--danger)"></i></span><span class="k">98.1k</span></div>
+          <div class="r"><span class="serif">Bo</span><span class="bar"><i style="width:60%"></i></span><span class="k">58.9k</span></div>
+        </div>
+      </div><div class="cap"><b>Over budget</b> · red meter, soft budget: a number people watch</div></div>
+
+      <div class="item"><div class="w sm paused">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Needs you</span><span class="n moon"><svg class="ic"><use href="#i-moon"/></svg></span></div>
+        <div class="ap" style="grid-template-columns:1fr;padding-top:0">
+          <div style="min-width:0"><div class="who">Bo's agent</div><div class="what"><span class="t">wants to <code>deploy</code></span></div></div>
+        </div>
+        <div class="sub"><span class="ellip">and <b>1</b> more in the queue</span></div>
+        <div class="foot"><svg class="ic" style="width:12px;height:12px"><use href="#i-moon"/></svg><span class="ellip">Paused until 9:00</span></div>
+      </div><div class="cap"><b>Paused</b> · the moon replaces the count; approvals still show</div></div>
+
+      <div class="item"><div class="w sm">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Needs you</span><span class="n quiet">0</span></div>
+        <div class="ap" style="grid-template-columns:1fr;padding-top:0">
+          <div style="min-width:0"><div class="who">Bo's agent</div><div class="what"><span class="t"><code>deploy</code> · Checkout</span></div></div>
+        </div>
+        <div class="foot" style="margin-top:0;color:var(--ok);font-weight:500"><svg class="ic" style="width:14px;height:14px"><use href="#i-check"/></svg><span class="ellip">Your 4 granted it</span></div>
+        <div class="foot"><span class="ellip">Bo rated 4 · 2 of 2</span></div>
+      </div><div class="cap"><b>Just granted</b> · the check draws, the row stays a minute</div></div>
+
+      <div class="item"><div class="w sm">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Agents</span><span class="age" style="color:var(--warn)">offline</span></div>
+        <div class="big" style="color:var(--ink-3)">3 <span class="u">running</span></div>
+        <div class="lines" style="opacity:.6">
+          <div class="l"><i class="d off"></i><span class="t"><span class="serif">Ana</span> · Billing page</span></div>
+          <div class="l"><i class="d off"></i><span class="t"><span class="serif">Bo</span> · Checkout</span></div>
+          <div class="l"><i class="d off"></i><span class="t"><span class="serif">Cy</span> · Invoice PDF</span></div>
+        </div>
+        <div class="foot"><span class="ellip">As of 9:26 · reconnecting</span></div>
+      </div><div class="cap"><b>Stale</b> · dots hollow, a timestamp, never a guess</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kk">Medium · 338 × 158</div>
+    <div class="stackw">
+      <div class="item"><div class="w md">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Needs you</span><span class="n">2</span></div>
+        <div class="ap">
+          <div style="min-width:0"><div class="who">Bo's agent <i>· Checkout</i></div><div class="what"><span class="t">wants to <code>deploy</code></span><span class="gate">Gate</span><span class="q"><i class="on"></i><i class="next"></i></span></div></div>
+          <div class="act"><button class="wb">Approve · 4</button><button class="wb quiet icon" aria-label="Deny"><svg class="ic" style="width:13px;height:13px"><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="ap">
+          <div style="min-width:0"><div class="who">Dee's agent <i>· Billing page</i></div><div class="what"><span class="t">wants to run <code>pnpm test</code> in billing</span></div></div>
+          <div class="act"><button class="wb">Approve</button><button class="wb quiet icon" aria-label="Deny"><svg class="ic" style="width:13px;height:13px"><use href="#i-x"/></svg></button></div>
+        </div>
+      </div><div class="cap"><b>Needs you</b> · two rows, Approve · 4 on a gate, plain Approve on an exec</div></div>
+
+      <div class="item"><div class="w md">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Agents</span><span class="n quiet">3 running · 1 waits</span></div>
+        <div class="lines" style="gap:5px;font-size:12.5px">
+          <div class="l"><i class="d run"></i><span class="t"><span class="serif">Ana's agent</span> · Billing page · <i class="serif i" style="color:var(--accent)">tax lines on the invoice</i></span><span class="k">61.2k</span></div>
+          <div class="l"><i class="d run"></i><span class="t"><span class="serif">Bo's agent</span> · Checkout · <i class="serif i" style="color:var(--accent)">proration on plan change</i></span><span class="k">48.9k</span></div>
+          <div class="l"><i class="d run"></i><span class="t"><span class="serif">Cy's agent</span> · Invoice PDF · <i class="serif i" style="color:var(--accent)">page breaks</i></span><span class="k">32.5k</span></div>
+          <div class="l"><i class="d wait"></i><span class="t"><span class="serif">Dee's agent</span> · Billing page · waits for <b style="font-weight:500;color:var(--ink)">you</b></span><span class="k">4 min</span></div>
+        </div>
+        <div class="foot"><span class="ellip">Crew <span class="serif" style="color:var(--accent);font-size:12.5px">Invoice rollout</span> · Ana and Cy · Bo has the baton in Checkout</span></div>
+      </div><div class="cap"><b>Agents</b> · who, where, what it is on in italic serif, spend at the end of the line</div></div>
+
+      <div class="item"><div class="w md">
+        <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Tokens today · Payments</span><span class="age">9:40</span></div>
+        <div class="cols">
+          <div>
+            <div class="num">142.6k<span class="u">of 200k</span></div>
+            <div class="meter" style="margin-top:8px"><i style="width:71%"></i></div>
+            <div class="sub" style="margin-top:6px"><span class="ellip">71% · <b>57.4k</b> left · 14 turns</span></div>
+          </div>
+          <div class="by">
+            <div class="r" style="grid-template-columns:72px 1fr 38px"><span class="serif">Billing page</span><span class="bar"><i style="width:100%"></i></span><span class="k">72.9k</span></div>
+            <div class="r" style="grid-template-columns:72px 1fr 38px"><span class="serif">Checkout</span><span class="bar"><i style="width:67%"></i></span><span class="k">48.9k</span></div>
+            <div class="r" style="grid-template-columns:72px 1fr 38px"><span class="serif">Invoice PDF</span><span class="bar"><i style="width:29%"></i></span><span class="k">20.8k</span></div>
+            <div class="r" style="grid-template-columns:72px 1fr 38px;color:var(--ink-3)"><span class="serif">Plans</span><span class="bar"><i style="width:0"></i></span><span class="k">~118k</span></div>
+          </div>
+        </div>
+      </div><div class="cap"><b>Tokens today</b> · the meter left, by session right, estimate against actual on the last line</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kk">Large · 338 × 354</div>
+    <div class="item"><div class="w lg">
+      <div class="head"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Henosis · Payments</span><span class="n">2</span></div>
+      <div class="ap">
+        <div style="min-width:0"><div class="who">Bo's agent <i>· Checkout</i></div><div class="what"><span class="t">wants to <code>deploy</code></span><span class="gate">Gate</span><span class="q"><i class="on"></i><i class="next"></i></span></div></div>
+        <div class="act"><button class="wb">Approve · 4</button><button class="wb quiet icon" aria-label="Deny"><svg class="ic" style="width:13px;height:13px"><use href="#i-x"/></svg></button></div>
+      </div>
+      <div class="ap">
+        <div style="min-width:0"><div class="who">Dee's agent <i>· Billing page</i></div><div class="what"><span class="t">wants to run <code>pnpm test</code> in billing</span></div></div>
+        <div class="act"><button class="wb">Approve</button><button class="wb quiet icon" aria-label="Deny"><svg class="ic" style="width:13px;height:13px"><use href="#i-x"/></svg></button></div>
+      </div>
+      <div class="divider"></div>
+      <div class="head" style="margin-top:2px"><span class="t">Agents</span><span class="n quiet">3 running</span></div>
+      <div class="lines" style="gap:4px;font-size:12.5px">
+        <div class="l"><i class="d run"></i><span class="t"><span class="serif">Ana's agent</span> · Billing page · <i class="serif i" style="color:var(--accent)">tax lines on the invoice</i></span><span class="k">61.2k</span></div>
+        <div class="l"><i class="d run"></i><span class="t"><span class="serif">Bo's agent</span> · Checkout · <i class="serif i" style="color:var(--accent)">proration on plan change</i></span><span class="k">48.9k</span></div>
+        <div class="l"><i class="d run"></i><span class="t"><span class="serif">Cy's agent</span> · Invoice PDF · <i class="serif i" style="color:var(--accent)">page breaks</i></span><span class="k">32.5k</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="head" style="margin-top:2px"><span class="t">Tokens today</span><span class="age">71% of 200k</span></div>
+      <div class="sub"><span class="num" style="font-size:22px">142.6k</span><span class="ellip" style="margin-left:4px">57.4k left · <b>12.1k</b> saved against plan</span></div>
+      <div class="meter"><i style="width:71%"></i></div>
+    </div><div class="cap"><b>Large</b> · the three questions in one, the order of the manager's view: needs you, running, spent</div></div>
+  </section>
+
+  <section>
+    <div class="kk">Lock screen</div>
+    <div class="item"><div class="lock">
+      <div class="inline"><svg class="mark"><use href="#mk-ring"/></svg>2 approvals · 3 running · 142.6k</div>
+      <div class="time">9:41</div>
+      <div class="lw">
+        <div class="lwc"><svg viewBox="0 0 72 72"><circle cx="36" cy="36" r="31" fill="none" stroke="rgba(243,237,228,.18)" stroke-width="5"/><circle cx="36" cy="36" r="31" fill="none" stroke="#E2C4A6" stroke-width="5" stroke-linecap="round" stroke-dasharray="138 195" transform="rotate(-90 36 36)"/></svg><div><div class="v">71%</div><div class="u">tokens</div></div></div>
+        <div class="lwr">
+          <div class="h"><svg class="mark"><use href="#mk-ring"/></svg>Needs you · 2</div>
+          <div class="s">Bo's agent · deploy</div>
+          <div class="q"><span class="segs"><i class="on"></i><i></i></span>1 of 2 · <b>your 4 grants it</b></div>
+        </div>
+      </div>
+      <div class="cap" style="color:rgba(243,237,228,.55);margin-top:10px">inline · circular · rectangular, all monochrome but the apricot pulse</div>
+    </div><div class="cap"><b>Lock screen</b> · the inline line above the clock is the whole brief in nine words; the rectangle names the oldest decision; the ring is the budget</div></div>
+  </section>
+
+  <section>
+    <div class="kk">Menu bar · macOS</div>
+    <div class="item"><div class="mac">
+      <div class="menubar"><span class="l">Henosis</span><span>File</span><span>View</span><span class="sp"></span><span class="tray"><svg class="mark"><use href="#mk-ring"/></svg>2<i class="d run" style="animation:none"></i>3</span><span class="clock">9:41</span></div>
+      <div class="panel">
+        <div class="ph"><svg class="mark"><use href="#mk-ring"/></svg><span class="t">Henosis</span><span class="s">2 need you</span></div>
+        <div class="sec">Needs you<span class="n">2</span></div>
+        <div class="pr hi">
+          <div style="min-width:0"><div class="who">Bo's agent <i>· Checkout</i></div><div class="what"><span class="t"><code>deploy</code></span><span class="gate">Gate 1 of 2</span></div></div>
+          <div class="act"><button class="wb">Approve · 4</button><button class="wb quiet">Deny</button></div>
+        </div>
+        <div class="pr">
+          <div style="min-width:0"><div class="who">Dee's agent <i>· Billing page</i></div><div class="what"><span class="t"><code>pnpm test</code> · exec</span></div></div>
+          <div class="act"><button class="wb">Approve</button><button class="wb quiet">Deny</button></div>
+        </div>
+        <div class="sec">Agents running<span class="n">3</span></div>
+        <div class="pr ag"><div style="min-width:0"><div class="who">Ana's agent <i>· Billing page</i></div><div class="what"><i class="d run"></i><span class="t">tax lines on the invoice · step 3 of 5</span></div></div><span class="k">61.2k</span></div>
+        <div class="pr ag"><div style="min-width:0"><div class="who">Bo's agent <i>· Checkout</i></div><div class="what"><i class="d wait"></i><span class="t">holds <code>deploy</code> until the gate grants</span></div></div><span class="k">48.9k</span></div>
+        <div class="pr ag"><div style="min-width:0"><div class="who">Cy's agent <i>· Invoice PDF</i></div><div class="what"><i class="d run"></i><span class="t">page breaks · step 2 of 4</span></div></div><span class="k">32.5k</span></div>
+        <div class="sec">Tokens today<span class="n">Payments</span></div>
+        <div class="tok"><div class="l"><b>142.6k</b>of 200k<span class="k">57.4k left</span></div><div class="meter"><i style="width:71%"></i></div></div>
+        <div class="mi sep"><svg class="ic"><use href="#i-inbox"/></svg>Inbox<span class="sub">4 unread</span></div>
+        <div class="mi"><svg class="ic"><use href="#i-bell"/></svg>Pause notifications<span class="sub">1 hour ›</span></div>
+        <div class="mi"><svg class="ic"><use href="#i-open"/></svg>Open Henosis<span class="kb">⌥⇧H</span></div>
+      </div>
+    </div><div class="cap"><b>Menu bar</b> · the item is the ring and two numbers (decisions, running); the panel is the desktop tray's menu made rich: buttons on rows, dots that live, the meter</div></div>
+  </section>
+
+  <section>
+    <div class="kk">Spec</div>
+    <div class="spec">
+      <div class="r"><span class="h">Refresh</span><span>Needs you on push (an approval opens or closes); Agents and Tokens every 15 minutes on the timeline, immediately on push when a status changes. Stale after 15 minutes without a push: hollow dots, "As of 9:26".</span></div>
+      <div class="r"><span class="h">Deep links</span><span>Row → <code>henosis://p/payments/s/checkout#approval-7f2</code>; header → the approvals queue, the rail or the manager's usage view; the lock-screen ring → Usage.</span></div>
+      <div class="r"><span class="h">Approve</span><span>The button is an App Intent that sends the same vote as the session: a gate row sends 4 (the default pick); the Deny is a quiet circle. On a gate that needs a note, the tap opens the app on the sheet instead.</span></div>
+      <div class="r"><span class="h">Counts</span><span>Needs you counts decisions I can still make (approvals plus handoffs offered to me); the app badge and the menu-bar number are the same count. Mentions never badge a widget.</span></div>
+      <div class="r"><span class="h">Words</span><span>Same grammar as the toast and the inbox row: who · verb · what. Names in Instrument Serif, calls in mono, numbers in mono. "waits for you", "your 4 grants it", "nothing stops".</span></div>
+      <div class="r"><span class="h">Scope</span><span>The widget is configured per project (Payments) or for everything; the medium Tokens widget shows the project's budget, the small one shows mine.</span></div>
+      <div class="r"><span class="h">Calm</span><span>Pause notifications shows the moon in the count's place; nothing pulses; the widget still updates. Reduced motion stops the running dots.</span></div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

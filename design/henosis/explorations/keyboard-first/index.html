@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Keyboard-first · Billing page</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- Keyboard-first: every key the app answers to is printed on the thing it acts on,
+          while nobody is typing. The "Keys live" chip in the topbar is the mode indicator. ---- */
+  body { overflow: hidden; }
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13px; margin: 2px 0 4px; }
+  .rail .search svg { width: 15px; height: 15px; }
+  .rail .search .kbd { margin-left: auto; }
+  .rail .section { padding: 10px 10px 3px; }
+  .rail .crew { padding-top: 6px; }
+  .rail .agent { padding: 7px 12px; gap: 3px; position: relative; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 4px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .agent .head .kbd { margin-left: 6px; }
+  .rail .item { padding: 6px 12px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+
+  /* key caps: 20px, mono, a hairline and a 1px drop so they read as keys in both themes */
+  .kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 5px; font: 500 11.5px/1 var(--mono); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 0 var(--line); flex: none; vertical-align: middle; }
+  .kbd.live { background: var(--accent); color: var(--accent-fg); border-color: transparent; box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+  .kbd.pressed { background: var(--apricot); color: #56352D; border-color: transparent; }
+  .rail .kbd { background: var(--rail-2); color: var(--rail-fg); border-color: var(--rail-line); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+  .rail .kbd.live { background: var(--apricot); color: #56352D; }
+  .btn .kbd { margin-left: 2px; margin-right: -6px; }
+  .btn.primary .kbd { background: rgba(255,255,255,.18); color: inherit; border-color: transparent; box-shadow: none; }
+  .keys { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+  .keys .sep { color: var(--ink-3); }
+
+  /* topbar */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .status, .topbar .title .pill { font-family: var(--font); }
+  .mode { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px 0 8px; border-radius: var(--radius-full); background: var(--apricot-soft); color: var(--ink); font-size: 12.5px; font-weight: 500; }
+  .mode::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.6s ease-in-out infinite; }
+  .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font: 12.5px var(--mono); color: var(--ink-2); min-width: 92px; margin-right: 6px; }
+  .tokchip .budget { height: 3px; }
+  .btn { white-space: nowrap; }
+  .btn svg { width: 14px; height: 14px; }
+
+  /* stream */
+  .main { position: relative; }
+  .frame { flex: 1; min-height: 0; display: flex; }
+  .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .lane { width: 364px; flex: none; padding: 16px 24px 22px 8px; display: flex; flex-direction: column; gap: 12px; }
+  .column { padding: 20px 24px 16px; gap: 20px; }
+  .msg .meta time { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .msg .meta .scope { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+  .msg.human .text .goal-lbl { font-family: var(--serif); font-style: italic; color: var(--accent); margin-right: 6px; }
+  .msg.agent .text p { margin: 0 0 8px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; }
+  .msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 12px 16px; align-self: flex-start; max-width: 85%; }
+  .msg.team .text code { font-family: var(--mono); font-size: 13px; }
+  .step { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 4px 10px; border-radius: 10px; }
+  .step svg { width: 15px; height: 15px; color: var(--ink-3); }
+  .step.ok svg { color: var(--ok); }
+  .step .mono { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .mono b { font-weight: 500; color: var(--ink); }
+  .step .r { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .step.live { background: var(--apricot-soft); }
+  .step.live .r { color: var(--accent); }
+  .step .livedot { width: 9px; height: 9px; margin: 0 auto; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); animation: pulse 1.6s ease-in-out infinite; }
+
+  /* plan card, focused: the thing the number keys act on */
+  .plan.focus { box-shadow: var(--shadow-soft), var(--team-glow); border-color: color-mix(in srgb, var(--apricot-deep) 70%, transparent); }
+  .when-tap { display: none; }
+  .plan .head .pill.waiting { background: var(--warn-soft); color: var(--warn); }
+  .plan .head .est { margin-left: auto; font: 12.5px var(--mono); color: var(--ink-3); }
+  .plan .pstep .t { min-width: 0; }
+  .plan .pstep .t small { display: block; color: var(--ink-2); font-size: 12.5px; }
+  .plan .pstep .risk { font-size: 11px; font-weight: 600; letter-spacing: .02em; color: var(--ink-3); text-transform: uppercase; }
+  .plan .pstep .risk.write { color: var(--warn); }
+  .rate { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); }
+  .rate .lbl { font-size: 13.5px; color: var(--ink-2); }
+  .rate .lbl b { font-weight: 500; color: var(--ink); }
+  .starkeys { display: inline-flex; gap: 6px; }
+  .starkeys .sk { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .starkeys .sk svg { width: 22px; height: 22px; color: var(--surface-3); }
+  .starkeys .sk.on svg { color: var(--apricot-deep); fill: var(--apricot-deep); }
+  .starkeys .sk.pick svg { filter: drop-shadow(0 0 4px rgba(207,167,130,.6)); }
+  .rate .then { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12.5px; color: var(--ink-2); text-align: right; }
+  .rate .then .who { display: inline-flex; align-items: center; gap: 6px; }
+  .rate .then .who .avatar { width: 20px; height: 20px; font-size: 9px; border-width: 1.5px; }
+  .plan .actions { display: flex; gap: 8px; align-items: center; }
+  .plan .actions .hint { margin-left: auto; font-size: 12.5px; color: var(--ink-3); }
+
+  /* composer, keys live: not focused, so the letters are free */
+  .composer-wrap { padding-top: 4px; }
+  .composer .input { color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+  .composer .bar .right .keys { margin-right: 4px; }
+
+  /* the two things that reach you from elsewhere */
+  .aside { display: flex; flex-direction: column; gap: 12px; }
+  .wait { border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-pop); overflow: hidden; }
+  .wait .top { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--rail); color: var(--rail-fg); font-size: 12.5px; }
+  .wait .top .where { font-family: var(--serif); font-size: 15px; color: var(--apricot); }
+  .wait .top .n { margin-left: auto; font: 11.5px var(--mono); color: var(--rail-muted); }
+  .wait .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 9px; }
+  .wait .call { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+  .wait .call .status { font-size: 13px; }
+  .wait .cmd { font: 12.5px var(--mono); color: var(--ink); background: var(--surface-2); border-radius: 8px; padding: 7px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill.danger { background: var(--danger-soft); color: var(--danger); }
+  .wait .gate { font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+  .wait .gate .stars span { width: 16px; height: 16px; font-size: 14px; }
+  .wait .acts { display: flex; gap: 6px; align-items: center; padding-top: 2px; }
+  .wait .foot { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .wait .foot .kbd { min-width: 18px; height: 18px; font-size: 11px; }
+  .wait .acts .btn.sm { padding: 0 9px 0 11px; gap: 7px; }
+  .wait .acts .btn.ghost.sm { padding: 0 8px; }
+  .wait .acts .btn.sm .kbd { margin: 0 -2px 0 0; }
+  .toast { margin-top: auto; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-pop); padding: 12px 14px; display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: start; animation: rise .32s ease both; }
+  .toast .avatar { width: 30px; height: 30px; font-size: 11px; grid-row: span 2; }
+  .toast .t { font-size: 13.5px; line-height: 1.4; }
+  .toast .t .who, .toast .t .grp { font-family: var(--serif); font-size: 15.5px; }
+  .toast .t .grp { color: var(--accent); }
+  .toast .q { font-size: 13px; color: var(--ink-2); border-left: 2px solid var(--apricot); padding-left: 9px; line-height: 1.45; }
+  .toast .q .at { color: var(--accent); font-weight: 500; }
+  .toast .acts { grid-column: 2; display: flex; align-items: center; gap: 10px; padding-top: 2px; }
+  .toast .acts .keys { font-size: 12.5px; }
+  .toast .acts .dismiss { margin-left: auto; }
+
+  /* phone: no letters to print, so the caps hide and the same cards stay tappable */
+  @media (max-width: 480px) {
+    .rail, .topbar .right .tokchip, .topbar .right .btn, .topbar .title .pill, .kbd, .keys, .mode, .plan .actions .hint, .plan .head .est, .when-keys, .rate .then .note { display: none; }
+    .when-tap { display: inline; } .toast .btn.when-tap { display: inline-flex; margin-left: -8px; }
+    .topbar { padding: 10px 14px; gap: 8px; min-height: 52px; }
+    .topbar .title { font-size: 18px; gap: 8px; } .topbar .title .serif { font-size: 19px; }
+    .column { padding: 14px 14px 12px; gap: 16px; }
+    .msg.human .text, .msg.team .text { max-width: 100%; }
+    .plan { padding: 14px 14px 12px; }
+    .plan .head { flex-wrap: wrap; gap: 8px 10px; } .plan .head .pill { white-space: nowrap; }
+    .plan .pstep { grid-template-columns: 22px 1fr; } .plan .pstep .est, .plan .pstep .risk { display: none; }
+    .rate { grid-template-columns: 1fr; gap: 10px; } .rate .then { align-items: flex-start; text-align: left; }
+    .starkeys .sk svg { width: 26px; height: 26px; }
+    .frame { flex-direction: column; overflow: auto; }
+    .stage { flex: none; }
+    .scroll { flex: none; overflow: visible; }
+    .lane { width: auto; padding: 14px 14px 0; order: -1; }
+    .wait .foot { display: none; }
+    .wait .acts .btn.sm { flex: 1; justify-content: center; padding: 0 10px; }
+    .toast { margin-top: 0; }
+    .composer-wrap { padding: 8px 12px 14px; position: sticky; bottom: 0; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 16 16"><path d="M7 12.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM11 11l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2.5 9h3l1 2h3l1-2h3M2.5 9V4.5A1.5 1.5 0 0 1 4 3h8a1.5 1.5 0 0 1 1.5 1.5V9M2.5 9v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-columns" viewBox="0 0 16 16"><path d="M2.5 3h11v10h-11zM8 3v10" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-memory" viewBox="0 0 16 16"><path d="M3 2.5h8a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2zM3 11.5h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-handoff" viewBox="0 0 16 16"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 16 16"><path d="M4 3v10M12 5.5c0 3-8 2-8 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="4" cy="3" r="1.5" fill="currentColor"/><circle cx="12" cy="4" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 16 16"><path d="M3 8h.01M8 8h.01M13 8h.01" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-file" viewBox="0 0 16 16"><path d="M4 2h5l3 3v9H4zM9 2v3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 16 16"><path d="M3 4l4 4-4 4M8 12h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 16 16"><path d="M11 2.5l2.5 2.5L6 12.5H3.5V10z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-star" viewBox="0 0 16 16"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-send" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="shell">
+  <!-- ============ rail ============ -->
+  <nav class="rail" aria-label="Agents">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+      <span class="wordmark">Henosis</span>
+    </div>
+    <button class="new" type="button"><svg width="14" height="14"><use href="#i-plus"/></svg> New session</button>
+    <div class="search"><svg><use href="#i-search"/></svg> Search or jump <span class="kbd">⌘K</span></div>
+
+    <div class="section">Agents <span class="n">4</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · 3 agents</div>
+
+    <a class="agent" href="#">
+      <div class="head"><i class="dot running"></i><span class="t">Cy's agent</span><span class="kbd">k</span></div>
+      <div class="doing">On <i>Invoice PDF</i> · rendering the tax lines table</div>
+      <div class="foot"><span class="pill solo">Solo</span><span class="tok">8.1k</span></div>
+    </a>
+    <a class="agent active" href="#" aria-current="page">
+      <div class="head"><i class="dot running"></i><span class="t">Ana's agent</span></div>
+      <div class="doing">On <i>Billing page</i> · waits for a rating on the plan</div>
+      <div class="foot"><span class="pill team">Team</span><span class="with">with <span class="stack"><span class="avatar">B</span><span class="avatar">D</span></span></span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><i class="dot awaiting_approval"></i><span class="t">Bo's agent</span><span class="kbd">j</span></div>
+      <div class="doing">On <i>Checkout</i> · waits on <span style="font-family:var(--mono);font-size:12px">git push</span> to main</div>
+      <div class="foot"><span class="pill team">Team</span><span class="with">with <span class="stack"><span class="avatar">D</span></span></span><span class="tok">21.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><i class="dot"></i><span class="t">Dee's agent</span></div>
+      <div class="doing">On <i>Tax lines</i> · paused by Dee</div>
+      <div class="foot"><span class="pill solo">Solo</span><span class="tok">3.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg><use href="#i-inbox"/></svg> Inbox <span class="n live">3</span></a>
+    <a class="item" href="#"><svg><use href="#i-check"/></svg> Approvals <span class="n live">1</span></a>
+    <a class="item" href="#"><svg><use href="#i-columns"/></svg> Overview <span class="n"></span></a>
+    <a class="item" href="#"><svg><use href="#i-memory"/></svg> Memory <span class="n">48</span></a>
+
+    <div class="me"><span class="avatar driver">A</span><span class="meta"><span>Ana</span><span class="role">Driver · Payments</span></span><svg style="margin-left:auto;width:16px;height:16px;color:var(--rail-muted)"><use href="#i-gear"/></svg></div>
+  </nav>
+
+  <!-- ============ main ============ -->
+  <div class="main">
+    <header class="topbar">
+      <div class="title"><span class="serif">Billing page</span><span class="status running">running</span><span class="pill team">Team</span></div>
+      <span class="mode" title="No field has focus, so single letters act">Keys live</span>
+      <div class="right">
+        <span class="tokchip">12.4k / 40k<span class="budget"><i style="width:31%"></i></span></span>
+        <button class="btn sm" type="button"><svg><use href="#i-handoff"/></svg> Hand off <span class="kbd">h</span></button>
+        <button class="btn sm" type="button"><svg><use href="#i-branch"/></svg> Fork <span class="kbd">f</span></button>
+        <button class="btn sm" type="button"><svg><use href="#i-dots"/></svg> Details <span class="kbd">i</span></button>
+        <button class="btn sm ghost" type="button" aria-label="Keyboard shortcuts"><span class="kbd">?</span></button>
+      </div>
+    </header>
+
+    <div class="frame">
+    <div class="stage">
+    <div class="scroll">
+      <div class="column">
+        <div class="divider">Today · 14:02</div>
+
+        <div class="msg human">
+          <div class="meta"><span class="who">Ana</span><span class="scope">goal</span><time>14:02</time></div>
+          <div class="text"><span class="goal-lbl">Goal</span>Proration on the Billing page: when a seat is removed mid-cycle, show the credit as its own line above tax, and carry it into the invoice PDF.</div>
+        </div>
+
+        <!-- rate a plan: the number keys act on the focused card -->
+        <section class="plan focus" aria-label="Plan: proration credit on Billing">
+          <div class="head"><span class="serif">Plan · Proration credit</span><span class="pill waiting">waits for a rating</span><span class="est">4 steps · ~9.2k est.</span></div>
+          <div class="steps">
+            <div class="pstep done"><span class="n">1</span><span class="t">Read the invoice model and <span class="mono">billing/prorate.ts</span><small>Find where the mid-cycle credit is computed today</small></span><span class="risk">read</span><span class="est">1.1k / 1.0k</span></div>
+            <div class="pstep running"><span class="n">2</span><span class="t">Add the credit line to <span class="mono">BillingSummary</span><small>Above tax; negative amount; proration note in the label</small></span><span class="risk write">write</span><span class="est">~3.4k</span></div>
+            <div class="pstep"><span class="n">3</span><span class="t">Carry the line into the invoice PDF<small>Same row order as the page; tax lines stay last</small></span><span class="risk write">write</span><span class="est">~2.9k</span></div>
+            <div class="pstep"><span class="n">4</span><span class="t">Run the billing tests and the PDF snapshot<small>Expect one snapshot change</small></span><span class="risk">exec</span><span class="est">~1.8k</span></div>
+          </div>
+          <div class="rate">
+            <div class="lbl"><b>Your rating</b><br><span class="small"><span class="when-keys">press a number</span><span class="when-tap">tap a star</span></span></div>
+            <div class="starkeys" aria-label="Rate 1 to 5">
+              <span class="sk on"><svg><use href="#i-star"/></svg><span class="kbd">1</span></span>
+              <span class="sk on"><svg><use href="#i-star"/></svg><span class="kbd">2</span></span>
+              <span class="sk on"><svg><use href="#i-star"/></svg><span class="kbd">3</span></span>
+              <span class="sk on pick"><svg><use href="#i-star"/></svg><span class="kbd pressed">4</span></span>
+              <span class="sk"><svg><use href="#i-star"/></svg><span class="kbd">5</span></span>
+            </div>
+            <div class="then">
+              <span class="keys"><span class="kbd live">↵</span> sends 4 and approves</span>
+              <span class="who note"><span class="avatar">B</span> Bo rated 4 · one more at 3+ approves</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn primary sm" type="button">Approve now</button>
+            <button class="btn sm" type="button">Ask to revise</button>
+            <button class="btn ghost sm" type="button">Reject</button>
+            <span class="hint">owner or driver · overrides the ratings</span>
+          </div>
+        </section>
+
+        <div class="msg agent">
+          <div class="meta"><span class="who"><span class="avatar agent">A</span>Ana's agent</span><time>14:03</time></div>
+          <div class="text"><p>Step one is done: the mid-cycle credit is already computed in <span class="mono">prorate.ts</span> and returned as <span class="mono">credit.minor</span>; nothing on the page reads it yet. I will wait here for the plan.</p></div>
+          <div class="steps">
+            <div class="step ok"><svg><use href="#i-file"/></svg><span class="mono"><b>read</b> billing/prorate.ts</span><span class="r">412 lines</span></div>
+            <div class="step ok"><svg><use href="#i-terminal"/></svg><span class="mono"><b>exec</b> rg "credit" apps/web/src/billing</span><span class="r">6 hits</span></div>
+            <div class="step live"><span class="livedot"></span><span class="mono"><b>write</b> BillingSummary.tsx <span class="faint">· refused: the plan is not approved yet</span></span><span class="r">waiting</span></div>
+          </div>
+        </div>
+
+        <div class="msg team">
+          <div class="meta"><span class="who">Bo</span><span class="to">to the team</span><time>14:05</time></div>
+          <div class="text">Rated it 4. The credit should stay negative in the PDF too; <code>tax lines</code> compute from the subtotal after it.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer" aria-label="Composer, not focused">
+        <div class="input"><span class="kbd">/</span> Steer the agent, or just start typing</div>
+        <div class="bar">
+          <div class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></div>
+          <div class="right">
+            <span class="keys"><span class="kbd">↵</span> send <span class="sep">·</span> <span class="kbd">⇧↵</span> new line <span class="sep">·</span> <span class="kbd">esc</span> frees the keys</span>
+            <button class="send" type="button" aria-label="Send"><svg width="16" height="16"><use href="#i-send"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    <div class="lane">
+    <!-- approve from anywhere + jump to a mention: the two things that reach you here -->
+    <div class="aside">
+      <section class="wait rise" aria-label="Waiting elsewhere">
+        <div class="top"><span class="status awaiting" style="color:var(--rail-fg)">Waiting in</span><span class="where">Checkout</span><span class="n">1 of 1</span></div>
+        <div class="body">
+          <div class="call"><span class="avatar agent" style="width:22px;height:22px;font-size:10px;border:0">B</span><span>Bo's agent asks to run</span><span class="pill danger">irreversible</span></div>
+          <div class="cmd">git push origin pay/checkout:main</div>
+          <div class="gate">Release gate · 2 at 4+ · <span class="stars" aria-label="Dee rated 4 of 5"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span> Dee rated 4</div>
+          <div class="acts">
+            <button class="btn primary sm" type="button">Approve <span class="kbd">a</span></button>
+            <button class="btn sm" type="button">Deny <span class="kbd">d</span></button>
+            <button class="btn ghost sm" type="button">Open <span class="kbd">o</span></button>
+          </div>
+          <div class="foot"><span class="kbd">a</span> sends 4 · <span class="kbd">1</span>–<span class="kbd">5</span> to rate first · no need to open it</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="toast" role="status">
+      <span class="avatar">C</span>
+      <div class="t"><span class="who">Cy</span> mentioned you in <span class="grp">#billing</span></div>
+      <div class="q"><span class="at">@Ana</span> does the invoice PDF need the proration credit as its own tax line, or folded into the subtotal?</div>
+      <div class="acts"><span class="keys"><span class="kbd live">g</span> jump to it</span><span class="keys"><span class="kbd">r</span> reply</span><span class="keys dismiss"><span class="kbd">esc</span></span><button class="btn ghost sm when-tap" type="button">Open #billing</button></div>
+    </div>
+
+    </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

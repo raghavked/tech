@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis — One team, people and agents</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- page ---------- */
+  body { overflow-x: hidden; }
+  .wrap { width: min(1200px, 100%); margin: 0 auto; padding: 0 32px; }
+  .mark { display: block; flex: none; }
+  .mark .disc { fill: var(--mark-disc); }
+  .mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); display: inline-flex; align-items: center; gap: 8px; }
+  .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); }
+  .btn.brand { box-shadow: var(--shadow-soft); }
+  .btn.lg { min-height: 46px; padding: 0 22px; font-size: 15px; }
+  .btn.brand.lg { background: var(--gradient-brand); color: #fff; }
+  .btn.brand.lg:hover { box-shadow: var(--shadow-pop); transform: translateY(-1px); }
+  .btn.brand.lg .mark { margin-left: -6px; }
+  .btn.quiet { background: transparent; border-color: var(--line); color: var(--ink); }
+  kbd { font: 12px var(--mono); padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); }
+  .ok-text { color: var(--ok); }
+
+  /* ---------- nav ---------- */
+  .nav { display: flex; align-items: center; gap: 28px; height: 72px; }
+  .nav .brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 24px; color: var(--ink); }
+  .nav .links { display: flex; gap: 22px; margin-left: 12px; font-size: 14px; }
+  .nav .links a { color: var(--ink-2); } .nav .links a:hover { color: var(--ink); text-decoration: none; }
+  .nav .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .nav .right .signin { font-size: 14px; color: var(--ink-2); padding: 0 12px; }
+
+  /* ---------- hero ---------- */
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 40px 0 56px; min-height: 740px; }
+  .hero-copy h1 { font-size: 68px; line-height: 1.02; letter-spacing: -0.015em; margin: 18px 0 20px; }
+  .hero-copy h1 em { font-style: italic; color: var(--accent); }
+  .hero-copy .lede { font-size: 18px; line-height: 1.55; color: var(--ink-2); max-width: 520px; }
+  .hero-copy .ctas { display: flex; gap: 12px; align-items: center; margin: 28px 0 18px; flex-wrap: wrap; }
+  .hero-copy .fine { font-size: 13px; color: var(--ink-3); display: flex; gap: 14px; flex-wrap: wrap; }
+  .hero-copy .fine span { display: inline-flex; align-items: center; gap: 6px; }
+  .hero-copy .fine svg { width: 14px; height: 14px; }
+  .inline-mark { display: inline-block; vertical-align: -3px; width: 18px; height: 18px; }
+
+  /* the stage: a navy disc field where the ring closes and the day begins */
+  .stage { position: relative; background: var(--rail); color: var(--rail-fg); border-radius: 28px; padding: 28px; overflow: hidden; box-shadow: var(--shadow-pop); min-height: 620px; display: flex; flex-direction: column; }
+  .stage::before { content: ""; position: absolute; inset: 0; background: radial-gradient(520px 340px at 50% 28%, rgba(226,196,166,0.18), transparent 70%); pointer-events: none; }
+  .stage .ring { position: relative; display: grid; place-items: center; height: 300px; }
+  .stage .ring .mark { width: 220px; height: 220px; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.35)); }
+  .stage .ring .trail { position: absolute; width: 220px; height: 220px; left: 50%; top: 50%; margin: -110px 0 0 -110px; opacity: .22; }
+  .stage .ring .trail .disc { fill: none; } .stage .ring .trail .arc { stroke-width: 6; }
+  .stage .ring .trail.t1 .arc { transform-origin: 48px 48px; transform: rotate(28deg); }
+  .stage .ring .trail.t1 .arc.b { transform: rotate(-28deg); }
+  .stage .ring .trail.t2 { opacity: .10; }
+  .stage .ring .trail.t2 .arc { transform-origin: 48px 48px; transform: rotate(52deg); }
+  .stage .ring .trail.t2 .arc.b { transform: rotate(-52deg); }
+  /* hero plays the close once, then holds */
+  .mark.hero-join .arc { transform-origin: 48px 48px; animation: arc-a .55s cubic-bezier(.3,.9,.3,1) 1 both; }
+  .mark.hero-join .arc.b { animation-name: arc-b; }
+  .mark.hero-join .dot { transform-origin: 48px 48px; animation: dot-in .6s ease 1 both; }
+  .stage .legend { position: absolute; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--rail-muted); }
+  .stage .legend i { width: 10px; height: 10px; border-radius: 50%; }
+  .stage .legend.l { left: 28px; top: 150px; } .stage .legend.r { right: 28px; top: 150px; }
+  .stage .legend .serif { color: var(--rail-fg); font-size: 16px; }
+
+  /* the join feed under the ring */
+  .feed { position: relative; margin-top: 8px; background: rgba(255,255,255,0.04); border: 1px solid var(--rail-line); border-radius: 18px; padding: 6px 4px; }
+  .feed .row { display: grid; grid-template-columns: 54px 32px 1fr auto; gap: 12px; align-items: center; padding: 10px 14px; border-radius: 12px; font-size: 14px; }
+  .feed .row + .row { border-top: 1px solid var(--rail-line); }
+  .feed .row.live { background: var(--rail-active); }
+  .feed .time { font-family: var(--mono); font-size: 12px; color: var(--rail-muted); }
+  .feed .who { font-family: var(--serif); font-size: 17px; color: var(--rail-fg); }
+  .feed .who i { color: var(--apricot); font-style: italic; }
+  .feed .what { color: var(--rail-muted); font-size: 13px; }
+  .feed .tag { font-size: 11.5px; letter-spacing: .02em; font-weight: 600; color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 999px; padding: 2px 8px; }
+  .feed .tag.pulse { color: #56352D; background: var(--apricot); border-color: transparent; }
+  .feed .avatar { width: 32px; height: 32px; border-color: transparent; font-size: 12px; }
+  .feed .avatar.agent { border-radius: 10px 10px 10px 3px; }
+  .feed .avatar.joined { animation: ripple 1.6s ease-out infinite; }
+  .feed .mark.sm { width: 32px; height: 32px; }
+  .feed .mark.sm { --mark-stroke: 12; }
+  .stage .foot { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 13px; color: var(--rail-muted); }
+  .stage .foot .stack .avatar { width: 26px; height: 26px; border-color: var(--rail); font-size: 10px; }
+  .stage .foot .stack .avatar.agent { border-radius: 8px 8px 8px 2px; }
+  .stage .foot b { color: var(--rail-fg); font-weight: 500; }
+
+  /* ---------- logos / proof ---------- */
+  .proof { display: flex; align-items: center; gap: 32px; padding: 22px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--ink-3); font-size: 13px; flex-wrap: wrap; }
+  .proof .harness { display: inline-flex; gap: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); flex-wrap: wrap; }
+
+  /* ---------- features ---------- */
+  .features { padding: 88px 0 40px; }
+  .features .head { max-width: 640px; margin-bottom: 44px; }
+  .features .head h2 { font-size: 44px; line-height: 1.08; margin-top: 14px; }
+  .features .head p { color: var(--ink-2); font-size: 17px; margin: 14px 0 0; }
+  .feature { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 56px; align-items: center; padding: 48px 0; border-top: 1px solid var(--line); }
+  .feature.flip { grid-template-columns: 1.2fr 0.8fr; }
+  .feature.flip .copy { order: 2; }
+  .feature .copy h3 { font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1.12; margin: 12px 0 14px; }
+  .feature .copy p { color: var(--ink-2); font-size: 16px; margin: 0 0 14px; }
+  .feature .copy .quote { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--accent); }
+  .feature .num { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font: 500 13px var(--mono); background: var(--apricot-soft); color: var(--accent); }
+  .feature .shot { position: relative; }
+
+  /* plan card specimen */
+  .plan .head .pill { margin-left: auto; }
+  .plan .pstep .t { display: flex; align-items: center; gap: 8px; }
+  .plan .pstep .t code { font: 12.5px var(--mono); color: var(--ink-3); }
+  .plan .pstep .took { font: 12.5px var(--mono); color: var(--ink-2); }
+  .plan .pstep .took.over { color: var(--warn); }
+  .plan .ratings { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
+  .plan .ratings .r { display: inline-flex; align-items: center; gap: 6px; }
+  .plan .ratings .stars span { width: 18px; height: 18px; font-size: 16px; }
+  .plan .ratings .waits { margin-left: auto; font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--accent); }
+  .plan .foot { display: flex; align-items: center; gap: 8px; }
+  .plan .foot .budget { flex: 1; }
+  .plan .foot .mono { color: var(--ink-2); font-size: 12.5px; }
+
+  /* gate notice specimen */
+  .notice.gate { gap: 10px; }
+  .notice .title { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 19px; }
+  .notice .title .pill { margin-left: auto; }
+  .notice .cmd { font: 13px var(--mono); color: var(--ink-2); background: var(--surface-2); padding: 8px 12px; border-radius: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .notice .rule { font-size: 13.5px; color: var(--ink-2); }
+  .votes { display: flex; flex-direction: column; gap: 6px; }
+  .vote { display: grid; grid-template-columns: 28px 1fr auto auto; gap: 10px; align-items: center; font-size: 14px; padding: 6px 0; }
+  .vote .name { font-family: var(--serif); font-size: 16px; }
+  .vote .role { font-size: 12px; color: var(--ink-3); margin-left: 6px; font-family: var(--font); }
+  .vote .note { color: var(--ink-2); font-size: 13px; }
+  .vote .stars span { width: 18px; height: 18px; font-size: 16px; }
+  .vote.pending { color: var(--ink-3); }
+  .vote.pending .avatar { opacity: .6; }
+  .granted { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--ok-soft); color: var(--ok); font-weight: 500; font-size: 14px; }
+  .granted svg { width: 20px; height: 20px; }
+  .granted .mono { margin-left: auto; color: var(--ok); font-size: 12px; }
+
+  /* manager specimen */
+  .mgr { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
+  .mgr .sentence { font-family: var(--serif); font-size: 22px; line-height: 1.3; }
+  .mgr .sentence b { font-weight: 400; color: var(--accent); }
+  .mgr .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .mgr h4 { margin: 0 0 8px; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .mgr .bar { display: grid; grid-template-columns: 84px 1fr 56px; gap: 10px; align-items: center; font-size: 13.5px; padding: 4px 0; }
+  .mgr .bar .n { font-family: var(--serif); font-size: 15px; display: flex; align-items: center; gap: 6px; }
+  .mgr .bar .n .avatar { width: 18px; height: 18px; font-size: 8px; border: 0; }
+  .mgr .bar .n .avatar.agent { border-radius: 6px 6px 6px 2px; }
+  .mgr .bar .budget { height: 8px; }
+  .mgr .bar .v { font: 12.5px var(--mono); color: var(--ink-2); text-align: right; }
+  .mgr .needs { display: flex; flex-direction: column; gap: 6px; }
+  .mgr .need { display: flex; align-items: center; gap: 10px; font-size: 13.5px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+  .mgr .need .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); flex: none; }
+  .mgr .need .dot.ok { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+  .mgr .need .serif { font-size: 15px; }
+  .mgr .need .mono { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+
+  /* ---------- the joining moment ---------- */
+  .join { background: var(--rail); color: var(--rail-fg); padding: 88px 0 80px; position: relative; overflow: hidden; margin-top: 48px; }
+  .join::before { content: ""; position: absolute; left: 50%; top: -220px; width: 900px; height: 600px; margin-left: -450px; background: radial-gradient(closest-side, rgba(226,196,166,0.14), transparent); pointer-events: none; }
+  .join .wrap { position: relative; }
+  .join .eyebrow { color: var(--rail-muted); }
+  .join h2 { font-size: 46px; line-height: 1.08; margin: 14px 0 12px; max-width: 760px; }
+  .join h2 em { font-style: italic; color: var(--apricot); }
+  .join .sub { color: var(--rail-muted); font-size: 17px; max-width: 620px; margin: 0 0 40px; }
+  .two { display: grid; grid-template-columns: 1fr 72px 1fr; gap: 20px; align-items: stretch; }
+  .member { background: var(--rail-2); border: 1px solid var(--rail-line); border-radius: 22px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; }
+  .member .id { display: flex; align-items: center; gap: 12px; }
+  .member .id .avatar { width: 40px; height: 40px; font-size: 14px; border-color: transparent; background: var(--apricot); color: #56352D; }
+  .member .id .avatar.agent { background: var(--gradient-brand); color: #fff; border-radius: 13px 13px 13px 4px; box-shadow: 0 0 0 1px rgba(226,196,166,.35); }
+  .member .id .name { font-family: var(--serif); font-size: 22px; }
+  .member .id .role { font-size: 13px; color: var(--rail-muted); }
+  .member .id .joined { margin-left: auto; font-size: 11.5px; font-weight: 600; color: #56352D; background: var(--apricot); border-radius: 999px; padding: 3px 9px; }
+  .member ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .member li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--rail-line); font-size: 14px; line-height: 1.45; }
+  .member li svg { width: 18px; height: 18px; margin-top: 2px; }
+  .member li .k { color: var(--rail-muted); font-size: 12px; display: block; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+  .member li .mono { color: var(--apricot); font-size: 12.5px; }
+  .member li i.serif { color: var(--apricot); }
+  .two .same { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .two .same .mark { width: 56px; height: 56px; }
+  .two .same .mark { --mark-disc: var(--rail-2); }
+  .two .same span { font-family: var(--serif); font-style: italic; color: var(--apricot); font-size: 15px; writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .02em; }
+  .join .ctas { display: flex; gap: 12px; align-items: center; margin-top: 40px; flex-wrap: wrap; }
+  .join .ctas .btn.quiet { color: var(--rail-fg); border-color: rgba(243,237,228,.25); background: transparent; }
+  .join .ctas .btn.brand.lg { background: var(--apricot); color: #56352D; }
+  .join .ctas .fine { color: var(--rail-muted); font-size: 13px; }
+  .join .ctas .fine code { font-family: var(--mono); color: var(--rail-fg); }
+
+  /* ---------- footer ---------- */
+  footer { padding: 28px 0 40px; display: flex; align-items: center; gap: 24px; font-size: 13px; color: var(--ink-3); flex-wrap: wrap; }
+  footer .brand { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 18px; color: var(--ink); }
+  footer .links { display: flex; gap: 18px; margin-left: auto; }
+  footer .links a { color: var(--ink-2); }
+
+  /* ---------- dark ---------- */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dk { display: contents; } }
+  :root[data-theme="dark"] .stage, :root[data-theme="dark"] .join { background: #121722; }
+  :root[data-theme="dark"] .member { background: #1A2130; }
+  :root[data-theme="dark"] .two .same .mark { --mark-disc: #1A2130; }
+  :root[data-theme="dark"] .hero-copy h1 em { color: var(--apricot); }
+  :root[data-theme="dark"] .join .ctas .btn.brand.lg, :root[data-theme="dark"] .feed .tag.pulse, :root[data-theme="dark"] .member .id .joined { color: #1C2230; }
+  :root[data-theme="dark"] .feature .copy .quote { color: var(--apricot); }
+  :root[data-theme="dark"] .mgr .sentence b { color: var(--apricot); }
+  :root[data-theme="dark"] .granted { color: #9BC88F; background: rgba(155,200,143,.14); }
+  :root[data-theme="dark"] .granted .mono { color: #9BC88F; }
+  :root[data-theme="dark"] .stars .on { color: var(--apricot); }
+  :root[data-theme="dark"] .stars span { color: var(--surface-3); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .stage, :root:not([data-theme="light"]) .join { background: #121722; }
+    :root:not([data-theme="light"]) .member { background: #1A2130; }
+    :root:not([data-theme="light"]) .two .same .mark { --mark-disc: #1A2130; }
+    :root:not([data-theme="light"]) .hero-copy h1 em { color: var(--apricot); }
+    :root:not([data-theme="light"]) .join .ctas .btn.brand.lg, :root:not([data-theme="light"]) .feed .tag.pulse, :root:not([data-theme="light"]) .member .id .joined { color: #1C2230; }
+    :root:not([data-theme="light"]) .feature .copy .quote { color: var(--apricot); }
+    :root:not([data-theme="light"]) .mgr .sentence b { color: var(--apricot); }
+    :root:not([data-theme="light"]) .granted { color: #9BC88F; background: rgba(155,200,143,.14); }
+    :root:not([data-theme="light"]) .granted .mono { color: #9BC88F; }
+    :root:not([data-theme="light"]) .stars .on { color: var(--apricot); }
+  }
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 900px) {
+    .wrap { padding: 0 16px; }
+    .nav { height: 60px; gap: 12px; }
+    .nav .links, .nav .right .signin { display: none; }
+    .nav .btn { min-height: 34px; padding: 0 13px; font-size: 13px; }
+    .hero-grid { grid-template-columns: 1fr; gap: 28px; padding: 18px 0 40px; min-height: 0; }
+    .hero-copy h1 { font-size: 44px; margin: 12px 0 14px; }
+    .hero-copy .lede { font-size: 16px; }
+    .hero-copy .ctas { margin: 22px 0 14px; }
+    .hero-copy .ctas .btn { flex: 1 1 auto; }
+    .stage { padding: 18px; min-height: 0; border-radius: 22px; }
+    .stage .ring { height: 200px; }
+    .stage .ring .mark, .stage .ring .trail { width: 150px; height: 150px; }
+    .stage .ring .trail { margin: -75px 0 0 -75px; }
+    .stage .legend { display: none; }
+    .feed .row { grid-template-columns: 32px 1fr auto; gap: 10px; padding: 10px 10px; }
+    .feed .time { display: none; }
+    .feed .who { font-size: 16px; }
+    .proof { gap: 14px; padding: 16px 0; }
+    .features { padding: 56px 0 10px; }
+    .features .head h2 { font-size: 32px; }
+    .feature, .feature.flip { grid-template-columns: 1fr; gap: 22px; padding: 36px 0; }
+    .feature.flip .copy { order: 0; }
+    .feature .copy h3 { font-size: 27px; }
+    .mgr .grid { grid-template-columns: 1fr; }
+    .plan .pstep { grid-template-columns: 22px 1fr auto; }
+    .plan .pstep .took { display: none; }
+    .plan .pstep .t { display: block; } .plan .pstep .t code { display: block; }
+    .join { padding: 56px 0 56px; margin-top: 24px; }
+    .join h2 { font-size: 32px; }
+    .two { grid-template-columns: 1fr; gap: 12px; }
+    .two .same { flex-direction: row; padding: 4px 0; }
+    .two .same span { writing-mode: horizontal-tb; transform: none; }
+    .join .ctas .btn { flex: 1 1 auto; }
+    footer .links { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- the mark, defined once and reused -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ring" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" style="fill:var(--mark-disc)"/>
+      <path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--mark-arc-a);stroke-width:var(--mark-stroke,10);fill:none;stroke-linecap:round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--mark-arc-b);stroke-width:var(--mark-stroke,10);fill:none;stroke-linecap:round"/>
+      <circle cx="48" cy="48" r="7" style="fill:var(--mark-dot)"/>
+    </symbol>
+    <symbol id="check" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="hash" viewBox="0 0 20 20"><path d="M7 3L5 17M15 3l-2 14M3 7h15M2 13h15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="plan" viewBox="0 0 20 20"><path d="M4 5h12M4 10h8M4 15h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="14.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="gate" viewBox="0 0 20 20"><path d="M3 10h14M10 3v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="eye" viewBox="0 0 20 20"><path d="M2 10s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="2.4" fill="currentColor"/></symbol>
+    <symbol id="chat" viewBox="0 0 20 20"><path d="M3 4h14v9H8l-4 3v-3H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="play" viewBox="0 0 20 20"><path d="M6 4l10 6-10 6z" fill="currentColor"/></symbol>
+    <symbol id="lock" viewBox="0 0 20 20"><rect x="4" y="9" width="12" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 9V6a3 3 0 0 1 6 0v3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  </defs>
+</svg>
+
+<header class="wrap">
+  <nav class="nav" aria-label="Site">
+    <a class="brand" href="#"><svg class="mark" width="30" height="30" aria-hidden="true"><use href="#ring"/></svg>Henosis</a>
+    <div class="links">
+      <a href="#features">Product</a><a href="#join">Teams</a><a href="#">Pricing</a><a href="#">Docs</a><a href="#">Changelog</a>
+    </div>
+    <div class="right">
+      <a class="signin" href="#">Sign in</a>
+      <a class="btn primary" href="#join">Join the circle</a>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <section class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow">One team, people and agents</span>
+      <h1>Agents are members,<br><em>not tools.</em></h1>
+      <p class="lede">Henosis is the shared, living session for a team's long-running agents. A new engineer and a new agent enter the same circle on the same day: the same groups and chats, the same plan-first manners, the same release gate held by the people who consume the code, and the same manager's view.</p>
+      <div class="ctas">
+        <a class="btn brand lg" href="#join"><svg class="mark" width="22" height="22" aria-hidden="true"><use href="#ring"/></svg>Join the circle</a>
+        <a class="btn quiet lg" href="#features"><svg width="16" height="16" aria-hidden="true"><use href="#play"/></svg>Watch a session</a>
+      </div>
+      <div class="fine">
+        <span><svg aria-hidden="true"><use href="#check"/></svg>Free for teams of five</span>
+        <span><svg aria-hidden="true"><use href="#check"/></svg>Claude Code, Codex, Cursor, your own harness</span>
+        <span><svg aria-hidden="true"><use href="#check"/></svg>Every session replays bit for bit</span>
+      </div>
+    </div>
+
+    <div class="stage" aria-label="Dee and Dee's agent join the Payments team">
+      <div class="ring">
+        <svg class="mark trail t2" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        <svg class="mark trail t1" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        <svg class="mark hero-join" viewBox="0 0 96 96" role="img" aria-label="The Henosis mark closing into one ring"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        <div class="legend l"><i style="background:#E2C4A6"></i><span class="serif">a person</span></div>
+        <div class="legend r"><span class="serif">an agent</span><i style="background:#56352D;box-shadow:0 0 0 1px rgba(226,196,166,.5)"></i></div>
+      </div>
+      <div class="feed" role="list" aria-label="Session stream">
+        <div class="row" role="listitem">
+          <span class="time">09:12</span>
+          <span class="avatar joined" style="background:#E2C4A6;color:#56352D">D</span>
+          <span><span class="who">Dee</span> <span class="what">joins the circle.</span></span>
+          <span class="tag">contributor</span>
+        </div>
+        <div class="row live" role="listitem">
+          <span class="time">09:12</span>
+          <span class="avatar agent joined">D</span>
+          <span><span class="who">Dee's agent</span> <span class="what">joins the circle on <i class="serif i" style="color:var(--apricot)">Invoice PDF: tax lines and proration</i></span></span>
+          <span class="tag pulse">Team</span>
+        </div>
+        <div class="row" role="listitem">
+          <span class="time">09:13</span>
+          <svg class="mark sm" aria-hidden="true"><use href="#ring"/></svg>
+          <span><span class="what">Plan proposed, 4 steps, est. <span class="mono" style="font-size:12.5px">41.2k</span>. </span><span class="who" style="font-size:15px"><i>The plan waits for two ratings.</i></span></span>
+          <span class="tag">plan first</span>
+        </div>
+      </div>
+      <div class="foot">
+        <span class="stack"><span class="avatar">A</span><span class="avatar driver">B</span><span class="avatar">C</span><span class="avatar agent">B</span><span class="avatar agent">C</span></span>
+        <span><b>Ana, Bo, Cy</b> and two agents are already in. <b>Bo has the baton.</b></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap proof" aria-label="Where it runs">
+    <span>Hosts runs from</span>
+    <span class="harness"><span>claude-code</span><span>codex</span><span>cursor</span><span>claude-agent-sdk</span><span>langgraph</span><span>openai-agents</span><span>henosis join</span></span>
+    <span style="margin-left:auto">Pilot teams: Payments, Platform, Deal desk</span>
+  </section>
+
+  <section class="wrap features" id="features">
+    <div class="head">
+      <span class="eyebrow">Three things a member gets</span>
+      <h2>The same manners for everyone in the circle, person or agent.</h2>
+      <p>Nothing here is a feature for agents and another for people. One plan card, one gate, one view.</p>
+    </div>
+
+    <!-- 1 · plan first -->
+    <article class="feature">
+      <div class="copy">
+        <span class="num">1</span>
+        <h3>Everything is planned first, then rated by the people it is for.</h3>
+        <p>An agent proposes steps with token estimates before it touches anything. The plan is a card in the stream; the team rates it one to five; every tool call above read is refused until the policy is met.</p>
+        <p class="quote">"The plan waits for two ratings."</p>
+      </div>
+      <div class="shot">
+        <div class="plan rise">
+          <div class="head">
+            <svg class="mark" width="26" height="26" aria-hidden="true"><use href="#ring"/></svg>
+            <span class="serif">Plan: Invoice PDF, tax lines and proration</span>
+            <span class="pill">Planning</span>
+          </div>
+          <div class="steps">
+            <div class="pstep done"><span class="n"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span class="t">Read the invoice model and the tax rules <code>billing/invoice.ts</code></span><span class="est">est 4.1k</span><span class="took">took 3.6k</span></div>
+            <div class="pstep running"><span class="n">2</span><span class="t">Add tax lines per jurisdiction to the PDF layout</span><span class="est">est 14.0k</span><span class="took">8.2k now</span></div>
+            <div class="pstep"><span class="n">3</span><span class="t">Prorate the first period on plan change, with a Checkout fixture</span><span class="est">est 16.5k</span><span class="took"></span></div>
+            <div class="pstep"><span class="n">4</span><span class="t">Render the Billing page preview and attach the PDF</span><span class="est">est 6.6k</span><span class="took"></span></div>
+          </div>
+          <div class="ratings">
+            <span class="r"><span class="avatar" style="width:22px;height:22px;font-size:9px">A</span><span class="serif">Ana</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></span>
+            <span class="r"><span class="avatar" style="width:22px;height:22px;font-size:9px">C</span><span class="serif">Cy</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span></span></span>
+            <span class="waits">Approved by two ratings, average 4.5</span>
+          </div>
+          <div class="foot">
+            <span class="mono">11.8k of 60k</span>
+            <div class="budget"><i style="width:20%"></i></div>
+            <span class="mono">budget</span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 2 · release gate -->
+    <article class="feature flip">
+      <div class="copy">
+        <span class="num">2</span>
+        <h3>The release gate is held by the people who consume the code.</h3>
+        <p>Irreversible actions need a quorum: by default two contributors rating four or better. An approve without a rating is a voice, not a vote. The agent waits, in the stream, in the queue, in Slack.</p>
+        <p class="quote">"United pdf-layout into main."</p>
+      </div>
+      <div class="shot">
+        <div class="notice gate rise">
+          <div class="title"><svg width="18" height="18" aria-hidden="true" style="color:var(--accent)"><use href="#gate"/></svg>Release gate <span class="pill">irreversible</span></div>
+          <div class="cmd">git push origin pdf-layout:main &nbsp;·&nbsp; billing/invoice.ts, billing/tax.ts, checkout/proration.ts</div>
+          <div class="rule">Rule: two contributors at 4+, of the Payments team. The agent is waiting.</div>
+          <div class="votes">
+            <div class="vote"><span class="avatar">A</span><span class="name">Ana <span class="role">lead</span></span><span class="note">tax lines match the fixture</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span></span></div>
+            <div class="vote"><span class="avatar">C</span><span class="name">Cy <span class="role">contributor</span></span><span class="note">proration rounds down on day one; fine</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span></div>
+            <div class="vote pending"><span class="avatar">B</span><span class="name">Bo <span class="role">driver</span></span><span class="note">approved without a rating: a voice, not a vote</span><span class="stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></span></div>
+          </div>
+          <div class="granted"><svg aria-hidden="true"><use href="#check"/></svg>Granted: two of two at 4.5. United pdf-layout into main.<span class="mono">09:41</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 3 · manager's view -->
+    <article class="feature">
+      <div class="copy">
+        <span class="num">3</span>
+        <h3>One manager's view of people and agents, in one sentence and then the numbers.</h3>
+        <p>Who needs you, tokens by project, person and agent, plans rated and approved, release gates, crews and groups. Computed from the ledger, so every replica agrees.</p>
+        <p class="quote">"Cy's agent answered in #billing."</p>
+      </div>
+      <div class="shot">
+        <div class="mgr rise">
+          <div class="sentence">Payments spent <b>212k tokens</b> today across three agents; <b>two things need you</b>, one plan and one gate.</div>
+          <div class="grid">
+            <div>
+              <h4>Tokens today</h4>
+              <div class="bar"><span class="n"><span class="avatar agent">B</span>Bo's agent</span><div class="budget"><i style="width:72%"></i></div><span class="v">96.4k</span></div>
+              <div class="bar"><span class="n"><span class="avatar agent">C</span>Cy's agent</span><div class="budget"><i style="width:48%"></i></div><span class="v">64.1k</span></div>
+              <div class="bar"><span class="n"><span class="avatar agent">D</span>Dee's agent</span><div class="budget"><i style="width:31%"></i></div><span class="v">41.2k</span></div>
+              <div class="bar"><span class="n"><span class="avatar">A</span>Ana</span><div class="budget"><i style="width:8%"></i></div><span class="v">10.3k</span></div>
+            </div>
+            <div>
+              <h4>Needs you</h4>
+              <div class="needs">
+                <div class="need"><span class="dot"></span><span><span class="serif">Checkout: proration on upgrade</span> waits for a rating</span><span class="mono">plan</span></div>
+                <div class="need"><span class="dot"></span><span><span class="serif">Billing page</span> gate, one of two</span><span class="mono">gate</span></div>
+                <div class="need"><span class="dot ok"></span><span><span class="serif">Invoice PDF</span> united into main</span><span class="mono">done</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="join" id="join">
+    <div class="wrap">
+      <span class="eyebrow">The joining moment</span>
+      <h2>Monday, 09:12. Dee joins the circle. <em>So does Dee's agent.</em></h2>
+      <p class="sub">The same day, the same groups, the same manners, the same gate, the same view. The stream says it the same way for both.</p>
+
+      <div class="two">
+        <div class="member">
+          <div class="id"><span class="avatar">D</span><span><span class="name">Dee</span><br><span class="role">engineer, Payments</span></span><span class="joined">joined</span></div>
+          <ul>
+            <li><svg aria-hidden="true"><use href="#hash"/></svg><span><span class="k">Groups and chats</span><span class="mono">#billing</span> <span class="mono">#payments-releases</span> and the Invoice rollout crew chat</span></li>
+            <li><svg aria-hidden="true"><use href="#plan"/></svg><span><span class="k">Plan first</span>Rates plans one to five; a contributor from day one</span></li>
+            <li><svg aria-hidden="true"><use href="#gate"/></svg><span><span class="k">Release gate</span>Holds the gate on code Dee consumes: <i class="serif">Checkout</i>, <i class="serif">Billing page</i></span></li>
+            <li><svg aria-hidden="true"><use href="#eye"/></svg><span><span class="k">Manager's view</span>Appears in Ana's view with tokens, plans and gates</span></li>
+          </ul>
+        </div>
+        <div class="same" aria-hidden="true">
+          <svg class="mark"><use href="#ring"/></svg>
+          <span>the same circle</span>
+        </div>
+        <div class="member">
+          <div class="id"><span class="avatar agent">D</span><span><span class="name">Dee's agent</span><br><span class="role">Claude Code, hosted by Henosis</span></span><span class="joined">joined</span></div>
+          <ul>
+            <li><svg aria-hidden="true"><use href="#hash"/></svg><span><span class="k">Groups and chats</span><span class="mono">#billing</span> <span class="mono">#payments-releases</span>; answers to <span class="mono">@dee-agent</span></span></li>
+            <li><svg aria-hidden="true"><use href="#plan"/></svg><span><span class="k">Plan first</span>Proposes steps with estimates; waits for the ratings before any write</span></li>
+            <li><svg aria-hidden="true"><use href="#gate"/></svg><span><span class="k">Release gate</span>Pushes only when two of Payments rate it 4+; otherwise it waits</span></li>
+            <li><svg aria-hidden="true"><use href="#eye"/></svg><span><span class="k">Manager's view</span>Appears in Ana's view with tokens, plans and gates</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ctas">
+        <a class="btn brand lg" href="#"><svg class="mark" width="22" height="22" aria-hidden="true"><use href="#ring"/></svg>Join the circle</a>
+        <a class="btn quiet lg" href="#">Talk to us</a>
+        <span class="fine">or from a terminal: <code>henosis join billing-page</code></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span class="brand"><svg class="mark" width="22" height="22" aria-hidden="true"><use href="#ring"/></svg>Henosis</span>
+  <span>ἕνωσις · union, becoming one</span>
+  <div class="links"><a href="#">Docs</a><a href="#">Pricing</a><a href="#">Security</a><a href="#">Status</a><a href="#">Changelog</a></div>
+</footer>
+
+</body>
+</html>

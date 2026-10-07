@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Settings</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ==========================================================================================
+     Settings. One page, two columns on a desk: on the left what is yours (profile, the
+     notifications you want, the keys you press); on the right what is the team's (the policy
+     every new session in Billing page is born with, the places Henosis is connected to, the
+     look). The policy section reads as a sentence first and as controls second, and a change
+     to it is a change for new sessions only, so the save bar says so.
+     ========================================================================================== */
+  :root {
+    --key-bg: var(--surface-2); --key-line: rgba(42,50,68,0.16); --key-fg: var(--ink); --key-shadow: 0 1px 0 rgba(42,50,68,0.18);
+    --sw-off: #D9D1C5; --sw-knob: #FFFFFF;
+    --field-bg: var(--surface); --field-line: rgba(42,50,68,0.18);
+    --ok-dot: var(--ok); --warn-dot: var(--warn);
+    --changed: rgba(226,196,166,0.22);
+    --savebar: #FFFDF9;
+    --star-off: #E4DCD0;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --key-bg: rgba(240,234,224,0.08); --key-line: rgba(240,234,224,0.16); --key-fg: #F6F0E6; --key-shadow: 0 1px 0 rgba(0,0,0,0.5);
+    --sw-off: #3E495E; --sw-knob: #E9E2D6;
+    --field-bg: #1E2534; --field-line: rgba(240,234,224,0.16);
+    --ok: #8FC386; --ok-soft: rgba(143,195,134,0.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18);
+    --ok-dot: #8FC386; --warn-dot: #E2B06A;
+    --changed: rgba(226,196,166,0.12);
+    --savebar: #262F40;
+    --star-off: rgba(240,234,224,0.22);
+    --rail: #10141C; --rail-2: #1A2030; --rail-line: rgba(240,234,224,0.08);
+  } }
+  :root[data-theme="dark"] {
+    --key-bg: rgba(240,234,224,0.08); --key-line: rgba(240,234,224,0.16); --key-fg: #F6F0E6; --key-shadow: 0 1px 0 rgba(0,0,0,0.5);
+    --sw-off: #3E495E; --sw-knob: #E9E2D6;
+    --field-bg: #1E2534; --field-line: rgba(240,234,224,0.16);
+    --ok: #8FC386; --ok-soft: rgba(143,195,134,0.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18);
+    --ok-dot: #8FC386; --warn-dot: #E2B06A;
+    --changed: rgba(226,196,166,0.12);
+    --savebar: #262F40;
+    --star-off: rgba(240,234,224,0.22);
+    --rail: #10141C; --rail-2: #1A2030; --rail-line: rgba(240,234,224,0.08);
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  .shell { height: 100vh; }
+  .rail .brand svg { width: 28px; height: 28px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 11.5px; font-weight: 600; background: var(--apricot); color: #56352D; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: inline-grid; place-items: center; }
+  .rail .me .who { display: flex; flex-direction: column; line-height: 1.25; }
+  .rail .me .who small { font-size: 12px; color: var(--rail-muted); }
+
+  .topbar .right .pill { height: 26px; }
+  .page { width: min(1180px, 100%); margin: 0 auto; padding: 24px 32px 120px; }
+  .page-head { display: flex; align-items: flex-end; gap: 18px; margin-bottom: 22px; }
+  .page-head h1 { font-size: 38px; }
+  .page-head .lede { font-size: 15.5px; color: var(--ink-2); margin: 0 0 6px; }
+  .page-head .lede i { font-family: var(--serif); font-style: italic; color: var(--ink); font-size: 17px; }
+  .jump { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; padding-bottom: 6px; }
+  .jump a { font-size: 13px; color: var(--ink-2); padding: 5px 10px; border-radius: var(--radius-full); }
+  .jump a:hover { background: var(--surface-2); text-decoration: none; }
+  .jump a.on { background: var(--apricot-soft); color: var(--ink); }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr); gap: 24px 28px; align-items: start; }
+  .colA, .colB { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+  /* a section is a card with a serif heading and quiet rows */
+  .group { padding: 20px 22px 8px; }
+  .group .gh { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .group .gh h2 { font-size: 24px; }
+  .group .gh .sub { font-size: 13px; color: var(--ink-3); }
+  .group .gh .end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .list { display: flex; flex-direction: column; }
+  .rowitem { padding: 12px 2px; gap: 16px; }
+  .rowitem:last-child { border-bottom: 0; }
+  .rowitem .lbl { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .rowitem .t { font-weight: 500; font-size: 14.5px; }
+  .rowitem .s { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+  .rowitem .ctl { display: flex; align-items: center; gap: 8px; flex: none; }
+  .rowitem.changed { background: var(--changed); margin: 0 -12px; padding-left: 14px; padding-right: 14px; border-radius: 10px; border-bottom-color: transparent; }
+  .rowitem.changed .t::after { content: "changed"; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-left: 8px; vertical-align: 2px; }
+  .rowitem.changed + .rowitem { border-top: 1px solid var(--line); }
+
+  /* profile */
+  .who-card { display: grid; grid-template-columns: 56px 1fr auto; gap: 16px; align-items: center; padding: 6px 2px 16px; border-bottom: 1px solid var(--line); }
+  .who-card .big { width: 56px; height: 56px; border-radius: 50%; background: var(--gradient-brand); color: #FFF8F1; display: grid; place-items: center; font-family: var(--serif); font-size: 28px; box-shadow: 0 0 0 3px var(--canvas), 0 0 0 5px var(--apricot); }
+  .who-card .name { font-family: var(--serif); font-size: 26px; line-height: 1.1; }
+  .who-card .role { font-size: 13.5px; color: var(--ink-2); margin-top: 3px; }
+  .who-card .role b { font-weight: 500; color: var(--ink); }
+  .crews { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* switch */
+  .switch { appearance: none; -webkit-appearance: none; width: 40px; height: 24px; border-radius: 12px; background: var(--sw-off); position: relative; cursor: pointer; margin: 0; flex: none; transition: background .15s; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--sw-knob); box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+  .switch:checked { background: var(--accent); }
+  .switch:checked::after { transform: translateX(16px); }
+  .switch:disabled { opacity: .5; cursor: default; }
+
+  /* keyboard */
+  .keys { display: inline-flex; gap: 4px; align-items: center; }
+  kbd { font-family: var(--mono); font-size: 12px; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 7px; background: var(--key-bg); color: var(--key-fg); border: 1px solid var(--key-line); box-shadow: var(--key-shadow); display: inline-grid; place-items: center; }
+  .keys .or { font-size: 11.5px; color: var(--ink-3); padding: 0 3px; }
+  .kgroup { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 14px 2px 4px; }
+  .kgroup:first-child { padding-top: 4px; }
+  .krow { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .krow:last-child { border-bottom: 0; }
+
+  /* fields */
+  .field { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 12px; border-radius: 9px; background: var(--field-bg); border: 1px solid var(--field-line); font: 500 13.5px var(--font); color: var(--ink); white-space: nowrap; }
+  .field.select::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--ink-3); border-bottom: 1.5px solid var(--ink-3); transform: translateY(-2px) rotate(45deg); margin-left: 2px; }
+  .field.num { font-family: var(--mono); font-size: 13px; width: 86px; justify-content: flex-end; }
+  .field.num small { font-family: var(--font); color: var(--ink-3); font-size: 12px; }
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--field-line); border-radius: 9px; background: var(--field-bg); height: 32px; overflow: hidden; }
+  .stepper button { width: 30px; height: 100%; border: 0; background: transparent; color: var(--ink-2); font: 500 16px var(--font); cursor: pointer; }
+  .stepper button:hover { background: var(--surface-2); }
+  .stepper b { font-family: var(--mono); font-size: 13.5px; font-weight: 500; min-width: 28px; text-align: center; border-left: 1px solid var(--field-line); border-right: 1px solid var(--field-line); height: 100%; display: grid; place-items: center; }
+  .stars.sm span { width: 20px; height: 20px; font-size: 18px; color: var(--star-off); }
+  .stars.sm span.on { color: var(--apricot-deep); }
+  .stars.sm .lbl { width: auto; height: 20px; color: var(--ink-2); font-size: 12.5px; }
+  .stars.sm { gap: 2px; }
+  .stars .lbl { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); width: auto; margin-left: 6px; display: inline-flex; align-items: center; white-space: nowrap; }
+  .rowitem .ctl .stars { flex: none; }
+  .seg.sm button { padding: 3px 10px; font-size: 12px; }
+
+  /* policy */
+  .policy-say { font-family: var(--serif); font-size: 19px; line-height: 1.4; color: var(--ink); padding: 6px 2px 16px; border-bottom: 1px solid var(--line); text-wrap: pretty; }
+  .policy-say em { font-style: italic; color: var(--accent); }
+  .policy-say .mark-sm { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; margin-right: 6px; }
+  .sub-h { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 16px 2px 2px; }
+  .risk { display: grid; grid-template-columns: 112px 1fr auto; gap: 14px; align-items: center; padding: 9px 2px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .risk:last-child { border-bottom: 0; }
+  .risk .r { font-family: var(--mono); font-size: 13px; }
+  .risk .d { color: var(--ink-2); }
+  .risk .rule { font-size: 12.5px; }
+  .risk.irr .r { color: var(--danger); }
+  .risk.irr .rule { border-color: rgba(168,70,58,.35); }
+  .meter { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 12.5px; color: var(--ink-3); }
+  .meter .budget { height: 5px; }
+  .meter .ticks { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11.5px; }
+  .meter .ticks i { font-style: normal; } .meter .ticks i.w { color: var(--warn); } .meter .ticks i.d { color: var(--danger); }
+
+  .savebar { position: sticky; bottom: 0; margin: 12px -22px -8px; padding: 12px 22px; background: var(--savebar); border-top: 1px solid var(--line); border-radius: 0 0 var(--radius-lg) var(--radius-lg); display: flex; align-items: center; gap: 12px; font-size: 13.5px; box-shadow: 0 -10px 24px rgba(42,50,68,0.06); }
+  .savebar .what { color: var(--ink-2); line-height: 1.4; }
+  .savebar .what b { font-weight: 500; color: var(--ink); }
+  .savebar .btns { margin-left: auto; display: flex; gap: 8px; flex: none; }
+
+  /* integrations */
+  .intg { display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; align-items: center; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+  .intg:last-child { border-bottom: 0; }
+  .intg .ic { width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); display: grid; place-items: center; color: var(--ink-2); }
+  .intg .ic svg { width: 18px; height: 18px; }
+  .intg .t { font-weight: 500; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
+  .intg .s { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+  .intg .s code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+  .intg .ctl { display: flex; align-items: center; gap: 8px; }
+  .status.on::before { background: var(--ok-dot); box-shadow: 0 0 0 3px var(--ok-soft); }
+  .status.idle::before { background: var(--ink-3); }
+
+  /* appearance */
+  .look { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+  .look .swatches { display: inline-flex; align-items: center; gap: 6px; }
+  .look .swatches i { width: 18px; height: 18px; border-radius: 50%; display: inline-block; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+  .look .emblem { width: 28px; height: 28px; border-radius: 8px; background: var(--rail); color: var(--apricot); display: grid; place-items: center; font-family: var(--serif); font-size: 14px; }
+
+  .ico { width: 15px; height: 15px; flex: none; }
+
+  /* ----- mobile ----- */
+  .mob-top { display: none; }
+  @media (max-width: 700px) {
+    .rail { display: none; }
+    .topbar { display: none; }
+    .mob-top { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; }
+    .mob-top .brand { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 20px; }
+    .mob-top svg { width: 24px; height: 24px; }
+    .page { padding: 0 16px 60px; }
+    .page-head { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 14px; }
+    .page-head h1 { font-size: 32px; }
+    .jump { margin-left: 0; justify-content: flex-start; overflow: auto; flex-wrap: nowrap; width: 100%; padding-bottom: 2px; }
+    .jump a { white-space: nowrap; background: var(--surface-2); }
+    .grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .colA, .colB { display: contents; }
+    .group { padding: 16px 16px 6px; }
+    .group .gh h2 { font-size: 22px; }
+    .group .gh .sub { display: none; }
+    .rowitem.wide { grid-template-columns: 1fr; gap: 10px; }
+    .rowitem.wide .ctl { justify-self: start; flex-wrap: wrap; }
+    .savebar { position: static; box-shadow: none; }
+    #profile { order: 1; } #policy { order: 2; } #notifications { order: 3; } #integrations { order: 4; } #appearance { order: 5; } #keyboard { order: 6; }
+    .who-card { grid-template-columns: 48px 1fr; }
+    .who-card .big { width: 48px; height: 48px; font-size: 24px; }
+    .who-card .ctl { grid-column: 2; justify-self: start; }
+    .risk { grid-template-columns: 1fr auto; }
+    .intg { grid-template-columns: 36px 1fr; }
+    .intg .ctl { grid-column: 2; justify-self: start; }
+    .risk .d { display: none; }
+    .savebar { margin: 10px -16px -6px; padding: 10px 16px; flex-wrap: wrap; }
+    .savebar .btns { margin-left: 0; width: 100%; }
+    .savebar .btns .btn { flex: 1; }
+    .policy-say { font-size: 17px; }
+    .rowitem.changed { margin: 0 -8px; padding-left: 10px; padding-right: 10px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mark" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+      <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="7" fill="var(--mark-dot)"/>
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7v9H4z"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h4l2 3h4l2-3h4M4 13l2-7h12l2 7v6H4z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-4.8"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v10H3z"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></symbol>
+    <symbol id="i-hash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></symbol>
+    <symbol id="i-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="5" r="2.2"/><circle cx="7" cy="19" r="2.2"/><circle cx="17" cy="8" r="2.2"/><path d="M7 7.2v9.6M17 10.2c0 4-10 2.5-10 6.6"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8 8M18 14v5H5V6h5"/></symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <!-- ========== rail ========== -->
+  <aside class="rail">
+    <div class="brand"><svg class="mark"><use href="#mark"/></svg> Henosis</div>
+    <button class="new"><svg class="ico"><use href="#i-plus"/></svg> New session</button>
+    <div class="section">Agents <span class="n">2</span></div>
+    <div class="crew"><span class="serif">Billing page</span></div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Bo's agent</span><span class="pill team">Team</span></div>
+      <div class="doing">Step 3 of 5, <i>invoice PDF</i> · rendering tax lines</div>
+      <div class="foot">with Bo, Cy · <span class="mono" style="font-size:12px">118k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Waits on <i>proration</i> · git push to main</div>
+      <div class="foot">with Dee · <span class="mono" style="font-size:12px">64k</span></div>
+    </a>
+    <div class="section">Places</div>
+    <a class="item" href="#"><svg><use href="#i-home"/></svg> Overview</a>
+    <a class="item" href="#"><svg><use href="#i-inbox"/></svg> Inbox <span class="n">3</span></a>
+    <a class="item" href="#"><svg><use href="#i-check"/></svg> Approvals <span class="n">1</span></a>
+    <a class="item" href="#"><svg><use href="#i-folder"/></svg> Projects</a>
+    <a class="item active" href="#"><svg><use href="#i-gear"/></svg> Settings</a>
+    <div class="me"><span class="avatar">A</span><span class="who">Ana <small>Lead · Payments</small></span></div>
+  </aside>
+
+  <!-- ========== main ========== -->
+  <div class="main">
+    <div class="topbar">
+      <div class="title"><span>Settings</span></div>
+      <div class="right"><span class="pill">Payments team</span><span class="pill team">owner of Billing page</span></div>
+    </div>
+    <div class="scroll">
+      <div class="mob-top"><span class="brand"><svg class="mark"><use href="#mark"/></svg> Henosis</span><span class="pill team" style="margin-left:auto">Payments</span></div>
+      <div class="page">
+        <div class="page-head">
+          <div>
+            <h1>Settings</h1>
+            <p class="lede">You, your keys, and the <i>Payments</i> team's manners.</p>
+          </div>
+          <nav class="jump">
+            <a href="#profile" class="on">Profile</a><a href="#notifications">Notifications</a><a href="#keyboard">Keyboard</a><a href="#policy">Team policy</a><a href="#integrations">Integrations</a><a href="#appearance">Appearance</a>
+          </nav>
+        </div>
+
+        <div class="grid">
+          <!-- ---------- column A: yours ---------- -->
+          <div class="colA">
+            <section class="card group" id="profile">
+              <div class="gh"><h2>Profile</h2><span class="sub">Who the team sees</span></div>
+              <div class="who-card">
+                <span class="big">A</span>
+                <div>
+                  <div class="name">Ana</div>
+                  <div class="role"><b>Lead</b> · Payments team · owner of Billing page and Checkout</div>
+                  <div class="crews"><span class="chip on">Billing page</span><span class="chip">Checkout</span></div>
+                </div>
+                <div class="ctl"><button class="btn sm">Change name</button></div>
+              </div>
+              <div class="list">
+                <div class="rowitem"><span class="lbl"><span class="t mono">usr_ana_7f2c</span><span class="s">User id · what @ana points to in groups and chats</span></span><span class="ctl"><button class="btn ghost sm">Copy</button></span></div>
+                <div class="rowitem wide"><span class="lbl"><span class="t">Identity</span><span class="s">Remembered in this browser only; the desktop app and your phone sign in on their own</span></span><span class="ctl"><button class="btn ghost sm">Change</button><button class="btn ghost sm">Sign out</button></span></div>
+              </div>
+            </section>
+
+            <section class="card group" id="notifications">
+              <div class="gh"><h2>Notifications</h2><span class="sub">While this tab is hidden</span><span class="end"><span class="status on">Browser allowed</span></span></div>
+              <div class="list">
+                <div class="rowitem"><span class="lbl"><span class="t">Approvals</span><span class="s">The agent wants to do something that needs a vote</span></span><span class="ctl"><input class="switch" type="checkbox" checked aria-label="Approvals"></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Handoffs</span><span class="s">Someone offers you the baton</span></span><span class="ctl"><input class="switch" type="checkbox" checked aria-label="Handoffs"></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Contentions</span><span class="s">Two steers collide, or two sessions do</span></span><span class="ctl"><input class="switch" type="checkbox" checked aria-label="Contentions"></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Blocked</span><span class="s">An agent cannot continue without a person</span></span><span class="ctl"><input class="switch" type="checkbox" checked aria-label="Blocked"></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Done</span><span class="s">An agent finishes what it was asked</span></span><span class="ctl"><input class="switch" type="checkbox" aria-label="Done"></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Team chat</span><span class="s">Someone says something to the people in a session</span></span><span class="ctl"><input class="switch" type="checkbox" checked aria-label="Team chat"></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Mentions</span><span class="s">Someone mentions you in a group chat</span></span><span class="ctl"><input class="switch" type="checkbox" checked aria-label="Mentions"></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Try one</span><span class="s">Sends “Dee's agent is waiting on proration” to this browser</span></span><span class="ctl"><button class="btn sm"><svg class="ico"><use href="#i-bell"/></svg> Send a test</button></span></div>
+              </div>
+            </section>
+
+            <section class="card group" id="keyboard">
+              <div class="gh"><h2>Keyboard</h2><span class="sub">Letters work outside a text field</span><span class="end"><span class="seg sm"><button class="on">⌘</button><button>Ctrl</button></span></span></div>
+              <div class="list">
+                <div class="kgroup">Composer</div>
+                <div class="krow"><span>Send to the agent, or to the team</span><span class="keys"><kbd>↵</kbd></span></div>
+                <div class="krow"><span>New line</span><span class="keys"><kbd>⇧</kbd><kbd>↵</kbd></span></div>
+                <div class="krow"><span>Mention a person or an agent</span><span class="keys"><kbd>@</kbd></span></div>
+                <div class="kgroup">Session</div>
+                <div class="krow"><span>Steer the agent</span><span class="keys"><kbd>/</kbd></span></div>
+                <div class="krow"><span>Approve the waiting call</span><span class="keys"><kbd>a</kbd></span></div>
+                <div class="krow"><span>Deny the waiting call</span><span class="keys"><kbd>d</kbd></span></div>
+                <div class="krow"><span>Hand off, or accept the fold</span><span class="keys"><kbd>h</kbd></span></div>
+                <div class="krow"><span>Fork a branch</span><span class="keys"><kbd>f</kbd></span></div>
+                <div class="krow"><span>Show or hide details</span><span class="keys"><kbd>i</kbd></span></div>
+                <div class="kgroup">Anywhere</div>
+                <div class="krow"><span>Command palette</span><span class="keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
+                <div class="krow"><span>Next session · previous session</span><span class="keys"><kbd>j</kbd><span class="or">·</span><kbd>k</kbd></span></div>
+                <div class="krow"><span>This sheet</span><span class="keys"><kbd>?</kbd></span></div>
+              </div>
+            </section>
+          </div>
+
+          <!-- ---------- column B: the team's ---------- -->
+          <div class="colB">
+            <section class="card group" id="policy">
+              <div class="gh"><h2>Team policy</h2><span class="sub">What every new session is born with</span><span class="end"><span class="field select">Billing page</span></span></div>
+              <p class="policy-say"><svg class="mark mark-sm"><use href="#mark"/></svg>Every new session in <em>Billing page</em> starts with a plan. The plan goes ahead when <em>two</em> contributors rate it 3 or more. Nothing irreversible happens until two contributors rate it 4 or more.</p>
+
+              <div class="sub-h">Plan first</div>
+              <div class="list">
+                <div class="rowitem"><span class="lbl"><span class="t">Plan first</span><span class="s">The agent proposes steps, token estimates and risk before any work; until the plan is approved every call above <span class="mono" style="font-size:12.5px">read</span> is refused</span></span><span class="ctl"><input class="switch" type="checkbox" checked aria-label="Plan first"></span></div>
+                <div class="rowitem changed wide"><span class="lbl"><span class="t">Plan approval</span><span class="s">Ratings the plan needs before the agent moves · one per person, contributor or above</span></span><span class="ctl"><span class="stepper"><button aria-label="Fewer">−</button><b>2</b><button aria-label="More">+</button></span><span class="stars sm" aria-label="average 3 or more of 5"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span><span class="lbl">3+ avg</span></span></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Token budget</span><span class="s">Soft. Input plus output per branch; the agent is told what it has spent, the card shows it, nothing is cut off</span>
+                  <span class="meter"><span class="budget"><i style="width:62%"></i></span><span class="ticks"><i>0</i><i class="w">80% · amber</i><i class="d">100% · red</i></span></span></span>
+                  <span class="ctl"><span class="field num">400<small>k</small></span></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Turn budget</span><span class="s">Turns per branch before the agent asks for direction</span></span><span class="ctl"><span class="stepper"><button aria-label="Fewer">−</button><b>40</b><button aria-label="More">+</button></span></span></div>
+              </div>
+
+              <div class="sub-h">Approvals by risk</div>
+              <div class="list">
+                <div class="risk"><span class="r">read</span><span class="d">Reading files and state</span><span class="field select rule">No approval</span></div>
+                <div class="risk"><span class="r">write</span><span class="d">Writing in the workspace</span><span class="field select rule">One contributor</span></div>
+                <div class="risk"><span class="r">exec</span><span class="d">Running commands</span><span class="field select rule">One contributor</span></div>
+                <div class="risk"><span class="r">external</span><span class="d">Reaching outside the workspace</span><span class="field select rule">One driver</span></div>
+                <div class="risk irr"><span class="r">irreversible</span><span class="d">What cannot be undone: a push to main, a payment, a delete</span><span class="field select rule">2 contributors · 4+ avg</span></div>
+              </div>
+
+              <div class="sub-h">When steers collide</div>
+              <div class="list">
+                <div class="rowitem wide"><span class="lbl"><span class="t">Contention</span><span class="s">Two peers who disagree block each other until the driver resolves it</span></span><span class="ctl"><span class="seg sm"><button class="on">Block</button><button>Latest wins</button><button>Driver wins</button></span></span></div>
+              </div>
+
+              <div class="savebar">
+                <span class="what"><b>Plan approval</b> changed, 1 → 2 contributors. New sessions only: Bo's plan for <span class="serif i">invoice PDF</span> keeps the rule it was born with.</span>
+                <span class="btns"><button class="btn sm">Discard</button><button class="btn primary sm">Save to Billing page</button></span>
+              </div>
+            </section>
+
+            <section class="card group" id="integrations">
+              <div class="gh"><h2>Integrations</h2><span class="sub">Where sessions also live</span></div>
+              <div class="list">
+                <div class="intg"><span class="ic"><svg><use href="#i-hash"/></svg></span><span class="lbl"><span class="t">Slack <span class="status on">Connected</span></span><span class="s">A channel per team and project, a thread per session: <code>#payments</code> <code>#billing-page</code> <code>#checkout</code>. Cy's agent answered in #billing-page an hour ago.</span></span><span class="ctl"><button class="btn sm">Channels</button></span></div>
+                <div class="intg"><span class="ic"><svg><use href="#i-branch"/></svg></span><span class="lbl"><span class="t">GitHub <span class="status on">Connected</span></span><span class="s">A pull request is a session. <code>payments/billing</code> · two PRs are sessions now: <span class="serif i">invoice PDF</span> #412 and <span class="serif i">tax lines and proration</span> #418.</span></span><span class="ctl"><button class="btn sm">Repositories</button></span></div>
+                <div class="intg"><span class="ic"><svg><use href="#i-code"/></svg></span><span class="lbl"><span class="t">VS Code and Zed <span class="status idle">Not connected</span></span><span class="s">The panel shows the rail and the stream beside your editor; it signs in with this identity.</span></span><span class="ctl"><button class="btn sm"><svg class="ico"><use href="#i-ext"/></svg> Install</button></span></div>
+                <div class="intg"><span class="ic"><svg><use href="#i-code"/></svg></span><span class="lbl"><span class="t">Harness SDK <span class="status idle">No runs yet</span></span><span class="s">Host Claude Agent SDK, LangGraph and OpenAI Agents runs as Henosis sessions, with the same gate and the same rail.</span></span><span class="ctl"><button class="btn ghost sm">Docs</button></span></div>
+              </div>
+            </section>
+
+            <section class="card group" id="appearance">
+              <div class="gh"><h2>Appearance</h2><span class="sub">This device</span></div>
+              <div class="list">
+                <div class="rowitem"><span class="lbl"><span class="t">Theme</span><span class="s">Auto follows the system</span></span><span class="ctl"><span class="seg sm"><button class="on">Auto</button><button>Light</button><button>Dark</button></span></span></div>
+                <div class="rowitem"><span class="lbl"><span class="t">Motion</span><span class="s">Calm turns off the arcs, the pulses and the rising cards</span></span><span class="ctl"><span class="seg sm"><button class="on">Full</button><button>Calm</button></span></span></div>
+                <div class="rowitem wide"><span class="lbl"><span class="t">Team look</span><span class="s">Payments: fondant hand, apricot pulse, emblem <span class="serif">Py</span> · set by you as lead</span></span>
+                  <span class="ctl look"><span class="swatches"><i style="background:#56352D"></i><i style="background:#E2C4A6"></i><i style="background:#2A3244"></i></span><span class="emblem">Py</span><button class="btn sm">Edit</button></span></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

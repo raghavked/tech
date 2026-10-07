@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error states</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- page frame ---- */
+  body { min-height: 100%; }
+  .board { width: min(1344px, 100%); margin: 0 auto; padding: 44px 48px 72px; display: flex; flex-direction: column; gap: 56px; }
+  .hd { display: grid; grid-template-columns: 64px 1fr auto; gap: 20px; align-items: start; }
+  .hd h1 { font-size: 44px; }
+  .hd .lede { max-width: 780px; margin-top: 6px; color: var(--ink-2); font-size: 15.5px; }
+  .hd .meta { text-align: right; font-size: 12.5px; color: var(--ink-3); line-height: 1.7; padding-top: 10px; }
+  .hd .meta b { font-weight: 500; color: var(--ink-2); font-family: var(--mono); font-size: 12px; }
+  .kicker { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .ic { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ic.s { width: 12px; height: 12px; }
+
+  /* ---- the rules strip ---- */
+  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .rule { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-soft); }
+  .rule .n { font-family: var(--mono); font-size: 11.5px; color: var(--apricot-deep); }
+  .rule h3 { font-family: var(--serif); font-weight: 400; font-size: 21px; }
+  .rule p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .rule p i { font-family: var(--serif); color: var(--ink); }
+
+  /* ---- sections ---- */
+  .sec { display: flex; flex-direction: column; gap: 20px; }
+  .sec > .t { display: grid; grid-template-columns: 34px 1fr; gap: 14px; align-items: baseline; }
+  .sec > .t .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .sec > .t h2 { font-size: 28px; }
+  .sec > .t p { margin: 4px 0 0; color: var(--ink-2); max-width: 860px; font-size: 14.5px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  .stage { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 24px 26px 26px; position: relative; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .stage .lbl { position: absolute; top: 10px; right: 14px; font: 11px var(--mono); color: var(--ink-3); letter-spacing: .02em; }
+  .stage > .kicker { display: flex; align-items: center; gap: 8px; }
+  .stage > .kicker .ic { width: 13px; height: 13px; }
+  .stage .why { font-size: 13.5px; color: var(--ink-2); margin: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+  .stage .why b { color: var(--ink); font-weight: 600; }
+
+  /* ---- fragments of the app, scaled to fit a half column ---- */
+  .frag { background: var(--canvas); background-image: var(--canvas-wash); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-soft); font-size: 14px; }
+  .frag .topbar { padding: 10px 16px; min-height: 48px; }
+  .frag .topbar .title { font-size: 18px; }
+  .frag .presence { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .frag .presence.dim .avatar { opacity: .45; }
+  .conn { display: flex; align-items: center; gap: 10px; padding: 8px 16px; font-size: 13px; color: var(--ink-2); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .conn .status::before { background: var(--ink-3); }
+  .conn .status.off::before { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+  .conn .status.re::before { background: var(--ink-3); animation: pulse 1.6s ease-in-out infinite; }
+  .conn .status, .conn .asof, .conn .right { white-space: nowrap; }
+  .conn .asof { color: var(--ink-3); } .conn .asof .mono { font-size: 12px; }
+  .conn .right { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; }
+  .conn .weave { width: 54px; }
+  .conn a { font-weight: 500; }
+  .frag .body { padding: 16px 18px 0; display: flex; flex-direction: column; gap: 14px; }
+  .frag .msg .meta .who { font-size: 15px; }
+  .frag .msg.agent .text { font-size: 14px; }
+  .frag .step { font-size: 13px; }
+  .frag .step .mono { font-size: 12px; }
+  .frag .msg.human .text { padding: 10px 14px; font-size: 14px; }
+  .frag .composer-wrap { padding: 12px 14px 14px; }
+  .frag .composer { padding: 11px 12px 10px 14px; gap: 8px; box-shadow: var(--shadow-soft); }
+  .frag .composer .input { font-size: 14px; color: var(--ink-2); }
+  .frag .composer .bar { font-size: 12.5px; color: var(--ink-3); }
+  .frag .composer .held, .phone .composer .held { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: var(--radius-full); background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 600; }
+  .frag .send.held, .phone .send.held { background: var(--surface-3); color: var(--ink-3); box-shadow: none; }
+  .msg.agent.ghost { opacity: .5; }
+  .msg .meta .time { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+
+  /* notices and plan inside fragments */
+  .frag .notice, .frag .plan { padding: 14px 16px; gap: 10px; font-size: 14px; }
+  .notice.denied::before { background: var(--danger); }
+  .notice .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .notice .head .serif { font-size: 18px; }
+  .notice .ask { font-size: 14px; }
+  .notice .ask .mono { font-size: 12.5px; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); }
+  .notice .vote { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .notice .vote .stars span { width: 16px; height: 16px; font-size: 15px; }
+  .notice .note { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--ink); padding-left: 10px; border-left: 2px solid var(--apricot); }
+  .notice .next { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .notice .actions .btn.sm { min-height: 28px; }
+  .tag { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; }
+  .tag.danger { background: var(--danger-soft); color: var(--danger); }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .tag.quiet { background: var(--surface-3); color: var(--ink-2); }
+  .plan .head .serif { font-size: 18px; }
+  .plan .pstep { font-size: 13.5px; padding: 7px 0; }
+  .plan .pstep.struck .t { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line); }
+  .plan .pstep .flag { font-size: 12px; color: var(--danger); display: inline-flex; align-items: center; gap: 4px; }
+  .plan .decision { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: var(--radius); background: var(--danger-soft); }
+  .plan .decision .who { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+  .plan .decision .who .serif { font-size: 16px; }
+  .plan .decision .q { font-family: var(--serif); font-style: italic; font-size: 15px; }
+  .plan .decision .so { font-size: 13px; color: var(--ink-2); }
+  .plan .after { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .plan .after .btn.sm { min-height: 28px; }
+
+  /* unite */
+  .unite { display: flex; flex-direction: column; gap: 10px; }
+  .unite .divider.danger { color: var(--danger); font-weight: 500; }
+  .unite .divider.danger::before, .unite .divider.danger::after { background: var(--danger-soft); }
+  .unite .sum { font-size: 13.5px; color: var(--ink-2); display: flex; gap: 14px; flex-wrap: wrap; }
+  .unite .sum b { color: var(--ink); font-weight: 600; }
+  .crow { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+  .crow .ic { color: var(--danger); }
+  .crow .p { font-family: var(--mono); font-size: 12.5px; }
+  .crow .s { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; display: flex; gap: 8px; align-items: center; }
+  .crow .s .avatar { width: 18px; height: 18px; font-size: 8px; border-width: 1px; }
+  .crow .s .avatar.agent { border-radius: 6px 6px 6px 2px; }
+  .crow .btn.sm { min-height: 28px; }
+  .crow.ok .ic { color: var(--ok); } .crow.ok { opacity: .72; }
+  .unite .foot { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; }
+  .unite .foot .btn { margin-left: auto; }
+
+  /* server down: the page-level state */
+  .down { background: var(--canvas); background-image: var(--canvas-wash); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-soft); overflow: hidden; display: grid; grid-template-columns: 112px 1fr; min-height: 372px; }
+  .down .rail { padding: 12px 10px; gap: 8px; width: auto; }
+  .down .rail .brand { padding: 4px 4px 10px; font-size: 0; justify-content: center; }
+  .down .rail .agentmini { display: flex; flex-direction: column; gap: 3px; padding: 7px 8px; border-radius: 10px; opacity: .55; }
+  .down .rail .agentmini .head { font-size: 11.5px; display: flex; gap: 6px; align-items: center; }
+  .down .rail .agentmini .head .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rail-muted); }
+  .down .rail .agentmini .doing { font-size: 10.5px; color: var(--rail-muted); }
+  .down .rail .last { margin-top: auto; font-size: 10.5px; color: var(--rail-muted); padding: 4px 6px; line-height: 1.4; }
+  .down .page { display: grid; place-items: center; padding: 28px 30px; }
+  .down .empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; max-width: 420px; }
+  .down .empty h2 { font-size: 26px; }
+  .down .empty p { margin: 0; font-size: 14px; color: var(--ink-2); }
+  .down .empty .last { font-size: 13px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; text-align: left; width: 100%; display: flex; flex-direction: column; gap: 4px; }
+  .down .empty .last .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .down .empty .last .mono { font-size: 12px; }
+  .down .empty .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+  .down .empty .cli { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .mark.apart .arc { transform-origin: 48px 48px; }
+  .mark.apart .arc.a { transform: rotate(28deg) translate(0, 0); }
+  .mark.apart .arc.b { transform: rotate(-28deg); }
+  .mark.apart .dot { opacity: .28; }
+  .mark .ghost { fill: none; stroke: var(--mark-dot); stroke-width: 1.5; stroke-dasharray: 3 3; opacity: .7; }
+
+  /* rail one-liners */
+  .liners { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .liner { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .liner .k { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--rail-muted); font-weight: 600; }
+  .liner .agent { padding: 0; }
+  .liner .agent .foot .tag { height: 20px; font-size: 11px; }
+  .liner .agent .head .dot.off { background: var(--rail-muted); box-shadow: 0 0 0 3px rgba(174,180,194,.18); }
+  .liner .agent .head .dot.re { background: var(--rail-muted); animation: pulse 1.6s ease-in-out infinite; }
+  .liner .agent .head .dot.stopped { background: #E2847A; }
+  .liner .agent .head .dot.conflict { background: #E2B06A; }
+  .rail .tag.danger { background: rgba(226,132,122,.18); color: #F2B3AB; }
+  .rail .tag.warn { background: rgba(226,176,106,.18); color: #F0CF9A; }
+  .rail .tag.quiet { background: var(--rail-2); color: var(--rail-muted); }
+
+
+  /* ---- the screen: one session with several states at once, 1440x900 ---- */
+  .screen-sec .window { width: 100%; }
+  .screen { height: 900px; width: 1440px; zoom: 0.8667; display: flex; background: var(--canvas); background-image: var(--canvas-wash); overflow: hidden; }
+  .screen .rail .brand .mark { flex: none; }
+  .screen .rail .brand span { font-size: 22px; }
+  .screen .rail .agent .foot .tag { height: 20px; font-size: 11px; }
+  .screen .rail .agent .head .dot.off { background: var(--rail-muted); }
+  .screen .rail .agent .head .dot.re { background: var(--rail-muted); animation: pulse 1.6s ease-in-out infinite; }
+  .screen .rail .agent .head .dot.stopped { background: #E2847A; }
+  .screen .rail .agent .head .dot.conflict { background: #E2B06A; }
+  .screen .rail .last { font-size: 12px; color: var(--rail-muted); padding: 10px 12px 0; display: flex; gap: 8px; align-items: center; }
+  .screen .main .column { padding: 18px 24px 24px; gap: 20px; }
+  .screen .presence { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .screen .presence.dim .avatar { opacity: .45; }
+  .screen .topbar .chip { height: 26px; font-size: 12.5px; }
+  .screen .composer-wrap { padding: 12px 24px 18px; }
+  .screen .composer .input { color: var(--ink-2); }
+  .screen .composer .bar { font-size: 13px; color: var(--ink-3); }
+  .screen .composer .held { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--radius-full); background: var(--warn-soft); color: var(--warn); font-size: 12.5px; font-weight: 600; }
+  .screen .send.held { background: var(--surface-3); color: var(--ink-3); box-shadow: none; }
+  .screen .drawer { gap: 18px; }
+  .screen .drawer .kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 13.5px; }
+  .screen .drawer .kv .v { color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+  .screen .drawer .kv .v.mono { font-size: 12.5px; }
+  .screen .drawer .open { display: flex; flex-direction: column; gap: 8px; }
+  .screen .drawer .open .o { display: grid; grid-template-columns: 8px 1fr; gap: 10px; align-items: baseline; font-size: 13.5px; }
+  .screen .drawer .open .o i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); transform: translateY(-1px); }
+  .screen .drawer .open .o.d i { background: var(--danger); } .screen .drawer .open .o.q i { background: var(--ink-3); }
+  .screen .drawer .open .o .s { font-size: 12.5px; color: var(--ink-3); display: block; }
+  .screen .drawer .held-list { display: flex; flex-direction: column; gap: 6px; }
+  .screen .drawer .held-list .h { font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px dashed var(--line); color: var(--ink-2); }
+  .screen .drawer .held-list .h b { font-weight: 500; color: var(--ink); }
+  body:has(#screen:target) .board { padding: 0; gap: 0; width: 100%; }
+  body:has(#screen:target) .board > *:not(.screen-sec), body:has(#screen:target) .screen-sec > .t { display: none; }
+  body:has(#screen:target) .screen-sec .window { border: 0; border-radius: 0; box-shadow: none; }
+  body:has(#screen:target) .screen { width: 100vw; height: 100vh; zoom: 1; }
+
+  /* mobile */
+  .mob-sec .grid2 { grid-template-columns: 420px 1fr; align-items: start; }
+  .mob { display: flex; justify-content: center; }
+  .phone .topbar { padding: 10px 14px; min-height: 48px; }
+  .phone .topbar .title { font-size: 18px; }
+  .phone .body { padding: 14px 14px 0; display: flex; flex-direction: column; gap: 14px; font-size: 14px; flex: 1; overflow: hidden; }
+  .phone .notice, .phone .plan { padding: 14px 16px; gap: 10px; font-size: 14px; }
+  .phone .composer-wrap { padding: 10px 12px 14px; margin-top: auto; }
+  .phone .composer { padding: 11px 12px 10px 14px; gap: 8px; }
+  .phone .composer .bar { font-size: 12px; color: var(--ink-3); }
+  .phone .composer .input { font-size: 14px; color: var(--ink-2); }
+  .phone .msg.agent .text { font-size: 14px; }
+  .phone .msg .meta .who { font-size: 15px; }
+  .phone .conn { padding: 7px 14px; font-size: 12.5px; }
+  .phone .home { height: 5px; width: 120px; border-radius: 3px; background: var(--ink); opacity: .55; margin: 6px auto 8px; }
+  .phone .statusbar { display: flex; justify-content: space-between; padding: 14px 24px 0; font: 600 13px var(--font); }
+  .mob-notes { display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; color: var(--ink-2); }
+  .mob-notes b { color: var(--ink); font-weight: 600; }
+  .mob-notes ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+
+  /* #phone as the URL target: the page shows the phone alone, for the 390x844 shot */
+  body:has(#phone:target) .board { padding: 0; gap: 0; width: 100%; }
+  body:has(#phone:target) .board > *:not(.mob-sec), body:has(#phone:target) .mob-sec > .t, body:has(#phone:target) .mob-notes { display: none; }
+  body:has(#phone:target) .mob-sec .grid2 { grid-template-columns: 1fr; gap: 0; }
+  body:has(#phone:target) .phone { border: 0; border-radius: 0; box-shadow: none; width: 100%; height: 100vh; }
+
+  @media (max-width: 900px) {
+    .board { padding: 24px 16px 48px; gap: 40px; }
+    .hd { grid-template-columns: 48px 1fr; } .hd .meta { display: none; } .hd h1 { font-size: 34px; }
+    .rules, .liners, .grid2, .mob-sec .grid2 { grid-template-columns: 1fr; }
+    .down { grid-template-columns: 1fr; } .down .rail { display: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M2 2l20 20M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 3.1-2.2M16.8 10.8A10 10 0 0 1 19 13M1.5 9.5a15 15 0 0 1 5.2-3.2M12 5a15 15 0 0 1 10.5 4.5M12 20h.01"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9.5 12.5l1.8 1.8 3.4-3.6"/></symbol>
+    <symbol id="i-merge" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 7v10M6 7c0 5 10 3 10 5"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3zM12 10v4M12 17h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><path d="M5 7l5 5-5 5M12 17h7"/></symbol>
+  </defs>
+</svg>
+
+<div class="board">
+
+  <!-- ===== header ===== -->
+  <header class="hd">
+    <svg class="mark" viewBox="0 0 96 96" width="64" height="64" aria-label="Henosis"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+    <div>
+      <h1>Error states</h1>
+      <p class="lede">Six ways a session goes wrong, each told the way a colleague would tell it: what happened, what still works, what Henosis is doing about it, and the one thing you can do. Nothing shouts. The stream stays readable in every one; the mark only loses its centre when the server itself is gone.</p>
+    </div>
+    <div class="meta">Henosis · onboarding wave<br><b>explorations/error-states</b><br>Billing page · the Payments team</div>
+  </header>
+
+  <!-- ===== rules ===== -->
+  <section class="sec">
+    <div class="t"><span class="n">00</span><div><h2>Four rules for the bad moments</h2><p>Every state below is one sentence of fact, one of reassurance, one of intent, and one action. The colour says how much it matters: grey for the network, amber for waiting, red only when a person said no or two branches disagree.</p></div></div>
+    <div class="rules">
+      <div class="rule"><span class="n">1</span><h3>Say what happened</h3><p>A fact with a time on it. <i>Last seen 14:02.</i> Never "something went wrong".</p></div>
+      <div class="rule"><span class="n">2</span><h3>Say what still works</h3><p>The stream is readable, the log is on the server, your draft is held. The page never goes blank.</p></div>
+      <div class="rule"><span class="n">3</span><h3>Say what we are doing</h3><p><i>Trying again in 4s.</i> The agent read the denial. The branch keeps its claims until you resolve.</p></div>
+      <div class="rule"><span class="n">4</span><h3>One action, in the hand</h3><p>Retry, Steer, Resolve. Chocolate, at most one per state. The rest are plain links.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== network ===== -->
+  <section class="sec">
+    <div class="t"><span class="n">01</span><div><h2>Disconnected and reconnecting</h2><p>The socket drops; the view keeps the stream it has and says so in one grey line under the top row. What you type is held in the composer, not lost and not sent. Reconnecting adds the weave and the next attempt; presence dims because we no longer know who is here.</p></div></div>
+    <div class="grid2">
+
+      <div class="stage">
+        <span class="lbl">session · offline</span>
+        <div class="kicker"><svg class="ic"><use href="#i-wifi-off"/></svg> You are offline</div>
+        <div class="frag">
+          <div class="topbar">
+            <div class="title"><span>Invoice PDF: tax lines and proration</span></div>
+            <div class="right"><span class="presence dim"><span class="stack"><span class="avatar driver">Bo</span><span class="avatar">An</span><span class="avatar agent">bo</span></span><span>as of 14:02</span></span></div>
+          </div>
+          <div class="conn"><span class="status off">You are offline</span><span class="asof">· the stream is as of <span class="mono">14:02</span></span><span class="right"><span class="faint small">Reconnects when you are back</span></span></div>
+          <div class="body">
+            <div class="msg agent"><div class="meta"><span class="who">Bo's agent</span><span>step 3 of 5</span><span class="time">14:01</span></div><div class="text">Adding the tax lines to the invoice PDF: one row per jurisdiction, with the proration note under the subtotal.</div>
+              <div class="steps"><div class="step"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">edit src/billing/invoice-pdf.ts</span></div><div class="step"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">test billing/pdf · exit 0</span></div></div></div>
+            <div class="msg agent ghost"><div class="meta"><span class="who">Bo's agent</span><span>writing</span><span class="time">14:02</span></div><div class="text">Now the proration: the partial month on the first invoice should carry its own line, not fold into…</div></div>
+          </div>
+          <div class="composer-wrap"><div class="composer"><div class="input">Keep proration as its own line; label it "partial month".</div><div class="bar"><span class="held"><svg class="ic s"><use href="#i-clock"/></svg> Held until you are back</span><span class="right"><span>Directive · goal</span><span class="send held"><svg class="ic"><use href="#i-arrow"/></svg></span></span></div></div></div>
+        </div>
+        <p class="why"><b>Why this shape.</b> The browser knows it is offline, so the line says so and promises nothing it cannot do. The agent's half-written message stays at 50%: it was mid-turn when we lost it. The held chip is amber because the directive is waiting, not failed.</p>
+      </div>
+
+      <div class="stage">
+        <span class="lbl">session · reconnecting</span>
+        <div class="kicker"><svg class="ic"><use href="#i-refresh"/></svg> Reconnecting</div>
+        <div class="frag">
+          <div class="topbar">
+            <div class="title"><span>Invoice PDF: tax lines and proration</span></div>
+            <div class="right"><span class="presence dim"><span class="stack"><span class="avatar driver">Bo</span><span class="avatar">An</span><span class="avatar agent">bo</span></span><span>as of 14:02</span></span></div>
+          </div>
+          <div class="conn"><span class="status re">Reconnecting</span><span class="asof">· attempt 3 · again in <span class="mono">4s</span></span><span class="right"><span class="loader weave"></span><a href="#">Try now</a></span></div>
+          <div class="body">
+            <div class="msg agent"><div class="meta"><span class="who">Bo's agent</span><span>step 3 of 5</span><span class="time">14:01</span></div><div class="text">Adding the tax lines to the invoice PDF: one row per jurisdiction, with the proration note under the subtotal.</div>
+              <div class="steps"><div class="step"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">edit src/billing/invoice-pdf.ts</span></div><div class="step"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">test billing/pdf · exit 0</span></div></div></div>
+            <div class="msg human"><div class="meta"><span class="who">Ana</span><span>to the team</span><span class="time">14:02</span></div><div class="text">Checkout's proration copy is in the brief; use that wording.</div></div>
+          </div>
+          <div class="composer-wrap"><div class="composer"><div class="input">Steer the agent</div><div class="bar"><span>Reconnecting · what you send waits for the socket</span><span class="right"><span>Directive · goal</span><span class="send held"><svg class="ic"><use href="#i-arrow"/></svg></span></span></div></div></div>
+        </div>
+        <p class="why"><b>Why this shape.</b> Backoff is 0.5s, 1s, 2s, 4s, capped at 15s, so the line can name the next attempt honestly. "Try now" is the wake the app already does when the tab is shown again, offered by hand. The weave is the only motion: two strands, the same loader the stream uses while an agent thinks.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== server down ===== -->
+  <section class="sec">
+    <div class="t"><span class="n">02</span><div><h2>Server down</h2><p>The browser is online but Henosis cannot reach its server. This is the one state that takes the page: the rail keeps its last known cards at half, the mark shows its arcs apart with a ghost where the centre was, and the empty state says what it last saw so the person knows what they are missing.</p></div></div>
+    <div class="grid2" style="grid-template-columns: 1fr 380px;">
+      <div class="down">
+        <aside class="rail">
+          <div class="brand"><svg class="mark apart" viewBox="0 0 96 96" width="34" height="34" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div>
+          <div class="agentmini"><div class="head"><span class="dot"></span>Bo's agent</div><div class="doing">tax lines · step 3</div></div>
+          <div class="agentmini"><div class="head"><span class="dot"></span>Cy's agent</div><div class="doing">Checkout · waiting</div></div>
+          <div class="agentmini"><div class="head"><span class="dot"></span>Dee's agent</div><div class="doing">proration · plan</div></div>
+          <div class="last">Last seen 14:02</div>
+        </aside>
+        <div class="page">
+          <div class="empty">
+            <svg class="mark apart" viewBox="0 0 96 96" width="72" height="72" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="ghost" cx="48" cy="48" r="7"/></svg>
+            <h2>Henosis cannot reach its server right now.</h2>
+            <p>Your network is fine; the server at <span class="mono">henosis.payments.internal</span> is not answering. Every session is logged there, so nothing anyone did is lost. We try again every 15 seconds.</p>
+            <div class="last"><span class="k">What it last saw · 14:02</span><span>Bo's agent was on step 3 of 5, tax lines in the invoice PDF. Cy's agent waited on an approval in Checkout. Dee's plan for proration had one rating.</span></div>
+            <div class="actions"><button class="btn primary"><svg class="ic"><use href="#i-refresh"/></svg> Retry</button><button class="btn ghost">Tell the Payments team</button></div>
+            <span class="cli">henosis join billing-page · the CLI sees the same thing</span>
+          </div>
+        </div>
+      </div>
+      <div class="stage" style="align-self: stretch;">
+        <span class="lbl">specimen</span>
+        <div class="kicker"><svg class="ic"><use href="#i-server"/></svg> The mark, not joined</div>
+        <div style="display:flex; gap:18px; align-items:center;">
+          <svg class="mark apart" viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="ghost" cx="48" cy="48" r="7"/></svg>
+          <svg class="mark" viewBox="0 0 96 96" width="96" height="96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        </div>
+        <p class="why" style="border-top:0; padding-top:0;"><b>Apart, then closed.</b> The arcs swing 28° open and the centre is a dashed ghost: the same drawing the onboarding page uses before you arrive. When the server answers, the arcs-close motion plays once and the dot pops. Only the server-down state may take the centre away; a dropped socket keeps the full mark, because the circle is still there, we just cannot see it.</p>
+        <p class="why"><b>Copy.</b> "Cannot reach its server" is what the app already says. The host name and the last-seen summary are new, and are what make the state calm: a person can decide whether to wait, or walk over to whoever runs the server.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== people said no ===== -->
+  <section class="sec">
+    <div class="t"><span class="n">03</span><div><h2>Plan rejected and approval denied</h2><p>A person said no. The notice names who, quotes their note, and says what the agent does next in the product's own words: a rejected plan stops the agent until someone steers; a denied approval is a result the model reads and works around. Red is for the decision only; the card around it stays quiet.</p></div></div>
+    <div class="grid2">
+
+      <div class="stage">
+        <span class="lbl">plan card · rejected</span>
+        <div class="kicker"><svg class="ic"><use href="#i-x"/></svg> Plan rejected</div>
+        <div class="frag"><div class="body" style="padding-bottom:16px">
+          <div class="plan">
+            <div class="head"><span class="serif">Plan · 5 steps</span><span class="tag danger">Rejected</span><span class="faint small" style="margin-left:auto">proposed on turn 2</span></div>
+            <div class="steps">
+              <div class="pstep done"><span class="n">1</span><span class="t">Read the invoice PDF template and the tax table</span><span class="est">~2.1k</span><span class="mono small faint">1.9k</span></div>
+              <div class="pstep struck"><span class="n">2</span><span class="t">Move proration into the PDF template as a computed row</span><span class="est">~6.4k</span><span class="flag"><svg class="ic s"><use href="#i-warn"/></svg> this one</span></div>
+              <div class="pstep struck"><span class="n">3</span><span class="t">Add one tax line per jurisdiction</span><span class="est">~4.8k</span><span></span></div>
+              <div class="pstep struck"><span class="n">4</span><span class="t">Regenerate the Billing page preview</span><span class="est">~1.2k</span><span></span></div>
+              <div class="pstep struck"><span class="n">5</span><span class="t">Run billing/pdf and billing/proration tests</span><span class="est">~900</span><span></span></div>
+            </div>
+            <div class="decision">
+              <div class="who"><span class="avatar" style="width:22px;height:22px;font-size:9px">An</span><span class="serif">Ana</span><span class="muted">rejected the plan · 14:06</span></div>
+              <div class="q">"Proration is Checkout's number. The PDF should print it, not compute it; step 2 would make two sources of truth."</div>
+              <div class="so">The agent has stopped. It starts again when someone steers it; a revised plan will replace this card.</div>
+            </div>
+            <div class="after"><button class="btn primary sm">Steer towards a new plan</button><button class="btn sm">Ask the agent to revise</button><span class="small faint" style="margin-left:auto">Bo, driving, can reopen</span></div>
+          </div>
+        </div></div>
+        <p class="why"><b>Why this shape.</b> Steps after the rejection are struck, not hidden: the person who comes back later sees what was proposed and which step Ana pointed at. The quote is serif italic, the same as any team message. The "so what" line is the spec's words: stops until someone steers.</p>
+      </div>
+
+      <div class="stage">
+        <span class="lbl">release gate · denied</span>
+        <div class="kicker"><svg class="ic"><use href="#i-shield"/></svg> Approval denied</div>
+        <div class="frag"><div class="body" style="padding-bottom:16px">
+          <div class="msg agent"><div class="meta"><span class="who">Cy's agent</span><span>Checkout</span><span class="time">14:09</span></div><div class="text">The proration tests pass. Finalising the March invoices so the PDF can be regenerated from real numbers.</div></div>
+          <div class="notice denied">
+            <div class="head"><span class="serif">Denied</span><span class="tag danger">irreversible</span><span class="faint small" style="margin-left:auto">release gate · two at 4+</span></div>
+            <div class="ask">The agent wanted to run <span class="mono">stripe invoices finalize --month 2026-03</span>. Finalised invoices cannot be reopened.</div>
+            <div class="vote"><span class="avatar" style="width:22px;height:22px;font-size:9px">Cy</span><span><b>Cy</b> denied</span><span class="stars"><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span><span>★</span></span><span class="faint">2 of 5 · 14:10</span></div>
+            <div class="note">"Not before Ana has read the tax lines. Finalise after the review, from the Billing page."</div>
+            <div class="vote"><span class="avatar" style="width:22px;height:22px;font-size:9px">Dee</span><span><b>Dee</b> approved</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="faint">4 of 5 · one voice does not carry a gate</span></div>
+            <div class="next"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span>The agent read the denial and is regenerating the PDF from draft invoices instead.</span></div>
+            <div class="actions"><button class="btn sm">Ask again after the review</button><button class="btn ghost sm">Open in the approvals queue</button></div>
+          </div>
+        </div></div>
+        <p class="why"><b>Why this shape.</b> The bar is red, the word is "Denied" (the app's), and both votes stay on the card so the gate's arithmetic is visible: one 4 is a voice, not a vote. The next line is green because the agent has already moved on; the person's only option is the calm one, ask again later.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== unite ===== -->
+  <section class="sec">
+    <div class="t"><span class="n">04</span><div><h2>Unite conflicts</h2><p>Dee united her proration branch into main and two files disagree. The divider says so in the stream's own words ("United proration into main · 2 conflicts"), each path names who touched it on both sides, and the driver resolves. Claims are kept until then, so no one else edits those files meanwhile.</p></div></div>
+    <div class="grid2" style="grid-template-columns: 1fr 380px;">
+      <div class="stage">
+        <span class="lbl">session · after unite</span>
+        <div class="kicker"><svg class="ic"><use href="#i-merge"/></svg> Two files disagree</div>
+        <div class="frag"><div class="body" style="padding-bottom:16px">
+          <div class="unite">
+            <div class="divider danger"><svg class="ic s"><use href="#i-warn"/></svg> United proration into main · 2 conflicts · 14:14</div>
+            <div class="sum"><span><b>Dee</b> united</span><span>7 files changed</span><span>5 united cleanly</span><span>claims on 2 paths kept until resolved</span></div>
+            <div class="crow"><svg class="ic"><use href="#i-warn"/></svg><div><div class="p">src/billing/invoice-pdf.ts</div><div class="s"><span class="avatar agent">bo</span>Bo's agent added the tax lines on main · <span class="avatar">De</span>Dee moved the subtotal block on proration</div></div><button class="btn sm"><svg class="ic s"><use href="#i-file"/></svg> Open file</button></div>
+            <div class="crow"><svg class="ic"><use href="#i-warn"/></svg><div><div class="p">src/billing/proration.ts</div><div class="s"><span class="avatar">Cy</span>Cy renamed <span class="mono">partialMonth</span> on main · <span class="avatar agent">de</span>Dee's agent kept the old name in 3 calls</div></div><button class="btn sm"><svg class="ic s"><use href="#i-file"/></svg> Open file</button></div>
+            <div class="crow ok"><svg class="ic"><use href="#i-check"/></svg><div><div class="p">src/billing/tax-lines.ts <span class="faint">and 4 more</span></div><div class="s">united cleanly</div></div><span class="small faint">no action</span></div>
+            <div class="foot"><span>Bo is driving. Contested directives became one contention: <i class="serif">proration wording</i>.</span><button class="btn primary sm">Resolve as driver</button></div>
+          </div>
+        </div></div>
+        <p class="why"><b>Why this shape.</b> A conflict is not a failure: five files went in, two wait. So the divider is red but the card is the stream's surface, and the clean files are listed at 72% so the count adds up. Both sides are named with their avatars, person or agent, because the fix is a conversation before it is a diff.</p>
+      </div>
+      <div class="stage" style="align-self: stretch;">
+        <span class="lbl">rail · the same six, one line each</span>
+        <div class="kicker"><svg class="ic"><use href="#i-terminal"/></svg> How the rail says it</div>
+        <div class="liners" style="grid-template-columns:1fr;">
+          <div class="liner"><div class="agent"><div class="head"><span class="dot off"></span><span class="t">Bo's agent</span><span class="tag quiet">Offline</span></div><div class="doing">as of 14:02 · <i>tax lines in the invoice PDF</i></div></div></div>
+          <div class="liner"><div class="agent"><div class="head"><span class="dot re"></span><span class="t">Bo's agent</span><span class="tag quiet">Reconnecting</span></div><div class="doing">again in 4s · <i>tax lines in the invoice PDF</i></div></div></div>
+          <div class="liner"><div class="agent"><div class="head"><span class="dot stopped"></span><span class="t">Dee's agent</span><span class="tag danger">Plan rejected</span></div><div class="doing">by Ana · stopped until someone steers</div></div></div>
+          <div class="liner"><div class="agent"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Cy's agent</span><span class="tag warn">Denied, working around</span></div><div class="doing">Cy denied <i>finalize invoices</i> · regenerating from drafts</div></div></div>
+          <div class="liner"><div class="agent"><div class="head"><span class="dot conflict"></span><span class="t">Dee's agent</span><span class="tag warn">2 conflicts</span></div><div class="doing">united proration into main · Bo resolves</div></div></div>
+        </div>
+        <p class="why" style="margin-top:auto"><b>Server down has no rail line:</b> the whole rail is the state, at half, with "Last seen 14:02" at its foot.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== the screen ===== -->
+  <section class="sec screen-sec">
+    <div class="t"><span class="n">05</span><div><h2>One afternoon, all at once</h2><p>The desktop screen at 1440×900 with four of the states live together: the socket reconnecting, Cy's denial, Dee's two conflicts, and the rail saying each in one line. The Details drawer gains a Connection section and a list of what waits on a person.</p></div></div>
+    <div class="window"><div class="screen" id="screen">
+      <aside class="rail">
+        <div class="brand"><svg class="mark" viewBox="0 0 96 96" width="30" height="30" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span>Henosis</span></div>
+        <button class="new">New session</button>
+        <div class="section">Agents <span class="n">4</span></div>
+        <div class="crew"><span class="serif">Invoice rollout</span></div>
+        <a class="agent active" href="#"><div class="head"><span class="dot re"></span><span class="t">Bo's agent</span><span class="tag quiet">Reconnecting</span></div><div class="doing">again in 4s · <i>tax lines in the invoice PDF</i></div><div class="foot"><span class="pill team">Team</span><span>Bo, Ana</span><span class="mono" style="margin-left:auto;font-size:11.5px">12.4k</span></div></a>
+        <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Cy's agent</span><span class="tag warn">Denied</span></div><div class="doing">Cy denied <i>finalize invoices</i> · working around it</div><div class="foot"><span class="pill team">Team</span><span>Cy, Dee</span><span class="mono" style="margin-left:auto;font-size:11.5px">8.1k</span></div></a>
+        <a class="agent" href="#"><div class="head"><span class="dot conflict"></span><span class="t">Dee's agent</span><span class="tag warn">2 conflicts</span></div><div class="doing">united proration into main · Bo resolves</div><div class="foot"><span class="pill solo">Solo</span><span class="mono" style="margin-left:auto;font-size:11.5px">5.6k</span></div></a>
+        <div class="section">Checkout</div>
+        <a class="agent" href="#"><div class="head"><span class="dot stopped"></span><span class="t">Ana's agent</span><span class="tag danger">Plan rejected</span></div><div class="doing">by Ana · stopped until someone steers</div><div class="foot"><span class="pill solo">Solo</span><span class="mono" style="margin-left:auto;font-size:11.5px">2.0k</span></div></a>
+        <div class="last"><svg class="ic s"><use href="#i-clock"/></svg> Rail as of 14:02</div>
+        <div class="me"><span class="avatar">De</span><span>Dee</span><span class="faint small" style="margin-left:auto">contributor</span></div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <div class="title"><span>Invoice PDF: tax lines and proration</span><span class="chip">Billing page</span></div>
+          <div class="right"><span class="presence dim"><span class="stack"><span class="avatar driver">Bo</span><span class="avatar">An</span><span class="avatar">Cy</span><span class="avatar agent">bo</span></span><span>as of 14:02</span></span><span class="chip">12.4k tokens</span></div>
+        </div>
+        <div class="conn"><span class="status re">Reconnecting</span><span class="asof">· attempt 3 · again in <span class="mono">4s</span> · the stream is as of <span class="mono">14:02</span></span><span class="right"><span class="loader weave"></span><a href="#">Try now</a></span></div>
+        <div class="scroll"><div class="column">
+          <div class="msg agent"><div class="meta"><span class="who">Bo's agent</span><span>step 3 of 5</span><span class="time">14:01</span></div><div class="text">Adding the tax lines to the invoice PDF: one row per jurisdiction, with the proration note under the subtotal.</div>
+            <div class="steps"><div class="step"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">edit src/billing/invoice-pdf.ts</span></div><div class="step"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span class="mono">test billing/pdf · exit 0</span></div></div></div>
+          <div class="notice denied">
+            <div class="head"><span class="serif">Denied</span><span class="tag danger">irreversible</span><span class="faint small" style="margin-left:auto">release gate · two at 4+</span></div>
+            <div class="ask">Cy's agent wanted to run <span class="mono">stripe invoices finalize --month 2026-03</span>. Finalised invoices cannot be reopened.</div>
+            <div class="vote"><span class="avatar" style="width:22px;height:22px;font-size:9px">Cy</span><span><b>Cy</b> denied</span><span class="stars"><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span><span>★</span></span><span class="faint">2 of 5 · 14:10</span></div>
+            <div class="note">"Not before Ana has read the tax lines. Finalise after the review, from the Billing page."</div>
+            <div class="next"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span>The agent read the denial and is regenerating the PDF from draft invoices instead.</span></div>
+          </div>
+          <div class="unite">
+            <div class="divider danger"><svg class="ic s"><use href="#i-warn"/></svg> United proration into main · 2 conflicts · 14:14</div>
+            <div class="crow"><svg class="ic"><use href="#i-warn"/></svg><div><div class="p">src/billing/invoice-pdf.ts</div><div class="s"><span class="avatar agent">bo</span>Bo's agent added the tax lines on main · <span class="avatar">De</span>Dee moved the subtotal block on proration</div></div><button class="btn sm"><svg class="ic s"><use href="#i-file"/></svg> Open file</button></div>
+            <div class="crow"><svg class="ic"><use href="#i-warn"/></svg><div><div class="p">src/billing/proration.ts</div><div class="s"><span class="avatar">Cy</span>Cy renamed <span class="mono">partialMonth</span> on main · <span class="avatar agent">de</span>Dee's agent kept the old name in 3 calls</div></div><button class="btn sm"><svg class="ic s"><use href="#i-file"/></svg> Open file</button></div>
+            <div class="foot"><span>5 files united cleanly. Bo is driving and resolves.</span><button class="btn primary sm">Resolve as driver</button></div>
+          </div>
+          <div class="msg agent ghost"><div class="meta"><span class="who">Bo's agent</span><span>writing</span><span class="time">14:02</span></div><div class="text">Now the proration: the partial month on the first invoice should carry its own line, not fold into…</div></div>
+        </div></div>
+        <div class="composer-wrap"><div class="composer"><div class="input">Keep proration as its own line; label it "partial month".</div><div class="bar"><span class="seg"><button class="on">Agent</button><button>Team</button></span><span class="held"><svg class="ic s"><use href="#i-clock"/></svg> Held until the socket is back</span><span class="right"><span>Directive · goal</span><span class="send held"><svg class="ic"><use href="#i-arrow"/></svg></span></span></div></div></div>
+      </div>
+      <aside class="drawer">
+        <div><h3>Connection</h3><div class="kv" style="margin-top:8px"><span>State</span><span class="v">Reconnecting</span><span>Attempt</span><span class="v mono">3 · next in 4s</span><span>Last event</span><span class="v mono">14:02</span><span>Server</span><span class="v mono">henosis.payments.internal</span></div></div>
+        <div><h3>Held for you</h3><div class="held-list" style="margin-top:8px"><div class="h"><b>Directive · goal</b> · Keep proration as its own line; label it "partial month".</div><div class="h"><b>Team</b> · Ana, the tax table is in the brief.</div></div><p class="small faint" style="margin:8px 0 0">Sent in order when the socket is back; nothing is sent twice.</p></div>
+        <div><h3>Waits on a person</h3><div class="open" style="margin-top:8px">
+          <div class="o d"><i></i><span>Ana rejected Ana's agent's plan<span class="s">Checkout · stopped until someone steers</span></span></div>
+          <div class="o d"><i></i><span>Cy denied <span class="mono" style="font-size:12.5px">finalize invoices</span><span class="s">Cy's agent is working around it</span></span></div>
+          <div class="o"><i></i><span>2 conflicts after uniting proration<span class="s">Bo resolves as driver</span></span></div>
+          <div class="o q"><i></i><span>Dee's plan waits for one more rating<span class="s">proration · 1 of 1 at 3+ so far</span></span></div>
+        </div></div>
+        <div><h3>Usage</h3><div class="kv" style="margin-top:8px"><span>This session</span><span class="v mono">12.4k</span><span>Budget</span><span class="v mono">20k · 62%</span></div><div class="budget" style="margin-top:8px"><i style="width:62%"></i></div></div>
+      </aside>
+    </div></div>
+  </section>
+
+  <!-- ===== mobile ===== -->
+  <section class="sec mob-sec">
+    <div class="t"><span class="n">06</span><div><h2>On the phone</h2><p>The same lines, stacked. The connection line sits under the title where the thumb does not reach; the denial card keeps both votes; the composer tells you your words are held.</p></div></div>
+    <div class="grid2">
+      <div class="mob">
+        <div class="phone" id="phone">
+          <div class="statusbar"><span>14:11</span><span>Henosis</span></div>
+          <div class="topbar">
+            <div class="title"><span>Invoice PDF: tax lines</span></div>
+            <div class="right"><span class="stack"><span class="avatar driver">Bo</span><span class="avatar">Cy</span><span class="avatar agent">cy</span></span></div>
+          </div>
+          <div class="conn"><span class="status re">Reconnecting</span><span class="asof">· again in <span class="mono">4s</span></span><span class="right"><span class="loader weave" style="width:40px"></span><a href="#">Try now</a></span></div>
+          <div class="body">
+            <div class="msg agent"><div class="meta"><span class="who">Cy's agent</span><span>Checkout</span><span class="time">14:09</span></div><div class="text">The proration tests pass. Finalising the March invoices so the PDF can be regenerated from real numbers.</div></div>
+            <div class="notice denied">
+              <div class="head"><span class="serif">Denied</span><span class="tag danger">irreversible</span></div>
+              <div class="ask">Run <span class="mono">stripe invoices finalize</span>. Finalised invoices cannot be reopened.</div>
+              <div class="vote"><span class="avatar" style="width:22px;height:22px;font-size:9px">Cy</span><span><b>Cy</b> denied</span><span class="stars"><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span><span>★</span></span><span class="faint">2 of 5</span></div>
+              <div class="note">"Not before Ana has read the tax lines."</div>
+              <div class="vote"><span class="avatar" style="width:22px;height:22px;font-size:9px">De</span><span><b>Dee</b> approved</span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="faint">4 of 5</span></div>
+              <div class="next"><svg class="ic s" style="color:var(--ok)"><use href="#i-check"/></svg><span>The agent is regenerating the PDF from draft invoices instead.</span></div>
+              <div class="actions"><button class="btn sm">Ask again after the review</button></div>
+            </div>
+            <div class="msg agent ghost"><div class="meta"><span class="who">Cy's agent</span><span>writing</span><span class="time">14:11</span></div><div class="text">Regenerating from drafts; the proration line will show as…</div></div>
+          </div>
+          <div class="composer-wrap"><div class="composer"><div class="input">Keep proration as its own line.</div><div class="bar"><span class="held"><svg class="ic s"><use href="#i-clock"/></svg> Held until you are back</span><span class="right"><span class="send held"><svg class="ic"><use href="#i-arrow"/></svg></span></span></div></div><div class="home"></div></div>
+        </div>
+      </div>
+      <div class="mob-notes">
+        <span class="kicker">What changes at 390</span>
+        <ul>
+          <li><b>The connection line</b> keeps its three parts (state, next attempt, Try now) and drops the long reassurance; the composer carries it instead.</li>
+          <li><b>The denial card</b> loses the queue link and the gate rule; the two votes and the note stay, because they are the argument.</li>
+          <li><b>Held, not sent:</b> the send button goes grey and the chip says why. No toast; the state is in the thing you are looking at.</li>
+          <li><b>Server down</b> is the full screen with the apart mark, Retry, and the last-seen summary; the rail is behind the menu and shows the same half-strength cards.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Badges and status · Henosis</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- board layout ---------- */
+  body { min-height: 100%; }
+  .board { width: min(1280px, 100%); margin: 0 auto; padding: 36px 32px 56px; display: flex; flex-direction: column; gap: 32px; }
+  .masthead { display: grid; grid-template-columns: 56px 1fr auto; gap: 20px; align-items: center; }
+  .masthead p { margin: 6px 0 0; max-width: 760px; color: var(--ink-2); }
+  .masthead .meta { font: 12px var(--mono); color: var(--ink-3); text-align: right; line-height: 1.7; }
+  .sec { display: grid; grid-template-columns: 220px 1fr; gap: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .sec > aside h2 { font-size: 24px; }
+  .sec > aside p { margin: 8px 0 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+  .sec > aside .k { margin-top: 12px; font: 11.5px var(--mono); color: var(--ink-3); line-height: 1.8; }
+  .sec > div { min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+  .sheet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .sheet.navy { background: var(--rail); color: var(--rail-fg); border-color: transparent; }
+  .sheet .cap { padding: 10px 18px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; }
+  .sheet.navy .cap { color: var(--rail-muted); border-color: var(--rail-line); }
+  .sheet .cap .n { margin-left: auto; letter-spacing: 0; font-family: var(--mono); text-transform: none; }
+  .grid { display: grid; gap: 0; }
+  .grid .row { display: grid; align-items: center; gap: 16px; padding: 12px 18px; border-top: 1px solid var(--line); min-height: 52px; }
+  .grid .row:first-child { border-top: 0; }
+  .sheet.navy .grid .row { border-color: var(--rail-line); }
+  .grid .row .lbl { font: 12px var(--mono); color: var(--ink-3); }
+  .sheet.navy .grid .row .lbl { color: var(--rail-muted); }
+  .grid .row .lbl b { display: block; font: 500 13.5px var(--font); color: var(--ink); margin-bottom: 1px; }
+  .sheet.navy .grid .row .lbl b { color: var(--rail-fg); }
+  .grid .hd { display: grid; gap: 16px; padding: 8px 18px; font: 11px var(--mono); color: var(--ink-3); border-bottom: 1px solid var(--line); }
+  .sheet.navy .grid .hd { color: var(--rail-muted); border-color: var(--rail-line); }
+  .cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+  .note { font-size: 13px; color: var(--ink-2); }
+  .note b { color: var(--ink); font-weight: 500; }
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; margin: 0; padding: 0; list-style: none; }
+  .rules li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; font-size: 14px; line-height: 1.5; }
+  .rules li .n { width: 22px; height: 22px; border-radius: 50%; background: var(--gradient-brand); color: #fff; display: grid; place-items: center; font: 500 11px var(--mono); }
+  .ic { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* dark canvas: the status tints lift one step so the dots keep their colour on #232B3B (proposed for tokens.css) */
+  :root[data-theme="dark"] { --ok: #7FB376; --ok-soft: rgba(127,179,118,0.18); --warn: #D9A35A; --warn-soft: rgba(217,163,90,0.18); --danger: #D9766A; --danger-soft: rgba(217,118,106,0.18); --info: #8E95A5; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #7FB376; --ok-soft: rgba(127,179,118,0.18); --warn: #D9A35A; --warn-soft: rgba(217,163,90,0.18); --danger: #D9766A; --danger-soft: rgba(217,118,106,0.18); --info: #8E95A5; } }
+  /* ---------- 1. status dot: one drawing, four sizes ---------- */
+  .sd { --s: 8px; width: var(--s); height: var(--s); border-radius: 50%; flex: none; display: inline-block; background: var(--ink-3); }
+  .sd.xs { --s: 6px; } .sd.md { --s: 10px; } .sd.lg { --s: 12px; }
+  .sd.running { background: var(--ok); box-shadow: 0 0 0 calc(var(--s) * .38) var(--ok-soft); animation: pulse 1.6s ease-in-out -0.9s infinite; }
+  .sd.awaiting { background: var(--warn); box-shadow: 0 0 0 calc(var(--s) * .38) var(--warn-soft); }
+  .sd.blocked { background: var(--danger); }
+  .sd.paused { background: var(--info); }
+  .sd.idle { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+  .sd.cancelled { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); position: relative; }
+  .sd.cancelled::after { content: ""; position: absolute; left: 20%; right: 20%; top: calc(50% - .75px); height: 1.5px; background: var(--ink-3); }
+  .sd.closed { background: transparent; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ink-3) 50%, transparent); }
+  .sd.offline { background: transparent; border: 1.5px dashed var(--ink-3); }
+  /* on navy the dots use the rail's lighter tints so they carry over the frame */
+  .navy .sd { background: var(--rail-muted); }
+  .navy .sd.running { background: #9BC88F; box-shadow: 0 0 0 calc(var(--s) * .38) rgba(155,200,143,0.25); }
+  .navy .sd.awaiting { background: #E2B06A; box-shadow: 0 0 0 calc(var(--s) * .38) rgba(226,176,106,0.25); }
+  .navy .sd.blocked { background: #E2847A; }
+  .navy .sd.paused { background: var(--rail-muted); }
+  .navy .sd.idle, .navy .sd.cancelled { background: transparent; box-shadow: inset 0 0 0 1.5px var(--rail-muted); }
+  .navy .sd.cancelled::after { background: var(--rail-muted); }
+  .navy .sd.closed { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(174,180,194,0.45); }
+  .navy .sd.offline { background: transparent; border-color: var(--rail-muted); }
+
+  /* status word: dot + word, three type sizes */
+  .sw { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+  .sw.sm { font-size: 12px; gap: 6px; } .sw.md { font-size: 14px; gap: 8px; } .sw.lg { font-size: 15px; gap: 9px; font-weight: 500; color: var(--ink); }
+  .navy .sw { color: var(--rail-muted); } .navy .sw.lg { color: var(--rail-fg); }
+  .sw.after { color: var(--ink-3); } .navy .sw.after { color: var(--rail-muted); opacity: .75; }
+  /* status pill: the word on a tinted ground (fleet rows, inbox, Slack cards) */
+  .spill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 7px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
+  .spill.running { background: var(--ok-soft); color: var(--ok); }
+  .spill.awaiting { background: var(--warn-soft); color: var(--warn); }
+  .spill.blocked { background: var(--danger-soft); color: var(--danger); }
+  .spill.paused { background: var(--surface-3); color: var(--ink-2); }
+  .spill.idle { background: transparent; border: 1px solid var(--line); color: var(--ink-3); }
+  .spill .sd { --s: 7px; }
+  :root[data-theme="dark"] .spill.running, :root[data-theme="dark"] .spill.awaiting, :root[data-theme="dark"] .spill.blocked { color: var(--ink); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .spill.running, :root:not([data-theme="light"]) .spill.awaiting, :root:not([data-theme="light"]) .spill.blocked { color: var(--ink); } }
+
+  /* ---------- 2. pending count ---------- */
+  .count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--apricot-deep); color: #2A3244; font: 600 11.5px/1 var(--mono); font-variant-numeric: tabular-nums; flex: none; }
+  .count.xs { min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
+  .count.sm { min-width: 18px; height: 18px; padding: 0 5px; font-size: 11px; }
+  .count.lg { min-width: 24px; height: 24px; padding: 0 8px; font-size: 13px; }
+  .navy .count { background: var(--apricot); }
+  .count.pop { animation: pop .36s cubic-bezier(.3,1.4,.4,1) both; }
+  .slot { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: var(--radius-full); border: 1px dashed var(--line); color: var(--ink-3); font: 10px var(--mono); padding: 0 5px; }
+  .navy .slot { border-color: var(--rail-line); color: var(--rail-muted); }
+  .quiet { color: var(--ink-3); font-size: 13px; } .navy .quiet { color: var(--rail-muted); }
+  /* count at an avatar corner and in a title */
+  .av { position: relative; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: var(--ink); font: 600 11px var(--font); flex: none; }
+  .av.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); color: #fff; }
+  .av.lg { width: 36px; height: 36px; font-size: 13px; }
+  .av .count, .av .sd { position: absolute; right: -4px; bottom: -3px; box-shadow: 0 0 0 2px var(--surface); }
+  .av .sd { right: -1px; bottom: -1px; }
+  .navy .av .count, .navy .av .sd { box-shadow: 0 0 0 2px var(--rail); }
+  .navy .av { background: var(--rail-2); color: var(--rail-fg); }
+  .ttl { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: center; gap: 10px; }
+  .ttl.lg { font-size: 26px; }
+  .tabs { display: inline-flex; gap: 2px; background: var(--surface-2); padding: 3px; border-radius: var(--radius-full); }
+  .tabs span { display: inline-flex; align-items: center; gap: 7px; padding: 4px 12px; border-radius: var(--radius-full); font: 500 12.5px var(--font); color: var(--ink-2); }
+  .tabs span.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+  .railitem { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); font-size: 14px; width: 240px; }
+  .railitem .count { margin-left: auto; }
+  .railitem.active { background: var(--rail-active); }
+
+  /* ---------- 3. Solo / Team / Planning ---------- */
+  .pill, .crewchip, .spill, .sw { white-space: nowrap; }
+  .pill.xs { height: 18px; padding: 0 7px; font-size: 10.5px; } .pill.md { height: 26px; padding: 0 11px; font-size: 12.5px; }
+  .pill .ic { width: 11px; height: 11px; } .pill.md .ic { width: 13px; height: 13px; }
+  .pill.planning { background: var(--apricot-soft); color: var(--ink); }
+  .pill.planning .sd { --s: 7px; background: var(--apricot-deep); box-shadow: 0 0 0 2.5px var(--apricot-soft); animation: pulse 2.2s ease-in-out -1.5s infinite; }
+  .navy .pill.planning { background: rgba(226,196,166,0.18); color: var(--apricot); }
+  .pill .stack { margin-left: 2px; } .pill .stack .avatar { width: 16px; height: 16px; font-size: 7.5px; border-width: 1.5px; border-color: var(--apricot); background: #56352D; color: #FFF8F1; }
+  .pill .stack .avatar + .avatar { margin-left: -5px; }
+  .xfade { display: inline-flex; align-items: center; gap: 10px; }
+  .xfade .arrow { color: var(--ink-3); font: 12px var(--mono); }
+  .pill.mid { background: color-mix(in srgb, var(--apricot) 50%, transparent); color: var(--ink-2); border: 1px solid color-mix(in srgb, var(--line) 50%, transparent); }
+  .planline { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); }
+  .planline .serif { font-size: 15px; color: var(--accent); font-style: italic; }
+  .pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .pdot.proposed, .pdot.revise { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+  .pdot.approved, .pdot.done { background: var(--ok); } .pdot.rejected { background: var(--danger); }
+
+  /* ---------- 4. crews ---------- */
+  .crewlab { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+  .crewlab::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot-deep); flex: none; }
+  .crewlab .serif { font-size: 15px; color: var(--accent); }
+  .crewlab.lg .serif { font-size: 20px; } .crewlab.lg::before { width: 12px; height: 12px; border-width: 2.5px; }
+  .crewlab.xs { font-size: 11px; gap: 6px; } .crewlab.xs .serif { font-size: 13px; } .crewlab.xs::before { width: 7px; height: 7px; border-width: 1.5px; }
+  .navy .crewlab { color: var(--rail-muted); } .navy .crewlab .serif { color: var(--apricot); } .navy .crewlab::before { border-color: var(--apricot); }
+  .crewchip { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 11px 0 9px; border-radius: var(--radius-full); background: var(--surface-2); font-size: 13px; color: var(--ink-2); }
+  .crewchip::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot-deep); }
+  .crewchip .serif { font-size: 15px; color: var(--ink); }
+  .crewchip .n { font: 11.5px var(--mono); color: var(--ink-3); }
+  .crewchip.on { background: var(--apricot-soft); }
+  .crewchip.solo::before { border-style: dashed; border-color: var(--ink-3); }
+  .withline { font-size: 13px; color: var(--ink-2); } .withline i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 15px; }
+  .navy .withline { color: var(--rail-muted); } .navy .withline i { color: var(--apricot); }
+
+  /* ---------- 5. in context ---------- */
+  .ctx .below { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 390px; gap: 18px; align-items: start; }
+  .sec > div.ctx { display: grid; grid-template-columns: 296px 1fr; gap: 18px; align-items: start; }
+  .railbox { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius-lg); padding: 14px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow-soft); }
+  .railbox .crew { padding: 10px 12px 4px; }
+  .railbox .agent .head .t { font-family: var(--serif); font-size: 16px; font-weight: 400; }
+  .railbox .agent .foot .tok { margin-left: auto; font: 11.5px var(--mono); color: var(--rail-muted); }
+  .railbox .agent .foot .tok.warn { color: #E2B06A; }
+  .railbox .agent.closed { opacity: .62; }
+  .railbox .me-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; font-size: 14px; }
+  .railbox .me-row .count { margin-left: auto; }
+  .stackc { display: flex; flex-direction: column; gap: 18px; }
+  .bar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .bar .ttl > span:first-child { white-space: nowrap; }
+  .bar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .fleet { display: flex; flex-direction: column; }
+  .fleet .fr { display: grid; grid-template-columns: 132px 1fr auto auto; gap: 14px; align-items: center; padding: 11px 20px; border-top: 1px solid var(--line); font-size: 14px; }
+  .fleet .fr .who { display: flex; align-items: center; gap: 9px; font-family: var(--serif); font-size: 16px; }
+  .fleet .fr .goal { color: var(--ink-2); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fleet .fr .goal i { font-family: var(--serif); color: var(--accent); font-size: 15px; }
+  .fleet .fh { display: flex; align-items: center; gap: 10px; padding: 10px 20px 8px; }
+  .fleet .fh .n { margin-left: auto; font: 12px var(--mono); color: var(--ink-3); }
+  .inbox { display: flex; flex-direction: column; }
+  .inbox .ir { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; padding: 11px 20px; border-top: 1px solid var(--line); }
+  .inbox .ir .t { font-size: 14px; } .inbox .ir .t b { font-family: var(--serif); font-weight: 400; font-size: 16px; }
+  .inbox .ir .s { font-size: 12.5px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .phonebox { width: 390px; border-radius: 28px; border: 1px solid var(--line); background: var(--canvas); overflow: hidden; box-shadow: var(--shadow-soft); }
+  .phonebox .ph { padding: 14px 18px 8px; display: flex; align-items: center; gap: 10px; }
+  .phonebox .ph .serif { font-size: 22px; }
+  .phonebox .ph .count { margin-left: auto; }
+  .mrow { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--line); }
+  .mrow .t { font-family: var(--serif); font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .mrow .s { font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .mrow .r { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .mrow .r .tok { font: 11.5px var(--mono); color: var(--ink-3); }
+  @media (max-width: 900px) { .sec { grid-template-columns: 1fr; } .two, .three, .rules, .ctx { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="board">
+
+  <!-- masthead -->
+  <header class="masthead">
+    <svg class="mark" viewBox="0 0 96 96" width="56" height="56" aria-hidden="true">
+      <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+      <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="7"/>
+    </svg>
+    <div>
+      <h1>Badges and status words</h1>
+      <p>Five words say what an agent is doing, one apricot number says what waits for you, one pill says who is in the room, one says the plan is not approved yet, and a ring in serif names the crew. Each has four sizes and lives on cream and on navy. Nothing else in the product gets a badge.</p>
+    </div>
+    <div class="meta">system · badges-status<br>tokens.css v5 · Payments team<br>light + dark</div>
+  </header>
+
+  <!-- 1. the five status words -->
+  <section class="sec">
+    <aside>
+      <h2>The five status words</h2>
+      <p>Running, Awaiting approval, Blocked, Paused, Idle: the same word in the rail dot, the top row, the fleet rows and Slack. A dot never appears without its word nearby, and the word is never coloured: the dot carries the colour, the text stays ink.</p>
+      <div class="k">dot xs 6 · sm 8 · md 10 · lg 12<br>halo = dot × .38 (running, awaiting)<br>word 12 / 13 / 14 / 15 Instrument Sans<br>pill 22 high, 11.5 semibold</div>
+    </aside>
+    <div>
+      <div class="two">
+        <div class="sheet">
+          <div class="cap">On cream <span class="n">canvas · status tokens</span></div>
+          <div class="grid">
+            <div class="hd" style="grid-template-columns: 128px 30px 1fr 150px;"><span>word</span><span>dot</span><span>sm · 13</span><span>pill</span></div>
+            <div class="row" style="grid-template-columns: 128px 30px 1fr 150px;"><div class="lbl"><b>Running</b>agent at work</div><span class="sd lg running"></span><span class="sw"><span class="sd running"></span>Running</span><span class="spill running"><span class="sd running"></span>Running</span></div>
+            <div class="row" style="grid-template-columns: 128px 30px 1fr 150px;"><div class="lbl"><b>Awaiting approval</b>a tool call waits</div><span class="sd lg awaiting"></span><span class="sw"><span class="sd awaiting"></span>Awaiting approval</span><span class="spill awaiting"><span class="sd awaiting"></span>Awaiting approval</span></div>
+            <div class="row" style="grid-template-columns: 128px 30px 1fr 150px;"><div class="lbl"><b>Blocked</b>cannot go on alone</div><span class="sd lg blocked"></span><span class="sw"><span class="sd blocked"></span>Blocked</span><span class="spill blocked"><span class="sd blocked"></span>Blocked</span></div>
+            <div class="row" style="grid-template-columns: 128px 30px 1fr 150px;"><div class="lbl"><b>Paused</b>a person held it</div><span class="sd lg paused"></span><span class="sw"><span class="sd paused"></span>Paused</span><span class="spill paused"><span class="sd paused"></span>Paused</span></div>
+            <div class="row" style="grid-template-columns: 128px 30px 1fr 150px;"><div class="lbl"><b>Idle</b>nothing owed</div><span class="sd lg idle"></span><span class="sw"><span class="sd idle"></span>Idle</span><span class="spill idle"><span class="sd idle"></span>Idle</span></div>
+          </div>
+        </div>
+        <div class="sheet navy">
+          <div class="cap">On navy <span class="n">rail · titlebar · dark canvas</span></div>
+          <div class="grid">
+            <div class="hd" style="grid-template-columns: 118px 30px 1fr 1fr;"><span>word</span><span>dot</span><span>sm · 13</span><span>md · 14</span></div>
+            <div class="row" style="grid-template-columns: 118px 30px 1fr 1fr;"><div class="lbl"><b>Running</b>#9BC88F · pulses</div><span class="sd lg running"></span><span class="sw"><span class="sd running"></span>Running</span><span class="sw md"><span class="sd md running"></span>Running</span></div>
+            <div class="row" style="grid-template-columns: 118px 30px 1fr 1fr;"><div class="lbl"><b>Awaiting approval</b>#E2B06A · halo, still</div><span class="sd lg awaiting"></span><span class="sw"><span class="sd awaiting"></span>Awaiting approval</span><span class="sw md"><span class="sd md awaiting"></span>Awaiting approval</span></div>
+            <div class="row" style="grid-template-columns: 118px 30px 1fr 1fr;"><div class="lbl"><b>Blocked</b>#E2847A · no halo</div><span class="sd lg blocked"></span><span class="sw"><span class="sd blocked"></span>Blocked</span><span class="sw md"><span class="sd md blocked"></span>Blocked</span></div>
+            <div class="row" style="grid-template-columns: 118px 30px 1fr 1fr;"><div class="lbl"><b>Paused</b>rail-muted disc</div><span class="sd lg paused"></span><span class="sw"><span class="sd paused"></span>Paused</span><span class="sw md"><span class="sd md paused"></span>Paused</span></div>
+            <div class="row" style="grid-template-columns: 118px 30px 1fr 1fr;"><div class="lbl"><b>Idle</b>hollow ring</div><span class="sd lg idle"></span><span class="sw"><span class="sd idle"></span>Idle</span><span class="sw md"><span class="sd md idle"></span>Idle</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="two">
+        <div class="sheet">
+          <div class="cap">After the five <span class="n">quieter, never pinned</span></div>
+          <div class="grid">
+            <div class="row" style="grid-template-columns: 128px 30px 1fr;"><div class="lbl"><b>Cancelled</b>a person stopped it</div><span class="sd lg cancelled"></span><span class="sw after"><span class="sd cancelled"></span>Cancelled · by Dee, 14:02</span></div>
+            <div class="row" style="grid-template-columns: 128px 30px 1fr;"><div class="lbl"><b>Closed</b>done and put away</div><span class="sd lg closed"></span><span class="sw after"><span class="sd closed"></span>Closed · United pdf-layout into main</span></div>
+            <div class="row" style="grid-template-columns: 128px 30px 1fr;"><div class="lbl"><b>Offline</b>runner unreachable</div><span class="sd lg offline"></span><span class="sw after"><span class="sd offline"></span>Offline · last seen 09:40</span></div>
+          </div>
+        </div>
+        <div class="sheet">
+          <div class="cap">Every dot size <span class="n">one drawing, scaled</span></div>
+          <div class="grid">
+            <div class="row" style="grid-template-columns: 150px 1fr;"><div class="lbl"><b>xs · 6</b>avatar corner</div><div class="cell" style="gap:18px"><span class="av">A<span class="sd xs running"></span></span><span class="av">B<span class="sd xs awaiting"></span></span><span class="av agent">C<span class="sd xs blocked"></span></span><span class="av">D<span class="sd xs idle"></span></span><span class="sw sm"><span class="sd xs running"></span>Running</span></div></div>
+            <div class="row" style="grid-template-columns: 150px 1fr;"><div class="lbl"><b>sm · 8</b>rail card, inbox line</div><div class="cell" style="gap:18px"><span class="sd running"></span><span class="sd awaiting"></span><span class="sd blocked"></span><span class="sd paused"></span><span class="sd idle"></span><span class="sw"><span class="sd running"></span>Running</span></div></div>
+            <div class="row" style="grid-template-columns: 150px 1fr;"><div class="lbl"><b>md · 10</b>top row, fleet row</div><div class="cell" style="gap:18px"><span class="sd md running"></span><span class="sd md awaiting"></span><span class="sd md blocked"></span><span class="sd md paused"></span><span class="sd md idle"></span><span class="sw md"><span class="sd md running"></span>Running</span></div></div>
+            <div class="row" style="grid-template-columns: 150px 1fr;"><div class="lbl"><b>lg · 12</b>project header, overview</div><div class="cell" style="gap:18px"><span class="sd lg running"></span><span class="sd lg awaiting"></span><span class="sd lg blocked"></span><span class="sd lg paused"></span><span class="sd lg idle"></span><span class="sw lg"><span class="sd lg running"></span>Running</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. pending counts -->
+  <section class="sec">
+    <aside>
+      <h2>Pending counts</h2>
+      <p>One number, in mono, on solid apricot with navy ink, means "this many things wait for you". It is absent at zero, pops when it changes, caps at 99+, and it is the only solid apricot thing in the frame. Unread chats use the same number; nothing else does.</p>
+      <div class="k">xs 16 · sm 18 · md 20 · lg 24<br>JetBrains Mono 600, tabular<br>fill apricot-deep on cream,<br>apricot on navy · ink #2A3244</div>
+    </aside>
+    <div>
+      <div class="two">
+        <div class="sheet">
+          <div class="cap">Sizes and values <span class="n">cream</span></div>
+          <div class="grid">
+            <div class="hd" style="grid-template-columns: 110px 1fr 1fr 1fr 1fr 1fr;"><span>size</span><span>0</span><span>1</span><span>3</span><span>12</span><span>99+</span></div>
+            <div class="row" style="grid-template-columns: 110px 1fr 1fr 1fr 1fr 1fr;"><div class="lbl"><b>xs · 16</b></div><span class="slot">—</span><span class="count xs">1</span><span class="count xs">3</span><span class="count xs">12</span><span class="count xs">99+</span></div>
+            <div class="row" style="grid-template-columns: 110px 1fr 1fr 1fr 1fr 1fr;"><div class="lbl"><b>sm · 18</b></div><span class="slot">—</span><span class="count sm">1</span><span class="count sm">3</span><span class="count sm">12</span><span class="count sm">99+</span></div>
+            <div class="row" style="grid-template-columns: 110px 1fr 1fr 1fr 1fr 1fr;"><div class="lbl"><b>md · 20</b></div><span class="slot">—</span><span class="count">1</span><span class="count">3</span><span class="count">12</span><span class="count">99+</span></div>
+            <div class="row" style="grid-template-columns: 110px 1fr 1fr 1fr 1fr 1fr;"><div class="lbl"><b>lg · 24</b></div><span class="slot">—</span><span class="count lg">1</span><span class="count lg">3</span><span class="count lg">12</span><span class="count lg">99+</span></div>
+          </div>
+        </div>
+        <div class="sheet navy">
+          <div class="cap">On navy <span class="n">rail · tray · titlebar</span></div>
+          <div class="grid">
+            <div class="row" style="grid-template-columns: 110px 1fr;"><div class="lbl"><b>rail item</b>pinned, md</div><div class="cell"><span class="railitem active"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12l3-7h12l3 7v7H3z"/><path d="M3 12h5l2 3h4l2-3h5"/></svg>Inbox<span class="count pop">3</span></span></div></div>
+            <div class="row" style="grid-template-columns: 110px 1fr;"><div class="lbl"><b>rail item</b>zero: absent</div><div class="cell"><span class="railitem"><svg class="ic" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Approvals<span class="slot">—</span></span></div></div>
+            <div class="row" style="grid-template-columns: 110px 1fr;"><div class="lbl"><b>avatar corner</b>xs</div><div class="cell" style="gap:16px"><span class="av">A<span class="count xs">2</span></span><span class="av agent">C<span class="count xs">1</span></span><span class="av lg">B<span class="count sm">12</span></span><span class="quiet">collapsed rail at 72px</span></div></div>
+            <div class="row" style="grid-template-columns: 110px 1fr;"><div class="lbl"><b>section</b>uppercase + n</div><div class="cell" style="gap:10px"><span style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rail-muted)">Chats</span><span class="count sm">5</span></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="sheet">
+        <div class="cap">Where the number lives <span class="n">title · tab · sentence · tray</span></div>
+        <div class="grid">
+          <div class="row" style="grid-template-columns: 150px 1fr 1fr;">
+            <div class="lbl"><b>page title</b>lg, after the serif</div>
+            <div class="cell"><span class="ttl lg">Approvals <span class="count lg">3</span></span></div>
+            <div class="cell"><span class="ttl">Inbox <span class="count">12</span></span></div>
+          </div>
+          <div class="row" style="grid-template-columns: 150px 1fr 1fr;">
+            <div class="lbl"><b>tab</b>sm, trailing</div>
+            <div class="cell"><span class="tabs"><span class="on">Needs you <span class="count sm">3</span></span><span>Running</span><span>All</span></span></div>
+            <div class="cell"><span class="tabs"><span>People</span><span class="on">Chat <span class="count sm">2</span></span></span></div>
+          </div>
+          <div class="row" style="grid-template-columns: 150px 1fr 1fr;">
+            <div class="lbl"><b>in a sentence</b>no badge, plain words</div>
+            <div class="cell note"><b>3 things need you.</b> 2 approvals waiting in Billing page · 1 handoff from Bo.</div>
+            <div class="cell note">The plan waits for <b>two ratings</b>. Ana rated it 4.</div>
+          </div>
+          <div class="row" style="grid-template-columns: 150px 1fr 1fr;">
+            <div class="lbl"><b>desktop tray</b>xs on the mark</div>
+            <div class="cell" style="gap:18px">
+              <span style="position:relative;display:inline-grid"><svg class="mark" viewBox="0 0 96 96" width="24" height="24" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="count xs" style="position:absolute;right:-7px;top:-5px;box-shadow:0 0 0 2px var(--surface)">3</span></span>
+              <span class="quiet">the dot of the mark is apricot too, so the count sits off the disc, never on it</span>
+            </div>
+            <div class="cell" style="gap:12px"><span class="count pop">4</span><span class="quiet">pop .36s on change · calm mode: no motion</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Solo, Team, Planning -->
+  <section class="sec">
+    <aside>
+      <h2>Solo, Team, Planning</h2>
+      <p>The Solo pill is an outline: nobody else is here. The Team pill is apricot: people are in the session, and it can carry who. Planning is the one pill a session wears in its top row while the plan waits; it is apricot-soft, not solid, because nothing waits for <em>you</em> unless the number says so.</p>
+      <div class="k">xs 18 · sm 22 · md 26<br>11.5 semibold, .02em<br>Team: apricot fill, chocolate ink<br>Solo: 1px line, ink-2<br>Planning: apricot-soft, ink</div>
+    </aside>
+    <div>
+      <div class="two">
+        <div class="sheet">
+          <div class="cap">On cream <span class="n">card foot · fleet row · drawer</span></div>
+          <div class="grid">
+            <div class="hd" style="grid-template-columns: 90px 1fr 1fr 1fr;"><span>size</span><span>Solo</span><span>Team</span><span>Planning</span></div>
+            <div class="row" style="grid-template-columns: 90px 1fr 1fr 1fr;"><div class="lbl"><b>xs · 18</b></div><span class="cell"><span class="pill solo xs">Solo</span></span><span class="cell"><span class="pill team xs">Team</span></span><span class="cell"><span class="pill planning xs"><span class="sd"></span>Planning</span></span></div>
+            <div class="row" style="grid-template-columns: 90px 1fr 1fr 1fr;"><div class="lbl"><b>sm · 22</b></div><span class="cell"><span class="pill solo">Solo</span></span><span class="cell"><span class="pill team">Team</span></span><span class="cell"><span class="pill planning"><span class="sd"></span>Planning</span></span></div>
+            <div class="row" style="grid-template-columns: 90px 1fr 1fr 1fr;"><div class="lbl"><b>md · 26</b></div><span class="cell"><span class="pill solo md">Solo</span></span><span class="cell"><span class="pill team md">Team</span></span><span class="cell"><span class="pill planning md"><span class="sd"></span>Planning</span></span></div>
+            <div class="row" style="grid-template-columns: 90px 1fr 1fr 1fr;"><div class="lbl"><b>with who</b>sm + stack</div><span class="cell"><span class="pill solo">Solo <span class="quiet" style="font-weight:400">· Ana</span></span></span><span class="cell"><span class="pill team">Team<span class="stack"><span class="avatar">A</span><span class="avatar">B</span><span class="avatar">D</span></span></span></span><span class="cell"><span class="pill planning"><span class="sd"></span>Planning · 1 of 2</span></span></div>
+          </div>
+        </div>
+        <div class="sheet navy">
+          <div class="cap">On navy <span class="n">rail card foot</span></div>
+          <div class="grid">
+            <div class="row" style="grid-template-columns: 90px 1fr 1fr 1fr;"><div class="lbl"><b>xs · 18</b></div><span class="cell"><span class="pill solo xs">Solo</span></span><span class="cell"><span class="pill team xs">Team</span></span><span class="cell"><span class="pill planning xs"><span class="sd"></span>Planning</span></span></div>
+            <div class="row" style="grid-template-columns: 90px 1fr 1fr 1fr;"><div class="lbl"><b>sm · 22</b></div><span class="cell"><span class="pill solo">Solo</span></span><span class="cell"><span class="pill team">Team</span></span><span class="cell"><span class="pill planning"><span class="sd"></span>Planning</span></span></div>
+            <div class="row" style="grid-template-columns: 90px 1fr 1fr 1fr;"><div class="lbl"><b>md · 26</b></div><span class="cell"><span class="pill solo md">Solo</span></span><span class="cell"><span class="pill team md">Team</span></span><span class="cell"><span class="pill planning md"><span class="sd"></span>Planning</span></span></div>
+            <div class="row" style="grid-template-columns: 90px 1fr;"><div class="lbl"><b>with who</b></div><span class="cell" style="gap:14px"><span class="pill team">Team<span class="stack"><span class="avatar">A</span><span class="avatar">B</span></span></span><span class="withline">with <i>Ana</i> and <i>Bo</i></span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="two">
+        <div class="sheet">
+          <div class="cap">The Team pill crossfades <span class="n">240ms · Bo joins Ana's session</span></div>
+          <div class="grid">
+            <div class="row" style="grid-template-columns: 1fr;"><span class="xfade"><span class="pill solo">Solo</span><span class="arrow">→ 120ms</span><span class="pill mid">Team</span><span class="arrow">→ 240ms</span><span class="pill team">Team<span class="stack"><span class="avatar">B</span></span></span><span class="arrow">· the avatar ripples once</span></span></div>
+            <div class="row" style="grid-template-columns: 1fr;"><span class="note">Back to Solo when the last person leaves: the same fade, no ripple. Calm mode and reduced motion cut straight.</span></div>
+          </div>
+        </div>
+        <div class="sheet">
+          <div class="cap">Plan words <span class="n">plan card progress line</span></div>
+          <div class="grid">
+            <div class="row" style="grid-template-columns: 1fr 1fr;">
+              <span class="planline"><span class="pdot proposed"></span>1 of 2 ratings · 4 average · <span class="serif">waiting</span></span>
+              <span class="planline"><span class="pdot approved"></span>2 of 2 ratings · 4.5 average · <span class="serif">approved</span></span>
+            </div>
+            <div class="row" style="grid-template-columns: 1fr 1fr;">
+              <span class="planline"><span class="pdot revise"></span><span class="serif">revision asked</span> · by Dee</span>
+              <span class="planline"><span class="pdot rejected"></span><span class="serif">rejected</span> · by Ana</span>
+            </div>
+            <div class="row" style="grid-template-columns: 1fr;">
+              <span class="planline"><span class="pill planning"><span class="sd"></span>Planning</span><span>in the top row ·</span><span class="serif">The plan waits for ratings</span><span>under the composer</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. crews -->
+  <section class="sec">
+    <aside>
+      <h2>Crews</h2>
+      <p>A crew is a name two or more agents share, so it is set in serif, like every name, behind a hollow apricot ring. The ring is the mark's own ring without a centre: a circle people and agents stand in, with nothing in it yet. Solo agents get a dashed ring and no name.</p>
+      <div class="k">ring 7 / 9 / 12, stroke 1.5 / 2 / 2.5<br>name 13 / 15 / 20 Instrument Serif<br>count in mono after the name<br>chip 28 high · on = apricot-soft</div>
+    </aside>
+    <div>
+      <div class="two">
+        <div class="sheet">
+          <div class="cap">Crew label <span class="n">three sizes</span></div>
+          <div class="grid">
+            <div class="row" style="grid-template-columns: 120px 1fr;"><div class="lbl"><b>xs · 13</b>card foot, inbox</div><span class="crewlab xs"><span class="serif">Invoice rollout</span></span></div>
+            <div class="row" style="grid-template-columns: 120px 1fr;"><div class="lbl"><b>sm · 15</b>rail group</div><span class="crewlab"><span class="serif">Invoice rollout</span><span class="mono" style="font-size:11.5px">2</span></span></div>
+            <div class="row" style="grid-template-columns: 120px 1fr;"><div class="lbl"><b>lg · 20</b>project page</div><span class="crewlab lg"><span class="serif">Invoice rollout</span><span class="mono" style="font-size:12px">2 agents · 3 people</span></span></div>
+            <div class="row" style="grid-template-columns: 120px 1fr;"><div class="lbl"><b>chip</b>filter, Team up</div><div class="cell" style="gap:10px;flex-wrap:wrap"><span class="crewchip on"><span class="serif">Invoice rollout</span><span class="n">2</span></span><span class="crewchip"><span class="serif">Checkout</span><span class="n">3</span></span><span class="crewchip solo"><span>Solo</span><span class="n">4</span></span></div></div>
+          </div>
+        </div>
+        <div class="sheet navy">
+          <div class="cap">On navy <span class="n">rail · the crew is a group header</span></div>
+          <div class="grid">
+            <div class="row" style="grid-template-columns: 120px 1fr;"><div class="lbl"><b>sm · 15</b>group header</div><span class="crewlab"><span class="serif">Invoice rollout</span><span class="mono" style="font-size:11.5px;color:var(--rail-muted)">2</span></span></div>
+            <div class="row" style="grid-template-columns: 120px 1fr;"><div class="lbl"><b>xs · 13</b>in a card foot</div><div class="cell" style="gap:10px"><span class="pill team">Team</span><span class="crewlab xs"><span class="serif">Invoice rollout</span></span><span class="withline">with <i>Bo</i></span></div></div>
+            <div class="row" style="grid-template-columns: 120px 1fr;"><div class="lbl"><b>solo</b>dashed, no name</div><div class="cell" style="gap:10px"><span class="crewchip solo" style="background:var(--rail-2);color:var(--rail-muted)"><span>Solo</span><span class="n">4</span></span><span class="quiet">solos follow the crews, never inside one</span></div></div>
+            <div class="row" style="grid-template-columns: 120px 1fr;"><div class="lbl"><b>handoff</b>serif baton line</div><span class="withline"><i>Bo</i> has the baton · <i>Cy</i> offered it 2 min ago</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. in context -->
+  <section class="sec">
+    <aside>
+      <h2>Together</h2>
+      <p>The same five things placed where they live: a rail card, the top row of a session, three fleet rows, two inbox lines and a mobile rail row. Count how many colours are on the page: green, amber, coral for state, apricot for what waits or who is here, and nothing else.</p>
+      <div class="k">rail 296 · top row 56<br>fleet row 44 · inbox row 58<br>mobile row 62 at 390</div>
+    </aside>
+    <div class="ctx">
+      <div class="railbox">
+        <div class="crew"><span class="serif">Invoice rollout</span><span class="mono" style="font-size:11.5px">2</span></div>
+        <a class="agent active" href="#">
+          <div class="head"><span class="sd awaiting"></span><span class="t">Ana's agent</span><span class="count sm pop">2</span></div>
+          <div class="doing">waiting on <i>write invoice.pdf layout</i></div>
+          <div class="foot"><span class="pill team">Team</span><span class="withline">with <i>Bo</i></span><span class="tok warn">48.1k</span></div>
+        </a>
+        <a class="agent" href="#">
+          <div class="head"><span class="sd running"></span><span class="t">Bo's agent</span></div>
+          <div class="doing">working on <i>tax lines per region</i></div>
+          <div class="foot"><span class="pill team">Team</span><span class="withline">with <i>Ana</i></span><span class="tok">12.4k</span></div>
+        </a>
+        <div class="crew"><span class="serif">Checkout</span><span class="mono" style="font-size:11.5px">1</span></div>
+        <a class="agent" href="#">
+          <div class="head"><span class="sd blocked"></span><span class="t">Cy's agent</span><span class="count sm">1</span></div>
+          <div class="doing">blocked on <i>proration policy for mid-cycle upgrades</i></div>
+          <div class="foot"><span class="pill solo">Solo</span><span class="tok">31.0k</span></div>
+        </a>
+        <div class="rail section" style="padding:12px 12px 4px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rail-muted);display:flex;gap:8px;background:transparent;width:auto;height:auto">Solo</div>
+        <a class="agent" href="#">
+          <div class="head"><span class="sd paused"></span><span class="t">Dee's agent</span><span class="pill planning xs"><span class="sd"></span>Planning</span></div>
+          <div class="doing">paused on <i>Billing page empty state</i></div>
+          <div class="foot"><span class="pill solo">Solo</span><span class="tok">3.2k</span></div>
+        </a>
+        <a class="agent closed" href="#">
+          <div class="head"><span class="sd closed"></span><span class="t">Dee's agent</span></div>
+          <div class="doing">last <i>United pdf-layout into main</i></div>
+          <div class="foot"><span class="pill solo">Solo</span><span class="tok">9.7k</span></div>
+        </a>
+        <div class="me-row"><span class="av">A</span>Ana<span class="count sm">3</span></div>
+      </div>
+      <div class="stackc">
+        <div class="sheet">
+          <div class="bar"><span class="ttl"><span>Invoice PDF</span><span class="sw"><span class="sd awaiting"></span>Awaiting approval</span><span class="pill team">Team<span class="stack"><span class="avatar">A</span><span class="avatar">B</span></span></span><span class="crewlab xs"><span class="serif">Invoice rollout</span></span></span><span class="right"><span class="count">2</span><span class="btn sm">Details</span></span></div>
+          <div class="bar" style="border-bottom:0"><span class="ttl"><span>Billing page empty state</span><span class="sw"><span class="sd paused"></span>Paused</span><span class="pill planning"><span class="sd"></span>Planning</span><span class="pill solo">Solo</span></span><span class="right"><span class="btn sm">Details</span></span></div>
+        </div>
+        <div class="sheet">
+          <div class="fleet">
+            <div class="fh"><span class="crewlab"><span class="serif">Invoice rollout</span></span><span class="n">2 sessions · 60.5k</span></div>
+            <div class="fr"><span class="who"><span class="av">A</span>Ana</span><span class="goal">waiting on <i>write invoice.pdf layout</i></span><span class="spill awaiting"><span class="sd awaiting"></span>Awaiting approval</span><span class="count sm">2</span></div>
+            <div class="fr"><span class="who"><span class="av">B</span>Bo</span><span class="goal">working on <i>tax lines per region</i></span><span class="spill running"><span class="sd running"></span>Running</span><span class="slot">—</span></div>
+            <div class="fh" style="border-top:1px solid var(--line)"><span class="crewlab"><span class="serif">Checkout</span></span><span class="n">1 session · 31.0k</span></div>
+            <div class="fr"><span class="who"><span class="av">C</span>Cy</span><span class="goal">blocked on <i>proration policy for mid-cycle upgrades</i></span><span class="spill blocked"><span class="sd blocked"></span>Blocked</span><span class="count sm">1</span></div>
+          </div>
+        </div>
+      </div>
+        <div class="below">
+          <div class="sheet">
+            <div class="inbox">
+              <div class="fh"><span class="ttl">Needs you <span class="count">3</span></span><span class="n">Payments</span></div>
+              <div class="ir"><span class="av agent lg">A<span class="count xs">2</span></span><div><div class="t"><b>Ana's agent</b> asks to write invoice.pdf</div><div class="s"><span class="sw sm"><span class="sd awaiting"></span>Awaiting approval</span><span class="crewlab xs"><span class="serif">Invoice rollout</span></span><span>· 2 min</span></div></div><span class="btn sm primary">Rate</span></div>
+              <div class="ir"><span class="av lg">B<span class="sd xs running"></span></span><div><div class="t"><b>Bo</b> offers you the baton</div><div class="s"><span class="sw sm"><span class="sd running"></span>Running</span><span class="pill team xs">Team</span><span>· 9 min</span></div></div><span class="btn sm">Accept</span></div>
+            </div>
+          </div>
+          <div class="phonebox">
+            <div class="ph"><span class="serif">Agents</span><span class="count">3</span></div>
+            <div class="mrow"><span class="av agent lg">A<span class="sd xs awaiting"></span></span><div><div class="t">Ana's agent <span class="count xs">2</span></div><div class="s"><span class="pill team xs">Team</span><span class="crewlab xs"><span class="serif">Invoice rollout</span></span></div></div><div class="r"><span class="sw sm"><span class="sd awaiting"></span>Awaiting</span><span class="tok">48.1k</span></div></div>
+            <div class="mrow"><span class="av agent lg">C<span class="sd xs blocked"></span></span><div><div class="t">Cy's agent <span class="count xs">1</span></div><div class="s"><span class="pill solo xs">Solo</span><span class="crewlab xs"><span class="serif">Checkout</span></span></div></div><div class="r"><span class="sw sm"><span class="sd blocked"></span>Blocked</span><span class="tok">31.0k</span></div></div>
+            <div class="mrow"><span class="av agent lg">D<span class="sd xs paused"></span></span><div><div class="t">Dee's agent</div><div class="s"><span class="pill planning xs"><span class="sd"></span>Planning</span><span class="pill solo xs">Solo</span></div></div><div class="r"><span class="sw sm"><span class="sd paused"></span>Paused</span><span class="tok">3.2k</span></div></div>
+          </div>
+        </div>
+    </div>
+  </section>
+
+  <!-- 6. rules -->
+  <section class="sec">
+    <aside>
+      <h2>Rules</h2>
+      <p>What keeps the page calm. Anything that bends one of these needs a reason in its notes.</p>
+    </aside>
+    <div>
+      <ol class="rules">
+        <li><span class="n">1</span><span>Five words and no synonyms: Running, Awaiting approval, Blocked, Paused, Idle. "Awaiting" alone is allowed only at 390 wide.</span></li>
+        <li><span class="n">2</span><span>Colour lives in the dot, never in the word. Words are ink or ink-2; on navy, rail-fg or rail-muted.</span></li>
+        <li><span class="n">3</span><span>Only Running moves. Awaiting approval has a halo and holds still. Calm mode stills everything.</span></li>
+        <li><span class="n">4</span><span>Solid apricot means one thing: a count of what waits for you. It is absent at zero; never "0".</span></li>
+        <li><span class="n">5</span><span>A number counts things you can act on. Unread chats count; tokens, people and steps are text, not badges.</span></li>
+        <li><span class="n">6</span><span>Team is apricot on chocolate; Solo is an outline; Planning is apricot-soft. A session wears at most one of Solo or Team and may add Planning.</span></li>
+        <li><span class="n">7</span><span>Crews are names, so they are serif with a hollow ring; the ring is never filled, that is the mark's job.</span></li>
+        <li><span class="n">8</span><span>At every size the dot keeps its drawing: filled, filled with halo, hollow, hollow and faint, dashed. Nothing is only a colour.</span></li>
+      </ol>
+    </div>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Billing page · Timeline</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  body { overflow: hidden; }
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .btn { white-space: nowrap; }
+
+  /* topbar with view tabs */
+  .topbar { position: relative; z-index: 3; }
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .status, .topbar .title .pill { font-family: var(--font); }
+  .tabs { display: inline-flex; gap: 2px; margin-left: 18px; }
+  .tabs a { padding: 6px 12px; border-radius: var(--radius-full); font-size: 13.5px; color: var(--ink-2); font-weight: 500; }
+  .tabs a.on { background: var(--apricot-soft); color: var(--ink); }
+  .tabs a:hover { text-decoration: none; background: var(--surface-2); }
+  .tokchip { display: inline-flex; flex-direction: column; gap: 4px; font: 12.5px var(--mono); color: var(--ink-2); min-width: 104px; }
+  .tokchip .budget { height: 3px; }
+
+  /* ---- the week line ---- */
+  .week { border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 55%, transparent); padding: 14px 28px 0; position: relative; z-index: 2; }
+  .week .head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 4px; }
+  .week .head h2 { font-size: 22px; }
+  .week .head .range { color: var(--ink-2); font-size: 13.5px; }
+  .week .head .legend { margin-left: auto; display: flex; gap: 16px; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .week .head .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .week .head .legend svg { width: 12px; height: 12px; }
+  .line { position: relative; height: 200px; margin: 0 24px; }
+  /* day columns */
+  .days { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(7, 1fr); }
+  .days > div { border-left: 1px dashed var(--line); position: relative; }
+  .days > div:last-child { border-right: 1px dashed var(--line); }
+  .days .d { position: absolute; left: 8px; top: 0; font-size: 12px; color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; display: flex; gap: 6px; align-items: baseline; }
+  .days .d b { font-family: var(--serif); font-size: 16px; font-weight: 400; color: var(--ink-2); letter-spacing: 0; text-transform: none; }
+  .days > div.today .d b { color: var(--accent); }
+  .days > div.today { background: linear-gradient(to right, var(--apricot-soft), transparent 70%); }
+  .days > div.quiet .d { opacity: .6; }
+  .days .cnt { position: absolute; left: 8px; top: 20px; font: 11.5px var(--mono); color: var(--ink-3); }
+  .days > div.today .cnt { color: var(--ink-2); }
+  /* the one line */
+  .rule { position: absolute; left: 0; right: 0; top: 108px; height: 2px; background: var(--ink-3); opacity: .55; }
+  .rule.ahead { left: 93.85%; opacity: .2; }
+  .rule.paused { left: 48.5%; width: 23.4%; height: 0; border-top: 2px dashed var(--ink-3); background: none; top: 108px; }
+  .rule.paused::after { content: "paused · Sat 09:40 – Mon 08:50"; position: absolute; left: 50%; top: 6px; transform: translateX(-50%); font-size: 11px; color: var(--ink-3); white-space: nowrap; background: var(--canvas); padding: 0 6px; }
+  i.turn { position: absolute; top: 102px; width: 2px; height: 14px; margin-left: -1px; background: var(--ink-3); opacity: .55; border-radius: 1px; }
+  /* marks on the line */
+  .mk { position: absolute; top: 109px; transform: translate(-50%, -50%); display: grid; place-items: center; }
+  .mk svg { width: 20px; height: 20px; display: block; }
+  .mk.ok svg { color: var(--ok); } .mk.warn svg { color: var(--warn); } .mk.gate svg { color: var(--accent); }
+  .mk.hand { width: 26px; height: 26px; border-radius: 50%; background: var(--surface); border: 2px solid var(--apricot-deep); box-shadow: 0 0 0 4px var(--canvas); }
+  .mk.hand svg { width: 14px; height: 14px; color: var(--accent); }
+  .mk.unite { width: 30px; height: 30px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ok); box-shadow: 0 0 0 4px var(--canvas); }
+  .mk.unite svg { width: 16px; height: 16px; color: var(--ok); }
+  .mk.open { width: 22px; height: 22px; border-radius: 50%; background: var(--rail); display: grid; place-items: center; box-shadow: 0 0 0 4px var(--canvas); }
+  .mk.open svg { width: 16px; height: 16px; }
+  .mk.gate { width: 30px; height: 30px; }
+  .mk.gate svg { width: 30px; height: 30px; }
+  .mk.contend svg { color: var(--warn); }
+  .mk.now { width: 14px; height: 14px; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 4px var(--apricot-soft); animation: pulse 1.6s ease-in-out infinite; }
+  .mk.now::after { content: "now · 13:40"; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--accent); white-space: nowrap; }
+  .fork { position: absolute; top: 109px; width: 10px; height: 10px; border-radius: 50%; background: var(--ink-3); transform: translate(-50%, -50%); box-shadow: 0 0 0 3px var(--canvas); }
+  /* the branch that leaves the line and comes home */
+  .branch { position: absolute; left: 19.94%; width: 57.26%; top: 109px; height: 34px; }
+  .branch svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .branch path { fill: none; stroke: var(--ok); stroke-width: 2; stroke-dasharray: 4 3; opacity: .8; }
+  .branch .lbl { position: absolute; left: 50%; top: 32px; transform: translateX(-50%); font: 11.5px var(--mono); color: var(--ok); white-space: nowrap; background: var(--canvas); padding: 0 6px; border-radius: 6px; }
+  /* plan spans above the line */
+  .span { position: absolute; top: 64px; isolation: isolate; overflow: hidden; max-width: 100%; height: 22px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); display: flex; align-items: center; gap: 7px; padding: 0 8px 0 5px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+  .span .n { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 9.5px; color: var(--ink-2); }
+  .span.done .n { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .span.running .n { border-color: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
+  .span b { font-weight: 600; color: var(--ink); }
+  .span .est { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-left: 2px; }
+  .span::after { content: ""; position: absolute; left: 8px; right: 8px; top: 100%; height: 6px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 6px 6px; }
+  .span.running::after { border-right-style: dashed; }
+  .span.running .fill { position: absolute; left: 0; top: -1px; bottom: -1px; width: 74%; background: var(--apricot-soft); border-radius: 6px 0 0 6px; z-index: -1; }
+  .span .r { display: inline-flex; gap: 1px; color: var(--apricot-deep); font-size: 11px; letter-spacing: -1px; }
+  /* driver band under the line */
+  .baton { position: absolute; left: 0; right: 0; top: 136px; height: 22px; }
+  .baton .seg { position: absolute; top: 0; height: 22px; display: flex; align-items: center; gap: 6px; padding: 0 6px 0 3px; border-radius: var(--radius-full); background: var(--surface-3); font-size: 12px; color: var(--ink-2); overflow: hidden; white-space: nowrap; }
+  .baton .seg .avatar { width: 16px; height: 16px; font-size: 8.5px; border-width: 1px; flex: none; }
+  .baton .seg.live { background: var(--apricot-soft); color: var(--ink); box-shadow: inset 0 0 0 1px var(--apricot-deep); }
+  .baton .seg.live .avatar { box-shadow: 0 0 0 1.5px var(--apricot-deep); }
+  .baton .seg i { font-family: var(--serif); font-style: italic; font-size: 13px; }
+    /* tip on the focused mark */
+  .tip { position: absolute; left: 77.2%; top: 168px; transform: translate(-100%, 0); margin-left: 9px; background: var(--rail); color: var(--rail-fg); border-radius: 10px; padding: 7px 11px; font-size: 12.5px; white-space: nowrap; box-shadow: var(--shadow-pop); z-index: 4; display: flex; gap: 8px; align-items: center; }
+  .tip .serif { color: var(--apricot); font-size: 14px; }
+  :root[data-theme="dark"] .tip { background: var(--surface-3); box-shadow: var(--shadow-pop), 0 0 0 1px var(--line); }
+  :root[data-theme="dark"] .tip::after { background: var(--surface-3); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tip { background: var(--surface-3); box-shadow: var(--shadow-pop), 0 0 0 1px var(--line); } :root:not([data-theme="light"]) .tip::after { background: var(--surface-3); } }
+  .tip .mono { font-size: 11.5px; color: var(--rail-muted); }
+  .tip::after { content: ""; position: absolute; right: 2px; bottom: 100%; width: 10px; height: 10px; background: var(--rail); transform: translate(-50%, 5px) rotate(45deg); border-radius: 2px; }
+  .lead { position: absolute; left: 77.2%; top: 126px; height: 42px; border-left: 1.5px dashed var(--apricot-deep); margin-left: -1px; }
+
+  /* ---- body: the day's ledger + the week panel ---- */
+  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 360px; }
+  .ledger { overflow: auto; padding: 18px 28px 40px; }
+  .ledger .dayhead { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; position: sticky; top: 0; background: var(--canvas); z-index: 1; padding: 4px 0 8px; }
+  .ledger .dayhead h2 { font-size: 24px; }
+  .ledger .dayhead .sum { color: var(--ink-2); font-size: 13.5px; }
+  .ledger .dayhead .nav { margin-left: auto; display: inline-flex; gap: 4px; }
+  .ev { display: grid; grid-template-columns: 52px 30px 1fr auto; gap: 0 12px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); position: relative; }
+  .ev:first-of-type { border-top: 0; }
+  .ev .t { font: 12.5px var(--mono); color: var(--ink-3); padding-top: 4px; }
+  .ev .ico { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); }
+  .ev .ico svg { width: 14px; height: 14px; }
+  .ev.turn .ico { background: transparent; color: var(--ink-3); }
+  .ev.ok .ico { background: var(--ok-soft); color: var(--ok); }
+  .ev.warn .ico { background: var(--warn-soft); color: var(--warn); }
+  .ev.hand .ico { background: var(--apricot-soft); color: var(--accent); }
+  .ev.team .ico { background: var(--apricot); color: #56352D; }
+  .ev.plan .ico { background: var(--surface-3); color: var(--ink); }
+  .ev .what { min-width: 0; line-height: 1.5; }
+  .ev .what .who { font-family: var(--serif); font-size: 16px; }
+  .ev .what .q { font-family: var(--serif); font-style: italic; color: var(--accent); }
+  .ev .what .sub { font-size: 13px; color: var(--ink-2); margin-top: 1px; }
+  .ev .what .sub .mono { font-size: 12px; }
+  .ev .what .steps { margin-top: 6px; gap: 2px; }
+  .ev .what .step { font-size: 13px; padding: 1px 0; }
+  .ev .what .step svg { width: 13px; height: 13px; color: var(--ok); }
+  .ev .what .pstep { display: inline-flex; gap: 8px; align-items: center; margin-top: 6px; font-size: 13px; padding: 4px 10px 4px 5px; border-radius: var(--radius-full); background: var(--surface-2); }
+  .ev .what .pstep .n { width: 18px; height: 18px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 10px; }
+  .ev .side { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; padding-top: 3px; display: flex; align-items: center; gap: 8px; }
+  .ev .side .mono { font-size: 12px; }
+  .ev .side .stars span { width: 14px; height: 14px; font-size: 13px; }
+  .ev .side .stars { gap: 1px; }
+  .ev.pick { background: linear-gradient(to right, var(--apricot-soft), transparent 60%); margin: 0 -14px; padding-left: 14px; padding-right: 14px; border-radius: 12px; border-top-color: transparent; }
+  .ev.pick + .ev { border-top-color: transparent; }
+  .ev .what .quote { margin-top: 6px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; font-size: 13.5px; }
+  .ev .what .files { display: inline-flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .ev .what .files code { font: 12px var(--mono); background: var(--surface-2); padding: 2px 7px; border-radius: 6px; color: var(--ink-2); }
+  .dayend { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 12.5px; padding: 14px 0 0; }
+  .dayend::before, .dayend::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  .panel { border-left: 1px solid var(--line); background: var(--surface); overflow: auto; padding: 20px 22px 30px; display: flex; flex-direction: column; gap: 20px; font-size: 14px; }
+  .panel > * { flex: none; }
+  .panel h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+  .panel .sentence { font-family: var(--serif); font-size: 19px; line-height: 1.35; color: var(--ink); }
+  .panel .sentence i { color: var(--accent); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stats div { padding: 9px 10px; border-radius: 12px; background: var(--surface-2); }
+  .stats b { display: block; font: 500 20px var(--mono); color: var(--ink); line-height: 1.1; }
+  .stats span { font-size: 12px; color: var(--ink-2); }
+  .usage .row { display: flex; justify-content: space-between; font: 12.5px var(--mono); color: var(--ink-2); margin-bottom: 6px; }
+  .usage .budget { height: 6px; }
+  .bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 56px; margin-top: 8px; }
+  .bars div { display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .bars i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: var(--surface-3); }
+  .bars .on i { background: var(--apricot-deep); }
+  .bars .now i { background: var(--gradient-live); background-size: 200% 100%; }
+  .bars span { font-size: 10.5px; color: var(--ink-3); }
+  .holders { display: flex; flex-direction: column; gap: 8px; }
+  .holders .h { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center; font-size: 13.5px; }
+  .holders .h .avatar { width: 24px; height: 24px; font-size: 10px; }
+  .holders .h .name { font-family: var(--serif); font-size: 15px; }
+  .holders .h .name small { font-family: var(--font); font-size: 12px; color: var(--ink-3); margin-left: 6px; }
+  .holders .h .bar { grid-column: 2 / 4; height: 4px; border-radius: 2px; background: var(--surface-3); overflow: hidden; }
+  .holders .h .bar i { display: block; height: 100%; background: var(--apricot-deep); }
+  .holders .h.live .bar i { background: var(--gradient-live); background-size: 200% 100%; }
+  .holders .h .hrs { font: 12px var(--mono); color: var(--ink-3); }
+  .needs { padding: 14px 16px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); position: relative; overflow: hidden; }
+  .needs::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--gradient-brand); }
+  .needs .serif { font-size: 17px; }
+  .needs p { margin: 4px 0 10px; font-size: 13px; color: var(--ink-2); }
+  .needs .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .needs .actions .stars { flex-basis: 100%; }
+  .needs .stars span { width: 20px; height: 20px; font-size: 17px; }
+  .lg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 12.5px; color: var(--ink-2); }
+  .lg span { display: inline-flex; align-items: center; gap: 8px; }
+  .lg svg { width: 14px; height: 14px; }
+
+  /* ---- mobile ---- */
+  .mobilebar { display: none; }
+  @media (max-width: 720px) {
+    .rail, .panel .lg, .week .head .legend, .topbar .right .btn, .topbar .right .stack, .tokchip, .tabs a:not(.on) { display: none; }
+    .topbar { padding: 10px 16px; gap: 8px; }
+    .topbar .title .serif { font-size: 19px; }
+    .topbar .title .status { display: none; }
+    .tabs { margin-left: 4px; }
+    .topbar .right { display: flex; }
+    .topbar .right .avatar { display: inline-grid; }
+    .week { padding: 12px 16px 0; }
+    .week .head h2 { font-size: 19px; }
+    .line { height: 150px; margin: 0 4px 0 10px; }
+    .days .cnt { display: none; }
+    .lead { display: none; }
+    .days .d { left: 4px; font-size: 10.5px; }
+    .days .d b { font-size: 13px; }
+    .days .d span, .days .cnt { display: none; }
+    .span { font-size: 11px; padding: 0 6px 0 4px; gap: 5px; top: 52px; }
+    .span .est, .span .r, .span .ttl { display: none; }
+    .week { overflow: hidden; }
+    .span.p1 { max-width: 150px; }
+    .rule, .mk, .fork { top: 92px; } i.turn { top: 85px; }
+    .rule.paused::after { display: none; }
+    .branch { top: 92px; height: 28px; }
+    .branch .lbl { display: none; }
+    .tip { display: none; }
+    .mk.now::after { content: "now"; }
+    .baton { top: 116px; }
+    .baton .seg i, .baton .seg .hrs { display: none; }
+    .baton .seg { padding: 0 4px 0 3px; gap: 4px; }
+    .body { grid-template-columns: 1fr; overflow: auto; }
+    .ledger { overflow: visible; padding: 14px 16px 10px; }
+    .ledger .dayhead h2 { font-size: 20px; }
+    .ledger .dayhead .nav { display: none; }
+    .ev { grid-template-columns: 44px 26px 1fr; }
+    .ev .side { grid-column: 3; grid-row: 2; padding-top: 2px; }
+    .ev .t { font-size: 11.5px; }
+    .panel { border-left: 0; border-top: 1px solid var(--line); padding: 18px 16px 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <div class="section">Agents <span class="n">4</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · 2 agents</div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Step 3 of 4 · <i>proration rounding</i>, Dee driving</div>
+      <div class="foot"><span class="stack"><span class="avatar">A</span><span class="avatar">B</span><span class="avatar">C</span><span class="avatar driver">D</span></span><span class="tok">412k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits on <i>tax lines in the cart</i> · Cy</div>
+      <div class="foot"><span class="stack"><span class="avatar driver">C</span><span class="avatar">B</span></span><span class="tok">88k</span></div>
+    </a>
+    <div class="section">Solo</div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Dunning emails</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Writing <i>the day-3 reminder</i></div>
+      <div class="foot"><span class="avatar">B</span><span class="tok">21k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Refund ledger</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · Ana</div>
+      <div class="foot"><span class="avatar">A</span><span class="tok">134k</span></div>
+    </a>
+    <div class="section">Payments team</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Inbox <span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg>Approvals <span class="n live">1</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 4z"/></svg>#billing <span class="n">12</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Memory</a>
+    <div class="me"><span class="avatar driver">D</span><span class="meta"><span>Dee Okafor</span><span class="role">driver · Billing page</span></span></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="title"><span class="serif">Billing page</span><span class="status running">running</span><span class="pill team">Team</span></div>
+      <nav class="tabs"><a href="#">Stream</a><a href="#" class="on">Timeline</a><a href="#">Branches</a><a href="#">Brief</a></nav>
+      <div class="right">
+        <span class="tokchip"><span>412k of 500k</span><span class="budget warn"><i style="width:82%"></i></span></span>
+        <span class="stack"><span class="avatar">A</span><span class="avatar">B</span><span class="avatar">C</span><span class="avatar driver">D</span></span>
+        <button class="btn sm">Share</button>
+        <button class="btn sm primary">Return to stream</button>
+      </div>
+    </header>
+
+    <section class="week" aria-label="The week on one line">
+      <div class="head">
+        <h2>The week</h2>
+        <span class="range">Wed 1 – Tue 7 October · 48 turns · 2 plans · 6 approvals · 2 handoffs · 1 unite</span>
+        <div class="legend">
+          <span><svg viewBox="0 0 12 12"><rect x="5" y="1" width="2" height="10" rx="1" fill="var(--ink-3)"/></svg>turn</span>
+          <span><svg viewBox="0 0 12 12"><rect x="1" y="3" width="10" height="6" rx="2" fill="none" stroke="var(--ink-3)"/></svg>plan</span>
+          <span><svg viewBox="0 0 12 12"><path d="M6 1l5 5-5 5-5-5z" fill="var(--ok)"/></svg>approval</span>
+          <span><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.5" fill="none" stroke="var(--apricot-deep)" stroke-width="2"/></svg>handoff</span>
+          <span><svg viewBox="0 0 12 12"><path d="M1 3c5 0 5 6 10 6M1 9c5 0 5-6 10-6" fill="none" stroke="var(--ok)" stroke-width="1.6"/></svg>unite</span>
+        </div>
+      </div>
+      <div class="line">
+        <div class="days">
+          <div><span class="d"><b>Wed</b><span>1 Oct</span></span><span class="cnt">11 turns · 96k</span></div>
+          <div><span class="d"><b>Thu</b><span>2 Oct</span></span><span class="cnt">9 turns · 71k</span></div>
+          <div><span class="d"><b>Fri</b><span>3 Oct</span></span><span class="cnt">8 turns · 84k</span></div>
+          <div class="quiet"><span class="d"><b>Sat</b><span>4 Oct</span></span><span class="cnt">2 turns · 6k</span></div>
+          <div class="quiet"><span class="d"><b>Sun</b><span>5 Oct</span></span><span class="cnt">paused</span></div>
+          <div><span class="d"><b>Mon</b><span>6 Oct</span></span><span class="cnt">14 turns · 118k</span></div>
+          <div class="today"><span class="d"><b>Tue</b><span>7 Oct · today</span></span><span class="cnt">4 turns · 37k</span></div>
+        </div>
+
+        <!-- plan spans -->
+        <div class="span done p1" style="left:5.48%; width:32.9%"><span class="n"><svg class="ic" viewBox="0 0 24 24" style="width:9px;height:9px;stroke-width:3"><path d="M5 12l4 4L19 6"/></svg></span><b>Plan 1</b><span class="ttl"> Invoice PDF and tax lines · 5 of 5</span> <span class="r">★★★★★</span><span class="est">196k</span></div>
+        <div class="span running p2" style="left:38.6%; width:55.25%"><span class="fill"></span><span class="n">2</span><b>Plan 2</b><span class="ttl"> Proration and the Checkout handover · step 3 of 4</span> <span class="r">★★★★</span><span class="est">108k of 120k est</span></div>
+
+        <!-- the line -->
+        <div class="rule"></div>
+        <div class="rule ahead"></div>
+        <div class="rule paused"></div>
+        <i class="turn" style="left:6.13%" title="Turn 1"></i><i class="turn" style="left:6.62%" title="Turn 2"></i><i class="turn" style="left:7.11%" title="Turn 3"></i><i class="turn" style="left:7.60%" title="Turn 4"></i><i class="turn" style="left:8.08%" title="Turn 5"></i><i class="turn" style="left:8.57%" title="Turn 6"></i><i class="turn" style="left:9.06%" title="Turn 7"></i><i class="turn" style="left:9.55%" title="Turn 8"></i><i class="turn" style="left:10.04%" title="Turn 9"></i><i class="turn" style="left:10.52%" title="Turn 10"></i><i class="turn" style="left:11.01%" title="Turn 11"></i><i class="turn" style="left:19.64%" title="Turn 12"></i><i class="turn" style="left:20.33%" title="Turn 13"></i><i class="turn" style="left:21.01%" title="Turn 14"></i><i class="turn" style="left:21.70%" title="Turn 15"></i><i class="turn" style="left:22.38%" title="Turn 16"></i><i class="turn" style="left:23.07%" title="Turn 17"></i><i class="turn" style="left:23.75%" title="Turn 18"></i><i class="turn" style="left:24.43%" title="Turn 19"></i><i class="turn" style="left:25.12%" title="Turn 20"></i><i class="turn" style="left:34.05%" title="Turn 21"></i><i class="turn" style="left:34.76%" title="Turn 22"></i><i class="turn" style="left:35.48%" title="Turn 23"></i><i class="turn" style="left:36.19%" title="Turn 24"></i><i class="turn" style="left:36.90%" title="Turn 25"></i><i class="turn" style="left:37.62%" title="Turn 26"></i><i class="turn" style="left:38.33%" title="Turn 27"></i><i class="turn" style="left:39.05%" title="Turn 28"></i><i class="turn" style="left:48.30%" title="Turn 29"></i><i class="turn" style="left:48.57%" title="Turn 30"></i><i class="turn" style="left:76.73%" title="Turn 31"></i><i class="turn" style="left:77.13%" title="Turn 32"></i><i class="turn" style="left:77.54%" title="Turn 33"></i><i class="turn" style="left:77.95%" title="Turn 34"></i><i class="turn" style="left:78.36%" title="Turn 35"></i><i class="turn" style="left:78.76%" title="Turn 36"></i><i class="turn" style="left:79.17%" title="Turn 37"></i><i class="turn" style="left:79.58%" title="Turn 38"></i><i class="turn" style="left:79.99%" title="Turn 39"></i><i class="turn" style="left:80.39%" title="Turn 40"></i><i class="turn" style="left:80.80%" title="Turn 41"></i><i class="turn" style="left:81.21%" title="Turn 42"></i><i class="turn" style="left:81.62%" title="Turn 43"></i><i class="turn" style="left:82.02%" title="Turn 44"></i><i class="turn" style="left:91.22%" title="Turn 45"></i><i class="turn" style="left:92.06%" title="Turn 46"></i><i class="turn" style="left:92.91%" title="Turn 47"></i><i class="turn" style="left:93.75%" title="Turn 48"></i>
+
+        <!-- the branch that comes home -->
+        <div class="branch" aria-label="Branch tax-lines, Thu 09:30 to Mon 10:40"><svg viewBox="0 0 100 34" preserveAspectRatio="none"><path d="M0 0 C 6 0, 6 26, 14 26 L 86 26 C 94 26, 94 0, 100 0"/></svg><span class="lbl">tax-lines · Cy · 14 files</span></div>
+        <span class="fork" style="left:19.94%" title="Cy forks tax-lines at turn 12"></span>
+
+        <!-- marks -->
+        <span class="mk open" style="left:5.4%" title="Ana opens the session"><svg viewBox="0 0 96 96"><path d="M48 24 A24 24 0 0 1 48 72" stroke="var(--mark-arc-a)" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M48 72 A24 24 0 0 1 48 24" stroke="var(--mark-arc-b)" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="7" fill="var(--mark-dot)"/></svg></span>
+        <span class="mk ok" style="left:10.0%" title="exec · pnpm test · Bo granted"><svg viewBox="0 0 20 20"><path d="M10 2l8 8-8 8-8-8z" fill="currentColor"/><path d="M6.5 10l2.5 2.5L13.5 8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="mk contend" style="left:22.7%" title="Contention · Bo and Cy on tests · Ana resolved"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="var(--surface)" stroke="currentColor" stroke-width="2"/><path d="M7 7l6 6M13 7l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        <span class="mk hand" style="left:24.8%" title="Ana hands off to Bo"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12h13M13 6l6 6-6 6"/></svg></span>
+        <span class="mk ok" style="left:34.6%" title="external · Stripe sandbox webhook · Bo granted"><svg viewBox="0 0 20 20"><path d="M10 2l8 8-8 8-8-8z" fill="currentColor"/><path d="M6.5 10l2.5 2.5L13.5 8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="mk unite" style="left:77.2%" title="Cy united tax-lines into main"><svg viewBox="0 0 16 16"><path d="M2 4c4 0 4 8 8 8h4M2 12c4 0 4-8 8-8h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        <span class="mk ok" style="left:79.46%" title="write · migrations/0042_tax_lines.sql · Dee granted"><svg viewBox="0 0 20 20"><path d="M10 2l8 8-8 8-8-8z" fill="currentColor"/><path d="M6.5 10l2.5 2.5L13.5 8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="mk hand" style="left:81.65%" title="Bo hands off to Dee"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12h13M13 6l6 6-6 6"/></svg></span>
+        <span class="mk gate" style="left:91.9%" title="Release gate · Ship invoice PDF to Checkout · waits for one more rating"><svg viewBox="0 0 30 30"><path d="M15 2l13 13-13 13L2 15z" fill="var(--surface)" stroke="currentColor" stroke-width="2"/><path d="M15 8l7 7-7 7-7-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 2"/><circle cx="15" cy="15" r="2.2" fill="var(--warn)"/></svg></span>
+        <span class="mk now" style="left:93.85%" title="now"></span>
+
+        <span class="lead"></span>
+        <div class="tip"><span class="serif">United tax-lines into main</span><span class="mono">Mon 09:40 · turn 33 · Cy</span></div>
+
+        <!-- the baton -->
+        <div class="baton" aria-label="Who held the baton">
+                    <span class="seg" style="left:5.4%; width:19.1%"><span class="avatar">A</span><i>Ana</i> <span class="hrs">32h</span></span>
+          <span class="seg" style="left:25.1%; width:56.3%"><span class="avatar">B</span><i>Bo</i> <span class="hrs">94h · paused 47h</span></span>
+          <span class="seg live" style="left:81.95%; width:11.9%"><span class="avatar">D</span><i>Dee</i> <span class="hrs">22h</span></span>
+        </div>
+      </div>
+    </section>
+
+    <div class="body">
+      <section class="ledger" aria-label="Monday 6 October">
+        <div class="dayhead">
+          <h2>Monday 6 October</h2>
+          <span class="sum">14 turns · 118k tokens · Bo, then Dee · one unite, one approval, one handoff</span>
+          <span class="nav"><button class="btn sm icon" title="Sunday 5"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><button class="btn sm icon" title="Tuesday 7"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><button class="btn sm">Today</button></span>
+        </div>
+
+        <div class="ev hand">
+          <span class="t">08:50</span>
+          <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+          <div class="what"><span class="who">Bo</span> resumes the agent <span class="q">after the weekend pause.</span><div class="sub">Paused Sat 09:40 while CI was red upstream; nothing was sent for 47 hours.</div></div>
+          <span class="side">driver</span>
+        </div>
+        <div class="ev turn">
+          <span class="t">08:52</span>
+          <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v16"/></svg></span>
+          <div class="what">Turn 31 · <span class="who">Ana's agent</span> reads the proration spec and the open items from Bo's brief
+            <div class="steps"><span class="step"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono">read</span> docs/billing/proration.md</span><span class="step"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono">read</span> packages/billing/src/proration.ts</span></div></div>
+          <span class="side"><span class="mono">4.1k</span></span>
+        </div>
+        <div class="ev team">
+          <span class="t">09:05</span>
+          <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 4z"/></svg></span>
+          <div class="what"><span class="who">Cy</span> to the session <span class="faint small">· team, not sent to the agent</span><div class="quote">tax-lines is green on CI. I'll unite after standup, then the agent can rebase before it touches the PDF table.</div></div>
+          <span class="side">team</span>
+        </div>
+        <div class="ev ok pick">
+          <span class="t">09:40</span>
+          <span class="ico"><svg viewBox="0 0 16 16" style="width:14px;height:14px"><path d="M2 4c4 0 4 8 8 8h4M2 12c4 0 4-8 8-8h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <div class="what"><span class="who">Cy</span> <span class="q">United tax-lines into main.</span><div class="sub">14 files · 2 conflicts in <span class="mono">invoice-pdf.tsx</span> resolved by Cy · 1 contested directive on <span class="mono">tests</span> became a contention and Dee closed it</div>
+            <div class="files"><code>packages/billing/src/tax/lines.ts</code><code>packages/billing/src/tax/rates.json</code><code>apps/web/src/billing/InvoicePdf.tsx</code><code>+11</code></div></div>
+          <span class="side">turn 33 <button class="btn sm ghost">Compare</button></span>
+        </div>
+        <div class="ev turn">
+          <span class="t">09:42</span>
+          <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v16"/></svg></span>
+          <div class="what">Turn 34 · <span class="who">Ana's agent</span> rebases on main and runs the billing suite
+            <div class="steps"><span class="step"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono">exec</span> pnpm test --filter billing · 212 passed</span></div></div>
+          <span class="side"><span class="mono">9.6k</span></span>
+        </div>
+        <div class="ev ok">
+          <span class="t">13:30</span>
+          <span class="ico"><svg viewBox="0 0 20 20" style="width:14px;height:14px"><path d="M10 2l8 8-8 8-8-8z" fill="currentColor"/><path d="M6.5 10l2.5 2.5L13.5 8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="what">Approval · <span class="mono">write</span> <span class="mono">migrations/0042_tax_lines.sql</span> · <span class="who">Dee</span> granted<div class="sub">Adds <span class="mono">tax_lines</span> with a rate snapshot per invoice line; reversible, one contributor needed.</div></div>
+          <span class="side"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span>in 2 min</span>
+        </div>
+        <div class="ev plan">
+          <span class="t">14:15</span>
+          <span class="ico"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M8 10h8M8 14h5"/></svg></span>
+          <div class="what">Plan 2 · step 2 of 4 done · <span class="q">Proration rounding</span><div class="sub">Half-cent rounding goes to the customer's favour; the agent kept Bo's standing rule in context.</div><span class="pstep"><span class="n">2</span>Proration rounding <span class="mono faint">28k est · 31.2k</span></span></div>
+          <span class="side"><span class="mono">31.2k</span></span>
+        </div>
+        <div class="ev hand">
+          <span class="t">17:10</span>
+          <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12h13M13 6l6 6-6 6"/></svg></span>
+          <div class="what"><span class="who">Bo</span> hands off to <span class="who">Dee</span> · <span class="q">Dee has the baton.</span><div class="sub">Brief: situation in four lines, 3 open items (PDF tax table, Checkout handover, the gate), what changed since Dee was last here (turns 19–38).</div></div>
+          <span class="side"><button class="btn sm ghost">Read brief</button></span>
+        </div>
+        <div class="ev turn">
+          <span class="t">17:30</span>
+          <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v16"/></svg></span>
+          <div class="what">Turn 41 · <span class="who">Ana's agent</span> writes the tax table into the invoice PDF
+            <div class="steps"><span class="step"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono">write</span> apps/web/src/billing/InvoicePdf.tsx · +84 −12</span><span class="step"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono">exec</span> pnpm test --filter billing · 230 passed</span></div></div>
+          <span class="side"><span class="mono">18.4k</span></span>
+        </div>
+        <div class="ev turn">
+          <span class="t">18:20</span>
+          <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v16"/></svg></span>
+          <div class="what">Turn 44 · <span class="who">Ana's agent</span> proposes the Checkout handover as a note to #billing and stops at the step boundary</div>
+          <span class="side"><span class="mono">6.9k</span></span>
+        </div>
+        <div class="dayend">End of Monday · 118k tokens · Tuesday begins at 09:15 with turn 45</div>
+      </section>
+
+      <aside class="panel" aria-label="The week">
+        <div>
+          <p class="sentence">Six days in, <i>Ana's agent</i> has finished one plan and is on step 3 of the second; the baton passed twice, one branch came home, and one release gate waits for a second rating.</p>
+        </div>
+        <div class="needs">
+          <div class="serif">Ship invoice PDF to Checkout</div>
+          <p>Release gate · irreversible · Ana rated 4 · waits for one more at 4+ from Bo or Cy</p>
+          <div class="actions"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><button class="btn sm primary">Approve · 4</button><button class="btn sm ghost">Ask to revise</button></div>
+        </div>
+        <div>
+          <h3>Counted</h3>
+          <div class="stats">
+            <div><b>48</b><span>turns</span></div>
+            <div><b>2</b><span>plans, both rated</span></div>
+            <div><b>6</b><span>approvals</span></div>
+            <div><b>2</b><span>handoffs</span></div>
+            <div><b>1</b><span>unite · 1 fork</span></div>
+            <div><b>1</b><span>contention, resolved</span></div>
+          </div>
+        </div>
+        <div class="usage">
+          <h3>Tokens</h3>
+          <div class="row"><span>412k of 500k budget</span><span>82%</span></div>
+          <div class="budget warn"><i style="width:82%"></i></div>
+          <div class="bars">
+            <div><i style="height:81%"></i><span>W</span></div>
+            <div><i style="height:60%"></i><span>T</span></div>
+            <div><i style="height:71%"></i><span>F</span></div>
+            <div><i style="height:6%"></i><span>S</span></div>
+            <div><i style="height:2%"></i><span>S</span></div>
+            <div class="on"><i style="height:100%"></i><span>M</span></div>
+            <div class="now"><i style="height:31%"></i><span>T</span></div>
+          </div>
+        </div>
+        <div>
+          <h3>Baton</h3>
+          <div class="holders">
+            <div class="h"><span class="avatar">A</span><span class="name">Ana<small>opened · Wed</small></span><span class="hrs">32h</span><span class="bar"><i style="width:22%"></i></span></div>
+            <div class="h"><span class="avatar">B</span><span class="name">Bo<small>Thu → Mon</small></span><span class="hrs">94h</span><span class="bar"><i style="width:64%"></i></span></div>
+            <div class="h live"><span class="avatar driver">D</span><span class="name">Dee<small>driving now</small></span><span class="hrs">22h</span><span class="bar"><i style="width:15%"></i></span></div>
+          </div>
+        </div>
+        <div>
+          <h3>Also on the line</h3>
+          <div class="lg">
+            <span><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="var(--ink-3)"/></svg>fork · Cy, Thu</span>
+            <span><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="var(--warn)" stroke-width="1.6"/></svg>contention · Thu</span>
+            <span><svg viewBox="0 0 12 12"><path d="M1 6h10" stroke="var(--ink-3)" stroke-dasharray="2 2" stroke-width="1.6"/></svg>paused · weekend</span>
+            <span><svg viewBox="0 0 12 12"><path d="M6 1l5 5-5 5-5-5z" fill="none" stroke="var(--accent)" stroke-width="1.6"/></svg>release gate · open</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</body>
+</html>

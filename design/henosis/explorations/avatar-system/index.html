@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Avatar system</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+/* =========================================================
+   THE AVATAR, as it should ship (replaces .avatar in tokens.css)
+   One element, two shapes: a circle for a person, the rounded square for an agent.
+   Size is one variable; everything inside scales from it.
+   ========================================================= */
+.av {
+  --s: 28px;                              /* the only knob */
+  --edge: var(--canvas);                  /* the cut-out colour: canvas, surface, or rail */
+  --tint: var(--surface-3);
+  position: relative; flex: none; display: inline-grid; place-items: center;
+  width: var(--s); height: var(--s); border-radius: 50%;
+  background: var(--tint); color: var(--ink);
+  font: 600 calc(var(--s) * .39) / 1 var(--font); letter-spacing: .02em; text-transform: uppercase;
+  box-shadow: 0 0 0 2px var(--edge);
+  user-select: none; vertical-align: middle; overflow: visible;
+}
+.av.s16 { --s: 16px; } .av.s20 { --s: 20px; } .av.s16, .av.s20 { font-size: calc(var(--s) * .36); letter-spacing: 0; } .av.s24 { --s: 24px; } .av.s28 { --s: 28px; }
+.av.s32 { --s: 32px; } .av.s40 { --s: 40px; } .av.s56 { --s: 56px; } .av.s80 { --s: 80px; } .av.s120 { --s: 120px; }
+/* initials are a name: from 40 up they set in the serif */
+.av.s40, .av.s56, .av.s80, .av.s120 { font-family: var(--serif); font-weight: 400; letter-spacing: 0; font-size: calc(var(--s) * .46); text-transform: none; }
+/* person tints: four quiet washes from the palette, hashed from the id, ink on top in both themes */
+.av.t1 { --tint: color-mix(in srgb, var(--apricot) 55%, var(--surface)); }
+.av.t2 { --tint: color-mix(in srgb, #8EA0C4 42%, var(--surface)); }
+.av.t3 { --tint: color-mix(in srgb, #B98C7C 48%, var(--surface)); }
+.av.t4 { --tint: color-mix(in srgb, #9BB08F 48%, var(--surface)); }
+/* photo: the image fills the shape; the shape stays the person's */
+.av.photo { background: var(--surface-3); overflow: hidden; }
+.av.photo > svg, .av.photo > img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.av.photo.away > svg { filter: grayscale(1); }
+/* the agent: a rounded square with one tight corner (it speaks), the brand gradient, the mark's centre inside */
+.av.agent, .av.agent:hover { display: inline-grid; flex-direction: row; gap: 0; padding: 0; border-radius: 34% 34% 34% 12%; background: var(--gradient-brand); color: #fff; }
+.av.agent > .glyph { width: 64%; height: 64%; display: block; }
+/* the arcs keep chocolate and apricot in every theme: brand constants, drawn in the symbol itself */
+/* an agent named after its owner carries the owner's initial in the serif, the centre tucked top-right */
+.av.agent.named { font-family: var(--serif); font-weight: 400; font-style: italic; text-transform: none; font-size: calc(var(--s) * .5); color: #FFF4E8; }
+.av.agent.named > .glyph { position: absolute; width: 30%; height: 30%; right: 9%; top: 9%; }
+/* ---- states ---- */
+.av.driver { box-shadow: 0 0 0 2px var(--edge), 0 0 0 4px var(--apricot-deep); }
+.av.away { filter: saturate(.15); opacity: .6; }
+.av.away.agent { filter: saturate(.3); }
+.av.selected { box-shadow: 0 0 0 2px var(--edge), 0 0 0 5px var(--apricot-soft); }
+.av.joined { animation: ripple .9s ease-out 1; }
+/* presence / status dot: 28% of the size, min 8px, cut out with the same edge */
+.av .pr { position: absolute; right: -2%; bottom: -2%; width: max(8px, calc(var(--s) * .28)); height: max(8px, calc(var(--s) * .28)); border-radius: 50%; background: var(--ink-3); box-shadow: 0 0 0 2px var(--edge); }
+.av.agent .pr { right: -6%; bottom: -6%; }
+.av .pr.online, .av .pr.running { background: var(--ok); }
+.av .pr.running { animation: pulse 1.6s ease-in-out infinite; }
+.av .pr.awaiting { background: var(--warn); } .av .pr.blocked { background: var(--danger); } .av .pr.paused { background: var(--info); }
+.av .pr.away { background: var(--edge); box-shadow: 0 0 0 2px var(--edge), inset 0 0 0 2px var(--ink-3); }
+.av.s16 .pr, .av.s20 .pr { width: 7px; height: 7px; box-shadow: 0 0 0 1.5px var(--edge); }
+/* the baton: a small chocolate disc with the mark's dot, for the driver at 40 and up */
+.av .baton { position: absolute; left: -4%; bottom: -4%; width: 34%; height: 34%; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--edge); display: grid; place-items: center; }
+.av .baton::after { content: ""; width: 38%; height: 38%; border-radius: 50%; background: var(--apricot); }
+/* ---- stacks ---- */
+.stk { display: inline-flex; align-items: center; isolation: isolate; }
+.stk .av { margin-left: calc(var(--s) * -.28); }
+.stk .av:first-child { margin-left: 0; }
+.stk .av { z-index: 1; } .stk .av.driver { z-index: 2; }
+.stk .more { --s: 28px; width: var(--s); height: var(--s); border-radius: 50%; margin-left: calc(var(--s) * -.28); display: inline-grid; place-items: center; background: var(--surface-2); color: var(--ink-2); font: 600 calc(var(--s) * .36)/1 var(--mono); box-shadow: 0 0 0 2px var(--edge, var(--canvas)); flex: none; }
+.stk.s24 .av, .stk.s24 .more { --s: 24px; } .stk.s20 .av, .stk.s20 .more { --s: 20px; } .stk.s32 .av, .stk.s32 .more { --s: 32px; }
+/* edges follow the ground */
+.on-surface .av, .on-surface .more { --edge: var(--surface); }
+.on-rail .av, .on-rail .more { --edge: var(--rail); }
+.on-rail .av { color: var(--ink); } .on-rail .more { background: var(--rail-2); color: var(--rail-fg); }
+.on-rail .av.t1 { --tint: #E2C4A6; color: #2A3244; } .on-rail .av.t2 { --tint: #A9B6D2; color: #1F2634; } .on-rail .av.t3 { --tint: #CDA89B; color: #1F2634; } .on-rail .av.t4 { --tint: #B5C7AA; color: #1F2634; }
+.on-rail .av.away { opacity: .5; }
+.on-apricot .av, .on-apricot .more { --edge: var(--apricot-soft); }
+
+/* =========================================================
+   the board
+   ========================================================= */
+body { min-height: 100%; }
+.board { width: 1440px; max-width: 100%; margin: 0 auto; padding: 48px 64px 80px; display: flex; flex-direction: column; gap: 60px; }
+.eyebrow { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 10px; }
+.eyebrow b { font-weight: 600; color: var(--ink-2); }
+.head { display: grid; grid-template-columns: 1fr 440px; gap: 48px; align-items: end; }
+.head h1 { font-size: 62px; line-height: 1.02; margin-top: 12px; }
+.head h1 i { color: var(--accent); }
+.head .lede { font-size: 16.5px; color: var(--ink-2); line-height: 1.55; }
+.head .lede b { color: var(--ink); font-weight: 500; }
+.head .cast { display: flex; align-items: center; gap: 14px; margin-top: 18px; }
+section { display: flex; flex-direction: column; gap: 20px; }
+.anat > *, .states > *, .stacks > *, .ctx > *, .donts > *, .manifest > *, .head > * { min-width: 0; }
+pre { max-width: 100%; }
+.sec-head { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.sec-head h2 { font-size: 30px; }
+.sec-head .num { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.sec-head .sub { margin-left: auto; font-size: 13.5px; color: var(--ink-2); max-width: 600px; text-align: right; }
+.k { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.cap { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+.cap b { color: var(--ink); font-weight: 500; }
+.card { padding: 20px 22px; }
+.card h3 { font-size: 15px; margin-bottom: 4px; }
+.card p { margin: 0 0 14px; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+
+/* 1 · anatomy */
+.anat { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.anat .fig { display: grid; grid-template-columns: 200px 1fr; gap: 24px; align-items: center; }
+.anat .big { height: 200px; display: grid; place-items: center; background: var(--surface-2); border-radius: var(--radius); }
+.spec { display: flex; flex-direction: column; gap: 0; font-size: 13px; }
+.spec div { display: grid; grid-template-columns: 112px 1fr; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); }
+.spec div:first-child { border-top: 0; }
+.spec span:first-child { color: var(--ink-3); font-family: var(--mono); font-size: 11.5px; padding-top: 2px; }
+
+/* 2 · sizes */
+.ladder { display: grid; grid-template-columns: 72px repeat(8, 1fr); align-items: end; row-gap: 14px; column-gap: 8px; }
+.ladder .lab { font-family: var(--mono); font-size: 12px; color: var(--ink-3); align-self: center; }
+.ladder .cell { display: grid; place-items: center; height: 100%; min-height: 40px; }
+.ladder .cell.h { align-self: end; }
+.ladder .t { font-size: 11.5px; color: var(--ink-2); text-align: center; line-height: 1.3; }
+.ladder .t b { display: block; font-family: var(--mono); font-weight: 500; font-size: 12.5px; color: var(--ink); }
+.ladder hr { grid-column: 1 / -1; border: 0; border-top: 1px solid var(--line); margin: 2px 0; }
+.ladder .where { font-size: 11.5px; color: var(--ink-3); text-align: center; line-height: 1.35; }
+
+/* 3 · states */
+.states { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.state { padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+.state .row { display: flex; align-items: center; flex-wrap: wrap; gap: 22px; min-height: 64px; padding: 0 6px; }
+.state .row .cap { flex: 1 1 140px; }
+.state h3 { font-size: 14.5px; }
+.state p { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.45; }
+.state .k { display: block; margin-top: 2px; }
+
+/* 4 · stacks */
+.stacks { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.stk-row { display: grid; grid-template-columns: 200px 1fr; gap: 16px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.stk-row:first-of-type { border-top: 0; }
+.stk-row .l { color: var(--ink-2); } .stk-row .l b { display: block; color: var(--ink); font-weight: 500; }
+.stk-row .r { display: flex; align-items: center; gap: 12px; }
+.ground { border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.ground.navy { background: var(--rail); color: var(--rail-fg); }
+.ground.surface { background: var(--surface); border: 1px solid var(--line); }
+.ground.apricot { background: var(--apricot-soft); }
+.ground .nm { font-size: 13px; }
+
+/* 5 · in the product */
+.ctx { display: grid; grid-template-columns: 320px 1fr 340px; gap: 20px; align-items: start; }
+.rail-demo { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius-lg); padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+.rail-demo .agent { gap: 7px; }
+.rail-demo .agent .head { gap: 9px; }
+.rail-demo .agent .with { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); }
+.stream { display: flex; flex-direction: column; gap: 22px; padding: 22px 26px; }
+.stream .msg .meta .who { font-size: 16px; }
+.stream .msg .meta .av { margin-right: 2px; }
+.stream .msg.human .text { max-width: 100%; }
+.panel { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.panel h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.panel .person { gap: 12px; }
+.panel .person .name { font-family: var(--serif); font-size: 16px; line-height: 1.2; }
+.panel .person .name small { display: block; font-family: var(--font); font-size: 12px; color: var(--ink-3); }
+.panel .person .role { font-size: 12px; }
+.panel .tabs { display: flex; gap: 6px; }
+
+/* 6 · don'ts */
+.donts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+.dont { padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 12px; }
+.dont .pair { display: flex; align-items: center; gap: 16px; height: 48px; }
+.dont .pair .x { width: 18px; height: 18px; border-radius: 50%; background: var(--danger-soft); color: var(--danger); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.dont .pair .ok { width: 18px; height: 18px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.dont h3 { font-size: 13.5px; } .dont p { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.45; }
+.dont .pair .av.bad1 { border-radius: 34% 34% 34% 12%; background: var(--tint); }
+.dont .pair .av.bad2 { background: var(--accent); color: var(--accent-fg); }
+.dont .pair .av.bad3 { box-shadow: 0 0 0 2px var(--edge), 0 0 0 4px var(--ok); }
+.dont .pair .av.bad5 { border-radius: 50%; background: var(--gradient-brand); color: #fff; }
+.dont .pair .av.bad6 { background: var(--tint); border-radius: 50%; font-size: 10px; }
+
+/* 7 · manifest */
+.manifest { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+pre { margin: 0; padding: 18px 20px; border-radius: var(--radius); background: var(--rail); color: var(--rail-fg); font: 12px/1.6 var(--mono); overflow: auto; white-space: pre; }
+pre .c { color: var(--rail-muted); } pre .p { color: var(--apricot); }
+.api { display: flex; flex-direction: column; }
+.api div { display: grid; grid-template-columns: 170px 1fr; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.api div:first-child { border-top: 0; }
+.api code { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+
+@media (max-width: 760px) {
+  .board { padding: 28px 16px 60px; gap: 44px; }
+  .head { grid-template-columns: 1fr; gap: 20px; }
+  .head h1 { font-size: 40px; }
+  .sec-head { flex-wrap: wrap; } .sec-head h2 { font-size: 24px; } .sec-head .sub { margin-left: 0; text-align: left; max-width: none; flex-basis: 100%; }
+  .anat, .stacks, .manifest { grid-template-columns: 1fr; }
+  .anat .fig { grid-template-columns: 1fr; } .anat .big { height: 160px; }
+  .ladder { grid-template-columns: 56px repeat(4, 1fr); } .ladder .c5, .ladder .c6, .ladder .c7, .ladder .c8 { display: none; }
+  .states { grid-template-columns: 1fr; } .state .row { gap: 16px; }
+  .stk-row { grid-template-columns: 1fr; gap: 8px; }
+  .ctx { grid-template-columns: 1fr; }
+  .donts { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- the mark's centre: a person's arc, an agent's arc, one dot -->
+    <symbol id="glyph" viewBox="0 0 96 96">
+      <path d="M48 20 A28 28 0 0 1 48 76" fill="none" stroke="#F3E6D6" stroke-width="11" stroke-linecap="round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" fill="none" stroke="#E2C4A6" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="9" fill="#E2C4A6"/>
+    </symbol>
+    <!-- below 24 the arcs have no room: only the centre -->
+    <symbol id="glyph-sm" viewBox="0 0 96 96"><circle cx="48" cy="48" r="19" fill="#E2C4A6"/></symbol>
+    <!-- photo stand-ins: a head and shoulders on a warm ground, so a photo reads as a photo without a bitmap -->
+    <linearGradient id="pg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D9C3AD"/><stop offset="1" stop-color="#8E7560"/></linearGradient>
+    <linearGradient id="pg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B9C3D6"/><stop offset="1" stop-color="#4B5670"/></linearGradient>
+    <linearGradient id="pg3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#CDB4AA"/><stop offset="1" stop-color="#6A4A40"/></linearGradient>
+    <linearGradient id="pg4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C6D2BC"/><stop offset="1" stop-color="#55694B"/></linearGradient>
+    <symbol id="ph1" viewBox="0 0 40 40"><rect width="40" height="40" fill="url(#pg1)"/><circle cx="20" cy="15" r="7.5" fill="#F1D6BE"/><path d="M4 40c1-9 7-13 16-13s15 4 16 13z" fill="#56352D"/></symbol>
+    <symbol id="ph2" viewBox="0 0 40 40"><rect width="40" height="40" fill="url(#pg2)"/><circle cx="20" cy="15" r="7.5" fill="#C9956E"/><path d="M4 40c1-9 7-13 16-13s15 4 16 13z" fill="#2A3244"/></symbol>
+    <symbol id="ph3" viewBox="0 0 40 40"><rect width="40" height="40" fill="url(#pg3)"/><circle cx="20" cy="15" r="7.5" fill="#8C5B3F"/><path d="M4 40c1-9 7-13 16-13s15 4 16 13z" fill="#E2C4A6"/></symbol>
+    <symbol id="ph4" viewBox="0 0 40 40"><rect width="40" height="40" fill="url(#pg4)"/><circle cx="20" cy="15" r="7.5" fill="#E9C3A4"/><path d="M4 40c1-9 7-13 16-13s15 4 16 13z" fill="#3E4A3A"/></symbol>
+  </defs>
+</svg>
+
+<main class="board">
+
+  <!-- ============ head ============ -->
+  <header class="head">
+    <div>
+      <div class="eyebrow"><b>Henosis</b> · design exploration · system · avatar-system</div>
+      <h1>One circle, <i>two shapes.</i></h1>
+      <div class="cast">
+        <span class="stk s32">
+          <span class="av s32 t1 driver" title="Ana, driving">An<i class="pr online"></i></span>
+          <span class="av s32 photo" title="Bo"><svg><use href="#ph2"/></svg></span>
+          <span class="av s32 t3" title="Cy">Cy</span>
+          <span class="av s32 t4 away" title="Dee, away">De</span>
+          <span class="av s32 agent" title="Proration, Ana's agent"><svg class="glyph"><use href="#glyph"/></svg></span>
+          <span class="av s32 agent" title="Invoice PDF, Bo's agent"><svg class="glyph"><use href="#glyph"/></svg></span>
+        </span>
+        <span class="cap">The Payments team in Proration: Ana has the baton, Bo and Cy are here, Dee is away, two agents with them.</span>
+      </div>
+    </div>
+    <p class="lede">A person is a <b>circle</b>: initials on a quiet tint, or a photo. An agent is the <b>rounded square</b> with one tight corner, the brand gradient, and the mark's centre inside. Both take the same sizes, the same presence dot, the same driver ring and the same stack, so a person and their agent read as two members of one circle and never as a user and a tool.</p>
+  </header>
+
+  <!-- ============ 1 anatomy ============ -->
+  <section>
+    <div class="sec-head"><span class="num">01</span><h2>Anatomy</h2><span class="sub">Shape says what kind of member. Everything else, size, edge, dot, ring, is shared.</span></div>
+    <div class="anat">
+      <div class="card">
+        <div class="fig">
+          <div class="big"><span class="av s120 t1">An</span></div>
+          <div>
+            <h3>A person is a circle</h3>
+            <p>Initials of the first two letters of the name, as the name is written: <b>An</b>, <b>Bo</b>, <b>Cy</b>, <b>Dee</b> &rarr; De. Below 40 they set in Instrument Sans 600 at 39% of the size; from 40 up a name is a name and sets in Instrument Serif at 46%.</p>
+            <div class="spec">
+              <div><span>shape</span><span>circle, radius 50%</span></div>
+              <div><span>tint</span><span>one of four washes hashed from the member id: apricot, navy, chocolate, sage, each mixed into the surface so ink stays legible in both themes</span></div>
+              <div><span>photo</span><span>fills the circle; the tint is the loading ground; a photo of an away person goes grey</span></div>
+              <div><span>edge</span><span>2px of the ground it sits on (canvas, surface or rail), so stacks cut cleanly</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="fig">
+          <div class="big"><span class="av s120 agent"><svg class="glyph"><use href="#glyph"/></svg></span></div>
+          <div>
+            <h3>An agent is the rounded square</h3>
+            <p>Corners at 34% of the size, the bottom-left at 12%: it is the shape that speaks in the stream. The fill is the one navy&rarr;chocolate gradient; inside is the mark's centre, the two arcs around one dot, at 64% of the size; the person's arc is cream here, because chocolate on the gradient disappears at 28px. No letter: an agent is not a person with a different initial.</p>
+            <div class="spec">
+              <div><span>shape</span><span>radius 34% 34% 34% 12%; the tight corner always bottom-left</span></div>
+              <div><span>fill</span><span><code class="k">--gradient-brand</code>, the same in dark; the arcs keep chocolate and apricot in every theme</span></div>
+              <div><span>below 24</span><span>the arcs drop; only the apricot centre at double size remains</span></div>
+              <div><span>named</span><span>"Ana's agent" may carry <i class="serif i">A</i> with the centre tucked top-right (open question)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2 sizes ============ -->
+  <section>
+    <div class="sec-head"><span class="num">02</span><h2>Sizes</h2><span class="sub">Eight sizes, one variable. The presence dot is 28% of the size with an 8px floor; the driver ring is always 2px at a 2px gap.</span></div>
+    <div class="card">
+      <div class="ladder">
+        <span class="lab">person</span>
+        <div class="cell c1"><span class="av s16 t1">An</span></div>
+        <div class="cell c2"><span class="av s20 t1">An</span></div>
+        <div class="cell c3"><span class="av s24 t1">An</span></div>
+        <div class="cell c4"><span class="av s28 t1">An</span></div>
+        <div class="cell c5"><span class="av s32 t1">An</span></div>
+        <div class="cell c6"><span class="av s40 t1">An</span></div>
+        <div class="cell c7"><span class="av s56 t1">An</span></div>
+        <div class="cell c8"><span class="av s80 t1">An</span></div>
+
+        <span class="lab">photo</span>
+        <div class="cell c1"><span class="av s16 photo"><svg><use href="#ph2"/></svg></span></div>
+        <div class="cell c2"><span class="av s20 photo"><svg><use href="#ph2"/></svg></span></div>
+        <div class="cell c3"><span class="av s24 photo"><svg><use href="#ph2"/></svg></span></div>
+        <div class="cell c4"><span class="av s28 photo"><svg><use href="#ph2"/></svg></span></div>
+        <div class="cell c5"><span class="av s32 photo"><svg><use href="#ph2"/></svg></span></div>
+        <div class="cell c6"><span class="av s40 photo"><svg><use href="#ph2"/></svg></span></div>
+        <div class="cell c7"><span class="av s56 photo"><svg><use href="#ph2"/></svg></span></div>
+        <div class="cell c8"><span class="av s80 photo"><svg><use href="#ph2"/></svg></span></div>
+
+        <span class="lab">agent</span>
+        <div class="cell c1"><span class="av s16 agent"><svg class="glyph"><use href="#glyph-sm"/></svg></span></div>
+        <div class="cell c2"><span class="av s20 agent"><svg class="glyph"><use href="#glyph-sm"/></svg></span></div>
+        <div class="cell c3"><span class="av s24 agent"><svg class="glyph"><use href="#glyph"/></svg></span></div>
+        <div class="cell c4"><span class="av s28 agent"><svg class="glyph"><use href="#glyph"/></svg></span></div>
+        <div class="cell c5"><span class="av s32 agent"><svg class="glyph"><use href="#glyph"/></svg></span></div>
+        <div class="cell c6"><span class="av s40 agent"><svg class="glyph"><use href="#glyph"/></svg></span></div>
+        <div class="cell c7"><span class="av s56 agent"><svg class="glyph"><use href="#glyph"/></svg></span></div>
+        <div class="cell c8"><span class="av s80 agent"><svg class="glyph"><use href="#glyph"/></svg></span></div>
+
+        <span class="lab">with dot</span>
+        <div class="cell c1"><span class="av s16 t2">Bo<i class="pr online"></i></span></div>
+        <div class="cell c2"><span class="av s20 t2">Bo<i class="pr online"></i></span></div>
+        <div class="cell c3"><span class="av s24 t2">Bo<i class="pr online"></i></span></div>
+        <div class="cell c4"><span class="av s28 t2 driver">Bo<i class="pr online"></i></span></div>
+        <div class="cell c5"><span class="av s32 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr running"></i></span></div>
+        <div class="cell c6"><span class="av s40 t2 driver">Bo<i class="pr online"></i></span></div>
+        <div class="cell c7"><span class="av s56 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr awaiting"></i></span></div>
+        <div class="cell c8"><span class="av s80 t2 driver">Bo<i class="pr online"></i><i class="baton"></i></span></div>
+
+        <hr>
+        <span class="lab">size</span>
+        <div class="t c1"><b>16</b>7px dot</div><div class="t c2"><b>20</b>7px dot</div><div class="t c3"><b>24</b>8px dot</div><div class="t c4"><b>28</b>8px dot</div>
+        <div class="t c5"><b>32</b>9px dot</div><div class="t c6"><b>40</b>11px dot · serif</div><div class="t c7"><b>56</b>16px dot · serif</div><div class="t c8"><b>80</b>22px dot · serif · baton</div>
+        <span class="lab">where</span>
+        <div class="where c1">@mention chip, tool line "by Bo"</div><div class="where c2">rail "with" row, inline in copy</div><div class="where c3">stacks, group rows, inbox</div><div class="where c4">default: stream meta, Team panel, rail card</div>
+        <div class="where c5">topbar presence, roster rows</div><div class="where c6">notices, plan card head, handoff</div><div class="where c7">profile cards, members drawer</div><div class="where c8">agent profile, "join the circle", settings</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3 states ============ -->
+  <section>
+    <div class="sec-head"><span class="num">03</span><h2>States</h2><span class="sub">A state is a dot, a ring, or a fade. Never a colour change of the avatar itself: the tint is identity.</span></div>
+    <div class="states">
+      <div class="card state">
+        <div class="row"><span class="av s40 t1">An</span><span class="av s40 agent"><svg class="glyph"><use href="#glyph"/></svg></span><span class="av s40 photo"><svg><use href="#ph2"/></svg></span></div>
+        <div><h3>Plain</h3><p>No dot means no presence claim: a roster of who is a member, an author line in replay, a memory entry's attribution.</p><span class="k">.av</span></div>
+      </div>
+      <div class="card state">
+        <div class="row"><span class="av s40 t1">An<i class="pr online"></i></span><span class="av s40 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr running"></i></span><span class="av s40 photo"><svg><use href="#ph2"/></svg><i class="pr online"></i></span></div>
+        <div><h3>Here</h3><p>Green dot, bottom-right, cut out with the ground. On an agent the same dot means <i>running</i> and pulses; amber is <i>waits at the gate</i>, red <i>blocked</i>, slate <i>paused</i>.</p><span class="k">.pr.online · .pr.running / .awaiting / .blocked / .paused</span></div>
+      </div>
+      <div class="card state">
+        <div class="row"><span class="av s40 t1 driver">An<i class="pr online"></i></span><span class="av s40 agent driver"><svg class="glyph"><use href="#glyph"/></svg><i class="pr running"></i></span><span class="av s40 photo driver"><svg><use href="#ph2"/></svg><i class="pr online"></i><i class="baton"></i></span></div>
+        <div><h3>Driver</h3><p>One person per session has the baton: a 2px deep-apricot ring at a 2px gap. At 40 and up the baton disc joins it bottom-left. An agent is never the driver; the ring on an agent shape is a don't, shown here only to prove the ring fits.</p><span class="k">.driver · .baton (&ge;40)</span></div>
+      </div>
+      <div class="card state">
+        <div class="row"><span class="av s40 t4 away">De<i class="pr away"></i></span><span class="av s40 agent away"><svg class="glyph"><use href="#glyph"/></svg><i class="pr paused"></i></span><span class="av s40 photo away"><svg><use href="#ph4"/></svg><i class="pr away"></i></span></div>
+        <div><h3>Away</h3><p>Still a member, not here: the tint drains to 15% saturation at 60% opacity, a photo goes grey, and the dot becomes a hollow ring. An agent is never "away"; a stopped agent is <i>paused</i> at full colour with a slate dot.</p><span class="k">.away + .pr.away</span></div>
+      </div>
+      <div class="card state">
+        <div class="row"><span class="av s40 t3 selected">Cy</span><span class="av s40 agent selected"><svg class="glyph"><use href="#glyph"/></svg></span><span class="av s40 photo selected"><svg><use href="#ph2"/></svg></span></div>
+        <div><h3>Selected / focus</h3><p>The team glow, 5px of soft apricot, the same ring the composer and buttons use. Also the keyboard focus ring in a members list.</p><span class="k">.selected · :focus-visible</span></div>
+      </div>
+      <div class="card state">
+        <div class="row"><span class="av s40 t4 joined">De<i class="pr online"></i></span><span class="av s40 agent joined"><svg class="glyph"><use href="#glyph"/></svg><i class="pr running"></i></span><span class="cap" style="font-size:12.5px">Dee joins the circle. Her agent joins with her.</span></div>
+        <div><h3>Joined</h3><p>One apricot ripple, 0.9s, when a member enters: a person into a session, an agent connecting. Off in calm mode and reduced motion. Never looped.</p><span class="k">.joined (one-shot)</span></div>
+      </div>
+      <div class="card state">
+        <div class="row"><span class="av s40 agent named">A<svg class="glyph"><use href="#glyph"/></svg></span><span class="av s40 agent named">B<svg class="glyph"><use href="#glyph"/></svg></span><span class="av s40 agent named">D<svg class="glyph"><use href="#glyph"/></svg></span></div>
+        <div><h3>Named agent (proposal)</h3><p>Where two agents sit side by side with no caption (a stack, a crew row), the owner's initial in italic serif tells them apart, with the centre tucked top-right. Only at 32 and up.</p><span class="k">.agent.named (&ge;32)</span></div>
+      </div>
+      <div class="card state">
+        <div class="row"><span class="av s40" style="--tint: var(--surface-3)"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-3)"><circle cx="8" cy="5.5" r="3"/><path d="M2.5 14c.6-3.2 2.6-4.8 5.5-4.8s4.9 1.6 5.5 4.8"/></svg></span><span class="av s40" style="--tint: var(--surface-3)"><span class="loader shimmer" style="width:60%;height:60%;border-radius:50%"></span></span><span class="av s40 t2" style="font-family:var(--font);font-weight:600;font-size:12px;letter-spacing:.04em">+3</span></div>
+        <div><h3>Unknown, loading, overflow</h3><p>No name yet: the person icon on surface-3. Loading: a shimmer disc. More than the stack holds: "+3" in mono on surface-2, never an avatar shape.</p><span class="k">.av (no initials) · .loader.shimmer · .more</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4 stacks ============ -->
+  <section>
+    <div class="sec-head"><span class="num">04</span><h2>Stacks</h2><span class="sub">Overlap 28% of the size. The driver comes first and sits on top. People before agents, then by join order. Four, then "+n".</span></div>
+    <div class="stacks">
+      <div class="card">
+        <h3>Order and overflow</h3>
+        <p>A stack answers "who is here", so it is sorted the way a glance wants it: the baton first, then the people, then their agents.</p>
+        <div class="stk-row"><div class="l"><b>Two people</b>Ana driving, Bo here</div><div class="r"><span class="stk"><span class="av t1 driver">An</span><span class="av photo"><svg><use href="#ph2"/></svg></span></span><span class="cap">Ana, Bo</span></div></div>
+        <div class="stk-row"><div class="l"><b>A person and her agent</b>the default pair</div><div class="r"><span class="stk"><span class="av t1 driver">An</span><span class="av agent"><svg class="glyph"><use href="#glyph"/></svg></span></span><span class="cap">Ana and her agent</span></div></div>
+        <div class="stk-row"><div class="l"><b>Team session</b>four members, full</div><div class="r"><span class="stk"><span class="av photo driver"><svg><use href="#ph2"/></svg></span><span class="av t1">An</span><span class="av t3">Cy</span><span class="av agent"><svg class="glyph"><use href="#glyph"/></svg></span></span><span class="cap">Bo driving, Ana, Cy, Bo's agent</span></div></div>
+        <div class="stk-row"><div class="l"><b>Overflow</b>four shown, the rest counted</div><div class="r"><span class="stk"><span class="av t1 driver">An</span><span class="av photo"><svg><use href="#ph2"/></svg></span><span class="av t3">Cy</span><span class="av t4 away">De</span><span class="more">+3</span></span><span class="cap">Dee away still counts as here-ish: she is in the session, not in the room</span></div></div>
+        <div class="stk-row"><div class="l"><b>Two agents</b>a crew, no people</div><div class="r"><span class="stk s32"><span class="av agent named">A<svg class="glyph"><use href="#glyph"/></svg></span><span class="av agent named">B<svg class="glyph"><use href="#glyph"/></svg></span></span><span class="cap">Invoice rollout: Ana's and Bo's agents</span></div></div>
+        <div class="stk-row"><div class="l"><b>Small</b>24 and 20 for rows and chips</div><div class="r"><span class="stk s24"><span class="av t1 driver">An</span><span class="av photo"><svg><use href="#ph2"/></svg></span><span class="av agent"><svg class="glyph"><use href="#glyph"/></svg></span><span class="more">+1</span></span><span class="stk s20"><span class="av t1">An</span><span class="av photo"><svg><use href="#ph2"/></svg></span><span class="av agent"><svg class="glyph"><use href="#glyph-sm"/></svg></span></span></div></div>
+      </div>
+      <div class="card">
+        <h3>The edge follows the ground</h3>
+        <p>The 2px cut-out takes the colour of what the stack sits on, so nothing shows a cream halo on navy or a white halo on apricot. Tints on the rail are the solid palette colours with dark ink, because mixing into a dark surface muddies them.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="ground" style="padding-left:2px"><span class="stk"><span class="av t1 driver">An</span><span class="av photo"><svg><use href="#ph2"/></svg></span><span class="av agent"><svg class="glyph"><use href="#glyph"/></svg></span><span class="av t4 away">De</span></span><span class="nm muted">on the canvas <span class="k">--edge: var(--canvas)</span></span></div>
+          <div class="ground surface on-surface"><span class="stk"><span class="av t1 driver">An</span><span class="av photo"><svg><use href="#ph2"/></svg></span><span class="av agent"><svg class="glyph"><use href="#glyph"/></svg></span><span class="av t4 away">De</span></span><span class="nm muted">on a card <span class="k">--edge: var(--surface)</span></span></div>
+          <div class="ground navy on-rail"><span class="stk"><span class="av t1 driver">An</span><span class="av photo"><svg><use href="#ph2"/></svg></span><span class="av agent"><svg class="glyph"><use href="#glyph"/></svg></span><span class="av t4 away">De</span></span><span class="nm" style="color:var(--rail-muted)">on the rail <span class="k" style="color:var(--rail-muted)">--edge: var(--rail)</span></span></div>
+          <div class="ground apricot on-apricot"><span class="stk"><span class="av t1 driver">An</span><span class="av photo"><svg><use href="#ph2"/></svg></span><span class="av agent"><svg class="glyph"><use href="#glyph"/></svg></span><span class="av t4 away">De</span></span><span class="nm muted">on a team message <span class="k">--edge: var(--apricot-soft)</span></span></div>
+          <div class="ground navy on-rail" style="gap:18px"><span class="av s32 t1 driver">An<i class="pr online"></i></span><span class="av s32 photo"><svg><use href="#ph2"/></svg><i class="pr online"></i></span><span class="av s32 t3">Cy<i class="pr online"></i></span><span class="av s32 t4 away">De<i class="pr away"></i></span><span class="av s32 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr running"></i></span><span class="av s32 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr awaiting"></i></span><span class="nm" style="color:var(--rail-muted);margin-left:auto">dots on the rail</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5 in the product ============ -->
+  <section>
+    <div class="sec-head"><span class="num">05</span><h2>In the product</h2><span class="sub">The same element in the rail, the stream and the Team panel. Nothing here is a special case.</span></div>
+    <div class="ctx">
+      <div class="rail-demo on-rail">
+        <div class="section" style="padding:4px 10px 8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rail-muted);display:flex;gap:8px">Agents <span style="margin-left:auto;letter-spacing:0">3</span></div>
+        <div class="crew" style="padding:4px 12px 6px"><span class="serif">Invoice rollout</span></div>
+        <a class="agent active" href="#">
+          <div class="head"><span class="av s24 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr running"></i></span><span class="t">Proration</span><span class="pill team">Team</span></div>
+          <div class="doing">Writing the <i>proration</i> step for mid-cycle upgrades</div>
+          <div class="with"><span class="stk s20"><span class="av t1 driver">An</span><span class="av photo"><svg><use href="#ph2"/></svg></span><span class="av t4 away">De</span></span>Ana drives · with Bo, Dee</div>
+        </a>
+        <a class="agent" href="#">
+          <div class="head"><span class="av s24 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr awaiting"></i></span><span class="t">Invoice PDF</span><span class="pill team">Team</span></div>
+          <div class="doing">Waits at the gate: <i>tax lines</i> in the invoice PDF</div>
+          <div class="with"><span class="stk s20"><span class="av photo driver"><svg><use href="#ph2"/></svg></span><span class="av t3">Cy</span></span>Bo drives · with Cy</div>
+        </a>
+        <a class="agent" href="#">
+          <div class="head"><span class="av s24 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr paused"></i></span><span class="t">Checkout</span><span class="pill solo">Solo</span></div>
+          <div class="doing">Paused after the <i>Billing page</i> copy pass</div>
+          <div class="with"><span class="stk s20"><span class="av t3 driver">Cy</span></span>Cy, alone</div>
+        </a>
+        <div class="me" style="margin-top:14px;display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:14px"><span class="av s28 t1">An<i class="pr online"></i></span><span>Ana <span style="color:var(--rail-muted);font-size:12px">· Payments</span></span></div>
+      </div>
+
+      <div class="card stream">
+        <div class="msg human">
+          <div class="meta"><span class="av s28 t1 driver">An</span><span class="who">Ana</span><span>steers · 09:14</span></div>
+          <div class="text">Prorate the upgrade from the day it happens, not the start of the cycle. Keep the tax lines separate on the invoice PDF.</div>
+        </div>
+        <div class="msg agent">
+          <div class="meta"><span class="av s28 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr running"></i></span><span class="who">Proration</span><span>Ana's agent · 09:15</span></div>
+          <div class="text">Plan first. Three steps: compute the daily rate, split tax per line, render the credit on the Billing page.</div>
+          <div class="steps"><div class="step"><span class="av s16 agent"><svg class="glyph"><use href="#glyph-sm"/></svg></span>read <span class="mono">billing/proration.ts</span></div><div class="step"><span class="av s16 t2">Bo</span>Bo rated the plan 4 · "tax lines after discount"</div></div>
+        </div>
+        <div class="msg team">
+          <div class="meta"><span class="av s28 photo"><svg><use href="#ph2"/></svg></span><span class="who">Bo</span><span class="to">to the team</span><span>· 09:21</span></div>
+          <div class="text" style="background:var(--apricot-soft);border-radius:var(--radius-lg);padding:13px 18px;align-self:flex-start">I'll take Checkout once this lands. Cy, can you hold the gate?</div>
+        </div>
+        <div class="notice on-surface">
+          <div style="display:flex;align-items:center;gap:12px"><span class="stk"><span class="av photo driver"><svg><use href="#ph2"/></svg></span><span class="av t3">Cy</span></span><div><div class="serif" style="font-size:17px">Bo has the baton.</div><div class="small muted">Ana handed off at 09:40 · Cy is the second rating at the release gate</div></div></div>
+        </div>
+      </div>
+
+      <div class="card panel on-surface">
+        <div class="tabs"><span class="chip on">People 4</span><span class="chip">Crew 2</span><span class="chip">Chat</span></div>
+        <h3>In this session</h3>
+        <div class="person"><span class="av s32 photo driver"><svg><use href="#ph2"/></svg><i class="pr online"></i></span><span class="name">Bo<small>driving · owner</small></span><span class="role">Here</span></div>
+        <div class="person"><span class="av s32 t1"><span>An</span><i class="pr online"></i></span><span class="name">Ana<small>contributor · handed off 09:40</small></span><span class="role">Here</span></div>
+        <div class="person"><span class="av s32 t3">Cy<i class="pr online"></i></span><span class="name">Cy<small>contributor · gate holder</small></span><span class="role">Here</span></div>
+        <div class="person"><span class="av s32 t4 away">De<i class="pr away"></i></span><span class="name">Dee<small>observer · joined yesterday</small></span><span class="role faint">Away 2h</span></div>
+        <h3 style="margin-top:6px">Agents</h3>
+        <div class="person"><span class="av s32 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr running"></i></span><span class="name">Proration<small>Ana's agent · running</small></span><span class="pill team">Team</span></div>
+        <div class="person"><span class="av s32 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr awaiting"></i></span><span class="name">Invoice PDF<small>Bo's agent · waits at the gate</small></span><span class="pill team">Team</span></div>
+        <div class="divider" style="margin-top:4px">@mention</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip"><span class="av s16 t1">An</span>Ana</span><span class="chip"><span class="av s16 agent"><svg class="glyph"><use href="#glyph-sm"/></svg></span>Proration</span><span class="chip"><span class="av s16 t4 away">De</span>Dee</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6 don'ts ============ -->
+  <section>
+    <div class="sec-head"><span class="num">06</span><h2>Don'ts</h2><span class="sub">Six ways to break the grammar, each next to the fix.</span></div>
+    <div class="donts">
+      <div class="card dont"><div class="pair"><span class="x">&times;</span><span class="av s32 t1 bad1">An</span><span class="ok">&check;</span><span class="av s32 t1">An</span></div><h3>A person in the square</h3><p>The rounded square is the agent's. A person is always a circle, even in an agent-shaped row.</p></div>
+      <div class="card dont"><div class="pair"><span class="x">&times;</span><span class="av s32 agent bad5">A</span><span class="ok">&check;</span><span class="av s32 agent"><svg class="glyph"><use href="#glyph"/></svg></span></div><h3>An agent as a round "A"</h3><p>A circle with a letter is a person called A. The agent's shape and the mark's centre are what make it an agent.</p></div>
+      <div class="card dont"><div class="pair"><span class="x">&times;</span><span class="av s32 t1 bad2">An</span><span class="ok">&check;</span><span class="av s32 t1">An</span></div><h3>Chocolate as a tint</h3><p>Chocolate is the hand, for actions. An avatar in it looks like a button. Tints are washes, never solids.</p></div>
+      <div class="card dont"><div class="pair"><span class="x">&times;</span><span class="av s32 t1 bad3">An</span><span class="ok">&check;</span><span class="av s32 t1 driver">An<i class="pr online"></i></span></div><h3>A green ring for online</h3><p>Rings mean the baton. Presence is the dot. Two things, two places.</p></div>
+      <div class="card dont"><div class="pair"><span class="x">&times;</span><span class="av s32 agent driver"><svg class="glyph"><use href="#glyph"/></svg></span><span class="ok">&check;</span><span class="av s32 agent"><svg class="glyph"><use href="#glyph"/></svg><i class="pr running"></i></span></div><h3>An agent with the ring</h3><p>The driver is a person. An agent says what it is doing with its dot, never that it is in charge.</p></div>
+      <div class="card dont"><div class="pair"><span class="x">&times;</span><span class="av s32 t4 bad6">DEE</span><span class="ok">&check;</span><span class="av s32 t4">De</span></div><h3>Three letters, shouted</h3><p>Two letters as the name is written. "Dee" is De, "Bo" is Bo. Never a surname initial unless two members share a first name.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 7 manifest ============ -->
+  <section>
+    <div class="sec-head"><span class="num">07</span><h2>What ships</h2><span class="sub">The component keeps its props; the CSS replaces <code class="k">.avatar</code> in tokens.css and the stack rule with it.</span></div>
+    <div class="manifest">
+      <div class="card">
+        <h3>Avatar props</h3>
+        <div class="api">
+          <div><code>id, name</code><span>the id hashes to one of four tints; the name gives two initials as written</span></div>
+          <div><code>agent</code><span>the rounded square with the mark's centre; no initials</span></div>
+          <div><code>size</code><span>16 · 20 · 24 · 28 (default) · 32 · 40 · 56 · 80</span></div>
+          <div><code>photo</code><span>a URL; fills the circle; grey when away</span></div>
+          <div><code>presence</code><span>"online" · "away" · for agents the session status: running, awaiting, blocked, paused</span></div>
+          <div><code>driver</code><span>the ring; the baton disc from 40 up; refused on an agent</span></div>
+          <div><code>joined</code><span>one ripple, off under calm and reduced motion</span></div>
+          <div><code>Stack</code><span>children sorted driver, people, agents; <code>max</code> (default 4) then "+n"; <code>size</code> for all</span></div>
+          <div><code>--edge</code><span>set by the ground once: <code>.rail</code>, <code>.card</code>, <code>.msg.team</code></span></div>
+        </div>
+      </div>
+      <pre><span class="c">/* avatar: one element, two shapes, one knob */</span>
+.av { --s: 28px; --edge: var(--canvas); --tint: var(--surface-3);
+  width: var(--s); height: var(--s); border-radius: 50%;
+  background: var(--tint); color: var(--ink);
+  font: 600 calc(var(--s) * .39)/1 var(--font);
+  box-shadow: 0 0 0 2px var(--edge); }
+.av.s40, .av.s56, .av.s80 { font: 400 calc(var(--s) * .46)/1 var(--serif); }
+.av.agent { border-radius: 34% 34% 34% 12%; background: var(--gradient-brand); }
+.av.driver { box-shadow: 0 0 0 2px var(--edge), 0 0 0 4px var(--apricot-deep); }
+.av.away { filter: saturate(.15); opacity: .6; }
+.av .pr { width: max(8px, calc(var(--s) * .28)); box-shadow: 0 0 0 2px var(--edge); }
+.stk .av + .av { margin-left: calc(var(--s) * -.28); }
+<span class="c">/* tints, hashed from id */</span>
+.t1 { --tint: color-mix(in srgb, var(--apricot) 55%, var(--surface)); }
+.t2 { --tint: color-mix(in srgb, <span class="p">#8EA0C4</span> 42%, var(--surface)); }
+.t3 { --tint: color-mix(in srgb, <span class="p">#B98C7C</span> 48%, var(--surface)); }
+.t4 { --tint: color-mix(in srgb, <span class="p">#9BB08F</span> 48%, var(--surface)); }
+<span class="c">/* grounds */</span>
+.rail .av { --edge: var(--rail); }  .card .av { --edge: var(--surface); }</pre>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>

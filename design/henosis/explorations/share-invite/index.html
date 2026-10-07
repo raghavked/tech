@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Share Billing page</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: status colours lift so they read on dark surfaces (same override as chat-view) */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); --scrim: rgba(0,0,0,0.5); --agent-ink: #F3EDE4; --code-bg: #161B26; --code-fg: #E9E2D6; --code-dim: #8E95A5; --code-key: #E2C4A6; } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); --scrim: rgba(0,0,0,0.5); --agent-ink: #F3EDE4; --code-bg: #161B26; --code-fg: #E9E2D6; --code-dim: #8E95A5; --code-key: #E2C4A6; }
+  :root { --scrim: rgba(42,50,68,0.28); --agent-ink: #fff; --code-bg: #2A3244; --code-fg: #F3EDE4; --code-dim: #AEB4C2; --code-key: #E2C4A6; }
+
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .btn { white-space: nowrap; }
+  .btn.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+  .btn.sm svg { width: 14px; height: 14px; }
+  .btn.primary svg.ic { stroke: var(--accent-fg); }
+
+  /* ---- shell ---- */
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item svg { width: 16px; height: 16px; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 5px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+
+  /* ---- topbar ---- */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .sub { font-family: var(--font); font-size: 13.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+  .topbar .title .sub i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 15px; }
+  .topbar .right { gap: 10px; }
+  .topbar .stack { align-items: center; margin-right: 4px; }
+  .avatar { position: relative; }
+  .avatar .live { position: absolute; right: -3px; bottom: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); border: 2px solid var(--surface); }
+  .avatar .live.off { background: var(--ink-3); } .avatar .live.paused { background: var(--info); }
+  .topbar .avatar .live { border-color: var(--canvas); }
+  .avatar.agent { font-size: 10.5px; color: var(--agent-ink); }
+  .avatar.lg { width: 34px; height: 34px; font-size: 12.5px; }
+
+  /* ---- the session behind ---- */
+  .main { position: relative; }
+  .scroll { overflow: hidden; }
+  .col { padding-top: 22px; gap: 18px; }
+  .msg .meta { gap: 9px; }
+  .msg .meta .when { color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .msg.human .text { max-width: min(640px, 92%); padding: 12px 18px; font-size: 15px; line-height: 1.55; }
+  .msg.agent .meta .avatar { width: 26px; height: 26px; }
+  .msg.agent .meta .who { font-size: 16.5px; }
+  .msg.agent .meta .owner { color: var(--ink-3); font-size: 13px; }
+  .msg.agent .body { margin-left: 13px; padding: 2px 0 2px 18px; border-left: 2px solid transparent; border-image: linear-gradient(to bottom, #2A3244, #56352D) 1; max-width: 680px; }
+  .msg.agent .body p { margin: 0; font-size: 15.5px; line-height: 1.6; }
+  .step .mono { color: var(--ink-2); }
+  .step .ok { color: var(--ok); }
+  .join-line { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); padding-left: 2px; }
+  .join-line i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 15px; }
+  .join-line .mark { width: 18px; height: 18px; }
+  .composer-wrap { padding: 10px 24px 14px; }
+  .composer .input { font-size: 15px; min-height: 26px; color: var(--ink-3); }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 2; }
+
+  /* ---- the share sheet: a dialog in two columns, Share on the left, Invite on the right ---- */
+  .sheet-wrap { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 12px; }
+  .sheet { width: min(1040px, 100%); max-height: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; overflow: hidden; animation: rise .32s ease both; }
+  .sheet .head { display: flex; align-items: center; gap: 14px; padding: 16px 22px 14px 24px; border-bottom: 1px solid var(--line); }
+  .sheet .head .mark { width: 34px; height: 34px; }
+  .sheet .head .t { font-family: var(--serif); font-size: 23px; line-height: 1.15; }
+  .sheet .head .t i { color: var(--accent); }
+  .sheet .head .s { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+  .sheet .head .close { margin-left: auto; }
+  .sheet .cols { display: grid; grid-template-columns: 1fr 1fr; overflow: auto; }
+  .sheet .colm { padding: 18px 24px 18px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .sheet .colm + .colm { border-left: 1px solid var(--line); background: color-mix(in srgb, var(--surface-2) 45%, var(--surface)); }
+  .sheet h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .sheet h3 .n { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--ink-3); }
+  .sheet p { margin: 0; }
+  .group { display: flex; flex-direction: column; gap: 10px; }
+  .rule { font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+  .rule b { font-weight: 500; color: var(--ink); }
+
+  /* link */
+  .linkbox { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+  .linkbox .url { font-family: var(--mono); font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .linkbox .url span { color: var(--ink-3); }
+  .btn.copied { background: var(--ok); border-color: transparent; color: #fff; }
+  .btn.copied svg.ic { stroke: #fff; }
+  .btn.copied .draw { stroke-dasharray: 20; stroke-dashoffset: 20; animation: draw .4s ease .1s forwards; }
+  .observer { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; padding: 12px 14px; border-radius: var(--radius); background: var(--apricot-soft); }
+  .observer .eye { width: 34px; height: 34px; border-radius: 50%; background: var(--surface); color: var(--accent); display: grid; place-items: center; }
+  .observer .eye svg { width: 18px; height: 18px; }
+  .observer .h { font-family: var(--serif); font-size: 17px; line-height: 1.2; color: var(--ink); }
+  .observer .h i { color: var(--accent); }
+  .observer .d { font-size: 13px; color: var(--ink-2); line-height: 1.5; margin-top: 2px; }
+
+  /* people rows */
+  .people { display: flex; flex-direction: column; }
+  .row { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 9px 6px; margin: 0 -6px; border-radius: 12px; }
+  .row.off .avatar, .row.off .nm { opacity: .6; }
+  .row .nm { font-family: var(--serif); font-size: 16px; line-height: 1.2; }
+  .row .nm .you { font-family: var(--font); font-size: 12.5px; color: var(--ink-3); margin-left: 5px; }
+  .row .sub { font-size: 12.5px; color: var(--ink-3); }
+  .rolechip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px 0 11px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); font-size: 13px; color: var(--ink); cursor: pointer; }
+  .rolechip.plain { padding-right: 11px; }
+  .rolechip.driving { background: var(--apricot); color: #56352D; border-color: transparent; }
+  .rolechip.open { box-shadow: var(--team-glow); border-color: transparent; }
+  .rolechip svg { width: 13px; height: 13px; color: var(--ink-3); }
+  .rolechip.driving svg { color: #56352D; }
+  .rolechip .word { font-weight: 500; }
+  .row.open { background: var(--surface-2); border-radius: 12px 12px 0 0; }
+  .picker { margin: 0 -6px; border-radius: 0 0 12px 12px; background: var(--surface-2); padding: 4px 6px 8px; display: flex; flex-direction: column; gap: 2px; animation: rise .24s ease both; }
+  .opt { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; padding: 6px 10px; border-radius: 10px; }
+  .opt:hover { background: var(--surface); }
+  .opt.now { background: var(--surface); box-shadow: var(--shadow-soft); }
+  .opt .ck { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; margin-top: 2px; }
+  .opt.now .ck { background: var(--accent); border-color: transparent; }
+  .opt.now .ck svg { width: 11px; height: 11px; stroke: var(--accent-fg); stroke-width: 2.4; }
+  .opt .w { font-weight: 500; font-size: 14px; line-height: 1.3; }
+  .opt .w .cur { font-weight: 400; color: var(--ink-3); font-size: 12.5px; margin-left: 6px; }
+  .opt .d { font-size: 12.5px; color: var(--ink-2); line-height: 1.45; }
+  .opt .d i { font-family: var(--serif); color: var(--accent); font-size: 14px; }
+  .picker .foot { padding: 6px 10px 0; font-size: 12px; color: var(--ink-3); }
+
+  /* invite a person */
+  .field { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 10px 0 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--team-glow); }
+  .field svg { color: var(--ink-3); }
+  .field .typed { flex: 1; font-size: 15px; display: flex; align-items: center; }
+  .field .caret { width: 1.5px; height: 18px; background: var(--accent); margin-left: 1px; animation: pulse 1s steps(2) infinite; }
+  .field .ph { color: var(--ink-3); }
+  .found { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); margin-top: -2px; }
+  .found .nm { font-family: var(--serif); font-size: 16px; line-height: 1.2; }
+  .found .nm b { font-family: var(--font); font-weight: 600; color: var(--accent); font-size: 15px; }
+  .found .sub { font-size: 12.5px; color: var(--ink-3); }
+  .found .sub em { font-style: normal; color: var(--warn); }
+  .asrow { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; }
+  .asrow .seg { flex: none; }
+  .asrow .seg .on { color: var(--ink); }
+  .asrow .so { flex: 1; min-width: 0; white-space: nowrap; }
+  .asrow .so i { font-family: var(--serif); color: var(--accent); font-size: 14.5px; }
+  .pending { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 9px 6px; margin: 0 -6px; }
+  .pending .avatar { background: transparent; border: 1.5px dashed var(--ink-3); color: var(--ink-3); }
+  .pending .nm { font-family: var(--serif); font-size: 16px; line-height: 1.2; }
+  .pending .sub { font-size: 12.5px; color: var(--ink-3); }
+  .pending .sub .dotp { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); margin: 0 6px 1px 0; animation: pulse 1.6s ease-in-out infinite; }
+  .pending .acts { display: flex; gap: 2px; }
+  details.fold { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  details.fold summary { list-style: none; display: flex; align-items: center; gap: 8px; line-height: 1.4; padding: 9px 12px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+  details.fold summary::-webkit-details-marker { display: none; }
+  details.fold summary svg { width: 14px; height: 14px; color: var(--ink-3); transition: transform .15s; }
+  details.fold[open] summary svg.chev { transform: rotate(90deg); }
+  details.fold summary .mono { color: var(--ink); }
+  details.fold pre { margin: 0; padding: 10px 14px 12px; border-top: 1px solid var(--line); font: 12px/1.55 var(--mono); color: var(--ink-2); overflow: auto; }
+  details.fold pre b { font-weight: 500; color: var(--ink); }
+
+  /* invite an agent */
+  .agentrow { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 9px 6px; margin: 0 -6px; border-radius: 12px; }
+  .agentrow .nm { font-family: var(--serif); font-size: 16px; line-height: 1.2; }
+  .agentrow .sub { font-size: 12.5px; color: var(--ink-3); }
+  .agentrow .sub i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 13.5px; }
+  .agentrow .sub .tok { font-family: var(--mono); font-size: 11.5px; }
+  .agentrow.joined { background: var(--apricot-soft); animation: rise .32s ease both; }
+  .agentrow.joined .avatar { animation: ripple .9s ease-out 1; }
+  .agentrow.joined .nm .j { font-style: italic; color: var(--accent); }
+  .agentrow .mark { width: 30px; height: 30px; }
+  .agentrow .mark.joining .arc { animation-iteration-count: 1; animation-fill-mode: both; }
+  .agentrow .mark.joining .dot { animation-iteration-count: 1; animation-fill-mode: both; }
+  .agentrow .told { font-size: 12.5px; color: var(--ink-2); text-align: right; line-height: 1.35; }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .code { border-radius: var(--radius); background: var(--code-bg); color: var(--code-fg); padding: 12px 14px; font: 12.5px/1.65 var(--mono); overflow: hidden; position: relative; }
+  .code .k { color: var(--code-key); } .code .c { color: var(--code-dim); }
+  .code .cp { position: absolute; right: 8px; top: 8px; border-color: rgba(243,237,228,.18); background: rgba(243,237,228,.08); color: var(--code-fg); }
+  .code .cp svg.ic { stroke: var(--code-fg); }
+  .tokrow { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; }
+  .tokrow .tok { font-family: var(--mono); font-size: 12.5px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; }
+  .tokrow .ttl { font-variant-numeric: tabular-nums; }
+  
+  /* ---- mobile: the sheet fills the screen, one column ---- */
+  .sheet-handle { display: none; }
+  @media (max-width: 480px) {
+    .rail { display: none; }
+    .topbar { padding: 10px 14px; }
+    .topbar .title .sub, .topbar .stack, .topbar .btn.details { display: none; }
+    .shell { position: relative; }
+    .sheet-wrap { padding: 0; align-items: end; }
+    .sheet { width: 100%; max-height: 94%; border-radius: 26px 26px 0 0; border-left: 0; border-right: 0; border-bottom: 0; }
+    .sheet-handle { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--ink-3); opacity: .5; margin: 10px auto -4px; }
+    .sheet .head { padding: 12px 16px 12px 18px; }
+    .sheet .head .t { font-size: 20px; }
+    .sheet .cols { grid-template-columns: 1fr; }
+    .sheet .colm { padding: 16px 18px 20px; gap: 18px; }
+    .sheet .colm + .colm { border-left: 0; border-top: 1px solid var(--line); }
+    .composer-wrap { display: none; }
+    .agentrow .told { display: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mark" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+      <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="7" fill="var(--mark-dot)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <!-- rail -->
+  <aside class="rail">
+    <div class="brand"><svg class="mark"><use href="#mark"/></svg>Henosis</div>
+    <button class="new"><svg class="ic"><path d="M8 3v10M3 8h10"/></svg>New session</button>
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent active" href="#"><div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div><div class="doing">Per-day proration · <i>credit as its own line</i></div><div class="foot"><span class="with"><span class="avatar">AN</span>with Bo, Dee</span><span class="tok">12.4k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div><div class="doing">Waits at the <i>release gate</i> · deploy to production</div><div class="foot"><span class="with"><span class="avatar">BO</span>with Ana, Cy</span><span class="tok">18.6k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot blocked"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div><div class="doing">Blocked · <i>tax rate lookup</i> answered 500</div><div class="foot"><span class="with"><span class="avatar">CY</span>Cy</span><span class="tok">31.0k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div><div class="doing">Paused · <i>plan waits for one rating</i></div><div class="foot"><span class="with"><span class="avatar">DE</span>Dee</span><span class="tok">4.2k</span></div></a>
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic"><path d="M2 4h12v9H2zM2 4l6 5 6-5"/></svg>Inbox<span class="n live">6</span></a>
+    <a class="item" href="#"><svg class="ic"><path d="M3 8.5l3 3 7-7"/></svg>Approvals<span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic"><path d="M3 3h10v7H6l-3 3z"/></svg>Chats<span class="n">6</span></a>
+    <a class="item" href="#"><svg class="ic"><path d="M2 3h12v10H2zM2 7h12"/></svg>Overview</a>
+    <div class="me"><span class="avatar">AN</span><span class="meta"><span>Ana</span><span class="role">Payments · lead</span></span><span class="gear"><svg class="ic"><path d="M2 5h12M2 11h12"/><circle cx="6" cy="5" r="1.8" fill="var(--rail)"/><circle cx="10" cy="11" r="1.8" fill="var(--rail)"/></svg></span></div>
+  </aside>
+
+  <!-- the session behind -->
+  <main class="main">
+    <div class="topbar">
+      <div class="title"><span class="serif">Billing page</span><span class="sub">Ana's agent · crew <i>Invoice rollout</i> · <span class="status running">running</span></span></div>
+      <div class="right">
+        <span class="stack"><span class="avatar driver">BO<span class="live"></span></span><span class="avatar">AN<span class="live"></span></span><span class="avatar">DE<span class="live off"></span></span></span>
+        <button class="btn sm on"><svg class="ic"><path d="M6.5 9.5a3 3 0 0 0 4 0l2-2a3 3 0 0 0-4-4l-.8.8M9.5 6.5a3 3 0 0 0-4 0l-2 2a3 3 0 0 0 4 4l.8-.8"/></svg>Share</button>
+        <button class="btn sm details"><svg class="ic"><path d="M8 7v5M8 4.5v.5"/><circle cx="8" cy="8" r="6.2"/></svg>Details</button>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="column col">
+        <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="when">09:12</span></div><div class="text">Per-day proration on the Billing page. Credit the unused days as its own line and keep the invoice PDF totals matching.</div></div>
+        <div class="msg agent"><div class="meta"><span class="avatar agent">BP<span class="live"></span></span><span class="who">Billing page</span><span class="owner">Ana's agent</span><span class="when">09:13</span></div><div class="body"><p>Taking per-day: prorate on the day the plan changes, credit the unused days as one line, "Unused time on Starter", with its own tax line so <code class="mono">invoice.pdf</code> totals match.</p>
+          <div class="steps"><div class="step"><svg class="ic ok"><path d="M3 8.5l3 3 7-7"/></svg><span class="mono">read</span> apps/billing/proration.ts</div><div class="step"><svg class="ic ok"><path d="M3 8.5l3 3 7-7"/></svg><span class="mono">edit</span> apps/billing/invoice/lines.ts · +42 −8</div><div class="step"><span class="status running"></span><span class="mono">exec</span> pnpm test billing/proration</div></div></div></div>
+        <div class="join-line"><svg class="mark"><use href="#mark"/></svg><i>Bo joins the circle</i> · opened the link · contributor, then took the baton · 09:31</div>
+        <div class="msg human"><div class="meta"><span class="who">Bo</span><span class="when">09:41</span></div><div class="text">Rated the plan 5. Dee, the second rating is yours when you are back.</div></div>
+      </div>
+    </div>
+    <div class="composer-wrap"><div class="composer"><div class="input">Steer Billing page…</div><div class="bar"><div class="seg"><button class="on">Agent</button><button>Team</button></div><div class="right"><span class="small faint">Bo has the baton</span><button class="send"><svg class="ic"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button></div></div></div></div>
+
+    <div class="scrim"></div>
+
+    <!-- the share sheet -->
+    <div class="sheet-wrap"><section class="sheet" aria-label="Share Billing page">
+      <div class="sheet-handle"></div>
+      <div class="head">
+        <svg class="mark"><use href="#mark"/></svg>
+        <div><div class="t">Share <i>Billing page</i></div><div class="s">Ana's agent on Payments · crew Invoice rollout · 3 people can open it</div></div>
+        <button class="btn ghost icon sm close" aria-label="Close"><svg class="ic"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+      <div class="cols">
+        <!-- left: the link and who opens it as what -->
+        <div class="colm">
+          <div class="group">
+            <h3>Link</h3>
+            <div class="linkbox"><span class="url"><span>henosis.payments.dev/</span>p/payments/s/billing-page-0412</span><button class="btn sm primary copied"><svg class="ic"><path class="draw" d="M3 8.5l3 3 7-7"/></svg>Copied</button></div>
+            <p class="rule">Anyone on <b>Payments</b> can open it. Leads and admins open it as owners, members as contributors, everyone else observes.</p>
+            <div class="observer">
+              <span class="eye"><svg class="ic"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></span>
+              <div><div class="h">Outside Payments, it opens as <i>observer</i>.</div><div class="d">They watch the stream and may ask the agent for a brief. They cannot steer, rate or vote until someone here raises them.</div></div>
+            </div>
+          </div>
+          <div class="group">
+            <h3>Who can open it <span class="n">3 people · 2 here</span></h3>
+            <div class="people">
+              <div class="row"><span class="avatar lg">AN<span class="live"></span></span><div><div class="nm">Ana<span class="you">you</span></div><div class="sub">owns it · the first one in</div></div><span class="rolechip plain"><span class="word">owner</span></span></div>
+              <div class="row"><span class="avatar lg driver">BO<span class="live"></span></span><div><div class="nm">Bo</div><div class="sub">has the baton since 09:31</div></div><span class="rolechip driving"><span class="word">driving</span><svg class="ic"><path d="M4 6l4 4 4-4"/></svg></span></div>
+              <div class="row off open"><span class="avatar lg">DE<span class="live off"></span></span><div><div class="nm">Dee</div><div class="sub">away · last here 09:44</div></div><span class="rolechip open"><span class="word">contributor</span><svg class="ic"><path d="M4 10l4-4 4 4"/></svg></span></div>
+              <div class="picker" role="listbox" aria-label="Role of Dee">
+                <div class="opt"><span class="ck"></span><div><div class="w">Observer</div><div class="d">Watches and asks for a brief.</div></div></div>
+                <div class="opt now"><span class="ck"><svg class="ic"><path d="M3 8.5l3 3 7-7"/></svg></span><div><div class="w">Contributor<span class="cur">now</span></div><div class="d">Steers, constrains, pauses, forks and votes where the policy allows.</div></div></div>
+                <div class="opt"><span class="ck"></span><div><div class="w">Driver</div><div class="d">One person: resumes, cancels, resolves, merges, hands off. <i>Bo has the baton</i>; picking this hands it to Dee.</div></div></div>
+                <div class="opt"><span class="ck"></span><div><div class="w">Owner</div><div class="d">Grants roles, and everything a driver can.</div></div></div>
+                <div class="foot">You own this session, so you can change a role. Dee is told.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- right: invite a person, invite an agent -->
+        <div class="colm">
+          <div class="group">
+            <h3>Invite a person</h3>
+            <div class="field"><svg class="ic"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg><span class="typed">Cy<span class="caret"></span></span><span class="small faint">↵ to invite</span></div>
+            <div class="found"><span class="avatar lg">CY</span><div><div class="nm"><b>Cy</b> Okafor</div><div class="sub">Finance · <em>not on Payments yet</em></div></div><button class="btn sm primary">Invite</button></div>
+            <div class="asrow"><span>Joins as</span><div class="seg"><button class="on">Guest</button><button>Member</button></div><span class="so"><i>Cy opens as observer</i> · Bo or Dee can raise him</span></div>
+            <div class="pending"><span class="avatar lg">MA</span><div><div class="nm">Mara Lindqvist</div><div class="sub"><span class="dotp"></span>by Bo · 2 min ago · observer · unopened</div></div><div class="acts"><button class="btn ghost sm">Resend</button><button class="btn ghost sm">Revoke</button></div></div>
+            <details class="fold">
+              <summary><svg class="ic chev"><path d="M6 4l4 4-4 4"/></svg><span>Running your own <span class="mono">henosis serve</span>? Add the entry to <span class="mono">store/users.json</span> instead.</span></summary>
+              <pre>{ "id": "<b>cy</b>", "name": "<b>Cy</b>",
+  "projects": [{ "projectId": "payments", "role": "<b>guest</b>" }] }</pre>
+            </details>
+          </div>
+          <div class="group">
+            <h3>Invite an agent</h3>
+            <p class="rule">An agent joins like a person: with the link, and someone who answers for it.</p>
+            <div class="agentrow joined"><svg class="mark joining"><use href="#mark"/></svg><div><div class="nm">Tax lines <span class="j">joins the circle</span></div><div class="sub">Dee's agent · now in crew <i>Invoice rollout</i></div></div><div class="told">09:52<br>Dee was told</div></div>
+            <div class="agentrow"><span class="avatar agent lg">IP<span class="live"></span></span><div><div class="nm">Invoice PDF</div><div class="sub">Cy's agent · blocked on <i>tax rate lookup</i> · <span class="tok">31.0k</span></div></div><button class="btn sm">Add to crew</button></div>
+            <div class="or">or from a terminal, or a harness</div>
+            <div class="code"><button class="btn sm cp"><svg class="ic"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 11V4a1 1 0 0 1 1-1h7"/></svg>Copy</button><span class="k">henosis join</span> \<br>&nbsp;&nbsp;henosis.payments.dev/p/payments/s/billing-page-0412 \<br>&nbsp;&nbsp;<span class="k">--as</span> agent <span class="k">--name</span> "Invoice PDF" <span class="k">--owner</span> cy</div>
+            <div class="tokrow"><span>One-time key</span><span class="tok">hns_join_7Qk…3f</span><span class="ttl">good for 15 min, one use</span><button class="btn ghost sm">Copy</button><span class="faint small" style="margin-left:auto">Claude Agent SDK · LangGraph · OpenAI Agents</span></div>
+            <p class="rule"><b>Same manners, same gate.</b> It plans first and waits for ratings; irreversible steps wait for two people at 4+. Its owner answers for it; it never votes.</p>
+          </div>
+        </div>
+      </div>
+    </section></div>
+  </main>
+</div>
+</body>
+</html>

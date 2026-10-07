@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis — Pricing</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  body { overflow-x: hidden; }
+  .wrap { width: min(1200px, 100%); margin: 0 auto; padding: 0 32px; }
+  .mark { display: block; flex: none; }
+  .mark .disc { fill: var(--mark-disc); }
+  .mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); display: inline-flex; align-items: center; gap: 8px; }
+  .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); }
+  .btn.lg { min-height: 46px; padding: 0 22px; font-size: 15px; }
+  .btn.brand { box-shadow: var(--shadow-soft); }
+  .btn.block { width: 100%; }
+  .ico { width: 16px; height: 16px; flex: none; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* nav */
+  .nav { display: flex; align-items: center; gap: 28px; height: 72px; }
+  .nav .brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 24px; color: var(--ink); }
+  .nav .links { display: flex; gap: 22px; margin-left: 12px; font-size: 14px; }
+  .nav .links a { color: var(--ink-2); } .nav .links a.on { color: var(--ink); font-weight: 500; } .nav .links a:hover { color: var(--ink); text-decoration: none; }
+  .nav .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .nav .right .signin { font-size: 14px; color: var(--ink-2); padding: 0 12px; }
+
+  /* hero */
+  .hero-grid { display: grid; grid-template-columns: 1fr 520px; gap: 56px; align-items: center; padding: 34px 0 44px; }
+  .hero-copy h1 { font-size: 60px; line-height: 1.02; letter-spacing: -.015em; margin: 16px 0 18px; }
+  .hero-copy h1 em { font-style: italic; color: var(--accent); }
+  .hero-copy .lede { font-size: 18px; line-height: 1.55; color: var(--ink-2); max-width: 500px; }
+  .two-prices { display: flex; gap: 14px; margin: 26px 0 0; flex-wrap: wrap; }
+  .price { flex: 1 1 200px; padding: 16px 18px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 4px; }
+  .price .big { font-family: var(--serif); font-size: 38px; line-height: 1; color: var(--ink); }
+  .price .big small { font-family: var(--font); font-size: 14px; color: var(--ink-2); margin-left: 4px; }
+  .price .lbl { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); }
+  .price .exp { font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+  .price.pulse { border-color: transparent; background: var(--apricot-soft); }
+  .price.pulse .big { color: var(--ink); }
+  .fine { font-size: 13px; color: var(--ink-3); display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+  .fine span { display: inline-flex; align-items: center; gap: 6px; }
+  .fine svg { width: 14px; height: 14px; }
+
+  /* estimator card */
+  .est { background: var(--rail); color: var(--rail-fg); border-radius: 28px; padding: 24px; box-shadow: var(--shadow-pop); position: relative; overflow: hidden; }
+  .est::before { content: ""; position: absolute; inset: 0; background: radial-gradient(460px 280px at 80% -10%, rgba(226,196,166,.20), transparent 70%); pointer-events: none; }
+  .est > * { position: relative; }
+  .est .head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .est .head .mark { width: 36px; height: 36px; }
+  .est .head .t { font-family: var(--serif); font-size: 20px; }
+  .est .head .s { font-size: 12.5px; color: var(--rail-muted); }
+  .est .head .month { margin-left: auto; font-size: 12.5px; color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 999px; padding: 3px 10px; }
+  .est .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--rail-line); font-size: 14px; }
+  .est .row .l { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .est .row .l .s { font-size: 12.5px; color: var(--rail-muted); }
+  .est .row .r { font-family: var(--mono); font-size: 14px; text-align: right; white-space: nowrap; }
+  .est .row .r.free { color: var(--apricot); }
+  .est .row.join { background: var(--rail-active); border-radius: 12px; padding: 11px 12px; margin: 4px -12px 4px; border-top: 0; box-shadow: inset 0 0 0 1px rgba(226,196,166,.3); }
+  .est .row.join .l .s i { font-family: var(--serif); font-style: italic; color: var(--apricot); font-size: 14px; }
+  .est .people { display: flex; align-items: center; gap: 10px; }
+  .est .stack .avatar { width: 26px; height: 26px; font-size: 10.5px; border-color: var(--rail); background: var(--rail-2); color: var(--rail-fg); }
+  .est .stack .avatar.joined { box-shadow: 0 0 0 2px var(--apricot); animation: ripple 1.6s ease-out infinite; }
+  .est .stack .avatar.agent { background: var(--gradient-brand); border-radius: 9px 9px 9px 3px; }
+  .est .hours { height: 8px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; display: flex; margin: 6px 0 2px; }
+  .est .hours i { display: block; height: 100%; }
+  .est .hours .run { background: var(--gradient-live); background-size: 200% 100%; width: 60%; }
+  .est .hours .wait { background: rgba(226,196,166,.28); width: 22%; }
+  .est .hours .idle { background: rgba(255,255,255,.12); width: 18%; }
+  .est .legend { display: flex; gap: 14px; font-size: 12px; color: var(--rail-muted); margin-bottom: 10px; }
+  .est .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .est .legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .est .total { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px; padding-top: 14px; border-top: 1px solid var(--rail-line); margin-top: 4px; }
+  .est .total .t { font-family: var(--serif); font-size: 20px; }
+  .est .total .s { font-size: 12.5px; color: var(--rail-muted); }
+  .est .total .n { font-family: var(--serif); font-size: 38px; line-height: 1; }
+  .est .total .n small { font-family: var(--mono); font-size: 13px; color: var(--rail-muted); margin-left: 6px; }
+  .est .cta { margin-top: 16px; display: flex; gap: 8px; align-items: center; }
+  .est .cta .btn.go { flex: 1; min-height: 42px; background: var(--apricot); color: #56352D; border-color: transparent; box-shadow: var(--shadow-soft); }
+  .est .cta .btn.go:hover { background: var(--apricot-deep); }
+  .est .cta .btn.quiet { background: transparent; border-color: var(--rail-line); color: var(--rail-fg); min-height: 42px; }
+
+  /* tiers */
+  .section { padding: 44px 0; }
+  .section-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 22px; flex-wrap: wrap; }
+  .section-head h2 { font-size: 34px; }
+  .section-head .sub { color: var(--ink-2); flex: 0 1 520px; font-size: 15px; margin: 0; }
+  .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
+  .tier { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 26px 26px 22px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 16px; position: relative; }
+  .tier .name { font-family: var(--serif); font-size: 26px; display: flex; align-items: center; gap: 10px; }
+  .tier .name .tag { font: 600 11px var(--font); letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: var(--apricot); color: #56352D; }
+  .tier .for { font-size: 14px; color: var(--ink-2); min-height: 44px; }
+  .tier .amount { display: flex; align-items: baseline; gap: 6px; }
+  .tier .amount .n { font-family: var(--serif); font-size: 44px; line-height: 1; }
+  .tier .amount .u { font-size: 14px; color: var(--ink-2); }
+  .tier .plus { font-size: 13.5px; color: var(--ink-2); margin-top: -8px; }
+  .tier .plus b { color: var(--ink); font-weight: 500; }
+  .tier ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; font-size: 14px; }
+  .tier li { display: flex; gap: 10px; align-items: flex-start; }
+  .tier li svg { width: 16px; height: 16px; flex: none; margin-top: 3px; color: var(--ok); }
+  .tier li.off { color: var(--ink-3); } .tier li.off svg { color: var(--ink-3); }
+  .tier .foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+  .tier .foot .note { font-size: 12.5px; color: var(--ink-3); text-align: center; }
+  .tier.team { border-color: transparent; box-shadow: var(--shadow-pop), 0 0 0 1px rgba(226,196,166,.6); }
+  .tier.team::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--gradient-brand); }
+  .tier.org { background: var(--surface-2); }
+
+  /* what counts: session strip */
+  .counts { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .strip { grid-column: 1 / -1; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px 24px; box-shadow: var(--shadow-soft); }
+  .strip .top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .strip .top .serif { font-size: 20px; }
+  .strip .top .meta { font-size: 13px; color: var(--ink-2); }
+  .strip .top .right { margin-left: auto; display: flex; gap: 12px; font-size: 13px; color: var(--ink-2); }
+  .strip .top .right b { font-family: var(--mono); font-weight: 500; color: var(--ink); }
+  .timeline { position: relative; height: 56px; border-radius: 12px; overflow: hidden; display: flex; background: var(--surface-2); }
+  .timeline .seg { position: relative; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--ink-2); border-right: 1px solid var(--canvas); white-space: nowrap; overflow: hidden; }
+  .timeline .seg.run { background: var(--apricot); color: #56352D; }
+  .timeline .seg.wait { background: var(--apricot-soft); }
+  .timeline .seg.idle { background: var(--surface-3); color: var(--ink-3); }
+  .timeline .seg .h { position: absolute; bottom: 4px; font: 10.5px var(--mono); font-weight: 400; opacity: .8; }
+  .ticks { display: flex; justify-content: space-between; margin-top: 8px; font: 11.5px var(--mono); color: var(--ink-3); }
+  .events { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; font-size: 13px; color: var(--ink-2); }
+  .events span { display: inline-flex; align-items: center; gap: 7px; }
+  .events i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .events .who { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+  .rule { display: flex; gap: 14px; align-items: flex-start; }
+  .rule .ic { width: 40px; height: 40px; border-radius: 12px; flex: none; display: grid; place-items: center; background: var(--apricot-soft); color: var(--accent); }
+  .rule .ic svg { width: 20px; height: 20px; }
+  .rule h3 { font-family: var(--serif); font-weight: 400; font-size: 20px; margin-bottom: 2px; }
+  .rule p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.55; }
+
+  /* invoice */
+  .inv-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 40px; align-items: center; }
+  .inv-copy h2 { font-size: 34px; margin-bottom: 14px; }
+  .inv-copy p { color: var(--ink-2); font-size: 15.5px; line-height: 1.6; margin: 0 0 12px; max-width: 480px; }
+  .inv-copy .list { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .inv-copy .list .it { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+  .inv-copy .list .it svg { width: 16px; height: 16px; color: var(--ok); margin-top: 3px; flex: none; }
+  .inv { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-pop); padding: 28px 30px; font-size: 13.5px; position: relative; }
+  .inv::after { content: ""; position: absolute; inset: 10px -6px -6px 10px; z-index: -1; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); }
+  .inv .ih { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .inv .ih .mark { width: 30px; height: 30px; }
+  .inv .ih .t { font-family: var(--serif); font-size: 20px; line-height: 1.1; }
+  .inv .ih .s { font-size: 12px; color: var(--ink-3); }
+  .inv .ih .pdf { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--accent); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+  .inv .ih .pdf svg { width: 14px; height: 14px; }
+  .inv .addr { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .inv .addr b { color: var(--ink); font-weight: 500; display: block; }
+  .inv table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .inv th { text-align: left; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 10px 0 6px; }
+  .inv td { padding: 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  .inv td.n, .inv th.n { text-align: right; font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  .inv td .s { display: block; font-size: 12px; color: var(--ink-3); }
+  .inv td .s i { font-family: var(--serif); color: var(--accent); }
+  .inv tr.sub td { border-top: 1px solid var(--line); color: var(--ink-2); }
+  .inv tr.tax td { border-top: 0; padding-top: 2px; color: var(--ink-2); }
+  .inv tr.tot td { border-top: 2px solid var(--ink); font-family: var(--serif); font-size: 18px; padding-top: 10px; }
+  .inv tr.tot td.n { font-family: var(--mono); font-size: 16px; }
+  .inv .paid { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ok); background: var(--ok-soft); border-radius: 999px; padding: 3px 9px; }
+  .inv .paid svg { width: 12px; height: 12px; }
+  .inv .foot { margin-top: 14px; font-size: 12px; color: var(--ink-3); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  /* faq + footer */
+  .faq { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 32px; }
+  .faq h3 { font-family: var(--serif); font-weight: 400; font-size: 19px; margin-bottom: 4px; }
+  .faq p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.55; }
+  .footer { border-top: 1px solid var(--line); padding: 26px 0 40px; display: flex; align-items: center; gap: 20px; font-size: 13px; color: var(--ink-3); flex-wrap: wrap; }
+  .footer .brand { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 18px; color: var(--ink); }
+  .footer .right { margin-left: auto; display: flex; gap: 18px; }
+
+  @media (max-width: 1100px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 28px; }
+    .tiers, .faq, .counts { grid-template-columns: 1fr; }
+    .inv-grid { grid-template-columns: 1fr; gap: 28px; }
+  }
+  @media (max-width: 640px) {
+    .wrap { padding: 0 16px; }
+    .nav { height: 60px; gap: 12px; } .nav .links, .nav .right .signin { display: none; }
+    .hero-grid { padding: 14px 0 28px; }
+    .hero-copy h1 { font-size: 40px; }
+    .hero-copy .lede { font-size: 16px; }
+    .section { padding: 30px 0; } .section-head h2, .inv-copy h2 { font-size: 28px; }
+    .est { padding: 18px; border-radius: 22px; }
+    .est .total .n { font-size: 30px; }
+    .est .head .month { display: none; }
+    .est .cta { flex-direction: column; } .est .cta .btn { width: 100%; }
+    .tier .for { min-height: 0; }
+    .timeline { height: 48px; } .timeline .seg { font-size: 0; } .timeline .seg .h { font-size: 10.5px; bottom: auto; }
+    .inv { padding: 20px 18px; } .inv .addr { grid-template-columns: 1fr; gap: 8px; }
+    .inv .ih { flex-wrap: wrap; } .inv .ih .pdf { margin-left: 0; width: 100%; justify-content: center; }
+    .strip .top .right { margin-left: 0; width: 100%; } .strip .top .right span { white-space: nowrap; }
+    .timeline .seg .h { display: none; }
+    .est .row { grid-template-columns: 1fr; gap: 4px; } .est .row .r { text-align: left; } .est .people { flex-wrap: wrap; }
+    .footer .right { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="m" viewBox="0 0 96 96">
+    <circle class="disc" cx="48" cy="48" r="46" style="fill:var(--mark-disc)"/>
+    <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" style="fill:none;stroke:var(--mark-arc-a);stroke-width:10;stroke-linecap:round"/>
+    <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" style="fill:none;stroke:var(--mark-arc-b);stroke-width:10;stroke-linecap:round"/>
+    <circle class="dot" cx="48" cy="48" r="7" style="fill:var(--mark-dot)"/>
+  </symbol>
+  <symbol id="check" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="minus" viewBox="0 0 16 16"><path d="M4 8h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="seat" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></symbol>
+  <symbol id="star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M10 13h6M10 17h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="lock" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+</svg>
+
+<header class="wrap">
+  <nav class="nav">
+    <a class="brand" href="#"><svg class="mark" width="30" height="30"><use href="#m"/></svg>Henosis</a>
+    <div class="links"><a href="#">Product</a><a href="#">Agents</a><a href="#" class="on">Pricing</a><a href="#">Docs</a><a href="#">Changelog</a></div>
+    <div class="right"><a class="signin" href="#">Sign in</a><a class="btn primary" href="#">Join the circle</a></div>
+  </nav>
+</header>
+
+<main class="wrap">
+  <section class="hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow">Pricing</span>
+      <h1>Pay for the hours the ring is <em>closed.</em></h1>
+      <p class="lede">A session-hour is billed only while an agent is working or a person is steering. Waiting on an approval, paused, idle overnight: free. Seats are for the people who hold the gates. Everyone else joins for nothing.</p>
+      <div class="two-prices">
+        <div class="price pulse">
+          <span class="lbl">Active session-hour</span>
+          <span class="big">$0.90<small>per hour</small></span>
+          <span class="exp">Metered by the minute, per session. Forks and crews count their own hours; replays never do.</span>
+        </div>
+        <div class="price">
+          <span class="lbl">Approver seat</span>
+          <span class="big">$24<small>per person, per month</small></span>
+          <span class="exp">Rates plans and holds release gates. Observers, contributors and agents are free, without limit.</span>
+        </div>
+      </div>
+      <div class="fine">
+        <span><svg><use href="#check"/></svg>No per-agent fee</span>
+        <span><svg><use href="#check"/></svg>No per-message fee</span>
+        <span><svg><use href="#check"/></svg>Model tokens billed by your provider, shown in every session</span>
+      </div>
+    </div>
+
+    <aside class="est" aria-label="Estimate for the Payments team">
+      <div class="head">
+        <svg class="mark" width="36" height="36"><use href="#m"/></svg>
+        <div><div class="t">Payments team</div><div class="s">A month like September, estimated live</div></div>
+        <span class="month">Sep 1 – 30</span>
+      </div>
+
+      <div class="row">
+        <div class="l">Active session-hours<span class="s">Billing page, Checkout and 11 more sessions</span></div>
+        <div class="r">212 h × $0.90</div>
+      </div>
+      <div class="hours"><i class="run"></i><i class="wait"></i><i class="idle"></i></div>
+      <div class="legend"><span><i style="background:var(--apricot)"></i>212 h active</span><span><i style="background:rgba(226,196,166,.4)"></i>79 h waiting on people</span><span><i style="background:rgba(255,255,255,.2)"></i>64 h paused</span></div>
+
+      <div class="row">
+        <div class="l">Hours waiting on an approval or paused<span class="s">143 h the agent sat with the plan and did nothing</span></div>
+        <div class="r free">$0.00</div>
+      </div>
+
+      <div class="row">
+        <div class="l"><div class="people"><span class="stack"><span class="avatar">An</span><span class="avatar">Bo</span><span class="avatar">Cy</span></span>Approver seats</div><span class="s">Ana, Bo and Cy hold the release gate on main</span></div>
+        <div class="r">3 × $24</div>
+      </div>
+
+      <div class="row join">
+        <div class="l"><div class="people"><span class="stack"><span class="avatar joined">De</span><span class="avatar agent">H</span></span><i>Dee joins the circle</i> with her agent</div><span class="s">Sep 19. Both join free; her seat starts the day she first holds a gate, prorated.</span></div>
+        <div class="r">12 ⁄ 30 × $24</div>
+      </div>
+
+      <div class="total">
+        <div><div class="t">Estimated total</div><div class="s">Before tax. Invoice PDF on the 1st.</div></div>
+        <div class="n">$272.40<small>USD</small></div>
+      </div>
+      <div class="cta">
+        <a class="btn go" href="#">Start with 20 free hours</a>
+        <a class="btn quiet" href="#">Open the estimator</a>
+      </div>
+    </aside>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div><span class="eyebrow">Plans</span><h2>Three ways to hold the circle</h2></div>
+      <p class="sub">Every plan has the whole product: the rail, the stream, plans with ratings, release gates, replay, memory. The plans differ in who pays and how.</p>
+    </div>
+    <div class="tiers">
+      <article class="tier">
+        <div class="name">Circle</div>
+        <div class="for">For one engineer, one agent, and the people who wander in to watch.</div>
+        <div class="amount"><span class="n">$0</span><span class="u">per month</span></div>
+        <div class="plus"><b>20 active hours</b> and <b>2 approver seats</b> included every month</div>
+        <ul>
+          <li><svg><use href="#check"/></svg>Unlimited observers, contributors and agents</li>
+          <li><svg><use href="#check"/></svg>Plan-first sessions, ratings, release gates</li>
+          <li><svg><use href="#check"/></svg>Replay and the memory browser</li>
+          <li><svg><use href="#check"/></svg>Slack thread per session</li>
+          <li class="off"><svg><use href="#minus"/></svg>Hours past 20 pause the agent until next month</li>
+        </ul>
+        <div class="foot"><a class="btn block" href="#">Join free</a><span class="note">No card. Upgrade when the hours run out.</span></div>
+      </article>
+
+      <article class="tier team">
+        <div class="name">Team <span class="tag">Most teams</span></div>
+        <div class="for">For a team whose agents run for hours and whose releases need a quorum.</div>
+        <div class="amount"><span class="n">$0.90</span><span class="u">per active session-hour</span></div>
+        <div class="plus">plus <b>$24</b> per approver seat, per month, prorated to the day</div>
+        <ul>
+          <li><svg><use href="#check"/></svg>Everything in Circle, no hour cap</li>
+          <li><svg><use href="#check"/></svg>Crews, fleet board, lead directives, contention resolution</li>
+          <li><svg><use href="#check"/></svg>Token budgets and the optimisation report</li>
+          <li><svg><use href="#check"/></svg><span>Manager overview and <span class="mono">GET /api/usage</span></span></li>
+          <li><svg><use href="#check"/></svg>Monthly invoice PDF with tax lines; card or bank</li>
+        </ul>
+        <div class="foot"><a class="btn primary block" href="#">Start with 20 free hours</a><span class="note">First 20 hours every month stay free on Team too.</span></div>
+      </article>
+
+      <article class="tier org">
+        <div class="name">Org</div>
+        <div class="for">For a platform team hosting every harness across the company.</div>
+        <div class="amount"><span class="n">Volume</span></div>
+        <div class="plus"><b>Committed hours</b> at a lower rate; seats by department</div>
+        <ul>
+          <li><svg><use href="#check"/></svg>Everything in Team</li>
+          <li><svg><use href="#check"/></svg>SSO and SCIM; roles mapped from your directory</li>
+          <li><svg><use href="#check"/></svg><span>Self-hosted <span class="mono">henosis serve</span> or our cloud, your region</span></li>
+          <li><svg><use href="#check"/></svg>Audit export, replay in CI, retention you set</li>
+          <li><svg><use href="#check"/></svg>Annual invoice, PO and net-30</li>
+        </ul>
+        <div class="foot"><a class="btn block" href="#">Talk to us</a><span class="note">Usually a week from first call to first session.</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div><span class="eyebrow">What counts</span><h2>One session, one Tuesday, 9 hours and 40 minutes long</h2></div>
+      <p class="sub">The Billing page session, as the meter saw it. Only the apricot stretches are billed.</p>
+    </div>
+    <div class="counts">
+      <div class="strip">
+        <div class="top">
+          <span class="serif">Billing page</span>
+          <span class="status running">Running</span>
+          <span class="meta">Ana's agent · crew <span class="serif">Invoice rollout</span> with Bo</span>
+          <div class="right"><span>Wall clock <b>9 h 40 m</b></span><span>Billed <b>5 h 05 m</b></span><span>Cost <b>$4.58</b></span></div>
+        </div>
+        <div class="timeline" role="img" aria-label="Timeline of one session showing billed and free stretches">
+          <div class="seg run" style="width:19%">Planning<span class="h">1 h 50</span></div>
+          <div class="seg wait" style="width:9%">Plan waits<span class="h">50 m</span></div>
+          <div class="seg run" style="width:22%">Steps 1–3<span class="h">2 h 05</span></div>
+          <div class="seg idle" style="width:16%">Paused<span class="h">1 h 35</span></div>
+          <div class="seg run" style="width:13%">Step 4<span class="h">1 h 10</span></div>
+          <div class="seg wait" style="width:13%">Release gate<span class="h">1 h 15</span></div>
+          <div class="seg idle" style="width:8%">Idle<span class="h">55 m</span></div>
+        </div>
+        <div class="ticks"><span>09:10</span><span>11:00</span><span>13:00</span><span>15:00</span><span>17:00</span><span>18:50</span></div>
+        <div class="events">
+          <span><i style="background:var(--apricot-deep)"></i><span class="who">Ana</span> sets the goal, 09:10</span>
+          <span><i style="background:var(--warn)"></i><span class="who">Bo</span> rates the plan 4, 11:50</span>
+          <span><i style="background:var(--info)"></i><span class="who">Ana</span> pauses for lunch, 14:05</span>
+          <span><i style="background:var(--apricot-deep)"></i><span class="who">Cy</span> takes the baton, 15:40</span>
+          <span><i style="background:var(--ok)"></i>Gate granted by <span class="who">Bo</span> and <span class="who">Dee</span>, 18:05</span>
+        </div>
+      </div>
+
+      <div class="rule">
+        <div class="ic"><svg><use href="#clock"/></svg></div>
+        <div><h3>Active means someone is doing something</h3><p>The agent is running a step, or a person is steering. Measured by the minute from the session log, so the number on your invoice is the same number the replay shows.</p></div>
+      </div>
+      <div class="rule">
+        <div class="ic"><svg><use href="#pause"/></svg></div>
+        <div><h3>Waiting is never billed</h3><p>A plan waiting for ratings, a release gate waiting for a quorum, a paused agent, a session idle overnight. We would rather you take the time to look.</p></div>
+      </div>
+      <div class="rule">
+        <div class="ic"><svg><use href="#seat"/></svg></div>
+        <div><h3>A seat is a hand on the gate</h3><p>Only people who rate plans or grant approvals under a ratings rule take a seat. The first time Dee rates a plan, her seat starts that day. Remove her from the gate and it stops.</p></div>
+      </div>
+      <div class="rule">
+        <div class="ic"><svg><use href="#star"/></svg></div>
+        <div><h3>Joining is the whole point, so it is free</h3><p>A new engineer and a new agent enter the same circle on the same day. Neither adds a line to the invoice. Agents are members, not metered tools.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="inv-grid">
+      <div class="inv-copy">
+        <span class="eyebrow">Billing</span>
+        <h2>An invoice you can read in one breath</h2>
+        <p>Every line maps to something you can open: the hours link to the sessions, the seats link to the people. Proration is written out, not hidden in a rate. Tax lines follow your registration.</p>
+        <div class="list">
+          <div class="it"><svg><use href="#check"/></svg>Invoice PDF on the 1st, with VAT or sales tax by your billing address</div>
+          <div class="it"><svg><use href="#check"/></svg>Seats prorated to the day they start or stop</div>
+          <div class="it"><svg><use href="#check"/></svg>Checkout takes a card; Org takes a PO and a bank transfer</div>
+          <div class="it"><svg><use href="#check"/></svg>The Billing page shows the running month, by session and by person</div>
+        </div>
+      </div>
+
+      <div class="inv" aria-label="Sample invoice">
+        <div class="ih">
+          <svg class="mark" width="30" height="30"><use href="#m"/></svg>
+          <div><div class="t">Invoice HN-2026-0917</div><div class="s">Issued 1 Oct 2026 · Period 1–30 Sep 2026</div></div>
+          <span class="pdf"><svg><use href="#doc"/></svg>PDF</span>
+        </div>
+        <div class="addr">
+          <div><b>Billed to</b>Lumen Payments Ltd<br>Payments team · Ana Ferreira<br>VAT GB 442 9087 11</div>
+          <div><b>From</b>Henosis Inc.<br>Pay by card ending 4421<br><span class="paid"><svg><use href="#check"/></svg>Paid 1 Oct</span></div>
+        </div>
+        <table>
+          <thead><tr><th>Line</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th></tr></thead>
+          <tbody>
+            <tr><td>Active session-hours<span class="s">13 sessions · <i>Billing page</i> 61 h 20 m, <i>Checkout</i> 44 h 05 m, 11 more</span></td><td class="n">212.0 h</td><td class="n">$0.90</td><td class="n">$190.80</td></tr>
+            <tr><td>Included hours<span class="s">The first 20 hours each month</span></td><td class="n">−20.0 h</td><td class="n">$0.90</td><td class="n">−$18.00</td></tr>
+            <tr><td>Approver seats<span class="s">Ana, Bo, Cy · full month</span></td><td class="n">3</td><td class="n">$24.00</td><td class="n">$72.00</td></tr>
+            <tr><td>Approver seat, prorated<span class="s">Dee · from 19 Sep, 12 of 30 days</span></td><td class="n">0.40</td><td class="n">$24.00</td><td class="n">$9.60</td></tr>
+            <tr class="sub"><td colspan="3">Subtotal</td><td class="n">$254.40</td></tr>
+            <tr class="tax"><td colspan="3">VAT 20% (GB)</td><td class="n">$50.88</td></tr>
+            <tr class="tot"><td colspan="3">Total due</td><td class="n">$305.28</td></tr>
+          </tbody>
+        </table>
+        <div class="foot"><span>Model tokens are not on this invoice; they are billed by your provider and shown per session.</span><span class="mono" style="font-size:11.5px">usage: 1,842,117 tokens</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><span class="eyebrow">Questions</span><h2>Asked before the first invoice</h2></div></div>
+    <div class="faq">
+      <div><h3>What if two people steer the same hour?</h3><p>One session-hour. Hours belong to the session, not the people in it. Four people in one session cost the same as one.</p></div>
+      <div><h3>Do forks and crews multiply the bill?</h3><p>A fork has its own agent runner, so its active minutes count. Uniting it back is free. A crew is two sessions; each meters itself.</p></div>
+      <div><h3>Is a manager a seat?</h3><p>Only if they rate plans or grant gated approvals. Reading the manager overview, the inbox and the replay never takes a seat.</p></div>
+      <div><h3>What about the tokens?</h3><p>Your model provider bills them. Henosis shows what every turn cost, estimates them in every plan, and reports the savings. We do not mark them up.</p></div>
+      <div><h3>Can we set a ceiling?</h3><p>Yes. A hard monthly cap on hours pauses new work at the limit and tells the people in the session why; soft token budgets per session stay as they are.</p></div>
+      <div><h3>How does Dee's seat start and stop?</h3><p>It starts the day she first holds a gate and is prorated to the day. Take her off the gate and the seat ends that day; the invoice writes both dates out.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div class="footer">
+    <span class="brand"><svg class="mark" width="22" height="22"><use href="#m"/></svg>Henosis</span>
+    <span>Prices in USD, before tax.</span>
+    <div class="right"><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Security</a><a href="#">Status</a></div>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Cost forecast</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* Cost forecast: what October will cost, by team, against soft budgets, and who gets told.
+     Money is one series and wears the hand (--total); the band is the hand at 8%; the budget is
+     a dotted ink-3 line; the 80% hairline is the warn token with a dot where the pace crosses it.
+     Input/output keep the usage-charts contract (navy / chocolate stepped into the chart band). */
+  :root {
+    --page-w: 1088px;
+    --ser-in: #3B66A8; --ser-out: #A85236;
+    --total: var(--accent); --total-wash: rgba(86,53,45,0.10); --band: rgba(86,53,45,0.08);
+    --grid: rgba(42,50,68,0.10); --base: rgba(42,50,68,0.28);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --ser-in: #5F88C8; --ser-out: #C96A50; --total-wash: rgba(226,196,166,0.12); --band: rgba(226,196,166,0.10);
+    --grid: rgba(240,234,224,0.10); --base: rgba(240,234,224,0.30);
+  } }
+  :root[data-theme="dark"] {
+    --ser-in: #5F88C8; --ser-out: #C96A50; --total-wash: rgba(226,196,166,0.12); --band: rgba(226,196,166,0.10);
+    --grid: rgba(240,234,224,0.10); --base: rgba(240,234,224,0.30);
+  }
+  html, body { height: 100%; }
+  body { overflow: hidden; }
+  .shell { height: 100%; }
+  .ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* rail */
+  .rail { overflow: hidden; }
+  .rail .brand { padding-bottom: 10px; } .rail .brand svg { width: 30px; height: 30px; }
+  .rail .agent { padding: 6px 12px; gap: 2px; } .rail .section { padding: 8px 10px 2px; } .rail .crew { padding-top: 6px; } .rail .item { padding: 6px 12px; } .rail .me { padding: 8px 12px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 4px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .item .n.warn { background: rgba(226,176,106,0.22); color: #E2B06A; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; } .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+
+  /* page */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .crumb { color: var(--ink-3); font-family: var(--font); font-size: 14px; }
+  .topbar .menu { display: none; }
+  .page { width: min(var(--page-w), 100%); margin: 0 auto; padding: 24px 32px 80px; display: flex; flex-direction: column; gap: 18px; }
+  .lede { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start; }
+  .lede h1 { font-size: 36px; }
+  .lede .sum { font-size: 16px; color: var(--ink-2); max-width: 720px; margin: 4px 0 0; text-wrap: pretty; line-height: 1.5; }
+  .lede .sum b { font-weight: 500; color: var(--ink); }
+  .lede .sum .n { font-family: var(--mono); font-size: 14.5px; color: var(--ink); }
+  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; padding-top: 10px; }
+  .controls .seg button { padding: 5px 13px; }
+  .controls .chip svg { width: 13px; height: 13px; }
+
+  /* top grid: forecast + alerts */
+  .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: 14px; align-items: stretch; }
+  .card { padding: 16px 18px; }
+  .card .head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .card .head h2 { font-size: 21px; }
+  .card .head .s { font-size: 13px; color: var(--ink-3); }
+  .card .head .r { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); margin: 2px 0 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 16px; height: 0; border-top: 2px solid var(--total); display: inline-block; }
+  .legend i.d { border-top-style: dashed; } .legend i.b { height: 10px; border: 0; background: var(--band); border-radius: 2px; }
+  .legend i.bud { border-top: 2px dotted var(--ink-3); } .legend i.am { border-top: 1.5px solid var(--warn); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; background: var(--surface-2); }
+  .stat { padding: 10px 14px 9px; background: var(--surface); display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .stat + .stat { border-left: 1px solid var(--line); }
+  .stat .l { font-size: 12px; color: var(--ink-2); }
+  .stat .v { font-family: var(--serif); font-size: 26px; line-height: 1.15; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+  .stat .v small { font-family: var(--font); font-size: 12px; color: var(--ink-3); }
+  .stat .d { font-size: 12px; color: var(--ink-3); line-height: 1.35; }
+  .stat .d .warn { color: var(--warn); } .stat .d .ok { color: var(--ok); }
+  .stat.hero { background: var(--gradient-brand); color: #fff; } .stat.hero .l, .stat.hero .d, .stat.hero .v small { color: rgba(255,255,255,0.78); }
+
+  /* forecast chart */
+  .fc { width: 100%; height: auto; display: block; font-family: var(--mono); } .fc.mob { display: none; }
+  .fc .g { stroke: var(--grid); stroke-width: 1; } .fc .base { stroke: var(--base); stroke-width: 1; }
+  .fc text { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+  .fc .tk { font-size: 11px; fill: var(--ink-3); }
+  .fc .lab { font-size: 11px; fill: var(--ink-3); font-family: var(--font); } .fc .lab.warn { fill: var(--warn); }
+  .fc .val { font-size: 11.5px; fill: var(--ink); font-weight: 500; }
+  .fc .today { stroke: var(--base); stroke-dasharray: 2 3; }
+  .fc .budget-l { stroke: var(--ink-3); stroke-width: 1.5; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+  .fc .amber-l { stroke: var(--warn); stroke-width: 1; opacity: .8; }
+  .fc .band { fill: var(--band); }
+  .fc .solid { fill: none; stroke: var(--total); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+  .fc .dash { fill: none; stroke: var(--total); stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; stroke-linecap: round; }
+  .fc .pt { fill: var(--total); stroke: var(--surface); stroke-width: 2; } .fc .pt.amber { fill: var(--warn); } .fc .pt.end { fill: var(--surface); stroke: var(--total); }
+  .foot { font-size: 12.5px; color: var(--ink-3); margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .foot b { color: var(--ink-2); font-weight: 500; }
+
+  /* alerts */
+  .alerts { display: flex; flex-direction: column; min-height: 0; }
+  .rules { display: flex; flex-direction: column; }
+  .rule { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.35; }
+  .rule:first-child { border-top: 0; }
+  .rule .w { color: var(--ink); } .rule .to { font-size: 12.5px; color: var(--ink-3); }
+  .rule .to .serif { font-size: 14px; color: var(--ink-2); }
+  .rule.off .w, .rule.off .to { color: var(--ink-3); }
+  .sw { width: 34px; height: 20px; border-radius: 10px; background: var(--surface-3); position: relative; border: 0; cursor: pointer; padding: 0; flex: none; }
+  .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .15s; }
+  .sw.on { background: var(--accent); } .sw.on::after { transform: translateX(14px); }
+  .fired { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .fired h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+  .fire { display: grid; grid-template-columns: 8px 1fr; gap: 10px; align-items: start; font-size: 13px; line-height: 1.4; }
+  .fire i { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: var(--warn); } .fire.hot i { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+  .fire .t { color: var(--ink); } .fire .t .serif { font-size: 15px; } .fire .m { font-size: 12.5px; color: var(--ink-3); }
+  .fire .m .ack { color: var(--ok); }
+
+  /* by team */
+  .teams { padding: 6px 18px 10px; }
+  .teams .head { padding: 8px 0 6px; margin: 0; }
+  .thead, .trow { display: grid; grid-template-columns: 1.4fr 1fr 0.9fr 0.85fr 1.5fr 1.35fr; gap: 16px; align-items: center; }
+  .thead { font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 6px 0; border-bottom: 1px solid var(--line); font-weight: 600; }
+  .trow { padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .trow:last-child { border-bottom: 0; }
+  .trow:hover { background: linear-gradient(90deg, transparent, var(--surface-2) 6%, var(--surface-2) 94%, transparent); }
+  .c { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .c .s { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .c .v { font-size: 14.5px; color: var(--ink); }
+  .c.team .nm { font-size: 18px; line-height: 1.2; }
+  .c.tok .split { display: flex; height: 5px; border-radius: 3px; overflow: hidden; gap: 2px; width: 100%; max-width: 120px; margin: 2px 0; }
+  .c.tok .split i { display: block; height: 100%; } .c.tok .split .in { background: var(--ser-in); border-radius: 3px 0 0 3px; } .c.tok .split .out { background: var(--ser-out); border-radius: 0 3px 3px 0; }
+  .c.sp { flex-direction: row; align-items: center; gap: 10px; }
+  .sp { width: 64px; height: 18px; flex: none; } .sp path { fill: none; stroke: var(--total); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; } .sp circle { fill: var(--total); }
+  .meter { display: block; height: 6px; border-radius: 3px; background: var(--total-wash); position: relative; overflow: hidden; margin: 6px 0 3px; }
+  .meter i { position: absolute; left: 0; top: 0; height: 100%; border-radius: 3px; }
+  .meter .proj { background: var(--total); opacity: .28; } .meter .done { background: var(--total); z-index: 1; }
+  .meter.amber .proj { background: var(--warn); opacity: .4; } .meter.over .proj { background: var(--danger); opacity: .45; }
+  .meter .tick { position: absolute; left: 80%; top: -2px; width: 1.5px; height: 10px; background: var(--warn); z-index: 2; }
+  .state { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--radius-full); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+  .state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .state.ok { background: var(--ok-soft); color: var(--ok); } .state.amber { background: var(--warn-soft); color: var(--warn); } .state.over { background: var(--danger-soft); color: var(--danger); }
+
+  /* open team: where it goes */
+  .detail { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 4px 0 8px; }
+  .detail .box { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; background: var(--surface-2); }
+  .detail h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+  .detail .li { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; font-size: 13.5px; padding: 4px 0; }
+  .detail .li .nm { font-family: var(--serif); font-size: 15px; } .detail .li .mono { font-size: 12.5px; color: var(--ink-2); } .detail .li .mono.d { color: var(--ink); }
+  .detail .li .avatar { width: 22px; height: 22px; font-size: 9px; }
+  .detail .bar { height: 5px; border-radius: 3px; background: var(--total-wash); margin: 5px 0 2px; overflow: hidden; } .detail .bar i { display: block; height: 100%; background: var(--total); border-radius: 3px; }
+  .detail .li.work { grid-template-columns: 1fr auto; }
+  .note { font-size: 12.5px; color: var(--ink-3); text-wrap: pretty; }
+
+  @media (max-width: 1180px) { .grid { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) {
+    .rail { display: none; } .topbar .menu { display: inline-flex; } .topbar .right .btn:not(.icon) { display: none; }
+    .page { padding: 16px 16px 60px; gap: 14px; }
+    .lede { grid-template-columns: 1fr; gap: 10px; } .lede h1 { font-size: 30px; } .lede .sum { font-size: 15px; }
+    .controls { justify-content: flex-start; padding-top: 0; }
+    .stats { grid-template-columns: 1fr 1fr; } .stat:nth-child(3) { border-left: 0; } .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
+    .card { padding: 14px; }
+    .thead { display: none; }
+    .trow { grid-template-columns: 1fr 1fr; gap: 10px 14px; padding: 14px 0; }
+    .trow .c.team { grid-column: 1 / -1; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .trow .c.st { order: 5; align-items: flex-end; justify-content: center; } .trow .c.met { grid-column: 1 / -1; order: 6; } .trow .c.pr { order: 4; }
+    .trow .c.tok .split { max-width: none; }
+    .trow:hover { background: none; }
+    .detail { grid-template-columns: 1fr; }
+    .fc.desk { display: none; } .fc.mob { display: block; }
+    .card .head { flex-wrap: wrap; gap: 4px 10px; } .card .head h2 { white-space: nowrap; } .card .head .s { flex-basis: 100%; order: 3; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Cy</div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Proration</span><span class="pill team">Team</span></div>
+      <div class="doing">Holds <i>proration.ts</i> · rendering the tax lines</div>
+      <div class="foot"><span class="with"><span class="avatar driver">AN</span> with Bo, Dee</span><span class="tok">52.1k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot blocked"></span><span class="t">Invoice PDF</span><span class="pill team">Team</span></div>
+      <div class="doing">Blocked · <i>tax rate lookup</i> answered 500</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> with Ana</span><span class="tok">58.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout deploy</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Waits at the <i>release gate</i> · deploy</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> Bo</span><span class="tok">48.9k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">33.6k</span></div>
+    </a>
+
+    <div class="section">Workspace</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Overview</a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 19V10M10 19V5M16 19v-8M22 19H2"/></svg>Usage</a>
+    <a class="item active" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/></svg>Cost forecast <span class="n warn">1</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></svg>Inbox <span class="n live">6</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>Approvals <span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11h18M3 6h18M3 16h18"/></svg>Groups <span class="n">4</span></a>
+
+    <div class="me">
+      <span class="avatar">BO</span>
+      <span class="meta"><span>Bo</span><span class="role">Payments · owner</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
+    </div>
+  </nav>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn icon ghost menu" type="button" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title"><span class="serif">Workspace</span><span class="crumb">Cost forecast</span></div>
+      <div class="right">
+        <button class="btn ghost sm" type="button">Rate card</button>
+        <button class="btn sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export CSV</button>
+        <button class="btn primary sm" type="button">Set budgets</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="page">
+
+        <div class="lede">
+          <div>
+            <h1>Cost forecast</h1>
+            <p class="sum">Seven days into October the workspace has spent <span class="n">$330</span> on <span class="n">3.04M</span> tokens across four teams. At this pace the month lands at about <span class="n">$1,450</span> of the <span class="n">$1,500</span> budget and turns amber around <b>26 Oct</b>. <b>Payments</b> is the one to watch: its pace lands <span class="n">$580</span> on a <span class="n">$500</span> budget, so Ana was told this morning. Nothing stops at 100%.</p>
+          </div>
+          <div class="controls">
+            <div class="seg" role="tablist" aria-label="Period"><button class="on" role="tab" aria-selected="true">October</button><button role="tab">Quarter</button><button role="tab">Year</button></div>
+            <span class="chip on"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>USD</span>
+            <span class="chip"><svg class="ic" viewBox="0 0 24 24"><path d="M4 19V10M10 19V5M16 19v-8M22 19H2"/></svg>Tokens</span>
+          </div>
+        </div>
+
+        <div class="grid">
+          <section class="card forecast" aria-label="Projected spend">
+            <div class="head"><h2>Projected spend</h2><span class="s">October 2026 · pace from the last five weekdays and two weekend days</span></div>
+            <div class="stats">
+              <div class="stat hero"><span class="l">At this pace</span><span class="v">$1,450<small>97% of budget</small></span><span class="d">band $1,340 – $1,570</span></div>
+              <div class="stat"><span class="l">Spent so far</span><span class="v">$330<small>7 of 31 days</small></span><span class="d"><b>$61</b> a weekday, <b>$12</b> at the weekend</span></div>
+              <div class="stat"><span class="l">Budget</span><span class="v">$1,500<small>soft</small></span><span class="d"><span class="warn">amber around 26 Oct</span>, 100% not reached</span></div>
+              <div class="stat"><span class="l">Last month</span><span class="v">$1,310<small>September</small></span><span class="d">pace is <span class="warn">11% more</span>, mostly Payments</span></div>
+            </div>
+            <div class="legend"><span><i></i>So far</span><span><i class="d"></i>At this pace</span><span><i class="b"></i>±8% by month end</span><span><i class="bud"></i>Budget</span><span><i class="am"></i>80% line</span></div>
+            <svg class="fc desk" viewBox="0 0 632 262" role="img" aria-labelledby="fctdesk fcddesk">
+  <title id="fctdesk">Projected spend for October</title>
+  <desc id="fcddesk">Cumulative dollars spent this month, solid to today and dashed at the current pace with a widening band, against the soft budget of $1,500 and its 80% line at $1,200.</desc>
+  <line class="g" x1="52" x2="618" y1="236.0" y2="236.0"/><text class="tk" x="45" y="240.0" text-anchor="end">$0</text><line class="g" x1="52" x2="618" y1="181.0" y2="181.0"/><text class="tk" x="45" y="185.0" text-anchor="end">$400</text><line class="g" x1="52" x2="618" y1="126.0" y2="126.0"/><text class="tk" x="45" y="130.0" text-anchor="end">$800</text><line class="g" x1="52" x2="618" y1="71.0" y2="71.0"/><text class="tk" x="45" y="75.0" text-anchor="end">$1,200</text><line class="g" x1="52" x2="618" y1="16.0" y2="16.0"/><text class="tk" x="45" y="20.0" text-anchor="end">$1,600</text>
+  <line class="base" x1="52" x2="618" y1="236.0" y2="236.0"/>
+  <text class="tk" x="52.0" y="254" text-anchor="middle">1 Oct</text><text class="tk" x="184.1" y="254" text-anchor="middle">8</text><text class="tk" x="316.1" y="254" text-anchor="middle">15</text><text class="tk" x="448.2" y="254" text-anchor="middle">22</text><text class="tk" x="580.3" y="254" text-anchor="middle">29</text>
+  <line class="today" x1="165.2" x2="165.2" y1="16" y2="236.0"/>
+  <text class="tk" x="171.2" y="26">Today</text>
+  <line class="budget-l" x1="52" x2="618" y1="29.8" y2="29.8"/>
+  <text class="lab" x="58" y="44.8">Budget $1,500 · soft</text>
+  <line class="amber-l" x1="52" x2="618" y1="71.0" y2="71.0"/>
+  <text class="lab warn" x="58" y="65.0">80% · $1,200</text>
+  <path class="band" d="M165.2 190.6 L184.1 182.0 L202.9 173.3 L221.8 171.5 L240.7 169.7 L259.5 160.9 L278.4 152.0 L297.3 143.1 L316.1 134.2 L335.0 125.1 L353.9 123.1 L372.7 121.1 L391.6 112.0 L410.5 102.8 L429.3 93.5 L448.2 84.2 L467.1 74.8 L485.9 72.6 L504.8 70.5 L523.7 61.0 L542.5 51.4 L561.4 41.8 L580.3 32.1 L599.1 22.4 L618.0 20.0 L618.0 52.0 L599.1 52.8 L580.3 60.0 L561.4 67.2 L542.5 74.5 L523.7 81.8 L504.8 89.2 L485.9 90.2 L467.1 91.2 L448.2 98.7 L429.3 106.2 L410.5 113.9 L391.6 121.5 L372.7 129.3 L353.9 130.4 L335.0 131.6 L316.1 139.5 L297.3 147.4 L278.4 155.3 L259.5 163.4 L240.7 171.4 L221.8 172.8 L202.9 174.2 L184.1 182.4 L165.2 190.6 Z"/>
+  <path class="dash" d="M165.2 190.6 L184.1 182.2 L202.9 173.7 L221.8 172.2 L240.7 170.6 L259.5 162.1 L278.4 153.7 L297.3 145.3 L316.1 136.8 L335.0 128.4 L353.9 126.8 L372.7 125.2 L391.6 116.8 L410.5 108.3 L429.3 99.9 L448.2 91.4 L467.1 83.0 L485.9 81.4 L504.8 79.8 L523.7 71.4 L542.5 62.9 L561.4 54.5 L580.3 46.1 L599.1 37.6 L618.0 36.0"/>
+  <path class="solid" d="M52.0 228.8 L70.9 220.9 L89.7 218.9 L108.6 217.7 L127.5 208.6 L146.3 198.9 L165.2 190.6"/>
+  <circle class="pt amber" cx="524.5" cy="71.0" r="4"/>
+  <text class="lab warn" x="524.5" y="87.0" text-anchor="middle">around 26 Oct</text>
+  <circle class="pt" cx="165.2" cy="190.6" r="4"/>
+  <text class="val" x="174.2" y="194.6">$330 so far</text>
+  <circle class="pt end" cx="618.0" cy="36.0" r="4"/>
+  <text class="val" x="608.0" y="27.0" text-anchor="end">$1,450 at this pace</text>
+</svg><svg class="fc mob" viewBox="0 0 340 230" role="img" aria-labelledby="fctmob fcdmob">
+  <title id="fctmob">Projected spend for October</title>
+  <desc id="fcdmob">Cumulative dollars spent this month, solid to today and dashed at the current pace with a widening band, against the soft budget of $1,500 and its 80% line at $1,200.</desc>
+  <line class="g" x1="48" x2="330" y1="206.0" y2="206.0"/><text class="tk" x="41" y="210.0" text-anchor="end">$0</text><line class="g" x1="48" x2="330" y1="158.5" y2="158.5"/><text class="tk" x="41" y="162.5" text-anchor="end">$400</text><line class="g" x1="48" x2="330" y1="111.0" y2="111.0"/><text class="tk" x="41" y="115.0" text-anchor="end">$800</text><line class="g" x1="48" x2="330" y1="63.5" y2="63.5"/><text class="tk" x="41" y="67.5" text-anchor="end">$1,200</text><line class="g" x1="48" x2="330" y1="16.0" y2="16.0"/><text class="tk" x="41" y="20.0" text-anchor="end">$1,600</text>
+  <line class="base" x1="48" x2="330" y1="206.0" y2="206.0"/>
+  <text class="tk" x="48.0" y="222" text-anchor="middle">1 Oct</text><text class="tk" x="113.8" y="222" text-anchor="middle">8</text><text class="tk" x="179.6" y="222" text-anchor="middle">15</text><text class="tk" x="245.4" y="222" text-anchor="middle">22</text><text class="tk" x="311.2" y="222" text-anchor="middle">29</text>
+  <line class="today" x1="104.4" x2="104.4" y1="16" y2="206.0"/>
+  <text class="tk" x="110.4" y="26">Today</text>
+  <line class="budget-l" x1="48" x2="330" y1="27.9" y2="27.9"/>
+  <text class="lab" x="54" y="42.9">Budget $1,500</text>
+  <line class="amber-l" x1="48" x2="330" y1="63.5" y2="63.5"/>
+  <text class="lab warn" x="54" y="57.5">80%</text>
+  <path class="band" d="M104.4 166.8 L113.8 159.4 L123.2 151.9 L132.6 150.3 L142.0 148.7 L151.4 141.1 L160.8 133.5 L170.2 125.8 L179.6 118.0 L189.0 110.3 L198.4 108.5 L207.8 106.8 L217.2 98.9 L226.6 91.0 L236.0 83.0 L245.4 74.9 L254.8 66.8 L264.2 64.9 L273.6 63.0 L283.0 54.8 L292.4 46.6 L301.8 38.3 L311.2 29.9 L320.6 21.5 L330.0 19.5 L330.0 47.1 L320.6 47.8 L311.2 54.0 L301.8 60.2 L292.4 66.5 L283.0 72.8 L273.6 79.2 L264.2 80.1 L254.8 80.9 L245.4 87.4 L236.0 93.9 L226.6 100.5 L217.2 107.1 L207.8 113.8 L198.4 114.8 L189.0 115.8 L179.6 122.6 L170.2 129.5 L160.8 136.3 L151.4 143.3 L142.0 150.3 L132.6 151.4 L123.2 152.6 L113.8 159.7 L104.4 166.8 Z"/>
+  <path class="dash" d="M104.4 166.8 L113.8 159.5 L123.2 152.2 L132.6 150.9 L142.0 149.5 L151.4 142.2 L160.8 134.9 L170.2 127.6 L179.6 120.3 L189.0 113.0 L198.4 111.7 L207.8 110.3 L217.2 103.0 L226.6 95.7 L236.0 88.4 L245.4 81.1 L254.8 73.9 L264.2 72.5 L273.6 71.1 L283.0 63.8 L292.4 56.5 L301.8 49.2 L311.2 42.0 L320.6 34.7 L330.0 33.3"/>
+  <path class="solid" d="M48.0 199.8 L57.4 192.9 L66.8 191.3 L76.2 190.2 L85.6 182.4 L95.0 173.9 L104.4 166.8"/>
+  <circle class="pt amber" cx="283.4" cy="63.5" r="4"/>
+  <text class="lab warn" x="283.4" y="79.5" text-anchor="middle">around 26 Oct</text>
+  <circle class="pt" cx="104.4" cy="166.8" r="4"/>
+  <text class="val" x="113.4" y="170.8">$330 so far</text>
+  <circle class="pt end" cx="330.0" cy="33.3" r="4"/>
+  <text class="val" x="320.0" y="24.3" text-anchor="end">$1,450 pace</text>
+</svg>
+            <div class="foot"><span>The band's top edge touches the budget around <b>30 Oct</b>.</span><span>Prices from the workspace <b>rate card</b> (Oct 2026); cache reads at the cache rate.</span><span>A budget is a number people watch, not a gate.</span></div>
+          </section>
+
+          <section class="card alerts" aria-label="Alerts">
+            <div class="head"><h2>Alerts</h2><span class="s">who is told, and when</span><span class="r"><button class="btn ghost sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Rule</button></span></div>
+            <div class="rules">
+              <div class="rule"><div><div class="w">Workspace passes 80% of its budget</div><div class="to">to <span class="serif">Bo</span> · inbox and email</div></div><button class="sw on" type="button" role="switch" aria-checked="true" aria-label="Workspace 80%"></button></div>
+              <div class="rule"><div><div class="w">A team passes 80%, then 100%, of its budget</div><div class="to">to the team's lead · inbox</div></div><button class="sw on" type="button" role="switch" aria-checked="true" aria-label="Team 80 and 100%"></button></div>
+              <div class="rule"><div><div class="w">The pace lands a team over its budget</div><div class="to">to the team's lead · once a day, 08:40</div></div><button class="sw on" type="button" role="switch" aria-checked="true" aria-label="Pace over budget"></button></div>
+              <div class="rule"><div><div class="w">One session passes 150k tokens</div><div class="to">to the driver and <span class="serif">Bo</span> · inbox</div></div><button class="sw on" type="button" role="switch" aria-checked="true" aria-label="Session 150k"></button></div>
+              <div class="rule off"><div><div class="w">Daily spend digest</div><div class="to">to <span class="serif">#payments</span> · 09:00 · off</div></div><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Daily digest"></button></div>
+            </div>
+            <div class="fired">
+              <h3>Fired this month</h3>
+              <div class="fire hot"><i></i><div><div class="t"><span class="serif">Payments</span> · pace lands $580 on $500</div><div class="m">Today 08:40 · <span class="ack">Ana acknowledged</span>, moved Invoice PDF to Solo</div></div></div>
+              <div class="fire"><i></i><div><div class="t"><span class="serif">Invoice PDF</span> · session passed 150k tokens</div><div class="m">Mon 16:12 · <span class="ack">Cy acknowledged</span></div></div></div>
+              <div class="fire"><i></i><div><div class="t"><span class="serif">Checkout deploy</span> · session passed 150k tokens</div><div class="m">Fri 2 Oct 11:05 · Bo muted the session for a week</div></div></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="card teams" aria-label="By team">
+          <div class="head"><h2>By team</h2><span class="s">tokens this month, spend and the pace against each budget</span><span class="r"><button class="btn ghost sm" type="button">Edit budgets</button></span></div>
+          <div class="thead" role="row"><div>Team</div><div>Tokens</div><div>Spent</div><div>At this pace</div><div>Budget</div><div>Status</div></div>
+          
+        <div class="trow open" role="row">
+          <div class="c team"><span class="serif nm">Payments</span><span class="s">Ana leads · 4 people, 4 agents</span></div>
+          <div class="c tok"><span class="mono v">1.21M</span><span class="split" aria-hidden="true"><i class="in" style="width:78%"></i><i class="out" style="width:22%"></i></span><span class="s">78% input</span></div>
+          <div class="c sp"><span class="mono v">$131</span><svg class="sp" viewBox="0 0 64 18" aria-hidden="true"><path d="M2.0 6.0 L12.0 4.5 L22.0 13.0 L32.0 14.0 L42.0 2.5 L52.0 2.0 L62.0 4.5"/><circle cx="62.0" cy="4.5" r="2.2"/></svg></div>
+          <div class="c pr"><span class="mono v">$580</span><span class="s">of $500</span></div>
+          <div class="c met"><span class="meter over" aria-label="115% of budget at this pace"><i class="done" style="width:26.2%"></i><i class="proj" style="width:100.0%"></i><b class="tick"></b></span><span class="s">26% spent · 115% at this pace</span></div>
+          <div class="c st"><span class="state over">Over around 27 Oct</span></div>
+        </div>
+        <div class="trow " role="row">
+          <div class="c team"><span class="serif nm">Checkout</span><span class="s">Bo leads · 3 people, 2 agents</span></div>
+          <div class="c tok"><span class="mono v">0.86M</span><span class="split" aria-hidden="true"><i class="in" style="width:78%"></i><i class="out" style="width:22%"></i></span><span class="s">78% input</span></div>
+          <div class="c sp"><span class="mono v">$94</span><svg class="sp" viewBox="0 0 64 18" aria-hidden="true"><path d="M2.0 5.5 L12.0 4.8 L22.0 13.2 L32.0 13.9 L42.0 2.7 L52.0 2.0 L62.0 4.1"/><circle cx="62.0" cy="4.1" r="2.2"/></svg></div>
+          <div class="c pr"><span class="mono v">$410</span><span class="s">of $450</span></div>
+          <div class="c met"><span class="meter amber" aria-label="92% of budget at this pace"><i class="done" style="width:20.9%"></i><i class="proj" style="width:92.1%"></i><b class="tick"></b></span><span class="s">21% spent · 92% at this pace</span></div>
+          <div class="c st"><span class="state amber">Amber around 27 Oct</span></div>
+        </div>
+        <div class="trow " role="row">
+          <div class="c team"><span class="serif nm">Platform</span><span class="s">Dee leads · 3 people, 3 agents</span></div>
+          <div class="c tok"><span class="mono v">0.58M</span><span class="split" aria-hidden="true"><i class="in" style="width:78%"></i><i class="out" style="width:22%"></i></span><span class="s">78% input</span></div>
+          <div class="c sp"><span class="mono v">$62</span><svg class="sp" viewBox="0 0 64 18" aria-hidden="true"><path d="M2.0 6.0 L12.0 5.0 L22.0 13.0 L32.0 15.0 L42.0 4.0 L52.0 2.0 L62.0 5.0"/><circle cx="62.0" cy="5.0" r="2.2"/></svg></div>
+          <div class="c pr"><span class="mono v">$270</span><span class="s">of $300</span></div>
+          <div class="c met"><span class="meter amber" aria-label="91% of budget at this pace"><i class="done" style="width:20.7%"></i><i class="proj" style="width:91.1%"></i><b class="tick"></b></span><span class="s">21% spent · 91% at this pace</span></div>
+          <div class="c st"><span class="state amber">Amber around 27 Oct</span></div>
+        </div>
+        <div class="trow " role="row">
+          <div class="c team"><span class="serif nm">Growth</span><span class="s">Cy leads · 2 people, 2 agents</span></div>
+          <div class="c tok"><span class="mono v">0.39M</span><span class="split" aria-hidden="true"><i class="in" style="width:78%"></i><i class="out" style="width:22%"></i></span><span class="s">78% input</span></div>
+          <div class="c sp"><span class="mono v">$43</span><svg class="sp" viewBox="0 0 64 18" aria-hidden="true"><path d="M2.0 5.1 L12.0 3.6 L22.0 14.4 L32.0 14.4 L42.0 3.6 L52.0 2.0 L62.0 2.0"/><circle cx="62.0" cy="2.0" r="2.2"/></svg></div>
+          <div class="c pr"><span class="mono v">$190</span><span class="s">of $250</span></div>
+          <div class="c met"><span class="meter ok" aria-label="76% of budget at this pace"><i class="done" style="width:17.2%"></i><i class="proj" style="width:75.8%"></i><b class="tick"></b></span><span class="s">17% spent · 76% at this pace</span></div>
+          <div class="c st"><span class="state ok">On pace</span></div>
+        </div>
+        </section>
+
+        <section class="card" aria-label="Where Payments spends">
+          <div class="head"><h2>Where Payments spends</h2><span class="s">$131 so far · 1.21M tokens · the same money three ways</span><span class="r"><a class="small" href="#">Open Payments usage</a></span></div>
+          <div class="detail">
+            <div class="box">
+              <h3>By person</h3>
+              <div class="li"><span class="avatar driver">AN</span><span class="nm">Ana</span><span class="mono">478k</span><span class="mono d">$52</span></div>
+              <div class="li"><span class="avatar">CY</span><span class="nm">Cy</span><span class="mono">382k</span><span class="mono d">$41</span></div>
+              <div class="li"><span class="avatar">BO</span><span class="nm">Bo</span><span class="mono">214k</span><span class="mono d">$23</span></div>
+              <div class="li"><span class="avatar">DE</span><span class="nm">Dee</span><span class="mono">136k</span><span class="mono d">$15</span></div>
+            </div>
+            <div class="box">
+              <h3>By agent</h3>
+              <div class="li"><span class="avatar agent">IP</span><span class="nm">Invoice PDF</span><span class="mono">408k</span><span class="mono d">$44</span></div>
+              <div class="li"><span class="avatar agent">PR</span><span class="nm">Proration</span><span class="mono">352k</span><span class="mono d">$38</span></div>
+              <div class="li"><span class="avatar agent">CD</span><span class="nm">Checkout deploy</span><span class="mono">286k</span><span class="mono d">$31</span></div>
+              <div class="li"><span class="avatar agent">TL</span><span class="nm">Tax lines</span><span class="mono">164k</span><span class="mono d">$18</span></div>
+            </div>
+            <div class="box">
+              <h3>By work</h3>
+              <div class="li work"><span class="nm">Billing page</span><span class="mono d">$71</span></div><div class="bar"><i style="width:54%"></i></div>
+              <div class="li work"><span class="nm">Checkout</span><span class="mono d">$39</span></div><div class="bar"><i style="width:30%"></i></div>
+              <div class="li work"><span class="nm">Invoice PDF and tax lines</span><span class="mono d">$21</span></div><div class="bar"><i style="width:16%"></i></div>
+              <p class="note">Invoice PDF is blocked on the tax rate lookup and retried it 14 times; that is $9 of the $44.</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

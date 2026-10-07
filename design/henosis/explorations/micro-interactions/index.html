@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Micro-interactions</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- board ---- */
+  body { overflow-x: hidden; }
+  .board { width: min(1344px, 100%); margin: 0 auto; padding: 40px 48px 96px; display: flex; flex-direction: column; gap: 52px; }
+  .head { display: grid; grid-template-columns: 64px 1fr auto; gap: 22px; align-items: center; }
+  .head .mark { width: 64px; height: 64px; }
+  .head h1 { font-size: 44px; }
+  .head .lede { font-size: 16px; color: var(--ink-2); max-width: 780px; margin: 6px 0 0; }
+  .head .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+  .head .meta .pill { font-family: var(--mono); font-weight: 500; letter-spacing: 0; }
+  .sec { display: flex; flex-direction: column; gap: 18px; }
+  .sec > header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .sec > header h2 { font-size: 28px; }
+  .sec > header .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: .06em; }
+  .sec > header p { margin: 0; flex-basis: 100%; color: var(--ink-2); max-width: 820px; }
+  .grid { display: grid; gap: 16px; } .grid > * { min-width: 0; }
+  .g2 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g4 { grid-template-columns: repeat(4, 1fr); } .g6 { grid-template-columns: repeat(6, 1fr); }
+  .card { display: flex; flex-direction: column; gap: 12px; }
+  .card .cap { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card .cap .mono { font-size: 11.5px; text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: auto; color: var(--ink-3); }
+  .card .why { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; margin: 0; }
+  .card .demo { display: flex; flex-direction: column; gap: 10px; }
+  .card .spec { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 10px; margin-top: auto; }
+  .card .spec b { font-weight: 600; color: var(--ink-3); font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; }
+  .card .spec .mono { font-size: 12px; }
+  .states { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+  .states > div { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-3); }
+  .states > div > :first-child { display: inline-flex; align-items: center; }
+  .states .menu-sheet { display: flex; }
+  .live { font-size: 11px; color: var(--apricot-deep); font-weight: 600; letter-spacing: .06em; display: inline-flex; align-items: center; gap: 5px; }
+  .live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); animation: pulse 1.6s ease-in-out infinite; }
+  .ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .ok-fg { color: var(--ok); } .warn-fg { color: var(--warn); } .danger-fg { color: var(--danger); }
+  :root[data-theme="dark"] .ok-fg { color: #9BC88F; } :root[data-theme="dark"] .warn-fg { color: #E2B06A; } :root[data-theme="dark"] .danger-fg { color: #E2847A; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ok-fg { color: #9BC88F; } :root:not([data-theme="light"]) .warn-fg { color: #E2B06A; } :root:not([data-theme="light"]) .danger-fg { color: #E2847A; } }
+
+  /* ---- the rules strip ---- */
+  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .rule { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-soft); }
+  .rule .t { font-family: var(--serif); font-size: 22px; line-height: 1.1; }
+  .rule .d { font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+  .clocks { display: flex; gap: 8px; margin-top: 2px; }
+  .clocks i { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: var(--radius-full); font: 500 11.5px var(--mono); background: var(--surface-2); color: var(--ink-2); font-style: normal; }
+  .clocks i:nth-child(2) { background: var(--apricot-soft); color: var(--ink); } .clocks i:nth-child(3) { background: var(--accent); color: var(--accent-fg); }
+  .curve { height: 42px; display: block; width: 100%; }
+  .curve path { fill: none; stroke: var(--accent); stroke-width: 2; } .curve line { stroke: var(--line); }
+  .swatches { display: flex; gap: 6px; margin-top: 2px; }
+  .swatches i { width: 28px; height: 20px; border-radius: 6px; border: 1px solid var(--line); }
+
+  /* ---- at a glance (head strip) ---- */
+  .glance { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .glance > div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 118px; box-shadow: var(--shadow-soft); }
+  .glance .k { font-family: var(--serif); font-size: 19px; display: flex; align-items: baseline; gap: 8px; }
+  .glance .k .mono { font-size: 11px; color: var(--ink-3); }
+  .glance .v { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+
+  /* ---- hover ---- */
+  .btn.is-hover { box-shadow: var(--shadow-soft); } .btn.primary.is-hover { background: var(--accent-hover); }
+  .btn.is-press, .btn:active { transform: translateY(1px) scale(.99); box-shadow: none; }
+  .btn.is-focus { box-shadow: var(--team-glow); }
+  .btn.ghost.is-hover, .btn.ghost:hover { background: var(--surface-2); box-shadow: none; color: var(--ink); }
+  .btn.is-dis { opacity: .5; cursor: not-allowed; }
+  .navy { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .navy .agent { padding: 9px 11px; } .navy .agent.is-hover { background: var(--rail-2); }
+  .navy .item { padding: 7px 11px; font-size: 13.5px; color: var(--rail-fg); } .navy .item:hover { text-decoration: none; } .navy .item.is-hover { background: var(--rail-2); }
+  .navy .item svg, .navy .agent svg { opacity: .7; }
+  .navy .pill.solo { border-color: var(--rail-line); color: var(--rail-muted); }
+  .navy .agent .more { margin-left: auto; opacity: 0; transition: opacity .12s ease; color: var(--rail-muted); }
+  .navy .agent:hover .more, .navy .agent.is-hover .more { opacity: 1; }
+  .rows { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  .trow { display: flex; align-items: center; gap: 10px; padding: 9px 12px; font-size: 13.5px; color: var(--ink-2); border-top: 1px solid var(--line); transition: background .12s ease; position: relative; }
+  .trow:first-child { border-top: 0; }
+  .trow .mono { font-size: 12.5px; color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trow .t { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .trow .acts { display: inline-flex; gap: 2px; opacity: 0; transform: translateX(4px); transition: opacity .12s ease, transform .12s ease; }
+  .trow:hover, .trow.is-hover { background: var(--surface-2); }
+  .trow:hover .acts, .trow.is-hover .acts { opacity: 1; transform: none; }
+  .trow .acts button { width: 26px; height: 26px; border: 0; background: transparent; color: var(--ink-2); border-radius: 7px; display: grid; place-items: center; cursor: pointer; }
+  .trow .acts button:hover { background: var(--surface-3); color: var(--ink); }
+  .trow .ok { width: 14px; height: 14px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; flex: none; } .trow .ok svg { width: 9px; height: 9px; stroke-width: 2.6; }
+  .lk { position: relative; color: var(--accent); font-weight: 500; }
+  .lk::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .12s ease; }
+  .lk:hover::after, .lk.is-hover::after { transform: scaleX(1); } a.lk:hover { text-decoration: none; }
+  .who { position: relative; font-family: var(--serif); font-size: 16px; color: var(--ink); cursor: default; }
+  .who .peek { position: absolute; left: 0; top: calc(100% + 6px); display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-pop); font: 12.5px var(--font); color: var(--ink-2); white-space: nowrap; opacity: 0; transform: translateY(4px); pointer-events: none; transition: opacity .2s ease, transform .2s ease; z-index: 3; }
+  .who:hover .peek, .who.is-hover .peek { opacity: 1; transform: none; }
+  .plan-mini { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  .pstep2 { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13.5px; transition: background .12s ease; }
+  .pstep2:first-child { border-top: 0; } .pstep2:hover, .pstep2.is-hover { background: var(--surface-2); }
+  .pstep2 .n { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 11px; color: var(--ink-2); }
+  .pstep2.done .n { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .pstep2 .est { font-family: var(--mono); font-size: 12px; color: var(--ink-3); display: inline-grid; }
+  .pstep2 .est > span { grid-area: 1 / 1; transition: opacity .12s ease; text-align: right; }
+  .pstep2 .est .act { opacity: 0; color: var(--ink); }
+  .pstep2:hover .est .pre, .pstep2.is-hover .est .pre { opacity: 0; } .pstep2:hover .est .act, .pstep2.is-hover .est .act { opacity: 1; }
+  .meter { position: relative; padding: 4px 0 2px; }
+  .meter .budget { height: 8px; }
+  .meter .tip { position: absolute; bottom: calc(100% + 2px); transform: translateX(-50%) translateY(3px); font: 500 11px var(--mono); background: var(--rail); color: var(--rail-fg); padding: 3px 7px; border-radius: 7px; white-space: nowrap; opacity: 0; transition: opacity .12s ease, transform .12s ease; pointer-events: none; }
+  .meter:hover .tip, .meter.is-hover .tip { opacity: 1; transform: translateX(-50%); }
+  .meter .lbls { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+
+  /* ---- press ---- */
+  .send { transition: transform .2s ease, box-shadow .2s ease; } .send.is-press, .send:active { transform: scale(.92); box-shadow: none; }
+  .send svg { width: 16px; height: 16px; }
+  .mini-composer { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-soft); }
+  .mini-composer.focus, .mini-composer:focus-within { box-shadow: var(--shadow-soft), var(--team-glow); }
+  .mini-composer .in { flex: 1; min-width: 0; font-size: 14px; color: var(--ink); }
+  .mini-composer .in.ph { color: var(--ink-3); }
+  .mini-composer input { flex: 1; min-width: 0; border: 0; background: transparent; outline: 0; font: 14px var(--font); color: var(--ink); }
+  .stream-mini { display: flex; flex-direction: column; gap: 8px; min-height: 62px; }
+  .msg-mini { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; }
+  .msg-mini .avatar { width: 24px; height: 24px; font-size: 10px; flex: none; }
+  .msg-mini .b { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 7px 12px; box-shadow: var(--shadow-soft); }
+  .msg-mini.team .b { background: var(--apricot-soft); border-color: transparent; }
+  .chk { width: 22px; height: 22px; border-radius: 50%; background: var(--ok); color: #fff; display: inline-grid; place-items: center; flex: none; }
+  .chk svg { width: 13px; height: 13px; stroke-width: 2.4; stroke-dasharray: 40; stroke-dashoffset: 40; } .chk.drawn svg { animation: draw .5s ease .05s forwards; } .chk.still svg { stroke-dashoffset: 0; }
+  .approve-line { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); min-height: 36px; }
+  .approve-line .q { font-family: var(--serif); font-style: italic; color: var(--ink); }
+  .star { width: 30px; height: 30px; display: inline-grid; place-items: center; border: 0; background: transparent; padding: 0; border-radius: 8px; color: var(--ink-3); cursor: pointer; transition: background .12s ease; }
+  .star svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; transition: fill .12s ease, stroke .12s ease; }
+  .star:hover { background: var(--surface-2); }
+  .star.on { color: var(--apricot-deep); } .star.on svg { fill: var(--apricot-deep); }
+  .star.pre { color: var(--apricot-deep); } .star.pre svg { fill: var(--apricot); }
+  .star.pop svg { animation: pop .36s cubic-bezier(.3,1.4,.4,1) both; }
+  .star.is-focus { box-shadow: var(--team-glow); background: var(--surface-2); }
+  .hold { position: relative; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); }
+  .hold::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: conic-gradient(var(--apricot-deep) var(--p, 0%), transparent 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px)); }
+  .hold.done { background: var(--apricot); color: #56352D; }
+  .menu-sheet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-pop); padding: 6px; display: flex; flex-direction: column; font-size: 13.5px; min-width: 150px; }
+  .menu-sheet > span { padding: 7px 10px; border-radius: 9px; display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .menu-sheet > span.is-hover { background: var(--apricot-soft); }
+
+  /* ---- focus ---- */
+  .field { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; color: var(--ink-3); transition: box-shadow .12s ease, border-color .12s ease; }
+  .field.filled, .field.focus { color: var(--ink); } .field.focus { box-shadow: var(--team-glow); border-color: transparent; }
+  .field.error { border-color: var(--danger); } .field .caret { display: inline-block; width: 1px; height: 16px; background: var(--ink); animation: pulse 1s steps(2) infinite; }
+  .field .kbd, .kbd { font: 11px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; white-space: nowrap; margin-left: auto; }
+  .field input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; color: var(--ink); }
+  .field input::placeholder { color: var(--ink-3); } .field:focus-within { box-shadow: var(--team-glow); border-color: transparent; }
+  .flabel { font-size: 12.5px; color: var(--ink-2); font-weight: 500; margin-bottom: 4px; display: block; }
+  .ferr { font-size: 12px; display: flex; gap: 5px; align-items: center; margin-top: 4px; } .ferr svg { width: 13px; height: 13px; }
+  .qlist { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  .qrow { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 13.5px; position: relative; }
+  .qrow:first-child { border-top: 0; } .qrow .s { font-size: 12px; color: var(--ink-3); display: block; }
+  .qrow .avatar { width: 24px; height: 24px; font-size: 10px; }
+  .qrow.is-focus { box-shadow: inset 0 0 0 2px var(--apricot); background: var(--apricot-soft); border-radius: 0; }
+  .qrow.is-focus::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--apricot-deep); }
+  .qrow .keys { display: inline-flex; gap: 4px; }
+  .qrow.sel { background: var(--apricot-soft); }
+  .qrow .box { width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid var(--ink-3); display: grid; place-items: center; color: var(--accent-fg); background: transparent; transition: background .2s ease, border-color .2s ease; cursor: pointer; }
+  .qrow .box svg { width: 11px; height: 11px; stroke-width: 2.6; opacity: 0; }
+  .qrow.sel .box { background: var(--accent); border-color: var(--accent); } .qrow.sel .box svg { opacity: 1; }
+  .selbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); font-size: 13px; animation: rise .32s ease both; }
+  .selbar .btn { min-height: 28px; font-size: 12.5px; padding: 0 11px; margin-left: auto; background: var(--apricot); color: #56352D; border: 0; }
+  .selbar.hide { display: none; }
+  .focus-ring-demo { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .ring-sample { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-2); box-shadow: var(--team-glow); display: grid; place-items: center; color: var(--ink-2); }
+
+  /* ---- toggle ---- */
+  .seg { position: relative; } .seg label { position: relative; z-index: 1; transition: color .2s ease; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg .thumb { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: var(--radius-full); background: var(--surface); box-shadow: var(--shadow-soft); transition: transform .2s cubic-bezier(.3,.9,.3,1), background .2s ease; }
+  .seg2:has(#to-team:checked) .thumb { transform: translateX(100%); background: var(--apricot); }
+  .seg2:has(#to-team:checked) label[for="to-team"] { color: #56352D; }
+  .seg2:has(#to-agent:checked) label[for="to-agent"] { color: var(--ink); }
+  .seg2.static .thumb { transform: translateX(100%); background: var(--apricot); } .seg2.static label.on { color: #56352D; background: transparent; box-shadow: none; }
+  .comp2 { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-soft); transition: border-color .2s ease, background .2s ease; }
+  .comp2 .ph { display: grid; font-size: 14px; color: var(--ink-3); min-height: 22px; } .comp2 .ph span { grid-area: 1 / 1; transition: opacity .2s ease; }
+  .comp2 .ph .tm { opacity: 0; }
+  .comp2 .bar { display: flex; align-items: center; gap: 8px; }
+  .tog-wrap:has(#to-team:checked) .comp2 { border-color: var(--apricot-deep); background: color-mix(in srgb, var(--apricot-soft) 40%, var(--surface)); }
+  .tog-wrap:has(#to-team:checked) .comp2 .ph .ag { opacity: 0; } .tog-wrap:has(#to-team:checked) .comp2 .ph .tm { opacity: 1; }
+  .sw { position: relative; width: 40px; height: 24px; border-radius: 12px; background: var(--surface-3); transition: background .2s ease; cursor: pointer; display: inline-block; flex: none; }
+  .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s cubic-bezier(.3,.9,.3,1); }
+  .sw.on, .swl:has(input:checked) .sw { background: var(--accent); } .sw.on::after, .swl:has(input:checked) .sw::after { transform: translateX(16px); background: var(--accent-fg); }
+  .sw.is-focus { box-shadow: var(--team-glow); } .sw.is-dis { opacity: .5; }
+  .swl { display: flex; align-items: center; gap: 12px; font-size: 14px; cursor: pointer; } .swl input { position: absolute; opacity: 0; pointer-events: none; }
+  .swl .l { flex: 1; } .swl .s { font-size: 12.5px; color: var(--ink-3); display: block; }
+  .swl:has(input:checked) .s .off, .swl:not(:has(input:checked)) .s .onn { display: none; }
+  .cb { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; padding: 6px 0; }
+  .cb input { position: absolute; opacity: 0; pointer-events: none; }
+  .cb .box { width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid var(--ink-3); display: grid; place-items: center; color: var(--accent-fg); transition: background .2s ease, border-color .2s ease; flex: none; }
+  .cb .box svg { width: 11px; height: 11px; stroke-width: 2.6; stroke-dasharray: 20; stroke-dashoffset: 20; }
+  .cb:has(input:checked) .box { background: var(--accent); border-color: var(--accent); } .cb:has(input:checked) .box svg { animation: draw .2s ease forwards; }
+  .cb .mono { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .pillx { position: relative; display: inline-grid; } .pillx .pill { grid-area: 1 / 1; transition: opacity .2s ease; }
+  .joinwrap { display: flex; align-items: center; gap: 12px; }
+  .joinwrap .pillx .team { opacity: 0; } .joinwrap:has(input:checked) .pillx .team { opacity: 1; } .joinwrap:has(input:checked) .pillx .solo { opacity: 0; }
+  .joinwrap .stack .avatar.dee { opacity: 0; transform: scale(.6); transition: opacity .2s ease, transform .32s cubic-bezier(.3,1.4,.4,1); }
+  .joinwrap:has(input:checked) .stack .avatar.dee { opacity: 1; transform: none; animation: ripple .9s ease-out 1; }
+  .joinwrap .jb { margin-left: auto; } .joinwrap .jb input { position: absolute; opacity: 0; pointer-events: none; }
+  .joinwrap:has(input:checked) .jb .pre, .joinwrap:not(:has(input:checked)) .jb .post { display: none; }
+  details.disc { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  details.disc summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 10px 12px; font-size: 13.5px; font-weight: 500; cursor: pointer; }
+  details.disc summary::-webkit-details-marker { display: none; }
+  details.disc summary .ico { transition: transform .2s ease; color: var(--ink-3); } details.disc[open] summary .ico { transform: rotate(90deg); }
+  details.disc summary .mono { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  details.disc .body { padding: 0 12px 12px 36px; font-size: 13px; color: var(--ink-2); display: flex; flex-direction: column; gap: 6px; animation: rise .32s ease both; }
+  details.disc .body .budget { height: 6px; }
+
+  /* ---- select ---- */
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips label, .chips .chip { cursor: pointer; transition: background .12s ease, color .12s ease; }
+  .chips input { position: absolute; opacity: 0; pointer-events: none; }
+  .chips label:has(input:checked) { background: var(--apricot-soft); color: var(--ink); box-shadow: inset 0 0 0 1px var(--apricot-deep); }
+  .chips label:hover { background: var(--surface-3); }
+  .chip.is-focus { box-shadow: var(--team-glow); }
+  .word { font-family: var(--serif); font-style: italic; font-size: 18px; line-height: 1; min-width: 70px; }
+  .word.ghost { color: var(--ink-3); }
+  .pal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-pop); overflow: hidden; }
+  .pal .q { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink); }
+  .pal .q .ico { color: var(--ink-3); }
+  .pal .opt { display: flex; align-items: center; gap: 9px; padding: 8px 12px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .pal .opt .s { color: var(--ink-3); font-size: 12px; margin-left: auto; font-family: var(--mono); }
+  .pal .opt.is-hover, .pal .opt:hover { background: var(--surface-2); }
+  .pal .opt.sel { background: var(--apricot-soft); box-shadow: inset 3px 0 0 var(--apricot-deep); }
+  .pal .opt .avatar { width: 22px; height: 22px; font-size: 9.5px; }
+  .selp { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 14px; line-height: 1.6; }
+  .selp .s { background: var(--apricot-soft); box-shadow: 0 0 0 2px var(--apricot-soft); border-radius: 2px; color: var(--ink); }
+  ::selection { background: var(--apricot); color: #1F2634; }
+  .mention { display: inline-block; padding: 0 5px; border-radius: 6px; background: var(--apricot-soft); color: var(--ink); font-weight: 500; }
+  .replay-rows { display: flex; flex-direction: column; gap: 4px; }
+  .rrow { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; font-size: 13px; color: var(--ink-2); cursor: pointer; transition: background .12s ease; }
+  .rrow .mono { font-size: 11.5px; color: var(--ink-3); width: 40px; } .rrow .d { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex: none; }
+  .rrow:hover { background: var(--surface-2); } .rrow.sel { background: var(--apricot-soft); color: var(--ink); } .rrow.sel .d { background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
+
+  /* ---- drag ---- */
+  .scrub { padding: 14px 0 6px; user-select: none; }
+  .scrub .track { position: relative; height: 6px; border-radius: 3px; background: var(--surface-3); cursor: pointer; }
+  .scrub .fill { position: absolute; left: 0; top: 0; bottom: 0; width: var(--x, 42%); border-radius: 3px; background: var(--gradient-live); background-size: 200% 100%; }
+  .scrub .tick { position: absolute; top: -4px; width: 2px; height: 14px; border-radius: 1px; background: var(--ink-3); opacity: .5; } .scrub .tick.g { background: var(--accent); opacity: 1; }
+  .scrub .hd { position: absolute; left: var(--x, 42%); top: 50%; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); transform: translate(-50%, -50%); box-shadow: var(--shadow-soft); cursor: grab; transition: transform .12s ease, box-shadow .12s ease; touch-action: none; }
+  .scrub .hd:hover, .scrub .hd.is-hover { transform: translate(-50%, -50%) scale(1.15); }
+  .scrub.dragging .hd, .scrub .hd.is-press { cursor: grabbing; transform: translate(-50%, -50%) scale(1.25); box-shadow: var(--team-glow); transition: none; }
+  .scrub .tip { position: absolute; left: var(--x, 42%); bottom: 18px; transform: translateX(-50%); font: 500 11px var(--mono); background: var(--rail); color: var(--rail-fg); padding: 3px 7px; border-radius: 7px; white-space: nowrap; opacity: 0; transition: opacity .12s ease; }
+  .scrub.dragging .tip, .scrub.show .tip { opacity: 1; }
+  .scrub .lbls { display: flex; justify-content: space-between; font: 11.5px var(--mono); color: var(--ink-3); margin-top: 12px; }
+  .sortable { display: flex; flex-direction: column; gap: 6px; user-select: none; }
+  .sitem { display: grid; grid-template-columns: 18px 22px 1fr auto; gap: 10px; align-items: center; padding: 9px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; font-size: 13.5px; transition: transform .2s ease, box-shadow .2s ease; }
+  .sitem .grip { color: var(--ink-3); cursor: grab; touch-action: none; display: grid; place-items: center; } .sitem .grip svg { width: 14px; height: 14px; }
+  .sitem .n { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 11px; color: var(--ink-2); }
+  .sitem .est { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .sitem.lift, .sitem.dragging { transform: scale(1.02); box-shadow: var(--shadow-pop); border-color: var(--apricot-deep); position: relative; z-index: 2; }
+  .sitem.slot { background: transparent; border-style: dashed; border-color: var(--apricot-deep); color: transparent; } .sitem.slot * { visibility: hidden; }
+  .sitem.settled { animation: settle .32s ease both; }
+  @keyframes settle { 0% { box-shadow: var(--team-glow); } 100% { box-shadow: none; } }
+  .range { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent) var(--v, 60%), var(--surface-3) 0); outline: 0; margin: 10px 0; }
+  .range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); box-shadow: var(--shadow-soft); cursor: grab; transition: transform .12s ease; }
+  .range::-webkit-slider-thumb:hover { transform: scale(1.15); } .range:active::-webkit-slider-thumb { transform: scale(1.25); box-shadow: var(--team-glow); cursor: grabbing; }
+  .range:focus-visible { box-shadow: none; } .range:focus-visible::-webkit-slider-thumb { box-shadow: var(--team-glow); }
+  .rline { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-2); } .rline .mono { color: var(--ink); }
+  .drop { border: 1.5px dashed var(--line); border-radius: var(--radius-lg); padding: 14px; display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-3); min-height: 60px; transition: border-color .12s ease, background .12s ease; }
+  .drop.over { border-color: var(--apricot-deep); background: var(--apricot-soft); color: var(--ink); }
+  .drop .ico { color: var(--ink-3); } .drop.over .ico { color: var(--accent); }
+  .ghostfile { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-pop); font-size: 12.5px; transform: rotate(-3deg); color: var(--ink); }
+  .filechip { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 8px; border-radius: 9px; background: var(--surface-2); font-size: 12.5px; color: var(--ink); animation: pop .36s cubic-bezier(.3,1.4,.4,1) both; }
+  .filechip .mono { font-size: 11.5px; color: var(--ink-3); }
+  .split { position: relative; display: grid; grid-template-columns: var(--s, 55%) 1fr; height: 76px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); font: 12px var(--mono); }
+  .split > div { padding: 10px 12px; color: var(--ink-2); overflow: hidden; white-space: nowrap; } .split > div + div { border-left: 1px solid var(--line); background: var(--surface-2); }
+  .split .b { font: 500 11px var(--font); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; display: block; margin-bottom: 4px; }
+  .split .bar { position: absolute; left: var(--s, 55%); top: 0; bottom: 0; width: 10px; transform: translateX(-50%); cursor: col-resize; display: grid; place-items: center; touch-action: none; }
+  .split .bar::after { content: ""; width: 4px; height: 24px; border-radius: 2px; background: var(--ink-3); transition: background .12s ease, height .12s ease; }
+  .split .bar:hover::after, .split.dragging .bar::after { background: var(--accent); height: 36px; }
+
+  /* ---- index table ---- */
+  table.idx { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  table.idx th { text-align: left; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+  table.idx td { padding: 8px 12px; border-top: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
+  table.idx td:first-child { color: var(--ink); font-weight: 500; } table.idx td.mono { font-size: 12px; } table.idx tr:hover td { background: var(--surface-2); }
+  table.idx td .fam { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); width: 56px; }
+
+  .foot { font-size: 12.5px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 18px; display: flex; gap: 18px; flex-wrap: wrap; }
+
+  @media (max-width: 1100px) { .g3, .g4, .g6, .rules, .glance { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px) {
+    .board { padding: 24px 16px 64px; gap: 40px; }
+    .head { grid-template-columns: 44px 1fr; align-items: start; } .head .mark { width: 44px; height: 44px; } .head h1 { font-size: 32px; } .head .meta { grid-column: 1 / -1; align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+    .g2, .g3, .g4, .g6, .rules, .glance { grid-template-columns: 1fr; }
+    .sec > header h2 { font-size: 24px; }
+    .tscroll { overflow-x: auto; margin: 0 -16px; padding: 0 16px; } table.idx { min-width: 860px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5M8 17h8l-1-6 2-2V5H7v4l2 2z"/></symbol>
+  <symbol id="i-replay" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v5h5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="M21 11.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9-9a3.5 3.5 0 0 1 5 5l-9 9a1.5 1.5 0 0 1-2.1-2.1L16 7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.8l6.1-.7z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></symbol>
+  <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 0 0 4.9 4.9l-9 9a2 2 0 0 1-2.8-2.8z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M9 11V5a1.5 1.5 0 0 1 3 0v6M12 10V4a1.5 1.5 0 0 1 3 0v7M15 11V6a1.5 1.5 0 0 1 3 0v8a6 6 0 0 1-6 6h-1a6 6 0 0 1-5.3-3.2L4 13.5a1.5 1.5 0 0 1 2.6-1.5L9 15"/></symbol>
+</svg>
+
+<main class="board">
+
+  <header class="head">
+    <svg class="mark" viewBox="0 0 96 96" aria-label="Henosis"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+    <div>
+      <h1>Micro-interactions</h1>
+      <p class="lede">The small answers the surface gives a hand: hover, press, focus, toggle, select, drag. Every one is live on this sheet beside its frozen states and its spec, in the Payments team's own session: Bo's agent on the invoice PDF, Ana steering the proration, Cy and Dee rating the plan.</p>
+    </div>
+    <div class="meta"><span class="pill">henosis · design wave · system</span><span>micro-interactions · 1344 board · light and dark</span></div>
+  </header>
+
+  <section class="sec">
+    <header><h2>At a glance</h2><span class="n">00</span><p>Six verbs, one voice. Hover is a surface, press is a sink, focus is the team glow, toggles slide, selection is apricot, and a dragged thing lifts. Nothing changes colour that is not a state.</p></header>
+    <div class="glance">
+      <div><div class="k">Hover <span class="mono">120 ms</span></div><div class="v"><button class="btn primary is-hover">Approve</button></div><p class="why">Shadow rises, the hand darkens.</p></div>
+      <div><div class="k">Press <span class="mono">200 ms</span></div><div class="v"><button class="btn is-press">Revise</button><button class="send is-press" aria-label="Send"><svg class="ico"><use href="#i-send"/></svg></button></div><p class="why">Sinks 1 px, shadow goes.</p></div>
+      <div><div class="k">Focus <span class="mono">120 ms</span></div><div class="v"><div class="field focus" style="flex:1">Steer the agent<span class="caret"></span></div></div><p class="why">The team glow, 4 px apricot.</p></div>
+      <div><div class="k">Toggle <span class="mono">200 ms</span></div><div class="v"><span class="sw on"></span><span class="seg seg2 static"><span class="thumb"></span><label>Agent</label><label class="on">Team</label></span></div><p class="why">The thumb slides on the mark's curve.</p></div>
+      <div><div class="k">Select <span class="mono">120 ms</span></div><div class="v"><span class="chip on">proration</span><span class="star on"><svg><use href="#i-star"/></svg></span><span class="star on"><svg><use href="#i-star"/></svg></span><span class="star on"><svg><use href="#i-star"/></svg></span><span class="star on"><svg><use href="#i-star"/></svg></span></div><p class="why">Apricot wash, inset hairline.</p></div>
+      <div><div class="k">Drag <span class="mono">live</span></div><div class="v"><div class="scrub show" style="flex:1;padding:12px 10px 0"><div class="track"><div class="fill" style="--x:58%"></div><div class="hd is-press" style="left:58%"></div><div class="tip" style="left:58%">14:08 · tax lines</div></div></div></div><p class="why">Lifts, glows, settles in 320.</p></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <header><h2>The rules</h2><span class="n">01</span></header>
+    <div class="rules">
+      <div class="rule"><div class="t">Three clocks</div><div class="d">120 ms for hover and focus, 200 ms for press and toggles, 320 ms for anything that arrives or settles. Nothing in a micro-interaction is slower than 320.</div><div class="clocks"><i>120</i><i>200</i><i>320</i></div></div>
+      <div class="rule"><div class="t">Two curves</div><div class="d">Plain ease for colour, shadow and opacity. The mark's curve (.3,.9,.3,1) for anything that moves: a thumb, a handle, a card lifting.</div><svg class="curve" viewBox="0 0 200 42" preserveAspectRatio="none"><line x1="0" y1="41" x2="200" y2="41"/><path d="M0 40 C 60 40, 60 2, 200 2"/><path d="M0 40 C 40 36, 50 -4, 200 2" stroke-dasharray="3 3" opacity=".5"/></svg></div>
+      <div class="rule"><div class="t">Colour is state</div><div class="d">Hover uses surface-2 and shadow. Focus uses the team glow. Selection and the live thing use apricot. The hand (chocolate) only on the primary action and the pressed check.</div><div class="swatches"><i style="background:var(--surface-2)"></i><i style="background:var(--apricot-soft)"></i><i style="background:var(--apricot)"></i><i style="background:var(--accent)"></i></div></div>
+      <div class="rule"><div class="t">Calm keeps the state</div><div class="d">With Calm on or reduced motion, every end state stays: the glow, the apricot row, the slid thumb, the drawn check. Only the change is instant. Touch has no hover: press is the hover.</div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <header><h2>Hover</h2><span class="n">02</span><p>Hover says "this answers". A surface tint or a soft shadow, 120 ms, never a colour that means something else. Rows reveal their actions on hover so the stream stays quiet when nobody is reaching.</p></header>
+    <div class="grid g3">
+      <div class="card"><div class="cap">Buttons <span class="mono">.btn</span></div>
+        <div class="demo"><div class="states">
+          <div><button class="btn primary">Approve</button><span>rest</span></div><div><button class="btn primary is-hover">Approve</button><span>hover</span></div><div><button class="btn primary is-press">Approve</button><span>press</span></div><div><button class="btn primary is-focus">Approve</button><span>focus</span></div><div><button class="btn primary is-dis">Approve</button><span>disabled</span></div>
+        </div><div class="states">
+          <div><button class="btn">Ask to revise</button><span>rest</span></div><div><button class="btn is-hover">Ask to revise</button><span>hover</span></div><div><button class="btn ghost">Later</button><span>ghost</span></div><div><button class="btn ghost is-hover">Later</button><span>ghost hover</span></div>
+        </div><div class="states"><span class="live">live</span><button class="btn primary">Approve</button><button class="btn">Ask to revise</button><button class="btn ghost">Later</button></div></div>
+        <div class="spec"><b>Prop</b><span>box-shadow, background</span><b>Time</b><span class="mono">120 ms ease · press 200</span><b>Calm</b><span>same, instant</span></div></div>
+      <div class="card"><div class="cap">Rail <span class="mono">.item · .agent</span></div>
+        <div class="demo"><div class="navy">
+          <a class="item" href="#"><svg class="ico"><use href="#i-folder"/></svg>Billing page</a>
+          <a class="item is-hover" href="#"><svg class="ico"><use href="#i-folder"/></svg>Checkout</a>
+          <a class="agent is-hover" href="#"><div class="head"><span class="dot running"></span><span class="t">Bo's agent</span><span class="pill team">Team</span><span class="more"><svg class="ico"><use href="#i-chev"/></svg></span></div><div class="doing">on <i>invoice PDF</i> · page breaks before tax lines</div><div class="foot">Bo, Ana · 41k tokens</div></a>
+          <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Cy's agent</span><span class="pill solo">Solo</span><span class="more"><svg class="ico"><use href="#i-chev"/></svg></span></div><div class="doing">waits on <i>proration</i> approval</div><div class="foot">Cy · 12k tokens</div></a>
+        </div></div>
+        <div class="spec"><b>Prop</b><span>background rail-2; the chevron fades in</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>same, instant</span></div></div>
+      <div class="card"><div class="cap">Tool lines <span class="mono">.step</span></div>
+        <div class="demo"><div class="rows">
+          <div class="trow"><span class="ok"><svg class="ico"><use href="#i-check"/></svg></span><span class="mono">read apps/billing/invoice.tsx</span><span class="t">0.2s</span><span class="acts"><button aria-label="Copy"><svg class="ico"><use href="#i-copy"/></svg></button><button aria-label="Replay"><svg class="ico"><use href="#i-replay"/></svg></button><button aria-label="Pin"><svg class="ico"><use href="#i-pin"/></svg></button></span></div>
+          <div class="trow is-hover"><span class="ok"><svg class="ico"><use href="#i-check"/></svg></span><span class="mono">edit tax-lines.ts · +18 −4</span><span class="t">1.1s</span><span class="acts"><button aria-label="Copy"><svg class="ico"><use href="#i-copy"/></svg></button><button aria-label="Replay"><svg class="ico"><use href="#i-replay"/></svg></button><button aria-label="Pin"><svg class="ico"><use href="#i-pin"/></svg></button></span></div>
+          <div class="trow"><span class="ok"><svg class="ico"><use href="#i-check"/></svg></span><span class="mono">test checkout.proration · 14 pass</span><span class="t">6.3s</span><span class="acts"><button aria-label="Copy"><svg class="ico"><use href="#i-copy"/></svg></button><button aria-label="Replay"><svg class="ico"><use href="#i-replay"/></svg></button><button aria-label="Pin"><svg class="ico"><use href="#i-pin"/></svg></button></span></div>
+        </div><span class="live">live · hover a row</span></div>
+        <div class="spec"><b>Prop</b><span>row surface-2; actions opacity + 4 px slide</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>actions always visible at 60 %</span></div></div>
+      <div class="card"><div class="cap">Names and links <span class="mono">.who · .lk</span></div>
+        <div class="demo" style="padding-bottom:26px"><p class="why" style="font-size:14px;color:var(--ink)"><span class="who is-hover">Ana<span class="peek"><span class="avatar driver" style="width:20px;height:20px;font-size:8px">A</span>Ana · Payments · has the baton</span></span> united <a class="lk is-hover" href="#">pdf-layout</a> into <a class="lk" href="#">main</a>.</p></div>
+        <div class="spec"><b>Prop</b><span>underline scales from the left; a peek card rises 4 px</span><b>Time</b><span class="mono">120 ms · peek 200</span><b>Calm</b><span>underline always on; peek instant</span></div></div>
+      <div class="card"><div class="cap">Plan step <span class="mono">.pstep</span></div>
+        <div class="demo"><div class="plan-mini">
+          <div class="pstep2 done"><span class="n"><svg class="ico" style="width:11px;height:11px;stroke-width:2.6"><use href="#i-check"/></svg></span><span>Move tax lines above the total</span><span class="est"><span class="pre">~3.2k</span><span class="act">2.9k</span></span></div>
+          <div class="pstep2 is-hover"><span class="n">2</span><span>Recompute proration on plan change</span><span class="est"><span class="pre">~5.0k</span><span class="act">6.1k · over</span></span></div>
+          <div class="pstep2"><span class="n">3</span><span>Regenerate the invoice PDF</span><span class="est"><span class="pre">~1.8k</span><span class="act">—</span></span></div>
+        </div><span class="live">live · hover a step for actual tokens</span></div>
+        <div class="spec"><b>Prop</b><span>estimate crossfades to actual</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>both shown: "~5.0k → 6.1k"</span></div></div>
+      <div class="card"><div class="cap">Meter <span class="mono">.budget</span></div>
+        <div class="demo"><div class="meter is-hover"><span class="tip" style="left:62%">62 % · 124k of 200k</span><div class="budget"><i style="width:62%"></i></div><div class="lbls"><span>Payments · this week</span><span class="mono" style="font-size:12px">124k / 200k</span></div></div>
+        <div class="meter"><div class="budget warn"><i style="width:88%"></i></div><div class="lbls"><span>Cy's agent · proration</span><span class="mono" style="font-size:12px">88k / 100k</span></div></div></div>
+        <div class="spec"><b>Prop</b><span>a navy tip rises 3 px at the pointer</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>tip instant</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <header><h2>Press</h2><span class="n">03</span><p>Press is a sink: 1 px down, 1 % smaller, the shadow goes. The release is where the meaning lives: a sent message rises into the stream, an approval draws its check, a star pops.</p></header>
+    <div class="grid g3">
+      <div class="card"><div class="cap">Send <span class="mono">.send</span></div>
+        <div class="demo"><div class="stream-mini" id="stream">
+          <div class="msg-mini team"><span class="avatar">B</span><span class="b">Page breaks before the tax lines now. Proration still off by a cent.</span></div>
+        </div>
+        <div class="mini-composer"><input id="say" value="Round proration at the line, not the total" aria-label="Say something"><button class="send" id="sendbtn" aria-label="Send"><svg class="ico"><use href="#i-send"/></svg></button></div><span class="live">live · press send</span></div>
+        <div class="spec"><b>Prop</b><span>button scale .92, then the message rises 8 px</span><b>Time</b><span class="mono">200 ms · rise 320</span><b>Calm</b><span>message appears in place</span></div></div>
+      <div class="card"><div class="cap">Approve <span class="mono">.notice .actions</span></div>
+        <div class="demo"><div class="approve-line"><span>Run <span class="mono" style="font-size:12.5px">stripe invoices.finalize</span> for Checkout?</span></div>
+          <div class="approve-line" id="approveline"><button class="btn primary" id="approvebtn">Approve</button><button class="btn">Ask to revise</button></div>
+          <div class="states"><div><span class="approve-line"><span class="chk still"><svg class="ico"><use href="#i-check"/></svg></span><span class="q">Approved by Ana.</span></span><span>after · the check is drawn</span></div></div><span class="live">live · press approve</span></div>
+        <div class="spec"><b>Prop</b><span>button sinks; the check draws on a 40-unit dash</span><b>Time</b><span class="mono">200 ms · draw 500</span><b>Calm</b><span>check appears whole</span></div></div>
+      <div class="card"><div class="cap">Star <span class="mono">.stars</span></div>
+        <div class="demo"><div class="states" style="align-items:center"><div id="stars" style="flex-direction:row;gap:2px"><button class="star" data-v="1"><svg><use href="#i-star"/></svg></button><button class="star" data-v="2"><svg><use href="#i-star"/></svg></button><button class="star" data-v="3"><svg><use href="#i-star"/></svg></button><button class="star" data-v="4"><svg><use href="#i-star"/></svg></button><button class="star" data-v="5"><svg><use href="#i-star"/></svg></button></div><span class="word ghost" id="starword">rate the plan</span></div>
+          <div class="states"><div><span class="star pre"><svg><use href="#i-star"/></svg></span><span>preview</span></div><div><span class="star on"><svg><use href="#i-star"/></svg></span><span>on</span></div><div><span class="star is-focus"><svg><use href="#i-star"/></svg></span><span>focus</span></div><div><span class="star on pop"><svg><use href="#i-star"/></svg></span><span>pop</span></div></div><span class="live">live · hover then press</span></div>
+        <div class="spec"><b>Prop</b><span>fill, then a scale pop with overshoot 1.12</span><b>Time</b><span class="mono">120 ms · pop 360</span><b>Calm</b><span>fill instant, no pop</span></div></div>
+      <div class="card"><div class="cap">Long press on touch <span class="mono">.hold</span></div>
+        <div class="demo"><div class="states">
+          <div><span class="hold" style="--p:0%"><svg class="ico"><use href="#i-hand"/></svg></span><span>touch</span></div><div><span class="hold" style="--p:45%"><svg class="ico"><use href="#i-hand"/></svg></span><span>holding</span></div><div><span class="hold" style="--p:100%"><svg class="ico"><use href="#i-hand"/></svg></span><span>400 ms</span></div><div><span class="hold done"><svg class="ico"><use href="#i-check"/></svg></span><span>menu opens</span></div>
+          <div><span class="menu-sheet"><span class="is-hover"><svg class="ico"><use href="#i-replay"/></svg>Replay from here</span><span><svg class="ico"><use href="#i-pin"/></svg>Pin for Dee</span><span><svg class="ico"><use href="#i-copy"/></svg>Copy</span></span><span>the sheet</span></div>
+        </div></div>
+        <div class="spec"><b>Prop</b><span>a conic ring fills around the finger</span><b>Time</b><span class="mono">400 ms linear</span><b>Calm</b><span>ring hidden; same 400 ms wait</span></div></div>
+      <div class="card"><div class="cap">Chips and pills <span class="mono">.chip · .pill</span></div>
+        <div class="demo"><div class="states"><div><span class="chip">tests</span><span>rest</span></div><div><span class="chip" style="transform:scale(.97);background:var(--surface-3)">tests</span><span>press</span></div><div><span class="chip on">tests</span><span>on</span></div><div><span class="chip on" style="transform:scale(.97)">tests</span><span>press on</span></div></div>
+          <p class="why">A chip sinks like a button but only by scale: it has no shadow to lose. A pill never presses; it is a label.</p></div>
+        <div class="spec"><b>Prop</b><span>scale .97</span><b>Time</b><span class="mono">200 ms ease</span><b>Calm</b><span>no sink</span></div></div>
+      <div class="card"><div class="cap">Row press on mobile <span class="mono">.rowitem</span></div>
+        <div class="demo"><div class="qlist">
+          <div class="qrow"><span class="avatar agent">C</span><span>Cy's agent wants to run <span class="mono" style="font-size:12.5px">stripe refunds.create</span><span class="s">Checkout · 2 min ago</span></span><span class="pill">high</span></div>
+          <div class="qrow" style="background:var(--surface-2)"><span class="avatar agent">B</span><span>Bo's agent wants to write <span class="mono" style="font-size:12.5px">invoice-0421.pdf</span><span class="s">Billing page · now</span></span><span class="pill">low</span></div>
+        </div><p class="why">On touch there is no hover, so the press is the hover: surface-2 for as long as the finger is down, then the row opens.</p></div>
+        <div class="spec"><b>Prop</b><span>background surface-2</span><b>Time</b><span class="mono">0 in · 120 out</span><b>Calm</b><span>same</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <header><h2>Focus</h2><span class="n">04</span><p>One ring for everything: the team glow, 4 px of apricot at 35 %. It is the same ring on a field, a button, a star, a row and the whole composer, so the keyboard always knows where it is. Leads can recolour it in the Team look editor.</p></header>
+    <div class="grid g3">
+      <div class="card"><div class="cap">Fields <span class="mono">.field</span></div>
+        <div class="demo">
+          <div><span class="flabel">Crew name</span><div class="field">Name the task two agents share<span class="kbd">⌘K</span></div></div>
+          <div><span class="flabel">Crew name</span><div class="field focus">Invoice rollout<span class="caret"></span></div></div>
+          <div><span class="flabel">Token budget</span><div class="field filled error">abc<span class="kbd">tokens</span></div><span class="ferr danger-fg"><svg class="ico"><use href="#i-alert"/></svg>A number, like 200k.</span></div>
+          <div><span class="flabel">Live</span><div class="field"><input placeholder="Say something in #billing"><span class="kbd">↵</span></div></div>
+        </div>
+        <div class="spec"><b>Prop</b><span>glow on, border transparent, text to ink</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>same, instant</span></div></div>
+      <div class="card"><div class="cap">Composer <span class="mono">.composer:focus-within</span></div>
+        <div class="demo"><div class="mini-composer focus"><span class="in">Interrupt: hold the refund until Dee is back<span class="caret"></span></span><button class="send" aria-label="Send"><svg class="ico"><use href="#i-send"/></svg></button></div>
+          <div class="mini-composer"><span class="in ph">Steer the agent</span><button class="send" aria-label="Send"><svg class="ico"><use href="#i-send"/></svg></button></div>
+          <p class="why">The whole card takes the ring, not the textarea: the composer is one control with its scope and its Agent / Team toggle.</p></div>
+        <div class="spec"><b>Prop</b><span>shadow-pop + glow</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>same, instant</span></div></div>
+      <div class="card"><div class="cap">Keyboard through a list <span class="mono">.qrow</span></div>
+        <div class="demo"><div class="qlist">
+          <div class="qrow"><span class="avatar agent">B</span><span>Bo's agent · write invoice-0421.pdf<span class="s">Billing page · low</span></span><span class="keys"></span></div>
+          <div class="qrow is-focus"><span class="avatar agent">C</span><span>Cy's agent · stripe refunds.create<span class="s">Checkout · high · needs two</span></span><span class="keys"><span class="kbd">a</span><span class="kbd">r</span><span class="kbd">↵</span></span></div>
+          <div class="qrow"><span class="avatar agent">D</span><span>Dee's agent · edit tax-lines.ts<span class="s">Billing page · low</span></span><span class="keys"></span></div>
+        </div><p class="why">The focused row shows its own keys. j / k move, a approves, r asks to revise, ↵ opens.</p></div>
+        <div class="spec"><b>Prop</b><span>inset 2 px apricot + wash + 3 px edge</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>same, instant</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <header><h2>Toggle</h2><span class="n">05</span><p>A toggle slides. The thumb moves on the mark's curve in 200 ms and the thing it governs crossfades at the same time, so the two reads as one change. The Agent / Team toggle also tints the composer: a team message is apricot before you send it.</p></header>
+    <div class="grid g3">
+      <div class="card tog-wrap"><div class="cap">Agent / Team <span class="mono">.seg</span></div>
+        <div class="demo"><div class="comp2"><div class="ph"><span class="ag">Steer the agent</span><span class="tm">Say something to the people in this session</span></div><div class="bar"><span class="seg seg2"><span class="thumb"></span><input type="radio" name="to" id="to-agent" checked><label for="to-agent">Agent</label><input type="radio" name="to" id="to-team"><label for="to-team">Team</label></span><span class="chip" style="margin-left:auto">goal</span><button class="send" aria-label="Send"><svg class="ico"><use href="#i-send"/></svg></button></div></div><span class="live">live · press Team</span></div>
+        <div class="spec"><b>Prop</b><span>thumb translate; placeholder and border crossfade</span><b>Time</b><span class="mono">200 ms (.3,.9,.3,1)</span><b>Calm</b><span>thumb jumps; colours stay</span></div></div>
+      <div class="card"><div class="cap">Switch <span class="mono">.sw</span></div>
+        <div class="demo">
+          <label class="swl"><input type="checkbox"><span class="sw"></span><span class="l">Calm mode<span class="s"><span class="off">Motion means joining or living.</span><span class="onn">Nothing moves; states stay.</span></span></span></label>
+          <label class="swl"><input type="checkbox" checked><span class="sw"></span><span class="l">Notify me on approvals<span class="s"><span class="off">Only in the inbox.</span><span class="onn">Push and the tray dot.</span></span></span></label>
+          <div class="states"><div><span class="sw"></span><span>off</span></div><div><span class="sw on"></span><span>on</span></div><div><span class="sw is-focus"></span><span>focus</span></div><div><span class="sw on is-dis"></span><span>disabled</span></div></div><span class="live">live</span></div>
+        <div class="spec"><b>Prop</b><span>knob 16 px, track surface-3 → the hand</span><b>Time</b><span class="mono">200 ms (.3,.9,.3,1)</span><b>Calm</b><span>knob jumps</span></div></div>
+      <div class="card"><div class="cap">Solo → Team <span class="mono">.pill</span></div>
+        <div class="demo"><div class="joinwrap"><span class="stack"><span class="avatar driver">A</span><span class="avatar agent">B</span><span class="avatar dee">D</span></span><span class="pillx"><span class="pill solo">Solo</span><span class="pill team">Team</span></span><label class="jb btn sm"><input type="checkbox"><span class="pre">Dee joins</span><span class="post">Dee leaves</span></label></div>
+          <p class="why">"Dee joins the circle." The pill crossfades, the avatar pops in and ripples once. Leaving has no motion; the pill crossfades back.</p><span class="live">live</span></div>
+        <div class="spec"><b>Prop</b><span>opacity crossfade; avatar pop + ripple</span><b>Time</b><span class="mono">200 ms · ripple 900</span><b>Calm</b><span>crossfade instant, no ripple</span></div></div>
+      <div class="card"><div class="cap">Checkbox <span class="mono">.cb</span></div>
+        <div class="demo">
+          <label class="cb"><input type="checkbox" checked><span class="box"><svg class="ico"><use href="#i-check"/></svg></span>Include the VAT line<span class="mono">tax-lines.ts</span></label>
+          <label class="cb"><input type="checkbox" checked><span class="box"><svg class="ico"><use href="#i-check"/></svg></span>Apply proration to the downgrade<span class="mono">checkout</span></label>
+          <label class="cb"><input type="checkbox"><span class="box"><svg class="ico"><use href="#i-check"/></svg></span>Attach the invoice PDF to the release note<span class="mono">export</span></label><span class="live">live</span></div>
+        <div class="spec"><b>Prop</b><span>box fills with the hand; the check draws</span><b>Time</b><span class="mono">200 ms ease</span><b>Calm</b><span>check appears whole</span></div></div>
+      <div class="card"><div class="cap">Disclosure <span class="mono">details</span></div>
+        <div class="demo">
+          <details class="disc" open><summary><svg class="ico"><use href="#i-chev"/></svg>Usage<span class="mono">41k</span></summary><div class="body"><div class="rline"><span>Bo's agent · invoice PDF</span><span class="mono">41k / 60k</span></div><div class="budget"><i style="width:68%"></i></div><div class="rline"><span>Plan estimate vs actual</span><span class="mono ok-fg">−2.4k saved</span></div></div></details>
+          <details class="disc"><summary><svg class="ico"><use href="#i-chev"/></svg>Branches<span class="mono">2</span></summary><div class="body"><div class="rline"><span>pdf-layout</span><span class="mono">united</span></div><div class="rline"><span>proration-rounding</span><span class="mono">Ana · open</span></div></div></details>
+          <details class="disc"><summary><svg class="ico"><use href="#i-chev"/></svg>Memory<span class="mono">6 notes</span></summary><div class="body"><div class="rline"><span>Tax lines sit above the total.</span><span class="mono">Dee</span></div></div></details><span class="live">live</span></div>
+        <div class="spec"><b>Prop</b><span>chevron rotates 90°; the body rises</span><b>Time</b><span class="mono">200 ms · rise 320</span><b>Calm</b><span>chevron rotates instantly; no rise</span></div></div>
+      <div class="card"><div class="cap">Light / dark <span class="mono">data-theme</span></div>
+        <div class="demo"><div class="states"><div><span class="seg"><label class="on">Light</label><label>Dark</label><label>System</label></span><span>settings</span></div></div>
+          <p class="why">The theme switch is the one toggle with no transition at all. A crossfade of the canvas looks like a loading screen; the swap is instant and the token file does the rest.</p></div>
+        <div class="spec"><b>Prop</b><span>tokens only</span><b>Time</b><span class="mono">0 ms</span><b>Calm</b><span>same</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <header><h2>Select</h2><span class="n">06</span><p>Selection is apricot: a wash at 30 % with an inset hairline, the same on a chip, a row, a menu option and a run of text. Multi-select grows a navy bar that says what it holds, in the team's voice.</p></header>
+    <div class="grid g3">
+      <div class="card"><div class="cap">Scope chips <span class="mono">.chip</span></div>
+        <div class="demo"><div class="chips"><label class="chip"><input type="radio" name="scope" checked>goal</label><label class="chip"><input type="radio" name="scope">api</label><label class="chip"><input type="radio" name="scope">tests</label><label class="chip"><input type="radio" name="scope">proration</label><label class="chip"><input type="radio" name="scope">tax lines</label></div>
+          <div class="states"><div><span class="chip">api</span><span>rest</span></div><div><span class="chip" style="background:var(--surface-3)">api</span><span>hover</span></div><div><span class="chip on" style="box-shadow:inset 0 0 0 1px var(--apricot-deep)">api</span><span>selected</span></div><div><span class="chip is-focus">api</span><span>focus</span></div></div><span class="live">live · one scope at a time</span></div>
+        <div class="spec"><b>Prop</b><span>apricot-soft + inset 1 px apricot-deep</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>same, instant</span></div></div>
+      <div class="card"><div class="cap">Rows <span class="mono">.qrow.sel</span></div>
+        <div class="demo"><div class="qlist" id="rowsel">
+          <div class="qrow sel"><span class="box"><svg class="ico"><use href="#i-check"/></svg></span><span>Bo's agent · write invoice-0421.pdf<span class="s">Billing page · low</span></span><span class="pill">low</span></div>
+          <div class="qrow sel"><span class="box"><svg class="ico"><use href="#i-check"/></svg></span><span>Dee's agent · edit tax-lines.ts<span class="s">Billing page · low</span></span><span class="pill">low</span></div>
+          <div class="qrow"><span class="box"><svg class="ico"><use href="#i-check"/></svg></span><span>Cy's agent · stripe refunds.create<span class="s">Checkout · high · needs two</span></span><span class="pill">high</span></div>
+        </div><div class="selbar" id="selbar"><span id="selcount">2 selected · both low</span><button class="btn">Approve both</button></div><span class="live">live · tick rows</span></div>
+        <div class="spec"><b>Prop</b><span>row wash; the bar rises 8 px</span><b>Time</b><span class="mono">200 ms · bar 320</span><b>Calm</b><span>bar appears in place</span></div></div>
+      <div class="card"><div class="cap">Menu option <span class="mono">.opt</span></div>
+        <div class="demo"><div class="pal"><div class="q"><svg class="ico"><use href="#i-search"/></svg>@cy<span class="caret" style="display:inline-block;width:1px;height:16px;background:var(--ink)"></span></div>
+          <div class="opt"><span class="avatar">C</span>Cy<span class="s">Payments</span></div>
+          <div class="opt sel"><span class="avatar agent">C</span>Cy's agent<span class="s">on proration</span></div>
+          <div class="opt is-hover"><span class="avatar">D</span>Dee<span class="s">Payments</span></div>
+        </div><p class="why">Keyboard selection is apricot with the 3 px edge; the pointer's hover is surface-2. Both can show at once and they never fight.</p></div>
+        <div class="spec"><b>Prop</b><span>selected: wash + edge; hover: surface-2</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>same, instant</span></div></div>
+      <div class="card"><div class="cap">Text <span class="mono">::selection</span></div>
+        <div class="demo"><div class="selp">Proration on a downgrade is computed <span class="s">per line, rounded at the line, not at the total</span>, so the invoice PDF and Checkout agree to the cent. <span class="mention">@Cy's agent</span> owns the rounding.</div>
+          <p class="why">The platform selection colour is apricot on the canvas and navy ink. A mention is a softer apricot at rest so a selection still reads over it.</p></div>
+        <div class="spec"><b>Prop</b><span>::selection apricot</span><b>Time</b><span class="mono">0 ms</span><b>Calm</b><span>same</span></div></div>
+      <div class="card"><div class="cap">Replay moment <span class="mono">.rrow</span></div>
+        <div class="demo"><div class="replay-rows" id="replay">
+          <div class="rrow"><span class="mono">14:02</span><span class="d"></span>Ana steers: goal</div>
+          <div class="rrow sel"><span class="mono">14:08</span><span class="d"></span>Bo's agent edits tax-lines.ts</div>
+          <div class="rrow"><span class="mono">14:11</span><span class="d"></span>Release gate · two ratings</div>
+          <div class="rrow"><span class="mono">14:15</span><span class="d"></span>Dee rates 4 · "clear"</div>
+        </div><span class="live">live · pick a moment</span></div>
+        <div class="spec"><b>Prop</b><span>row wash; the dot takes the pulse ring</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>same, instant</span></div></div>
+      <div class="card"><div class="cap">Rating <span class="mono">.stars</span></div>
+        <div class="demo"><div class="states" style="align-items:center"><div style="flex-direction:row;gap:2px"><span class="star on"><svg><use href="#i-star"/></svg></span><span class="star on"><svg><use href="#i-star"/></svg></span><span class="star on"><svg><use href="#i-star"/></svg></span><span class="star on"><svg><use href="#i-star"/></svg></span><span class="star pre"><svg><use href="#i-star"/></svg></span></div><span class="word">clear</span></div>
+          <p class="why">Selection to the left fills at once; the star under the pointer previews in lighter apricot. The word follows the preview, so Dee reads "clear" before pressing 4, and "convincing" while hovering 5.</p></div>
+        <div class="spec"><b>Prop</b><span>fill apricot-deep; preview apricot</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>same, instant</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <header><h2>Drag</h2><span class="n">07</span><p>A dragged thing lifts: scale up a little, shadow-pop, the team glow while it is held. It follows the pointer with no easing and settles into place in 320 ms. The gap it will land in is a dashed apricot slot.</p></header>
+    <div class="grid g3">
+      <div class="card"><div class="cap">Replay scrubber <span class="mono">.scrub</span></div>
+        <div class="demo"><div class="scrub" id="scrub"><div class="track" id="track"><div class="fill"></div><div class="tick" style="left:18%"></div><div class="tick g" style="left:42%"></div><div class="tick" style="left:63%"></div><div class="tick g" style="left:81%"></div><div class="hd" id="hd" tabindex="0" role="slider" aria-label="Replay position"></div><div class="tip" id="tip">14:08 · tax lines</div></div><div class="lbls"><span>13:52</span><span>release gates</span><span>14:31</span></div></div><span class="live">live · drag the handle</span></div>
+        <div class="spec"><b>Prop</b><span>handle ×1.25 + glow; tip stays up while held</span><b>Time</b><span class="mono">0 while held · 120 release</span><b>Calm</b><span>no scale; glow stays</span></div></div>
+      <div class="card"><div class="cap">Reorder plan steps <span class="mono">.sitem</span></div>
+        <div class="demo"><div class="sortable" id="sortable">
+          <div class="sitem"><span class="grip"><svg class="ico"><use href="#i-grip"/></svg></span><span class="n">1</span><span>Move tax lines above the total</span><span class="est">~3.2k</span></div>
+          <div class="sitem"><span class="grip"><svg class="ico"><use href="#i-grip"/></svg></span><span class="n">2</span><span>Recompute proration on plan change</span><span class="est">~5.0k</span></div>
+          <div class="sitem"><span class="grip"><svg class="ico"><use href="#i-grip"/></svg></span><span class="n">3</span><span>Regenerate the invoice PDF</span><span class="est">~1.8k</span></div>
+        </div><span class="live">live · drag a grip</span></div>
+        <div class="spec"><b>Prop</b><span>lift ×1.02 + shadow-pop; dashed slot; numbers renumber on drop</span><b>Time</b><span class="mono">200 lift · 320 settle</span><b>Calm</b><span>no lift; slot stays</span></div></div>
+      <div class="card"><div class="cap">Lift and slot <span class="mono">states</span></div>
+        <div class="demo"><div class="sortable">
+          <div class="sitem slot"><span class="grip"><svg class="ico"><use href="#i-grip"/></svg></span><span class="n">2</span><span>slot</span><span class="est">~</span></div>
+          <div class="sitem lift"><span class="grip"><svg class="ico"><use href="#i-grip"/></svg></span><span class="n">3</span><span>Regenerate the invoice PDF</span><span class="est">~1.8k</span></div>
+          <div class="sitem"><span class="grip"><svg class="ico"><use href="#i-grip"/></svg></span><span class="n">2</span><span>Recompute proration on plan change</span><span class="est">~5.0k</span></div>
+        </div><p class="why">Held: step 3 is lifted over the list. The slot it left is dashed apricot; the slot it will take is the same shape. Other steps slide out of the way in 200.</p></div>
+        <div class="spec"><b>Prop</b><span>neighbours translateY</span><b>Time</b><span class="mono">200 ms (.3,.9,.3,1)</span><b>Calm</b><span>neighbours jump</span></div></div>
+      <div class="card"><div class="cap">Budget slider <span class="mono">.range</span></div>
+        <div class="demo"><div class="rline"><span>Cy's agent · proration budget</span><span class="mono" id="rangeval">120k</span></div><input class="range" id="range" type="range" min="20" max="200" value="120" step="5" style="--v:55%" aria-label="Token budget"><div class="rline faint" style="font-size:11.5px"><span>20k</span><span>200k</span></div><span class="live">live</span></div>
+        <div class="spec"><b>Prop</b><span>thumb ×1.25 + glow; track fills with the hand</span><b>Time</b><span class="mono">0 while held</span><b>Calm</b><span>no scale</span></div></div>
+      <div class="card"><div class="cap">Drop a file <span class="mono">.drop</span></div>
+        <div class="demo"><div class="drop"><svg class="ico"><use href="#i-clip"/></svg>Drop the invoice PDF here, or paste</div>
+          <div class="drop over"><svg class="ico"><use href="#i-clip"/></svg>Attach invoice-0421.pdf to Bo's agent<span class="ghostfile" style="margin-left:auto"><svg class="ico"><use href="#i-file"/></svg>invoice-0421.pdf</span></div>
+          <div class="states"><div><span class="filechip"><svg class="ico"><use href="#i-file"/></svg>invoice-0421.pdf<span class="mono">212 KB</span></span><span>dropped · pops into the composer</span></div></div></div>
+        <div class="spec"><b>Prop</b><span>dashed line → apricot-deep; wash; chip pops</span><b>Time</b><span class="mono">120 ms · pop 360</span><b>Calm</b><span>chip appears whole</span></div></div>
+      <div class="card"><div class="cap">Compare divider <span class="mono">.split</span></div>
+        <div class="demo"><div class="split" id="split"><div><span class="b">main</span>total = Σ lines + tax<br>pro = round(total × f)</div><div><span class="b">proration-rounding</span>lines = map(round)<br>pro = Σ (line × f)</div><div class="bar" id="splitbar" role="separator" aria-label="Resize"></div></div><span class="live">live · drag the divider</span></div>
+        <div class="spec"><b>Prop</b><span>grip grows 24 → 36 px and takes the hand</span><b>Time</b><span class="mono">120 ms ease</span><b>Calm</b><span>same, instant</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <header><h2>Index</h2><span class="n">08</span><p>Every micro-interaction on this sheet with its trigger, the property that changes, its clock and curve, and what Calm shows instead.</p></header>
+    <div class="tscroll"><table class="idx">
+      <thead><tr><th>Interaction</th><th>Trigger</th><th>Property</th><th>Clock</th><th>Calm</th></tr></thead>
+      <tbody>
+        <tr><td><span class="fam">hover</span>Button</td><td>pointer over</td><td>box-shadow soft; primary → accent-hover</td><td class="mono">120 ease</td><td>instant</td></tr>
+        <tr><td><span class="fam">hover</span>Rail item, agent card</td><td>pointer over</td><td>background rail-2; chevron opacity</td><td class="mono">120 ease</td><td>instant</td></tr>
+        <tr><td><span class="fam">hover</span>Tool line actions</td><td>pointer over row</td><td>row surface-2; actions opacity, 4 px slide</td><td class="mono">120 ease</td><td>actions at 60 % always</td></tr>
+        <tr><td><span class="fam">hover</span>Link, name peek</td><td>pointer over</td><td>underline scaleX; peek opacity + 4 px</td><td class="mono">120 · 200 ease</td><td>underline always; peek instant</td></tr>
+        <tr><td><span class="fam">hover</span>Plan estimate, meter tip</td><td>pointer over</td><td>crossfade; tip opacity + 3 px</td><td class="mono">120 ease</td><td>both values shown</td></tr>
+        <tr><td><span class="fam">press</span>Button, chip</td><td>pointer down</td><td>translateY 1 px, scale .99 (chip .97), shadow off</td><td class="mono">200 ease</td><td>no sink</td></tr>
+        <tr><td><span class="fam">press</span>Send</td><td>pointer up</td><td>scale .92, then message rise 8 px</td><td class="mono">200 · 320</td><td>message in place</td></tr>
+        <tr><td><span class="fam">press</span>Approve</td><td>pointer up</td><td>check stroke-dashoffset 40 → 0</td><td class="mono">500 ease</td><td>check whole</td></tr>
+        <tr><td><span class="fam">press</span>Star</td><td>pointer up</td><td>fill, scale pop 1.12</td><td class="mono">120 · 360 (.3,1.4,.4,1)</td><td>fill only</td></tr>
+        <tr><td><span class="fam">press</span>Long press</td><td>touch held</td><td>conic ring 0 → 100 %</td><td class="mono">400 linear</td><td>ring hidden</td></tr>
+        <tr><td><span class="fam">focus</span>Field, button, star, switch, chip</td><td>keyboard</td><td>box-shadow team glow</td><td class="mono">120 ease</td><td>instant</td></tr>
+        <tr><td><span class="fam">focus</span>Composer</td><td>focus-within</td><td>shadow-pop + glow</td><td class="mono">120 ease</td><td>instant</td></tr>
+        <tr><td><span class="fam">focus</span>List row</td><td>j / k</td><td>inset 2 px apricot, wash, 3 px edge, keys appear</td><td class="mono">120 ease</td><td>instant</td></tr>
+        <tr><td><span class="fam">toggle</span>Segmented, switch</td><td>press</td><td>thumb translateX; governed thing crossfades</td><td class="mono">200 (.3,.9,.3,1)</td><td>thumb jumps</td></tr>
+        <tr><td><span class="fam">toggle</span>Solo → Team pill</td><td>someone joins</td><td>opacity crossfade; avatar pop + ripple</td><td class="mono">200 · 360 · 900</td><td>crossfade instant</td></tr>
+        <tr><td><span class="fam">toggle</span>Checkbox</td><td>press</td><td>box fills; check draws 20 units</td><td class="mono">200 ease</td><td>check whole</td></tr>
+        <tr><td><span class="fam">toggle</span>Disclosure</td><td>press</td><td>chevron rotate 90°; body rise</td><td class="mono">200 · 320</td><td>no rise</td></tr>
+        <tr><td><span class="fam">toggle</span>Theme</td><td>press</td><td>tokens</td><td class="mono">0</td><td>same</td></tr>
+        <tr><td><span class="fam">select</span>Chip, row, option, moment</td><td>press / arrow</td><td>apricot-soft wash; inset hairline or 3 px edge</td><td class="mono">120 ease</td><td>instant</td></tr>
+        <tr><td><span class="fam">select</span>Multi-select bar</td><td>second row ticked</td><td>navy bar rise 8 px</td><td class="mono">320 ease</td><td>in place</td></tr>
+        <tr><td><span class="fam">select</span>Text</td><td>drag / shift</td><td>::selection apricot</td><td class="mono">0</td><td>same</td></tr>
+        <tr><td><span class="fam">drag</span>Scrubber, slider, divider</td><td>pointer held</td><td>handle ×1.25 + glow; value follows with no easing</td><td class="mono">0 held · 120 release</td><td>no scale</td></tr>
+        <tr><td><span class="fam">drag</span>Reorder</td><td>grip held</td><td>lift ×1.02 + shadow-pop; dashed slot; neighbours slide</td><td class="mono">200 lift · 320 settle</td><td>no lift, slot stays</td></tr>
+        <tr><td><span class="fam">drag</span>Drop a file</td><td>drag over</td><td>dashed line apricot-deep + wash; chip pops</td><td class="mono">120 · 360</td><td>chip whole</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <footer class="foot"><span>Henosis · micro-interactions · design wave</span><span>Tokens: ../../tokens.css</span><span>Live demos: CSS :has for toggles and chips; one small inline script for send, approve, stars, rows, scrubber, reorder, slider, divider.</span><span>Calm mode and reduced motion turn every transition off.</span></footer>
+</main>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  // send: sink, then the message rises
+  const send = $('#sendbtn'), say = $('#say'), stream = $('#stream');
+  const post = () => { const t = say.value.trim(); if (!t) return; const m = document.createElement('div'); m.className = 'msg-mini rise'; m.innerHTML = '<span class="avatar driver">A</span><span class="b"></span>'; $('.b', m).textContent = t; stream.appendChild(m); say.value = ''; say.placeholder = 'Steer the agent'; };
+  send.addEventListener('click', post); say.addEventListener('keydown', e => { if (e.key === 'Enter') post(); });
+  // approve: the check draws
+  const ab = $('#approvebtn'); ab.addEventListener('click', () => { $('#approveline').innerHTML = '<span class="chk drawn"><svg class="ico"><use href="#i-check"/></svg></span><span class="q">Approved by Ana.</span><span class="small faint">Bo has the baton.</span>'; });
+  // stars: preview, select, pop
+  const stars = $$('#stars .star'), word = $('#starword'), words = ['', 'unclear', 'thin', 'fine', 'clear', 'convincing']; let val = 0;
+  const paint = (pre) => { stars.forEach((s, i) => { s.classList.toggle('on', i < val); s.classList.toggle('pre', pre > 0 && i < pre && i >= val); }); const w = pre || val; word.textContent = w ? words[w] : 'rate the plan'; word.classList.toggle('ghost', !w); };
+  stars.forEach((s, i) => { s.addEventListener('mouseenter', () => paint(i + 1)); s.addEventListener('mouseleave', () => paint(0)); s.addEventListener('click', () => { val = i + 1; paint(0); s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); }); });
+  // rows: multi-select with a bar
+  const rows = $$('#rowsel .qrow'), bar = $('#selbar'), cnt = $('#selcount');
+  const sync = () => { const sel = rows.filter(r => r.classList.contains('sel')); bar.classList.toggle('hide', sel.length === 0); const high = sel.some(r => /high/.test(r.textContent)); cnt.textContent = sel.length + ' selected' + (sel.length > 1 ? (high ? ' · one needs two' : ' · all low') : ''); $('.btn', bar).textContent = sel.length > 1 ? 'Approve all' : 'Approve'; bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = ''; };
+  rows.forEach(r => r.addEventListener('click', () => { r.classList.toggle('sel'); sync(); }));
+  $$('#replay .rrow').forEach(r => r.addEventListener('click', () => { $$('#replay .rrow').forEach(x => x.classList.remove('sel')); r.classList.add('sel'); }));
+  // scrubber
+  const scrub = $('#scrub'), track = $('#track'), hd = $('#hd'), tip = $('#tip'); const t0 = 13 * 60 + 52, t1 = 14 * 60 + 31; const names = [[18, 'Ana steers'], [42, 'tax lines'], [63, 'proration'], [81, 'release gate']];
+  const setX = (p) => { p = Math.max(0, Math.min(100, p)); scrub.style.setProperty('--x', p + '%'); const m = Math.round(t0 + (t1 - t0) * p / 100); let near = names.reduce((a, b) => Math.abs(b[0] - p) < Math.abs(a[0] - p) ? b : a); tip.textContent = Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') + ' · ' + near[1]; };
+  const pct = (e) => { const r = track.getBoundingClientRect(); return (e.clientX - r.left) / r.width * 100; };
+  hd.addEventListener('pointerdown', e => { hd.setPointerCapture(e.pointerId); scrub.classList.add('dragging'); e.preventDefault(); });
+  hd.addEventListener('pointermove', e => { if (scrub.classList.contains('dragging')) setX(pct(e)); });
+  hd.addEventListener('pointerup', () => scrub.classList.remove('dragging')); hd.addEventListener('lostpointercapture', () => scrub.classList.remove('dragging'));
+  track.addEventListener('click', e => { if (e.target !== hd) setX(pct(e)); });
+  hd.addEventListener('keydown', e => { const cur = parseFloat(scrub.style.getPropertyValue('--x')) || 42; if (e.key === 'ArrowLeft') setX(cur - 2); if (e.key === 'ArrowRight') setX(cur + 2); });
+  setX(42);
+  // reorder: lift, slot, settle
+  const list = $('#sortable'); let drag = null, slot = null, offY = 0;
+  const renum = () => $$('.sitem', list).forEach((it, i) => { $('.n', it).textContent = i + 1; });
+  list.addEventListener('pointerdown', e => { const g = e.target.closest('.grip'); if (!g) return; drag = g.closest('.sitem'); const r = drag.getBoundingClientRect(); offY = e.clientY - r.top; slot = drag.cloneNode(true); slot.className = 'sitem slot'; drag.after(slot); drag.classList.add('dragging'); drag.style.position = 'fixed'; drag.style.width = r.width + 'px'; drag.style.left = r.left + 'px'; drag.style.top = r.top + 'px'; drag.style.transition = 'none'; list.setPointerCapture(e.pointerId); e.preventDefault(); });
+  list.addEventListener('pointermove', e => { if (!drag) return; drag.style.top = (e.clientY - offY) + 'px'; const items = $$('.sitem', list).filter(x => x !== drag && x !== slot); for (const it of items) { const r = it.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2 && it.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING) { it.before(slot); return; } if (e.clientY > r.top + r.height / 2 && it.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_PRECEDING) { it.after(slot); return; } } });
+  const drop = () => { if (!drag) return; slot.replaceWith(drag); drag.classList.remove('dragging'); drag.removeAttribute('style'); drag.classList.add('settled'); setTimeout(() => drag && drag.classList.remove('settled'), 400); renum(); drag = null; slot = null; };
+  list.addEventListener('pointerup', drop); list.addEventListener('lostpointercapture', drop);
+  // slider
+  const rg = $('#range'), rv = $('#rangeval'); const rsync = () => { rg.style.setProperty('--v', ((rg.value - rg.min) / (rg.max - rg.min) * 100) + '%'); rv.textContent = rg.value + 'k'; }; rg.addEventListener('input', rsync); rsync();
+  // divider
+  const sp = $('#split'), sb = $('#splitbar'); sb.addEventListener('pointerdown', e => { sb.setPointerCapture(e.pointerId); sp.classList.add('dragging'); });
+  sb.addEventListener('pointermove', e => { if (!sp.classList.contains('dragging')) return; const r = sp.getBoundingClientRect(); sp.style.setProperty('--s', Math.max(20, Math.min(80, (e.clientX - r.left) / r.width * 100)) + '%'); });
+  sb.addEventListener('pointerup', () => sp.classList.remove('dragging')); sb.addEventListener('lostpointercapture', () => sp.classList.remove('dragging'));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Team look</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ==========================================================================================
+     Team look editor. A lead dresses the team in four colours, a mark style, a motion level and
+     an emblem. The editor sits on the left, the look itself sits on the right and never leaves
+     the screen: every row on the left is seen on the right before it is saved. The draft here is
+     Ana's: Fondant, with a terracotta accent she typed, a warmer highlight and the "Pa" emblem.
+     Two checks are low, and the page says so where she can fix it.
+     ========================================================================================== */
+  :root {
+    /* Ana's draft, as the preview paints it. Team colours are literal in both themes. */
+    --p-accent: #A8623F; --p-highlight: #E4B98C; --p-surface: #2A3244; --p-glow: #E2C4A6;
+    --p-hand: var(--p-accent); --p-hand-fg: #FFF8F0; /* on the dark canvas the highlight is the hand, as apricot is in the tokens */
+    --field-bg: var(--surface); --field-line: rgba(42,50,68,0.18);
+    --changed: rgba(226,196,166,0.22);
+    --savebar: #FFFDF9;
+    --tile-line: rgba(42,50,68,0.10);
+    --bar-track: var(--surface-3);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --field-bg: #1E2534; --field-line: rgba(240,234,224,0.16);
+    --p-hand: var(--p-highlight); --p-hand-fg: var(--p-surface);
+    --changed: rgba(226,196,166,0.12);
+    --savebar: #262F40;
+    --tile-line: rgba(240,234,224,0.12);
+    --bar-track: #3A4559; --field-line: rgba(240,234,224,0.26);
+    --ok: #8FC386; --ok-soft: rgba(143,195,134,0.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18);
+    --rail: #10141C; --rail-2: #1A2030; --rail-line: rgba(240,234,224,0.08);
+  } }
+  :root[data-theme="dark"] {
+    --field-bg: #1E2534; --field-line: rgba(240,234,224,0.16);
+    --p-hand: var(--p-highlight); --p-hand-fg: var(--p-surface);
+    --changed: rgba(226,196,166,0.12);
+    --savebar: #262F40;
+    --tile-line: rgba(240,234,224,0.12);
+    --bar-track: #3A4559;
+    --ok: #8FC386; --ok-soft: rgba(143,195,134,0.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --danger: #EA9384; --danger-soft: rgba(234,147,132,0.18);
+    --rail: #10141C; --rail-2: #1A2030; --rail-line: rgba(240,234,224,0.08);
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  .shell { height: 100vh; }
+  .rail .brand svg { width: 28px; height: 28px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 11.5px; font-weight: 600; background: var(--apricot); color: #56352D; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: inline-grid; place-items: center; }
+  .rail .me .who { display: flex; flex-direction: column; line-height: 1.25; }
+  .rail .me .who small { font-size: 12px; color: var(--rail-muted); }
+  .topbar .crumb { color: var(--ink-3); }
+  .topbar .right .pill { height: 26px; }
+
+  .page { width: min(1180px, 100%); margin: 0 auto; padding: 18px 32px 130px; }
+  .page-head { display: flex; align-items: flex-end; gap: 18px; margin-bottom: 16px; flex-wrap: wrap; }
+  .page-head h1 { font-size: 36px; }
+  .page-head .lede { font-size: 15.5px; color: var(--ink-2); margin: 0 0 6px; }
+  .page-head .lede i { font-family: var(--serif); font-style: italic; color: var(--ink); font-size: 17px; }
+  .page-head .end { margin-left: auto; display: flex; align-items: center; gap: 10px; padding-bottom: 6px; }
+  .select { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px 0 14px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); font: 500 14px var(--font); color: var(--ink); }
+  .select svg { width: 12px; height: 12px; opacity: .6; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr); gap: 22px 26px; align-items: start; }
+  .colA { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+  .colB { position: sticky; top: 0; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  .group { padding: 18px 22px 8px; }
+  .group .gh { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .group .gh h2 { font-size: 23px; }
+  .group .gh .sub { font-size: 13px; color: var(--ink-3); }
+  .group .gh .end { margin-left: auto; font-size: 13px; color: var(--ink-3); }
+  .list { display: flex; flex-direction: column; }
+  .rowitem { padding: 10px 10px; margin: 0 -10px; gap: 16px; border-radius: 12px; }
+  .rowitem:last-child { border-bottom: 0; }
+  .rowitem .lbl { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .rowitem .t { font-weight: 500; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
+  .rowitem .s { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+  .rowitem.changed { background: var(--changed); border-bottom-color: transparent; }
+  .tag { font: 600 10.5px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  :root[data-theme="dark"] .tag { color: var(--apricot); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tag { color: var(--apricot); } }
+
+  /* presets: three tiles that are the look in miniature */
+  .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 8px 0 10px; }
+  .preset { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 10px; padding: 6px 10px 6px 6px; border-radius: 16px; border: 1px solid var(--tile-line); background: var(--surface); cursor: pointer; text-align: left; font: inherit; color: inherit; transition: box-shadow .12s ease; }
+  .preset:hover { box-shadow: var(--shadow-soft); }
+  .preset.on { box-shadow: 0 0 0 2px var(--apricot-deep); border-color: transparent; }
+  .preset .mini { display: grid; grid-template-columns: 34% 1fr; height: 44px; border-radius: 10px; overflow: hidden; border: 1px solid var(--tile-line); }
+  .preset .mini .r { background: var(--s); display: flex; flex-direction: column; gap: 3px; padding: 6px 4px; border-right: 2px solid var(--h); }
+  .preset .mini .r b { display: block; height: 3px; width: 80%; border-radius: 3px; background: rgba(243,237,228,.55); }
+  .preset .mini .r b + b { width: 50%; background: rgba(243,237,228,.3); }
+  .preset .mini .r .pt { width: 12px; height: 5px; border-radius: 3px; background: var(--h); margin-top: auto; }
+  .preset .mini .c { background: #FBF7F1; padding: 6px 6px; display: flex; flex-direction: column; gap: 4px; }
+  .preset .mini .c b { display: block; height: 3px; width: 60%; border-radius: 3px; background: rgba(42,50,68,.18); }
+  .preset .mini .c b + b { width: 80%; background: rgba(42,50,68,.10); }
+  .preset .mini .c .btn-mini { margin-top: auto; width: 20px; height: 7px; border-radius: 4px; background: var(--a); box-shadow: 0 0 0 2px color-mix(in srgb, var(--g) 50%, transparent); }
+  .preset .pn { display: flex; flex-direction: column; gap: 0; line-height: 1.25; min-width: 0; }
+  .preset .pn .serif { font-size: 17px; }
+  .preset .pn .d { font-size: 12px; color: var(--ink-3); }
+  .preset .pn svg { width: 14px; height: 14px; color: var(--ok); margin-left: auto; }
+  .fromline { font-size: 13px; color: var(--ink-2); padding: 0 0 4px; margin: 0 0 4px; border-bottom: 1px solid var(--line); padding-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .fromline .pill { height: 20px; font-size: 11px; }
+
+  /* colour rows: swatch + hex field */
+  .hexrow { display: inline-flex; align-items: center; gap: 8px; }
+  .sw { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--field-line); box-shadow: inset 0 0 0 2px var(--surface); background: var(--c); flex: none; }
+  .field { display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--field-line); background: var(--field-bg); font: 500 13px var(--mono); color: var(--ink); letter-spacing: .02em; }
+  .field.hex { width: 96px; }
+  .field.emb { width: 64px; justify-content: center; font-family: var(--serif); font-size: 17px; font-weight: 400; }
+  .field.focus { box-shadow: var(--glow); border-color: var(--apricot-deep); }
+  .field .caret { width: 1px; height: 16px; background: var(--ink); margin-left: 2px; animation: pulse 1s steps(2) infinite; }
+
+  /* the checks: a small table, cream and dark canvases side by side */
+  .checks { margin: 4px -10px 6px; padding: 12px 14px 8px; border-radius: 14px; background: var(--surface-2); }
+  .checks .ch { display: flex; align-items: center; gap: 10px; font-size: 13px; margin-bottom: 8px; }
+  .checks .ch h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .checks .ch .s { font-size: 12.5px; color: var(--ink-3); }
+  .checks .ch .k { margin-left: auto; display: flex; gap: 14px; color: var(--ink-3); font-size: 12px; }
+  .checks .ch .k i { display: inline-flex; align-items: center; gap: 5px; font-style: normal; }
+  .checks .ch .k i::before { content: ""; width: 8px; height: 8px; border-radius: 50%; }
+  .checks .ch .k i.ok::before { background: var(--ok); } .checks .ch .k i.low::before { background: var(--danger); }
+  .check { display: grid; grid-template-columns: 1fr 112px 112px; gap: 12px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .check:first-of-type { border-top: 0; }
+  .check .w { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .check .w small { font-size: 12px; color: var(--ink-3); }
+  .check .v { display: flex; flex-direction: column; gap: 4px; }
+  .check .v .n { font-family: var(--mono); font-size: 12.5px; display: flex; align-items: center; gap: 6px; color: var(--ink-2); }
+  .check .v .n b { font-weight: 500; color: var(--ink); }
+  .check .v .n .m { margin-left: auto; font: 600 10.5px var(--font); letter-spacing: .06em; text-transform: uppercase; }
+  .check .v.ok .n .m { color: var(--ok); } .check .v.low .n .m { color: var(--danger); }
+  .check .bar { height: 4px; border-radius: 2px; background: var(--bar-track); position: relative; overflow: hidden; }
+  .check .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--ok); }
+  .check .v.low .bar > i { background: var(--danger); }
+  .check .bar > u { position: absolute; top: -2px; bottom: -2px; width: 1.5px; background: var(--ink-3); left: var(--min); }
+  .checkhead { display: grid; grid-template-columns: 1fr 112px 112px; gap: 12px; font-size: 11.5px; color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; padding: 0 0 6px; }
+  .fix { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--danger-soft); font-size: 13px; color: var(--ink); }
+  .fix .sw { width: 20px; height: 20px; box-shadow: none; }
+  .fix .mono { font-size: 12.5px; }
+  .fix .btn { margin-left: auto; white-space: nowrap; flex: none; }
+
+  /* mark, motion, emblem */
+  .seg.big { padding: 4px; gap: 2px; }
+  .seg.big button { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 7px; font-size: 13px; }
+  .seg.big svg { width: 22px; height: 22px; }
+  .seg.plain button { padding: 5px 12px; font-size: 13px; }
+  .motionhint { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-3); padding: 0 0 12px; }
+  .motionhint i { font-style: normal; display: inline-flex; align-items: center; gap: 6px; }
+  .motionhint i b { font-weight: 600; color: var(--ink-2); }
+  .motionhint .dotp { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); animation: pulse 1.6s ease-in-out infinite; }
+  .emblemrow .hexrow { gap: 12px; }
+  .emblemrow .lmark { width: 36px; height: 36px; }
+
+  /* the preview: a slice of the Payments rail and canvas, painted with the draft */
+  .preview { padding: 0; overflow: hidden; }
+  .preview .ph { display: flex; align-items: center; gap: 12px; padding: 14px 18px 12px; border-bottom: 1px solid var(--line); }
+  .preview .ph h2 { font-size: 22px; }
+  .preview .ph .sub { font-size: 13px; color: var(--ink-3); }
+  .preview .ph .seg { margin-left: auto; }
+  .preview .ph .seg button { padding: 3px 10px; font-size: 12px; }
+  .look { display: grid; grid-template-columns: 222px 1fr; min-height: 280px; }
+  .look .prail { background: var(--p-surface); color: #F6F0E7; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; border-right: 2px solid var(--p-highlight); }
+  .look .prail .brand { display: flex; align-items: center; gap: 9px; padding: 0 4px 10px; font-family: var(--serif); font-size: 20px; }
+  .look .prail .brand svg { width: 32px; height: 32px; }
+  .look .prail .emb { margin-left: auto; font: 500 11px var(--font); letter-spacing: .06em; color: var(--p-highlight); border: 1px solid color-mix(in srgb, var(--p-highlight) 55%, transparent); border-radius: var(--radius-full); padding: 1px 7px; line-height: 16px; }
+  .look .prail .new { padding: 9px 12px; font-size: 13px; background: linear-gradient(135deg, var(--p-surface) 0%, var(--p-accent) 100%); box-shadow: 0 0 0 1px rgba(255,255,255,.06), var(--shadow-soft); }
+  .look .prail .section { padding: 10px 6px 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #AEB4C2; display: flex; }
+  .look .prail .section .n { margin-left: auto; letter-spacing: 0; }
+  .look .pagent { display: flex; flex-direction: column; gap: 4px; padding: 9px 10px; border-radius: 12px; background: color-mix(in srgb, var(--p-highlight) 18%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--p-highlight) 40%, transparent); font-size: 13.5px; }
+  .look .pagent .head { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+  .look .pagent .head .dot { width: 8px; height: 8px; border-radius: 50%; background: #9BC88F; box-shadow: 0 0 0 3px rgba(155,200,143,.25); animation: pulse 1.6s ease-in-out infinite; }
+  .look .pagent .head .pill { margin-left: auto; height: 20px; font-size: 11px; background: var(--p-highlight); color: var(--p-surface); }
+  .look .pagent .doing { font-size: 12.5px; color: #AEB4C2; line-height: 1.4; }
+  .look .pagent .doing i { font-family: var(--serif); font-style: italic; color: var(--p-highlight); font-size: 13.5px; }
+  .look .pagent .foot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #AEB4C2; }
+  .look .pagent .foot .avatar { width: 22px; height: 22px; font-size: 9.5px; border-color: var(--p-surface); background: #E9E2D6; color: #2A3244; }
+  .look .pagent .foot .avatar.driver { box-shadow: 0 0 0 2px var(--p-highlight); }
+  .look .pagent2 { opacity: .78; background: transparent; box-shadow: none; }
+  .look .pagent2 .head .dot { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); animation: none; }
+  .look .pagent2 .head .pill { background: transparent; border: 1px solid rgba(243,237,228,.25); color: #AEB4C2; }
+  .look .pcanvas { background: var(--canvas); background-image: radial-gradient(120% 70% at 50% -20%, color-mix(in srgb, var(--p-highlight) 36%, transparent) 0%, transparent 62%); padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .look .pcanvas .ttl { display: flex; align-items: center; gap: 10px; }
+  .look .pcanvas .ttl .serif { font-size: 22px; }
+  .look .pcanvas .ttl .tp { height: 20px; font-size: 11px; background: var(--p-highlight); color: #56352D; }
+  .look .pcanvas .ttl .st { margin-left: auto; }
+  .look .pbtn { background: var(--p-hand); color: var(--p-hand-fg); border-color: transparent; }
+  .look .pbtn:hover { background: var(--p-hand); }
+  .look .pfocus { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 13.5px; color: var(--ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-glow) 45%, transparent); }
+  .look .pfocus .caret { width: 1px; height: 16px; background: var(--ink); animation: pulse 1s steps(2) infinite; }
+  .look .pmsg { display: flex; flex-direction: column; gap: 5px; }
+  .look .pmsg .meta { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
+  .look .pmsg .meta .who { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+  .look .pmsg .meta .to { font-family: var(--serif); font-style: italic; color: var(--p-hand); }
+  .look .pmsg .text { font-size: 13.5px; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, var(--p-highlight) 32%, transparent); max-width: 92%; }
+  .look .pmsg .text a { color: var(--p-hand); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--p-hand) 40%, transparent); }
+  .look .pbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .look .pbar .avatar { width: 24px; height: 24px; font-size: 10px; }
+  .look .pbar .avatar.driver { box-shadow: 0 0 0 2px var(--p-highlight); }
+  .look .pbar .status::before { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); animation: pulse 1.6s ease-in-out infinite; }
+  :root[data-motion="calm"] .look .pcanvas .status::before, :root[data-motion="calm"] .look .pagent .head .dot { animation: none; }
+
+  /* where it shows: one strip of the parts the four colours touch */
+  .shows { padding: 10px 18px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .shows h3 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .shows .parts { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+  .shows .parts i { font-style: normal; display: inline-flex; align-items: center; gap: 6px; }
+  .shows .parts .c { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--field-line); }
+
+  .seen { display: flex; align-items: center; gap: 12px; padding: 12px 18px; font-size: 13.5px; color: var(--ink-2); }
+  .seen .stack .avatar { width: 26px; height: 26px; font-size: 10.5px; }
+  .seen .stack .avatar.agent { border-radius: 8px 8px 8px 3px; background: var(--gradient-brand); color: #fff; }
+  .seen b { color: var(--ink); font-weight: 500; }
+
+  /* the save bar names the change and who gets it */
+  .savebar { position: fixed; left: calc(var(--rail-w) + 32px); right: 32px; bottom: 20px; margin: 0 auto; width: min(1116px, 100%); display: flex; align-items: center; gap: 14px; padding: 12px 14px 12px 18px; border-radius: 18px; background: var(--savebar); border: 1px solid var(--line); box-shadow: var(--shadow-pop); font-size: 14px; animation: rise .32s ease both; z-index: 5; }
+  .savebar .mark { width: 30px; height: 30px; flex: none; }
+  .savebar .txt { flex: 1; min-width: 0; line-height: 1.4; }
+  .savebar .txt b { font-weight: 500; }
+  .savebar .txt i { font-family: var(--serif); font-style: italic; font-size: 15.5px; }
+  .savebar .txt .low { color: var(--danger); font-weight: 500; }
+  .savebar .btn.primary { background: var(--p-hand); color: var(--p-hand-fg); }
+  .savebar .btn.primary:hover { background: var(--p-hand); }
+
+  /* the mark and its emblem variant */
+  .mark { --md: var(--p-surface); --ma: var(--p-accent); --mb: var(--p-highlight); --mc: var(--p-highlight); display: block; }
+  .mark.brandmark { --md: var(--mark-disc); --ma: #56352D; --mb: #E2C4A6; --mc: #E2C4A6; }
+
+  .canvasseg .cream { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+  :root[data-theme="dark"] .canvasseg .cream { background: transparent; color: var(--ink-2); box-shadow: none; }
+  :root[data-theme="dark"] .canvasseg .dark { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .canvasseg .cream { background: transparent; color: var(--ink-2); box-shadow: none; } :root:not([data-theme="light"]) .canvasseg .dark { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); } }
+  .mobilebar { display: none; }
+  @media (max-width: 900px) {
+    html, body { overflow: auto; }
+    .shell { height: auto; min-height: 100vh; }
+    .rail { display: none; }
+    .topbar .right .pill.role { display: none; }
+    .mobilebar { display: inline-flex; }
+    .page { padding: 14px 16px 150px; }
+    .page-head { margin-bottom: 14px; gap: 8px; }
+    .page-head h1 { font-size: 32px; }
+    .page-head .end { margin-left: 0; width: 100%; }
+    .grid { grid-template-columns: 1fr; gap: 16px; }
+    .colB { position: static; order: -1; }
+    .look { grid-template-columns: 1fr; }
+    .look .prail { border-right: 0; border-bottom: 2px solid var(--p-highlight); }
+    .look .pagent2 { display: none; }
+    .group { padding: 16px 16px 6px; }
+    .presets { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .preset { grid-template-columns: 1fr; gap: 4px; padding: 6px; }
+    .preset .mini { height: 40px; }
+    .preset .pn .serif { font-size: 15px; }
+    .preset .pn .d { display: none; }
+    .rowitem { grid-template-columns: 1fr; gap: 10px; }
+    .rowitem > .hexrow, .rowitem > .seg { justify-self: start; }
+    .check, .checkhead { grid-template-columns: 1fr 84px 84px; gap: 8px; }
+    .check .v .n { font-size: 11px; gap: 3px; } .check .v .n .m { font-size: 9.5px; }
+    .checks .ch .s { display: none; }
+    .fix { flex-wrap: wrap; } .fix .btn { margin-left: 0; }
+    .savebar { left: 12px; right: 12px; bottom: 12px; width: auto; flex-wrap: wrap; padding: 12px 14px; gap: 10px 8px; }
+    .savebar .txt { flex-basis: 100%; font-size: 13px; }
+    .savebar .mark { display: none; }
+    .savebar .btn { min-height: 34px; font-size: 13px; padding: 0 13px; }
+    .savebar .btn.ghost { margin-left: auto; }
+    .preview .ph { padding: 12px 14px 10px; }
+    .preview .ph .sub { display: none; }
+    .look .prail .new { align-self: flex-start; padding: 7px 14px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="hmark" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" style="fill:var(--md)"/>
+      <path d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round" style="stroke:var(--ma)"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round" style="stroke:var(--mb)"/>
+      <circle cx="48" cy="48" r="7" style="fill:var(--mc)"/>
+    </symbol>
+    <symbol id="hmark-em" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" style="fill:var(--md)"/>
+      <path d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round" style="stroke:var(--ma)"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round" style="stroke:var(--mb)"/>
+      <text x="48" y="59" text-anchor="middle" style="fill:var(--mc);font:400 32px var(--serif);letter-spacing:-0.02em">Pa</text>
+    </symbol>
+    <symbol id="hmark-dot" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" style="fill:var(--md)"/>
+      <circle cx="48" cy="48" r="12" style="fill:var(--mc)"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-home" viewBox="0 0 16 16"><path d="M2.5 7.5 8 3l5.5 4.5V13a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2.5 9.5h3l1 2h3l1-2h3M2.5 9.5V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v5.5m-11 0V12a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ok" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 8.2 7.3 10l3.2-3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 16 16"><path d="M2.5 4.5a1 1 0 0 1 1-1h3l1.5 1.5h4.5a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cog" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2v1.6M8 12.4V14M2 8h1.6M12.4 8H14M3.8 3.8l1.1 1.1M11.1 11.1l1.1 1.1M3.8 12.2l1.1-1.1M11.1 4.9l1.1-1.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-back" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <nav class="rail" aria-label="Henosis">
+    <div class="brand"><svg class="mark brandmark" aria-hidden="true"><use href="#hmark"/></svg><span>Henosis</span></div>
+    <button class="new" type="button"><span aria-hidden="true">+</span> New session</button>
+    <div class="section">Agents <span class="n">2</span></div>
+    <div class="crew"><span class="serif">Billing page</span></div>
+    <a class="agent" href="#"><span class="head"><span class="dot running"></span><span class="t">Bo's agent</span><span class="pill team">Team</span></span><span class="doing">Step 3 of 5, <i>invoice PDF</i> · rendering tax lines</span><span class="foot">with Bo, Cy · <span class="mono" style="font-size:12px">118k</span></span></a>
+    <a class="agent" href="#"><span class="head"><span class="dot awaiting_approval"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></span><span class="doing">Waits on <i>proration</i> · git push to main</span><span class="foot">with Dee · <span class="mono" style="font-size:12px">64k</span></span></a>
+    <div class="section">Places</div>
+    <a class="item" href="#"><svg aria-hidden="true"><use href="#i-home"/></svg>Overview</a>
+    <a class="item" href="#"><svg aria-hidden="true"><use href="#i-inbox"/></svg>Inbox <span class="n">3</span></a>
+    <a class="item" href="#"><svg aria-hidden="true"><use href="#i-ok"/></svg>Approvals <span class="n">1</span></a>
+    <a class="item" href="#"><svg aria-hidden="true"><use href="#i-folder"/></svg>Projects</a>
+    <a class="item active" href="#" aria-current="page"><svg aria-hidden="true"><use href="#i-cog"/></svg>Settings</a>
+    <div class="me"><span class="avatar">A</span><span class="who">Ana<small>Lead · Payments</small></span></div>
+  </nav>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="btn icon ghost mobilebar" type="button" aria-label="Back to settings"><svg width="16" height="16" aria-hidden="true"><use href="#i-back"/></svg></button>
+      <div class="title"><span><span class="crumb">Settings ›</span> Team look</span></div>
+      <div class="right"><span class="pill">Payments team</span><span class="pill team role">lead</span></div>
+    </header>
+
+    <div class="scroll">
+      <div class="page">
+        <div class="page-head">
+          <div>
+            <h1>Team look</h1>
+            <p class="lede">How <i>Payments</i> looks to everyone in it: the rail, the buttons, the glow and the mark.</p>
+          </div>
+          <div class="end">
+            <span class="small faint">Team</span>
+            <span class="select" role="combobox" aria-expanded="false" aria-label="Team">Payments <svg aria-hidden="true"><use href="#i-chev"/></svg></span>
+          </div>
+        </div>
+
+        <div class="grid">
+          <!-- ============================ the editor ============================ -->
+          <div class="colA">
+            <section class="card group" aria-labelledby="h-colours">
+              <div class="gh"><h2 id="h-colours">Colours</h2><span class="sub">A preset, or four of your own as #RRGGBB</span><span class="end">Checked on both canvases</span></div>
+              <div class="presets" role="radiogroup" aria-label="Preset">
+                <button type="button" class="preset" role="radio" aria-checked="false" style="--a:#56352D;--h:#E2C4A6;--s:#2A3244;--g:#E2C4A6">
+                  <span class="mini" aria-hidden="true"><span class="r"><b></b><b></b><span class="pt"></span></span><span class="c"><b></b><b></b><span class="btn-mini"></span></span></span>
+                  <span class="pn"><span class="serif">Fondant</span><span class="d">the palette</span></span>
+                </button>
+                <button type="button" class="preset" role="radio" aria-checked="false" style="--a:#2A3244;--h:#E2C4A6;--s:#56352D;--g:#E2C4A6">
+                  <span class="mini" aria-hidden="true"><span class="r"><b></b><b></b><span class="pt"></span></span><span class="c"><b></b><b></b><span class="btn-mini"></span></span></span>
+                  <span class="pn"><span class="serif">Apricot</span><span class="d">chocolate rail</span></span>
+                </button>
+                <button type="button" class="preset" role="radio" aria-checked="false" style="--a:#2A3244;--h:#E2C4A6;--s:#1B2130;--g:#F0DCC4">
+                  <span class="mini" aria-hidden="true"><span class="r"><b></b><b></b><span class="pt"></span></span><span class="c"><b></b><b></b><span class="btn-mini"></span></span></span>
+                  <span class="pn"><span class="serif">Blues</span><span class="d">deep rail</span></span>
+                </button>
+              </div>
+              <p class="fromline"><span class="pill">Custom</span> From Fondant: the accent and the highlight are yours. A preset starts over.</p>
+              <div class="list">
+                <div class="rowitem changed">
+                  <span class="lbl"><span class="t">Accent <span class="tag">changed</span></span><span class="s">The hand: buttons, links, the person's arc</span></span>
+                  <span class="hexrow"><span class="sw" style="--c:#A8623F" aria-hidden="true"></span><span class="field hex focus" role="textbox" aria-label="Accent">#A8623F<span class="caret"></span></span></span>
+                </div>
+                <div class="rowitem changed">
+                  <span class="lbl"><span class="t">Highlight <span class="tag">changed</span></span><span class="s">The pulse: the Team pill, the driver ring, the agent's arc and the centre</span></span>
+                  <span class="hexrow"><span class="sw" style="--c:#E4B98C" aria-hidden="true"></span><span class="field hex" role="textbox" aria-label="Highlight">#E4B98C</span></span>
+                </div>
+                <div class="rowitem">
+                  <span class="lbl"><span class="t">Surface</span><span class="s">The rail and the disc of the mark</span></span>
+                  <span class="hexrow"><span class="sw" style="--c:#2A3244" aria-hidden="true"></span><span class="field hex" role="textbox" aria-label="Surface">#2A3244</span></span>
+                </div>
+                <div class="rowitem">
+                  <span class="lbl"><span class="t">Glow</span><span class="s">Around anything live or focused</span></span>
+                  <span class="hexrow"><span class="sw" style="--c:#E2C4A6" aria-hidden="true"></span><span class="field hex" role="textbox" aria-label="Glow">#E2C4A6</span></span>
+                </div>
+              </div>
+              <div class="checks" role="table" aria-label="Contrast checks">
+                <div class="ch"><h3>Contrast</h3><span class="s">On the dark canvas the highlight is the hand</span><span class="k"><i class="ok">fine</i><i class="low">low</i></span></div>
+                <div class="checkhead" role="row"><span></span><span>Cream · accent</span><span>Dark · highlight</span></div>
+                <div class="check" role="row">
+                  <span class="w">The hand as text on the canvas <small>links, "to the team" · needs 4.5 : 1</small></span>
+                  <span class="v low"><span class="n"><b>4.4</b>: 1 <span class="m">low</span></span><span class="bar"><i style="width:30%"></i><u style="--min:31%"></u></span></span>
+                  <span class="v ok"><span class="n"><b>8.8</b>: 1 <span class="m">fine</span></span><span class="bar"><i style="width:61%"></i><u style="--min:31%"></u></span></span>
+                </div>
+                <div class="check" role="row">
+                  <span class="w">Text on the hand <small>Approve, Send · needs 4.5 : 1</small></span>
+                  <span class="v low"><span class="n"><b>4.4</b>: 1 <span class="m">low</span></span><span class="bar"><i style="width:30%"></i><u style="--min:31%"></u></span></span>
+                  <span class="v ok"><span class="n"><b>7.1</b>: 1 <span class="m">fine</span></span><span class="bar"><i style="width:49%"></i><u style="--min:31%"></u></span></span>
+                </div>
+                <div class="check" role="row">
+                  <span class="w">Rail text on the surface <small>agent cards · needs 4.5 : 1</small></span>
+                  <span class="v ok"><span class="n"><b>11.3</b>: 1 <span class="m">fine</span></span><span class="bar"><i style="width:77%"></i><u style="--min:31%"></u></span></span>
+                  <span class="v ok"><span class="n"><b>11.3</b>: 1 <span class="m">fine</span></span><span class="bar"><i style="width:77%"></i><u style="--min:31%"></u></span></span>
+                </div>
+                <div class="check" role="row">
+                  <span class="w">Highlight on the surface <small>the Team pill, the agent's arc · needs 3 : 1</small></span>
+                  <span class="v ok"><span class="n"><b>7.1</b>: 1 <span class="m">fine</span></span><span class="bar"><i style="width:49%"></i><u style="--min:21%"></u></span></span>
+                  <span class="v ok"><span class="n"><b>7.1</b>: 1 <span class="m">fine</span></span><span class="bar"><i style="width:49%"></i><u style="--min:21%"></u></span></span>
+                </div>
+                <div class="check" role="row">
+                  <span class="w">The two arcs apart <small>accent against highlight · needs 3 : 1</small></span>
+                  <span class="v ok"><span class="n"><b>4.2</b>: 1 <span class="m">fine</span></span><span class="bar"><i style="width:29%"></i><u style="--min:21%"></u></span></span>
+                  <span class="v ok"><span class="n"><b>4.2</b>: 1 <span class="m">fine</span></span><span class="bar"><i style="width:29%"></i><u style="--min:21%"></u></span></span>
+                </div>
+                <div class="fix"><span class="sw" style="--c:#9C5B45" aria-hidden="true"></span><span>The nearest accent that passes on cream is <span class="mono">#9C5B45</span>, a shade deeper than yours.</span><button class="btn sm" type="button">Use #9C5B45</button></div>
+              </div>
+            </section>
+
+            <section class="card group" aria-labelledby="h-mark">
+              <div class="gh"><h2 id="h-mark">Mark, motion, emblem</h2><span class="sub">The ring stays the ring</span></div>
+              <div class="list">
+                <div class="rowitem">
+                  <span class="lbl"><span class="t">Mark</span><span class="s">What sits at the centre of the two arcs</span></span>
+                  <fieldset class="seg big" aria-label="Mark">
+                    <button type="button"><svg class="mark" aria-hidden="true"><use href="#hmark"/></svg>Centre dot</button>
+                    <button type="button" class="on" aria-pressed="true"><svg class="mark" aria-hidden="true"><use href="#hmark-em"/></svg>Emblem</button>
+                    <button type="button"><svg class="mark" aria-hidden="true"><use href="#hmark-dot"/></svg>Dot only</button>
+                  </fieldset>
+                </div>
+                <div class="rowitem changed emblemrow">
+                  <span class="lbl"><span class="t">Emblem <span class="tag">changed</span></span><span class="s">One or two letters at the centre and beside the wordmark; Pa names the team's agents everywhere</span></span>
+                  <span class="hexrow"><svg class="mark lmark" aria-hidden="true"><use href="#hmark-em"/></svg><span class="field emb" role="textbox" aria-label="Emblem">Pa</span></span>
+                </div>
+                <div class="rowitem">
+                  <span class="lbl"><span class="t">Motion</span><span class="s">How much the team's screens move</span></span>
+                  <fieldset class="seg plain" aria-label="Motion">
+                    <button type="button" class="on" aria-pressed="true">Full</button>
+                    <button type="button">Quiet</button>
+                    <button type="button">Calm</button>
+                  </fieldset>
+                </div>
+              </div>
+              <p class="motionhint"><i><span class="dotp"></span><b>Full</b> arcs close, dots pulse, cards rise</i><i><b>Quiet</b> loaders only, no side motion</i><i><b>Calm</b> nothing moves; a member's own reduced-motion setting always wins</i></p>
+            </section>
+          </div>
+
+          <!-- ============================ the look, live ============================ -->
+          <div class="colB">
+            <section class="card preview" aria-label="Preview">
+              <div class="ph"><h2>Live preview</h2><span class="sub">Bo's session, as Payments sees it</span>
+                <fieldset class="seg canvasseg" aria-label="Canvas"><button type="button" class="cream">Cream</button><button type="button" class="dark">Dark</button></fieldset>
+              </div>
+              <div class="look" role="img" aria-label="A slice of the rail and the canvas painted with the draft">
+                <div class="prail">
+                  <div class="brand"><svg class="mark" aria-hidden="true"><use href="#hmark-em"/></svg><span>Henosis</span><span class="emb">Pa</span></div>
+                  <button class="new" type="button" tabindex="-1"><span aria-hidden="true">+</span> New session</button>
+                  <div class="section">Agents <span class="n">2</span></div>
+                  <div class="pagent"><span class="head"><span class="dot"></span><span>Bo's agent</span><span class="pill">Team</span></span><span class="doing"><i>invoice PDF</i> · rendering tax lines under the subtotal</span><span class="foot"><span class="stack"><span class="avatar driver">B</span><span class="avatar">C</span></span>with Bo, Cy</span></div>
+                  <div class="pagent pagent2"><span class="head"><span class="dot"></span><span>Dee's agent</span><span class="pill">Solo</span></span><span class="doing">Waits on <i>proration</i></span></div>
+                </div>
+                <div class="pcanvas">
+                  <div class="ttl"><span class="serif">Invoice PDF</span><span class="pill tp">Team</span><span class="status running st">Running</span></div>
+                  <div class="pmsg"><span class="meta"><span class="who">Ana</span><span class="to">to the team</span>14:02</span><span class="text">Tax lines go under the subtotal, proration on its own line. <a href="#">The plan</a> waits for two ratings.</span></div>
+                  <div class="pbar"><button class="btn sm pbtn" type="button" tabindex="-1">Approve</button><button class="btn sm" type="button" tabindex="-1">Revise</button><span class="stack" style="margin-left:auto"><span class="avatar driver">B</span><span class="avatar">C</span><span class="avatar">A</span></span></div>
+                  <div class="pfocus"><span>Ask Bo's agent to split the tax lines</span><span class="caret"></span></div>
+                </div>
+              </div>
+              <div class="shows">
+                <h3>Where the four colours go</h3>
+                <div class="parts">
+                  <i><span class="c" style="background:#A8623F"></span>Accent: buttons, links, the gradient's end, the person's arc</i>
+                  <i><span class="c" style="background:#E4B98C"></span>Highlight: Team pill, driver ring, crease, the agent's arc</i>
+                  <i><span class="c" style="background:#2A3244"></span>Surface: the rail, the disc</i>
+                  <i><span class="c" style="background:#E2C4A6"></span>Glow: focus and live things</i>
+                </div>
+              </div>
+            </section>
+            <section class="card seen" aria-label="Who sees it">
+              <span class="stack" aria-hidden="true"><span class="avatar">A</span><span class="avatar">B</span><span class="avatar">C</span><span class="avatar">D</span><span class="avatar agent">Pa</span><span class="avatar agent">Pa</span></span>
+              <span><b>Ana, Bo, Cy, Dee</b> and the two agents in Payments get the look on their next load. Billing page and Checkout sessions keep their own policy; only the paint changes.</span>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="savebar" role="status">
+      <svg class="mark" aria-hidden="true"><use href="#hmark-em"/></svg>
+      <span class="txt"><b>Three changes</b> to the <i>Payments</i> look: accent, highlight, emblem. <span class="low">Two checks are low</span> on cream; the accent will be hard to read for some of the team.</span>
+      <button class="btn ghost" type="button">Reset to the palette</button>
+      <button class="btn primary" type="button">Save to Payments</button>
+    </div>
+  </main>
+</div>
+</body>
+</html>

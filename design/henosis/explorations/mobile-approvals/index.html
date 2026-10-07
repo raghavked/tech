@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Henosis · Approvals</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* Mobile approvals, 390x844. The phone is the viewport. The list reads top-down, everything
+     that decides sits in the bottom half: the filter bar at the thumb, and the release gate as a
+     sheet that rises over the queue when a row is opened. Open #closed to see the queue alone. */
+  html, body { height: 100%; overflow: hidden; }
+  body { display: flex; flex-direction: column; font-size: 15px; position: relative; }
+  .ic { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* the navy top block: status bar + title, the rail folded flat */
+  .top { flex: none; background: var(--rail); color: var(--rail-fg); padding: 0 12px 12px; position: relative; z-index: 2; }
+  .sys { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 0; font: 600 14px var(--font); letter-spacing: 0.01em; }
+  .sys .r { display: flex; gap: 6px; align-items: center; }
+  .sys .r i { display: block; width: 24px; height: 11px; border: 1.5px solid currentColor; border-radius: 3.5px; position: relative; opacity: .9; }
+  .sys .r i::after { content: ""; position: absolute; left: 2px; top: 2px; bottom: 2px; width: 70%; background: currentColor; border-radius: 1.5px; }
+  .bar { display: flex; align-items: center; gap: 8px; height: 44px; }
+  .bar .ib { width: 40px; height: 40px; border-radius: var(--radius); border: 0; background: transparent; color: var(--rail-fg); display: grid; place-items: center; flex: none; position: relative; }
+  .bar .ib .n { position: absolute; top: 5px; right: 5px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--apricot); color: #56352D; font: 700 10px/16px var(--font); text-align: center; padding: 0 4px; }
+  .bar .title { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+  .bar .title .t { font-family: var(--serif); font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar .title .s { font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
+  .bar .title .s b { font-weight: 500; color: var(--apricot); }
+  .bar .mark { width: 32px; height: 32px; flex: none; margin-right: 4px; }
+  .bar .mark .arc { stroke-width: 10; fill: none; stroke-linecap: round; }
+
+  /* the queue */
+  .scroll { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+  .list { padding: 14px 14px 0; display: flex; flex-direction: column; gap: 10px; }
+  .row { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 13px 14px 13px 18px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 9px; overflow: hidden; }
+  .row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--surface-3); }
+  .row.gate::before { background: var(--gradient-brand); }
+  .row.open { box-shadow: var(--shadow-pop), 0 0 0 2px var(--apricot); z-index: 4; }
+  .row .say { font-size: 14.5px; line-height: 1.45; color: var(--ink); }
+  .row .say .serif { font-size: 17px; }
+  .row .say code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+  .row .meta { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); min-width: 0; white-space: nowrap; }
+  .row .meta .age { margin-left: auto; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .pill { height: 21px; font-size: 11px; padding: 0 8px; }
+  .pill.gate { background: var(--gradient-brand); color: #fff; }
+  .pill.irr { background: var(--danger-soft); color: var(--danger); }
+  .pill.exec { background: var(--surface-3); color: var(--ink-2); }
+  .pill.ext { background: var(--warn-soft); color: var(--warn); }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  /* the quorum meter on a gate row */
+  .quorum { display: flex; align-items: center; gap: 8px; font: 12px var(--mono); color: var(--ink-2); white-space: nowrap; min-width: 0; }
+  .quorum .segs { display: flex; gap: 4px; width: 56px; flex: none; }
+  .quorum .segs i { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-3); }
+  .quorum .segs i.on { background: var(--apricot-deep); }
+  .quorum .segs i.low { background: var(--warn); }
+  .quorum .segs i.next { background: transparent; box-shadow: inset 0 0 0 1.5px var(--apricot-deep); }
+  .quorum .next-text { font-family: var(--font); font-size: 12.5px; color: var(--accent); font-weight: 500; margin-left: auto; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  /* decisions on the row, sized for a thumb */
+  .row .act { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .row .act .btn { min-height: 44px; font-size: 14.5px; }
+  .row .act .btn.deny { color: var(--danger); }
+  .row .act .btn .k { font-family: var(--mono); font-size: 12px; opacity: .75; margin-left: 2px; }
+  .row .in { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 2px; font-size: 14px; color: var(--ink-2); }
+  .row .in .chk { width: 28px; height: 28px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: grid; place-items: center; flex: none; }
+  .row .in .st { font-family: var(--mono); font-size: 12px; color: var(--apricot-deep); letter-spacing: 2px; }
+  .row .in .change { margin-left: auto; color: var(--ink-3); font-size: 13px; }
+  .row .waits { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; color: var(--ink-2); }
+  .row .waits .avatar { width: 26px; height: 26px; font-size: 10px; }
+  .row .waits .btn { margin-left: auto; }
+
+  /* the filter bar at the thumb */
+  .thumb { flex: none; position: relative; z-index: 2; padding: 10px 14px 0; background: linear-gradient(to top, var(--canvas) 70%, transparent); }
+  .thumb .seg { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px; background: var(--surface-2); box-shadow: var(--shadow-soft); }
+  .thumb .seg button { padding: 9px 4px; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; }
+  .thumb .seg button .n { min-width: 18px; height: 18px; border-radius: 9px; background: var(--surface-3); color: var(--ink-2); font: 600 11px/18px var(--font); text-align: center; padding: 0 5px; }
+  .thumb .seg button.on .n { background: var(--apricot); color: #56352D; }
+  .home { flex: none; height: 30px; display: grid; place-items: center; background: var(--canvas); position: relative; z-index: 2; }
+  .home i { width: 134px; height: 5px; border-radius: 3px; background: var(--ink); opacity: .85; }
+
+  /* the release gate as a sheet: everything decidable in the bottom half */
+  .scrim { position: absolute; inset: 0; background: rgba(42, 50, 68, 0.42); z-index: 3; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-radius: 26px 26px 0 0; box-shadow: 0 -18px 50px rgba(42,50,68,.22); padding: 8px 16px 0; display: flex; flex-direction: column; gap: 10px; animation: rise .32s ease both; }
+  .sheet .handle { width: 40px; height: 5px; border-radius: 3px; background: var(--surface-3); margin: 0 auto 2px; }
+  .sheet .h { display: flex; align-items: center; gap: 8px; }
+  .sheet .h .serif { font-size: 21px; }
+  .sheet .h .close { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--ink-2); display: grid; place-items: center; }
+  .sheet .ask { font-size: 14px; line-height: 1.5; color: var(--ink); }
+  .sheet .ask .serif { font-size: 16px; }
+  .sheet .cmd { font-family: var(--mono); font-size: 12px; color: var(--rail-fg); background: var(--rail); padding: 9px 12px; border-radius: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; gap: 10px; align-items: center; }
+  .sheet .cmd .risk { margin-left: auto; color: #E2847A; font-weight: 500; letter-spacing: .04em; flex: none; }
+  .sheet .rule { font-size: 12.5px; color: var(--ink-2); margin-top: -4px; }
+  .voices { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+  .voice { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 13px; color: var(--ink-2); border-bottom: 1px solid var(--line); min-width: 0; }
+  .voice .who { font-family: var(--serif); font-size: 15.5px; color: var(--ink); flex: none; }
+  .voice .q { font-family: var(--serif); font-style: italic; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; font-size: 14px; }
+  .voice .st { font-family: var(--mono); font-size: 12px; color: var(--apricot-deep); letter-spacing: 2px; flex: none; }
+  .voice .st b { font-weight: 400; color: var(--ink-2); letter-spacing: 0; margin-left: 4px; }
+  .voice.wait { color: var(--ink-3); }
+  .voice.wait .who { color: var(--ink-2); }
+  .voice.wait .st { color: var(--ink-3); letter-spacing: 0; font-family: var(--font); font-size: 12.5px; }
+  .voice.wait .ring { width: 8px; height: 8px; border-radius: 50%; border: 1.5px dashed var(--ink-3); flex: none; }
+  .voice.me .ring { border-style: solid; border-color: var(--apricot-deep); background: var(--apricot-soft); }
+  .rate { display: flex; flex-direction: column; gap: 8px; }
+  .rate .lab { font-size: 12.5px; color: var(--ink-2); display: flex; justify-content: space-between; align-items: baseline; }
+  .rate .lab .cur { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 16px; }
+  .stars.big { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .stars.big button { width: auto; height: 50px; border-radius: 12px; background: var(--surface-2); color: var(--ink-3); opacity: .55; display: grid; place-items: center; position: relative; }
+  .stars.big button svg { width: 24px; height: 24px; }
+  .stars.big button.on, .stars.big button.pick { opacity: 1; }
+  .stars.big button.on { background: var(--apricot-soft); color: var(--apricot-deep); }
+  .stars.big button.pick { background: var(--apricot); color: #56352D; box-shadow: var(--glow); }
+  .stars.big button .w { position: absolute; bottom: 3px; left: 0; right: 0; font: 500 9.5px var(--font); letter-spacing: .04em; text-transform: uppercase; }
+  .rate .input { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14px; color: var(--ink-3); background: var(--surface); min-height: 42px; }
+  .progress { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ink-2); }
+  .progress .segs { display: flex; gap: 4px; width: 72px; }
+  .progress .segs i { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-3); }
+  .progress .segs i.on { background: var(--apricot-deep); }
+  .progress .segs i.next { background: transparent; box-shadow: inset 0 0 0 1.5px var(--apricot-deep); }
+  .progress .mono { font-size: 12px; }
+  .progress .grant { margin-left: auto; color: var(--accent); font-weight: 500; }
+  .sheet .actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding-bottom: 8px; }
+  .sheet .actions .btn { min-height: 50px; font-size: 15.5px; }
+  .sheet .actions .btn .k { font-family: var(--mono); font-size: 12.5px; opacity: .8; }
+  .sheet .actions .btn.deny { color: var(--danger); padding: 0 20px; }
+  .sheet .hint { font-size: 11.5px; color: var(--ink-3); text-align: center; margin-top: -6px; padding-bottom: 2px; }
+  .sheet .home { background: var(--surface); }
+
+  /* #closed: the queue alone, every row decidable in place */
+  html:has(#closed:target) .scrim, html:has(#closed:target) .sheet { display: none; }
+  html:has(#closed:target) .row.open { box-shadow: var(--shadow-soft); }
+  .row.open .gate-act { display: none; }
+  html:has(#closed:target) .row.open .gate-act { display: grid; }
+
+  /* dark: status colours with enough light, the gate pill keeps an apricot edge so the gradient reads */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --apricot-deep: #E2C4A6; }
+    :root:not([data-theme="light"]) .pill.gate { box-shadow: inset 0 0 0 1px rgba(226,196,166,.45); }
+    :root:not([data-theme="light"]) .scrim { background: rgba(0,0,0,.5); }
+    :root:not([data-theme="light"]) .row::before { background: var(--surface-3); } :root:not([data-theme="light"]) .row.gate::before { background: var(--gradient-brand); box-shadow: inset -1px 0 0 rgba(226,196,166,.5); }
+    :root:not([data-theme="light"]) .sheet .cmd { background: var(--rail-2); } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --apricot-deep: #E2C4A6; }
+  :root[data-theme="dark"] .pill.gate { box-shadow: inset 0 0 0 1px rgba(226,196,166,.45); }
+  :root[data-theme="dark"] .scrim { background: rgba(0,0,0,.5); }
+  :root[data-theme="dark"] .row.gate::before { background: var(--gradient-brand); box-shadow: inset -1px 0 0 rgba(226,196,166,.5); }
+  :root[data-theme="dark"] .sheet .cmd { background: var(--rail-2); }
+</style>
+</head>
+<body>
+
+<span id="closed" hidden></span>
+
+<header class="top">
+  <div class="sys" aria-hidden="true">
+    <span>14:32</span>
+    <span class="r"><svg class="ic" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M4 16h2v4H4zM9 12h2v8H9zM14 8h2v12h-2zM19 4h2v16h-2z" fill="currentColor" stroke="none"/></svg><i></i></span>
+  </div>
+  <div class="bar">
+    <button class="ib" aria-label="Agents rail, 2 need you">
+      <svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <span class="n">2</span>
+    </button>
+    <div class="title">
+      <div class="t">Approvals</div>
+      <div class="s"><b>2 need you</b><span>· 4 waiting · Payments</span></div>
+    </div>
+    <svg class="mark" viewBox="0 0 96 96" aria-label="Henosis"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+  </div>
+</header>
+
+<main class="scroll">
+  <div class="list">
+
+    <!-- a release gate that needs me; opened, so the sheet below belongs to it -->
+    <article class="row gate open">
+      <div class="say"><span class="serif">Bo's agent</span> in <span class="serif">Checkout proration</span> wants to deploy <code>checkout-proration</code> to production</div>
+      <div class="meta"><span class="pill gate">Release gate</span><span class="pill irr">irreversible</span><span class="age">waiting 3 min</span></div>
+      <div class="quorum"><span class="segs"><i class="on"></i><i class="next"></i></span><span>1 of 2 · avg 4.0</span><span class="next-text">your 4 grants it</span></div>
+      <div class="act gate-act">
+        <button class="btn primary">Approve <span class="k">with 4</span></button>
+        <button class="btn deny">Deny</button>
+      </div>
+    </article>
+
+    <!-- an exec approval: one contributor, decided in place -->
+    <article class="row">
+      <div class="say"><span class="serif">Ana's agent</span> in <span class="serif">Invoice PDF on Billing</span> wants to run <code>pnpm test --filter pdf</code></div>
+      <div class="meta"><span class="pill exec">exec</span><span>needs one contributor</span><span class="age">waiting 1 min</span></div>
+      <div class="act">
+        <button class="btn primary">Approve</button>
+        <button class="btn deny">Deny</button>
+      </div>
+    </article>
+
+    <!-- a gate where my vote is in -->
+    <article class="row gate">
+      <div class="say"><span class="serif">Dee's agent</span> in <span class="serif">Tax lines on Billing</span> wants to apply <code>0412_tax_lines.sql</code> to the production database</div>
+      <div class="meta"><span class="pill gate">Release gate</span><span class="pill irr">irreversible</span><span class="age">waiting 12 min</span></div>
+      <div class="quorum"><span class="segs"><i class="on"></i><i class="next"></i></span><span>1 of 2 · avg 4.0</span><span class="next-text">waits for Ana or Bo</span></div>
+      <div class="in">
+        <span class="chk"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;stroke-width:2.4"><path class="draw" d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        <span>Your vote is in</span><span class="st">★★★★<b style="color:var(--surface-3)">★</b></span>
+        <a class="change" href="#">Change to deny</a>
+      </div>
+    </article>
+
+    <!-- an external call that waits for the driver -->
+    <article class="row">
+      <div class="say"><span class="serif">Cy's agent</span> in <span class="serif">Checkout proration</span> wants to call Stripe <code>invoices.finalize</code> for 3 test invoices</div>
+      <div class="meta"><span class="pill ext">external</span><span>needs the driver</span><span class="age">waiting 6 min</span></div>
+      <div class="waits"><span class="avatar driver">Bo</span><span>Bo has the baton; this one is his call</span><button class="btn sm">Nudge Bo</button></div>
+    </article>
+
+  </div>
+</main>
+
+<div class="thumb">
+  <div class="seg" role="tablist">
+    <button class="on" role="tab">Needs you <span class="n">2</span></button>
+    <button role="tab">Gates <span class="n">2</span></button>
+    <button role="tab">Others <span class="n">1</span></button>
+    <button role="tab">All <span class="n">4</span></button>
+  </div>
+</div>
+<div class="home"><i></i></div>
+
+<!-- the release gate sheet for the opened row -->
+<div class="scrim"></div>
+<section class="sheet" aria-label="Release gate">
+  <div class="handle"></div>
+  <div class="h"><span class="serif">The release gate.</span><span class="pill irr">irreversible</span><button class="close" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;stroke-width:2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="cmd"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--apricot)"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span style="overflow:hidden;text-overflow:ellipsis">deploy checkout-proration → production</span><span class="risk">held</span></div>
+  <div class="rule">Two contributors rating 4 or more on average · the Payments policy</div>
+  <div class="voices">
+    <div class="voice"><span class="who">Ana</span><span class="q">“proration rounds to the cent, fixtures pass”</span><span class="st">★★★★<b>4</b></span></div>
+    <div class="voice wait me"><span class="ring"></span><span class="who">Cy</span><span class="q">you</span><span class="st">rating now</span></div>
+    <div class="voice wait"><span class="ring"></span><span class="who">Dee</span><span class="q">viewer · a voice, not a vote</span><span class="st">not asked</span></div>
+  </div>
+  <div class="rate">
+    <div class="lab"><span>Your rating</span><span class="cur">Good · 4 of 5</span></div>
+    <div class="stars big" role="radiogroup" aria-label="Rate the deploy">
+      <button class="on" role="radio" aria-label="1, risky"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 6 6.5.7-4.9 4.4 1.4 6.4L12 17l-5.8 3.3 1.4-6.4L2.7 9.5l6.5-.7z"/></svg></button>
+      <button class="on" role="radio" aria-label="2, unsure"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 6 6.5.7-4.9 4.4 1.4 6.4L12 17l-5.8 3.3 1.4-6.4L2.7 9.5l6.5-.7z"/></svg></button>
+      <button class="on" role="radio" aria-label="3, fine"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 6 6.5.7-4.9 4.4 1.4 6.4L12 17l-5.8 3.3 1.4-6.4L2.7 9.5l6.5-.7z"/></svg></button>
+      <button class="pick" role="radio" aria-checked="true" aria-label="4, good"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 6 6.5.7-4.9 4.4 1.4 6.4L12 17l-5.8 3.3 1.4-6.4L2.7 9.5l6.5-.7z"/></svg></button>
+      <button role="radio" aria-label="5, ship it"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 6 6.5.7-4.9 4.4 1.4 6.4L12 17l-5.8 3.3 1.4-6.4L2.7 9.5l6.5-.7z"/></svg></button>
+    </div>
+    <div class="input">A note with your rating (optional)</div>
+  </div>
+  <div class="progress"><span class="segs"><i class="on"></i><i class="next"></i></span><span class="mono">1 of 2 · avg 4.0</span><span class="grant">Your 4 grants it</span></div>
+  <div class="actions">
+    <button class="btn primary">Approve <span class="k">with 4</span></button>
+    <button class="btn deny">Deny</button>
+  </div>
+  <div class="hint">Approve without a pick sends 4 · a 3 is a voice, not a vote</div>
+  <div class="home"><i></i></div>
+</section>
+
+</body>
+</html>

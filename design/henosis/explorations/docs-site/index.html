@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis Docs — Release gates</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- page ---------- */
+  html { scroll-behavior: auto; }
+  body { overflow-x: hidden; }
+  .wrap { width: min(1232px, 100%); margin: 0 auto; padding: 0 32px; }
+  .mark { display: block; flex: none; }
+  .surface { min-height: 900px; display: flex; flex-direction: column; scroll-margin-top: 0; }
+  .surface + .surface { border-top: 1px solid var(--line); }
+  .board-label { display: flex; align-items: center; gap: 10px; padding: 10px 32px; font: 500 12px var(--mono); color: var(--ink-3); background: var(--surface-2); border-bottom: 1px solid var(--line); letter-spacing: 0.04em; }
+  .board-label i { width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); }
+  kbd { font: 11.5px var(--mono); padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); line-height: 1.5; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; color: var(--ink); }
+  .ok-text { color: var(--ok); }
+
+  /* ---------- top bar ---------- */
+  .top { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--canvas) 86%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .top .wrap { display: flex; align-items: center; gap: 22px; height: 64px; }
+  .top .brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 23px; color: var(--ink); white-space: nowrap; }
+  .top .brand .docs { font-family: var(--font); font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); background: var(--apricot-soft); padding: 3px 8px; border-radius: var(--radius-full); margin-left: 2px; }
+  .top .links { display: flex; gap: 20px; font-size: 14px; }
+  .top .links a { color: var(--ink-2); padding: 6px 0; border-bottom: 2px solid transparent; }
+  .top .links a:hover { color: var(--ink); text-decoration: none; }
+  .top .links a.on { color: var(--ink); border-bottom-color: var(--accent); }
+  .search { margin-left: auto; display: flex; align-items: center; gap: 10px; width: 300px; height: 38px; padding: 0 10px 0 12px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink-3); font-size: 14px; }
+  .search svg { width: 16px; height: 16px; flex: none; }
+  .search .k { margin-left: auto; display: flex; gap: 3px; }
+  .top .right { display: flex; align-items: center; gap: 8px; }
+  .iconbtn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); display: grid; place-items: center; cursor: pointer; }
+  .iconbtn svg { width: 17px; height: 17px; }
+  .btn.sm { min-height: 34px; padding: 0 14px; font-size: 13.5px; }
+
+  /* ---------- home hero ---------- */
+  .dhero { padding: 54px 0 34px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: end; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); display: inline-flex; align-items: center; gap: 8px; }
+  .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); }
+  .dhero h1 { font-size: 54px; line-height: 1.04; margin: 14px 0 16px; letter-spacing: -0.015em; }
+  .dhero h1 em { font-style: italic; color: var(--accent); }
+  .dhero .lede { font-size: 17px; color: var(--ink-2); max-width: 560px; margin: 0 0 24px; }
+  .bigsearch { display: flex; align-items: center; gap: 12px; height: 54px; padding: 0 12px 0 18px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow-soft); max-width: 560px; color: var(--ink-3); font-size: 15px; }
+  .bigsearch:focus-within { box-shadow: var(--shadow-soft), var(--team-glow); }
+  .bigsearch svg { width: 18px; height: 18px; flex: none; color: var(--ink-2); }
+  .bigsearch input { flex: 1; border: 0; background: transparent; font: inherit; color: var(--ink); outline: none; min-width: 0; }
+  .bigsearch input::placeholder { color: var(--ink-3); }
+  .bigsearch .k { display: flex; gap: 3px; }
+  .dhero .hints { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; font-size: 13px; color: var(--ink-3); align-items: center; }
+  .dhero .hints a { font-size: 13px; color: var(--ink-2); background: var(--surface-2); padding: 3px 10px; border-radius: var(--radius-full); }
+  .dhero .hints a:hover { background: var(--apricot-soft); color: var(--ink); text-decoration: none; }
+
+  /* stage: install card on navy */
+  .stage { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius-lg); padding: 22px 22px 18px; box-shadow: var(--shadow-pop); position: relative; overflow: hidden; }
+  .stage::after { content: ""; position: absolute; right: -80px; top: -80px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(closest-side, rgba(226,196,166,0.22), transparent); pointer-events: none; }
+  .stage .head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-family: var(--serif); font-size: 19px; }
+  .stage .head .pill { margin-left: auto; }
+  .term { font: 13px/1.7 var(--mono); background: rgba(0,0,0,0.28); border: 1px solid var(--rail-line); border-radius: var(--radius); padding: 12px 14px; color: var(--rail-fg); position: relative; }
+  .term .c { color: var(--rail-muted); }
+  .term .p { color: var(--apricot); }
+  .term .o { color: #9BC88F; }
+  .term .copy { position: absolute; right: 10px; top: 10px; font: 500 11.5px var(--font); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: var(--radius-full); padding: 2px 9px; background: transparent; cursor: pointer; }
+  .stage .foot { margin-top: 12px; font-size: 12.5px; color: var(--rail-muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  .stage .foot b { color: var(--rail-fg); font-weight: 500; }
+
+  /* ---------- cards ---------- */
+  .section-h { display: flex; align-items: baseline; gap: 14px; margin: 38px 0 16px; }
+  .section-h h2 { font-size: 26px; }
+  .section-h a { margin-left: auto; font-size: 13.5px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { display: flex; flex-direction: column; gap: 10px; padding: 20px 20px 18px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); color: var(--ink); position: relative; transition: transform .12s ease, box-shadow .12s ease; }
+  .card:hover { text-decoration: none; transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+  .card .ico { width: 36px; height: 36px; border-radius: 11px; background: var(--apricot-soft); color: var(--accent); display: grid; place-items: center; }
+  .card .ico svg { width: 19px; height: 19px; }
+  .card h3 { font-family: var(--serif); font-weight: 400; font-size: 21px; line-height: 1.2; }
+  .card p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .card .meta { margin-top: auto; padding-top: 6px; font-size: 12.5px; color: var(--ink-3); display: flex; gap: 10px; align-items: center; }
+  .card .meta .arrow { margin-left: auto; color: var(--accent); font-size: 16px; }
+  .card.live::before { content: ""; position: absolute; left: 20px; top: 0; width: 44px; height: 3px; border-radius: 0 0 3px 3px; background: var(--apricot); }
+
+  .two { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; margin-bottom: 64px; }
+  .list { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+  .list a { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 11px 4px; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 14.5px; }
+  .list a:hover { background: var(--surface-2); text-decoration: none; }
+  .list a .t { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .list a .t .serif { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list a .d { color: var(--ink-3); font-size: 13px; }
+  .list .tag { font: 500 11px var(--mono); padding: 2px 7px; border-radius: 6px; background: var(--surface-3); color: var(--ink-2); flex: none; }
+  .list .tag.new { background: var(--apricot-soft); color: var(--accent); }
+  .ref { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ref a { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; }
+  .ref a:hover { text-decoration: none; border-color: var(--apricot-deep); }
+  .ref a svg { width: 18px; height: 18px; color: var(--ink-2); flex: none; }
+  .ref a .mono { color: var(--ink-3); margin-left: auto; font-size: 12px; }
+
+  /* ---------- footer ---------- */
+  .foot { border-top: 1px solid var(--line); margin-top: auto; }
+  .foot .wrap { display: flex; align-items: center; gap: 22px; height: 60px; font-size: 13px; color: var(--ink-3); }
+  .foot .wrap a { color: var(--ink-2); }
+  .foot .wrap .r { margin-left: auto; display: flex; gap: 18px; }
+
+  /* ---------- docs page ---------- */
+  .doc { display: grid; grid-template-columns: 248px minmax(0, 1fr) 220px; gap: 48px; padding: 28px 0 64px; align-items: start; }
+  .side { position: sticky; top: 84px; display: flex; flex-direction: column; gap: 18px; font-size: 14px; }
+  .side .grp { display: flex; flex-direction: column; gap: 1px; }
+  .side .grp .h { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); padding: 0 10px 6px; }
+  .side a { color: var(--ink-2); padding: 6px 10px; border-radius: 9px; display: flex; align-items: center; gap: 8px; }
+  .side a:hover { background: var(--surface-2); color: var(--ink); text-decoration: none; }
+  .side a.on { background: var(--apricot-soft); color: var(--ink); font-weight: 500; }
+  .side a.on::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); margin-left: -2px; }
+  .side a .n { margin-left: auto; font: 500 11px var(--mono); color: var(--ink-3); }
+  .crumbs { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-3); }
+  .crumbs a { color: var(--ink-2); }
+  .article h1 { font-size: 46px; margin: 10px 0 10px; }
+  .article .lede { font-size: 17.5px; color: var(--ink-2); margin: 0 0 8px; line-height: 1.55; }
+  .article .byline { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-3); padding: 12px 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 26px; flex-wrap: wrap; }
+  .article .byline .av { display: inline-flex; }
+  .article h2 { font-size: 28px; margin: 36px 0 12px; }
+  .article h3 { font-family: var(--serif); font-weight: 400; font-size: 21px; margin: 24px 0 8px; }
+  .article p { margin: 0 0 14px; font-size: 15.5px; line-height: 1.65; }
+  .article ul { margin: 0 0 14px; padding-left: 22px; font-size: 15.5px; line-height: 1.65; }
+  .article li { margin: 3px 0; }
+  .article a.h2 { color: inherit; }
+  .article .anchor { color: var(--ink-3); font-size: 18px; margin-left: 8px; opacity: 0; transition: opacity .12s; }
+  .article h2:hover .anchor { opacity: 1; }
+  .callout { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 14px 16px; border-radius: var(--radius); background: var(--apricot-soft); border: 1px solid transparent; margin: 18px 0; font-size: 14.5px; line-height: 1.55; }
+  .callout svg { width: 20px; height: 20px; color: var(--accent); margin-top: 2px; }
+  .callout b { font-weight: 600; }
+  .callout.note { background: var(--surface-2); }
+  .callout.note svg { color: var(--ink-2); }
+  pre { margin: 16px 0; padding: 14px 16px; border-radius: var(--radius); background: var(--rail); color: var(--rail-fg); font: 13px/1.65 var(--mono); overflow: auto; position: relative; border: 1px solid var(--rail-line); }
+  pre .c { color: var(--rail-muted); } pre .k { color: var(--apricot); } pre .s { color: #9BC88F; } pre .n { color: #E2B06A; }
+  pre .lang { position: absolute; right: 12px; top: 9px; font: 500 11px var(--font); letter-spacing: 0.06em; text-transform: uppercase; color: var(--rail-muted); }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin: 18px 0 0; }
+  .tabs button { border: 0; background: transparent; font: 500 13.5px var(--font); color: var(--ink-2); padding: 8px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+  .tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+  .tabs + pre { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 14px 0 18px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  td:first-child { white-space: nowrap; }
+  td .risk { display: inline-flex; align-items: center; gap: 6px; font: 500 12.5px var(--mono); }
+  td .risk::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+  td .risk.exec::before { background: var(--warn); } td .risk.ext::before { background: var(--warn); } td .risk.irr::before { background: var(--danger); } td .risk.write::before { background: var(--ok); }
+
+  /* the example notice, embedded in the article */
+  .example { margin: 18px 0 8px; padding: 22px; border-radius: var(--radius-lg); background: var(--surface-2); border: 1px dashed var(--line); }
+  .example .cap { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px; display: flex; gap: 8px; align-items: center; }
+  .example .cap .live { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+  .notice .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .notice .head .serif { font-size: 19px; }
+  .notice .head .pill { margin-left: auto; }
+  .notice .cmd { font: 13px var(--mono); background: var(--surface-2); padding: 8px 12px; border-radius: 10px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .votes { display: flex; flex-direction: column; gap: 6px; }
+  .vote { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 10px; align-items: center; font-size: 14px; }
+  .vote .serif { font-size: 16px; }
+  .vote .note { color: var(--ink-3); font-size: 13px; }
+  .vote .stars span { width: 18px; height: 18px; font-size: 16px; }
+  .vote .voice { font-size: 12.5px; color: var(--ink-3); font-style: italic; font-family: var(--serif); }
+  .av { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 500 11.5px var(--font); color: #fff; background: var(--rail); flex: none; }
+  .av.ana { background: #56352D; } .av.bo { background: #2A3244; } .av.cy { background: #4F7D4A; } .av.dee { background: #B9792E; }
+  .av.agent { background: var(--apricot); color: #56352D; }
+  .av.sm { width: 22px; height: 22px; font-size: 10.5px; }
+  .notice .tally { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); }
+  .notice .tally .budget { flex: 1; }
+  .notice .tally b { color: var(--ink); font-weight: 500; }
+  .notice .result { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ok); }
+  .notice .result svg { width: 18px; height: 18px; }
+
+  /* right rail */
+  .toc { position: sticky; top: 84px; font-size: 13.5px; display: flex; flex-direction: column; gap: 18px; }
+  .toc .h { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  .toc li a { display: block; color: var(--ink-2); padding: 5px 0 5px 14px; margin-left: -1px; border-left: 1.5px solid transparent; }
+  .toc li a:hover { color: var(--ink); text-decoration: none; }
+  .toc li a.on { color: var(--ink); border-left-color: var(--accent); }
+  .toc li.sub a { padding-left: 26px; font-size: 13px; }
+  .toc .box { padding: 14px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+  .toc .box .t { font-family: var(--serif); font-size: 16px; }
+  .toc .box .q { display: flex; gap: 6px; }
+  .toc .box .q button { flex: 1; min-height: 32px; font-size: 13px; }
+  .toc .box .q .on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+  .toc .links { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+  .toc .links a { color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+  .toc .links a svg { width: 15px; height: 15px; }
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 44px; }
+  .pager a { display: flex; flex-direction: column; gap: 3px; padding: 14px 18px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  .pager a:hover { text-decoration: none; border-color: var(--apricot-deep); }
+  .pager a .l { font-size: 12px; color: var(--ink-3); }
+  .pager a .serif { font-size: 19px; }
+  .pager a.next { text-align: right; align-items: flex-end; }
+
+  /* ---------- mobile ---------- */
+  .menubtn { display: none; }
+  @media (max-width: 900px) {
+    .wrap { padding: 0 16px; }
+    .board-label { padding: 8px 16px; }
+    .top .wrap { gap: 12px; height: 58px; }
+    .top .links, .search, .top .right .btn { display: none; }
+    .top .right { margin-left: auto; }
+    .menubtn { display: grid; }
+    .dhero { grid-template-columns: 1fr; gap: 24px; padding: 32px 0 8px; }
+    .dhero h1 { font-size: 38px; }
+    .dhero .lede { font-size: 15.5px; }
+    .bigsearch { height: 48px; }
+    .grid { grid-template-columns: 1fr; }
+    .two { grid-template-columns: 1fr; margin-bottom: 32px; }
+    .ref { grid-template-columns: 1fr; }
+    .section-h { margin: 28px 0 12px; }
+    .foot .wrap { height: auto; padding: 14px 16px; flex-wrap: wrap; gap: 10px 14px; }
+    .foot .wrap .r { margin-left: 0; width: 100%; }
+    .doc { grid-template-columns: 1fr; gap: 20px; padding: 18px 16px 40px; }
+    .side { position: static; display: none; }
+    .toc { position: static; order: 3; }
+    .toc > div:first-child { display: none; }
+    .doc > * { min-width: 0; }
+    pre { max-width: 100%; }
+    .article h1 { font-size: 34px; }
+    .article h2 { font-size: 24px; }
+    .article p, .article ul { font-size: 15px; }
+    .vote { grid-template-columns: 26px 1fr auto auto; align-items: start; }
+    .vote .av { margin-top: 1px; }
+    .notice .tally { flex-wrap: wrap; }
+    .notice .tally .budget { flex-basis: 100%; order: 3; }
+    .vote .note { display: block; line-height: 1.4; }
+    .pager { grid-template-columns: 1fr; }
+    table { display: block; overflow-x: auto; }
+    .stage { padding: 18px; }
+    .term { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ring" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" style="fill:var(--mark-disc)"/>
+      <path d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--mark-arc-a);stroke-width:10;fill:none;stroke-linecap:round"/>
+      <path d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--mark-arc-b);stroke-width:10;fill:none;stroke-linecap:round"/>
+      <circle cx="48" cy="48" r="7" style="fill:var(--mark-dot)"/>
+    </symbol>
+    <symbol id="search" viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="check" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="hash" viewBox="0 0 20 20"><path d="M7 3L5 17M15 3l-2 14M3 7h15M2 13h15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="plan" viewBox="0 0 20 20"><path d="M4 5h12M4 10h8M4 15h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="14.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="gate" viewBox="0 0 20 20"><path d="M3 10h14M10 3v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="eye" viewBox="0 0 20 20"><path d="M2 10s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="2.4" fill="currentColor"/></symbol>
+    <symbol id="chat" viewBox="0 0 20 20"><path d="M3 4h14v9H8l-4 3v-3H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="term" viewBox="0 0 20 20"><rect x="2.5" y="4" width="15" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 8l2.5 2L6 12M10 12h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="api" viewBox="0 0 20 20"><path d="M7 5L3 10l4 5M13 5l4 5-4 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="join" viewBox="0 0 20 20"><circle cx="8" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 16c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5M15 6v6M12 9h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="agent" viewBox="0 0 20 20"><rect x="4" y="6" width="12" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="11" r="1.3" fill="currentColor"/><circle cx="12" cy="11" r="1.3" fill="currentColor"/><path d="M10 3v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="info" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 9v5M10 6.5v.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="sun" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="menu" viewBox="0 0 20 20"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="edit" viewBox="0 0 20 20"><path d="M4 16h3l8-8-3-3-8 8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="slack" viewBox="0 0 20 20"><path d="M7 3v6M13 11v6M3 13h6M11 7h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="github" viewBox="0 0 20 20"><path d="M10 2.5a7.5 7.5 0 0 0-2.4 14.6c.4.1.5-.2.5-.4v-1.4c-2.1.5-2.5-1-2.5-1-.3-.9-.8-1.1-.8-1.1-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.8.8 2.2.6.1-.5.3-.8.5-1-1.7-.2-3.4-.8-3.4-3.7 0-.8.3-1.5.8-2-.1-.2-.3-1 .1-2 0 0 .6-.2 2.1.8a7 7 0 0 1 3.8 0c1.5-1 2.1-.8 2.1-.8.4 1 .2 1.8.1 2 .5.5.8 1.2.8 2 0 2.9-1.8 3.5-3.4 3.7.3.2.5.7.5 1.4v2.1c0 .2.1.5.5.4A7.5 7.5 0 0 0 10 2.5z" fill="currentColor"/></symbol>
+  </defs>
+</svg>
+
+<!-- ================= SURFACE 1: DOCS HOME ================= -->
+<section class="surface" id="home">
+  <div class="board-label"><i></i>docs.henosis.dev — home</div>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="#home"><svg class="mark" width="28" height="28" aria-hidden="true"><use href="#ring"/></svg>Henosis<span class="docs">Docs</span></a>
+      <nav class="links" aria-label="Sections">
+        <a class="on" href="#home">Guides</a><a href="#guide">Reference</a><a href="#guide">CLI</a><a href="#guide">Changelog</a>
+      </nav>
+      <div class="search" role="search"><svg aria-hidden="true"><use href="#search"/></svg><span>Search the docs</span><span class="k"><kbd>⌘</kbd><kbd>K</kbd></span></div>
+      <div class="right">
+        <button class="iconbtn" aria-label="Theme"><svg aria-hidden="true"><use href="#sun"/></svg></button>
+        <button class="iconbtn menubtn" aria-label="Menu"><svg aria-hidden="true"><use href="#menu"/></svg></button>
+        <a class="btn primary sm" href="#">Open Henosis</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="dhero">
+      <div>
+        <span class="eyebrow">Documentation</span>
+        <h1>One team, people and agents. <em>Here is how it works.</em></h1>
+        <p class="lede">Join a session, add an agent to a group, rate a plan, hold a release gate, read the manager's view. Everything an engineer and an agent get on their first day, written down.</p>
+        <label class="bigsearch"><svg aria-hidden="true"><use href="#search"/></svg><input type="search" placeholder="Search guides, CLI and the API…"><span class="k"><kbd>⌘</kbd><kbd>K</kbd></span></label>
+        <div class="hints">Try <a href="#guide">release gate</a><a href="#guide">plan first</a><a href="#guide">henosis join</a><a href="#guide">@mention an agent</a><a href="#guide">token budget</a></div>
+      </div>
+      <aside class="stage">
+        <div class="head"><svg class="mark" width="26" height="26" aria-hidden="true"><use href="#ring"/></svg>Join in two minutes <span class="pill team">Team</span></div>
+        <div class="term">
+          <button class="copy">Copy</button>
+          <div><span class="p">$</span> npm i -g henosis</div>
+          <div><span class="p">$</span> henosis join payments/invoice-pdf</div>
+          <div class="c">— folding 1,284 events · 0.4s</div>
+          <div><span class="o">✓</span> Dee joins the circle. Bo has the baton.</div>
+          <div><span class="o">✓</span> The plan waits for two ratings.</div>
+        </div>
+        <div class="foot"><span><b>Dee</b> is you</span><span><b>Bo</b> drives</span><span><b>Ana, Cy</b> are in</span><span><b>Dee's agent</b> plans</span></div>
+      </aside>
+    </div>
+
+    <div class="section-h"><h2>Start here</h2><a href="#">All guides →</a></div>
+    <div class="grid">
+      <a class="card live" href="#guide"><span class="ico"><svg aria-hidden="true"><use href="#join"/></svg></span><h3>Join a session</h3><p>Open the link, fold the history, see who is here and who drives. Steer with a scope, or just watch.</p><span class="meta">4 min read <span class="arrow">→</span></span></a>
+      <a class="card" href="#guide"><span class="ico"><svg aria-hidden="true"><use href="#agent"/></svg></span><h3>Add an agent as a member</h3><p>Give an agent the same groups and chats as a new engineer. It joins #billing, answers @mentions, and plans before it works.</p><span class="meta">6 min read <span class="arrow">→</span></span></a>
+      <a class="card" href="#guide"><span class="ico"><svg aria-hidden="true"><use href="#plan"/></svg></span><h3>Plan first</h3><p>Steps, token estimates and risk before any tool call. One rating at 3+ approves; owners can decide outright.</p><span class="meta">5 min read <span class="arrow">→</span></span></a>
+      <a class="card" href="#guide"><span class="ico"><svg aria-hidden="true"><use href="#gate"/></svg></span><h3>Release gates</h3><p>Irreversible actions wait for the people who consume the code: two contributors rating 4+ on average.</p><span class="meta">7 min read <span class="tag" style="font:500 11px var(--mono);padding:2px 7px;border-radius:6px;background:var(--apricot-soft);color:var(--accent)">updated</span><span class="arrow">→</span></span></a>
+      <a class="card" href="#guide"><span class="ico"><svg aria-hidden="true"><use href="#eye"/></svg></span><h3>The manager's view</h3><p>One sentence, what needs you, tokens by project, person and agent, plans rated and approved, gates held.</p><span class="meta">5 min read <span class="arrow">→</span></span></a>
+      <a class="card" href="#guide"><span class="ico"><svg aria-hidden="true"><use href="#hash"/></svg></span><h3>Groups and chats</h3><p>People and agents as members of the same groups. Team chat never reaches the agent; the composer keeps the two apart.</p><span class="meta">4 min read <span class="arrow">→</span></span></a>
+    </div>
+
+    <div class="two">
+      <div>
+        <div class="section-h"><h2>What's new</h2><a href="#">Changelog →</a></div>
+        <div class="list">
+          <a href="#guide"><span class="t"><span class="tag new">0.9.2</span><span class="serif">Release gates take a rating from Slack</span></span><span class="d">Today</span></a>
+          <a href="#guide"><span class="t"><span class="tag new">0.9.2</span><span class="serif">Proration steps show tokens took beside the estimate</span></span><span class="d">Today</span></a>
+          <a href="#guide"><span class="t"><span class="tag">0.9.1</span><span class="serif">Branch compare and unite for invoice-pdf style work</span></span><span class="d">3 days ago</span></a>
+          <a href="#guide"><span class="t"><span class="tag">0.9.1</span><span class="serif">Team look editor: accent, mark, motion, emblem</span></span><span class="d">3 days ago</span></a>
+          <a href="#guide"><span class="t"><span class="tag">0.9.0</span><span class="serif">Memory browser with a curator that names conflicts</span></span><span class="d">Last week</span></a>
+        </div>
+      </div>
+      <div>
+        <div class="section-h"><h2>Reference</h2></div>
+        <div class="ref">
+          <a href="#guide"><svg aria-hidden="true"><use href="#term"/></svg>CLI <span class="mono">henosis join</span></a>
+          <a href="#guide"><svg aria-hidden="true"><use href="#api"/></svg>HTTP API <span class="mono">/api/usage</span></a>
+          <a href="#guide"><svg aria-hidden="true"><use href="#gate"/></svg>Policies <span class="mono">ratings</span></a>
+          <a href="#guide"><svg aria-hidden="true"><use href="#chat"/></svg>Slack app <span class="mono">--config</span></a>
+          <a href="#guide"><svg aria-hidden="true"><use href="#plan"/></svg>Event log <span class="mono">fold</span></a>
+          <a href="#guide"><svg aria-hidden="true"><use href="#agent"/></svg>Harness SDK <span class="mono">host()</span></a>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="foot"><div class="wrap"><span>Henosis Docs</span><a href="#">Status</a><a href="#">Security</a><a href="#">Privacy</a><span class="r"><a href="#">GitHub</a><a href="#">Slack community</a><span>Edited on 7 Oct 2026</span></span></div></footer>
+</section>
+
+<!-- ================= SURFACE 2: A GUIDE PAGE ================= -->
+<section class="surface" id="guide">
+  <div class="board-label"><i></i>docs.henosis.dev/guides/release-gates</div>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="#home"><svg class="mark" width="28" height="28" aria-hidden="true"><use href="#ring"/></svg>Henosis<span class="docs">Docs</span></a>
+      <nav class="links" aria-label="Sections">
+        <a class="on" href="#home">Guides</a><a href="#guide">Reference</a><a href="#guide">CLI</a><a href="#guide">Changelog</a>
+      </nav>
+      <div class="search" role="search"><svg aria-hidden="true"><use href="#search"/></svg><span>Search the docs</span><span class="k"><kbd>⌘</kbd><kbd>K</kbd></span></div>
+      <div class="right">
+        <button class="iconbtn" aria-label="Theme"><svg aria-hidden="true"><use href="#sun"/></svg></button>
+        <button class="iconbtn menubtn" aria-label="Menu"><svg aria-hidden="true"><use href="#menu"/></svg></button>
+        <a class="btn primary sm" href="#">Open Henosis</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap doc">
+    <nav class="side" aria-label="Guides">
+      <div class="grp"><div class="h">Getting started</div><a href="#">Join a session</a><a href="#">Add an agent as a member</a><a href="#">Groups and chats</a><a href="#">The composer: Agent / Team</a></div>
+      <div class="grp"><div class="h">Plan first</div><a href="#">Plans and steps</a><a href="#">Ratings <span class="n">1–5</span></a><a href="#">Approve, revise, reject</a><a href="#">Token estimates and budgets</a></div>
+      <div class="grp"><div class="h">Approvals</div><a href="#">Risk classes</a><a class="on" href="#guide">Release gates</a><a href="#">The approvals queue</a><a href="#">Slack buttons</a></div>
+      <div class="grp"><div class="h">Working together</div><a href="#">Contention and handoff</a><a href="#">Branches: compare and unite</a><a href="#">Crews</a><a href="#">Memory and the curator</a></div>
+      <div class="grp"><div class="h">For leads</div><a href="#">The manager's view</a><a href="#">Token usage by project</a><a href="#">Team look</a></div>
+    </nav>
+
+    <article class="article">
+      <div class="crumbs"><a href="#home">Guides</a><span>/</span><a href="#guide">Approvals</a><span>/</span><span>Release gates</span></div>
+      <h1>Release gates</h1>
+      <p class="lede">An irreversible action waits for the people who will live with it. A gate is an approval with a ratings rule: enough contributors, rating high enough, before the agent may push.</p>
+      <div class="byline"><span class="av ana sm">A</span><span>Written by <b style="font-weight:500;color:var(--ink-2)">Ana</b>, Payments</span><span>·</span><span>Updated today</span><span>·</span><span>7 min read</span></div>
+
+      <h2 id="what">What a gate is <a class="anchor" href="#what">#</a></h2>
+      <p>Every tool call carries a risk class: <code>read</code>, <code>write</code>, <code>exec</code>, <code>external</code> or <code>irreversible</code>. The session's policy says who may approve each class. For <code>irreversible</code> calls (a push to <code>main</code>, a migration, a refund) the default is not one person's click but a <b>release gate</b>: a rule that counts ratings.</p>
+      <p>When Dee's agent on <i class="serif">Invoice PDF: tax lines and proration</i> is ready to push, it asks. Ana and Cy, who consume the Billing page and Checkout, each rate the approval. The kernel grants the gate only when the rule is met. Bo can click Approve without a rating; that is a voice, not a vote.</p>
+
+      <div class="callout"><svg aria-hidden="true"><use href="#info"/></svg><div><b>The default rule.</b> Two contributors rating 4 or more on average. Approve without picking a star sends a 4. Observers see the gate but cannot vote.</div></div>
+
+      <h2 id="example">A gate in the stream <a class="anchor" href="#example">#</a></h2>
+      <p>This is the notice the Payments team sees in the session, in the approvals queue, in the inbox and in Slack. The same component, the same rule, everywhere.</p>
+      <div class="example">
+        <div class="cap"><span class="live"></span>Live example · session invoice-pdf · branch pdf-layout</div>
+        <div class="notice gate">
+          <div class="head"><span class="av agent sm">D</span><span class="serif">Dee's agent asks to push</span><span class="status awaiting">Release gate</span><span class="pill">irreversible</span></div>
+          <div class="cmd">git push origin pdf-layout:main   # tax lines, proration, invoice PDF</div>
+          <div class="votes">
+            <div class="vote"><span class="av ana">A</span><span><span class="serif">Ana</span> <span class="note">· Billing page renders the tax lines right.</span></span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="mono">4</span></div>
+            <div class="vote"><span class="av cy">C</span><span><span class="serif">Cy</span> <span class="note">· Checkout proration matched the invoice PDF.</span></span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span></span><span class="mono">5</span></div>
+            <div class="vote"><span class="av bo">B</span><span><span class="serif">Bo</span> <span class="note">· Approved without a rating.</span></span><span class="voice">a voice, not a vote</span><span class="mono">—</span></div>
+          </div>
+          <div class="tally"><span><b>2 of 2</b> contributors</span><div class="budget"><i style="width:100%"></i></div><span>average <b>4.5</b> of 4 needed</span></div>
+          <div class="result"><svg aria-hidden="true"><use href="#check"/></svg>Granted. United pdf-layout into main.</div>
+        </div>
+      </div>
+
+      <h2 id="rule">Writing the rule <a class="anchor" href="#rule">#</a></h2>
+      <p>Gates live in the session policy under <code>approvals</code>. A rule is <code>{ ratings: { min, average, of } }</code>: how many people, how high on average, at which role. Set it when the session is created, or change it later as an owner.</p>
+      <div class="tabs"><button class="on">henosis.json</button><button>CLI</button><button>API</button></div>
+<pre><span class="lang">json</span>{
+  <span class="k">"approvals"</span>: {
+    <span class="k">"exec"</span>:         { <span class="k">"role"</span>: <span class="s">"contributor"</span> },
+    <span class="k">"external"</span>:     { <span class="k">"role"</span>: <span class="s">"driver"</span> },
+    <span class="k">"irreversible"</span>: { <span class="k">"ratings"</span>: { <span class="k">"min"</span>: <span class="n">2</span>, <span class="k">"average"</span>: <span class="n">4</span>, <span class="k">"of"</span>: <span class="s">"contributor"</span> } }
+  },
+  <span class="k">"planFirst"</span>: <span class="n">true</span>,
+  <span class="k">"tokenBudget"</span>: <span class="n">400000</span>   <span class="c">// soft: a number people watch, not a gate</span>
+}</pre>
+      <p>The verdict is derived in the fold, so every replica, the CLI, the web client and Slack, reaches the same answer from the same events. A replay of the session reaches it too, with no model calls.</p>
+
+      <h3>Risk classes and their defaults</h3>
+      <table>
+        <thead><tr><th>Class</th><th>Examples</th><th>Default approval</th></tr></thead>
+        <tbody>
+          <tr><td><span class="risk">read</span></td><td>Read a file, list the branch, fetch the invoice PDF fixture</td><td>None</td></tr>
+          <tr><td><span class="risk write">write</span></td><td>Edit <code>billing/tax-lines.ts</code>, write a test</td><td>None while the plan is approved</td></tr>
+          <tr><td><span class="risk exec">exec</span></td><td>Run the Checkout test suite, build the PDF</td><td>One contributor</td></tr>
+          <tr><td><span class="risk ext">external</span></td><td>Call the tax rate service, post to #billing</td><td>The driver</td></tr>
+          <tr><td><span class="risk irr">irreversible</span></td><td>Push to <code>main</code>, run the proration migration, issue a refund</td><td>Release gate: 2 contributors at 4+</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="who">Who counts <a class="anchor" href="#who">#</a></h2>
+      <ul>
+        <li><b>Contributors and above</b> rate. One rating per person; a second pick replaces the first.</li>
+        <li><b>The driver</b> can ask the agent to revise instead, which withdraws the request and brings a new one.</li>
+        <li><b>Owners</b> may grant outright. The notice records that it was granted by decision, not by the rule.</li>
+        <li><b>Agents</b> never vote on their own gates, even when they are members of the group.</li>
+      </ul>
+      <div class="callout note"><svg aria-hidden="true"><use href="#info"/></svg><div><b>Why ratings and not a count.</b> A count says two people clicked. An average says how they felt. "Two at 4+" lets Ana say "fine" and Cy say "good" and still hold the line when one of them says "not yet".</div></div>
+
+      <h2 id="where">Where a gate shows up <a class="anchor" href="#where">#</a></h2>
+      <p>The notice in the stream, the approvals queue, the inbox row, the command palette ("Rate the gate on invoice-pdf"), and the Slack thread for the session, where the buttons carry the stars. Rate from any of them; the rest update.</p>
+
+      <div class="pager">
+        <a href="#"><span class="l">← Previous</span><span class="serif">Risk classes</span></a>
+        <a class="next" href="#"><span class="l">Next →</span><span class="serif">The approvals queue</span></a>
+      </div>
+    </article>
+
+    <aside class="toc">
+      <div><div class="h">On this page</div>
+        <ol>
+          <li><a href="#what">What a gate is</a></li>
+          <li><a class="on" href="#example">A gate in the stream</a></li>
+          <li><a href="#rule">Writing the rule</a></li>
+          <li class="sub"><a href="#rule">Risk classes and defaults</a></li>
+          <li><a href="#who">Who counts</a></li>
+          <li><a href="#where">Where a gate shows up</a></li>
+        </ol>
+      </div>
+      <div class="box"><span class="t">Was this page useful?</span><div class="q"><button class="btn on">Yes</button><button class="btn">Not yet</button></div></div>
+      <div class="links">
+        <a href="#"><svg aria-hidden="true"><use href="#edit"/></svg>Edit this page</a>
+        <a href="#"><svg aria-hidden="true"><use href="#github"/></svg>Open an issue</a>
+        <a href="#"><svg aria-hidden="true"><use href="#slack"/></svg>Ask in #henosis-docs</a>
+      </div>
+    </aside>
+  </div>
+  <footer class="foot"><div class="wrap"><span>Henosis Docs</span><a href="#">Status</a><a href="#">Security</a><a href="#">Privacy</a><span class="r"><a href="#">GitHub</a><a href="#">Slack community</a><span>Edited on 7 Oct 2026</span></span></div></footer>
+</section>
+</body>
+</html>

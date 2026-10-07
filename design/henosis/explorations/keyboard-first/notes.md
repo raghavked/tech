@@ -1,0 +1,21 @@
+# Keyboard-first · notes
+
+## The idea
+While nobody is typing, the app prints the key on the thing it acts on: `j`/`k` sit on the rail neighbours of the session you are in, `h` `f` `i` sit inside the topbar buttons, `/` sits in the empty composer, and the "Keys live" chip in the topbar is the one mode indicator, crossing to "Typing" the moment a field takes focus (and `esc` frees the keys again). The two things that can reach you from elsewhere, a release gate waiting in another session and an @mention in a group, arrive as cards in a right lane rather than as a queue you must visit: the gate card carries `a` (sends the default 4), `d`, `o` and the rating keys, so Ana approves Bo's push to main from the Billing page without leaving it; the mention toast carries `g` to jump and `r` to reply. A plan card that waits for a rating takes focus (apricot ring) and the number keys `1`–`5` are drawn under each star, with `↵` printed as "sends 4 and approves", so the two-step prompt the palette runs today is visible before the key is pressed.
+
+## What to keep
+- Key caps: 20px, JetBrains Mono, `--surface` with a `--line` hairline and a 1px drop; in the rail they take `--rail-2` and the rail hairline; the one key that would act right now is filled with `--accent` (`.kbd.live`), a key that was just pressed is apricot (`.kbd.pressed`). Both read in dark because accent flips to apricot and the drop goes black.
+- The "Keys live" chip: apricot wash, pulsing apricot-deep dot, Sans 12.5 medium. It is the only place that says what mode the keyboard is in; the composer's trailing legend (`↵` send · `⇧↵` new line · `esc` frees the keys) explains how to leave the other mode.
+- The right lane (364px) for "Waiting in Checkout" and the mention toast: navy titlebar with the session name in serif apricot, the irreversible pill in the danger wash, the command in mono on `--surface-2`, the gate line with Dee's four stars, Approve as the hand colour with its key inside the button; the toast sits at the bottom of the lane, level with the composer, and rises in.
+- Rating keys under stars: 22px stars, caps directly beneath, the chosen cap apricot and the star lit with a soft drop; the right side says what Enter does and who already rated; the owner's override row (Approve now · Ask to revise · Reject) stays below with the "overrides the ratings" hint.
+- Keys on buttons sit inside the button at the right, 2px in, so a button with a key reads as one control, not a button plus a tooltip.
+- Phone: no letters to print, so every `.kbd`, the legend and the mode chip hide; the same cards stay and the lane moves above the stream (Waiting, then the mention with an "Open #billing" button); "press a number" becomes "tap a star".
+- Dark: the focused plan ring is `--team-glow` plus a 70% apricot-deep hairline, the mono command block on `--surface-2`, caps on `--surface` with the 12% hairline; nothing is a raw hex.
+
+## Open questions
+- `1`–`5` for ratings, `g` for "jump to the mention", `r` for "reply" and `o` outside the queue are proposals; `shortcuts.ts` has only `/ a d h f i j k ?` and the approvals queue adds `j k a d o ↵`. Should the number keys rate the focused plan or the focused release gate when both wait on the same page, and what takes focus first?
+- "Approve from anywhere" means `a` acts on a gate in another session while you are reading this one. Is one lit `a` enough, or does an irreversible call need the key to open the card first (`a` focuses, `a` again approves), the way the sheet exploration asked?
+- The lane takes 364px from the stream on a 1440 screen; on a 1280 laptop the stream falls to ~640px. Does the lane collapse to a stack of chips under the topbar ("1 waiting in Checkout · 1 mention") that `g` and `a` still act on?
+- `esc` to free the keys from the composer competes with `esc` closing the toast and the palette; order of precedence (toast, then palette, then composer) is a proposal.
+- The "Keys live" chip could carry the next useful key ("Keys live · `a` approves in Checkout") so the lane can be collapsed; is a chip that changes its text every few seconds calm enough?
+- The mention toast dismisses on `esc`, but the inbox still counts it; should `g` mark it read, and should a toast stay until it is acted on when the mention is a question addressed to you?
