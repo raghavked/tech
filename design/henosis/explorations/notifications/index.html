@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Notifications · toasts, the stack, the desktop</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: status colours lift so they read on the dark surfaces (as on contention-handoff) */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); }
+
+  html, body { height: auto; }
+  body { min-width: 1440px; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .btn { white-space: nowrap; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+  kbd { font: 11px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; background: var(--surface); }
+
+  /* ================= 1. the screen: a session with the stack rising ================= */
+  .screen { width: 1440px; height: 900px; position: relative; overflow: hidden; }
+  .shell { height: 100%; }
+  .rail { overflow: hidden; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .lbl { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+  .topbar .lbl .drv { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 14px; }
+  .bell { position: relative; }
+  .bell .n { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; border-radius: var(--radius-full); background: var(--apricot); color: #56352D; font-size: 11px; font-weight: 600; display: grid; place-items: center; padding: 0 5px; border: 2px solid var(--canvas); }
+  .main { position: relative; }
+  .scroll .column { padding-top: 18px; padding-bottom: 40px; gap: 18px; }
+  .msg .meta time { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+  .msg .avatar.agent { width: 22px; height: 22px; font-size: 10px; border: 0; }
+  .msg.agent .text p { margin: 0 0 8px; } .msg.agent .text p:last-child { margin: 0; }
+  .step { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 3px 10px; border-radius: 10px; }
+  .step svg { width: 15px; height: 15px; color: var(--ink-3); } .step.ok svg { color: var(--ok); }
+  .step .mono { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .step .mono b { font-weight: 500; color: var(--ink); }
+  .step .r { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .step.held { background: var(--surface-2); } .step.held svg, .step.held .r { color: var(--warn); }
+  .notice .l1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+  .notice .l1 .who { font-family: var(--serif); font-size: 18px; }
+  .notice .l2 { font-size: 13px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .notice .l2 .you { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 14px; }
+  .pill.ext { background: var(--apricot-soft); color: var(--accent); }
+  .composer-wrap { position: absolute; left: 0; right: 0; bottom: 0; }
+  .composer .input { color: var(--ink-3); }
+
+  /* ---- the toast ---- */
+  .toast { position: relative; width: 340px; display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: start; padding: 12px 10px 12px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-pop); overflow: hidden; font-size: 13.5px; line-height: 1.45; color: var(--ink); }
+  .toast::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
+  .toast.k-approval::before { background: var(--warn); }
+  .toast.k-handoff::before { background: var(--apricot-deep); }
+  .toast.k-done::before { background: var(--ok); }
+  .toast.k-blocked::before { background: var(--danger); }
+  .toast.k-mention::before, .toast.k-joined::before { background: var(--apricot); }
+  .toast .ico { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); margin-top: 1px; }
+  .toast .ico svg.ic { width: 15px; height: 15px; }
+  .toast.k-approval .ico { background: var(--warn-soft); color: var(--warn); }
+  .toast.k-done .ico { background: var(--ok-soft); color: var(--ok); }
+  .toast.k-blocked .ico { background: var(--danger-soft); color: var(--danger); }
+  .toast.k-mention .ico, .toast.k-handoff .ico { background: var(--apricot-soft); color: var(--accent); }
+  .toast .ico.mark-wrap { background: transparent; } .toast .ico .mark { width: 28px; height: 28px; }
+  .toast .ico .avatar { width: 28px; height: 28px; border: 0; font-size: 11px; }
+  .toast .body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .toast .l1 { color: var(--ink); } .toast .l1 .who { font-family: var(--serif); font-size: 16px; }
+  .toast .l1 code { font-size: 12px; white-space: nowrap; }
+  .toast .l2 { font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .toast .l2 .you { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 13.5px; }
+  .toast .l2 .sep::before { content: "·"; color: var(--ink-3); }
+  .toast .quote { font-size: 13px; color: var(--ink-2); border-left: 2px solid var(--apricot); padding-left: 8px; margin-top: 2px; }
+  .toast .acts { display: flex; gap: 6px; margin-top: 7px; }
+  .toast .acts .btn.sm { min-height: 28px; padding: 0 11px; font-size: 12.5px; }
+  .toast .x { width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: var(--ink-3); display: grid; place-items: center; cursor: pointer; padding: 0; margin: -2px -2px 0 0; }
+  .toast .x:hover { background: var(--surface-2); color: var(--ink); }
+  .toast .x svg.ic { width: 13px; height: 13px; }
+  .toast .life { position: absolute; left: 4px; right: 0; bottom: 0; height: 2px; background: var(--apricot); transform-origin: left; }
+  .toast.paused .life { background: var(--apricot-deep); }
+  .toast .keys { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 4px; }
+  .toast .keys kbd { font-size: 10.5px; }
+  /* the mark inside a toast: the disc stays navy in light and dark */
+  .mark .arc { stroke-width: 10; fill: none; stroke-linecap: round; }
+
+  /* the stack: newest at the bottom, older rows step up and dim */
+  .stack-wrap { position: absolute; right: 24px; bottom: 112px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 5; }
+  .stack-wrap .toast:nth-last-child(2) { opacity: .94; }
+  .stack-wrap .toast:nth-last-child(3) { opacity: .86; }
+  .tail { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 6px 0 12px; border-radius: var(--radius-full); background: var(--rail); color: var(--rail-fg); font-size: 12.5px; box-shadow: var(--shadow-soft); }
+  .tail .n { color: var(--apricot); font-weight: 600; }
+  .tail .btn.sm { min-height: 22px; padding: 0 9px; font-size: 12px; background: transparent; color: var(--apricot); border-color: rgba(226,196,166,.35); }
+  .tail .btn.sm kbd { font-size: 10px; color: var(--rail-muted); border-color: var(--rail-line); background: transparent; }
+
+  /* ================= 2. the board ================= */
+  .board { width: 1440px; padding: 56px 64px 80px; display: flex; flex-direction: column; gap: 56px; }
+  .board header { display: flex; align-items: flex-end; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+  .board header p { margin: 6px 0 0; color: var(--ink-2); max-width: 760px; }
+  .board header .right { margin-left: auto; font-size: 13px; color: var(--ink-3); text-align: right; line-height: 1.5; }
+  .sec { display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: start; }
+  .sec .lead h2 { font-size: 26px; } .sec .lead p { margin: 10px 0 0; color: var(--ink-2); font-size: 14px; }
+  .sec .lead ul { margin: 12px 0 0; padding: 0 0 0 18px; color: var(--ink-2); font-size: 13.5px; } .sec .lead li + li { margin-top: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 340px); gap: 20px 24px; }
+  .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .fig { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .fig .cap { font-size: 12.5px; color: var(--ink-3); display: flex; gap: 8px; align-items: baseline; }
+  .fig .cap b { color: var(--ink-2); font-weight: 600; }
+  .fig .toast { box-shadow: var(--shadow-soft); }
+  .rules { display: grid; grid-template-columns: 1fr; gap: 0; font-size: 13px; color: var(--ink-2); margin: 14px 0 0; }
+  .rules div { display: grid; grid-template-columns: 64px 1fr; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+  .rules dt { color: var(--ink); font-weight: 500; } .rules dd { margin: 0; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .tbl th { text-align: left; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 0 12px 10px 0; border-bottom: 1px solid var(--line); }
+  .tbl td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
+  .tbl td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+  .tbl td i.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
+  .tbl .y { color: var(--ink); } .tbl .n { color: var(--ink-3); }
+
+  /* stacking figures: a canvas corner */
+  .corner { height: 380px; border-radius: var(--radius-lg); background: var(--canvas); background-image: var(--canvas-wash); border: 1px solid var(--line); position: relative; overflow: hidden; }
+  .corner .ghost { position: absolute; left: 24px; right: 24px; top: 24px; display: flex; flex-direction: column; gap: 10px; }
+  .corner .ghost i { display: block; height: 10px; border-radius: 5px; background: var(--surface-3); opacity: .7; }
+  .corner .stack-wrap { right: 16px; bottom: 16px; transform: scale(.74); transform-origin: bottom right; }
+  .corner .swipe { transform: translateX(80px) rotate(1.5deg); opacity: .45; }
+  .corner .hint { position: absolute; left: 24px; top: 24px; font-size: 12.5px; color: var(--ink-2); max-width: 300px; line-height: 1.45; }
+  .corner .cursor { position: absolute; width: 18px; height: 18px; z-index: 6; color: var(--ink); filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+
+  /* ---- desktop and mobile notification variants ---- */
+  .os { display: flex; flex-direction: column; gap: 10px; } .os .osbg { flex: 1; }
+  .osbg { border-radius: var(--radius-lg); padding: 20px 16px; display: grid; place-items: center; min-height: 190px; }
+  .osbg.mac { background: linear-gradient(135deg, #D9C4C9 0%, #A9B7D1 55%, #E8D5C0 100%); }
+  .osbg.win { background: linear-gradient(135deg, #1F2A44 0%, #2E3F63 100%); }
+  .osbg.ios { background: linear-gradient(180deg, #2A3244 0%, #56352D 100%); }
+  .osbg.tray { background: var(--surface-2); }
+  .macn { width: 100%; max-width: 340px; background: rgba(255,255,255,.78); backdrop-filter: blur(20px); color: #1F2634; border-radius: 16px; padding: 10px 12px; display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: start; box-shadow: 0 12px 40px rgba(0,0,0,.22), 0 0 0 .5px rgba(0,0,0,.08); font-family: -apple-system, var(--font); font-size: 13px; line-height: 1.35; }
+  .macn .mark { width: 36px; height: 36px; }
+  .macn .t { font-weight: 600; } .macn .b { color: #3A4152; }
+  .macn .when { font-size: 11.5px; color: #6B7280; white-space: nowrap; }
+  .macn .opts { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 2px; }
+  .macn .opts span { flex: 1; text-align: center; background: rgba(255,255,255,.7); border: .5px solid rgba(0,0,0,.12); border-radius: 8px; padding: 5px 0; font-size: 12.5px; }
+  .macn .opts span.p { font-weight: 600; }
+  .winn { width: 100%; max-width: 340px; background: #2B2B2B; color: #fff; border-radius: 8px; padding: 14px 16px; display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: start; font-family: "Segoe UI", var(--font); font-size: 13.5px; box-shadow: 0 14px 40px rgba(0,0,0,.4); }
+  .winn .mark { width: 44px; height: 44px; }
+  .winn .t { font-weight: 600; } .winn .b { color: #CFCFCF; font-size: 13px; } .winn .app { color: #9A9A9A; font-size: 12px; margin-top: 6px; }
+  .winn .x { color: #9A9A9A; font-size: 16px; line-height: 1; }
+  .winn .btns { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 2px; }
+  .winn .btns span { flex: 1; text-align: center; background: #3A3A3A; border-radius: 4px; padding: 7px 0; font-size: 13px; }
+  .winn .btns span.p { background: #E2C4A6; color: #2A3244; font-weight: 600; }
+  .iosn { width: 100%; max-width: 340px; background: rgba(255,255,255,.82); backdrop-filter: blur(20px); color: #1F2634; border-radius: 22px; padding: 12px 14px; display: grid; grid-template-columns: 38px 1fr auto; gap: 10px; align-items: center; font-family: -apple-system, var(--font); font-size: 14px; line-height: 1.3; box-shadow: 0 12px 40px rgba(0,0,0,.28); position: relative; }
+  .iosn .mark { width: 38px; height: 38px; border-radius: 9px; }
+  .iosn .t { font-weight: 600; } .iosn .b { color: #3A4152; font-size: 13.5px; }
+  .iosn .when { font-size: 12px; color: #6B7280; align-self: start; }
+  .iosn.under { position: absolute; width: calc(100% - 16px); left: 50%; transform: translateX(-50%); height: 36px; bottom: -8px; background: rgba(255,255,255,.5); z-index: -1; border-radius: 22px; box-shadow: none; }
+  .iosstack { position: relative; }
+  .trayn { display: flex; align-items: center; gap: 18px; }
+  .trayn .badge { position: relative; } .trayn .badge .mark { width: 56px; height: 56px; }
+  .trayn .badge .n { position: absolute; top: -6px; right: -8px; min-width: 24px; height: 24px; border-radius: var(--radius-full); background: var(--danger); color: #fff; font-size: 13px; font-weight: 600; display: grid; place-items: center; padding: 0 7px; border: 2px solid var(--surface-2); }
+  .traymenu { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-pop); padding: 6px; width: 176px; font-size: 13px; }
+  .traymenu div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; }
+  .traymenu div .n { margin-left: auto; color: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  .traymenu div.hd { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .traymenu div.sel { background: var(--apricot-soft); }
+  .traymenu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
+
+  /* ================= 3. mobile ================= */
+  .mobile { display: none; }
+  @media (max-width: 600px) {
+    body { min-width: 0; }
+    .screen, .board { display: none; }
+    .mobile { display: flex; flex-direction: column; width: 100vw; height: 100vh; position: relative; overflow: hidden; background: var(--canvas); background-image: var(--canvas-wash); }
+    .mobile .sb { height: 54px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 28px 6px; font: 600 14px var(--font); }
+    .mobile .mtop { display: flex; align-items: center; gap: 10px; padding: 6px 16px 10px; border-bottom: 1px solid var(--line); }
+    .mobile .mtop .serif { font-size: 20px; }
+    .mobile .mtop .status { font-size: 12.5px; margin-left: auto; }
+    .mobile .mstream { flex: 1; overflow: hidden; padding: 16px 16px 0; display: flex; flex-direction: column; gap: 14px; }
+    .mobile .msg.human .text { max-width: 92%; padding: 11px 14px; }
+    .mobile .step { padding: 2px 6px; }
+    .mobile .banners { position: absolute; top: 70px; left: 10px; right: 10px; z-index: 5; }
+    .mobile .banners .toast { width: 100%; }
+    .mobile .banners { position: absolute; }
+    .mobile .banners .toast:first-child { position: absolute; left: 0; right: 0; top: -13px; transform: scale(.95); z-index: 0; height: 64px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow-soft); }
+    .mobile .banners .toast:last-child { position: relative; z-index: 1; }
+    .mobile .banners .toast:first-child .body, .mobile .banners .toast:first-child .ico { visibility: hidden; }
+    .mobile .mstrip { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px 28px; background: linear-gradient(to top, var(--canvas) 70%, transparent); display: flex; flex-direction: column; gap: 10px; }
+    .mobile .mstrip .toast { width: 100%; box-shadow: var(--shadow-pop); }
+    .mobile .mstrip .toast .acts { display: flex; gap: 8px; } .mobile .mstrip .toast .acts .btn { flex: 1; min-height: 40px; font-size: 14px; }
+    .mobile .mcomp { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 10px 10px 10px 16px; color: var(--ink-3); box-shadow: var(--shadow-soft); font-size: 14.5px; }
+    .mobile .mcomp .send { margin-left: auto; }
+    .mobile .home { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--ink); opacity: .9; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================================================= 1. THE SCREEN -->
+<section class="screen">
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <div class="section">Agents <span class="n">3</span></div>
+    <div class="crew"><span class="serif">Payments</span></div>
+    <a class="agent active" href="#"><div class="head"><i class="dot running"></i><span class="t">Bo's agent</span><span class="pill team">Team</span></div><div class="doing">On <i>Billing page</i>: finalising the invoice PDF, proration rows next</div><div class="foot"><span>Ana, Bo</span><span class="tok">41.2k</span></div></a>
+    <a class="agent" href="#"><div class="head"><i class="dot awaiting_approval"></i><span class="t">Cy's agent</span><span class="pill solo">Solo</span></div><div class="doing">On <i>Checkout</i>: waits for an approval on the tax-lines migration</div><div class="foot"><span>Cy</span><span class="tok">12.8k</span></div></a>
+    <a class="agent" href="#"><div class="head"><i class="dot"></i><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div><div class="doing">Joining · reading the brief for <i>Payments</i></div><div class="foot"><span>Dee</span><span class="tok">0.3k</span></div></a>
+    <div class="section">Team</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7l9 6 9-6M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>Inbox <span class="n live">5</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg>Approvals <span class="n">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg>#billing <span class="n">1</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg>#payments</a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h18M12 3v18"/></svg>Projects</a>
+    <div class="me"><span class="avatar">AN</span><span class="meta"><span>Ana</span><span class="role">Lead · Payments</span></span></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="title"><span class="serif">Billing page</span><span class="status running">Running</span></div>
+      <span class="lbl">baton <span class="drv">Bo</span></span>
+      <span class="lbl"><span class="stack"><span class="avatar">AN</span><span class="avatar driver">BO</span><span class="avatar agent">b</span></span></span>
+      <div class="right">
+        <button class="btn sm ghost" type="button">Details</button>
+        <button class="btn icon bell" type="button" aria-label="Inbox, 5 new"><svg class="ic" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></svg><span class="n">5</span></button>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="column">
+        <div class="msg human"><div class="meta"><span class="who">Bo</span><time>10:41</time></div><div class="text">The invoice PDF still drops the tax lines on proration. Fix the layout, keep the totals, then finalise the test invoice so Cy can check it in Checkout.</div></div>
+        <div class="msg agent"><div class="meta"><span class="who"><span class="avatar agent">b</span>Bo's agent</span><time>10:42</time></div>
+          <div class="text"><p>Reading the layout first. The proration rows are rendered after the totals block, which is why the tax lines fall off the page.</p></div>
+          <div class="steps">
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono"><b>read</b> apps/billing/pdf/invoice.tsx</span><span class="r">1.2k</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono"><b>edit</b> invoice.tsx · move tax lines above the proration rows</span><span class="r">3.8k</span></div>
+            <div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono"><b>exec</b> pnpm test --filter billing · 24 passed</span><span class="r">2.1k</span></div>
+            <div class="step held"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="mono"><b>external</b> POST api.stripe.com/v1/invoices/in_1Q7b2K/finalize</span><span class="r">held</span></div>
+          </div>
+        </div>
+        <div class="notice">
+          <div class="l1"><span class="who">Bo's agent</span><span>wants to call</span><code>POST /v1/invoices/in_1Q7b2K/finalize</code><span class="pill ext">external</span></div>
+          <div class="l2"><span>Needs one contributor or above</span><span>·</span><span class="you">You can approve, Ana</span><span>·</span><span>the agent waits at step 4 of 5</span></div>
+          <div class="actions"><button class="btn primary sm" type="button">Approve · 4</button><button class="btn sm" type="button">Deny</button><span class="stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></span><span class="small faint">Rate it</span></div>
+        </div>
+        <div class="divider">Cy's agent answered in #billing · 10:46</div>
+      </div>
+    </div>
+    <div class="composer-wrap"><div class="composer"><div class="input">Steer Bo's agent, or say something to the team</div><div class="bar"><div class="seg"><button class="on" type="button">Agent</button><button type="button">Team</button></div><div class="right"><span class="small faint">41.2k of 60k</span><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></div></div></div>
+
+    <!-- the stack: three rise at the corner, the rest wait in the inbox -->
+    <div class="stack-wrap">
+      <div class="tail"><span><span class="n">2 more</span> wait in the inbox</span><button class="btn sm" type="button">Open <kbd>g i</kbd></button></div>
+      <div class="toast k-joined" role="status">
+        <div class="ico mark-wrap"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div>
+        <div class="body"><div class="l1"><span class="who">Dee</span> joins the circle.</div><div class="l2"><span>Payments team</span><span class="sep"></span><span>invited by Ana</span><span class="sep"></span><span>her agent is reading the brief</span></div></div>
+        <button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <i class="life" style="transform: scaleX(.38)"></i>
+      </div>
+      <div class="toast k-mention" role="status">
+        <div class="ico"><span class="avatar">CY</span></div>
+        <div class="body"><div class="l1"><span class="who">Cy</span> mentioned you in #billing</div><div class="quote">@Ana the proration rounding looks off on Checkout, can Bo's agent check the tax lines there too?</div><div class="acts"><button class="btn primary sm" type="button">Reply</button><button class="btn ghost sm" type="button">Open #billing</button></div></div>
+        <button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <i class="life" style="transform: scaleX(.72)"></i>
+      </div>
+      <div class="toast k-approval" role="alert">
+        <div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l9 16H3z M12 10v4M12 17.5v.5"/></svg></div>
+        <div class="body"><div class="l1"><span class="who">Cy's agent</span> wants to run <code>prisma migrate deploy</code></div><div class="l2"><span class="pill ext">exec</span><span>Checkout</span><span class="sep"></span><span class="you">You can approve, Ana</span></div><div class="acts"><button class="btn primary sm" type="button">Approve · 4</button><button class="btn sm" type="button">Deny</button><button class="btn ghost sm" type="button">Open</button></div></div>
+        <button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <div class="keys"><kbd>y</kbd><kbd>n</kbd></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ======================================================= 2. THE BOARD -->
+<section class="board">
+  <header>
+    <div><h1>Notifications</h1><p>One voice at three distances: a toast in the corner while you are here, a native banner when the window is behind, a row in the inbox always. Same sentence in all three; only the frame changes.</p></div>
+    <div class="right">Exploration · notifications<br>1440 × 900 · light and dark<br>Instrument Serif for who, Sans for what, Mono for calls</div>
+  </header>
+
+  <!-- the six kinds -->
+  <div class="sec">
+    <div class="lead"><h2>Six kinds, one shape</h2><p>Crease on the left names the kind; the serif names the who; one sentence says what; the second line says where and what it means for you. At most two buttons and an Open. Nothing is a tool here: agents join, finish and ask like people do.</p>
+      <ul><li><b>Decisions</b> (approval, handoff, blocked) never time out and show <kbd>y</kbd> / <kbd>n</kbd> while they are the newest.</li><li><b>News</b> (mention, joined, done) drains over 8 s along the apricot life line; hover or focus pauses it.</li><li>Joined carries the mark closing its arcs; it is the only toast with motion of its own.</li></ul></div>
+    <div class="grid">
+      <div class="fig"><div class="cap"><b>Approval needed</b> warn crease · decision · stays</div>
+        <div class="toast k-approval"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l9 16H3z M12 10v4M12 17.5v.5"/></svg></div><div class="body"><div class="l1"><span class="who">Bo's agent</span> wants to call <code>POST /v1/invoices/…/finalize</code></div><div class="l2"><span class="pill ext">external</span><span>Billing page</span><span class="sep"></span><span class="you">You can approve, Ana</span></div><div class="acts"><button class="btn primary sm" type="button">Approve · 4</button><button class="btn sm" type="button">Deny</button><button class="btn ghost sm" type="button">Open</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="keys"><kbd>y</kbd><kbd>n</kbd></div></div></div>
+      <div class="fig"><div class="cap"><b>Mention</b> apricot crease · news · 8 s</div>
+        <div class="toast k-mention"><div class="ico"><span class="avatar">CY</span></div><div class="body"><div class="l1"><span class="who">Cy</span> mentioned you in #billing</div><div class="quote">@Ana the proration rounding looks off on Checkout, can Bo's agent check the tax lines there too?</div><div class="acts"><button class="btn primary sm" type="button">Reply</button><button class="btn ghost sm" type="button">Open #billing</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><i class="life" style="transform: scaleX(.72)"></i></div></div>
+      <div class="fig"><div class="cap"><b>Joined</b> apricot crease · the mark closes · 8 s</div>
+        <div class="toast k-joined"><div class="ico mark-wrap"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div><div class="body"><div class="l1"><span class="who">Dee</span> joins the circle.</div><div class="l2"><span>Payments team</span><span class="sep"></span><span>invited by Ana</span><span class="sep"></span><span>her agent is reading the brief</span></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><i class="life" style="transform: scaleX(.38)"></i></div></div>
+      <div class="fig"><div class="cap"><b>Handoff</b> apricot-deep crease · decision · stays</div>
+        <div class="toast k-handoff"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12h12M12 7l5 5-5 5M20 5v14"/></svg></div><div class="body"><div class="l1"><span class="who">Bo</span> offers you the baton.</div><div class="l2"><span>Billing page</span><span class="sep"></span><span>step 4 of 5, the finalize call waits</span><span class="sep"></span><span>Bo is out at 12:00</span></div><div class="acts"><button class="btn primary sm" type="button">Take the baton</button><button class="btn sm" type="button">Decline</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
+      <div class="fig"><div class="cap"><b>Done</b> ok crease · news · 8 s</div>
+        <div class="toast k-done"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg></div><div class="body"><div class="l1"><span class="who">Bo's agent</span> finished Billing page.</div><div class="l2"><span>5 of 5 steps</span><span class="sep"></span><span class="mono" style="font-size:12px">43.1k</span><span>of 60k</span><span class="sep"></span><span>2 approvals, both by you</span></div><div class="acts"><button class="btn primary sm" type="button">Review</button><button class="btn ghost sm" type="button">Unite into main</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><i class="life" style="transform: scaleX(.9)"></i></div></div>
+      <div class="fig"><div class="cap"><b>Blocked</b> danger crease · decision · stays</div>
+        <div class="toast k-blocked"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 8l8 8"/></svg></div><div class="body"><div class="l1"><span class="who">Dee's agent</span> cannot continue on Checkout.</div><div class="l2"><span>No <code>STRIPE_TEST_KEY</code> in the workspace</span><span class="sep"></span><span class="you">Dee or a lead can fix it</span></div><div class="acts"><button class="btn primary sm" type="button">Add the key</button><button class="btn ghost sm" type="button">Open</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
+    </div>
+  </div>
+
+  <!-- stacking and dismissal -->
+  <div class="sec">
+    <div class="lead"><h2>Stacking and dismissal</h2><p>Bottom-right, above the composer, newest at the bottom so it rises in from the corner. Three show; older ones step up and dim. A fourth folds the oldest into the navy tail, which counts what waits in the inbox and opens it.</p>
+      <dl class="rules">
+        <div><dt>Rise</dt><dd>8 px up and fade in, 320 ms; <code>rise</code> from the tokens</dd></div>
+        <div><dt>Order</dt><dd>newest nearest the corner; decisions outrank news when both arrive</dd></div>
+        <div><dt>Fold</dt><dd>past three, the oldest news folds into the tail first; decisions fold last</dd></div>
+        <div><dt>Dismiss</dt><dd>the ×, <kbd>Esc</kbd> on the newest, a swipe right on touch, or the drain</dd></div>
+        <div><dt>Pause</dt><dd>hover or focus holds the drain; the life line darkens to apricot-deep</dd></div>
+        <div><dt>Answer</dt><dd>Approve or Reply closes it and leaves one line in the stream</dd></div>
+        <div><dt>Dedupe</dt><dd>same ref twice updates the toast in place and restarts its drain</dd></div>
+        <div><dt>Calm</dt><dd>calm mode and reduced motion: no rise, no drain line, same timing</dd></div>
+      </dl></div>
+    <div class="grid three">
+      <div class="fig"><div class="cap"><b>One</b> a single news toast draining</div>
+        <div class="corner"><div class="ghost"><i style="width:60%"></i><i style="width:82%"></i><i style="width:48%"></i></div>
+          <div class="stack-wrap"><div class="toast k-done"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg></div><div class="body"><div class="l1"><span class="who">Bo's agent</span> finished Billing page.</div><div class="l2"><span>5 of 5 steps</span><span class="sep"></span><span>43.1k of 60k</span></div><div class="acts"><button class="btn primary sm" type="button">Review</button><button class="btn ghost sm" type="button">Unite into main</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><i class="life" style="transform: scaleX(.55)"></i></div></div></div></div>
+      <div class="fig"><div class="cap"><b>Three plus the tail</b> hover pauses the middle one</div>
+        <div class="corner"><div class="ghost"><i style="width:60%"></i><i style="width:82%"></i><i style="width:48%"></i></div>
+          <svg class="cursor" style="left: 300px; top: 196px" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-6 1 4 7-2 1-4-7-5 4z" stroke="#fff" stroke-width="1.2"/></svg>
+          <div class="stack-wrap"><div class="tail"><span><span class="n">1 more</span> waits in the inbox</span><button class="btn sm" type="button">Open</button></div>
+            <div class="toast k-joined"><div class="ico mark-wrap"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div><div class="body"><div class="l1"><span class="who">Dee</span> joins the circle.</div><div class="l2"><span>Payments team</span><span class="sep"></span><span>invited by Ana</span></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><i class="life" style="transform: scaleX(.2)"></i></div>
+            <div class="toast k-mention paused" style="box-shadow: var(--shadow-pop), var(--glow)"><div class="ico"><span class="avatar">CY</span></div><div class="body"><div class="l1"><span class="who">Cy</span> mentioned you in #billing</div><div class="quote">@Ana the proration rounding looks off on Checkout</div><div class="acts"><button class="btn primary sm" type="button">Reply</button><button class="btn ghost sm" type="button">Open #billing</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><i class="life" style="transform: scaleX(.61)"></i></div>
+            <div class="toast k-approval"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l9 16H3z M12 10v4M12 17.5v.5"/></svg></div><div class="body"><div class="l1"><span class="who">Cy's agent</span> wants to run <code>prisma migrate deploy</code></div><div class="l2"><span class="pill ext">exec</span><span>Checkout</span><span class="sep"></span><span class="you">You can approve, Ana</span></div><div class="acts"><button class="btn primary sm" type="button">Approve · 4</button><button class="btn sm" type="button">Deny</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="keys"><kbd>y</kbd><kbd>n</kbd></div></div>
+          </div></div></div>
+      <div class="fig"><div class="cap"><b>Answered and dismissed</b> the stream keeps one line</div>
+        <div class="corner">
+          <div class="hint">After Approve the toast closes and the stream shows <em>Ana approved · 4 · 10:48</em>; the swiped one leaves nothing but its inbox row.</div>
+          <div class="stack-wrap"><div class="toast k-joined swipe"><div class="ico mark-wrap"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div><div class="body"><div class="l1"><span class="who">Dee</span> joins the circle.</div><div class="l2"><span>Payments team</span></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+            <div class="toast k-approval" style="opacity:.55; transform: translateY(6px) scale(.98)"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg></div><div class="body"><div class="l1"><span class="who">You</span> approved · 4</div><div class="l2"><span>Cy's agent runs <code>prisma migrate deploy</code></span></div></div></div>
+          </div></div></div>
+    </div>
+  </div>
+
+  <!-- desktop and mobile native variants -->
+  <div class="sec">
+    <div class="lead"><h2>When the window is behind</h2><p>The web client shows a browser notification only when the tab is hidden; the desktop shell asks the OS, and the tray holds the count. The same sentence is the title, the where is the body, and tapping opens the deep link <code>henosis://p/payments/s/billing-page</code>. Actions on the banner are the toast's first two buttons, no more.</p>
+      <ul><li>Group by project on the OS: a second approval replaces the first banner by <code>tag</code>, so nothing is shown twice.</li><li>Sound only for decisions, and only when the person has not been in the window for a minute.</li><li>Per-kind toggles stay in Settings; team chat is off by default on the desktop.</li></ul></div>
+    <div class="grid three">
+      <div class="os"><div class="osbg mac"><div class="macn"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6"/><circle class="dot" cx="48" cy="48" r="7" fill="#E2C4A6"/></svg><div><div class="t">Approval needed · Billing page</div><div class="b">Bo's agent wants to call POST /v1/invoices/…/finalize [external]</div></div><div class="when">now</div><div class="opts"><span class="p">Approve · 4</span><span>Deny</span><span>Open</span></div></div></div><div class="cap small faint"><b>macOS banner</b> alert style for decisions, banner for news</div></div>
+      <div class="os"><div class="osbg win"><div class="winn"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="#2A3244"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6"/><circle class="dot" cx="48" cy="48" r="7" fill="#E2C4A6"/></svg><div><div class="t">Bo offers you the baton</div><div class="b">Billing page · step 4 of 5, the finalize call waits</div><div class="app">Henosis · now</div></div><span class="x">×</span><div class="btns"><span class="p">Take the baton</span><span>Decline</span></div></div></div><div class="cap small faint"><b>Windows toast</b> apricot primary on the dark card; two buttons at most</div></div>
+      <div class="os"><div class="osbg ios"><div class="iosstack"><div class="iosn"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="22" fill="#2A3244"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6"/><circle class="dot" cx="48" cy="48" r="7" fill="#E2C4A6"/></svg><div><div class="t">Cy mentioned you in #billing</div><div class="b">@Ana the proration rounding looks off on Checkout, can Bo's agent check…</div></div><div class="when">now</div></div><div class="iosn under"></div></div></div><div class="cap small faint"><b>Mobile push</b> grouped as Henosis; a long press shows Reply and Open</div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="lead"><h2>Where each kind goes</h2><p>The inbox is the record; the toast and the banner are only the knock. If a kind is turned off in Settings it still lands in the inbox and the rail count.</p>
+      <div class="osbg tray" style="margin-top: 18px; min-height: 0; padding: 22px"><div class="trayn"><div class="badge"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="n">3</span></div><div class="traymenu"><div class="hd">Needs you</div><div class="sel">Approvals <span class="n">2</span></div><div>Handoffs <span class="n">1</span></div><div>Mentions <span class="n">1</span></div><hr><div>Open Henosis</div><div>Pause for an hour</div></div></div></div>
+      <p class="small faint" style="margin-top: 8px">Tray and dock: the mark with the count of decisions only; news never badges.</p></div>
+    <table class="tbl">
+      <thead><tr><th>Kind</th><th>The sentence</th><th>Toast here</th><th>Banner when hidden</th><th>Inbox</th><th>Badge</th><th>Sound</th><th>Keys</th></tr></thead>
+      <tbody>
+        <tr><td><i class="sw" style="background: var(--warn)"></i>Approval</td><td>Bo's agent wants to call <code>…/finalize</code></td><td class="y">stays until answered</td><td class="y">alert, Approve · Deny · Open</td><td class="y">row with stars</td><td class="y">counts</td><td class="y">once</td><td><kbd>y</kbd> <kbd>n</kbd> <kbd>g a</kbd></td></tr>
+        <tr><td><i class="sw" style="background: var(--apricot)"></i>Mention</td><td>Cy mentioned you in #billing</td><td class="y">8 s, Reply · Open</td><td class="y">banner, Reply · Open</td><td class="y">row with the quote</td><td class="n">no</td><td class="n">no</td><td><kbd>r</kbd> reply</td></tr>
+        <tr><td><i class="sw" style="background: var(--apricot)"></i>Joined</td><td>Dee joins the circle.</td><td class="y">8 s, the mark closes</td><td class="n">no, the team panel ripples</td><td class="y">row, read on sight</td><td class="n">no</td><td class="n">no</td><td>—</td></tr>
+        <tr><td><i class="sw" style="background: var(--apricot-deep)"></i>Handoff</td><td>Bo offers you the baton.</td><td class="y">stays until answered</td><td class="y">alert, Take · Decline</td><td class="y">row with Accept</td><td class="y">counts</td><td class="y">once</td><td><kbd>y</kbd> <kbd>n</kbd></td></tr>
+        <tr><td><i class="sw" style="background: var(--ok)"></i>Done</td><td>Bo's agent finished Billing page.</td><td class="y">8 s, Review · Unite</td><td class="y">banner, Review</td><td class="y">row with the totals</td><td class="n">no</td><td class="n">no</td><td><kbd>Enter</kbd> review</td></tr>
+        <tr><td><i class="sw" style="background: var(--danger)"></i>Blocked</td><td>Dee's agent cannot continue on Checkout.</td><td class="y">stays until opened</td><td class="y">alert, Open</td><td class="y">row with the reason</td><td class="y">counts</td><td class="y">once</td><td><kbd>Enter</kbd> open</td></tr>
+        <tr><td><i class="sw" style="background: var(--ink-3)"></i>Plain</td><td>Copied the share link</td><td class="y">3 s, text only, bottom-centre, as today</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ======================================================= 3. MOBILE -->
+<section class="mobile">
+  <div class="sb"><span>10:48</span><span>●●● ◔ ▮</span></div>
+  <div class="mtop"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg><span class="serif">Billing page</span><span class="status running">Running</span></div>
+  <div class="mstream">
+    <div class="msg human"><div class="meta"><span class="who">Bo</span><time>10:41</time></div><div class="text">The invoice PDF still drops the tax lines on proration. Fix the layout, keep the totals, then finalise the test invoice.</div></div>
+    <div class="msg agent"><div class="meta"><span class="who"><span class="avatar agent">b</span>Bo's agent</span><time>10:42</time></div><div class="text"><p>Reading the layout first. The proration rows render after the totals block, which is why the tax lines fall off the page.</p></div>
+      <div class="steps"><div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono"><b>edit</b> invoice.tsx · tax lines above proration</span><span class="r">3.8k</span></div><div class="step ok"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg><span class="mono"><b>exec</b> pnpm test --filter billing · 24 passed</span><span class="r">2.1k</span></div><div class="step held"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="mono"><b>external</b> POST …/in_1Q7b2K/finalize</span><span class="r">held</span></div></div></div>
+  </div>
+  <div class="banners">
+    <div class="toast k-joined"><div class="ico mark-wrap"><svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg></div><div class="body"><div class="l1"><span class="who">Dee</span> joins the circle.</div><div class="l2"><span>Payments team</span><span class="sep"></span><span>invited by Ana</span></div></div><i class="life" style="transform: scaleX(.3)"></i></div>
+    <div class="toast k-mention"><div class="ico"><span class="avatar">CY</span></div><div class="body"><div class="l1"><span class="who">Cy</span> mentioned you in #billing</div><div class="quote">@Ana the proration rounding looks off on Checkout</div><div class="acts"><button class="btn primary sm" type="button">Reply</button><button class="btn ghost sm" type="button">Open</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><i class="life" style="transform: scaleX(.7)"></i></div>
+  </div>
+  <div class="mstrip">
+    <div class="toast k-approval" role="alert"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l9 16H3z M12 10v4M12 17.5v.5"/></svg></div><div class="body"><div class="l1"><span class="who">Bo's agent</span> wants to call <code>POST …/finalize</code></div><div class="l2"><span class="pill ext">external</span><span>Billing page</span><span class="sep"></span><span class="you">You can approve, Ana</span></div><div class="acts"><button class="btn primary" type="button">Approve · 4</button><button class="btn" type="button">Deny</button></div></div><button class="x" type="button" aria-label="Dismiss"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="mcomp"><span>Steer Bo's agent…</span><button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+  </div>
+  <div class="home"></div>
+</section>
+
+</body>
+</html>

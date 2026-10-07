@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Members of #billing</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: status colours lift so they read on dark surfaces (same override as chat-view) */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); --scrim: rgba(0,0,0,0.42); --agent-ink: #F3EDE4; --toast-bg: #343E52; --mention-agent: #3A4458; } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); --scrim: rgba(0,0,0,0.42); --agent-ink: #F3EDE4; --toast-bg: #343E52; --mention-agent: #3A4458; }
+  :root { --scrim: rgba(42,50,68,0.22); --agent-ink: #fff; --drawer-w: 470px; --toast-bg: #2A3244; --mention-agent: #2A3244; }
+
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .btn { white-space: nowrap; }
+  .btn.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+  .btn.danger { background: var(--danger); color: #fff; border-color: transparent; }
+  .btn.sm svg { width: 14px; height: 14px; }
+
+  /* ---- shell ---- */
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item svg { width: 16px; height: 16px; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 5px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+
+  /* ---- topbar ---- */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .hash { color: var(--apricot-deep); margin-right: 1px; }
+  .topbar .title .purpose { font-family: var(--font); font-size: 13.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+  .topbar .right { gap: 12px; }
+  .topbar .stack { align-items: center; }
+  .topbar .stack .sep { width: 1px; height: 18px; background: var(--line); margin: 0 6px 0 8px; }
+  .avatar { position: relative; }
+  .avatar .live { position: absolute; right: -3px; bottom: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); border: 2px solid var(--surface); }
+  .avatar .live.awaiting { background: var(--warn); } .avatar .live.blocked { background: var(--danger); } .avatar .live.off { background: var(--ink-3); } .avatar .live.paused { background: var(--info); }
+  .topbar .avatar .live { border-color: var(--canvas); }
+  .avatar.agent { font-size: 10.5px; color: var(--agent-ink); }
+
+  /* ---- the chat behind the drawer ---- */
+  .main { position: relative; }
+  .scroll { display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+  .chatcol { padding-top: 22px; padding-bottom: 16px; gap: 14px; }
+  .divider span { padding: 0 2px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; font-size: 11.5px; }
+  .msg .meta { gap: 9px; }
+  .msg .meta .when { color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .msg.human .text { max-width: min(640px, 92%); padding: 12px 18px; font-size: 15px; line-height: 1.55; }
+  .msg.human.mine { align-items: flex-end; }
+  .msg.human.mine .meta { flex-direction: row-reverse; padding-right: 2px; }
+  .msg.human.mine .text { align-self: flex-end; background: color-mix(in srgb, var(--surface) 70%, var(--apricot-soft)); border-color: transparent; }
+  .text code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+  mark.mention { background: var(--apricot-soft); color: var(--accent); border-radius: 7px; padding: 1px 6px; font-weight: 500; white-space: nowrap; }
+  mark.mention.agent { display: inline; padding: 0 8px 1px; background: var(--mention-agent); color: #F3EDE4; border-radius: 8px 8px 8px 2px; font-family: var(--serif); font-weight: 400; font-size: 15.5px; padding: 0 8px 1px; }
+  .msg.agent .meta .avatar { width: 26px; height: 26px; }
+  .msg.agent .meta .who { font-size: 16.5px; }
+  .msg.agent .meta .owner, .msg.agent .meta .faint { color: var(--ink-3); font-size: 13px; }
+  .msg.agent .body { margin-left: 13px; padding: 2px 0 2px 18px; border-left: 2px solid transparent; border-image: linear-gradient(to bottom, #2A3244, #56352D) 1; max-width: 680px; }
+  .msg.agent .body p { margin: 0; font-size: 15.5px; line-height: 1.6; }
+  .join-line { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); padding-left: 2px; }
+  .join-line i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 15px; }
+  .join-line .mark { width: 18px; height: 18px; }
+  .composer-wrap { padding: 10px 24px 14px; }
+  .composer .input { font-size: 15px; min-height: 26px; color: var(--ink-3); }
+  .composer .bar .small { color: var(--ink-3); }
+  .hint { text-align: center; margin: 6px 0 0; }
+  .hint kbd { font: 11px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; background: var(--surface-2); }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 2; }
+
+  /* ---- the toast: an agent joins ---- */
+  .toast { position: absolute; left: 50%; top: 72px; transform: translateX(-50%); z-index: 3; display: inline-flex; align-items: center; gap: 12px; padding: 10px 18px 10px 12px; border-radius: var(--radius-full); background: var(--toast-bg); color: var(--rail-fg); box-shadow: var(--shadow-pop); font-size: 14px; white-space: nowrap; animation: rise .32s ease both; }
+  .toast .mark { width: 26px; height: 26px; }
+  .toast .mark .arc { transform-origin: 48px 48px; animation: arc-a 1.8s cubic-bezier(.3,.9,.3,1) 1 both; } .toast .mark .arc.b { animation-name: arc-b; }
+  .toast .mark .dot { transform-origin: 48px 48px; animation: dot-in 1.8s ease 1 both; }
+  .toast i { font-family: var(--serif); font-style: italic; color: var(--apricot); font-size: 16px; }
+  .toast .undo { margin-left: 4px; color: var(--apricot); font-weight: 500; font-size: 13px; }
+
+  /* ---- the drawer ---- */
+  .drawer { width: var(--drawer-w); padding: 0; gap: 0; position: relative; z-index: 4; box-shadow: -16px 0 50px rgba(42,50,68,0.10); }
+  .drawer .head { display: flex; align-items: center; gap: 12px; padding: 14px 22px 11px; border-bottom: 1px solid var(--line); }
+  .drawer .head h2 { font-size: 24px; line-height: 1; }
+  .drawer .head .sub { font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+  .drawer .head .sub b { color: var(--ink-2); font-weight: 500; }
+  .drawer .head .x { margin-left: auto; }
+  .drawer .body { flex: 1; overflow: auto; padding: 12px 22px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .drawer h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .drawer h3 .n { margin-left: auto; letter-spacing: 0; color: var(--ink-3); font-weight: 500; }
+  .drawer section { display: flex; flex-direction: column; gap: 2px; }
+  .drawer .rule { font-size: 12.5px; color: var(--ink-3); margin: 3px 2px 0; line-height: 1.45; }
+  .drawer .rule b { font-weight: 500; color: var(--ink-2); }
+
+  /* add: one field for a person or a live agent */
+  .add { position: relative; }
+  .add .field { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 12px 0 14px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); box-shadow: var(--team-glow); font-size: 14.5px; }
+  .add .field svg { color: var(--ink-3); }
+  .add .field .q { flex: 1; display: inline-flex; align-items: center; color: var(--ink); }
+  .add .field .q .ph { color: var(--ink-3); margin-left: 10px; white-space: nowrap; }
+  .add .field .q { white-space: nowrap; overflow: hidden; min-width: 0; }
+  .add .field .caret { display: inline-block; width: 1.5px; height: 18px; background: var(--accent); margin-left: 1px; animation: pulse 1s steps(2) infinite; }
+  .add .field kbd { font: 11px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+  .picker { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-pop); padding: 6px; display: flex; flex-direction: column; gap: 2px; animation: rise .2s ease both; }
+  .picker .ph { display: flex; align-items: center; gap: 8px; padding: 6px 10px 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .picker .ph .n { margin-left: auto; letter-spacing: 0; }
+  .picker .opt { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 11px; padding: 7px 10px; border-radius: 10px; color: var(--ink); text-align: left; }
+  .picker .opt.on { background: var(--apricot-soft); }
+  .picker .opt .name { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .picker .opt .name .t { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .picker .opt .name .t.serif { font-size: 16px; }
+  .picker .opt .name .t b { font-weight: 600; color: var(--accent); }
+  .picker .opt .name .t.serif b { font-weight: 400; color: var(--accent); text-decoration: underline; text-decoration-color: var(--apricot-deep); text-underline-offset: 3px; }
+  .picker .opt .name .s { font-size: 12px; color: var(--ink-3); white-space: nowrap; display: block; overflow: hidden; text-overflow: ellipsis; }
+  .picker .opt .name .s .status { font-size: 12px; gap: 5px; } .picker .opt .name .s .status::before { width: 6px; height: 6px; }
+  .picker .opt .name .s .on-it { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 13px; margin-left: 2px; }
+  .picker .opt .side { font-size: 12px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .picker .opt .side kbd { font: 10.5px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; background: var(--surface-2); }
+  .picker .opt .side .tok { font-family: var(--mono); font-size: 11.5px; }
+  .picker .opt.here { opacity: .55; }
+  .picker .opt.here .side .pill { height: 20px; font-size: 11px; }
+  .picker .opt.gone .avatar.agent { background: var(--surface-3); color: var(--ink-3); }
+  .picker .opt.gone .name .t, .picker .opt.gone .name .s { color: var(--ink-3); }
+  .picker .opt.gone .side { color: var(--ink-3); }
+  .picker .foot { display: flex; align-items: center; gap: 8px; padding: 8px 10px 4px; white-space: nowrap; border-top: 1px solid var(--line); margin-top: 4px; font-size: 12.5px; color: var(--ink-3); }
+  .picker .foot i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 14px; }
+  .picker .foot svg { color: var(--ink-3); }
+
+  /* rows */
+  .row { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 11px; padding: 6px 8px; margin: 0 -8px; border-radius: 12px; min-height: 42px; }
+  .row.hover { background: var(--surface-2); }
+  .row .avatar { width: 30px; height: 30px; font-size: 11.5px; }
+  .row .name { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .row .name .t { font-size: 14.5px; display: inline-flex; align-items: center; gap: 6px; }
+  .row .name .t.serif { font-size: 16.5px; }
+  .row .name .t .you { font-size: 12px; color: var(--ink-3); font-family: var(--font); }
+  .row .name .s { font-size: 12.5px; color: var(--ink-3); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .name .s .status { vertical-align: 0; }
+  .row .name .s .status { font-size: 12.5px; gap: 5px; } .row .name .s .status::before { width: 6px; height: 6px; }
+  .row .name .s .on-it { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 13.5px; margin-left: 3px; }
+  .row .side { display: inline-flex; align-items: center; gap: 6px; }
+  .row .side .btn.ghost.sm { min-height: 28px; padding: 0 9px; font-size: 12.5px; display: none; }
+  .row.hover .side .btn.ghost.sm, .row .side .btn.ghost.sm.show { display: inline-flex; }
+  .row .side .btn.ghost.sm.danger-text { color: var(--danger); }
+  .row .side .open { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 500; color: var(--accent); padding: 4px 9px 4px 7px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); }
+  .row .side .open svg { width: 12px; height: 12px; }
+  .row .side .lock { font-size: 12px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 5px; }
+  .row .side .lock svg { width: 13px; height: 13px; }
+
+  /* roles: a chip that is a menu for the rows you may change */
+  .rolechip { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px 0 10px; border-radius: var(--radius-full); font-size: 12px; font-weight: 500; color: var(--ink-2); background: var(--surface-3); white-space: nowrap; }
+  .rolechip.creator { background: var(--apricot); color: #56352D; }
+  .rolechip.host { background: var(--apricot-soft); color: var(--accent); }
+  .rolechip.fixed { background: transparent; border: 1px solid var(--line); }
+  .rolechip svg { width: 12px; height: 12px; opacity: .7; }
+  .rolechip.menu { box-shadow: var(--team-glow); }
+  .rolemenu { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 6; width: 236px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-pop); padding: 6px; flex-direction: column; gap: 2px; animation: rise .2s ease both; }
+  .rolemenu .o { display: grid; grid-template-columns: 1fr 16px; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 9px; }
+  .rolemenu .o.on { background: var(--apricot-soft); }
+  .rolemenu .o .t { font-size: 13.5px; font-weight: 500; }
+  .rolemenu .o .d { font-size: 12px; color: var(--ink-3); line-height: 1.35; }
+  .rolemenu .o svg { width: 16px; height: 16px; color: var(--accent); }
+  .rolemenu .o.off { opacity: .5; }
+  .row .side { position: relative; }
+
+  /* the just-joined row */
+  .row.joined { background: color-mix(in srgb, var(--surface) 60%, var(--apricot-soft)); }
+  .row.joined .avatar { animation: ripple .9s ease-out 1; }
+  .row.joined .name .s .new { color: var(--accent); font-weight: 500; }
+
+  /* the inline remove confirm */
+  .confirm { margin: 2px -8px 2px; padding: 9px 14px 9px 49px; border-radius: 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; animation: rise .24s ease both; position: relative; }
+  .confirm::before { content: ""; position: absolute; left: 22px; top: 14px; bottom: 14px; width: 2px; border-radius: 2px; background: var(--danger); }
+  .confirm p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+  .confirm p b { font-family: var(--serif); font-weight: 400; color: var(--ink); font-size: 15px; }
+  .confirm .actions { display: flex; align-items: center; gap: 8px; }
+  .confirm .actions .also { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
+  .confirm .actions .also .box { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--ink-3); display: inline-grid; place-items: center; }
+
+  /* the ledger */
+  .ledger { display: flex; flex-direction: column; gap: 0; }
+  .ledger .l { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: baseline; padding: 5px 2px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line); }
+  .ledger .l:first-child { border-top: 0; }
+  .ledger .l .mark { width: 14px; height: 14px; align-self: center; }
+  .ledger .l .who { font-family: var(--serif); color: var(--ink); font-size: 14.5px; }
+  .ledger .l .when { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .ledger .l .minus { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ink-3); align-self: center; display: grid; place-items: center; }
+  .ledger .l .minus::after { content: ""; width: 6px; height: 1.5px; background: var(--ink-3); }
+
+
+  /* ---- mobile: the drawer becomes a sheet over the chat ---- */
+  .sheet-handle { display: none; }
+  @media (max-width: 480px) {
+    .rail, .toast, .picker { display: none; }
+    .rolemenu { display: flex; }
+    .topbar { padding: 10px 14px; }
+    .topbar .title .purpose, .topbar .stack, .topbar .btn.members .lbl { display: none; }
+    .topbar .btn.members { width: 36px; padding: 0; }
+    .shell { position: relative; }
+    .drawer { position: absolute; left: 0; right: 0; bottom: 0; width: auto; height: 92%; border-left: 0; border-top: 1px solid var(--line); border-radius: 26px 26px 0 0; box-shadow: var(--shadow-pop); }
+    .sheet-handle { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: 10px auto -4px; }
+    .drawer .head { padding: 12px 18px 12px; }
+    .drawer .body { padding: 14px 18px 24px; gap: 18px; }
+    .add .field { box-shadow: none; }
+    .add .field kbd, .add .field .typed, .add .field .caret { display: none; }
+    .add .field .q .ph { margin-left: 0; }
+    .confirm { display: none; }
+    .drawer::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 56px; background: linear-gradient(to top, var(--surface), transparent); pointer-events: none; border-radius: 0; }
+    .row { gap: 10px; padding: 6px 6px; margin: 0 -6px; }
+    .row .side .btn.ghost.sm { display: inline-flex; }
+    .row .side .lock span { display: none; }
+    .row .name .s .on-it { display: none; }
+    .row .side .open span { display: none; } .row .side .open { padding: 6px; }
+    .confirm { padding-left: 14px; } .confirm::before { left: 0; }
+    .confirm .actions .also { display: none; }
+    .composer-wrap { display: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mark" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+      <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke="var(--mark-arc-a)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke="var(--mark-arc-b)" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="7" fill="var(--mark-dot)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <!-- rail -->
+  <aside class="rail">
+    <div class="brand"><svg class="mark"><use href="#mark"/></svg>Henosis</div>
+    <button class="new"><svg class="ic"><path d="M8 3v10M3 8h10"/></svg>New session</button>
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div><div class="doing">Answering Dee in <i>#billing</i> · per-day proration</div><div class="foot"><span class="with"><span class="avatar">AN</span>with Bo, Cy, Dee</span><span class="tok">12.4k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div><div class="doing">Waits at the <i>release gate</i> · deploy to production</div><div class="foot"><span class="with"><span class="avatar">BO</span>with Ana, Cy</span><span class="tok">18.6k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot blocked"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div><div class="doing">Blocked · <i>tax rate lookup</i> answered 500</div><div class="foot"><span class="with"><span class="avatar">CY</span>Cy</span><span class="tok">31.0k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div><div class="doing">Paused · <i>plan waits for one rating</i></div><div class="foot"><span class="with"><span class="avatar">DE</span>Dee</span><span class="tok">4.2k</span></div></a>
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic"><path d="M2 4h12v9H2zM2 4l6 5 6-5"/></svg>Inbox<span class="n live">6</span></a>
+    <a class="item" href="#"><svg class="ic"><path d="M3 8.5l3 3 7-7"/></svg>Approvals<span class="n live">3</span></a>
+    <a class="item active" href="#"><svg class="ic"><path d="M3 3h10v7H6l-3 3z"/></svg>Chats<span class="n live">6</span></a>
+    <a class="item" href="#"><svg class="ic"><path d="M2 3h12v10H2zM2 7h12"/></svg>Overview</a>
+    <div class="me"><span class="avatar">BO</span><span class="meta"><span>Bo</span><span class="role">Payments · owner</span></span><span class="gear"><svg class="ic"><path d="M2 5h12M2 11h12"/><circle cx="6" cy="5" r="1.8" fill="var(--rail)"/><circle cx="10" cy="11" r="1.8" fill="var(--rail)"/></svg></span></div>
+  </aside>
+
+  <!-- the chat -->
+  <main class="main">
+    <div class="topbar">
+      <div class="title"><span class="serif"><span class="hash">#</span>billing</span><span class="purpose">The Billing page, end to end</span></div>
+      <div class="right">
+        <span class="stack"><span class="avatar">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span><span class="sep"></span><span class="avatar agent">BP<span class="live"></span></span><span class="avatar agent">IP<span class="live blocked"></span></span><span class="avatar agent">CO<span class="live awaiting"></span></span><span class="avatar agent">TL<span class="live paused"></span></span></span>
+        <button class="btn sm on members" aria-pressed="true"><svg class="ic"><circle cx="6" cy="5.5" r="2.5"/><path d="M1.5 13.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4M11 3.5a2.5 2.5 0 0 1 0 4.5M14.5 13.5c0-2-1.2-3.4-3-3.9"/></svg><span class="lbl">Members</span></button>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="column chatcol">
+        <div class="divider"><span>Today</span></div>
+        <div class="msg human"><div class="meta"><span class="who">Ana</span><span class="when">09:12</span></div><div class="text">Per-day. Stripe prorates per second, but our invoices show whole days. <mark class="mention agent">@Billing page</mark> take per-day proration and show the credit as its own line.</div></div>
+        <div class="msg agent"><div class="meta"><span class="avatar agent">BP<span class="live"></span></span><span class="who">Billing page</span><span class="owner">Ana's agent</span><span class="faint">replied · in reply to Ana</span><span class="when">09:13</span></div><div class="body"><p>Taking per-day: prorate on the day the plan changes, credit the unused days as one line, "Unused time on Starter", with its own tax line so the invoice PDF totals match.</p></div></div>
+        <div class="msg human mine"><div class="meta"><span class="who">Bo</span><span class="when">09:41</span></div><div class="text">Rated it 5. <mark class="mention">@Dee</mark> can you give the second rating so it runs before the Checkout gate opens?</div></div>
+        <div class="msg human"><div class="meta"><span class="who">Dee</span><span class="when">09:44</span></div><div class="text">On it, rated 4 with a note on step 2: round the tax line last or <code>invoice.pdf</code> totals drift. <mark class="mention agent">@Billing page</mark> add Tax lines here, it knows the rates.</div></div>
+        <div class="join-line"><svg class="mark"><use href="#mark"/></svg><span>Bo adds <i>Tax lines</i>, Dee's agent · 09:46</span></div>
+      </div>
+      <div class="composer-wrap"><div class="composer"><div class="input">Say something; @ mentions a person or an agent</div><div class="bar"><span class="small">#billing · 4 people · 4 agents</span><div class="right"><button class="send" aria-label="Send"><svg class="ic" style="width:15px;height:15px"><path d="M2 8l12-5-3 12-3-5z"/></svg></button></div></div></div><p class="hint small faint"><kbd>Enter</kbd> to send · <kbd>@</kbd> to mention a person or an agent</p></div>
+    </div>
+    <div class="scrim" aria-hidden="true"></div>
+    <div class="toast" role="status"><svg class="mark joining" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span><i>Tax lines</i> joins the circle.</span><a class="undo" href="#">Undo</a></div>
+  </main>
+
+  <!-- the members drawer -->
+  <aside class="drawer" aria-label="Members">
+    <div class="sheet-handle"></div>
+    <div class="head">
+      <div><h2>Members</h2><div class="sub"><b>4 people</b> · <b>4 agents</b> · #billing · started Mon by Dee</div></div>
+      <button class="btn ghost icon sm x" aria-label="Close members"><svg class="ic"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <div class="body">
+
+      <!-- add -->
+      <div class="add">
+        <div class="field">
+          <svg class="ic"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+          <span class="q"><span class="typed">ro</span><span class="caret"></span><span class="ph">person or live agent</span></span>
+          <kbd>↑↓</kbd><kbd>↵</kbd>
+        </div>
+        <div class="picker" role="listbox" aria-label="Add a member">
+          <div class="ph">Matches for "ro" <span class="n">3 of 14</span></div>
+          <div class="opt" role="option"><span class="avatar">RL</span><span class="name"><span class="t"><b>Ro</b>sa Lind</span><span class="s">Payments · support · in #checkout</span></span><span class="side">person</span></div>
+          <div class="opt on" role="option" aria-selected="true"><span class="avatar agent">IR<span class="live"></span></span><span class="name"><span class="t serif">Invoice <b>ro</b>llout</span><span class="s"><span class="status running">running</span> · Ana and Bo's crew · <span class="on-it">rolling invoices to the first 50 accounts</span></span></span><span class="side"><span class="tok">9.8k</span><kbd>↵ add</kbd></span></div>
+          <div class="opt gone" role="option" aria-disabled="true"><span class="avatar agent">PC</span><span class="name"><span class="t serif">P<b>ro</b>ration check</span><span class="s">Cy's agent · ended 14:02 Tue</span></span><span class="side">not live · can't join</span></div>
+          <div class="foot"><svg class="ic"><path d="M8 2.5v3M8 10.5v3M2.5 8h3M10.5 8h3"/><circle cx="8" cy="8" r="1.5"/></svg><span>Mentioning an agent <i>steers its session</i>; its owner is told when it joins.</span></div>
+        </div>
+      </div>
+
+      <!-- people -->
+      <section>
+        <h3>People <span class="n">4</span></h3>
+        <div class="row"><span class="avatar">DE</span><span class="name"><span class="t">Dee</span><span class="s">Payments · engineer · started it Mon</span></span><span class="side"><span class="rolechip creator">Creator</span></span></div>
+        <div class="row"><span class="avatar">BO</span><span class="name"><span class="t">Bo <span class="you">you</span></span><span class="s">Payments · owner</span></span><span class="side"><button class="btn ghost sm show">Leave</button><span class="rolechip host">Host</span></span></div>
+        <div class="row hover"><span class="avatar">CY</span><span class="name"><span class="t">Cy</span><span class="s">Payments · engineer · brought Invoice PDF</span></span><span class="side"><button class="btn ghost sm danger-text">Remove</button><span class="rolechip menu">Member<svg class="ic"><path d="M4 6l4 4 4-4"/></svg></span>
+          <div class="rolemenu" role="menu">
+            <div class="o" role="menuitemradio"><span><span class="t">Host</span><span class="d" style="display:block">Adds and removes people and agents.</span></span></div>
+            <div class="o on" role="menuitemradio" aria-checked="true"><span><span class="t">Member</span><span class="d" style="display:block">Reads, writes, mentions. Brings own agents.</span></span><svg class="ic"><path d="M3 8.5l3 3 7-7"/></svg></div>
+            <div class="o off" role="menuitemradio" aria-disabled="true"><span><span class="t">Creator</span><span class="d" style="display:block">One per group; Dee hands it on, not you.</span></span></div>
+          </div>
+        </span></div>
+        <div class="row"><span class="avatar">AN</span><span class="name"><span class="t">Ana</span><span class="s">Payments · lead · brought Billing page</span></span><span class="side"><button class="btn ghost sm danger-text show">Remove</button><span class="rolechip">Member<svg class="ic"><path d="M4 6l4 4 4-4"/></svg></span></span></div>
+        <div class="confirm" role="alertdialog">
+          <p>Remove <b>Ana</b> from #billing? The log keeps what she said. <b>Billing page</b>, her agent, stays unless you take it too.</p>
+          <div class="actions"><button class="btn sm danger">Remove Ana</button><button class="btn sm ghost">Keep</button><label class="also"><span class="box"></span>Also remove Billing page</label></div>
+        </div>
+        <p class="rule"><b>Creator and hosts</b> add and remove; everyone reads, writes and mentions; anyone can leave.</p>
+      </section>
+
+      <!-- agents -->
+      <section>
+        <h3>Agents <span class="n">4</span></h3>
+        <div class="row joined hover"><span class="avatar agent">TL<span class="live paused"></span></span><span class="name"><span class="t serif">Tax lines</span><span class="s"><span class="new">joined just now</span> · Dee's agent · <span class="status paused">paused</span></span></span><span class="side"><a class="open" href="#"><svg class="ic"><path d="M7 3H3v10h10V9M9 3h4v4M13 3L7 9"/></svg><span>Open</span></a><button class="btn ghost sm danger-text">Remove</button></span></div>
+        <div class="row"><span class="avatar agent">BP<span class="live"></span></span><span class="name"><span class="t serif">Billing page</span><span class="s">Ana's agent · <span class="status running">running</span><span class="on-it">· per-day proration</span></span></span><span class="side"><a class="open" href="#"><svg class="ic"><path d="M7 3H3v10h10V9M9 3h4v4M13 3L7 9"/></svg><span>Open</span></a><button class="btn ghost sm danger-text">Remove</button></span></div>
+        <div class="row"><span class="avatar agent">CO<span class="live awaiting"></span></span><span class="name"><span class="t serif">Checkout</span><span class="s">your agent · <span class="status awaiting">at the gate</span><span class="on-it">· deploy to production</span></span></span><span class="side"><a class="open" href="#"><svg class="ic"><path d="M7 3H3v10h10V9M9 3h4v4M13 3L7 9"/></svg><span>Open</span></a><button class="btn ghost sm danger-text">Remove</button></span></div>
+        <div class="row"><span class="avatar agent">IP<span class="live blocked"></span></span><span class="name"><span class="t serif">Invoice PDF</span><span class="s">Cy's agent · <span class="status blocked">blocked</span><span class="on-it">· tax rate lookup</span></span></span><span class="side"><a class="open" href="#"><svg class="ic"><path d="M7 3H3v10h10V9M9 3h4v4M13 3L7 9"/></svg><span>Open</span></a><span class="lock"><svg class="ic"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg><span>Cy or Dee</span></span></span></div>
+        <p class="rule">Hears only what <b>mentions it</b>. Its owner, the creator or a host takes it out.</p>
+      </section>
+
+      <!-- ledger -->
+      <section>
+        <h3>Changes <span class="n">4 this week · <a href="#">see all</a></span></h3>
+        <div class="ledger">
+          <div class="l"><svg class="mark"><use href="#mark"/></svg><span><span class="who">Tax lines</span> joined · you</span><span class="when">09:46</span></div>
+          <div class="l"><span class="minus"></span><span><span class="who">Eli</span> left · on his own</span><span class="when">Tue</span></div>
+        </div>
+        <p class="rule">Kept in the group log, attributed and replayable. <b>Never sent to the agents.</b></p>
+      </section>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

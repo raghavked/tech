@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Project page</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---- Project page: the fleet board. Direction above, agents by crew in the middle, the
+     team's own things (spend, chat, memory) in a side column. One screen, live. ---- */
+  body { overflow-x: hidden; }
+  .shell { height: 100vh; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .row { display: flex; align-items: center; gap: 8px; min-width: 0; } .grow { flex: 1; min-width: 0; }
+  .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  p { margin: 0; }
+  /* dark: lift the status colours so they read on navy surfaces */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8CC283; --ok-soft: rgba(140,194,131,.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); } }
+  :root[data-theme="dark"] { --ok: #8CC283; --ok-soft: rgba(140,194,131,.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); }
+
+  /* rail */
+  .rail { overflow: hidden; }
+  .rail .brand { padding-bottom: 10px; } .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13px; margin-bottom: 2px; }
+  .rail .search kbd { margin-left: auto; font: 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 1px 5px; }
+  .rail .section { padding: 12px 10px 4px; } .rail .item { padding: 7px 12px; } .rail .item svg { opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .item.proj .serif { font-size: 15.5px; }
+  .rail .agent { padding: 8px 12px; gap: 4px; } .rail .crew { padding-top: 8px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 4px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; } .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+
+  /* topbar */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .crumb { color: var(--ink-3); font-family: var(--font); font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .topbar .crumb svg { width: 12px; height: 12px; }
+  .topbar .live { display: inline-flex; align-items: center; gap: 6px; font: 12.5px var(--font); color: var(--ink-2); }
+  .topbar .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); animation: pulse 1.6s ease-in-out infinite; }
+  .topbar .btn { white-space: nowrap; } .topbar .btn.sm svg { width: 14px; height: 14px; }
+  .topbar .stack .avatar { width: 26px; height: 26px; font-size: 10.5px; }
+  .topbar .menu { display: none; }
+
+  /* page grid */
+  .page { padding: 26px 32px 60px; display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: 36px; align-items: start; max-width: 1240px; }
+  .col { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+  .head1 { display: flex; flex-direction: column; gap: 8px; }
+  .head1 h1 { font-size: 38px; }
+  .head1 .sum { font-size: 15.5px; color: var(--ink-2); } .head1 .sum b { font-weight: 500; color: var(--ink); } .head1 .sum a { font-weight: 500; }
+  .group { display: flex; flex-direction: column; gap: 12px; }
+  .group > .gh { display: flex; align-items: baseline; gap: 10px; } .group > .gh h2 { font-size: 24px; } .group > .gh .n { font-size: 13px; color: var(--ink-3); } .group > .gh .right { margin-left: auto; font-size: 13px; }
+
+  /* direction: the field that reaches every session */
+  .direction { display: flex; flex-direction: column; gap: 10px; }
+  .direction .composer { width: 100%; padding: 12px 12px 10px 16px; gap: 8px; box-shadow: var(--shadow-soft); }
+  .direction .composer .input { color: var(--ink-3); font-size: 15px; display: flex; align-items: center; gap: 1px; } .direction .composer .input .caret { width: 1px; height: 17px; background: var(--ink); }
+  .direction .composer .bar .hint { font-size: 12.5px; color: var(--ink-3); }
+  .direction .composer .seg button { display: inline-flex; align-items: center; gap: 6px; } .direction .composer .seg svg { width: 12px; height: 12px; }
+  .direction .composer .send svg { width: 16px; height: 16px; }
+  .direction .composer .send.off { opacity: .45; cursor: default; box-shadow: none; }
+  .dirs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dir { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 6px 0 4px; border-radius: var(--radius-full); background: var(--surface); border: 1px solid var(--line); font-size: 13.5px; color: var(--ink); max-width: 100%; }
+  .dir .mode { height: 24px; padding: 0 9px; border-radius: var(--radius-full); font-family: var(--serif); font-style: italic; font-size: 13.5px; background: var(--surface-2); color: var(--ink-2); flex: none; }
+  .dir.constrain .mode { background: var(--apricot-soft); color: var(--accent); }
+  .dir .by { font-size: 12px; color: var(--ink-3); white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; } .dir .by .avatar { width: 18px; height: 18px; font-size: 8.5px; border-width: 1.5px; }
+  .dir .x { width: 22px; height: 22px; border-radius: 50%; border: 0; background: transparent; color: var(--ink-3); display: inline-grid; place-items: center; cursor: pointer; padding: 0; } .dir .x:hover { background: var(--surface-2); color: var(--ink); } .dir .x svg { width: 11px; height: 11px; }
+  .dir.mine { box-shadow: inset 0 0 0 1px var(--apricot-deep); border-color: transparent; }
+
+  /* agents by crew */
+  .board { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .board .crewhead { display: flex; align-items: center; gap: 10px; padding: 14px 18px 8px; font-size: 12.5px; color: var(--ink-3); }
+  .board .crewhead::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot-deep); flex: none; }
+  .board .crewhead .serif { font-size: 17px; color: var(--ink); } .board .crewhead .act { margin-left: auto; }
+  .board .crewhead.solo::before { border-color: var(--ink-3); border-style: dashed; }
+  .board .crewhead .claims { display: inline-flex; gap: 4px; margin-left: 6px; }
+  .board .crewhead .claims .mono { font-size: 11px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+  .arow { display: grid; grid-template-columns: 18px minmax(0, 1fr) 118px auto auto; gap: 14px; align-items: center; padding: 11px 18px 12px 18px; border-top: 1px solid var(--line); text-decoration: none; color: inherit; }
+  .arow:hover { background: var(--surface-2); text-decoration: none; }
+  .arow.blocked { background: var(--danger-soft); background: color-mix(in srgb, var(--danger-soft) 45%, transparent); }
+  .arow .sd { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-3); margin: 0 auto; flex: none; }
+  .arow .sd.running { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); animation: pulse 1.6s ease-in-out infinite; }
+  .arow .sd.awaiting { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+  .arow .sd.blocked { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); } .arow .sd.closed { background: transparent; border: 1.5px solid var(--ink-3); }
+  .arow .what { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .arow .what .t { font-family: var(--serif); font-size: 18px; line-height: 1.2; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .arow .what .t .ttl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .arow .what .t .pill { flex: none; font-family: var(--font); }
+  .arow .what .s { font-size: 13px; color: var(--ink-2); display: block; min-width: 0; line-height: 1.5; }
+  .arow .what .s .who { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); vertical-align: -1px; } .arow .what .s .who .avatar { width: 18px; height: 18px; font-size: 8.5px; border-width: 1.5px; }
+  .arow .what .s .who .with { color: var(--ink-2); }
+  .arow .what .s .sep { color: var(--ink-3); margin: 0 4px; } .arow .what .s .doing { min-width: 0; } .arow .what .s .doing i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 14px; }
+  .arow .what .s .wait { color: var(--warn); font-weight: 500; white-space: nowrap; } .arow .what .s .held { color: var(--danger); font-weight: 500; white-space: nowrap; }
+  .arow .use { display: flex; flex-direction: column; gap: 5px; font: 12px var(--mono); color: var(--ink-2); }
+  .arow .use .l { display: flex; justify-content: space-between; gap: 8px; } .arow .use .l b { font-weight: 500; color: var(--ink); } .arow .use .l span { color: var(--ink-3); }
+  .arow .use .budget { height: 4px; } .arow .use.nobudget .budget > i { background: var(--surface-3); }
+  .arow .use .l .over { color: var(--warn); font-weight: 500; }
+  .arow .st { font-size: 12.5px; white-space: nowrap; justify-self: end; min-width: 92px; }
+  .arow .act { justify-self: end; min-width: 84px; display: flex; justify-content: flex-end; }
+  .arow .btn.sm { min-height: 28px; padding: 0 10px; font-size: 12.5px; white-space: nowrap; }
+  .arow .btn.ghost.sm { color: var(--ink-2); } .arow .btn.ghost.sm:hover { background: var(--surface-2); box-shadow: none; }
+  .arow.closed { color: var(--ink-2); } .arow.closed .what .t { color: var(--ink-2); font-size: 16px; } .arow.closed .st { color: var(--ink-3); }
+  /* the inline Team up form, open on one row */
+  .crewform { grid-column: 2 / -1; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px 10px; padding: 10px 12px; margin-top: 2px; border-radius: 12px; background: var(--surface-2); }
+  .crewform .lbl { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+  .crewform .input { flex: 1; height: 32px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 0 11px; font: 13.5px var(--font); color: var(--ink); display: flex; align-items: center; gap: 1px; box-shadow: var(--team-glow); }
+  .crewform .input .ph { color: var(--ink-3); } .crewform .input .caret { width: 1px; height: 16px; background: var(--ink); }
+  .crewform .sugg { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-3); } .crewform .sugg .chip { height: 24px; font-size: 12px; padding: 0 9px; cursor: pointer; background: var(--surface); border: 1px solid var(--line); }
+  .crewform .btn.sm { min-height: 30px; }
+  .newrow { display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 14px; font-weight: 500; cursor: pointer; }
+  .newrow:hover { background: var(--surface-2); } .newrow .hint { margin-left: auto; font-size: 12.5px; color: var(--ink-3); font-weight: 400; }
+
+  /* contentions */
+  .notice.contention::before { background: var(--warn); }
+  .notice .sent { font-size: 15px; } .notice .sent .mono { font-size: 13px; color: var(--ink); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; }
+  .notice .sent .serif { font-size: 17px; }
+  .notice .rule { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; } .notice .rule .you { color: var(--accent); font-weight: 500; } .notice .rule .mono { font-size: 12px; }
+  .notice .ago { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none; } .notice .ago i { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); animation: pulse 1.6s ease-in-out infinite; }
+  .sides { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .side { display: flex; flex-direction: column; gap: 6px; padding: 11px 13px; border-radius: 12px; border: 1px solid var(--line); background: var(--canvas); font-size: 13.5px; }
+  .side .h { display: flex; align-items: center; gap: 8px; } .side .h .serif { font-size: 16px; } .side .h .avatar { width: 22px; height: 22px; font-size: 9px; }
+  .side .h .k { margin-left: auto; font: 11px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+  .side .q { color: var(--ink-2); } .side .q i { font-family: var(--serif); color: var(--accent); font-size: 14.5px; }
+  .side .sees { font-size: 12.5px; color: var(--ink-3); display: flex; gap: 6px; } .side .sees svg { width: 13px; height: 13px; margin-top: 3px; color: var(--apricot-deep); }
+  .notice .actions .btn.sm { min-height: 30px; } .notice .actions .spacer { flex: 1; }
+  .notice .actions .note { font-size: 12.5px; color: var(--ink-3); }
+  .notice.soft { padding: 12px 18px; flex-direction: row; align-items: center; gap: 12px; } .notice.soft::before { background: var(--ink-3); }
+  .notice.soft .sent { font-size: 14px; color: var(--ink-2); } .notice.soft .btn { margin-left: auto; }
+
+  /* side column cards */
+  .card { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .card > h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .card > h3 .sum { margin-left: auto; font: 12px var(--font); letter-spacing: 0; text-transform: none; color: var(--ink-3); font-weight: 400; display: inline-flex; align-items: center; gap: 6px; }
+  .card > h3 .sum a { font-weight: 500; }
+
+  /* people */
+  .people { display: flex; flex-direction: column; gap: 8px; }
+  .person .avatar { width: 30px; height: 30px; font-size: 11px; border-color: var(--surface); position: relative; }
+  .person .avatar::after { content: ""; position: absolute; right: -3px; bottom: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); border: 2px solid var(--surface); }
+  .person.off .avatar::after { background: var(--ink-3); } .person.off .avatar { opacity: .7; }
+  .person .who { display: flex; flex-direction: column; line-height: 1.25; flex: 1; min-width: 0; }
+  .person .who .name { font-family: var(--serif); font-size: 16px; color: var(--ink); } .person .who .name .you { font-family: var(--font); font-size: 12px; color: var(--ink-3); margin-left: 4px; }
+  .person .who .role { font-size: 12px; color: var(--ink-3); } .person .who .role .new { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 13px; }
+  .person .on { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+  .person.joined .avatar { animation: ripple .9s ease-out 1; }
+
+  /* spend */
+  .spend .big { display: flex; align-items: baseline; gap: 8px; } .spend .big b { font-family: var(--mono); font-weight: 500; font-size: 22px; color: var(--ink); letter-spacing: -0.01em; }
+  .spend .big span { font-size: 12.5px; color: var(--ink-3); } .spend .big .pct { margin-left: auto; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
+  .spend .budget { height: 8px; }
+  .bars { display: flex; flex-direction: column; gap: 5px; }
+  .bars .b { display: grid; grid-template-columns: 112px 1fr 52px; gap: 10px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+  .bars .b .nm { font-family: var(--serif); font-size: 14.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .bars .b .nm small { font: 11.5px var(--font); color: var(--ink-3); margin-left: 4px; }
+  .bars .b .bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; } .bars .b .bar i { display: block; height: 100%; background: var(--apricot-deep); border-radius: inherit; }
+  .bars .b.live .bar i { background: var(--gradient-live); background-size: 200% 100%; animation: weave 1.2s linear infinite; }
+  .bars .b .mono { font-size: 12px; text-align: right; }
+  .saved { font-size: 12.5px; color: var(--ink-3); display: flex; align-items: flex-start; gap: 6px; line-height: 1.45; } .saved svg { margin-top: 3px; } .saved b { color: var(--ok); font-weight: 500; } .saved svg { width: 13px; height: 13px; color: var(--ok); }
+
+  /* chat */
+  .chat { gap: 8px; }
+  .chat .line { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: baseline; font-size: 14px; }
+  .chat .line .who { color: var(--ink); } .chat .line.mine .who { color: var(--accent); } .chat .line .what { color: var(--ink); }
+  .chat .line .what .mono { font-size: 12.5px; background: var(--surface-2); border-radius: 5px; padding: 0 5px; }
+  .chat .line time { grid-column: 2; font-size: 11.5px; color: var(--ink-3); margin-top: -4px; }
+  .chat .joined { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-style: italic; font-size: 13.5px; color: var(--accent); }
+  .chat .joined::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .chat .typing { font-size: 12.5px; color: var(--ink-3); font-style: italic; display: flex; align-items: center; gap: 6px; }
+  .chat .typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--apricot-deep); animation: pulse 1.2s ease-in-out infinite; } .chat .typing i + i { animation-delay: .2s; } .chat .typing i + i + i { animation-delay: .4s; }
+  .say { display: flex; gap: 8px; align-items: center; }
+  .say .input { flex: 1; height: 34px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); padding: 0 11px; font: 13.5px var(--font); color: var(--ink-3); display: flex; align-items: center; }
+  .say .send { width: 34px; height: 34px; } .say .send svg { width: 14px; height: 14px; }
+  .never { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 6px; } .never svg { width: 13px; height: 13px; }
+
+  /* memory */
+  .memlist { display: flex; flex-direction: column; gap: 7px; }
+  .memline { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: baseline; font-size: 13.5px; }
+  .memline .k { display: block; font: 11.5px var(--mono); color: var(--ink-3); margin-bottom: 1px; } .memline .by { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .memline .by .agent-tag { font-family: var(--serif); font-style: italic; color: var(--accent); }
+  .conflict { display: flex; flex-direction: column; gap: 7px; background: var(--warn-soft); border-radius: 12px; padding: 10px 12px; }
+  .conflict .cf { font-size: 11.5px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--warn); display: flex; align-items: center; gap: 6px; } .conflict .cf .mono { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--ink); }
+  .conflict .memline { grid-template-columns: 1fr auto auto; } .conflict .memline .btn.sm { min-height: 24px; padding: 0 8px; font-size: 12px; }
+
+  /* brief fold */
+  .fold { border-top: 1px solid var(--line); padding-top: 14px; }
+  .fold summary { list-style: none; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--ink-2); font-size: 14px; } .fold summary::-webkit-details-marker { display: none; }
+  .fold summary .serif { font-size: 20px; color: var(--ink); } .fold summary svg { width: 14px; height: 14px; color: var(--ink-3); }
+  .fold summary .sum { margin-left: auto; font-size: 12.5px; color: var(--ink-3); }
+
+  /* ---- mobile: rail folds away, one column, the side column stacks under the board ---- */
+  @media (max-width: 760px) {
+    .shell { height: auto; min-height: 100vh; }
+    .rail { display: none; }
+    .topbar { padding: 10px 12px; gap: 8px; } .topbar .title .serif { font-size: 19px; }
+    .topbar .crumb, .topbar .live, .topbar .btn.share, .topbar .btn.invite, .topbar .stack { display: none; }
+    .topbar .menu { display: inline-grid; }
+    .page { grid-template-columns: 1fr; padding: 16px 16px 48px; gap: 26px; }
+    .head1 h1 { font-size: 30px; }
+    .arow { grid-template-columns: 14px minmax(0, 1fr); gap: 8px 10px; padding: 12px 14px; }
+    .arow .use { grid-column: 2; flex-direction: row; align-items: center; gap: 10px; } .arow .use .budget { flex: 1; } .arow .use .l { flex: none; }
+    .arow .st, .arow .act { grid-column: 2; justify-self: start; min-width: 0; }
+    .arow .st { grid-row: 3; } .arow .act { grid-row: 3; justify-self: end; }
+    .arow .what .t { font-size: 17px; }
+    .crewform { grid-template-columns: auto auto 1fr; } .crewform .lbl { display: none; } .crewform .input { grid-column: 1 / -1; } .crewform .sugg { flex-wrap: wrap; }
+    .dir { height: auto; min-height: 32px; flex-wrap: wrap; padding: 4px 6px 4px 4px; row-gap: 4px; } .dir .by { margin-left: auto; }
+    .board .crewhead { flex-wrap: wrap; gap: 4px 8px; } .board .crewhead .serif { white-space: nowrap; } .board .crewhead .claims { flex-basis: 100%; margin-left: 17px; flex-wrap: wrap; }
+    .notice .row { flex-wrap: wrap; } .notice .sent .mono { white-space: nowrap; }
+    .sides { grid-template-columns: 1fr; }
+    .notice .actions { flex-wrap: wrap; }
+    .direction .composer .bar .hint { display: none; }
+  }
+  /* pulses start at full opacity so a still frame reads the status */
+  .rail .agent .head .dot.running, .arow .sd.running, .status.running::before, .topbar .live i, .notice .ago i { animation-delay: -1s; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- ======== rail ======== -->
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+      Henosis
+    </div>
+    <button class="new"><svg class="ic" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>New session</button>
+    <div class="search"><svg class="ic" viewBox="0 0 16 16"><path d="M7 12.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM11 11l3.5 3.5"/></svg>Search<kbd>⌘K</kbd></div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 16 16"><path d="M2.5 9h3l1 2h3l1-2h3M2.5 9V4.5A1.5 1.5 0 0 1 4 3h8a1.5 1.5 0 0 1 1.5 1.5V9M2.5 9v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/></svg>Inbox<span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Approvals<span class="n">2</span></a>
+    <div class="section">Projects</div>
+    <a class="item proj active" href="#"><span class="serif">Billing page</span><span class="n">4 live</span></a>
+    <a class="item proj" href="#"><span class="serif">Checkout</span><span class="n">1</span></a>
+    <div class="section">Agents<span class="n">5</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span></div>
+    <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill team">Team</span></div><div class="doing">Rendering the tax lines into <i>invoice.pdf</i></div><div class="foot">Ana <span class="with"><span class="avatar">BO</span></span><span class="tok">48.2k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot awaiting_approval"></span><span class="t">Tax lines on invoices</span></div><div class="doing">Waits for a rating on <i>rounding per line</i></div><div class="foot">Bo <span class="pill solo">Solo</span><span class="tok">131k</span></div></a>
+    <div class="crew"><span class="serif">Checkout proration</span></div>
+    <a class="agent" href="#"><div class="head"><span class="dot blocked"></span><span class="t">Proration on plan change</span></div><div class="doing">Holds <i>proration.ts</i> for a pick · writing fixtures</div><div class="foot">Cy <span class="pill solo">Solo</span><span class="tok">22.7k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot"></span><span class="t">Billing page copy</span></div><div class="doing">Idle · last turn ended on <i>plan names</i></div><div class="foot">Dee <span class="pill solo">Solo</span><span class="tok">6.1k</span></div></a>
+    <div class="me"><span class="avatar">AN</span><span class="meta"><span>Ana</span><span class="role">Lead · Payments</span></span><span class="gear"><svg class="ic" viewBox="0 0 16 16"><path d="M3 8h.01M8 8h.01M13 8h.01"/></svg></span></div>
+  </nav>
+
+  <!-- ======== main ======== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn icon ghost menu" aria-label="Menu"><svg class="ic" viewBox="0 0 16 16"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg></button>
+      <div class="title"><span class="crumb">Payments <svg class="ic" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg></span><span class="serif">Billing page</span><span class="live"><i></i>4 agents live</span></div>
+      <div class="right">
+        <span class="stack" title="Ana, Bo, Cy, Dee"><span class="avatar">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span></span>
+        <button class="btn sm invite"><svg class="ic" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>Invite</button>
+        <button class="btn sm share"><svg class="ic" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M5 11l-1 1a2.5 2.5 0 0 1-3.5-3.5l2-2A2.5 2.5 0 0 1 6 6.5M11 5l1-1a2.5 2.5 0 0 1 3.5 3.5l-2 2A2.5 2.5 0 0 1 10 9.5"/></svg>Share</button>
+        <button class="btn sm primary"><svg class="ic" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>New session</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="page">
+        <!-- ---- left column ---- -->
+        <div class="col">
+          <div class="head1">
+            <h1>Billing page</h1>
+            <p class="sum">Four agents on two tasks. <b>One contention waits for you.</b> The invoice PDF renders on staging; the tax lines wait for two ratings. <a href="#">Manager view</a></p>
+          </div>
+
+          <!-- direction -->
+          <section class="group direction" aria-label="Project direction">
+            <div class="composer">
+              <div class="input"><span class="caret"></span>Set direction for everyone in this project</div>
+              <div class="bar">
+                <div class="seg" role="radiogroup" aria-label="Kind of direction">
+                  <button class="on" aria-checked="true" title="A standing constraint for every session"><svg class="ic" viewBox="0 0 16 16"><path d="M3 8h10M3 4.5h10M3 11.5h6"/></svg>constrain</button>
+                  <button title="A steer every session follows"><svg class="ic" viewBox="0 0 16 16"><path d="M2 8h11M9 4l4 4-4 4"/></svg>steer</button>
+                </div>
+                <span class="hint">Enters every session above owner rank · shown as <span class="mono" style="font-size:12px">[project]</span> in each intent</span>
+                <div class="right"><button class="send off" aria-label="Set direction" disabled><svg class="ic" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button></div>
+              </div>
+            </div>
+            <div class="dirs">
+              <span class="dir constrain mine"><span class="mode">constrain</span>Plan first on anything that touches proration<span class="by"><span class="avatar">AN</span>you · Mon</span><button class="x" aria-label="Withdraw: Plan first on anything that touches proration"><svg class="ic" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></span>
+              <span class="dir constrain"><span class="mode">constrain</span>Tax lines round per line, never per invoice<span class="by"><span class="avatar">BO</span>Bo · Tue</span></span>
+              <span class="dir steer"><span class="mode">steer</span>Ship the invoice PDF before the tax work lands<span class="by"><span class="avatar">DE</span>Dee · 2 h</span></span>
+            </div>
+          </section>
+
+          <!-- agents by crew -->
+          <section class="group" aria-label="Agents">
+            <div class="gh"><h2>Agents</h2><span class="n">5 sessions · 2 crews</span><a class="right" href="#">Replay any</a></div>
+            <div class="board">
+              <div class="crewhead"><span class="serif">Invoice rollout</span>2 agents on one task<span class="claims"><span class="mono">apps/web/src/billing/invoice/*</span><span class="mono">tax-lines</span></span></div>
+              <a class="arow" href="#">
+                <span class="sd running" title="running"></span>
+                <span class="what"><span class="t"><span class="ttl">Invoice PDF</span><span class="pill team">Team</span></span><span class="s"><span class="who"><span class="avatar">AN</span>Ana <span class="with">with Bo</span></span><span class="sep">·</span><span class="doing">Rendering the tax lines into <i>invoice.pdf</i></span></span></span>
+                <span class="use"><span class="l"><b>48.2k</b><span>of 120k</span></span><span class="budget"><i style="width:40%"></i></span></span>
+                <span class="status running st">Running</span>
+                <span class="act"><button class="btn ghost sm">Leave crew</button></span>
+              </a>
+              <a class="arow" href="#">
+                <span class="sd awaiting" title="awaiting approval"></span>
+                <span class="what"><span class="t"><span class="ttl">Tax lines on invoices</span></span><span class="s"><span class="who"><span class="avatar">BO</span>Bo</span><span class="sep">·</span><span class="doing">Plan <i>rounding per line</i> waits for two ratings</span><span class="sep">·</span><span class="wait">1 approval waiting</span></span></span>
+                <span class="use"><span class="l"><b>131k</b><span class="over">of 120k</span></span><span class="budget warn"><i style="width:100%"></i></span></span>
+                <span class="status awaiting st">Awaiting rating</span>
+                <span class="act"><button class="btn ghost sm">Leave crew</button></span>
+              </a>
+
+              <div class="crewhead"><span class="serif">Checkout proration</span>1 agent · the crew's second seat is open<span class="claims"><span class="mono">proration.ts</span></span></div>
+              <a class="arow blocked" href="#">
+                <span class="sd blocked" title="blocked"></span>
+                <span class="what"><span class="t"><span class="ttl">Proration on plan change</span></span><span class="s"><span class="who"><span class="avatar">CY</span>Cy</span><span class="sep">·</span><span class="doing">Holds <i>proration.ts</i> for a pick · writing fixtures around it</span><span class="sep">·</span><span class="held">in a contention</span></span></span>
+                <span class="use"><span class="l"><b>22.7k</b><span>of 60k</span></span><span class="budget"><i style="width:38%"></i></span></span>
+                <span class="status blocked st">Held</span>
+                <span class="act"><button class="btn ghost sm">Leave crew</button></span>
+              </a>
+
+              <div class="crewhead solo"><span class="serif">Solo</span>on their own task</div>
+              <div class="arow" style="grid-template-rows:auto auto">
+                <span class="sd" title="idle"></span>
+                <span class="what"><span class="t"><span class="ttl">Billing page copy</span></span><span class="s"><span class="who"><span class="avatar">DE</span>Dee</span><span class="sep">·</span><span class="doing">Idle · last turn ended on <i>plan names</i> · 3 facts remembered</span></span></span>
+                <span class="use nobudget"><span class="l"><b>6.1k</b><span>no budget</span></span><span class="budget"><i style="width:100%"></i></span></span>
+                <span class="status st">Idle</span>
+                <span class="act"></span>
+                <div class="crewform" role="form" aria-label="Team up">
+                  <span class="lbl">Team up on</span>
+                  <span class="input"><span class="ph">Name the shared task</span><span class="caret"></span></span>
+                  
+                  <button class="btn primary sm" disabled style="opacity:.55">Team up</button>
+                  <button class="btn ghost sm">Cancel</button>
+                  <span class="sugg">or join a crew that exists<span class="chip">Invoice rollout</span><span class="chip">Checkout proration</span></span>
+                </div>
+              </div>
+              <a class="arow closed" href="#">
+                <span class="sd closed" title="closed"></span>
+                <span class="what"><span class="t"><span class="ttl">Checkout address form</span></span><span class="s"><span class="who"><span class="avatar">AN</span>Ana</span><span class="sep">·</span><span class="doing">United <i>address-form</i> into main · closed yesterday</span></span></span>
+                <span class="use nobudget"><span class="l"><b>74.9k</b><span>spent</span></span><span class="budget"><i style="width:100%"></i></span></span>
+                <span class="status st">Closed</span>
+                <span class="act"><button class="btn ghost sm">Replay</button></span>
+              </a>
+              <div class="newrow"><svg class="ic" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>New session<span class="hint">Plan first on · token budget optional</span></div>
+            </div>
+          </section>
+
+          <!-- contentions -->
+          <section class="group" aria-label="Contentions">
+            <div class="gh"><h2>Contentions</h2><span class="n">1 open · you resolve as lead</span></div>
+            <div class="notice contention">
+              <div class="row"><span class="sent">Both want <span class="mono">apps/web/src/billing/proration.ts</span>: <span class="serif">Cy</span> and <span class="serif">Bo</span>.</span><span class="ago"><i></i>4 min</span></div>
+              <div class="rule">Cy's claim was denied under <span class="mono">block</span> · <span class="you">you pick as lead</span> · the loser's claims release and its agent works around the scope</div>
+              <div class="sides">
+                <div class="side"><div class="h"><span class="avatar">CY</span><span class="serif">Cy</span><span class="k">1</span></div><div class="q">Owns the claim: <i>Proration on plan change</i> · wants to move the daily basis into one helper.</div><div class="sees"><svg class="ic" viewBox="0 0 16 16"><path d="M8 2c2 1 4 4 3 8H5c-1-4 1-7 3-8z"/></svg>Agent says: 3 fixtures move by a cent; matches the invoice PDF.</div></div>
+                <div class="side"><div class="h"><span class="avatar">BO</span><span class="serif">Bo</span><span class="k">2</span></div><div class="q">Touches it from <i>Tax lines on invoices</i> · needs the proration total before tax rounds.</div><div class="sees"><svg class="ic" viewBox="0 0 16 16"><path d="M8 2c2 1 4 4 3 8H5c-1-4 1-7 3-8z"/></svg>Agent says: could read the total from the ledger instead; no file change needed.</div></div>
+              </div>
+              <div class="actions"><button class="btn sm primary">Cy wins</button><button class="btn sm">Bo wins</button><button class="btn ghost sm">Dismiss</button><span class="spacer"></span><span class="note">Both owners see this too</span></div>
+            </div>
+            <div class="notice soft"><span class="sent">Overlapping work on <span class="mono">invoice fixtures</span>: Ana and Bo · resolved by the crew an hour ago, <span class="serif">Ana wins</span>.</span><button class="btn ghost sm">Replay</button></div>
+          </section>
+
+          <details class="fold">
+            <summary><span class="serif">Brief</span><svg class="ic" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg><span class="sum">Computed from the ledger · situation, open items, direction, claims · for a manager or a newcomer</span></summary>
+          </details>
+        </div>
+
+        <!-- ---- side column ---- -->
+        <div class="col">
+          <div class="card spend">
+            <h3>Spend this week<span class="sum">budget 320k</span></h3>
+            <div class="big"><b>283k</b><span>tokens · 5 sessions</span><span class="pct">88%</span></div>
+            <div class="budget warn"><i style="width:88%"></i></div>
+            <div class="bars">
+              <div class="b"><span class="nm">Bo<small>Tax lines</small></span><span class="bar"><i style="width:100%"></i></span><span class="mono">131k</span></div>
+              <div class="b"><span class="nm">Ana<small>Address form</small></span><span class="bar"><i style="width:57%"></i></span><span class="mono">74.9k</span></div>
+              <div class="b live"><span class="nm">Ana<small>Invoice PDF</small></span><span class="bar"><i style="width:37%"></i></span><span class="mono">48.2k</span></div>
+              <div class="b"><span class="nm">Cy<small>Proration</small></span><span class="bar"><i style="width:17%"></i></span><span class="mono">22.7k</span></div>
+              <div class="b"><span class="nm">Dee<small>Page copy</small></span><span class="bar"><i style="width:5%"></i></span><span class="mono">6.1k</span></div>
+            </div>
+            <div class="saved"><svg class="ic" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg><span>Plans came in <b>41k under</b> their estimates · nothing is cut off at the budget</span></div>
+          </div>
+
+          <div class="card">
+            <h3>People<span class="sum">4 members · 3 here</span></h3>
+            <div class="people">
+              <div class="person"><span class="avatar">AN</span><span class="who"><span class="name">Ana<span class="you">you</span></span><span class="role">Lead · drives Invoice PDF</span></span><span class="on">now</span></div>
+              <div class="person"><span class="avatar">BO</span><span class="who"><span class="name">Bo</span><span class="role">Member · in Invoice PDF with Ana</span></span><span class="on">now</span></div>
+              <div class="person"><span class="avatar">CY</span><span class="who"><span class="name">Cy</span><span class="role">Member · Checkout proration</span></span><span class="on">now</span></div>
+              <div class="person off joined"><span class="avatar">DE</span><span class="who"><span class="name">Dee</span><span class="role"><span class="new">joined the circle today</span> · Billing page copy</span></span><span class="on">2 h</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Team chat<span class="sum">kept in the ledger</span></h3>
+            <div class="chat">
+              <div class="line mine"><span class="who">You</span><span class="what">PDF renders on staging, go look at the totals.</span><time>14:02</time></div>
+              <div class="line"><span class="who">Bo</span><span class="what">Totals match. The tax lines need the proration figure first, so I touched <span class="mono">proration.ts</span>, sorry Cy.</span><time>14:06</time></div>
+              <div class="line"><span class="who">Cy</span><span class="what">No harm, let Ana pick. My agent is writing fixtures around it meanwhile.</span><time>14:09</time></div>
+              <div class="joined">Dee joins the circle</div>
+              <div class="line"><span class="who">Dee</span><span class="what">Hi all. Reading the brief, then I'll take the plan names copy.</span><time>14:31</time></div>
+              <div class="typing"><i></i><i></i><i></i>Bo is writing</div>
+            </div>
+            <div class="say"><span class="input">Say something to everyone on this project</span><button class="send" aria-label="Send"><svg class="ic" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button></div>
+            <div class="never"><svg class="ic" viewBox="0 0 16 16"><path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zM5 5l6 6"/></svg>Never sent to an agent · replayable</div>
+          </div>
+
+          <div class="card">
+            <h3>Team memory<span class="sum">11 facts · <a href="#">All memory</a></span></h3>
+            <div class="conflict">
+              <div class="cf">Two entries disagree on <span class="mono">proration.basis</span></div>
+              <div class="memline"><span><span class="k">proration.basis</span>Prorate by whole days, round half up</span><span class="by"><span class="agent-tag">Cy's agent</span> · 3 h</span><button class="btn sm">Keep</button></div>
+              <div class="memline"><span><span class="k">proration.basis</span>Prorate per second, like the invoice PDF totals</span><span class="by">Ana · Mon</span><button class="btn sm">Keep</button></div>
+            </div>
+            <div class="memlist">
+              <div class="memline"><span><span class="k">billing.tax.rounding</span>Round tax per line, never per invoice; the PDF shows each line.</span><span class="by"><span class="agent-tag">Bo's agent</span> · 2 h</span></div>
+              <div class="memline"><span><span class="k">billing.pdf.font</span>invoice.pdf embeds Instrument Sans; no system fallback on staging.</span><span class="by"><span class="agent-tag">Ana's agent</span> · 5 h</span></div>
+              <div class="memline"><span><span class="k">checkout.plan-names</span>Plans are Starter, Team, Scale; never "Pro".</span><span class="by">Dee · 2 h</span></div>
+              <div class="memline"><span><span class="k">billing.fixtures</span>Fixtures live under <span class="mono" style="font-size:12.5px">test/billing/*.json</span>, one invoice each.</span><span class="by">Cy · Tue</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · #billing · Payments</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: status colours lift so they read on dark surfaces (same override as inbox and groups-list) */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); --mention-agent: #3A4458; } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); --mention-agent: #3A4458; }
+  :root { --mention-agent: #2A3244; }
+
+  /* ---- shell ---- */
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 5px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .btn { white-space: nowrap; }
+  .btn.sm svg { width: 14px; height: 14px; }
+  .btn.on { background: var(--apricot-soft); border-color: transparent; color: var(--ink); }
+
+  /* ---- topbar ---- */
+  .topbar { gap: 14px; }
+  .topbar .menu { display: none; }
+  .topbar .title { gap: 10px; }
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .hash { color: var(--apricot-deep); margin-right: 1px; }
+  .topbar .title .purpose { font-family: var(--font); font-size: 13.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+  .topbar .right { gap: 12px; }
+  .topbar .stack { align-items: center; }
+  .topbar .stack .sep { width: 1px; height: 18px; background: var(--line); margin: 0 6px 0 8px; }
+  .topbar .stack .avatar { position: relative; }
+  .topbar .stack .avatar.agent + .avatar.agent { margin-left: -4px; }
+  .avatar .live { position: absolute; right: -3px; bottom: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); border: 2px solid var(--canvas); }
+  .avatar .live.awaiting { background: var(--warn); } .avatar .live.blocked { background: var(--danger); } .avatar .live.off { background: var(--ink-3); }
+  .avatar.agent.sm, .avatar.sm { width: 22px; height: 22px; font-size: 9.5px; }
+  .avatar.agent { font-size: 10.5px; }
+
+  /* ---- stream ---- */
+  .main { position: relative; }
+  .scroll { display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+  .chatcol { padding-top: 22px; padding-bottom: 16px; gap: 14px; }
+  .divider { margin: 4px 0 0; }
+  .divider span { padding: 0 2px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; font-size: 11.5px; }
+
+  .msg .meta { gap: 9px; }
+  .msg .meta .when { color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .msg .meta .you { font-size: 12px; color: var(--ink-3); }
+  .msg.human { align-items: flex-start; }
+  .msg.human .meta { padding-left: 2px; }
+  .msg.human .text { max-width: min(640px, 92%); padding: 12px 18px; font-size: 15px; line-height: 1.55; }
+  .msg.human .text .quote { display: block; margin: 0 0 8px; padding: 2px 0 2px 10px; border-left: 2px solid var(--apricot-deep); color: var(--ink-2); font-size: 13.5px; }
+  .msg.human .text .quote b { font-family: var(--serif); font-weight: 400; color: var(--ink); font-size: 14.5px; margin-right: 6px; }
+  .msg.human.mine { align-items: flex-end; }
+  .msg.human.mine .meta { flex-direction: row-reverse; padding-right: 2px; }
+  .msg.human.mine .text { align-self: flex-end; background: color-mix(in srgb, var(--surface) 70%, var(--apricot-soft)); border-color: transparent; }
+  .text code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+
+  /* mentions: a person on apricot, you on solid apricot, an agent on navy with the agent corner */
+  mark.mention { background: var(--apricot-soft); color: var(--accent); border-radius: 7px; padding: 1px 6px; font-weight: 500; white-space: nowrap; }
+  mark.mention.me { background: var(--apricot); color: #56352D; }
+  mark.mention.agent { display: inline; background: var(--mention-agent); color: #F3EDE4; border-radius: 8px 8px 8px 2px; font-family: var(--serif); font-weight: 400; font-size: 15.5px; padding: 0 8px 1px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) mark.mention { color: var(--ink); } :root:not([data-theme="light"]) mark.mention.me { background: var(--apricot); color: #2A3244; } }
+  :root[data-theme="dark"] mark.mention { color: var(--ink); } :root[data-theme="dark"] mark.mention.me { background: var(--apricot); color: #2A3244; }
+
+  /* an agent's reply: plain prose with a navy→chocolate rule, live dot on its avatar */
+  .msg.agent { padding-left: 2px; }
+  .msg.agent .meta { flex-wrap: wrap; row-gap: 4px; }
+  .msg.agent .meta .avatar { position: relative; width: 26px; height: 26px; }
+  .msg.agent .meta .who { font-size: 16.5px; }
+  .msg.agent .meta .owner { color: var(--ink-3); font-size: 13px; }
+  .msg.agent .meta .faint, .msg.agent .meta .turn { color: var(--ink-3); font-size: 12.5px; }
+  .msg.agent .meta .turn { font-family: var(--mono); font-size: 12px; }
+  .msg.agent .meta .dot-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-3); opacity: .7; }
+  .msg.agent .meta .session { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 500; color: var(--accent); padding: 2px 9px 2px 7px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); }
+  .msg.agent .meta .session svg { width: 12px; height: 12px; }
+  .msg.agent .meta .session:hover { text-decoration: none; box-shadow: var(--shadow-soft); }
+  .msg.agent .body { margin-left: 13px; padding: 2px 0 2px 18px; border-left: 2px solid transparent; border-image: linear-gradient(to bottom, #2A3244, #56352D) 1; display: flex; flex-direction: column; gap: 8px; max-width: 680px; }
+  .msg.agent .body p { margin: 0; font-size: 15.5px; line-height: 1.6; }
+  .msg.agent .body .ask { font-family: var(--serif); font-style: italic; font-size: 16.5px; color: var(--accent); }
+  .plan-chip { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; white-space: nowrap; align-self: flex-start; padding: 8px 12px 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow-soft); font-size: 13px; color: var(--ink-2); text-decoration: none; }
+  .plan-chip:hover { text-decoration: none; box-shadow: var(--shadow-pop); }
+  .plan-chip .t { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+  .plan-chip .est { font-family: var(--mono); font-size: 12px; }
+  .plan-chip .wait { color: var(--warn); font-weight: 500; }
+  .plan-chip .stars { gap: 2px; } .plan-chip .stars span { width: 14px; height: 14px; font-size: 13px; }
+  .msg.agent .typing { display: inline-flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); }
+  .msg.agent .typing .loader.weave { width: 46px; }
+  .msg.agent .typing i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 15px; }
+
+  /* read markers: a rule for "new since you looked away", and tiny avatars where each person has read to */
+  .newrule { display: flex; align-items: center; gap: 12px; margin: 2px 0 -6px; color: var(--accent); font-size: 12px; font-weight: 500; }
+  .newrule::before, .newrule::after { content: ""; flex: 1; height: 1px; background: var(--apricot-deep); }
+  .newrule span { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: var(--radius-full); background: var(--apricot-soft); }
+  .readto { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: -10px; font-size: 12px; color: var(--ink-3); padding-right: 2px; }
+  .readto .stack .avatar { width: 18px; height: 18px; font-size: 8.5px; border-width: 1.5px; }
+  .readto .stack .avatar + .avatar { margin-left: -5px; }
+
+  /* ---- composer with the @ list ---- */
+  .composer-wrap { padding: 10px 24px 12px; }
+  .composer { position: relative; }
+  .composer:focus-within { box-shadow: var(--shadow-pop), var(--team-glow); }
+  .composer .input { font-size: 15px; min-height: 26px; }
+  .composer .input .caret { display: inline-block; width: 1.5px; height: 18px; background: var(--accent); vertical-align: -3px; margin-left: 1px; animation: pulse 1s steps(2) infinite; }
+  .composer .bar .small { color: var(--ink-3); }
+  .composer .bar .right .seg { display: none; }
+  .send:disabled { opacity: .45; cursor: default; box-shadow: none; }
+  .hint { text-align: center; margin: 6px 0 0; }
+  .hint kbd { font: 11px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; background: var(--surface-2); }
+  .mention-list { position: absolute; left: 296px; bottom: calc(100% + 4px); width: 360px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-pop); padding: 6px; display: flex; flex-direction: column; gap: 2px; animation: rise .2s ease both; }
+  .mention-list .head { display: flex; align-items: center; gap: 8px; padding: 4px 10px 2px; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .mention-list .head .q { margin-left: auto; font-family: var(--mono); letter-spacing: 0; text-transform: none; font-size: 12px; color: var(--ink-2); }
+  .mention-list .head .q b { color: var(--accent); font-weight: 600; }
+  .mention-list button { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  .mention-list button:hover { background: var(--surface-2); }
+  .mention-list button.on { background: var(--apricot-soft); }
+  .mention-list button .avatar { width: 26px; height: 26px; }
+  .mention-list button .avatar.agent { position: relative; }
+  .mention-list button .name { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .mention-list button .name .n { font-size: 14px; }
+  .mention-list button .name .n.serif { font-size: 16px; }
+  .mention-list button .name .n b { font-weight: 600; color: var(--accent); }
+  .mention-list button .name .sub { font-size: 12px; color: var(--ink-3); }
+  .mention-list button .kind { font-size: 11.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 5px; }
+  .mention-list button .kind kbd { display: none; }
+  .mention-list button.on .kind kbd { display: inline; font: 10.5px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; background: var(--surface-2); }
+  .mention-list .foot { padding: 7px 10px 4px; font-size: 12px; color: var(--ink-3); border-top: 1px solid var(--line); margin-top: 4px; line-height: 1.45; }
+  .mention-list .foot svg { width: 13px; height: 13px; vertical-align: -2px; margin-right: 5px; }
+  .mention-list .foot i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 13.5px; }
+
+  /* ---- members drawer ---- */
+  .drawer { width: 340px; padding: 18px 20px 20px; gap: 18px; }
+  .drawer .drawer-head { display: flex; align-items: center; justify-content: space-between; font-family: var(--serif); font-size: 20px; }
+  .drawer .drawer-head .sub { font-family: var(--font); font-size: 12.5px; color: var(--ink-3); margin-left: 8px; }
+  .drawer section { display: flex; flex-direction: column; gap: 4px; }
+  .drawer h3 { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; }
+  .drawer h3 .n { margin-left: auto; letter-spacing: 0; color: var(--ink-3); font-weight: 500; }
+  .drawer .person { padding: 6px 4px; border-radius: 10px; position: relative; }
+  .drawer .person:hover { background: var(--surface-2); }
+  .drawer .person .avatar { position: relative; }
+  .drawer .person .name { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .drawer .person .name .n { font-size: 14px; }
+  .drawer .person .name .n.serif { font-size: 16px; }
+  .drawer .person .name .n .you { font-size: 12px; color: var(--ink-3); margin-left: 4px; }
+  .drawer .person .name .sub { font-size: 12px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drawer .person .name .sub .status { font-size: 12px; gap: 5px; } .drawer .person .name .sub .status::before { width: 6px; height: 6px; }
+  .drawer .person .role { white-space: nowrap; }
+  .drawer .person .btn.ghost.sm { min-height: 26px; padding: 0 8px; font-size: 12.5px; opacity: 0; }
+  .drawer .person:hover .btn.ghost.sm { opacity: 1; }
+  .drawer .person .btn.ghost.sm.show { opacity: 1; }
+  .drawer .add { display: flex; gap: 8px; margin-top: 6px; }
+  .drawer .select { flex: 1; display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 12px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink-3); font-size: 13px; min-width: 0; }
+  .drawer .select > span.avatar { flex: none; } .drawer .select span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drawer .select svg { width: 14px; height: 14px; }
+  .drawer .select.chosen { color: var(--ink); }
+  .drawer .select.chosen .avatar { width: 18px; height: 18px; font-size: 8px; border-width: 1.5px; margin-left: -4px; }
+  .drawer .btn.sm { min-height: 32px; }
+  .drawer .note { font-size: 12.5px; color: var(--ink-3); margin: 0; padding: 12px 12px; border-radius: 12px; background: var(--surface-2); line-height: 1.5; }
+  .drawer .note i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 14px; }
+  .drawer .note b { font-weight: 500; color: var(--ink-2); }
+  .drawer .meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .drawer .meta-row div { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 1px; }
+  .drawer .meta-row .k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+  .drawer .meta-row .v { font-size: 14px; }
+  .drawer .meta-row .v.serif { font-size: 16px; }
+
+  /* ---- mobile ---- */
+  @media (max-width: 700px) {
+    .rail, .drawer { display: none; }
+    .topbar { padding: 10px 12px; min-height: 52px; gap: 8px; }
+    .topbar .menu { display: inline-flex; }
+    .topbar .title .purpose { display: none; }
+    .topbar .right .btn.sm span { display: none; }
+    .topbar .right .btn.sm { width: 34px; padding: 0; min-height: 34px; }
+    .topbar .stack .avatar:nth-child(2), .topbar .stack .avatar:nth-child(3), .topbar .stack .avatar:nth-child(4) { display: none; }
+    .topbar .stack .sep { margin: 0 4px 0 6px; }
+    .chatcol { padding: 16px 16px 12px; gap: 16px; }
+    .msg.human .text { max-width: 94%; padding: 10px 14px; font-size: 14.5px; }
+    .msg.agent .body { margin-left: 12px; padding-left: 14px; }
+    .msg.agent .body p { font-size: 15px; }
+    .msg.agent .meta .owner, .msg.agent .meta .faint.reply, .msg.agent .meta .faint.reply + .dot-sep { display: none; }
+    .composer-wrap { padding: 10px 12px 12px; }
+    .composer { padding: 12px 12px 10px 14px; }
+    .mention-list { left: 0; right: 0; width: auto; }
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ===== rail ===== -->
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Answering Dee in <i>#billing</i> · per-day proration</div>
+      <div class="foot"><span class="with"><span class="avatar driver">AN</span> with Bo, Cy, Dee</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits at the <i>release gate</i> · deploy to production</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana, Cy</span><span class="tok">18.6k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot blocked"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Blocked · <i>tax rate lookup</i> answered 500</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></svg>Inbox <span class="n live">6</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>Approvals <span class="n live">3</span></a>
+    <a class="item active" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.3A8 8 0 1 1 21 12z"/></svg>Chats <span class="n live">6</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Overview</a>
+
+    <div class="me">
+      <span class="avatar">BO</span>
+      <span class="meta"><span>Bo</span><span class="role">Payments · owner</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+    </div>
+  </nav>
+
+  <!-- ===== main ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn ghost icon menu" type="button" aria-label="Back to chats"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div class="title"><span class="serif"><span class="hash">#</span>billing</span><span class="purpose">The Billing page, end to end</span></div>
+      <div class="right">
+        <span class="stack" aria-label="Members: Ana, Bo, Cy, Dee; Billing page, Invoice PDF, Checkout">
+          <span class="avatar">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span>
+          <span class="sep"></span>
+          <span class="avatar agent" title="Billing page · running">BP<i class="live"></i></span>
+          <span class="avatar agent" title="Invoice PDF · blocked">IP<i class="live blocked"></i></span>
+          <span class="avatar agent" title="Checkout · awaiting approval">CO<i class="live awaiting"></i></span>
+        </span>
+        <button class="btn sm on" type="button" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 19a5 5 0 0 1 6-4.5"/></svg><span>Members</span></button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <section class="column chatcol" aria-label="Messages">
+
+        <div class="divider"><span>Yesterday</span></div>
+
+        <div class="msg human">
+          <div class="meta"><span class="who">Dee</span><span class="when">17:02</span></div>
+          <div class="text">United <code>pdf-layout</code> into main and staging is back. <mark class="mention agent">@Invoice PDF</mark> retry the tax rate lookup, then render the tax lines from the invoice totals. <mark class="mention">@Cy</mark> it was 500 twice on your branch.</div>
+        </div>
+
+        <div class="msg agent">
+          <div class="meta">
+            <span class="avatar agent">IP<i class="live blocked"></i></span>
+            <span class="who serif">Invoice PDF</span><span class="owner">Cy's agent</span>
+            <span class="faint">replied</span><span class="dot-sep"></span>
+            <span class="faint reply">in reply to Dee</span><span class="dot-sep"></span>
+            <span class="turn">turn 7</span>
+            <a class="session" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>Open session</a>
+            <span class="when">17:14</span>
+          </div>
+          <div class="body">
+            <p>Retried at 17:14 and the lookup answered 200. The tax lines now render from the invoice totals, one line per rate, rounded at the end only. Proration still waits for a pick between per-day and per-second.</p>
+            <p class="ask">Who decides the proration basis?</p>
+          </div>
+        </div>
+
+        <div class="divider"><span>Today</span></div>
+
+        <div class="msg human">
+          <div class="meta"><span class="who">Ana</span><span class="when">09:12</span></div>
+          <div class="text">Per-day. Stripe prorates per second, but our invoices show whole days. <mark class="mention agent">@Billing page</mark> take per-day proration and show the credit as its own line.</div>
+        </div>
+
+        <div class="msg agent">
+          <div class="meta">
+            <span class="avatar agent">BP<i class="live"></i></span>
+            <span class="who serif">Billing page</span><span class="owner">Ana's agent</span>
+            <span class="faint">replied</span><span class="dot-sep"></span>
+            <span class="faint reply">in reply to Ana</span><span class="dot-sep"></span>
+            <span class="turn">turn 12</span>
+            <a class="session" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>Open session</a>
+            <span class="when">09:13</span>
+          </div>
+          <div class="body">
+            <p>Taking per-day: prorate on the day the plan changes, credit the unused days as one line, "Unused time on Starter", with its own tax line so the invoice PDF totals match.</p>
+            <a class="plan-chip" href="#"><span class="t">Plan · Per-day proration</span><span>2 steps</span><span class="est">~6.1k tokens</span><span class="stars"><span class="on">★</span><span>★</span></span><span class="wait">waits for two ratings</span></a>
+          </div>
+        </div>
+
+        <div class="newrule"><span>New since you looked away · 2</span></div>
+
+        <div class="msg human mine">
+          <div class="meta"><span class="who">Bo</span><span class="you">you</span><span class="when">09:41</span></div>
+          <div class="text">Rated it 5. <mark class="mention">@Dee</mark> can you give the second rating so it runs before the Checkout gate opens?</div>
+        </div>
+        <div class="readto"><span class="stack"><span class="avatar">AN</span><span class="avatar">CY</span></span>Ana and Cy read to here</div>
+
+        <div class="msg human">
+          <div class="meta"><span class="who">Dee</span><span class="when">09:44</span></div>
+          <div class="text"><span class="quote"><b>Bo</b>can you give the second rating so it runs before the Checkout gate</span>On it, rated 4 with a note on step 2: round the credit's tax line like the others or <code>invoice.pdf</code> totals drift. <mark class="mention agent">@Billing page</mark> confirm before you run?</div>
+        </div>
+        <div class="readto"><span class="stack"><span class="avatar">DE</span></span>Dee read to here</div>
+
+        <div class="msg agent">
+          <div class="meta">
+            <span class="avatar agent">BP<i class="live"></i></span>
+            <span class="who serif">Billing page</span><span class="owner">Ana's agent</span>
+            <span class="typing"><span class="loader weave"></span>answering <i>Dee</i> · turn 13</span>
+          </div>
+        </div>
+
+      </section>
+
+      <div class="composer-wrap">
+        <form class="composer to-team" aria-label="Write a message">
+          <div class="mention-list" role="listbox" aria-label="Mention">
+            <div class="head">People and agents in #billing <span class="q">@<b>b</b></span></div>
+            <button type="button" role="option" aria-selected="true" class="on"><span class="avatar">BO</span><span class="name"><span class="n"><b>B</b>o <span class="faint small">you</span></span><span class="sub">Payments · owner</span></span><span class="kind">person <kbd>↵</kbd></span></button>
+            <button type="button" role="option"><span class="avatar agent">BP<i class="live"></i></span><span class="name"><span class="n serif"><b>B</b>illing page</span><span class="sub">Ana's agent · Billing page · running</span></span><span class="kind">agent</span></button>
+            <button type="button" role="option"><span class="avatar agent">CO<i class="live awaiting"></i></span><span class="name"><span class="n serif">Checkout</span><span class="sub"><b style="color:var(--accent);font-weight:600">B</b>o's agent · Checkout · awaiting approval</span></span><span class="kind">agent</span></button>
+            <div class="foot"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Mentioning an agent <i>steers its session</i>; its next words come back here.</div>
+          </div>
+          <div class="input" aria-label="Message">Sounds right, keep the tax on the credit. @b<span class="caret"></span></div>
+          <div class="bar">
+            <span class="small">Say something; @ mentions a person or an agent</span>
+            <div class="right">
+              <button type="button" class="btn ghost icon sm" aria-label="Attach"><svg class="ic" viewBox="0 0 24 24"><path d="m21 12-8.5 8.5a5 5 0 0 1-7-7L14 5a3.3 3.3 0 0 1 4.7 4.7L10.5 18a1.7 1.7 0 0 1-2.4-2.4L16 7.7"/></svg></button>
+              <button type="submit" class="send" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12 20 4l-4 16-4-7z"/></svg></button>
+            </div>
+          </div>
+        </form>
+        <p class="hint small faint"><kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line · <kbd>@</kbd> to mention a person or an agent</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== members drawer ===== -->
+  <aside class="drawer" aria-label="Members">
+    <div class="drawer-head"><span>Members <span class="sub">4 people · 3 agents</span></span><button type="button" class="btn ghost icon sm" aria-label="Close members"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+
+    <div class="meta-row">
+      <div><span class="k">Scope</span><span class="v serif">Billing page</span></div>
+      <div><span class="k">Started</span><span class="v">Mon, by Dee</span></div>
+    </div>
+
+    <section>
+      <h3>People <span class="n">4</span></h3>
+      <div class="person"><span class="avatar">AN</span><span class="name"><span class="n">Ana</span><span class="sub">Payments · lead</span></span><button type="button" class="btn ghost sm">Remove</button></div>
+      <div class="person"><span class="avatar">BO</span><span class="name"><span class="n">Bo<span class="you">(you)</span></span><span class="sub">Payments · owner</span></span><button type="button" class="btn ghost sm show">Leave</button></div>
+      <div class="person"><span class="avatar">CY</span><span class="name"><span class="n">Cy</span><span class="sub">Payments · engineer</span></span><button type="button" class="btn ghost sm">Remove</button></div>
+      <div class="person"><span class="avatar">DE</span><span class="name"><span class="n">Dee</span><span class="sub">Payments · engineer</span></span><span class="role">created it</span></div>
+      <div class="add"><span class="select"><span>Add a person</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><button type="button" class="btn sm" disabled>Add</button></div>
+      <p class="note" style="margin-top:4px">Everyone in the organisation is already here.</p>
+    </section>
+
+    <section>
+      <h3>Agents <span class="n">3</span></h3>
+      <div class="person"><span class="avatar agent">BP<i class="live"></i></span><span class="name"><span class="n serif">Billing page</span><span class="sub">Ana's agent · <span class="status running">running</span></span></span><a class="btn ghost sm show" href="#">Open</a></div>
+      <div class="person"><span class="avatar agent">IP<i class="live blocked"></i></span><span class="name"><span class="n serif">Invoice PDF</span><span class="sub">Cy's agent · <span class="status blocked">blocked</span></span></span><a class="btn ghost sm show" href="#">Open</a></div>
+      <div class="person"><span class="avatar agent">CO<i class="live awaiting"></i></span><span class="name"><span class="n serif">Checkout</span><span class="sub">Bo's agent · <span class="status awaiting">at the gate</span></span></span><a class="btn ghost sm show" href="#">Open</a></div>
+      <div class="add"><span class="select chosen"><span class="avatar agent sm">TL<i class="live off"></i></span><span>Tax lines · Dee's agent</span><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><button type="button" class="btn sm primary">Add</button></div>
+    </section>
+
+    <p class="note">An agent here hears only what <b>mentions it</b>; the rest of the chat stays with the people. <i>Billing page</i> read this group three times today.</p>
+  </aside>
+</div>
+</body>
+</html>

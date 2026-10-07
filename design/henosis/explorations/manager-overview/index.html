@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Manager overview</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* The manager's view: one sentence, then what needs you, then where the tokens went, plans,
+     gates, crews, groups and the roster. Charts in one hue (the hand) with the value at the tip. */
+  :root { --page-w: 1088px; --bar: var(--accent); --bar-on: var(--accent-hover); --wash: rgba(86,53,45,0.10); --grid: rgba(42,50,68,0.10); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --wash: rgba(226,196,166,0.12); --grid: rgba(240,234,224,0.10); } }
+  :root[data-theme="dark"] { --wash: rgba(226,196,166,0.12); --grid: rgba(240,234,224,0.10); }
+
+  html, body { height: 100%; }
+  body { overflow: hidden; }
+  .shell { height: 100%; }
+  .ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* rail, same grammar as the other screens */
+  .rail { overflow: hidden; }
+  .rail .brand { padding-bottom: 10px; } .rail .brand svg { width: 30px; height: 30px; }
+  .rail .agent { padding: 7px 12px; gap: 3px; } .rail .section { padding: 10px 10px 2px; } .rail .crew { padding-top: 8px; } .rail .item { padding: 7px 12px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 4px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; } .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+
+  /* page */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .crumb { color: var(--ink-3); font-family: var(--font); font-size: 14px; }
+  .topbar .menu { display: none; }
+  .page { width: min(var(--page-w), 100%); margin: 0 auto; padding: 28px 32px 80px; display: flex; flex-direction: column; gap: 30px; }
+  .lede { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start; }
+  .range { padding-top: 14px; }
+  .lede h1 { font-size: 38px; }
+  .lede .sum { font-size: 16.5px; color: var(--ink-2); max-width: 680px; margin: 8px 0 0; text-wrap: pretty; }
+  .lede .sum b { font-weight: 500; color: var(--ink); }
+  .lede .sum .n { font-family: var(--mono); font-size: 14.5px; color: var(--ink); }
+  .range { display: flex; align-items: center; gap: 10px; }
+  .range .seg button { padding: 5px 13px; }
+  section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; }
+  .sec-head h2 { font-size: 24px; }
+  .sec-head .count { font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
+  .sec-head .more { margin-left: auto; font-size: 13.5px; }
+
+  /* needs you */
+  .needs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .need { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px 14px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); position: relative; overflow: hidden; }
+  .need::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
+  .need.gate::before { background: var(--gradient-brand); }
+  .need.contention::before { background: var(--danger); }
+  .need .kind { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .need .kind .ago { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 400; font-family: var(--mono); }
+  .need .what { font-family: var(--serif); font-size: 19px; line-height: 1.25; }
+  .need .what i { color: var(--accent); }
+  .need .why { font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+  .need .why .mono { font-size: 12.5px; }
+  .need .foot { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .need .foot .btn { white-space: nowrap; flex: none; }
+  .need .foot .who { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); margin-right: auto; }
+  .need .foot .avatar { width: 22px; height: 22px; font-size: 9.5px; }
+  .votes { display: inline-flex; align-items: center; gap: 4px; }
+  .votes i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--apricot-deep); }
+  .votes i.on { background: var(--apricot-deep); }
+
+  /* stat tiles */
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .stat { display: flex; flex-direction: column; gap: 3px; padding: 14px 16px 12px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); min-width: 0; }
+  .stat .l { font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+  .stat .v { font-family: var(--serif); font-size: 32px; line-height: 1.1; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 6px; }
+  .stat .v small { font-family: var(--font); font-size: 13px; color: var(--ink-3); letter-spacing: 0; }
+  .stat .d { font-size: 12.5px; color: var(--ink-3); line-height: 1.4; text-wrap: pretty; }
+  .stat .spark { display: block; margin: 4px 0 2px; }
+  .stat .d .up { color: var(--ok); } .stat .d .warn { color: var(--warn); }
+
+  /* charts */
+  .charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .chart { margin: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 12px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); position: relative; min-width: 0; }
+  .chart.wide { grid-column: 1 / -1; }
+  .chart .foot { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); }
+  .chart-head { display: flex; align-items: center; gap: 8px; }
+  .chart-title { font-weight: 500; font-size: 14px; }
+  .chart-head .unit { font-size: 12.5px; color: var(--ink-3); }
+  .chart-head .tbl { margin-left: auto; font: 500 12.5px var(--font); color: var(--ink-2); background: transparent; border: 0; padding: 4px 8px; border-radius: var(--radius-full); cursor: pointer; }
+  .chart-head .tbl:hover { background: var(--surface-2); }
+  .bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .bar-row { display: grid; grid-template-columns: 112px 1fr 48px; gap: 10px; align-items: center; height: 26px; color: inherit; text-decoration: none; border-radius: 6px; position: relative; }
+  .bar-row:hover { text-decoration: none; }
+  .bar-label { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-label .faint { font-size: 12px; }
+  .bar-track { height: 14px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+  .bar-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--bar); }
+  .bar-row:hover .bar-fill, .bar-row.on .bar-fill { background: var(--bar-on); }
+  .bar-value { font-family: var(--mono); font-size: 12.5px; text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .chart-tip { position: absolute; right: 56px; top: -30px; font-size: 12.5px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px; white-space: nowrap; box-shadow: var(--shadow-soft); pointer-events: none; z-index: 2; display: none; }
+  .chart-tip b { font-family: var(--mono); font-weight: 500; color: var(--ink); }
+  .bar-row:hover .chart-tip, .bar-row.on .chart-tip { display: block; }
+  .area-wrap { position: relative; }
+  .area { display: block; width: 100%; height: auto; }
+  .area text { font-family: var(--mono); font-size: 11px; fill: var(--ink-3); }
+  .area .grid { stroke: var(--grid); stroke-width: 1; }
+  .area .line { fill: none; stroke: var(--bar); stroke-width: 2; stroke-linejoin: round; }
+  .area .fill { fill: var(--wash); }
+  .area .cross { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+  .area .pt { fill: var(--bar); stroke: var(--surface); stroke-width: 2; }
+  .area .tiplabel { fill: var(--ink); font-family: var(--font); font-size: 12px; }
+  .area .tipbox { fill: var(--surface); stroke: var(--line); }
+  .legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--ink-2); align-items: center; flex-wrap: wrap; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--bar); margin-right: 6px; vertical-align: -1px; }
+  .legend .sw.wash { background: var(--wash); border: 1px solid var(--bar); }
+
+  /* two-up: plans / gates ; crews / groups */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  .list { display: flex; flex-direction: column; }
+  .rowitem { padding: 11px 4px; grid-template-columns: 1fr auto; }
+  .rowitem:last-child { border-bottom: 0; }
+  .rowitem .t { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 500; }
+  .rowitem .t .nm { font-family: var(--serif); font-weight: 400; font-size: 16.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rowitem .s { display: block; margin-top: 2px; }
+  .rowitem .s .mono { font-size: 12px; }
+  .rating { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
+  .rating .stars span { width: 16px; height: 16px; font-size: 15px; }
+  .rating .stars { gap: 1px; }
+  .right-col { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .est { font-family: var(--mono); font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .est .under { color: var(--ok); } .est .over { color: var(--warn); }
+  .tag { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; background: var(--surface-3); color: var(--ink-2); }
+  .tag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+  .tag.ok { background: var(--ok-soft); color: var(--ok); } .tag.ok::before { background: var(--ok); }
+  .tag.wait { background: var(--warn-soft); color: var(--warn); } .tag.wait::before { background: var(--warn); }
+  .tag.rev { background: var(--apricot-soft); color: var(--accent); } .tag.rev::before { background: var(--apricot-deep); }
+  .tag.rej { background: var(--danger-soft); color: var(--danger); } .tag.rej::before { background: var(--danger); }
+  .gate-rule { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .gate-votes { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .gate-votes .v { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-2); }
+  .gate-votes .v .avatar { width: 20px; height: 20px; font-size: 9px; border-width: 1.5px; }
+  .gate-votes .v .mono { font-size: 12px; }
+  .gate-votes .v.empty .avatar { background: transparent; border: 1.5px dashed var(--ink-3); }
+  .gate-votes .v.empty { color: var(--ink-3); }
+  .bar-mini { display: inline-block; width: 64px; height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; vertical-align: middle; }
+  .bar-mini i { display: block; height: 100%; background: var(--bar); }
+
+  /* roster */
+  .roster { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 14px; }
+  .member { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: inherit; text-decoration: none; min-width: 0; }
+  .member:hover { text-decoration: none; box-shadow: var(--shadow-soft); }
+  .member .avatar { width: 32px; height: 32px; font-size: 12px; }
+  .member .avatar.online { box-shadow: 0 0 0 2px var(--ok-soft), 0 0 0 2px var(--ok); }
+  .member .who { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+  .member .who .n { font-family: var(--serif); font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .member .who .r { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .member .tk { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-3); flex: none; }
+  .member .status { font-size: 12px; margin-left: auto; flex: none; }
+  .member .status::before { width: 7px; height: 7px; }
+  .group-row .t .hash { font-family: var(--mono); font-size: 14px; color: var(--ink); }
+  .group-row .stack { margin-left: 4px; } .group-row .stack .avatar { width: 20px; height: 20px; font-size: 8.5px; border-width: 1.5px; }
+
+  /* mobile */
+  @media (max-width: 720px) {
+    body { overflow: auto; }
+    .rail { display: none; }
+    .topbar .menu { display: inline-flex; }
+    .topbar .right .btn:not(.icon) { display: none; }
+    .page { padding: 18px 16px 60px; gap: 24px; }
+    .lede { grid-template-columns: 1fr; align-items: start; gap: 12px; }
+    .lede h1 { font-size: 32px; } .lede .sum { font-size: 15px; }
+    .needs, .stats, .charts, .two, .roster { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat .v { font-size: 28px; }
+    .sec-head h2 { font-size: 22px; }
+    .bar-row { grid-template-columns: 92px 1fr 44px; }
+    .chart-tip { display: none !important; }
+    .sec-head { flex-wrap: wrap; } .sec-head .count { display: none; }
+    .chart-head .unit { display: none; }
+    .range { padding-top: 0; }
+    .stat .d { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ===== rail ===== -->
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Cy</div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Proration</span><span class="pill team">Team</span></div>
+      <div class="doing">Holds <i>proration.ts</i> · rendering the tax lines</div>
+      <div class="foot"><span class="with"><span class="avatar driver">AN</span> with Bo, Dee</span><span class="tok">52.1k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot blocked"></span><span class="t">Invoice PDF</span><span class="pill team">Team</span></div>
+      <div class="doing">Blocked · <i>tax rate lookup</i> answered 500</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> with Ana</span><span class="tok">58.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout deploy</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Waits at the <i>release gate</i> · deploy to production</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> Bo</span><span class="tok">48.9k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">33.6k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item active" href="#"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Overview</a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></svg>Inbox <span class="n live">6</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>Approvals <span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11h18M3 6h18M3 16h18"/></svg>Groups <span class="n">4</span></a>
+
+    <div class="me">
+      <span class="avatar">BO</span>
+      <span class="meta"><span>Bo</span><span class="role">Payments · owner</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
+    </div>
+  </nav>
+
+  <!-- ===== main ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn icon ghost menu" type="button" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title"><span class="serif">Payments</span><span class="crumb">Overview</span></div>
+      <div class="right">
+        <button class="btn ghost sm" type="button">Refresh</button>
+        <button class="btn sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export report</button>
+        <button class="btn sm" type="button"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="page">
+
+        <!-- lede -->
+        <div class="lede">
+          <div>
+            <h1>Payments</h1>
+            <p class="sum"><b>4 open sessions</b> across <b>2 projects</b>: 1 running, 1 awaiting approval, 1 blocked, 1 paused. <b>3 things need you.</b> This week the team spent <span class="n">212k</span> tokens, rated 7 plans and held 2 release gates.</p>
+          </div>
+          <div class="range">
+            <span class="small muted">Since</span>
+            <div class="seg" role="group" aria-label="Range"><button type="button">Today</button><button type="button" class="on">7 days</button><button type="button">30 days</button></div>
+          </div>
+        </div>
+
+        <!-- needs you -->
+        <section aria-label="Needs you">
+          <div class="sec-head"><h2>Needs you</h2><span class="count">3</span><a class="more" href="#">Open the approvals queue</a></div>
+          <div class="needs">
+            <article class="need gate">
+              <div class="kind"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V8l8-5 8 5v12"/><path d="M9 20v-6h6v6"/></svg>Release gate<span class="ago">14 min</span></div>
+              <div class="what">Checkout deploy wants to ship <i>checkout-v2</i> to production.</div>
+              <div class="why">Rule: two contributors at 4+. Ana gave 4; the gate waits for one more voice from someone who consumes the code.</div>
+              <div class="foot">
+                <span class="who"><span class="avatar">BO</span>Bo's agent · Checkout</span>
+                <span class="votes" aria-label="1 of 2 ratings"><i class="on"></i><i></i></span>
+                <button class="btn primary sm" type="button">Approve</button>
+              </div>
+            </article>
+            <article class="need">
+              <div class="kind"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></svg>Plan<span class="ago">1 h</span></div>
+              <div class="what">Tax lines waits for one rating on <i>Render VAT per line item</i>.</div>
+              <div class="why">5 steps, estimated <span class="mono">9.2k</span> tokens. Policy: one rating at 3+. Dee's agent is paused until someone rates.</div>
+              <div class="foot">
+                <span class="who"><span class="avatar">DE</span>Dee's agent · Billing page</span>
+                <button class="btn sm" type="button">Read the plan</button>
+              </div>
+            </article>
+            <article class="need contention">
+              <div class="kind"><svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Contention<span class="ago">3 h</span></div>
+              <div class="what">Two agents want <i>proration.ts</i>.</div>
+              <div class="why">Ana's Proration holds the file; Cy's Invoice PDF asked for it at <span class="mono">apps/web/src/billing/proration.ts</span> and is blocked on the tax rate lookup too.</div>
+              <div class="foot">
+                <span class="who"><span class="stack"><span class="avatar">AN</span><span class="avatar">CY</span></span>Ana and Cy · Billing page</span>
+                <button class="btn sm" type="button">Resolve</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- overview -->
+        <section aria-label="Overview">
+          <div class="sec-head"><h2>Where the week went</h2><span class="count">30 Sep – 7 Oct</span><a class="more" href="#">Token optimisation</a></div>
+          <div class="stats">
+            <div class="stat">
+              <span class="l">Tokens</span>
+              <span class="v">212k</span>
+              <svg class="spark" viewBox="0 0 96 24" width="96" height="24" aria-hidden="true">
+                <path d="M2 18 L15.4 14.6 L28.8 16.2 L42.2 9.8 L55.6 11.4 L69 6.2 L82.4 8.6 L94 4.8" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linejoin="round"/>
+                <circle cx="94" cy="4.8" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+              </svg>
+              <span class="d">161k in · 51k out · <span class="warn">+18% on last week</span></span>
+            </div>
+            <div class="stat">
+              <span class="l">Agents</span>
+              <span class="v">4 <small>open</small></span>
+              <span class="d">2 in teams · 2 solo · 3 closed this week</span>
+            </div>
+            <div class="stat">
+              <span class="l">Plans</span>
+              <span class="v">7 <small>rated</small></span>
+              <span class="d">5 approved · 1 revised · 1 waiting · average 4.1</span>
+            </div>
+            <div class="stat">
+              <span class="l">Release gates</span>
+              <span class="v">2</span>
+              <span class="d">1 granted · 1 waiting on a vote</span>
+            </div>
+            <div class="stat">
+              <span class="l">Members</span>
+              <span class="v">8</span>
+              <span class="d">4 people · 4 agents · 1 crew · 4 groups</span>
+            </div>
+          </div>
+
+          <div class="charts">
+            <figure class="chart" aria-labelledby="c1">
+              <figcaption class="chart-head"><span id="c1" class="chart-title">Tokens by project</span><span class="unit">in + out</span><button class="tbl" type="button">Table</button></figcaption>
+              <ul class="bars">
+                <li><a class="bar-row" href="#"><span class="bar-label">Billing page</span><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span><span class="bar-value">148k</span></a></li>
+                <li><a class="bar-row" href="#"><span class="bar-label">Checkout</span><span class="bar-track"><span class="bar-fill" style="width:43%"></span></span><span class="bar-value">64k</span></a></li>
+              </ul>
+              <div class="foot">Billing page took 70% of the week; Checkout is mostly the cutover.</div>
+            </figure>
+            <figure class="chart" aria-labelledby="c2">
+              <figcaption class="chart-head"><span id="c2" class="chart-title">Tokens by person</span><span class="unit">in + out</span><button class="tbl" type="button">Table</button></figcaption>
+              <ul class="bars">
+                <li><span class="bar-row"><span class="bar-label">Ana</span><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span><span class="bar-value">71k</span></span></li>
+                <li><span class="bar-row on"><span class="bar-label">Cy</span><span class="bar-track"><span class="bar-fill" style="width:82%"></span></span><span class="bar-value">58k</span><span class="chart-tip" role="status"><b>58,412</b> tokens · Cy · 27%</span></span></li>
+                <li><span class="bar-row"><span class="bar-label">Bo</span><span class="bar-track"><span class="bar-fill" style="width:69%"></span></span><span class="bar-value">49k</span></span></li>
+                <li><span class="bar-row"><span class="bar-label">Dee</span><span class="bar-track"><span class="bar-fill" style="width:47%"></span></span><span class="bar-value">34k</span></span></li>
+              </ul>
+              <div class="foot">Even spread; no one person is over a third.</div>
+            </figure>
+            <figure class="chart" aria-labelledby="c3">
+              <figcaption class="chart-head"><span id="c3" class="chart-title">Tokens by agent</span><span class="unit">in + out</span><button class="tbl" type="button">Table</button></figcaption>
+              <ul class="bars">
+                <li><a class="bar-row" href="#"><span class="bar-label">Invoice PDF <span class="faint">· Cy's</span></span><span class="bar-track"><span class="bar-fill" style="width:100%"></span></span><span class="bar-value">58k</span></a></li>
+                <li><a class="bar-row" href="#"><span class="bar-label">Proration <span class="faint">· Ana's</span></span><span class="bar-track"><span class="bar-fill" style="width:89%"></span></span><span class="bar-value">52k</span></a></li>
+                <li><a class="bar-row" href="#"><span class="bar-label">Checkout deploy <span class="faint">· Bo's</span></span><span class="bar-track"><span class="bar-fill" style="width:84%"></span></span><span class="bar-value">49k</span></a></li>
+                <li><a class="bar-row" href="#"><span class="bar-label">Tax lines <span class="faint">· Dee's</span></span><span class="bar-track"><span class="bar-fill" style="width:58%"></span></span><span class="bar-value">34k</span></a></li>
+                <li><a class="bar-row" href="#"><span class="bar-label">Tax rate lookup <span class="faint">· Ana's, closed</span></span><span class="bar-track"><span class="bar-fill" style="width:33%"></span></span><span class="bar-value">19k</span></a></li>
+              </ul>
+              <div class="foot">Invoice PDF ran 38% over its plan; see Plans.</div>
+            </figure>
+            <figure class="chart wide" aria-labelledby="c4">
+              <figcaption class="chart-head"><span id="c4" class="chart-title">Tokens over turns</span><span class="unit">all open sessions, 5-turn buckets</span><button class="tbl" type="button">Table</button></figcaption>
+              <div class="area-wrap">
+                <svg class="area" viewBox="0 0 1040 170" role="img" aria-label="Tokens over turns: rises from 12k at turns 1–5 to 38k at turns 31–35, dips to 29k at turns 36–40">
+                  <line class="grid" x1="44" x2="1032" y1="10" y2="10"/>
+                  <line class="grid" x1="44" x2="1032" y1="74" y2="74"/>
+                  <line class="grid" x1="44" x2="1032" y1="138" y2="138"/>
+                  <text x="38" y="14" text-anchor="end">40k</text>
+                  <text x="38" y="78" text-anchor="end">20k</text>
+                  <text x="38" y="142" text-anchor="end">0</text>
+                  <path class="fill" d="M44 99.6 L185.1 86.8 L326.3 92.6 L467.4 67.6 L608.6 61.2 L749.7 51.6 L890.9 16.4 L1032 45.2 L1032 138 L44 138 Z"/>
+                  <path class="line" d="M44 99.6 L185.1 86.8 L326.3 92.6 L467.4 67.6 L608.6 61.2 L749.7 51.6 L890.9 16.4 L1032 45.2"/>
+                  <text x="44" y="160" text-anchor="start">turns 1–5</text>
+                  <text x="185.1" y="160" text-anchor="middle">6–10</text>
+                  <text x="326.3" y="160" text-anchor="middle">11–15</text>
+                  <text x="467.4" y="160" text-anchor="middle">16–20</text>
+                  <text x="608.6" y="160" text-anchor="middle">21–25</text>
+                  <text x="749.7" y="160" text-anchor="middle">26–30</text>
+                  <text x="890.9" y="160" text-anchor="middle">31–35</text>
+                  <text x="1032" y="160" text-anchor="end">36–40</text>
+                  <!-- hover readout at turns 31–35 -->
+                  <line class="cross" x1="890.9" x2="890.9" y1="10" y2="138"/>
+                  <circle class="pt" cx="890.9" cy="16.4" r="5"/>
+                  <rect class="tipbox" x="520" y="10" width="236" height="38" rx="8"/>
+                  <text class="tiplabel" x="532" y="26">turns 31–35 · 61 calls</text>
+                  <text x="532" y="41" style="fill:var(--ink)">38,040 tokens · 29.1k in · 8.9k out</text>
+                </svg>
+              </div>
+              <div class="legend"><span><span class="sw"></span>Input + output</span><span class="faint">Cache reads are listed in the table, never in the line.</span></div>
+            </figure>
+          </div>
+        </section>
+
+        <!-- plans and gates -->
+        <div class="two">
+          <section aria-label="Plans rated and approved">
+            <div class="sec-head"><h2>Plans</h2><span class="count">7 rated this week</span><a class="more" href="#">All plans</a></div>
+            <div class="card list">
+              <div class="rowitem">
+                <span><span class="t"><span class="nm">Render VAT per line item</span><span class="tag wait">Waiting</span></span><span class="s">Tax lines · Dee's agent · 5 steps · est <span class="mono">9.2k</span></span></span>
+                <span class="right-col"><span class="rating"><span class="stars"><span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span></span>0 of 1</span><span class="est">not started</span></span>
+              </div>
+              <div class="rowitem">
+                <span><span class="t"><span class="nm">Prorate mid-cycle plan changes</span><span class="tag ok">Approved</span></span><span class="s">Proration · Ana's agent · rated by Bo, Dee · step 4 of 6</span></span>
+                <span class="right-col"><span class="rating"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span>4.5</span><span class="est">31.2k of 36k <span class="under">under</span></span></span>
+              </div>
+              <div class="rowitem">
+                <span><span class="t"><span class="nm">Invoice PDF layout and totals</span><span class="tag ok">Approved</span></span><span class="s">Invoice PDF · Cy's agent · rated by Ana, Bo · done</span></span>
+                <span class="right-col"><span class="rating"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span></span>5.0</span><span class="est">44.1k of 32k <span class="over">+38%</span></span></span>
+              </div>
+              <div class="rowitem">
+                <span><span class="t"><span class="nm">Checkout v2 cutover</span><span class="tag ok">Approved</span></span><span class="s">Checkout deploy · Bo's agent · rated by Ana · done, at the gate</span></span>
+                <span class="right-col"><span class="rating"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span>4.0</span><span class="est">46.0k of 48k <span class="under">under</span></span></span>
+              </div>
+              <div class="rowitem">
+                <span><span class="t"><span class="nm">Tax rate lookup, first attempt</span><span class="tag rev">Revised</span></span><span class="s">Tax rate lookup · Ana's agent · Bo asked to revise: "cache by region"</span></span>
+                <span class="right-col"><span class="rating"><span class="stars"><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span><span>★</span></span>2.0</span><span class="est">superseded</span></span>
+              </div>
+              <div class="rowitem">
+                <span><span class="t"><span class="nm">Tax rate lookup, cached by region</span><span class="tag ok">Approved</span></span><span class="s">Tax rate lookup · Ana's agent · rated by Bo, Cy · done</span></span>
+                <span class="right-col"><span class="rating"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span>4.5</span><span class="est">18.7k of 20k <span class="under">under</span></span></span>
+              </div>
+            </div>
+          </section>
+
+          <section aria-label="Release gates">
+            <div class="sec-head"><h2>Release gates</h2><span class="count">2 this week</span><a class="more" href="#">Gate policy</a></div>
+            <div class="card list">
+              <div class="rowitem">
+                <span>
+                  <span class="t"><span class="nm">Deploy checkout-v2 to production</span><span class="tag wait">Waiting</span></span>
+                  <span class="s">Checkout deploy · Bo's agent · <span class="gate-rule">irreversible · 2 contributors at 4+</span></span>
+                  <span class="gate-votes">
+                    <span class="v"><span class="avatar">AN</span>Ana <span class="mono">4</span></span>
+                    <span class="v empty"><span class="avatar"></span>one more voice</span>
+                  </span>
+                </span>
+                <span class="right-col"><button class="btn primary sm" type="button">Rate</button></span>
+              </div>
+              <div class="rowitem">
+                <span>
+                  <span class="t"><span class="nm">United pdf-layout into main</span><span class="tag ok">Granted</span></span>
+                  <span class="s">Invoice PDF · Cy's agent · <span class="gate-rule">irreversible · 2 contributors at 4+</span></span>
+                  <span class="gate-votes">
+                    <span class="v"><span class="avatar">BO</span>Bo <span class="mono">5</span></span>
+                    <span class="v"><span class="avatar">DE</span>Dee <span class="mono">4</span></span>
+                    <span class="v faint">yesterday, 16:40</span>
+                  </span>
+                </span>
+                <span class="right-col"><a class="small" href="#">Replay</a></span>
+              </div>
+              <div class="rowitem">
+                <span>
+                  <span class="t"><span class="nm">Gate health</span></span>
+                  <span class="s">Median wait for a second vote this month: <span class="mono">41 min</span>. Longest: <span class="mono">6 h</span> (tax lines, a Friday). An unrated approve counts as a voice, not a vote.</span>
+                </span>
+                <span class="right-col"><span class="bar-mini" aria-hidden="true"><i style="width:34%"></i></span></span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- crews and groups -->
+        <div class="two">
+          <section aria-label="Crews">
+            <div class="sec-head"><h2>Crews</h2><span class="count">1 live</span></div>
+            <div class="card list">
+              <div class="rowitem">
+                <span><span class="t"><span class="nm">Invoice rollout</span><span class="pill team">Team</span></span><span class="s">Billing page · 2 agents · Ana and Cy · Ana has the baton</span></span>
+                <span class="right-col"><span class="status running">running</span><span class="est">110.5k together</span></span>
+              </div>
+              <div class="rowitem">
+                <span><span class="t"><span class="nm">Checkout cutover</span></span><span class="s">Checkout · 2 agents · Bo and Dee · united Tuesday, closed</span></span>
+                <span class="right-col"><span class="status">closed</span><span class="est">71.3k together</span></span>
+              </div>
+            </div>
+          </section>
+          <section aria-label="Groups">
+            <div class="sec-head"><h2>Groups</h2><span class="count">4</span><a class="more" href="#">New group</a></div>
+            <div class="card list">
+              <div class="rowitem group-row">
+                <span><span class="t"><span class="hash">#billing</span><span class="stack"><span class="avatar">AN</span><span class="avatar">CY</span><span class="avatar">DE</span><span class="avatar agent">P</span></span></span><span class="s">4 people · 2 agents · Cy's agent answered 12 min ago</span></span>
+                <span class="small muted">3 new</span>
+              </div>
+              <div class="rowitem group-row">
+                <span><span class="t"><span class="hash">#checkout</span><span class="stack"><span class="avatar">BO</span><span class="avatar">AN</span><span class="avatar agent">C</span></span></span><span class="s">3 people · 1 agent · Bo: "gate is one vote short"</span></span>
+                <span class="small muted">1 new</span>
+              </div>
+              <div class="rowitem group-row">
+                <span><span class="t"><span class="hash">#payments-leads</span><span class="stack"><span class="avatar">BO</span><span class="avatar">AN</span></span></span><span class="s">2 people · no agents · quiet since Monday</span></span>
+                <span class="small muted"></span>
+              </div>
+              <div class="rowitem group-row">
+                <span><span class="t"><span class="hash">#releases</span><span class="stack"><span class="avatar">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span></span></span><span class="s">4 people · 4 agents · every gate notice lands here</span></span>
+                <span class="small muted"></span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- roster -->
+        <section aria-label="Members and agents">
+          <div class="sec-head"><h2>Members and agents</h2><span class="count">4 people · 4 agents</span><a class="more" href="#">Invite</a></div>
+          <div class="roster">
+            <a class="member" href="#"><span class="avatar online">AN</span><span class="who"><span class="n">Ana</span><span class="r">owner · Billing, Checkout</span></span><span class="tk">71k</span></a>
+            <a class="member" href="#"><span class="avatar online">BO</span><span class="who"><span class="n">Bo</span><span class="r">owner · Checkout, Billing</span></span><span class="tk">49k</span></a>
+            <a class="member" href="#"><span class="avatar online">CY</span><span class="who"><span class="n">Cy</span><span class="r">contributor · Billing page</span></span><span class="tk">58k</span></a>
+            <a class="member" href="#"><span class="avatar">DE</span><span class="who"><span class="n">Dee</span><span class="r">contributor · Billing · away</span></span><span class="tk">34k</span></a>
+            <a class="member" href="#"><span class="avatar agent">P</span><span class="who"><span class="n">Proration</span><span class="r">Ana's agent · Invoice rollout</span></span><span class="status running">running</span></a>
+            <a class="member" href="#"><span class="avatar agent">I</span><span class="who"><span class="n">Invoice PDF</span><span class="r">Cy's agent · Invoice rollout</span></span><span class="status blocked">blocked</span></a>
+            <a class="member" href="#"><span class="avatar agent">C</span><span class="who"><span class="n">Checkout deploy</span><span class="r">Bo's agent · Checkout</span></span><span class="status awaiting">at gate</span></a>
+            <a class="member" href="#"><span class="avatar agent">T</span><span class="who"><span class="n">Tax lines</span><span class="r">Dee's agent · Billing page</span></span><span class="status paused">paused</span></a>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

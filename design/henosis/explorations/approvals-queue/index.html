@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Approvals queue</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: the status colours lift so they read on the dark surfaces */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .risk.gate, :root:not([data-theme="light"]) .filters .chip.gate::before { box-shadow: inset 0 0 0 1px rgba(226,196,166,.5); } }
+  :root[data-theme="dark"] .risk.gate, :root[data-theme="dark"] .filters .chip.gate::before { box-shadow: inset 0 0 0 1px rgba(226,196,166,.5); }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); }
+
+  /* ---- shell ---- */
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 5px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .btn { white-space: nowrap; }
+  .btn.sm svg { width: 14px; height: 14px; }
+  .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+  kbd { font: 11px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; background: var(--surface-2); min-width: 18px; display: inline-grid; place-items: center; }
+
+  /* ---- topbar ---- */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .count { font: 500 12px var(--font); background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 22px; height: 22px; display: inline-grid; place-items: center; padding: 0 7px; }
+  .topbar .menu { display: none; }
+  .topbar .kbd { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); margin-right: 6px; }
+
+  /* ---- page ---- */
+  .scroll .page { width: min(1120px, 100%); margin: 0 auto; padding: 26px 28px 60px; display: grid; grid-template-columns: minmax(0, 1fr) 272px; column-gap: 28px; row-gap: 18px; align-items: start; }
+  .page > .lead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; }
+  .page > .lead h1 { font-size: 38px; }
+  .page > .lead p { margin: 0; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 0 10px; align-items: baseline; }
+  .page > .lead p .when { font-size: 13px; color: var(--ink-3); }
+  .page > .lead p i { font-family: var(--serif); font-style: italic; color: var(--ink); font-size: 17px; }
+  .queue { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+  .aside { display: flex; flex-direction: column; gap: 14px; }
+
+  /* ---- filters ---- */
+  .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .filters .chip { height: 30px; cursor: pointer; gap: 7px; }
+  .filters .chip .n { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .filters .chip.on .n { color: var(--accent); }
+  .filters .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); }
+  .filters .chip.on::before { background: var(--apricot-deep); }
+  .filters .chip.gate::before { background: var(--gradient-brand); width: 7px; height: 7px; }
+  .filters .sort { margin-left: auto; font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ---- the list ---- */
+  .group { display: flex; flex-direction: column; gap: 10px; }
+  .group .gh { display: flex; align-items: baseline; gap: 10px; padding: 0 2px; }
+  .group .gh .serif { font-size: 21px; }
+  .group .gh .sub { font-size: 13px; color: var(--ink-2); }
+  .group .gh .n { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+  .group .gh .right { margin-left: auto; font-size: 13px; }
+  .list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .row { position: relative; display: grid; grid-template-columns: 18px 34px minmax(0, 1fr); column-gap: 12px; row-gap: 8px; align-items: start; padding: 14px 18px 13px 12px; border-top: 1px solid var(--line); transition: background .15s ease; }
+  .row:first-child { border-top: 0; }
+  .row:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+  .row .cur { height: 34px; display: grid; place-items: center; color: var(--apricot-deep); opacity: 0; }
+  .row .cur svg { width: 12px; height: 12px; fill: currentColor; }
+  .row.cursor { background: color-mix(in srgb, var(--apricot-soft) 55%, transparent); box-shadow: inset 0 0 0 1.5px var(--apricot-deep); }
+  .row.cursor .cur { opacity: 1; }
+  .row.cursor + .row { border-top-color: transparent; }
+  .row .avatar.agent { width: 34px; height: 34px; font-size: 12px; border-radius: 11px 11px 11px 4px; border: 0; }
+  .row .avatar.agent.wait { opacity: .8; }
+  .row .body { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding-top: 2px; }
+  .row .t { font-size: 15.5px; line-height: 1.45; }
+  .row .t .who { font-family: var(--serif); font-size: 17.5px; }
+  .row .t .sess { font-family: var(--serif); font-size: 17.5px; color: var(--accent); }
+  .row .t code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+  .row .s { font-size: 13px; color: var(--ink-2); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .row .s .sep { color: var(--ink-3); }
+  .row .s .proj { font-family: var(--serif); font-size: 14.5px; color: var(--ink); }
+  .row .s .ago { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .row .s .you { color: var(--accent); font-weight: 500; }
+  .row .s .stack .avatar { width: 18px; height: 18px; font-size: 8.5px; border-width: 1.5px; }
+  .risk { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; background: var(--surface-3); color: var(--ink-2); }
+  .risk.exec { background: var(--warn-soft); color: var(--warn); }
+  .risk.external { background: var(--surface-3); color: var(--ink-2); }
+  .risk.irreversible { background: var(--danger-soft); color: var(--danger); }
+  .risk.gate { background: var(--gradient-brand); color: #fff; }
+  .risk.gate svg { width: 10px; height: 10px; stroke: #fff; }
+
+  /* release gate rows carry the brand hairline and the quorum */
+  .row.gated::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--gradient-brand); }
+  .quorum { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--ink-2); margin-top: 2px; white-space: nowrap; }
+  .quorum .seg { background: transparent; padding: 0; gap: 4px; }
+  .quorum .seg i { width: 44px; height: 5px; border-radius: 3px; background: var(--surface-3); display: block; }
+  .quorum .seg i.on { background: var(--apricot-deep); }
+  .quorum .seg i.low { background: var(--warn); }
+  .quorum .n { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .quorum .avg { font-family: var(--mono); font-size: 11.5px; }
+
+  /* controls on the right */
+  .row .ctl { grid-column: 3; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+  .row .ctl .line { display: flex; align-items: center; gap: 8px; }
+  .row .ctl .line.acts { margin-left: auto; }
+  .needs { font-size: 12.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .needs::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+  .needs.ok::before { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+  .needs.other::before { background: var(--ink-3); box-shadow: none; }
+  .row .hint { font-size: 11.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 5px; }
+  .row .hint kbd { font-size: 10.5px; padding: 0 4px; }
+  .row.cursor .hint { color: var(--ink-2); }
+
+  /* compact rating: five stars, the gate tick after the third, the word */
+  .rate { display: inline-flex; align-items: center; gap: 2px; }
+  .rate .st { width: 24px; height: 24px; display: grid; place-items: center; border: 0; background: transparent; padding: 0; cursor: pointer; color: var(--surface-3); border-radius: 6px; }
+  .rate .st svg { width: 17px; height: 17px; fill: currentColor; }
+  .rate .st.on { color: var(--apricot-deep); }
+  .rate .st.pre { color: var(--apricot); }
+  .rate .tick { width: 1px; height: 14px; background: var(--ink-3); margin: 0 3px; opacity: .6; }
+  .rate .word { font-family: var(--serif); font-style: italic; font-size: 14.5px; margin-left: 6px; color: var(--ink-2); min-width: 44px; }
+  .rate .word.ok { color: var(--ok); }
+  .rate .word.warn { color: var(--warn); }
+  .rate.locked .st { cursor: default; }
+  .rate.locked .st.on { color: var(--apricot-deep); }
+  .rate.off .st { color: var(--surface-2); cursor: default; }
+  .rate.off .word { color: var(--ink-3); }
+  .check { width: 16px; height: 16px; fill: none; stroke: var(--ok); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* done: folded rows */
+  .list.quiet { box-shadow: none; background: color-mix(in srgb, var(--surface) 60%, transparent); }
+  .drow { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; column-gap: 12px; align-items: center; padding: 10px 18px 10px 16px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
+  .drow:first-child { border-top: 0; }
+  .drow .ico { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; }
+  .drow .ico svg { width: 12px; height: 12px; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .drow .ico.ok { background: var(--ok-soft); } .drow .ico.ok svg { stroke: var(--ok); }
+  .drow .ico.no { background: var(--danger-soft); } .drow .ico.no svg { stroke: var(--danger); }
+  .drow .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drow .txt b { font-weight: 500; color: var(--ink); }
+  .drow .txt .sess { font-family: var(--serif); font-size: 15px; color: var(--accent); }
+  .drow .txt .by { color: var(--ink-3); }
+  .drow .end { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; font-size: 12.5px; }
+  .drow .end .ago { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .drow .end .res { font-weight: 500; }
+  .drow .end .res.ok { color: var(--ok); } .drow .end .res.no { color: var(--danger); }
+  .drow.folding { animation: fold .5s ease both; }
+  @keyframes fold { from { opacity: 0; transform: translateY(-6px) } to { opacity: 1; transform: none } }
+  .group .foot { font-size: 12.5px; color: var(--ink-3); padding: 0 2px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .group .foot kbd { font-size: 10.5px; }
+
+  /* ---- aside ---- */
+  .aside .card { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .aside h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .glance { display: flex; flex-direction: column; }
+  .glance .g { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .glance .g:first-child { border-top: 0; }
+  .glance .g i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+  .glance .g .n { font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+  .glance .g .sub { font-size: 12.5px; color: var(--ink-3); }
+  .gates { display: flex; flex-direction: column; gap: 10px; }
+  .gates .gate { display: flex; flex-direction: column; gap: 5px; font-size: 13.5px; }
+  .gates .gate .l { display: flex; align-items: baseline; gap: 6px; }
+  .gates .gate .l .serif { font-size: 15.5px; }
+  .gates .gate .l .n { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .gates .gate .bar { display: flex; gap: 4px; }
+  .gates .gate .bar i { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-3); display: block; }
+  .gates .gate .bar i.on { background: var(--apricot-deep); } .gates .gate .bar i.low { background: var(--warn); } .gates .gate .bar i.pre { background: var(--apricot-soft); }
+  .gates p { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+  .gates p b { font-weight: 500; color: var(--ink); }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 7px 12px; font-size: 13px; color: var(--ink-2); align-items: center; }
+  .keys .k { display: inline-flex; gap: 4px; }
+  .aside .quiet-note { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+
+  /* ---- mobile ---- */
+  .page .lead .mobile-note, .mactions { display: none; }
+  @media (max-width: 760px) {
+    .rail, .topbar .kbd, .topbar .search, .aside, .row .hint, .filters .sort { display: none; }
+    .topbar .menu { display: inline-flex; }
+    .topbar { padding: 10px 14px; }
+    .scroll .page { grid-template-columns: minmax(0, 1fr); padding: 14px 16px 90px; row-gap: 14px; }
+    .page > .lead h1 { font-size: 32px; }
+    .filters { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+    .filters .chip { flex: none; }
+    .row { grid-template-columns: 30px minmax(0, 1fr); column-gap: 10px; padding: 14px 14px 14px 12px; }
+    .row.gated { padding-left: 14px; }
+    .row .cur { display: none; }
+    .row .avatar.agent { width: 30px; height: 30px; font-size: 11px; }
+    .row .ctl { grid-column: 2; flex-direction: column; align-items: stretch; width: 100%; gap: 10px; margin-top: 0; }
+    .row .ctl .line.acts { margin-left: 0; }
+    .row .ctl .line { justify-content: space-between; flex-wrap: wrap; }
+    .row .ctl .line.acts .btn { flex: 1; min-height: 40px; }
+    .row .ctl .line.acts .btn.deny { flex: 0 0 auto; }
+    .rate .st { width: 34px; height: 34px; } .rate .st svg { width: 21px; height: 21px; }
+    .rate .word { margin-left: auto; }
+    .row .t { font-size: 15px; }
+    .row.cursor { background: transparent; box-shadow: none; }
+    .row.cursor + .row { border-top-color: var(--line); }
+    .drow { grid-template-columns: 22px minmax(0, 1fr); padding: 10px 14px; row-gap: 2px; }
+    .drow .end { grid-column: 2; }
+    .group .foot, .group .gh .sub, .group .gh .right { display: none; }
+    .quorum { white-space: normal; flex-wrap: wrap; gap: 6px 9px; }
+    .quorum > span:last-child { display: none; }
+    .page > .lead p .when { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- ===== rail ===== -->
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits at the <i>release gate</i> · deploy to production</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana, Cy</span><span class="tok">18.6k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits on <i>two approvals</i> · migrate, then push</div>
+      <div class="foot"><span class="with"><span class="avatar driver">AN</span> with Bo, Cy, Dee</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Waits for <i>Cy</i> · tax rate lookup</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Rendering fixtures · <i>one gate open</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></svg>Inbox <span class="n live">6</span></a>
+    <a class="item active" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>Approvals <span class="n live">5</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11h18M3 6h18M3 16h18"/></svg>Groups <span class="n">4</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Overview</a>
+
+    <div class="me">
+      <span class="avatar">BO</span>
+      <span class="meta"><span>Bo</span><span class="role">Payments · owner</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
+    </div>
+  </nav>
+
+  <!-- ===== main: the queue ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn icon ghost menu" type="button" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title"><span class="serif">Approvals</span><span class="count">5</span></div>
+      <div class="right">
+        <span class="kbd"><kbd>j</kbd><kbd>k</kbd> move <kbd>a</kbd> approve <kbd>d</kbd> deny <kbd>Enter</kbd> open</span>
+        <button class="btn sm search" type="button"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="page">
+        <div class="lead">
+          <h1>Approvals</h1>
+          <p>Five approvals waiting in four sessions across two projects. <i>Two are release gates;</i> one waits for Cy. <span class="when">Tuesday 12:06 · Payments</span></p>
+        </div>
+
+        <!-- ===== queue ===== -->
+        <section class="queue">
+          <div class="filters" role="tablist">
+            <span class="chip on" role="tab" aria-selected="true">Needs you <span class="n">3</span></span>
+            <span class="chip gate" role="tab">Release gates <span class="n">2</span></span>
+            <span class="chip" role="tab">Waiting on others <span class="n">1</span></span>
+            <span class="chip" role="tab">All <span class="n">5</span></span>
+            <span class="sort">Oldest first <svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="m6 9 6 6 6-6"/></svg></span>
+          </div>
+
+          <div class="group">
+            <div class="gh"><span class="serif">Waiting</span><span class="n">5</span><span class="sub">a decision anywhere folds the row</span><a class="right" href="#">Open the oldest</a></div>
+            <div class="list" role="list">
+
+              <!-- 1 · release gate, cursor row, preview at 4 -->
+              <div class="row gated cursor" role="listitem" aria-current="true">
+                <span class="cur"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1l6 5-6 5z"/></svg></span>
+                <span class="avatar agent">BO</span>
+                <div class="body">
+                  <div class="t"><span class="who">Bo's agent</span> in <a class="sess" href="#">Checkout</a> wants to deploy <code>checkout-proration</code> to production.</div>
+                  <div class="s"><span class="proj">Checkout</span><span class="sep">·</span><span class="risk gate"><svg class="ic" viewBox="0 0 24 24"><path d="M5 3v18M19 3v18M5 12h14"/></svg>Release gate</span><span class="risk irreversible">irreversible</span><span class="sep">·</span>Ana approved with 4<span class="sep">·</span>42 of 42 pass<span class="sep">·</span><span class="ago">6 min</span></div>
+                  <div class="quorum"><span class="seg"><i class="on"></i><i></i></span><span class="n">1 of 2 at 4+</span><span class="avg">avg 4.0</span><span>· the plan waits for one more</span></div>
+                </div>
+                <div class="ctl">
+                  <div class="line">
+                    <span class="needs">needs one more at 4+</span>
+                    <span class="rate" role="radiogroup" aria-label="Your rating">
+                      <button class="st pre" type="button" aria-label="1"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <button class="st pre" type="button" aria-label="2"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <button class="st pre" type="button" aria-label="3"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <span class="tick" aria-hidden="true"></span>
+                      <button class="st pre" type="button" aria-label="4"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <button class="st" type="button" aria-label="5"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <span class="word ok">Good</span>
+                    </span>
+                  </div>
+                  <div class="line acts">
+                    <span class="hint"><kbd>a</kbd> sends 4</span>
+                    <button class="btn sm primary" type="button">Approve with 4</button>
+                    <button class="btn sm deny" type="button">Deny</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2 · exec, no votes -->
+              <div class="row" role="listitem">
+                <span class="cur"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1l6 5-6 5z"/></svg></span>
+                <span class="avatar agent">AN</span>
+                <div class="body">
+                  <div class="t"><span class="who">Ana's agent</span> in <a class="sess" href="#">Billing page</a> wants to run <code>pnpm db:migrate</code> on staging.</div>
+                  <div class="s"><span class="proj">Billing page</span><span class="sep">·</span><span class="risk exec">exec</span><span class="sep">·</span>adds <code>proration_cents</code> to invoices<span class="sep">·</span>no votes yet<span class="sep">·</span><span class="ago">4 min</span></div>
+                </div>
+                <div class="ctl">
+                  <div class="line"><span class="needs">needs a contributor</span></div>
+                  <div class="line acts">
+                    <span class="hint"><kbd>a</kbd> <kbd>d</kbd></span>
+                    <button class="btn sm primary" type="button">Approve</button>
+                    <button class="btn sm deny" type="button">Deny</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3 · release gate, you already approved -->
+              <div class="row gated" role="listitem">
+                <span class="cur"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1l6 5-6 5z"/></svg></span>
+                <span class="avatar agent">AN</span>
+                <div class="body">
+                  <div class="t"><span class="who">Ana's agent</span> in <a class="sess" href="#">Billing page</a> wants to unite <code>billing-proration</code> into <code>main</code>.</div>
+                  <div class="s"><span class="proj">Billing page</span><span class="sep">·</span><span class="risk gate"><svg class="ic" viewBox="0 0 24 24"><path d="M5 3v18M19 3v18M5 12h14"/></svg>Release gate</span><span class="risk irreversible">irreversible</span><span class="sep">·</span><span class="you">you approved with 4</span><span class="sep">·</span>Cy has not rated<span class="sep">·</span><span class="ago">11 min</span></div>
+                  <div class="quorum"><span class="seg"><i class="on"></i><i></i></span><span class="n">1 of 2 at 4+</span><span class="avg">avg 4.0</span><span>· waits for Cy or Dee</span></div>
+                </div>
+                <div class="ctl">
+                  <div class="line">
+                    <span class="needs other">waits on others</span>
+                    <span class="rate locked" aria-label="Your rating, 4 of 5, Good">
+                      <span class="st on"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></span>
+                      <span class="st on"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></span>
+                      <span class="st on"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></span>
+                      <span class="tick" aria-hidden="true"></span>
+                      <span class="st on"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></span>
+                      <span class="st"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></span>
+                      <span class="word ok"><svg class="check" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:3px"><path d="m5 12 4 4L19 6"/></svg>Good</span>
+                    </span>
+                  </div>
+                  <div class="line acts">
+                    <span class="hint">your vote is in</span>
+                    <button class="btn sm" type="button" disabled>Approved</button>
+                    <button class="btn sm deny" type="button">Change to deny</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4 · external, needs the driver (Cy) -->
+              <div class="row" role="listitem">
+                <span class="cur"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1l6 5-6 5z"/></svg></span>
+                <span class="avatar agent wait">CY</span>
+                <div class="body">
+                  <div class="t"><span class="who">Cy's agent</span> in <a class="sess" href="#">Invoice PDF</a> wants to call <code>GET /tax/rates?region=EU</code> on the live rate service.</div>
+                  <div class="s"><span class="proj">Invoice PDF</span><span class="sep">·</span><span class="risk external">external</span><span class="sep">·</span>Cy drives this one<span class="sep">·</span>away until 13:00<span class="sep">·</span><span class="ago">9 min</span></div>
+                </div>
+                <div class="ctl">
+                  <div class="line"><span class="needs other">needs the driver · Cy</span></div>
+                  <div class="line acts">
+                    <span class="hint">you own the project, so you can decide</span>
+                    <button class="btn sm" type="button">Approve as owner</button>
+                    <button class="btn sm ghost" type="button">Nudge Cy</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5 · release gate, Dee rated 3, average below the bar -->
+              <div class="row gated" role="listitem">
+                <span class="cur"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1l6 5-6 5z"/></svg></span>
+                <span class="avatar agent">DE</span>
+                <div class="body">
+                  <div class="t"><span class="who">Dee's agent</span> in <a class="sess" href="#">Tax lines</a> wants to delete 14 fixtures under <code>tests/tax/fixtures/</code>.</div>
+                  <div class="s"><span class="proj">Tax lines</span><span class="sep">·</span><span class="risk gate"><svg class="ic" viewBox="0 0 24 24"><path d="M5 3v18M19 3v18M5 12h14"/></svg>Release gate</span><span class="risk irreversible">irreversible</span><span class="sep">·</span>Dee rated 3 <span class="serif i">“two are still referenced”</span><span class="sep">·</span><span class="ago">2 min</span></div>
+                  <div class="quorum"><span class="seg"><i class="low"></i><i></i></span><span class="n">0 of 2 at 4+</span><span class="avg" style="color:var(--warn)">avg 3.0</span><span>· a 3 is a voice, not a vote</span></div>
+                </div>
+                <div class="ctl">
+                  <div class="line">
+                    <span class="needs">needs two at 4+</span>
+                    <span class="rate" role="radiogroup" aria-label="Your rating">
+                      <button class="st" type="button" aria-label="1"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <button class="st" type="button" aria-label="2"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <button class="st" type="button" aria-label="3"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <span class="tick" aria-hidden="true"></span>
+                      <button class="st" type="button" aria-label="4"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <button class="st" type="button" aria-label="5"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.3 6.7L12 17.5l-6 3.3 1.3-6.7-5-4.6 6.8-.8z"/></svg></button>
+                      <span class="word">Rate</span>
+                    </span>
+                  </div>
+                  <div class="line acts">
+                    <span class="hint"><kbd>1</kbd>–<kbd>5</kbd> then <kbd>a</kbd></span>
+                    <button class="btn sm primary" type="button">Approve with 4</button>
+                    <button class="btn sm deny" type="button">Deny</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+            <div class="foot"><span><kbd>j</kbd> <kbd>k</kbd> move</span><span><kbd>a</kbd> approves · 4 of 5 under a release gate</span><span><kbd>d</kbd> denies</span><span><kbd>Enter</kbd> opens the session</span><span>never while you type</span></div>
+          </div>
+
+          <!-- ===== done: folded ===== -->
+          <div class="group">
+            <div class="gh"><span class="serif">Done</span><span class="n">3</span><span class="sub">decided while this page was open; the history stays in the session</span></div>
+            <div class="list quiet" role="list">
+              <div class="drow folding" role="listitem">
+                <span class="ico ok"><svg viewBox="0 0 24 24"><path class="draw" d="m5 12 4 4L19 6"/></svg></span>
+                <span class="txt"><b>Approved</b>: fetch exchange rates from <code class="mono" style="font-size:12px">openexchangerates.org</code> in <a class="sess" href="#">Checkout</a> <span class="by">· Ana 5, Bo 4 · avg 4.5</span></span>
+                <span class="end"><span class="res ok">Granted</span><span class="ago">just now</span></span>
+              </div>
+              <div class="drow" role="listitem">
+                <span class="ico no"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></span>
+                <span class="txt"><b>Denied</b>: drop table <code class="mono" style="font-size:12px">invoices_backup</code> in <a class="sess" href="#">Invoice PDF</a> <span class="by">· Cy, Bo · “keep it until the rollout lands”</span></span>
+                <span class="end"><span class="res no">Denied</span><span class="ago">8 min</span></span>
+              </div>
+              <div class="drow" role="listitem">
+                <span class="ico ok"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>
+                <span class="txt"><b>Approved</b>: run the tax-lines suite in <a class="sess" href="#">Tax lines</a> <span class="by">· Dee</span></span>
+                <span class="end"><span class="res ok">Granted</span><span class="ago">14 min</span></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== aside ===== -->
+        <aside class="aside">
+          <div class="card">
+            <h3>At a glance</h3>
+            <div class="glance">
+              <div class="g"><i style="background:var(--warn)"></i><span>Need you<br><span class="sub">a or d settles them</span></span><span class="n">3</span></div>
+              <div class="g"><i style="background:var(--apricot-deep)"></i><span>Your vote is in<br><span class="sub">waits for one more</span></span><span class="n">1</span></div>
+              <div class="g"><i style="background:var(--ink-3)"></i><span>Cy's call<br><span class="sub">you can override as owner</span></span><span class="n">1</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Release gates</h3>
+            <div class="gates">
+              <div class="gate">
+                <div class="l"><span class="serif">Checkout</span><span class="faint small">deploy</span><span class="n">1 of 2</span></div>
+                <div class="bar"><i class="on"></i><i class="pre"></i></div>
+              </div>
+              <div class="gate">
+                <div class="l"><span class="serif">Billing page</span><span class="faint small">unite</span><span class="n">1 of 2</span></div>
+                <div class="bar"><i class="on"></i><i></i></div>
+              </div>
+              <div class="gate">
+                <div class="l"><span class="serif">Tax lines</span><span class="faint small">delete</span><span class="n">0 of 2</span></div>
+                <div class="bar"><i class="low"></i><i></i></div>
+              </div>
+              <p>Irreversible actions grant when <b>two contributors</b> approve at <b>4 or better</b>. An approve without a pick sends 4; a 3 is heard but does not count.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Keys</h3>
+            <div class="keys">
+              <span class="k"><kbd>j</kbd><kbd>k</kbd></span><span>next, previous</span>
+              <span class="k"><kbd>a</kbd><kbd>d</kbd></span><span>approve, deny the row under the cursor</span>
+              <span class="k"><kbd>1</kbd>–<kbd>5</kbd></span><span>pick a rating first</span>
+              <span class="k"><kbd>Enter</kbd></span><span>open the session</span>
+              <span class="k"><kbd>?</kbd></span><span>all shortcuts</span>
+            </div>
+            <div class="quiet-note">The same vote as in the session. Decide here, in the notice, in the inbox or in the palette; the row folds everywhere.</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Chats · Payments groups</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: status colours lift so they read on the dark surfaces (same override as inbox) */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); }
+
+  /* ---- shell ---- */
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 5px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .btn { white-space: nowrap; }
+  .btn.sm svg { width: 14px; height: 14px; }
+
+  /* ---- topbar ---- */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .count { font: 500 12px var(--font); background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 22px; height: 22px; display: inline-grid; place-items: center; padding: 0 7px; }
+  .topbar .menu { display: none; }
+  .topbar .search { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink-3); font-size: 13px; min-width: 240px; }
+  .topbar .search kbd { margin-left: auto; }
+  kbd { font: 11px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; background: var(--surface-2); }
+
+  /* ---- page ---- */
+  .scroll .page { width: min(1160px, 100%); margin: 0 auto; padding: 26px 28px 60px; display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: 28px; align-items: start; }
+  .lead { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  .lead h1 { font-size: 34px; }
+  .lead p { margin: 0; color: var(--ink-2); font-size: 15.5px; max-width: 60ch; }
+  .lead p b { font-weight: 500; color: var(--ink); }
+  .lead p i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 17px; }
+
+  .filters { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .filters .chip { cursor: pointer; }
+  .filters .chip .n { font-size: 12px; color: var(--ink-3); }
+  .filters .chip.on .n { color: var(--accent); font-weight: 600; }
+  .filters .right { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+  .filters .seg button { padding: 4px 11px; }
+
+  .group { margin-bottom: 26px; }
+  .group > header { display: flex; align-items: baseline; gap: 10px; padding: 0 6px 10px; }
+  .group > header h2 { font-size: 22px; }
+  .group > header .sub { font-size: 13px; color: var(--ink-3); }
+  .group > header .right { margin-left: auto; font-size: 13px; color: var(--ink-3); display: inline-flex; gap: 6px; align-items: center; }
+  .group > header .right a { color: var(--ink-2); }
+  .list { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ---- a group row ---- */
+  .row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; padding: 13px 16px 13px 14px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); color: inherit; text-decoration: none; position: relative; transition: transform .12s ease, box-shadow .12s ease; }
+  .row:hover { text-decoration: none; transform: translateY(-1px); box-shadow: var(--shadow-pop); }
+  .row.read { background: transparent; box-shadow: none; }
+  .row.read:hover { background: var(--surface); }
+  .row .em { grid-row: 1 / span 2; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-family: var(--serif); font-size: 21px; color: var(--accent); background: var(--apricot-soft); position: relative; }
+  .row .em.team { background: var(--gradient-brand); color: var(--apricot); }
+  .row .em.direct { border-radius: 50%; background: var(--surface-3); color: var(--ink); font-family: var(--font); font-size: 13px; font-weight: 600; }
+  .row .em.direct.agent { border-radius: 14px 14px 14px 4px; background: var(--gradient-brand); color: #fff; }
+  .row .em .live { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; background: var(--ok); border: 2px solid var(--surface); }
+  .row.read .em { background: var(--surface-2); color: var(--ink-2); }
+  .row.read .em.team { background: var(--surface-3); color: var(--ink-2); }
+  .row .head { grid-column: 2; grid-row: 1; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .row .name { font-family: var(--serif); font-size: 19px; line-height: 1.25; color: var(--ink); white-space: nowrap; flex: none; }
+  .row .name .hash { color: var(--ink-3); margin-right: 1px; }
+  .row .purpose { font-size: 13px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .row .purpose::before { content: "·"; margin-right: 8px; }
+  .row .scope { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--line); border-radius: var(--radius-full); padding: 1px 7px; line-height: 1.5; flex: none; align-self: center; }
+  .row .last { grid-column: 2; grid-row: 2; display: flex; align-items: baseline; gap: 6px; font-size: 14px; color: var(--ink-2); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .last .who { font-family: var(--serif); font-size: 15.5px; color: var(--ink); flex: none; white-space: nowrap; }
+  .row .last .who.agent { color: var(--accent); }
+  .row .last .who { display: block; } .row .last .who.agent em { display: inline; font-style: italic; }
+  .row .last .q { overflow: hidden; text-overflow: ellipsis; }
+  .row .last .q .me { background: var(--apricot-soft); color: var(--accent); padding: 0 5px; border-radius: 6px; font-weight: 500; }
+  .row .last .q code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+  .row.unread .last { color: var(--ink); }
+  .row.unread .last .q { font-weight: 500; }
+  .row.read .name { color: var(--ink-2); }
+  .row .typing { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-style: italic; font-family: var(--serif); font-size: 15px; }
+  .row .typing .weave { width: 28px; }
+  .loader.weave { height: 3px; }
+
+  .row .side { grid-column: 3; grid-row: 1 / span 2; display: flex; flex-direction: column; align-items: flex-end; gap: 7px; justify-self: end; }
+  .row .side .when { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .row.unread .side .when { color: var(--accent); font-weight: 500; }
+  .row .side .bottom { display: flex; align-items: center; gap: 10px; }
+  .row .stack { align-items: center; }
+  .row .stack .avatar { width: 26px; height: 26px; font-size: 10.5px; border-color: var(--surface); }
+  .row.read .stack .avatar { border-color: var(--canvas); }
+  .row .stack .avatar.agent { border-radius: 8px 8px 8px 2px; position: relative; }
+  .row .stack .avatar.agent i { position: absolute; right: -3px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); border: 1.5px solid var(--surface); }
+  .row .stack .avatar.agent i.awaiting { background: var(--warn); }
+  .row .stack .avatar.agent i.blocked { background: var(--danger); }
+  .row .stack .more { width: 26px; height: 26px; border-radius: 50%; margin-left: -6px; background: var(--surface-2); color: var(--ink-2); font-size: 10.5px; font-weight: 600; display: inline-grid; place-items: center; border: 2px solid var(--surface); }
+  .row .count { min-width: 22px; height: 22px; padding: 0 7px; border-radius: var(--radius-full); background: var(--accent); color: var(--accent-fg); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+  .row .count.mention { background: var(--apricot); color: #56352D; }
+  .row .count.mention::before { content: "@"; font-weight: 600; margin-right: 1px; }
+  .row .muted-ic { color: var(--ink-3); display: inline-grid; } .row .muted-ic svg { width: 15px; height: 15px; }
+  .row.quiet .em { opacity: .7; }
+
+  /* members shown as a stack: people first, then agents; a little gap between kinds */
+  .row .stack .avatar.agent:first-of-type { margin-left: -6px; }
+  .row .stack .sep { width: 1px; height: 18px; background: var(--line); margin: 0 6px 0 4px; }
+
+  /* ---- aside: the New group sheet, open ---- */
+  .aside { position: sticky; top: 0; display: flex; flex-direction: column; gap: 18px; }
+  .sheet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 16px; }
+  .sheet:focus-within { box-shadow: var(--shadow-pop), var(--team-glow); }
+  .sheet > .row2 { display: flex; align-items: center; gap: 10px; }
+  .sheet > .row2 .serif { font-size: 22px; flex: 1; }
+  .sheet .field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+  .sheet .input { font: 15px var(--font); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; background: var(--canvas); padding: 9px 12px; height: 40px; display: flex; align-items: center; gap: 2px; letter-spacing: 0; text-transform: none; font-weight: 400; }
+  .sheet .input.focus { box-shadow: var(--team-glow); border-color: var(--apricot-deep); }
+  .sheet .input .hash { color: var(--ink-3); }
+  .sheet .input .caret { width: 1.5px; height: 18px; background: var(--accent); margin-left: 1px; animation: pulse 1s steps(2) infinite; }
+  .sheet .input .ph { color: var(--ink-3); }
+  .sheet .scope { display: flex; gap: 6px; flex-wrap: wrap; letter-spacing: 0; text-transform: none; font-weight: 500; }
+  .sheet .scope .chip { height: 30px; font-size: 13px; cursor: pointer; }
+  .sheet .scope .chip.on { box-shadow: inset 0 0 0 1.5px var(--apricot-deep); }
+  .sheet .scope .chip svg { width: 13px; height: 13px; }
+  .sheet .hint { font-size: 13px; color: var(--ink-2); margin: -6px 0 0; letter-spacing: 0; text-transform: none; font-weight: 400; }
+  .picks { display: flex; flex-direction: column; gap: 2px; letter-spacing: 0; text-transform: none; font-weight: 400; }
+  .picks .k { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 8px 6px 4px; }
+  .pick { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 6px; border-radius: 12px; font-size: 14px; color: var(--ink); cursor: pointer; }
+  .pick:hover { background: var(--surface-2); }
+  .pick .avatar { border-color: var(--surface); }
+  .pick .avatar.agent { border-radius: 9px 9px 9px 3px; }
+  .pick .nm { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .pick .nm .n { font-family: var(--serif); font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pick .nm .r { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pick .nm .r .st { display: inline-flex; align-items: center; gap: 5px; }
+  .pick .nm .r .st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+  .pick .nm .r .st.awaiting::before { background: var(--warn); }
+  .pick .nm .r .st.blocked::before { background: var(--danger); }
+  .pick .box { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--line); display: grid; place-items: center; color: var(--accent-fg); background: transparent; }
+  .pick .box svg { width: 12px; height: 12px; stroke-width: 2.4; }
+  .pick.on .box { background: var(--accent); border-color: var(--accent); }
+  .pick.you { opacity: .75; cursor: default; }
+  .pick.you .box { background: var(--surface-3); border-color: transparent; color: var(--ink-2); }
+  .sheet .foot { display: flex; align-items: center; gap: 10px; padding-top: 4px; border-top: 1px solid var(--line); margin-top: 2px; }
+  .sheet .foot .who { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+  .sheet .foot .who .stack .avatar { width: 22px; height: 22px; font-size: 9px; border-color: var(--surface); }
+  .sheet .foot .who .stack .avatar.agent { border-radius: 7px 7px 7px 2px; }
+  .sheet .foot .right { margin-left: auto; display: inline-flex; gap: 8px; }
+
+  .tips { padding: 2px 8px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .tips h3 { font-size: 11.5px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .tips p { margin: 0; }
+  .tips p i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 15px; }
+  .tips .keys { display: flex; gap: 14px; flex-wrap: wrap; } .tips .keys span { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ---- mobile ---- */
+  @media (max-width: 760px) {
+    .rail { display: none; }
+    .topbar { padding: 10px 14px; gap: 8px; }
+    .topbar .menu { display: inline-grid; }
+    .topbar .search { display: none; }
+    .topbar .right .btn span { display: none; }
+    .topbar .right .btn.sm { width: 34px; padding: 0; }
+    .scroll .page { grid-template-columns: 1fr; padding: 14px 14px 40px; gap: 14px; }
+    .lead { margin-bottom: 12px; } .lead h1 { display: none; } .lead p { font-size: 14.5px; }
+    .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -14px 14px; padding: 0 14px; }
+    .filters .chip { flex: none; } .filters .right { display: none; }
+    .aside { display: none; }
+    .group { margin-bottom: 18px; }
+    .group > header .right { display: none; }
+    .row { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 3px 12px; padding: 12px 12px 12px 12px; }
+    .row .em { width: 40px; height: 40px; font-size: 19px; border-radius: 12px; }
+    .row .name { font-size: 18px; }
+    .row .purpose, .row .scope { display: none; }
+    .row .last { font-size: 13.5px; } .row .last .who { font-size: 15px; }
+    .row .side { gap: 6px; }
+    .row .stack { display: none; }
+    .row .side .bottom { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ===== rail ===== -->
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Holds <i>proration</i> for a pick · rendering the tax lines</div>
+      <div class="foot"><span class="with"><span class="avatar driver">AN</span> with Bo, Cy, Dee</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits at the <i>release gate</i> · deploy to production</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana, Cy</span><span class="tok">18.6k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot blocked"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Blocked · <i>tax rate lookup</i> answered 500</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></svg>Inbox <span class="n live">6</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>Approvals <span class="n live">3</span></a>
+    <a class="item active" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.3A8 8 0 1 1 21 12z"/></svg>Chats <span class="n live">9</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Overview</a>
+
+    <div class="me">
+      <span class="avatar">BO</span>
+      <span class="meta"><span>Bo</span><span class="role">Payments · owner</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+    </div>
+  </nav>
+
+  <!-- ===== main ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn ghost icon menu" type="button" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <div class="title"><span class="serif">Chats</span><span class="count">9</span></div>
+      <div class="right">
+        <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Find a group or a person <kbd>⌘K</kbd></div>
+        <button class="btn sm primary" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>New group</span></button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="page">
+
+        <!-- ===== list ===== -->
+        <section>
+          <div class="lead">
+            <h1>Payments chats</h1>
+            <p>Nine unread across four groups. <b>Cy's agent answered in <i>#billing</i></b>, and Ana said your name in <i>#invoice-rollout</i>.</p>
+          </div>
+
+          <div class="filters">
+            <span class="chip on">All <span class="n">7</span></span>
+            <span class="chip">Unread <span class="n">4</span></span>
+            <span class="chip">Mentions <span class="n">1</span></span>
+            <span class="chip">With agents <span class="n">5</span></span>
+            <span class="right">
+              <span class="seg"><button class="on" type="button">Latest</button><button type="button">A–Z</button></span>
+            </span>
+          </div>
+
+          <!-- team groups -->
+          <section class="group" aria-label="Team groups">
+            <header><h2>Team</h2><span class="sub">the Payments team · everyone is in these</span><span class="right">2 groups</span></header>
+            <div class="list">
+              <a class="row unread" href="#">
+                <span class="em team">#</span>
+                <div class="head"><span class="name"><span class="hash">#</span>billing</span><span class="purpose">The Billing page, end to end</span><span class="scope">Team</span></div>
+                <div class="last"><span class="who agent">Cy<em>'s agent</em></span><span class="q">The tax lines now render from the invoice totals; proration still waits for a pick.</span></div>
+                <div class="side">
+                  <span class="when">2 min</span>
+                  <span class="bottom">
+                    <span class="stack"><span class="avatar">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span><span class="sep"></span><span class="avatar agent">BP<i></i></span><span class="avatar agent">IP<i class="blocked"></i></span></span>
+                    <span class="count">3</span>
+                  </span>
+                </div>
+              </a>
+              <a class="row read" href="#">
+                <span class="em team">#</span>
+                <div class="head"><span class="name"><span class="hash">#</span>payments</span><span class="purpose">The whole team, releases and the week</span><span class="scope">Team</span></div>
+                <div class="last"><span class="who">Dee</span><span class="q">United <code>pdf-layout</code> into main. The release gate for Checkout is Ana's and Cy's to open.</span></div>
+                <div class="side">
+                  <span class="when">Yesterday</span>
+                  <span class="bottom">
+                    <span class="stack"><span class="avatar">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="avatar">DE</span><span class="sep"></span><span class="avatar agent">CO<i class="awaiting"></i></span></span>
+                  </span>
+                </div>
+              </a>
+            </div>
+          </section>
+
+          <!-- project groups -->
+          <section class="group" aria-label="Project groups">
+            <header><h2>Projects</h2><span class="sub">Billing page · Checkout · Invoice PDF</span><span class="right">3 groups</span></header>
+            <div class="list">
+              <a class="row unread" href="#">
+                <span class="em">#</span>
+                <div class="head"><span class="name"><span class="hash">#</span>invoice-rollout</span><span class="purpose">Ana's and Bo's crew, invoice PDF and tax lines</span><span class="scope">Billing page</span></div>
+                <div class="last"><span class="who">Ana</span><span class="q"><span class="me">@Bo</span> can you rate the plan for the tax lines? It waits on you, then Dee's agent can pick it up.</span></div>
+                <div class="side">
+                  <span class="when">11 min</span>
+                  <span class="bottom">
+                    <span class="stack"><span class="avatar">AN</span><span class="avatar">BO</span><span class="avatar">DE</span><span class="sep"></span><span class="avatar agent">BP<i></i></span><span class="avatar agent">TL<i></i></span></span>
+                    <span class="count mention">1</span>
+                  </span>
+                </div>
+              </a>
+              <a class="row unread" href="#">
+                <span class="em">#</span>
+                <div class="head"><span class="name"><span class="hash">#</span>checkout-release</span><span class="purpose">Who opens the gate and when</span><span class="scope">Checkout</span></div>
+                <div class="last"><span class="typing"><span class="loader weave"></span>Bo's agent is answering Cy…</span></div>
+                <div class="side">
+                  <span class="when">now</span>
+                  <span class="bottom">
+                    <span class="stack"><span class="avatar">AN</span><span class="avatar">BO</span><span class="avatar">CY</span><span class="sep"></span><span class="avatar agent">CO<i class="awaiting"></i></span></span>
+                    <span class="count">4</span>
+                  </span>
+                </div>
+              </a>
+              <a class="row read quiet" href="#">
+                <span class="em">#</span>
+                <div class="head"><span class="name"><span class="hash">#</span>invoice-pdf</span><span class="purpose">Layout, fonts, the tax rate lookup</span><span class="scope">Invoice PDF</span></div>
+                <div class="last"><span class="who agent">Cy<em>'s agent</em></span><span class="q">Blocked on <code>tax rate lookup</code>, it answered 500 twice. I will retry when someone says so.</span></div>
+                <div class="side">
+                  <span class="when">Mon</span>
+                  <span class="bottom">
+                    <span class="stack"><span class="avatar">CY</span><span class="avatar">DE</span><span class="sep"></span><span class="avatar agent">IP<i class="blocked"></i></span></span>
+                    <span class="muted-ic" title="Quiet"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0v5l2 3H4l2-3z"/><path d="M10 20h4"/><path d="m3 3 18 18"/></svg></span>
+                  </span>
+                </div>
+              </a>
+            </div>
+          </section>
+
+          <!-- direct -->
+          <section class="group" aria-label="Direct chats">
+            <header><h2>Direct</h2><span class="sub">one person, or one agent, and you</span><span class="right">2 chats</span></header>
+            <div class="list">
+              <a class="row unread" href="#">
+                <span class="em direct">AN</span>
+                <div class="head"><span class="name">Ana</span><span class="purpose">Lead · Billing page</span></div>
+                <div class="last"><span class="who">Ana</span><span class="q">Taking the baton on proration for an hour, then it's yours again.</span></div>
+                <div class="side">
+                  <span class="when">34 min</span>
+                  <span class="bottom"><span class="count">1</span></span>
+                </div>
+              </a>
+              <a class="row read" href="#">
+                <span class="em direct agent">BP<span class="live"></span></span>
+                <div class="head"><span class="name">Billing page</span><span class="purpose">Ana's agent · Billing page · running</span></div>
+                <div class="last"><span class="who">You</span><span class="q">Keep the proration lines under the subtotal, same as the invoice PDF.</span></div>
+                <div class="side">
+                  <span class="when">Tue</span>
+                  <span class="bottom"></span>
+                </div>
+              </a>
+            </div>
+          </section>
+        </section>
+
+        <!-- ===== aside: new group, open ===== -->
+        <aside class="aside">
+          <form class="sheet" aria-label="New group" onsubmit="return false">
+            <div class="row2"><span class="serif">New group</span><button class="btn ghost icon sm" type="button" aria-label="Cancel"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+            <label class="field">Name
+              <span class="input focus"><span class="hash">#</span>proration<span class="caret"></span></span>
+            </label>
+            <label class="field">Purpose
+              <span class="input"><span class="ph">What is this group for?</span></span>
+            </label>
+            <div class="field">Scope
+              <div class="scope">
+                <span class="chip"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Whole organisation</span>
+                <span class="chip"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="3"/><path d="M15.5 14.5A5.5 5.5 0 0 1 22 20"/></svg>Team Payments</span>
+                <span class="chip on"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Project Billing page</span>
+              </div>
+            </div>
+            <div class="field">Members
+              <p class="hint">Pick people and agents. You are in it already.</p>
+              <div class="picks">
+                <div class="k">People</div>
+                <label class="pick you"><span class="avatar">BO</span><span class="nm"><span class="n">Bo</span><span class="r">you · owner</span></span><span class="box"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span></label>
+                <label class="pick on"><span class="avatar">AN</span><span class="nm"><span class="n">Ana</span><span class="r">lead · Billing page</span></span><span class="box"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span></label>
+                <label class="pick"><span class="avatar">CY</span><span class="nm"><span class="n">Cy</span><span class="r">engineer · Invoice PDF</span></span><span class="box"></span></label>
+                <label class="pick on"><span class="avatar">DE</span><span class="nm"><span class="n">Dee</span><span class="r">engineer · joined Tuesday</span></span><span class="box"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span></label>
+                <div class="k">Agents</div>
+                <label class="pick on"><span class="avatar agent">BP</span><span class="nm"><span class="n">Billing page</span><span class="r"><span class="st">Ana's agent · running</span></span></span><span class="box"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span></label>
+                <label class="pick"><span class="avatar agent">CO</span><span class="nm"><span class="n">Checkout</span><span class="r"><span class="st awaiting">Bo's agent · at the release gate</span></span></span><span class="box"></span></label>
+                <label class="pick"><span class="avatar agent">TL</span><span class="nm"><span class="n">Tax lines</span><span class="r"><span class="st">Dee's agent · paused</span></span></span><span class="box"></span></label>
+              </div>
+            </div>
+            <div class="foot">
+              <span class="who"><span class="stack"><span class="avatar">BO</span><span class="avatar">AN</span><span class="avatar">DE</span><span class="avatar agent">BP</span></span>4 in the circle</span>
+              <span class="right"><button class="btn sm ghost" type="button">Cancel</button><button class="btn sm primary" type="button">Create group</button></span>
+            </div>
+          </form>
+
+          <div class="tips">
+            <h3>How groups work</h3>
+            <p>Agents are members. Say <i>@Billing page</i> in a group and the words reach its session as a steer; its next words come back here as a reply.</p>
+            <p>Team groups hold everyone on the team; project groups hold the people and agents on that project. Anyone can start a group in their own scope.</p>
+            <div class="keys"><span><kbd>⌘K</kbd> find</span><span><kbd>N</kbd> new group</span><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span></div>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

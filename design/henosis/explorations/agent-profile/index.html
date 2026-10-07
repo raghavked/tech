@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ana's agent · Henosis</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* ---------- page layout ---------- */
+  .main { background: var(--canvas); background-image: var(--canvas-wash); }
+  .topbar .status { font-size: 13px; }
+  .topbar .kbd { font: 500 11px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+  .profile { width: min(1060px, 100%); margin: 0 auto; padding: 22px 28px 60px; display: flex; flex-direction: column; gap: 18px; }
+
+  /* identity header */
+  .ident { display: grid; grid-template-columns: 84px 1fr auto; grid-template-areas: "big name actions" "big meta actions"; column-gap: 20px; row-gap: 0; align-items: center; }
+  .ident .big { grid-area: big; } .ident h1 { grid-area: name; } .ident .meta { grid-area: meta; } .ident .actions { grid-area: actions; }
+  .ident .big { width: 84px; height: 84px; border-radius: 26px 26px 26px 8px; background: var(--gradient-brand); display: grid; place-items: center; box-shadow: var(--shadow-soft); position: relative; }
+  .ident .big .mark { width: 46px; height: 46px; }
+  .ident .big .live { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%; background: var(--ok); border: 3px solid var(--canvas); box-shadow: 0 0 0 3px var(--ok-soft); animation: livehalo 1.6s ease-in-out infinite; }
+  @keyframes livehalo { 0%, 100% { box-shadow: 0 0 0 3px var(--ok-soft) } 50% { box-shadow: 0 0 0 7px var(--ok-soft) } }
+  .ident h1 { font-size: 38px; line-height: 1.05; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .ident h1 .pill { font-family: var(--font); }
+  .ident .sub { margin-top: 4px; font-size: 14.5px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ident .sub .serif { font-size: 17px; color: var(--ink); }
+  .ident .sub .sep { color: var(--ink-3); }
+  .ident .model { margin-top: 4px; font-size: 12.5px; color: var(--ink-3); }
+  .ident .doing { margin-top: 8px; display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--ink-2); flex-wrap: wrap; }
+  .ident .doing i { font-family: var(--serif); font-style: italic; font-size: 17px; color: var(--accent); }
+  .ident .doing .with { display: inline-flex; align-items: center; gap: 10px; }
+  .ident .doing .stack .avatar { width: 24px; height: 24px; font-size: 9.5px; }
+  .ident .actions { display: flex; gap: 8px; align-items: center; align-self: start; margin-top: 6px; }
+
+  /* stat tiles */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px 18px 14px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .stat .k { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .stat .v { font-family: var(--serif); font-size: 34px; line-height: 1.1; color: var(--ink); display: flex; align-items: baseline; gap: 6px; }
+  .stat .v small { font-family: var(--font); font-size: 13.5px; color: var(--ink-2); }
+  .stat .s { font-size: 13px; color: var(--ink-2); }
+  .stat .s b { color: var(--ink); font-weight: 500; }
+  .stat .budget { margin-top: 6px; }
+  .stat .sparks { display: flex; gap: 3px; align-items: flex-end; height: 26px; margin-top: 6px; }
+  .stat .sparks i { flex: 1; min-height: 2px; background: var(--surface-3); border-radius: 2px 2px 0 0; }
+  .stat .sparks i.on { background: var(--apricot-deep); opacity: .55; }
+  .stat .sparks i.today { background: var(--apricot-deep); box-shadow: 0 0 0 2px var(--apricot-soft); }
+  .stat .mini { display: inline-flex; gap: 2px; }
+  .stat .mini span { color: var(--surface-3); font-size: 15px; line-height: 1; }
+  .stat .mini span.on { color: var(--apricot-deep); }
+
+  /* two columns */
+  .cols { display: grid; grid-template-columns: 1fr 356px; gap: 18px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .card { padding: 16px 18px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .card .ch { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; }
+  .card .ch h2 { font-size: 21px; }
+  .card .ch .n { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+  .card .ch .more { margin-left: auto; font-size: 13px; color: var(--accent); }
+  .card .foot { padding: 10px 0 6px; font-size: 13px; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+
+  /* sessions */
+  .sess { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .sess .t { font-family: var(--serif); font-size: 17px; color: var(--ink); display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .sess .t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sess .s { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; margin-top: 1px; flex-wrap: wrap; }
+  .sess .s .crewname { font-family: var(--serif); font-size: 14px; color: var(--ink); }
+  .sess .s .crewname::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--apricot-deep); margin-right: 5px; vertical-align: 0; }
+  .sess .tok { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); text-align: right; }
+  .sess .tok small { display: block; font: 12px var(--font); color: var(--ink-3); }
+  .sess .stack .avatar { width: 22px; height: 22px; font-size: 9px; }
+  .sess.closed .t { color: var(--ink-2); }
+  .sess .pending { font-family: var(--mono); font-size: 11px; background: var(--warn-soft); color: var(--warn); border-radius: var(--radius-full); padding: 1px 7px; }
+
+  /* approvals */
+  .appr { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .appr .what { font-size: 14.5px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .appr .what code { font: 12.5px var(--mono); background: var(--surface-2); padding: 1px 6px; border-radius: 6px; color: var(--ink-2); }
+  .appr .who { font-size: 13px; color: var(--ink-2); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .appr .who .serif { font-size: 14.5px; color: var(--ink); }
+  .appr .rate { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+  .appr .stars span { width: 18px; height: 18px; font-size: 16px; }
+  .appr .rate small { font: 12px var(--mono); color: var(--ink-3); }
+  .risk { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; color: var(--ink-3); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+  .risk.irr { color: var(--danger); border-color: var(--danger-soft); background: var(--danger-soft); }
+  .check { width: 18px; height: 18px; color: var(--ok); flex: none; }
+
+  /* membership */
+  .member .row { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; align-items: start; }
+  .member .row .k { font-size: 12px; color: var(--ink-3); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding-top: 3px; }
+  .member .row .v { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .member .row .v .line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .member .row .v .serif { font-size: 16px; }
+  .member .row .v .faint { font-size: 12.5px; }
+  .member .avatar { width: 22px; height: 22px; font-size: 9px; }
+  .member .tag { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); background: var(--surface-2); border-radius: 6px; padding: 1px 7px; }
+
+  .joined { margin-top: 8px; margin-bottom: 6px; border-radius: var(--radius); background: var(--apricot-soft); padding: 12px 14px; display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center; }
+  .joined .mark { width: 44px; height: 44px; }
+  .joined .t { font-family: var(--serif); font-size: 17px; line-height: 1.25; }
+  .joined .t i { color: var(--accent); }
+  .joined .s { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+  .joined .s .mono { font-size: 12px; }
+
+  /* memory */
+  .mem { padding: 10px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+  .mem .q { font-size: 14.5px; line-height: 1.45; }
+  .mem .q code { font: 12.5px var(--mono); background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+  .mem .m { font-size: 12.5px; color: var(--ink-3); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .mem .m .scope { font-weight: 600; color: var(--ink-2); }
+  .mem .m .mono { font-size: 11.5px; }
+  .mem .conflict { display: inline-flex; align-items: center; gap: 5px; color: var(--warn); font-weight: 600; }
+  .mem .conflict svg { width: 13px; height: 13px; }
+
+  /* manners */
+  .manners { display: flex; flex-direction: column; gap: 7px; padding: 4px 0 8px; font-size: 13.5px; }
+  .manners .m { display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
+  .manners .m svg { width: 16px; height: 16px; color: var(--ok); flex: none; }
+  .manners .m .avatar { width: 20px; height: 20px; font-size: 8.5px; border-width: 1.5px; }
+  .manners .m b { color: var(--ink); font-weight: 500; }
+
+  /* icons */
+  .ic { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .rail .ic { width: 15px; height: 15px; }
+
+  /* mobile */
+  .mobilebar { display: none; }
+  @media (max-width: 760px) {
+    .rail { display: none; }
+    .topbar { padding: 10px 14px; }
+    .topbar .status { display: none; }
+    .topbar .right .btn.sm { display: none; }
+    .profile { padding: 16px 16px 90px; gap: 14px; }
+    .ident { grid-template-columns: 64px 1fr; gap: 14px; }
+    .ident .big { width: 64px; height: 64px; border-radius: 20px 20px 20px 6px; }
+    .ident .big .mark { width: 36px; height: 36px; }
+    .ident h1 { font-size: 30px; }
+    .ident { grid-template-areas: "big name" "meta meta" "actions actions"; row-gap: 10px; align-items: center; }
+    .ident .model { display: none; }
+    .ident .sub { font-size: 14px; }
+    .ident .doing .with { flex-basis: 100%; }
+    .ident .sub { margin-top: 0; }
+    .ident .actions { margin-top: 0; }
+    .ident .actions .btn { flex: 1; }
+    .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat { padding: 13px 14px 12px; }
+    .stat .v { font-size: 28px; }
+    .cols { grid-template-columns: 1fr; gap: 14px; }
+    .sess { grid-template-columns: 1fr auto; }
+    .sess .stack { display: none; }
+    .appr { grid-template-columns: 1fr; gap: 4px; }
+    .appr .what { flex-wrap: wrap; }
+    .appr .rate { flex-direction: row; align-items: center; gap: 8px; }
+    .card .ch .n { display: none; }
+    .member .row { grid-template-columns: 78px 1fr; }
+    .mobilebar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; height: 64px; padding: 0 10px 8px; background: var(--rail); color: var(--rail-muted); justify-content: space-around; align-items: center; }
+    .mobilebar a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px; color: var(--rail-muted); text-decoration: none; }
+    .mobilebar a.on { color: var(--apricot); }
+    .mobilebar .ic { width: 20px; height: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ===== rail ===== -->
+  <aside class="rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" width="28" height="28" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+      Henosis
+    </div>
+    <button class="new"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Payments</a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></svg>Inbox <span class="pill" style="margin-left:auto;height:18px;font-size:10.5px;background:var(--apricot);color:#56352D">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Approvals</a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9M12 7v5l3 3"/></svg>Memory</a>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span></div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Ana's agent</span><span class="pill team">Team</span></div>
+      <div class="doing">working on <i>Proration for mid-cycle upgrades</i></div>
+      <div class="foot"><span class="stack"><span class="avatar">BO</span><span class="avatar">DE</span></span>with Bo, Dee<span style="margin-left:auto" class="mono" >212k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Bo's agent</span><span class="pill team">Team</span></div>
+      <div class="doing">waiting on <i>Invoice PDF layout</i></div>
+      <div class="foot"><span class="stack"><span class="avatar">AN</span></span>with Ana<span style="margin-left:auto" class="mono">96k</span></div>
+    </a>
+    <div class="crew"><span class="serif">Checkout</span></div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Cy's agent</span><span class="pill solo">Solo</span></div>
+      <div class="doing">working on <i>Tax lines on Checkout</i></div>
+      <div class="foot"><span style="margin-left:auto" class="mono">48k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Dee's agent</span><span class="pill solo">Solo</span></div>
+      <div class="doing">paused on <i>Billing page empty states</i></div>
+      <div class="foot"><span style="margin-left:auto" class="mono">19k</span></div>
+    </a>
+    <div class="me"><span class="avatar">AN</span>Ana <span class="faint" style="margin-left:auto;font-size:12px;color:var(--rail-muted)">Owner</span></div>
+  </aside>
+
+  <!-- ===== main ===== -->
+  <div class="main">
+    <div class="topbar">
+      <div class="title"><span>Ana's agent</span><span class="faint" style="font-family:var(--font);font-size:13px">Payments · member</span></div>
+      <span class="status running">Running · turn 41</span>
+      <div class="right">
+        <button class="btn sm ghost"><svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg>Message</button>
+        <button class="btn sm ghost"><svg class="ic" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>Pause</button>
+        <button class="btn sm primary">Open session</button>
+        <button class="btn icon sm ghost" aria-label="More"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div class="profile">
+
+        <!-- identity -->
+        <header class="ident rise">
+          <div class="big">
+            <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)" opacity=".55"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+            <span class="live" title="Running"></span>
+          </div>
+          <h1>Ana's agent <span class="pill team">Team</span></h1>
+          <div class="meta">
+            <div class="sub">
+              <span>Owned by</span><span class="serif">Ana</span>
+              <span class="sep">·</span><span>Crew</span><span class="serif">Invoice rollout</span>
+              <span class="sep">·</span><span>Payments team</span>
+            </div>
+            <div class="model mono">claude-sonnet-4-5 · Claude Agent SDK · plan-first</div>
+            <div class="doing">
+              <span>Working on</span><i>Proration for mid-cycle upgrades</i>
+              <span class="with"><span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span><span class="avatar">DE</span></span><span>Ana has the baton · Bo and Dee are in</span></span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn"><svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg>Message</button>
+            <button class="btn primary">Open session</button>
+          </div>
+        </header>
+
+        <!-- stats -->
+        <section class="stats">
+          <div class="stat rise">
+            <div class="k">Sessions</div>
+            <div class="v">7 <small>3 open</small></div>
+            <div class="s"><b>4 united</b> into main since it joined</div>
+          </div>
+          <div class="stat rise">
+            <div class="k">Tokens this week</div>
+            <div class="v">418k <small>of 600k</small></div>
+            <div class="budget"><i style="width:70%"></i></div>
+            <div class="sparks" aria-label="Tokens by day, Monday to Sunday">
+              <i class="on" style="height:60%"></i><i class="on" style="height:100%"></i><i class="today" style="height:72%"></i><i style="height:0"></i><i style="height:0"></i><i style="height:0"></i><i style="height:0"></i>
+            </div>
+            <div class="s">Plans estimated 455k · <b>saved 37k</b></div>
+          </div>
+          <div class="stat rise">
+            <div class="k">Approvals earned</div>
+            <div class="v">23 <small>9 this week</small></div>
+            <div class="s"><span class="mini"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span> <b>4.3</b> avg · 2 waiting</div>
+          </div>
+          <div class="stat rise">
+            <div class="k">Memory added</div>
+            <div class="v">12 <small>facts</small></div>
+            <div class="s"><b>3 this week</b> · 1 conflict to resolve</div>
+          </div>
+        </section>
+
+        <div class="cols">
+          <!-- ===== left column ===== -->
+          <div class="col">
+
+            <section class="card rise">
+              <div class="ch"><h2>Sessions</h2><span class="n">7 · 3 open</span><a class="more" href="#">All sessions</a></div>
+
+              <div class="sess">
+                <div>
+                  <div class="t"><span class="status running" style="gap:0"></span><span>Proration for mid-cycle upgrades</span></div>
+                  <div class="s"><span class="crewname">Invoice rollout</span><span class="sep">·</span>Running, turn 41<span class="sep">·</span>Team with Bo, Dee</div>
+                </div>
+                <span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span><span class="avatar">DE</span></span>
+                <div class="tok">212k<small>now</small></div>
+              </div>
+
+              <div class="sess">
+                <div>
+                  <div class="t"><span class="status awaiting" style="gap:0"></span><span>Invoice PDF layout</span><span class="pending">2 waiting</span></div>
+                  <div class="s"><span class="crewname">Invoice rollout</span><span class="sep">·</span>Waits at the release gate, needs Bo<span class="sep">·</span>Team with Bo</div>
+                </div>
+                <span class="stack"><span class="avatar driver">AN</span><span class="avatar">BO</span></span>
+                <div class="tok">96k<small>2 h ago</small></div>
+              </div>
+
+              <div class="sess">
+                <div>
+                  <div class="t"><span class="status paused" style="gap:0"></span><span>Tax lines on Checkout</span></div>
+                  <div class="s">Checkout<span class="sep">·</span>Paused by Ana at step 3 of 5<span class="sep">·</span>Solo</div>
+                </div>
+                <span class="stack"><span class="avatar driver">AN</span></span>
+                <div class="tok">61k<small>yesterday</small></div>
+              </div>
+
+              <div class="sess closed">
+                <div>
+                  <div class="t"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Billing page empty states</span></div>
+                  <div class="s">Billing page<span class="sep">·</span>United into main, rated 4.5 by Bo and Dee<span class="sep">·</span>Closed Mon</div>
+                </div>
+                <span class="stack"><span class="avatar">AN</span><span class="avatar">DE</span></span>
+                <div class="tok">34k<small>Mon</small></div>
+              </div>
+
+              <div class="sess closed">
+                <div>
+                  <div class="t"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Refund ledger audit</span></div>
+                  <div class="s">Payments<span class="sep">·</span>United into main<span class="sep">·</span>Closed 29 Sep</div>
+                </div>
+                <span class="stack"><span class="avatar">AN</span></span>
+                <div class="tok">15k<small>29 Sep</small></div>
+              </div>
+
+              <div class="foot">2 more closed sessions from September</div>
+            </section>
+
+            <section class="card rise">
+              <div class="ch"><h2>Approvals it earned</h2><span class="n">23 · avg 4.3</span><a class="more" href="#">Approvals queue</a></div>
+
+              <div class="appr">
+                <div>
+                  <div class="what"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="draw" d="M20 6L9 17l-5-5"/></svg>Write tax lines to Checkout <span class="risk irr">irreversible</span></div>
+                  <div class="who">Granted by <span class="serif">Bo</span> and <span class="serif">Dee</span><span class="sep">·</span>two contributors at 4+<span class="sep">·</span>Tue 14:02</div>
+                </div>
+                <div class="rate"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span></span><small>5 · 4</small></div>
+              </div>
+
+              <div class="appr">
+                <div>
+                  <div class="what"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Regenerate invoice PDF fixtures <span class="risk">exec</span></div>
+                  <div class="who">Granted by <span class="serif">Cy</span><span class="sep">·</span>"footer matches the EU VAT sample"<span class="sep">·</span>Tue 11:40</div>
+                </div>
+                <div class="rate"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><small>4</small></div>
+              </div>
+
+              <div class="appr">
+                <div>
+                  <div class="what"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Run <code>proration-backfill</code> on staging <span class="risk">external</span></div>
+                  <div class="who">Granted by <span class="serif">Bo</span><span class="sep">·</span>Mon 17:15</div>
+                </div>
+                <div class="rate"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><small>4</small></div>
+              </div>
+
+              <div class="appr">
+                <div>
+                  <div class="what"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Open PR #412 <code>pdf-layout</code> <span class="risk">write</span></div>
+                  <div class="who">Granted by <span class="serif">Dee</span><span class="sep">·</span>"clean diff, thanks"<span class="sep">·</span>Mon 10:08</div>
+                </div>
+                <div class="rate"><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span></span><small>5</small></div>
+              </div>
+
+              <div class="foot">Rated 3 or lower twice since it joined, both in March. 19 more in the queue history.</div>
+            </section>
+
+          </div>
+
+          <!-- ===== right column ===== -->
+          <div class="col">
+
+            <section class="card member rise">
+              <div class="ch"><h2>Membership</h2></div>
+              <div class="row">
+                <div class="k">Owner</div>
+                <div class="v"><div class="line"><span class="avatar">AN</span><span class="serif">Ana</span><span class="faint">Owner · steers in her name</span></div></div>
+              </div>
+              <div class="row">
+                <div class="k">Crew</div>
+                <div class="v">
+                  <div class="line"><span class="serif">Invoice rollout</span><span class="faint">with Bo's agent</span></div>
+                  <div class="faint">Named by Bo, 24 Sep · crewmates share brief and context</div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="k">Groups</div>
+                <div class="v"><div class="line"><span class="tag">#billing</span><span class="tag">#payments</span><span class="tag">#release-gate</span></div><div class="faint">Answered in #billing 4 times this week</div></div>
+              </div>
+              <div class="row">
+                <div class="k">Joined</div>
+                <div class="v"><div class="line"><span class="mono">12 Mar 2026</span><span class="faint">7 months in the circle</span></div></div>
+              </div>
+              <div class="joined">
+                <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+                <div>
+                  <div class="t">Joined the circle the same morning as <i>Ana</i>.</div>
+                  <div class="s">Thursday, <span class="mono">09:14</span> · invited by Bo · first session <span class="serif">Billing page empty states</span></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="card rise">
+              <div class="ch"><h2>Memory it added</h2><span class="n">12</span><a class="more" href="#">Browse</a></div>
+              <div class="mem">
+                <div class="q">Proration rounds to the cent before tax, never after.</div>
+                <div class="m"><span class="scope">Payments</span><span class="sep">·</span>in Ana's name<span class="sep">·</span><span class="mono">8f2c1d</span><span class="sep">·</span>Tue</div>
+              </div>
+              <div class="mem">
+                <div class="q">Invoice PDFs carry the EU VAT footer when the customer's country is in the EU list.</div>
+                <div class="m"><span class="scope">Billing page</span><span class="sep">·</span>in Ana's name<span class="sep">·</span>Mon</div>
+              </div>
+              <div class="mem">
+                <div class="q">Tax lines live in <code>tax_lines[]</code>, not <code>taxes</code>.</div>
+                <div class="m"><span class="scope">Checkout</span><span class="sep">·</span><span class="conflict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>conflicts with Dee's note</span><span class="sep">·</span>29 Sep</div>
+              </div>
+              <div class="foot">The curator flagged nothing stale this week.</div>
+            </section>
+
+            <section class="card rise">
+              <div class="ch"><h2>Manners</h2></div>
+              <div class="manners">
+                <div class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><b>Plans first</b> · one rating at 3+ approves</span></div>
+                <div class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><b>Release gate</b> held by <span class="avatar">BO</span> Bo, who consumes the code</span></div>
+                <div class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><b>Remembers</b> in Ana's name, scoped to the project</span></div>
+                <div class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><b>Soft budget</b> 600k a week, set by Bo</span></div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="mobilebar" aria-label="Mobile">
+  <a href="#" class="on"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/></svg>Agents</a>
+  <a href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg>Chats</a>
+  <a href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Approvals</a>
+  <a href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></svg>Inbox</a>
+</nav>
+</body>
+</html>

@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Inbox · needs you first</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: status greens and ambers lift so they read on the dark surfaces */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); }
+
+  /* ---- shell ---- */
+  .shell { height: 100vh; }
+  .rail { overflow: hidden auto; }
+  .rail .brand { padding-bottom: 10px; }
+  .rail .brand svg { width: 30px; height: 30px; flex: none; }
+  .rail .agent { padding: 8px 12px; gap: 4px; }
+  .rail .section { padding: 12px 10px 4px; }
+  .rail .item { padding: 7px 12px; }
+  .rail .item svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  .rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+  .rail .item .n.live { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 600; padding: 0 6px; }
+  .rail .agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; }
+  .rail .agent .foot .with { display: inline-flex; align-items: center; gap: 5px; }
+  .rail .agent .foot .with .avatar { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; }
+  .rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+  .rail .me .gear { margin-left: auto; color: var(--rail-muted); display: inline-grid; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .btn { white-space: nowrap; }
+  .btn.sm svg { width: 14px; height: 14px; }
+
+  /* ---- topbar ---- */
+  .topbar .title .serif { font-size: 21px; }
+  .topbar .title .count { font: 500 12px var(--font); background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 22px; height: 22px; display: inline-grid; place-items: center; padding: 0 7px; }
+  .topbar .menu { display: none; }
+  .topbar .kbd { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); margin-right: 6px; }
+  kbd { font: 11px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; background: var(--surface-2); }
+
+  /* ---- page ---- */
+  .scroll .page { width: min(1120px, 100%); margin: 0 auto; padding: 26px 28px 60px; display: grid; grid-template-columns: minmax(0, 1fr) 272px; gap: 22px 28px; align-items: start; }
+  .lead { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; }
+  .lead h1 { font-size: 38px; }
+  .lead p { margin: 0; font-size: 16px; color: var(--ink-2); }
+  .lead p i { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 17px; }
+  .lead .sum { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .lead .sum .faint { font-size: 13px; }
+
+  /* filter chips: kinds, with counts */
+  .filters { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .filters .chip { height: 30px; gap: 7px; cursor: pointer; }
+  .filters .chip .k { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .filters .chip.on .k { color: var(--accent); }
+  .filters .chip i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .filters .chip.on { box-shadow: inset 0 0 0 1px var(--apricot-deep); }
+  .filters .right { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+  .filters .seg { padding: 3px; } .filters .seg button { padding: 3px 11px; }
+
+  /* list of groups */
+  .groups { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+  .group { display: flex; flex-direction: column; gap: 8px; }
+  .group > header { display: flex; align-items: baseline; gap: 10px; padding: 0 4px; }
+  .group > header h2 { font-size: 23px; }
+  .group > header .n { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+  .group > header .why { font-size: 13px; color: var(--ink-2); }
+  .group > header .right { margin-left: auto; font-size: 12.5px; color: var(--ink-3); display: inline-flex; gap: 10px; }
+  .group > header .right a { color: var(--ink-2); }
+  .list { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ---- a row: the stripe says the kind, the dot says unread, the actions sit on the right ---- */
+  .row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 13px 16px 13px 18px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); position: relative; overflow: hidden; }
+  .row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--k, var(--apricot)); }
+  .row.approval { --k: var(--accent); } .row.gate { --k: var(--gradient-brand); }
+  .row.handoff { --k: var(--apricot); } .row.contention { --k: var(--warn); }
+  .row.blocked { --k: var(--danger); } .row.plan { --k: var(--apricot-deep); }
+  .row.mention { --k: var(--rail); } .row.done { --k: var(--ok); }
+  :root[data-theme="dark"] .row.mention, :root[data-theme="dark"] .row.approval { --k: var(--ink-3); } :root[data-theme="dark"] .row.gate { --k: linear-gradient(180deg, #E2C4A6, #CFA782); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .row.mention, :root:not([data-theme="light"]) .row.approval { --k: var(--ink-3); } :root:not([data-theme="light"]) .row.gate { --k: linear-gradient(180deg, #E2C4A6, #CFA782); } }
+  .row .ico { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); margin-top: 1px; }
+  .row .ico svg { width: 16px; height: 16px; }
+  .row.gate .ico, .row.approval .ico { background: var(--apricot-soft); color: var(--accent); }
+  .row.handoff .ico { background: var(--apricot); color: #56352D; }
+  .row.contention .ico { background: var(--warn-soft); color: var(--warn); }
+  .row.blocked .ico { background: var(--danger-soft); color: var(--danger); }
+  .row.done .ico { background: var(--ok-soft); color: var(--ok); }
+  .row .ico .avatar { width: 34px; height: 34px; font-size: 12px; border: 0; }
+  .row .body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .row .t { font-family: var(--serif); font-size: 18px; line-height: 1.3; color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .row .t code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+  .row .t .new { width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); flex: none; }
+  .row .s { font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+  .row .s b { font-weight: 500; color: var(--ink); }
+  .row .s q { font-family: var(--serif); font-style: italic; font-size: 14.5px; color: var(--ink); quotes: "\201C" "\201D"; }
+  .row .s code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 0 5px; border-radius: 5px; }
+  .row .m .whom { display: inline-flex; align-items: center; gap: 6px; } .row .m { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-3); margin-top: 3px; flex-wrap: wrap; }
+  .row .m .serif { font-size: 14px; color: var(--ink-2); }
+  .row .m .sep::before { content: "·"; }
+  .row .m .stack .avatar { width: 20px; height: 20px; font-size: 8.5px; border-width: 1.5px; } .row .m .stack .avatar + .avatar { margin-left: -4px; }
+  .row .m time { font-family: var(--mono); font-size: 12px; }
+  .row .m .stars { gap: 1px; } .row .m .stars span { width: 14px; height: 14px; font-size: 13px; }
+  .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; letter-spacing: .03em; border-radius: var(--radius-full); padding: 1px 8px; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .tag.danger { background: var(--danger-soft); color: var(--danger); }
+  .tag.pulse { background: var(--apricot-soft); color: var(--accent); }
+  .row .act { display: flex; align-items: center; gap: 8px; justify-self: end; padding-top: 2px; }
+  .row .act .stars { margin-right: 2px; }
+  .row .act .stars button { width: 22px; height: 22px; font-size: 19px; }
+  .row .act .hint { font-size: 12px; color: var(--ink-3); }
+  .row .act .out { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+  .row .act .out.ok { color: var(--ok); }
+  .row .act .out.err { color: var(--danger); }
+  .row .act .loader.orbit { width: 22px; height: 22px; } .row .act .loader.orbit i { top: 7px; left: 7px; width: 6px; height: 6px; }
+  .row .act .loader.orbit i { animation-name: converge-s; } @keyframes converge-s { 0%, 100% { transform: translateX(10px) } 50% { transform: translateX(0) } }
+  .row .act .btn.sm.danger { color: var(--danger); }
+  .row .act .btn.icon.sm { width: 30px; }
+  /* read: the row goes quiet */
+  .row.read { box-shadow: none; background: color-mix(in srgb, var(--surface) 55%, transparent); }
+  .row.read .t { color: var(--ink-2); } .row.read .s { color: var(--ink-3); }
+  .row.read::before { opacity: .45; }
+  .row.read .ico { opacity: .7; }
+  /* keyboard focus on the row */
+  .row.focus { box-shadow: var(--shadow-soft), 0 0 0 3px var(--apricot-soft); border-color: var(--apricot-deep); }
+  /* a reply, inline, under a mention */
+  .reply { grid-column: 2 / -1; display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 6px 6px 14px; border: 1px solid var(--line); border-radius: var(--radius-full); background: var(--surface-2); font-size: 13.5px; }
+  .reply .input { flex: 1; color: var(--ink); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reply .input .caret { display: inline-block; width: 1px; height: 15px; background: var(--accent); vertical-align: -3px; animation: pulse 1s steps(2) infinite; }
+  .reply .send { width: 28px; height: 28px; } .reply .send svg { width: 14px; height: 14px; }
+  .reply .as { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .reply .as i { font-family: var(--serif); color: var(--accent); }
+  /* two directions, in miniature, under a contention */
+  .mini { grid-column: 2 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+  .mini > div { display: grid; grid-template-columns: 18px 1fr auto; gap: 9px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--surface-2); font-size: 13px; min-width: 0; }
+  .mini .n { font: 500 11px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 5px; width: 18px; height: 18px; display: grid; place-items: center; }
+  .mini .w { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mini .w b { font-family: var(--serif); font-weight: 400; font-size: 14.5px; margin-right: 4px; }
+  .mini .btn.sm { min-height: 26px; padding: 0 9px; font-size: 12px; }
+  /* the done group, folded */
+  .group.done .list { gap: 4px; }
+  .group.done .row { padding: 9px 14px 9px 18px; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: center; border-radius: 14px; }
+  .group.done .row .ico { width: 26px; height: 26px; margin: 0; } .group.done .row .ico svg { width: 13px; height: 13px; }
+  .group.done .row .t { font-size: 16px; } .group.done .row .s { display: none; }
+  .group.done .row .m { margin-top: 0; }
+  .group.done .row .act { padding: 0; }
+
+  /* ---- the aside: where things stand ---- */
+  .aside { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; }
+  .aside .card { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .aside h3 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .stand { display: flex; flex-direction: column; gap: 2px; }
+  .stand .r { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+  .stand .r:last-child { border-bottom: 0; }
+  .stand .r i { width: 8px; height: 8px; border-radius: 50%; }
+  .stand .r .mono { font-size: 12.5px; color: var(--ink-2); }
+  .stand .r .s { font-size: 12px; color: var(--ink-3); display: block; line-height: 1.3; }
+  .waiting { display: flex; flex-direction: column; gap: 8px; }
+  .waiting .w { display: grid; grid-template-columns: 24px 1fr; gap: 10px; align-items: start; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+  .waiting .w .avatar { width: 24px; height: 24px; font-size: 10px; border: 0; margin-top: 1px; }
+  .waiting .w b { font-family: var(--serif); font-weight: 400; font-size: 15px; color: var(--ink); }
+  .waiting .w .t { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 12.5px; color: var(--ink-2); align-items: center; }
+  .keys span:nth-child(odd) { display: inline-flex; gap: 4px; }
+  .aside .quiet { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); }
+  .aside .quiet .sw { width: 32px; height: 18px; border-radius: 9px; background: var(--surface-3); position: relative; flex: none; }
+  .aside .quiet .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+
+  /* ---- states board, below the fold ---- */
+  .board { border-top: 1px solid var(--line); padding: 40px 48px 80px; display: flex; flex-direction: column; gap: 20px; }
+  .board header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .board header p { margin: 0; color: var(--ink-2); max-width: 760px; }
+  .board .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 28px; }
+  .state { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .state > .lbl { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--ink-2); line-height: 1.4; }
+  .state > .lbl b { font-family: var(--serif); font-weight: 400; font-size: 17px; color: var(--ink); flex: none; }
+  .empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 36px 20px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius-lg); }
+  .empty .mark { width: 44px; height: 44px; }
+  .empty .serif { font-size: 20px; } .empty p { margin: 0; font-size: 13.5px; color: var(--ink-2); max-width: 360px; }
+  .toast { display: flex; align-items: center; gap: 12px; width: 420px; max-width: 100%; padding: 12px 14px; border-radius: 16px; background: var(--rail); color: var(--rail-fg); box-shadow: var(--shadow-pop); font-size: 13.5px; }
+  .toast .mark { width: 34px; height: 34px; flex: none; }
+  .toast .w { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
+  .toast .w b { font-family: var(--serif); font-weight: 400; font-size: 15.5px; }
+  .toast .w span { color: var(--rail-muted); font-size: 12.5px; }
+  .toast .btn { margin-left: auto; flex: none; background: var(--apricot); color: #56352D; border-color: transparent; }
+
+  /* ---- mobile: rail and aside fold away; actions drop under the text ---- */
+  @media (max-width: 760px) {
+    .rail { display: none; }
+    .topbar { padding: 10px 12px; gap: 8px; }
+    .topbar .menu { display: inline-grid; }
+    .topbar .kbd, .topbar .btn.markall { display: none; }
+    .scroll .page { grid-template-columns: 1fr; padding: 14px 14px 40px; gap: 14px; }
+    .lead h1 { display: none; } .lead p { font-size: 15px; }
+    .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -14px; padding: 0 14px; }
+    .filters .chip { flex: none; } .filters .right { display: none; }
+    .aside { display: none; }
+    .group > header .right { display: none; }
+    .row { grid-template-columns: 30px minmax(0, 1fr); gap: 10px 12px; padding: 12px 12px 12px 16px; }
+    .row .ico { width: 30px; height: 30px; } .row .ico .avatar { width: 30px; height: 30px; }
+    .row .t { font-size: 17px; }
+    .row .act { grid-column: 2 / -1; justify-self: start; flex-wrap: wrap; padding-top: 2px; }
+    .row .act .hint { display: none; }
+    .row .m .whom { display: none; }
+    .reply, .mini { grid-column: 1 / -1; }
+    .mini { grid-template-columns: 1fr; }
+    .reply .as { display: none; }
+    .group.done .row { grid-template-columns: 24px minmax(0, 1fr); }
+    .group.done .row .act { grid-column: 2; }
+    .board { padding: 28px 16px 60px; } .board .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ===== rail ===== -->
+  <nav class="rail" aria-label="Agents and projects">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true">
+        <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+        <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <circle class="dot" cx="48" cy="48" r="7"/>
+      </svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+
+    <div class="section">Agents <span class="n">4 live</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Ana and Bo</div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing">Holds <i>proration</i> for a pick · rendering the tax lines</div>
+      <div class="foot"><span class="with"><span class="avatar driver">AN</span> with Bo, Cy, Dee</span><span class="tok">12.4k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot awaiting_approval"></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">Waits at the <i>release gate</i> · deploy to production</div>
+      <div class="foot"><span class="with"><span class="avatar">BO</span> with Ana, Cy</span><span class="tok">18.6k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot blocked"></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Blocked · <i>tax rate lookup</i> answered 500</div>
+      <div class="foot"><span class="with"><span class="avatar">CY</span> Cy</span><span class="tok">31.0k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Paused · <i>plan waits for one rating</i></div>
+      <div class="foot"><span class="with"><span class="avatar">DE</span> Dee</span><span class="tok">4.2k</span></div>
+    </a>
+
+    <div class="section">Payments</div>
+    <a class="item active" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></svg>Inbox <span class="n live">6</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>Approvals <span class="n live">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11h18M3 6h18M3 16h18"/></svg>Groups <span class="n">4</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Overview</a>
+
+    <div class="me">
+      <span class="avatar">BO</span>
+      <span class="meta"><span>Bo</span><span class="role">Payments · owner</span></span>
+      <span class="gear"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+    </div>
+  </nav>
+
+  <!-- ===== main: Bo's inbox ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn icon ghost menu" type="button" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="title"><span class="serif">Inbox</span><span class="count">6</span></div>
+      <div class="right">
+        <span class="kbd"><kbd>j</kbd><kbd>k</kbd> move <kbd>a</kbd> approve <kbd>e</kbd> done</span>
+        <button class="btn ghost sm markall" type="button">Mark all read</button>
+        <button class="btn sm" type="button"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="page">
+
+        <div class="lead">
+          <h1>Inbox</h1>
+          <div class="sum">
+            <p>Six things need you. <i>Two wait on a rating,</i> and Ana is holding the baton out.</p>
+            <span class="faint">Tuesday 12:04 · Payments</span>
+          </div>
+        </div>
+
+        <div class="filters" role="tablist" aria-label="Kinds">
+          <span class="chip on" role="tab" aria-selected="true">Needs you <span class="k">6</span></span>
+          <span class="chip" role="tab"><i style="background:var(--rail)"></i>Mentions <span class="k">2</span></span>
+          <span class="chip" role="tab"><i style="background:var(--accent)"></i>Approvals <span class="k">3</span></span>
+          <span class="chip" role="tab"><i style="background:var(--apricot-deep)"></i>Handoffs <span class="k">1</span></span>
+          <span class="chip" role="tab"><i style="background:var(--warn)"></i>Contentions <span class="k">1</span></span>
+          <span class="chip" role="tab"><i style="background:var(--ok)"></i>Done <span class="k">3</span></span>
+          <span class="right"><span class="seg"><button class="on" type="button">Unread</button><button type="button">All</button></span></span>
+        </div>
+
+        <div class="groups">
+
+          <!-- ---- Needs you ---- -->
+          <section class="group" aria-label="Needs you">
+            <header><h2>Needs you</h2><span class="n">6</span><span class="why">something stops until you act</span><span class="right"><a href="#">Approvals queue</a></span></header>
+            <div class="list">
+
+              <!-- a release gate: stars beside Approve, the approve carries the pick -->
+              <article class="row gate focus">
+                <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v18M5 8l7-5 7 5"/><path d="M5 16l7 5 7-5"/></svg></span>
+                <div class="body">
+                  <div class="t"><span class="new" aria-label="new"></span>Checkout asks to deploy to production.</div>
+                  <div class="s">Release gate: <b>two contributors at 4 or better</b>. Ana rated it 4; the plan waits for one more. Proration tests pass, 42 of 42, on <code>checkout-proration</code>.</div>
+                  <div class="m"><span class="serif">Checkout</span><span class="sep"></span><span class="whom"><span class="stack"><span class="avatar driver">BO</span><span class="avatar">AN</span><span class="avatar">CY</span></span><span class="sep"></span></span><span class="stars" aria-label="Ana rated 4"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span> Ana<span class="sep"></span><time>6 min ago</time></div>
+                </div>
+                <div class="act">
+                  <span class="stars" aria-label="Your rating"><button type="button" class="on">★</button><button type="button" class="on">★</button><button type="button" class="on">★</button><button type="button" class="on">★</button><button type="button">★</button></span>
+                  <button class="btn primary sm" type="button">Approve</button>
+                  <button class="btn sm" type="button">Deny</button>
+                </div>
+              </article>
+
+              <!-- the baton -->
+              <article class="row handoff">
+                <span class="ico"><span class="avatar driver">AN</span></span>
+                <div class="body">
+                  <div class="t"><span class="new" aria-label="new"></span>Ana offers you the baton on Billing page.</div>
+                  <div class="s"><q>You wrote proration last quarter; take it from the pick, I am in the tax review at 12:15.</q> She keeps driving until you accept.</div>
+                  <div class="m"><span class="serif">Billing page</span><span class="sep"></span>step 3 of 4<span class="sep"></span><span class="tag pulse">proration held</span><span class="sep"></span><time>40 s ago</time></div>
+                </div>
+                <div class="act">
+                  <button class="btn primary sm" type="button">Accept</button>
+                  <button class="btn sm" type="button">Not now</button>
+                </div>
+              </article>
+
+              <!-- a contention: the two directions in miniature, pick inline -->
+              <article class="row contention">
+                <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M6 4v16M18 4v16"/><path d="M6 12h12"/><path d="m14 8 4 4-4 4"/></svg></span>
+                <div class="body">
+                  <div class="t"><span class="new" aria-label="new"></span>Two directions for <code>proration</code> on Billing page.</div>
+                  <div class="s">The agent holds the scope until <b>Ana picks one</b>; you own this session, so you can too. It is carrying on with the tax lines meanwhile.</div>
+                  <div class="m"><span class="serif">Billing page</span><span class="sep"></span><span class="tag warn">held 2 min</span><span class="sep"></span>policy block<span class="sep"></span><time>2 min ago</time></div>
+                </div>
+                <div class="act"><button class="btn sm" type="button">Open</button></div>
+                <div class="mini">
+                  <div><span class="n">1</span><span class="w"><b>Cy</b> per line, rounded to the cent, as the PDF does</span><button class="btn sm" type="button">Pick</button></div>
+                  <div><span class="n">2</span><span class="w"><b>Ana</b> the total, rounded once at the end</span><button class="btn sm" type="button">Pick</button></div>
+                </div>
+              </article>
+
+              <!-- blocked -->
+              <article class="row blocked">
+                <span class="ico"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span>
+                <div class="body">
+                  <div class="t"><span class="new" aria-label="new"></span>Invoice PDF is blocked.</div>
+                  <div class="s">The tax rate lookup answered <code>500</code> three times on <code>GET /tax/rates?region=EU</code>. Cy is away until 13:00; the session is yours to nudge.</div>
+                  <div class="m"><span class="serif">Invoice PDF</span><span class="sep"></span><span class="tag danger">blocked 9 min</span><span class="sep"></span>31.0k of 40k<span class="sep"></span><time>9 min ago</time></div>
+                </div>
+                <div class="act">
+                  <button class="btn primary sm" type="button">Retry step</button>
+                  <button class="btn sm" type="button">Open</button>
+                </div>
+              </article>
+
+              <!-- a plain approval: an irreversible tool call -->
+              <article class="row approval">
+                <span class="ico"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+                <div class="body">
+                  <div class="t">Invoice PDF asks to overwrite <code>fixtures/invoice-1042.pdf</code>.</div>
+                  <div class="s">The fixture is the golden PDF the tax-line tests compare against. The new one carries the two proration lines; the old one is kept under <code>.orig</code>.</div>
+                  <div class="m"><span class="serif">Invoice PDF</span><span class="sep"></span>step 4 of 5<span class="sep"></span>irreversible<span class="sep"></span><time>24 min ago</time></div>
+                </div>
+                <div class="act">
+                  <button class="btn primary sm" type="button">Approve</button>
+                  <button class="btn sm" type="button">Deny</button>
+                </div>
+              </article>
+
+              <!-- a plan waiting for a rating -->
+              <article class="row plan">
+                <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h8"/><circle cx="19" cy="18" r="2"/></svg></span>
+                <div class="body">
+                  <div class="t">Tax lines' plan waits for your rating.</div>
+                  <div class="s">Five steps, about <b>9.8k tokens</b>: read the EU and US fixtures, add the rounding rule, render both tax lines, compare with the invoice PDF, open the branch. Dee rated it 5.</div>
+                  <div class="m"><span class="serif">Tax lines</span><span class="sep"></span><span class="whom"><span class="stack"><span class="avatar driver">DE</span></span></span> Dee's agent<span class="sep"></span>budget 20k<span class="sep"></span><time>1 h ago</time></div>
+                </div>
+                <div class="act">
+                  <span class="stars" aria-label="Your rating"><button type="button" class="on">★</button><button type="button" class="on">★</button><button type="button" class="on">★</button><button type="button" class="on">★</button><button type="button">★</button></span>
+                  <button class="btn primary sm" type="button">Approve plan</button>
+                  <button class="btn sm" type="button">Revise</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <!-- ---- Mentions ---- -->
+          <section class="group" aria-label="Mentions">
+            <header><h2>Mentions</h2><span class="n">2</span><span class="why">someone said your name</span><span class="right"><a href="#">#billing</a><a href="#">#payments</a></span></header>
+            <div class="list">
+              <article class="row mention">
+                <span class="ico"><span class="avatar">CY</span></span>
+                <div class="body">
+                  <div class="t"><span class="new" aria-label="new"></span>Cy mentioned you in #billing.</div>
+                  <div class="s"><q>@Bo the invoice PDF shows the tax lines twice when proration is on. Is that the page's rounding or mine?</q></div>
+                  <div class="m"><span class="serif">#billing</span><span class="sep"></span>4 people, 2 agents<span class="sep"></span><time>38 min ago</time></div>
+                </div>
+                <div class="act"><button class="btn sm" type="button">Open thread</button></div>
+                <div class="reply">
+                  <span class="input">Mine. The page rounds per line now; the PDF still rounds the total<span class="caret"></span></span>
+                  <span class="as">as <i>Bo</i> in #billing</span>
+                  <button class="send" type="button" aria-label="Send"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+                </div>
+              </article>
+              <article class="row mention read">
+                <span class="ico"><span class="avatar agent">T</span></span>
+                <div class="body">
+                  <div class="t">Dee's agent answered you in #payments.</div>
+                  <div class="s"><q>The EU fixture has a 0.01 drift after proration; I have put the two tax lines side by side in the thread.</q></div>
+                  <div class="m"><span class="serif">#payments</span><span class="sep"></span>Tax lines<span class="sep"></span><time>52 min ago</time></div>
+                </div>
+                <div class="act"><button class="btn ghost sm" type="button">Open thread</button></div>
+              </article>
+            </div>
+          </section>
+
+          <!-- ---- Done ---- -->
+          <section class="group done" aria-label="Done">
+            <header><h2>Done</h2><span class="n">3</span><span class="why">finished without you, or by you</span><span class="right"><a href="#">Clear</a></span></header>
+            <div class="list">
+              <article class="row done read">
+                <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>
+                <div class="body"><div class="t">United <code>pdf-layout</code> into main.</div><div class="m"><span class="serif">Invoice PDF</span><span class="sep"></span>Ana<span class="sep"></span><time>2 h ago</time></div></div>
+                <div class="act"><button class="btn ghost sm" type="button">Open</button></div>
+              </article>
+              <article class="row done read">
+                <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>
+                <div class="body"><div class="t">You approved Invoice PDF's plan.</div><div class="m"><span class="serif">Invoice PDF</span><span class="sep"></span><span class="stars"><span class="on">★</span><span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span></span><span class="sep"></span><time>3 h ago</time></div></div>
+                <div class="act"><button class="btn ghost sm" type="button">Open</button></div>
+              </article>
+              <article class="row done read">
+                <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>
+                <div class="body"><div class="t">Checkout finished the proration tests: 42 of 42 pass.</div><div class="m"><span class="serif">Checkout</span><span class="sep"></span>18.6k tokens<span class="sep"></span><time>3 h ago</time></div></div>
+                <div class="act"><button class="btn ghost sm" type="button">Open</button></div>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <!-- ---- aside ---- -->
+        <aside class="aside" aria-label="Where things stand">
+          <div class="card">
+            <h3>Where things stand</h3>
+            <div class="stand">
+              <div class="r"><i style="background:var(--warn)"></i><span>Waiting on you<span class="s">approvals, the baton, a pick</span></span><span class="mono">6</span></div>
+              <div class="r"><i style="background:var(--apricot-deep)"></i><span>Waiting on others<span class="s">your votes are in</span></span><span class="mono">2</span></div>
+              <div class="r"><i style="background:var(--ok)"></i><span>Moving<span class="s">no one is needed</span></span><span class="mono">1</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Waiting on others</h3>
+            <div class="waiting">
+              <div class="w"><span class="avatar">CY</span><span><b>Cy</b> has not rated Checkout's deploy <span class="t">22 min</span></span></div>
+              <div class="w"><span class="avatar driver">AN</span><span><b>Ana</b> has the pick for proration <span class="t">2 min</span></span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Keys</h3>
+            <div class="keys">
+              <span><kbd>j</kbd><kbd>k</kbd></span><span>next, previous</span>
+              <span><kbd>a</kbd><kbd>d</kbd></span><span>approve, deny</span>
+              <span><kbd>1</kbd>–<kbd>5</kbd></span><span>rate, then approve</span>
+              <span><kbd>e</kbd></span><span>mark read</span>
+              <span><kbd>o</kbd></span><span>open the session</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="quiet"><span class="sw"></span>Quiet until 13:00 · mentions still come through</div>
+          </div>
+        </aside>
+
+      </div>
+
+      <!-- ===== states board ===== -->
+      <section class="board" aria-label="States">
+        <header><h2>Row states</h2><p>One row shape for every kind. The stripe is the kind; the dot and the weight are read or unread; the right side is what you can press now, and after you press it, what happened, in the product's voice.</p></header>
+        <div class="grid">
+          <div class="state">
+            <div class="lbl"><b>Acting</b> the inline Approve joined the session; the orbit loader runs while the vote is placed.</div>
+            <article class="row gate">
+              <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v18M5 8l7-5 7 5"/><path d="M5 16l7 5 7-5"/></svg></span>
+              <div class="body"><div class="t">Checkout asks to deploy to production.</div><div class="m"><span class="serif">Checkout</span><span class="sep"></span><time>6 min ago</time></div></div>
+              <div class="act"><span class="out"><span class="loader orbit" aria-hidden="true"><i></i><i></i><i></i></span>Joining…</span></div>
+            </article>
+          </div>
+          <div class="state">
+            <div class="lbl"><b>Acted</b> the outcome word replaces the buttons; the row is read; the check draws itself.</div>
+            <article class="row gate read">
+              <span class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v18M5 8l7-5 7 5"/><path d="M5 16l7 5 7-5"/></svg></span>
+              <div class="body"><div class="t">Checkout asks to deploy to production.</div><div class="m"><span class="serif">Checkout</span><span class="sep"></span><time>6 min ago</time></div></div>
+              <div class="act"><span class="out ok"><svg class="ic draw" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>Approved · ★ 4 · the gate opened</span></div>
+            </article>
+          </div>
+          <div class="state">
+            <div class="lbl"><b>Could not</b> the session was gone or the vote was refused; the buttons come back with a reason.</div>
+            <article class="row handoff">
+              <span class="ico"><span class="avatar driver">AN</span></span>
+              <div class="body"><div class="t">Ana offers you the baton on Billing page.</div><div class="m"><span class="serif">Billing page</span><span class="sep"></span><time>40 s ago</time></div></div>
+              <div class="act"><span class="out err">Ana took the offer back</span><button class="btn ghost sm" type="button">Open</button></div>
+            </article>
+          </div>
+          <div class="state">
+            <div class="lbl"><b>Mention in a group chat</b> read, quiet, the reply folded away; Open thread stays.</div>
+            <article class="row mention read">
+              <span class="ico"><span class="avatar">DE</span></span>
+              <div class="body"><div class="t">Dee mentioned you in #payments.</div><div class="s"><q>@Bo can the proration credit show on the Checkout summary too?</q></div><div class="m"><span class="serif">#payments</span><span class="sep"></span><time>yesterday</time></div></div>
+              <div class="act"><button class="btn ghost sm" type="button">Open thread</button></div>
+            </article>
+          </div>
+          <div class="state">
+            <div class="lbl"><b>Empty</b> nothing has needed you yet; the mark sits still.</div>
+            <div class="empty">
+              <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+              <span class="serif">Nothing has needed you yet.</span>
+              <p>Approvals, the baton, contentions and mentions land here. Agents keep working; you will hear when one stops.</p>
+            </div>
+          </div>
+          <div class="state">
+            <div class="lbl"><b>Toast</b> the same item as it arrives while you are elsewhere, with the one action.</div>
+            <div class="toast">
+              <svg class="mark joining" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+              <span class="w"><b>Ana offers you the baton.</b><span>Billing page · step 3 of 4 · proration held</span></span>
+              <button class="btn sm" type="button">Accept</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+</body>
+</html>

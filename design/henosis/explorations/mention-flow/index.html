@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · The mention flow</title>
+<link rel="stylesheet" href="../../tokens.css">
+<style>
+  /* dark: status colours lift so they read on dark surfaces; the agent mention sits on a lifted navy */
+  :root { --mention-agent: #2A3244; --mention-agent-fg: #F3EDE4; --frame-h: 680px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); --mention-agent: #3A4458; } }
+  :root[data-theme="dark"] { --ok: #8FC487; --ok-soft: rgba(143,196,135,0.16); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.16); --danger: #E2847A; --danger-soft: rgba(226,132,122,0.16); --mention-agent: #3A4458; }
+
+  html, body { height: auto; }
+  body { padding: 0; }
+  svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .board { width: min(1440px, 100%); margin: 0 auto; padding: 44px 48px 64px; display: flex; flex-direction: column; gap: 36px; }
+
+  /* ---- board header ---- */
+  .head { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: end; }
+  .head .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; font-family: var(--serif); font-size: 22px; }
+  .head .brand svg { width: 40px; height: 40px; }
+  .head .brand .crumb { color: var(--ink-3); font-family: var(--font); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+  .head h1 { font-size: 48px; max-width: 760px; }
+  .head h1 em { font-style: italic; color: var(--accent); }
+  .head p.lede { margin: 12px 0 0; max-width: 720px; font-size: 16.5px; color: var(--ink-2); }
+  .legend { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); font-size: 13.5px; color: var(--ink-2); min-width: 340px; }
+  .legend h3 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .legend .row { display: flex; align-items: center; gap: 12px; }
+  .legend .row .what { flex: 1; }
+
+  /* ---- flow strip ---- */
+  .flow { display: grid; grid-template-columns: 1fr 64px 1fr 64px 1fr; align-items: stretch; gap: 0; }
+  .node { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px 16px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); position: relative; overflow: hidden; }
+  .node::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
+  .node.session::before { background: var(--gradient-brand); }
+  .node .k { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+  .node .k .n { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: inline-grid; place-items: center; font-size: 11px; font-weight: 600; letter-spacing: 0; }
+  .node .t { font-family: var(--serif); font-size: 22px; line-height: 1.2; }
+  .node .t .hash { color: var(--apricot-deep); }
+  .node .d { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+  .node .g { font-size: 12.5px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 10px; margin-top: 2px; }
+  .node .g b { color: var(--ink-2); font-weight: 500; }
+  .arrow { display: grid; place-items: center; color: var(--apricot-deep); }
+  .arrow svg { width: 44px; height: 24px; }
+  .arrow.back { color: var(--accent); }
+
+  /* ---- storyboard ---- */
+  .story { display: grid; grid-template-columns: 1fr 1fr; gap: 40px 44px; }
+  .frame { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .frame .cap { display: grid; grid-template-columns: 34px 1fr; gap: 14px; align-items: start; }
+  .frame .cap .n { width: 34px; height: 34px; border-radius: 50%; background: var(--gradient-brand); color: #fff; display: grid; place-items: center; font-family: var(--serif); font-size: 19px; }
+  .frame .cap h2 { font-size: 24px; }
+  .frame .cap p { margin: 3px 0 0; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .frame .cap p b { font-weight: 500; color: var(--ink); }
+  .window { display: flex; flex-direction: column; height: var(--frame-h); }
+  .window .titlebar { flex: none; }
+  .window .titlebar .where { margin-left: 8px; color: var(--rail-muted); }
+  .window .titlebar .where b { color: var(--rail-fg); font-weight: 500; }
+  .window .titlebar .viewer { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; color: var(--rail-muted); }
+  .window .titlebar .viewer .avatar { width: 20px; height: 20px; font-size: 9px; border-color: var(--rail); }
+  .window .body { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+
+  .topbar { padding: 10px 18px; min-height: 50px; gap: 12px; }
+  .topbar .title .serif { font-size: 20px; }
+  .topbar .title .hash { color: var(--apricot-deep); }
+  .topbar .title .purpose { font-family: var(--font); font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar .right { gap: 10px; }
+  .topbar .stack { align-items: center; }
+  .topbar .stack .sep { width: 1px; height: 18px; background: var(--line); margin: 0 6px 0 8px; }
+  .avatar { position: relative; font-size: 10.5px; }
+  .avatar.sm { width: 22px; height: 22px; font-size: 9.5px; }
+  .avatar .live { position: absolute; right: -3px; bottom: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); border: 2px solid var(--canvas); }
+  .avatar .live.paused { background: var(--ink-3); } .avatar .live.awaiting { background: var(--warn); }
+  .tok { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+  .tok i { width: 48px; height: 3px; border-radius: 2px; background: var(--surface-3); position: relative; overflow: hidden; }
+  .tok i::after { content: ""; position: absolute; inset: 0 48% 0 0; background: var(--apricot-deep); }
+
+  .scroll { display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+  .col { padding: 16px 20px 12px; display: flex; flex-direction: column; gap: 14px; }
+  .divider { font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; font-weight: 500; }
+  .divider.new { color: var(--accent); } .divider.new::before, .divider.new::after { background: var(--apricot-deep); }
+
+  .msg .meta { gap: 9px; font-size: 13px; flex-wrap: wrap; }
+  .msg .meta .who { font-size: 16px; }
+  .msg .meta .when { color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .msg.human .text { max-width: min(560px, 94%); padding: 11px 16px; font-size: 14.5px; line-height: 1.55; }
+  .msg.human.mine { align-items: flex-end; }
+  .msg.human.mine .meta { flex-direction: row-reverse; }
+  .msg.human.mine .text { align-self: flex-end; background: color-mix(in srgb, var(--surface) 70%, var(--apricot-soft)); border-color: transparent; }
+  .msg .text code, .d code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; color: var(--ink); white-space: nowrap; }
+
+  mark.mention { background: var(--apricot-soft); color: var(--accent); border-radius: 7px; padding: 1px 6px; font-weight: 500; white-space: nowrap; }
+  mark.mention.agent { display: inline; flex-direction: row; background: var(--mention-agent); color: var(--mention-agent-fg); border-radius: 8px 8px 8px 2px; font-family: var(--serif); font-weight: 400; font-size: 15px; padding: 0 8px 1px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) mark.mention { color: var(--ink); } }
+  :root[data-theme="dark"] mark.mention { color: var(--ink); }
+
+  /* under Bo's message: where the mention went */
+  .reach { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); padding-left: 2px; }
+  .reach .mini { width: 18px; height: 18px; font-size: 8px; border-width: 1.5px; border-radius: 6px 6px 6px 2px; }
+  .reach .sep { color: var(--ink-3); }
+  .reach .mono { font-size: 12px; color: var(--ink-3); }
+  .reach.mine { justify-content: flex-end; padding-right: 2px; }
+  .reach a { font-weight: 500; }
+
+  /* an agent's reply in the chat: plain prose behind a navy→chocolate rule */
+  .msg.agent .meta { gap: 8px; }
+  .msg.agent .meta .faint { font-size: 12.5px; }
+  .msg.agent .meta .turn { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .msg.agent .meta .open { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 9px; border: 1px solid var(--line); border-radius: var(--radius-full); font-size: 12px; color: var(--ink-2); }
+  .msg.agent .text { font-size: 14.5px; line-height: 1.6; padding: 2px 0 2px 14px; border-left: 2px solid; border-image: var(--gradient-brand) 1; margin-left: 12px; }
+  .msg.agent .text p { margin: 0 0 8px; } .msg.agent .text p:last-child { margin: 0; }
+  .msg.agent .text .q { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--ink); }
+  .typing { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); margin-left: 12px; }
+  .typing .who { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+  .typing .loader.weave { width: 72px; }
+  .typing .turn { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+
+  /* composer, compact */
+  .composer-wrap { padding: 10px 20px 16px; }
+  .composer { padding: 12px 12px 10px 16px; gap: 8px; }
+  .composer .input { font-size: 14.5px; min-height: 22px; }
+  .composer .input .ph { color: var(--ink-3); }
+  .composer .bar { font-size: 12.5px; color: var(--ink-3); }
+  .composer .bar .hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .composer .bar .right .send { width: 32px; height: 32px; }
+  .composer .input .caret { display: inline-block; width: 1.5px; height: 18px; background: var(--apricot-deep); vertical-align: -4px; margin-left: 1px; animation: pulse 1s steps(2) infinite; }
+  .composer .input mark.mention.agent { font-size: 14.5px; }
+
+  /* @ completion, anchored above the composer */
+  .mlist { position: absolute; left: 20px; right: 20px; bottom: 96px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-pop); padding: 6px; z-index: 2; }
+  .mlist .mh { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+  .mlist .mh .q { margin-left: auto; font-family: var(--mono); font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--accent); }
+  .mlist .mi { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 7px 10px; border-radius: 10px; font-size: 14px; }
+  .mlist .mi .nm { font-family: var(--serif); font-size: 16px; } .mlist .mi .nm b { font-weight: 400; color: var(--accent); }
+  .mlist .mi .rl { font-size: 12.5px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+  .mlist .mi .rl .status { font-size: 12.5px; }
+  .mlist .mi.on { background: var(--apricot-soft); }
+  .mlist .mi .key { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+  .mlist .mf { display: flex; align-items: center; gap: 8px; padding: 8px 10px 4px; font-size: 12.5px; color: var(--ink-2); border-top: 1px solid var(--line); margin-top: 4px; }
+  .mlist .mf svg { color: var(--apricot-deep); }
+
+  /* the session stream */
+  .msg.human.steer .meta .origin { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px 0 7px; border-radius: var(--radius-full); background: var(--apricot-soft); color: var(--accent); font-size: 12px; font-weight: 600; }
+  .msg.human.steer .meta .origin .hash { color: var(--apricot-deep); font-weight: 600; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .msg.human.steer .meta .origin { color: var(--ink); } }
+  :root[data-theme="dark"] .msg.human.steer .meta .origin { color: var(--ink); }
+  .msg.human.steer .text { border-color: var(--apricot-deep); }
+  .msg.human.steer .text .scope { display: flex; flex-wrap: wrap; gap: 0 6px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+  .msg.human .text .quote { display: block; margin: 0 0 8px; padding: 2px 0 2px 10px; border-left: 2px solid var(--apricot-deep); color: var(--ink-2); font-size: 13px; }
+  .msg.human .text .quote b { font-family: var(--serif); font-weight: 400; color: var(--ink); font-size: 14px; margin-right: 6px; }
+  .turnmsg .meta .avatar { width: 26px; height: 26px; }
+  .turnmsg .text { font-size: 14.5px; }
+  .turnmsg .text p { margin: 0 0 6px; }
+  .steps { margin: 2px 0 6px 2px; }
+  .step { font-family: var(--mono); font-size: 12.5px; gap: 9px; }
+  .step .v { color: var(--ink); } .step .p { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .r { margin-left: auto; color: var(--ink-3); white-space: nowrap; }
+  .step .ok { color: var(--ok); }
+  .step.live { background: var(--apricot-soft); border-radius: 8px; padding: 4px 8px; margin: 0 -8px; position: relative; }
+  .step.live .r { color: var(--ink-2); }
+  .answers { display: inline-flex; align-items: flex-start; gap: 6px; line-height: 1.4; font-size: 12.5px; color: var(--ink-2); margin-top: 8px; padding: 4px 10px 4px 8px; border: 1px dashed var(--apricot-deep); border-radius: var(--radius-full); }
+  .answers svg { margin-top: 2px; }
+  .answers .hash { color: var(--apricot-deep); font-weight: 600; }
+  .toast { position: absolute; right: 18px; top: 60px; display: flex; gap: 10px; align-items: flex-start; width: 300px; padding: 12px 14px; border-radius: var(--radius); background: var(--rail); color: var(--rail-fg); box-shadow: var(--shadow-pop); font-size: 13px; line-height: 1.4; z-index: 3; animation: rise .32s ease both; }
+  .toast .avatar { border-color: var(--rail); flex: none; }
+  .toast b { font-family: var(--serif); font-weight: 400; font-size: 15px; }
+  .toast .hash { color: var(--apricot); }
+  .toast .x { margin-left: auto; color: var(--rail-muted); }
+  .toast .act { color: var(--apricot); font-weight: 500; }
+
+  /* frame 4: the ledger and the edges */
+  .frame .spec { display: flex; flex-direction: column; gap: 16px; height: var(--frame-h); }
+  .ledger { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius-lg); padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-soft); }
+  .ledger .lh { font-family: var(--font); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--rail-muted); margin-bottom: 4px; display: flex; gap: 8px; }
+  .ledger .lh span:last-child { margin-left: auto; letter-spacing: 0; text-transform: none; font-family: var(--serif); font-size: 14px; color: var(--apricot); }
+  .ledger .l { display: grid; grid-template-columns: 62px 148px 1fr; gap: 12px; align-items: start; }
+  .ledger .l .ts { color: var(--rail-muted); }
+  .ledger .l .ev { color: var(--apricot); }
+  .ledger .l .ev.s { color: #E2B06A; } .ledger .l .ev.r { color: #9BC88F; }
+  .ledger .l .dt { color: var(--rail-fg); }
+  .ledger .l .dt i { color: var(--rail-muted); font-style: normal; }
+  .edges { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+  .edge { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+  .edge .eh { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 17px; color: var(--ink); }
+  .edge .eh .status { font-size: 12px; margin-left: auto; }
+  .edge .line { display: block; padding: 6px 10px; border-radius: 10px; background: var(--surface-2); font-size: 12.5px; color: var(--ink); }
+  .edge .line .mini { width: 18px; height: 18px; font-size: 8px; border-width: 1.5px; border-radius: 6px 6px 6px 2px; vertical-align: -4px; margin-right: 6px; }
+  .edge .line .sep { margin: 0 5px; }
+  .edge .line.warn { background: var(--warn-soft); } .edge .line.danger { background: var(--danger-soft); }
+  .edge .line .sep { color: var(--ink-3); }
+
+  /* ---- anatomy row ---- */
+  .anat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .anat .card { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; }
+  .anat h3 { font-family: var(--serif); font-weight: 400; font-size: 20px; }
+  .anat .ex { padding: 14px 16px; border-radius: var(--radius); background: var(--surface-2); border: 1px dashed var(--line); display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; }
+  .anat .ex .msg.agent .text { margin-left: 0; }
+  .anat ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+  .anat ul b { font-weight: 500; color: var(--ink); }
+  .foot { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 18px; }
+  .foot .serif { font-size: 15px; color: var(--ink-2); }
+  .foot .right { margin-left: auto; font-family: var(--mono); font-size: 12px; }
+
+  @media (max-width: 1100px) {
+    .anat { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 1fr; gap: 10px; }
+    .arrow svg { transform: rotate(90deg); } .arrow { height: 36px; }
+    .story { grid-template-columns: 1fr; }
+    .head { grid-template-columns: 1fr; align-items: start; }
+  }
+  @media (max-width: 700px) {
+    .board { padding: 28px 16px 48px; gap: 28px; }
+    .head h1 { font-size: 34px; }
+    .legend { min-width: 0; }
+    :root { --frame-h: 760px; }
+    .toast { top: 56px; }
+    .frame.session .col { padding-top: 96px; }
+    .ledger .lh span:last-child { display: none; }
+    .mlist { bottom: 112px; }
+    .window { border-radius: 14px; }
+    .topbar { padding: 10px 14px; }
+    .topbar .title .purpose, .topbar .tok, .topbar .btn.sm { display: none; }
+    .col { padding: 14px 14px 8px; }
+    .composer-wrap { padding: 8px 14px 14px; }
+    .mlist { left: 14px; right: 14px; }
+    .mlist .mi .key { display: none; }
+    .ledger .l { grid-template-columns: 58px 1fr; } .ledger .l .ev { display: none; }
+    .edges { grid-template-columns: 1fr; }
+    .frame .spec { height: auto; }
+    .toast { width: calc(100% - 28px); right: 14px; }
+    .window .titlebar .where { display: none; }
+    .reach .mono, .msg.agent .meta .open { display: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mark" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+      <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="7"/>
+    </symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-hash" viewBox="0 0 24 24"><path d="M9 4 7 20M17 4l-2 16M4 9h17M3 15h17"/></symbol>
+    <symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M13 7l3 3"/></symbol>
+    <symbol id="i-steer" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 4v5.5M12 14.5V20M4 12h5.5M14.5 12H20"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+  </defs>
+</svg>
+
+<main class="board">
+
+  <!-- ============ header ============ -->
+  <header class="head">
+    <div>
+      <div class="brand">
+        <svg class="mark" aria-hidden="true"><use href="#mark"/></svg>
+        <span>Henosis</span>
+        <span class="crumb">Exploration · Groups and chats · The mention flow</span>
+      </div>
+      <h1>Bo mentions Cy's agent in <em>#billing</em>. The words go to the session and come back.</h1>
+      <p class="lede">One sentence in a group becomes a steer in an agent's session and a reply in the group, attributed at every step. The storyboard follows the sentence: where Bo writes it, where Cy sees it land, where everyone reads the answer, and what the system guarantees in between.</p>
+    </div>
+    <aside class="legend" aria-label="Legend">
+      <h3>The three marks the sentence carries</h3>
+      <div class="row"><mark class="mention agent">@Checkout</mark><span class="what">An agent mention: navy, serif, the agent's corner.</span></div>
+      <div class="row"><span class="msg human steer" style="display:contents"><span class="meta" style="display:inline"><span class="origin"><span class="hash">#</span>billing</span></span></span><span class="what">The steer's origin tag in the session.</span></div>
+      <div class="row"><span class="status running">replied · turn 13</span><span class="what">The reply's meta line back in the chat.</span></div>
+    </aside>
+  </header>
+
+  <!-- ============ flow strip ============ -->
+  <section class="flow" aria-label="The flow">
+    <div class="node">
+      <div class="k"><span class="n">1</span> In the group</div>
+      <div class="t"><span class="hash">#</span>billing · Bo says it</div>
+      <div class="d">Bo types <code>@</code>, the list shows people and agents in the group, and <mark class="mention agent">@Checkout</mark> resolves to Cy's agent, not to Cy.</div>
+      <div class="g"><b>Guaranteed:</b> what is marked is exactly what resolved; the mention is stored by session id.</div>
+    </div>
+    <div class="arrow" aria-hidden="true"><svg viewBox="0 0 44 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12h36M30 5l8 7-8 7"/></svg></div>
+    <div class="node session">
+      <div class="k"><span class="n">2</span> In the session</div>
+      <div class="t">Checkout · Cy's agent hears it as a steer</div>
+      <div class="d">The message enters Cy's session as a directive from Bo with the origin tag <b>#billing</b>, applied at the next safe point. Cy is told in the inbox.</div>
+      <div class="g"><b>Guaranteed:</b> arbitrated like any steer (rank, scope, contention); never sent as a team message.</div>
+    </div>
+    <div class="arrow back" aria-hidden="true"><svg viewBox="0 0 44 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12h36M30 5l8 7-8 7"/></svg></div>
+    <div class="node">
+      <div class="k"><span class="n">3</span> Back in the group</div>
+      <div class="t"><span class="hash">#</span>billing · the words come back</div>
+      <div class="d">The agent's next words post in #billing as a reply to Bo, with the turn number and a link to the session where the deeds are.</div>
+      <div class="g"><b>Guaranteed:</b> one reply per steer, attributed to the session; the chat never shows tool steps.</div>
+    </div>
+  </section>
+
+  <!-- ============ storyboard ============ -->
+  <section class="story" aria-label="Storyboard">
+
+    <!-- ---------- frame 1: Bo writes ---------- -->
+    <article class="frame">
+      <div class="cap">
+        <div class="n">1</div>
+        <div>
+          <h2>Bo writes the mention</h2>
+          <p>Bo's view of <b>#billing</b>. The <code>@</code> list anchors at the caret, lists people and agents with their role line, and says what mentioning an agent does. <b>Checkout</b> is Cy's agent, named by its session.</p>
+        </div>
+      </div>
+      <div class="window">
+        <div class="titlebar"><i></i><i></i><i></i><span class="where">Henosis · <b>#billing</b> · Payments</span><span class="viewer"><span class="avatar">Bo</span>Bo's screen</span></div>
+        <div class="body">
+          <div class="topbar">
+            <div class="title"><span class="serif"><span class="hash">#</span>billing</span><span class="purpose">Invoices, tax lines, proration · Payments</span></div>
+            <div class="right">
+              <span class="stack"><span class="avatar sm">An</span><span class="avatar sm">Bo</span><span class="avatar sm">Cy</span><span class="avatar sm">De</span><span class="sep"></span><span class="avatar agent sm">Bp<span class="live"></span></span><span class="avatar agent sm">Ck<span class="live"></span></span></span>
+              <button class="btn sm">Members</button>
+            </div>
+          </div>
+          <div class="scroll">
+            <div class="col">
+              <div class="divider">Today</div>
+              <div class="msg human">
+                <div class="meta"><span class="who">Ana</span><span class="when">10:31</span></div>
+                <div class="text">Invoice PDF for <code>INV-4471</code> after the mid-cycle upgrade shows two tax lines. Is that right, or did proration double them?</div>
+              </div>
+              <div class="msg human">
+                <div class="meta"><span class="who">Dee</span><span class="when">10:36</span></div>
+                <div class="text">Checkout changed how it writes the PDF lines last week. <mark class="mention">@Cy</mark> yours?</div>
+              </div>
+              <div class="msg human">
+                <div class="meta"><span class="who">Cy</span><span class="when">10:38</span></div>
+                <div class="text">Mine, and my agent is in that code now. Ask it directly, it answers here.</div>
+              </div>
+            </div>
+          </div>
+          <div class="mlist" role="listbox" aria-label="Mention">
+            <div class="mh">People and agents in #billing <span class="q">@ch</span></div>
+            <div class="mi on"><span class="avatar agent sm">Ck<span class="live"></span></span><span><div class="nm"><b>Ch</b>eckout</div><div class="rl">Cy's agent · Checkout · <span class="status running">running</span></div></span><span class="key">↵</span></div>
+            <div class="mi"><span class="avatar sm">Cy</span><span><div class="nm">Cy <span class="faint small">· not a match, listed for the owner</span></div><div class="rl">Payments · engineer · owns Checkout</div></span><span></span></div>
+            <div class="mf"><svg class="ic"><use href="#i-steer"/></svg>Mentioning an agent steers its session; its next words come back here.</div>
+          </div>
+          <div class="composer-wrap">
+            <div class="composer" style="box-shadow: var(--shadow-pop), var(--team-glow)">
+              <div class="input">Can you check why <code>INV-4471</code> has two tax lines after the upgrade, @ch<span class="caret"></span></div>
+              <div class="bar"><span class="hint">Enter to send · Shift+Enter for a new line · @ to mention a person or an agent</span><span class="right"><button class="send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ---------- frame 2: the steer in the session ---------- -->
+    <article class="frame session">
+      <div class="cap">
+        <div class="n">2</div>
+        <div>
+          <h2>The directive lands in Cy's session</h2>
+          <p>Cy's view of <b>Checkout</b>. Bo's sentence arrives as a steer with the origin tag <b>#billing</b>, applied when turn 12 reached its safe point; the agent reads the code and the inbox tells Cy who steered. Bo is not in the session.</p>
+        </div>
+      </div>
+      <div class="window">
+        <div class="titlebar"><i></i><i></i><i></i><span class="where">Henosis · <b>Checkout</b> · Cy's agent</span><span class="viewer"><span class="avatar">Cy</span>Cy's screen</span></div>
+        <div class="body">
+          <div class="toast" role="status">
+            <span class="avatar">Bo</span>
+            <span><b>Bo</b> mentioned Checkout in <span class="hash">#</span>billing<br><span class="act">Steer in turn 13 · Open #billing</span></span>
+            <svg class="ic x"><use href="#i-x"/></svg>
+          </div>
+          <div class="topbar">
+            <div class="title"><span class="serif">Checkout</span><span class="purpose">Cy's agent · Invoice rollout</span></div>
+            <div class="right">
+              <span class="status running">running</span>
+              <span class="tok">14.1k<i></i></span>
+              <span class="stack"><span class="avatar sm driver">Cy</span><span class="avatar sm">An</span></span>
+              <button class="btn sm">Details</button>
+            </div>
+          </div>
+          <div class="scroll">
+            <div class="col">
+              <div class="divider">Turn 12 ended · tests green · 10:41</div>
+              <div class="msg human steer">
+                <div class="meta"><span class="avatar sm">Bo</span><span class="who">Bo</span><span class="origin"><span class="hash">#</span>billing</span><span class="faint">steered from the group</span><span class="when">10:42</span></div>
+                <div class="text">Can you check why <code>INV-4471</code> has two tax lines after the upgrade, <mark class="mention agent">@Checkout</mark>? Ana thinks proration doubled them.
+                  <div class="scope"><span>scope goal</span><span>·</span><span>rank contributor</span><span>·</span><span>answers in #billing</span></div>
+                </div>
+              </div>
+              <div class="msg agent turnmsg">
+                <div class="meta"><span class="avatar agent">Ck<span class="live"></span></span><span class="who">Checkout</span><span class="faint">turn 13</span><span class="when">10:42</span></div>
+                <div class="text">
+                  <p>Checking how proration meets tax when the PDF writes its lines.</p>
+                  <div class="steps">
+                    <div class="step"><svg class="ic ok"><use href="#i-check"/></svg><span class="v">Read</span><span class="p">apps/billing/invoice/proration.ts</span><span class="r">212 lines</span></div>
+                    <div class="step"><svg class="ic ok"><use href="#i-check"/></svg><span class="v">Read</span><span class="p">apps/billing/pdf/lines.ts</span><span class="r">88 lines</span></div>
+                    <div class="step live"><svg class="ic"><use href="#i-play"/></svg><span class="v">Running</span><span class="p">pnpm test invoice --filter proration</span><span class="r">9 of 14 · 2.1s</span></div>
+                  </div>
+                  <span class="answers"><svg class="ic"><use href="#i-steer"/></svg><span>Its next words answer Bo in <span class="hash">#</span>billing as well as here</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="composer-wrap">
+            <div class="composer">
+              <div class="input"><span class="ph">Steer the agent</span></div>
+              <div class="bar"><span class="seg"><button class="on">Agent</button><button>Team</button></span><span class="hint">Bo's steer from #billing is in turn 13 · Cy has the baton</span><span class="right"><button class="send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ---------- frame 3: the reply in the chat ---------- -->
+    <article class="frame">
+      <div class="cap">
+        <div class="n">3</div>
+        <div>
+          <h2>The reply appears in #billing</h2>
+          <p>Everyone's view. Under Bo's message a quiet line says where it went; then the agent's words come back as plain prose behind the navy→chocolate rule, with <b>replied · in reply to Bo · turn 13 · Open session</b>. Dee carries on with a person.</p>
+        </div>
+      </div>
+      <div class="window">
+        <div class="titlebar"><i></i><i></i><i></i><span class="where">Henosis · <b>#billing</b> · Payments</span><span class="viewer"><span class="avatar">De</span>Dee's screen</span></div>
+        <div class="body">
+          <div class="topbar">
+            <div class="title"><span class="serif"><span class="hash">#</span>billing</span><span class="purpose">Invoices, tax lines, proration · Payments</span></div>
+            <div class="right">
+              <span class="stack"><span class="avatar sm">An</span><span class="avatar sm">Bo</span><span class="avatar sm">Cy</span><span class="avatar sm">De</span><span class="sep"></span><span class="avatar agent sm">Bp<span class="live"></span></span><span class="avatar agent sm">Ck<span class="live"></span></span></span>
+              <button class="btn sm">Members</button>
+            </div>
+          </div>
+          <div class="scroll">
+            <div class="col">
+              <div class="msg human">
+                <div class="meta"><span class="who">Bo</span><span class="when">10:42</span></div>
+                <div class="text">Can you check why <code>INV-4471</code> has two tax lines after the upgrade, <mark class="mention agent">@Checkout</mark>? Ana thinks proration doubled them.</div>
+                <div class="reach"><span class="avatar agent mini">Ck</span>Reached <b>Checkout</b><span class="sep">·</span>Cy's agent<span class="sep">·</span>steer in <span class="mono">turn 13</span><span class="sep">·</span><a href="#">Open session</a></div>
+              </div>
+              <div class="msg agent">
+                <div class="meta"><span class="avatar agent">Ck<span class="live"></span></span><span class="who">Checkout</span><span class="faint">Cy's agent</span><span class="faint">· replied</span><span class="faint">· in reply to Bo</span><span class="turn">turn 13</span><span class="open"><svg class="ic" style="width:12px;height:12px"><use href="#i-link"/></svg>Open session</span><span class="when">10:43</span></div>
+                <div class="text">
+                  <p>Proration is applied before tax, and the two lines are correct in amount but wrong in shape. A mid-cycle upgrade writes a credit for the unused Starter days and a charge for the Growth days, and <code>lines.ts</code> taxes each line on its own, so the PDF shows a negative tax line and a positive one.</p>
+                  <p>Nothing is doubled: the net tax on <code>INV-4471</code> is 4.86, which matches the ledger. I can fold the two into one net line on the PDF, in <code>lines.ts</code> only; the proration tests stay green.</p>
+                  <p class="q">Who decides whether the PDF shows one net line or both?</p>
+                </div>
+              </div>
+              <div class="msg human mine">
+                <div class="meta"><span class="who">Dee</span><span class="when">10:45</span></div>
+                <div class="text">One net line, Finance asked for that in March. <mark class="mention">@Cy</mark> if you rate the plan I'll be the second at the gate.</div>
+              </div>
+            </div>
+          </div>
+          <div class="composer-wrap">
+            <div class="composer">
+              <div class="input"><span class="ph">Say something in #billing</span></div>
+              <div class="bar"><span class="hint">Enter to send · Shift+Enter for a new line · @ to mention a person or an agent</span><span class="right"><button class="send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ---------- frame 4: the ledger and the edges ---------- -->
+    <article class="frame">
+      <div class="cap">
+        <div class="n">4</div>
+        <div>
+          <h2>What the log says, and the edges</h2>
+          <p>The four events one mention writes, in order, so the replay shows the same flow. Below, the states the chat must say plainly when the agent cannot answer at once.</p>
+        </div>
+      </div>
+      <div class="spec">
+        <div class="ledger" aria-label="Event ledger">
+          <div class="lh"><span>Ledger</span><span>·</span><span>#billing and Checkout</span><span>one mention, four events</span></div>
+          <div class="l"><span class="ts">10:42:07</span><span class="ev">chat.message</span><span class="dt">#billing · Bo · mentions <i>agent:sess_checkout</i></span></div>
+          <div class="l"><span class="ts">10:42:07</span><span class="ev s">directive.submitted</span><span class="dt">Checkout · steer · author Bo · <i>origin chat #billing · rank contributor</i></span></div>
+          <div class="l"><span class="ts">10:42:09</span><span class="ev">turn.started</span><span class="dt">Checkout · 13 · <i>applied at the safe point after turn 12</i></span></div>
+          <div class="l"><span class="ts">10:43:21</span><span class="ev r">chat.message</span><span class="dt">#billing · Checkout · <i>replyTo Bo's message · turn 13</i></span></div>
+        </div>
+        <div class="edges">
+          <div class="edge">
+            <div class="eh"><svg class="ic"><use href="#i-pause"/></svg>Agent paused<span class="status paused">paused</span></div>
+            <div class="line"><span class="avatar agent mini">Ck</span>Checkout is paused<span class="sep">·</span>your mention waits for Cy</div>
+            <span>The steer is logged now and applied when Cy resumes. The line stays under Bo's message until the reply posts.</span>
+          </div>
+          <div class="edge">
+            <div class="eh"><svg class="ic"><use href="#i-file"/></svg>Plan waits<span class="status awaiting">planning</span></div>
+            <div class="line warn"><span class="avatar agent mini">Ck</span>Steer in<span class="sep">·</span>Checkout's plan waits for two ratings</div>
+            <span>The agent answers in words only; tool calls above read are refused until the plan is approved. The reply says so.</span>
+          </div>
+          <div class="edge">
+            <div class="eh"><svg class="ic"><use href="#i-steer"/></svg>Contention<span class="status blocked">blocked</span></div>
+            <div class="line danger"><span class="avatar agent mini">Ck</span>Cy steered the same scope<span class="sep">·</span>Cy picks</div>
+            <span>Bo's steer and Cy's collide on <code>goal</code>; both see it, the driver resolves, and the reply comes after the pick.</span>
+          </div>
+          <div class="edge">
+            <div class="eh"><svg class="ic"><use href="#i-bell"/></svg>Not in the session<span class="status">observer</span></div>
+            <div class="line"><span class="avatar mini" style="border-radius:50%">Bo</span>Bo can read Checkout<span class="sep">·</span>cannot steer from inside it</div>
+            <span>A mention from a group a session's owner belongs to is a steer at contributor rank; opening the session gives Bo observer only.</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ anatomy ============ -->
+  <section class="anat" aria-label="Anatomy">
+    <div class="card">
+      <h3>The mention</h3>
+      <div class="ex"><span>Two tax lines after the upgrade, <mark class="mention agent">@Checkout</mark>? Also <mark class="mention">@Cy</mark>.</span></div>
+      <ul>
+        <li><b>Agent:</b> navy (lifted navy in dark), Instrument Serif, 8/8/8/2 radius, the agent avatar's corner.</li>
+        <li><b>Person:</b> apricot-soft wash, chocolate text, 7px radius; you on solid apricot.</li>
+        <li>Resolved at post time by session id; an unresolved <code>@word</code> stays plain text.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>The origin tag</h3>
+      <div class="ex"><div class="msg human steer" style="gap:4px"><div class="meta"><span class="avatar sm">Bo</span><span class="who">Bo</span><span class="origin"><span class="hash">#</span>billing</span><span class="faint">steered from the group</span></div></div></div>
+      <ul>
+        <li>Sits in the meta row after the name, 22px pill on apricot-soft, the hash in apricot-deep.</li>
+        <li>The bubble's edge turns apricot-deep; the scope line gains <code>answers in #billing</code>.</li>
+        <li>The inbox entry and the toast use the same words: <b>Bo mentioned Checkout in #billing</b>.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>The reply meta</h3>
+      <div class="ex"><div class="msg agent"><div class="meta"><span class="avatar agent">Ck<span class="live"></span></span><span class="who">Checkout</span><span class="faint">Cy's agent</span><span class="faint">· replied</span><span class="faint">· in reply to Bo</span><span class="turn">turn 13</span><span class="open">Open session</span></div></div></div>
+      <ul>
+        <li>26px agent avatar with the live dot, serif name, owner in faint sans, dot-separated meta, mono turn.</li>
+        <li><b>Open session</b> is the only way from the chat to the deeds; the chat never shows tool steps.</li>
+        <li>While the turn runs: <b>Checkout ── answering Bo · turn 13</b> with the weave.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <svg class="mark" width="22" height="22" aria-hidden="true"><use href="#mark"/></svg>
+    <span class="serif">Cy's agent answered in #billing.</span>
+    <span>Desktop 1440 · board, free height · light and dark via tokens</span>
+    <span class="right">mention-flow · v1</span>
+  </footer>
+</main>
+</body>
+</html>
