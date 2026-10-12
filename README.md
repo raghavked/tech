@@ -17,6 +17,22 @@ Docs are in [`docs/`](docs/), starting with the [one-pager](docs/00_thesis_one_p
 > Paper trading only. Nothing here sends orders or holds money. Backtests on synthetic
 > markets validate plumbing, not alpha. Contract specs are placeholders until verified.
 
+## Engineering highlights
+
+- **Rust workspace, about 10K lines across five crates.** The crates cover core types, connectors, models,
+  trading and the CLI, with clear boundaries between data, models and execution.
+- **Reproducible by construction.** The CSV store is content-addressed, samples are pinned by
+  manifest, and a seeded PRNG drives the synthetic market. The same seed gives the same desk report.
+- **Exact accounting.** The ledger uses decimal arithmetic, not floats, and the backtester
+  models fills and enforces hard risk limits.
+- **Uncertainty, not just point estimates.** Index nowcasts carry prediction intervals,
+  and `nowcast --evaluate` scores them against realized prints.
+- **Streaming ingestion.** The AWS price-list connector parses about 480 MB with bounded memory.
+- **Rust and Python share one data contract.** `schemas/datasets.toml` is checked by both
+  test suites, and the `basis-research` package gives pandas access to the store.
+- **CI.** GitHub Actions runs `rustfmt`, `clippy -D warnings`, Rust and Python tests, and an
+  offline end-to-end pipeline run.
+
 ## Quickstart (five minutes, no network)
 
 ```bash
