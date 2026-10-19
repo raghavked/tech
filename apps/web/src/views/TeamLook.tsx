@@ -369,9 +369,7 @@ function Preview({ draft, teamName }: { draft: Draft; teamName: string }) {
         <div className="brand">
           <Mark size={22} {...markLook(draft.mark)} emblem={draft.emblem.trim() || undefined} />
           <span className="serif">{copy.product}</span>
-          {draft.emblem.trim() && draft.mark !== "dot" && (
-            <span className="emblem">{draft.emblem.trim()}</span>
-          )}
+          {draft.emblem.trim() && <span className="emblem">{draft.emblem.trim()}</span>}
         </div>
         <span className="agent active">
           <span className="head">

@@ -158,7 +158,7 @@ export function BranchCompare({
               disabled={!canFold}
               onClick={() => client.send({ type: "merge", source: other })}
             >
-              <Mark size={14} />
+              <Mark size={14} ground="choc" />
               Unite {other} into {here}
             </button>
             {!canFold && <span className="small faint">Folding needs the driver or an owner.</span>}

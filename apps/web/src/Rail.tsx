@@ -296,7 +296,7 @@ export const Rail = memo(function Rail({
           <a className="brand" href={paths.home()}>
             <Mark size={24} settle {...markLook(look?.mark)} emblem={look?.emblem} />
             <span className="serif wordmark">{copy.product}</span>
-            {look?.emblem && look.mark !== "dot" && (
+            {look?.emblem && (
               <span className="emblem" title={copy.shell.teamEmblem}>
                 {look.emblem}
               </span>

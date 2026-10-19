@@ -335,7 +335,7 @@ export function Loader({
   if (kind === "join")
     return (
       <span className={cls} {...a11y}>
-        <Mark size={size ?? 28} joining />
+        <Mark size={size ?? 32} joining />
         {label && <span className="lbl">{label}</span>}
         {tail}
       </span>

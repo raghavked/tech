@@ -36,7 +36,17 @@ import type { Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
 import { ReconnectLine } from "../reconnect.js";
 import { navigate, paths } from "../router.js";
-import { Avatar, Dot, ErrorLine, ICONS, Icon, STATUS, toast, useConnectionToasts } from "../ui.js";
+import {
+  Avatar,
+  Dot,
+  ErrorLine,
+  ICONS,
+  Icon,
+  Loader,
+  STATUS,
+  toast,
+  useConnectionToasts,
+} from "../ui.js";
 
 export function ChatView({
   orgId,
@@ -159,7 +169,12 @@ export function ChatView({
         <div className="column page">
           <h1>{copy.shell.orgChats(orgName)}</h1>
           <ErrorLine errors={snap.errors} />
-          {!s && <p className="muted">{copy.chat.joining}</p>}
+          {!s && (
+            <p className="muted row" role="status">
+              <Loader kind="halo" />
+              {copy.chat.joining}
+            </p>
+          )}
           {s && groupId && !group && <p className="muted">{copy.chat.unknownGroup}</p>}
           <section className="group" aria-label={copy.chat.groups}>
             <h2>{copy.chat.groups}</h2>
