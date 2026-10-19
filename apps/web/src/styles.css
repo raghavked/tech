@@ -531,7 +531,7 @@ button.chip {
   }
   .topbar .status,
   .topbar .btn .lbl,
-  .topbar .stack .avatar:nth-child(n + 4) {
+  .topbar .stack > :nth-child(n + 4) {
     display: none;
   }
   .scrim {
@@ -620,8 +620,12 @@ fieldset.seg {
 .seg label:has(:focus-visible) {
   outline: 2px solid var(--focus-ring);
 }
-/* groups-chats: small avatars in the composer's mention list and the new-group sheet */
-.mention-list .avatar,
+/* groups-chats: 26px avatars in the composer's mention list, small ones in the new-group sheet */
+.mention-list .avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+}
 .sheet .pick .avatar {
   width: 20px;
   height: 20px;
@@ -653,6 +657,9 @@ fieldset.seg {
   border-radius: 1px;
   z-index: 3;
   position: relative;
+}
+.stack .avatar-wrap + .avatar {
+  margin-left: 2px;
 }
 
 /* long sessions: the windowed stream (src/stream/VirtualList.tsx) */
@@ -1644,38 +1651,93 @@ a.btn:hover {
   color: var(--fg-3);
   font-variant-numeric: tabular-nums;
 }
-.chatcol .msg.agent .text {
-  padding-left: 30px;
+/* The agent's reply: plain prose behind a navy→chocolate rule (the mark's disc and the person's arc),
+   the 26px avatar with its live dot, serif name, owner in faint sans, dot-separated meta with a mono
+   turn and an outlined "Open session" chip. Human messages, yours included, stay on the left: "you"
+   is a word in the meta and the warmer wash (tokens.css .msg.human.mine) is the only other sign. */
+.chatcol .msg.agent .meta {
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
-.chatcol .msg.human.mine .text {
-  align-self: flex-end;
+.chatcol .msg.agent .text {
+  margin-left: 13px;
+  padding: 2px 0 2px 18px;
+  border-left: 2px solid transparent;
+  border-image: linear-gradient(to bottom, var(--mark-disc), var(--mark-arc-a)) 1;
 }
 .chatcol .msg.agent .meta .avatar {
-  width: 22px;
-  height: 22px;
-  font-size: 9px;
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
 }
 .chatcol .msg.agent .meta .who {
-  font-size: 16px;
+  font-size: 16.5px;
 }
-mark.mention {
-  background: var(--highlight-soft);
-  color: inherit;
-  border-radius: 4px;
-  padding: 0 2px;
+.chatcol .msg.agent .meta .owner {
+  font-size: 13px;
+  color: var(--fg-3);
 }
+.chatcol .msg.agent .meta .turn {
+  margin-left: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--fg-3);
+}
+.chatcol .msg.agent .meta .dot-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--fg-3);
+  opacity: 0.7;
+  flex: none;
+}
+.chatcol .msg.agent .meta .session {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+.chatcol .msg.agent .meta .session:hover {
+  box-shadow: var(--shadow-soft);
+}
+.chatcol .msg.human .meta .faint {
+  color: var(--fg-3);
+}
+@media (max-width: 640px) {
+  .chatcol .msg.agent .text {
+    margin-left: 12px;
+    padding-left: 14px;
+  }
+  .chatcol .msg.agent .meta .owner {
+    display: none;
+  }
+}
+/* An agent tile keeps a 2px seam of canvas (its border) and its status dot sits on that seam, above
+   any neighbour in a stack, so the dot never lands on the next tile. */
 .avatar-wrap {
   position: relative;
   display: inline-flex;
+  flex: none;
+}
+.stack .avatar-wrap + .avatar-wrap {
+  margin-left: 2px;
 }
 /* the agent avatar's live dot: tokens.css's .dot (the drawing and the colour) cut out of the avatar's corner */
 .dot.livedot {
   position: absolute;
   right: -3px;
   bottom: -3px;
+  z-index: 1;
   width: 11px;
   height: 11px;
-  box-shadow: 0 0 0 2px var(--bg);
+  box-shadow: 0 0 0 2px var(--avatar-edge, var(--bg));
 }
 .mention-list {
   display: flex;
@@ -1684,12 +1746,39 @@ mark.mention {
   padding: 6px 0 2px;
   border-top: 1px solid var(--line);
 }
-.mention-list button {
+/* The @ list: a header naming the room with the typed query in mono, rows with the matched letters in
+   chocolate and the agent's owner · project · state beneath, the chosen row on apricot-soft with ↵, and
+   a footer that says what mentioning an agent does. */
+.composer .mention-list .head {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 4px 10px 2px;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.mention-list .head .q {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg-2);
+}
+.mention-list .head .q b,
+.mention-list button .name .n b {
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+.mention-list button {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  padding: 5px 8px;
+  padding: 6px 10px;
   border: 0;
   border-radius: var(--radius);
   background: transparent;
@@ -1699,17 +1788,67 @@ mark.mention {
   text-align: left;
   cursor: pointer;
 }
-.composer .mention-list button.on,
+.mention-list button .name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.mention-list button .name .n.serif {
+  font-size: 16px;
+}
+.mention-list button .name .sub {
+  font-size: 12px;
+  color: var(--fg-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mention-list button .kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+.mention-list button .kind kbd {
+  display: none;
+  min-width: 0;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10.5px;
+}
+.mention-list button.on .kind kbd {
+  display: inline-flex;
+}
 .composer .mention-list button:hover {
-  background: var(--bg-3);
+  background: var(--bg-2);
+}
+.composer .mention-list button.on {
+  background: var(--apricot-soft);
+}
+.mention-list .foot {
+  margin: 4px 0 0;
+  padding: 7px 10px 4px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--fg-3);
 }
 .drawer .person .name .serif {
   font-size: 15px;
 }
+/* The list's badges: a chocolate count for unread, apricot "@n" when your name was said. */
 .column .list .rowitem .count {
+  background: var(--accent);
+  color: var(--accent-fg);
   font-size: 12px;
-  color: var(--fg-2);
   font-variant-numeric: tabular-nums;
+}
+.column .list .rowitem .count.mention {
+  background: var(--mention-you-bg);
+  color: var(--mention-you-fg);
+  font-family: var(--font);
 }
 .sheet.newgroup {
   width: min(460px, 100%);

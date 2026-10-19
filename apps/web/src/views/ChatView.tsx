@@ -8,6 +8,7 @@ import {
   type ChatEvent,
   type ChatMember,
   type ChatScope,
+  type ChatState,
   type Group,
   isMember,
   type Message,
@@ -188,6 +189,7 @@ export function ChatView({
             <div className="list">
               {groups.map((g) => {
                 const unread = s ? unreadIn(s, meId, g.id) : 0;
+                const named = s ? mentionsOfMeIn(s, meId, g.id) : 0;
                 return (
                   <a className="rowitem" key={g.id} href={paths.chat(orgId, g.id)}>
                     <span className="ellipsis">
@@ -197,7 +199,13 @@ export function ChatView({
                         {copy.chat.memberCount(g.members.length)}
                       </span>
                     </span>
-                    {unread > 0 && <span className="count">{unread}</span>}
+                    {named > 0 ? (
+                      <span className="count mention" title={copy.chat.mentionCount(named)}>
+                        @{named}
+                      </span>
+                    ) : (
+                      unread > 0 && <span className="count">{unread}</span>
+                    )}
                   </a>
                 );
               })}
@@ -211,6 +219,14 @@ export function ChatView({
   const mine = isMember(group, meId);
   const live = new Map((directory.data?.agents ?? []).map((a) => [a.sessionId, a.live]));
   const stack = group.members.slice(0, 5);
+  // "Ana's agent", from the directory; a member whose session the directory no longer lists has none.
+  const ownerOf = (sessionId: string): string | null => {
+    const row = directory.data?.agents.find((a) => a.sessionId === sessionId);
+    if (!row) return null;
+    const person = directory.data?.people.find((p) => p.id === row.ownerId);
+    const member = group.members.find((m) => m.kind === "human" && m.userId === row.ownerId);
+    return copy.chat.ownersAgent(person?.name ?? (member ? memberName(member) : row.ownerId));
+  };
   return (
     <Shell
       ctx={ctx}
@@ -264,15 +280,22 @@ export function ChatView({
     >
       {sheet}
       <Messages
+        key={group.id}
         group={group}
         messages={s.messages[group.id] ?? []}
         meId={meId}
         live={live}
+        ownerOf={ownerOf}
+        read={s.reads[meId]?.[group.id] ?? -1}
         errors={snap.errors}
       />
       {mine ? (
         <Composer
           group={group}
+          meId={meId}
+          live={live}
+          ownerOf={ownerOf}
+          projectNameOf={(id) => me?.projects.find((p) => p.projectId === id)?.name ?? id}
           read={s.reads[meId]?.[group.id] ?? -1}
           onSay={(text) => {
             client.send({ type: "chat.say", groupId: group.id, text });
@@ -312,14 +335,27 @@ function Messages({
   messages,
   meId,
   live,
+  ownerOf,
+  read,
   errors,
 }: {
   group: Group;
   messages: Message[];
   meId: string;
   live: Map<string, string | null>;
+  ownerOf: (sessionId: string) => string | null;
+  /** Seq of the last event this person had read when the group opened. */
+  read: number;
   errors: string[];
 }) {
+  // What was unread when the page opened stays marked while it is open: the composer marks the
+  // group read at once, so the seq is captured on the first render (the list is keyed by group).
+  const [since] = useState(read);
+  const [opened] = useState(group.lastSeq);
+  const fromOthers = (m: Message) => !(m.author.kind === "human" && m.author.userId === meId);
+  const fresh =
+    since >= 0 ? messages.filter((m) => m.seq > since && m.seq <= opened && fromOthers(m)) : [];
+  const firstFresh = fresh[0]?.id;
   const nameOf = (m: Message) => {
     const a = m.author;
     const member = group.members.find((x) =>
@@ -348,17 +384,22 @@ function Messages({
         const divider = day !== lastDay ? <div className="divider">{dayLabel(m.at)}</div> : null;
         lastDay = day;
         const replyTo = m.replyTo ? byId.get(m.replyTo) : undefined;
+        const owner = m.author.kind === "agent" ? ownerOf(m.author.sessionId) : null;
         return (
           <div key={m.id}>
             {divider}
+            {m.id === firstFresh && (
+              <div className="divider new">{copy.chat.newSince(fresh.length)}</div>
+            )}
             {m.author.kind === "human" ? (
               <div className={`msg human${m.author.userId === meId ? " mine" : ""}`}>
                 <div className="meta">
                   <span className="who">{nameOf(m)}</span>
+                  {m.author.userId === meId && <span className="faint">{copy.chat.yourself}</span>}
                   <span className="when">{timeOf(m.at)}</span>
                 </div>
                 <div className="text">
-                  <Runs text={m.text} members={group.members} />
+                  <Runs text={m.text} members={group.members} meId={meId} />
                 </div>
               </div>
             ) : (
@@ -369,14 +410,27 @@ function Messages({
                     <Dot status={live.get(m.author.sessionId) ?? "offline"} className="livedot" />
                   </span>
                   <span className="who serif">{nameOf(m)}</span>
+                  {owner && <span className="owner">{owner}</span>}
                   <span className="faint">{copy.chat.agentReplied}</span>
                   {replyTo && (
-                    <span className="faint ellipsis">
-                      {copy.chat.inReplyTo} {replyTo.author.kind === "human" ? nameOf(replyTo) : ""}
-                    </span>
+                    <>
+                      <span className="dot-sep" aria-hidden="true" />
+                      <span className="faint ellipsis">
+                        {copy.chat.inReplyTo}{" "}
+                        {replyTo.author.kind === "human" ? nameOf(replyTo) : ""}
+                      </span>
+                    </>
                   )}
-                  {m.turn !== null && <span className="faint">{copy.chat.turn(m.turn)}</span>}
-                  <a className="small" href={paths.session(m.author.projectId, m.author.sessionId)}>
+                  {m.turn !== null && (
+                    <>
+                      <span className="dot-sep" aria-hidden="true" />
+                      <span className="turn">{copy.chat.turn(m.turn)}</span>
+                    </>
+                  )}
+                  <a
+                    className="session"
+                    href={paths.session(m.author.projectId, m.author.sessionId)}
+                  >
                     {copy.chat.inSession}
                   </a>
                   <span className="when">{timeOf(m.at)}</span>
@@ -392,14 +446,27 @@ function Messages({
   );
 }
 
-/** The text with each resolved mention highlighted; what is marked is exactly what resolved. */
-function Runs({ text, members }: { text: string; members: readonly ChatMember[] }) {
+/**
+ * The text with each resolved mention highlighted; what is marked is exactly what resolved. The
+ * three marks are tokens.css's: a person on apricot-soft, you on solid apricot, an agent on navy.
+ */
+function Runs({
+  text,
+  members,
+  meId,
+}: {
+  text: string;
+  members: readonly ChatMember[];
+  meId: string;
+}) {
+  const kindOf = (m: ChatMember) =>
+    m.kind === "agent" ? " agent" : m.userId === meId ? " you" : "";
   return (
     <>
       {splitMentions(text, members).map((r, i) =>
         r.member ? (
           // biome-ignore lint/suspicious/noArrayIndexKey: runs have no identity of their own
-          <mark className="mention" key={i}>
+          <mark className={`mention${kindOf(r.member)}`} key={i}>
             {r.text}
           </mark>
         ) : (
@@ -409,6 +476,17 @@ function Runs({ text, members }: { text: string; members: readonly ChatMember[] 
       )}
     </>
   );
+}
+
+/** Unread messages in a group that say this person's name: the `@n` badge on the list. */
+function mentionsOfMeIn(s: ChatState, meId: string, groupId: string): number {
+  const read = s.reads[meId]?.[groupId] ?? -1;
+  return (s.messages[groupId] ?? []).filter(
+    (m) =>
+      m.seq > read &&
+      !(m.author.kind === "human" && m.author.userId === meId) &&
+      m.mentions.some((x) => x.kind === "human" && x.id === meId),
+  ).length;
 }
 
 function dayOf(at: number): string {
@@ -435,11 +513,19 @@ function timeOf(at: number): string {
 
 function Composer({
   group,
+  meId,
+  live,
+  ownerOf,
+  projectNameOf,
   read,
   onSay,
   onRead,
 }: {
   group: Group;
+  meId: string;
+  live: Map<string, string | null>;
+  ownerOf: (sessionId: string) => string | null;
+  projectNameOf: (projectId: string) => string;
   /** Seq of the last event this person has read in the group. */
   read: number;
   onSay: (text: string) => void;
@@ -565,27 +651,68 @@ function Composer({
           }}
           onKeyDown={onKey}
         />
-        {options.length > 0 && (
+        {options.length > 0 && query && (
           <div className="mention-list" role="listbox" aria-label={copy.chat.mentionList}>
-            {options.map((m, i) => (
-              <button
-                type="button"
-                role="option"
-                aria-selected={i === sel}
-                className={i === sel ? "on" : ""}
-                key={memberKey(m)}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => pick(m)}
-              >
-                {m.kind === "human" ? (
-                  <Avatar id={m.userId} name={memberName(m)} />
-                ) : (
-                  <Avatar id={m.sessionId} name={memberName(m)} agent />
-                )}
-                <span className={m.kind === "agent" ? "serif" : ""}>{memberName(m)}</span>
-                <span className="faint small">{memberId(m)}</span>
-              </button>
-            ))}
+            <div className="head" aria-hidden="true">
+              {copy.chat.mentionHead(group.name)}
+              <span className="q">
+                @<b>{query.q}</b>
+              </span>
+            </div>
+            {options.map((m, i) => {
+              const name = memberName(m);
+              const hit = query.q && name.toLowerCase().startsWith(query.q) ? query.q.length : 0;
+              const sub =
+                m.kind === "agent"
+                  ? [
+                      ownerOf(m.sessionId),
+                      projectNameOf(m.projectId),
+                      STATUS[live.get(m.sessionId) ?? "offline"]?.label,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : m.userId === meId
+                    ? copy.chat.yourself
+                    : memberId(m);
+              return (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={i === sel}
+                  className={i === sel ? "on" : ""}
+                  key={memberKey(m)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => pick(m)}
+                >
+                  {m.kind === "human" ? (
+                    <Avatar id={m.userId} name={name} />
+                  ) : (
+                    <span className="avatar-wrap">
+                      <Avatar id={m.sessionId} name={name} agent />
+                      <Dot status={live.get(m.sessionId) ?? "offline"} className="livedot" />
+                    </span>
+                  )}
+                  <span className="name">
+                    <span className={`n${m.kind === "agent" ? " serif" : ""}`}>
+                      {hit > 0 ? (
+                        <>
+                          <b>{name.slice(0, hit)}</b>
+                          {name.slice(hit)}
+                        </>
+                      ) : (
+                        name
+                      )}
+                    </span>
+                    <span className="sub">{sub}</span>
+                  </span>
+                  <span className="kind">
+                    {m.kind === "agent" ? copy.chat.kindAgent : copy.chat.kindPerson}
+                    <kbd>↵</kbd>
+                  </span>
+                </button>
+              );
+            })}
+            <p className="foot">{copy.chat.mentionFoot}</p>
           </div>
         )}
         <div className="bar">
@@ -688,34 +815,36 @@ function MembersDrawer({
               )}
             </div>
           ))}
-          <form
-            className="row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!person) return;
-              onAdd({ kind: "human", userId: person });
-              setPerson("");
-            }}
-          >
-            <select
-              className="select sm grow"
-              aria-label={copy.chat.addPerson}
-              value={person}
-              onChange={(e) => setPerson(e.target.value)}
-            >
-              <option value="">{copy.chat.addPerson}</option>
-              {canAddPeople.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <button type="submit" className="btn sm" disabled={!person}>
-              {copy.chat.add}
-            </button>
-          </form>
-          {directory && canAddPeople.length === 0 && (
+          {/* A control with nobody to offer is not shown; the sentence under it says why. */}
+          {directory && canAddPeople.length === 0 ? (
             <p className="small faint">{copy.chat.nobodyToAdd}</p>
+          ) : (
+            <form
+              className="row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!person) return;
+                onAdd({ kind: "human", userId: person });
+                setPerson("");
+              }}
+            >
+              <select
+                className="select sm grow"
+                aria-label={copy.chat.addPerson}
+                value={person}
+                onChange={(e) => setPerson(e.target.value)}
+              >
+                <option value="">{copy.chat.addPerson}</option>
+                {canAddPeople.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <button type="submit" className="btn sm" disabled={!person}>
+                {copy.chat.add}
+              </button>
+            </form>
           )}
         </section>
         <section className="group">
@@ -753,43 +882,44 @@ function MembersDrawer({
               </div>
             );
           })}
-          <form
-            className="row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const a = canAddAgents.find((x) => `${x.projectId}/${x.sessionId}` === agent);
-              if (!a) return;
-              onAdd({
-                kind: "agent",
-                projectId: a.projectId,
-                sessionId: a.sessionId,
-                title: a.title,
-              });
-              setAgent("");
-            }}
-          >
-            <select
-              className="select sm grow"
-              aria-label={copy.chat.addAgent}
-              value={agent}
-              onChange={(e) => setAgent(e.target.value)}
-            >
-              <option value="">{copy.chat.addAgent}</option>
-              {canAddAgents.map((a) => (
-                <option
-                  key={`${a.projectId}/${a.sessionId}`}
-                  value={`${a.projectId}/${a.sessionId}`}
-                >
-                  {a.title} · {copy.chat.agentOf(nameOfPerson(a.ownerId), a.projectName)}
-                </option>
-              ))}
-            </select>
-            <button type="submit" className="btn sm" disabled={!agent}>
-              {copy.chat.add}
-            </button>
-          </form>
-          {directory && canAddAgents.length === 0 && (
+          {directory && canAddAgents.length === 0 ? (
             <p className="small faint">{copy.chat.noAgentsToAdd}</p>
+          ) : (
+            <form
+              className="row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const a = canAddAgents.find((x) => `${x.projectId}/${x.sessionId}` === agent);
+                if (!a) return;
+                onAdd({
+                  kind: "agent",
+                  projectId: a.projectId,
+                  sessionId: a.sessionId,
+                  title: a.title,
+                });
+                setAgent("");
+              }}
+            >
+              <select
+                className="select sm grow"
+                aria-label={copy.chat.addAgent}
+                value={agent}
+                onChange={(e) => setAgent(e.target.value)}
+              >
+                <option value="">{copy.chat.addAgent}</option>
+                {canAddAgents.map((a) => (
+                  <option
+                    key={`${a.projectId}/${a.sessionId}`}
+                    value={`${a.projectId}/${a.sessionId}`}
+                  >
+                    {a.title} · {copy.chat.agentOf(nameOfPerson(a.ownerId), a.projectName)}
+                  </option>
+                ))}
+              </select>
+              <button type="submit" className="btn sm" disabled={!agent}>
+                {copy.chat.add}
+              </button>
+            </form>
           )}
         </section>
       </aside>
