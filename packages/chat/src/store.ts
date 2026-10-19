@@ -6,12 +6,16 @@
  * - a lead or admin of the group's scope, or the person who created the group, adds and
  *   removes members; a person may always leave;
  * - an agent is added by anyone who owns that session, or by a lead.
+ * - any member of the group convenes a council in it and instructs its models in private; the
+ *   convener or a lead ends one early; the host records what the models say.
  *
  * Who is a lead, who owns a session and who is in the organisation come from a `ChatDirectory`
  * the host supplies, so the log itself stays pure.
  */
 import { ChainLog, KernelError, type SerializedChain, shortId } from "@henosis/kernel";
-import { MAIN_BRANCH } from "@henosis/protocol";
+import { MAIN_BRANCH, type Usage, ZERO_USAGE } from "@henosis/protocol";
+import type { Council } from "./council.js";
+import { type CouncilRoundRef, councilNext } from "./councilProtocol.js";
 import {
   type ChatEvent,
   type ChatEventBody,
@@ -19,8 +23,19 @@ import {
   ChatMember as ChatMemberSchema,
   type ChatScope,
   ChatScope as ChatScopeSchema,
+  type CouncilCite,
+  type CouncilDissent,
+  type CouncilMember,
+  CouncilMember as CouncilMemberSchema,
+  type CouncilOutcome,
+  type CouncilReportStatus,
+  type CouncilRound,
+  type CouncilStance,
+  type CouncilStep,
+  DEFAULT_COUNCIL_ROUNDS,
   type Mention,
   memberName,
+  sameCouncilMember,
   sameMember,
 } from "./events.js";
 import { mentionsIn } from "./mentions.js";
@@ -57,6 +72,11 @@ export interface ChatDirectory {
   ): { projectId: string; sessionId: string; title: string; ownerId: string | null } | null;
   /** Is this person a lead or admin for the scope (team, project, or the organisation)? */
   isLead(userId: string, scope: ChatScope): boolean;
+  /**
+   * A member model's profile (users.json `agent`, or the org's agents.json), or null when
+   * unknown. A directory without profiles takes council members on trust.
+   */
+  profile?(profileId: string): { id: string; name: string; ownerId: string | null } | null;
 }
 
 /** A directory with no identity file: everyone is in, nobody leads, sessions are taken on trust. */
@@ -65,6 +85,27 @@ export const OPEN_DIRECTORY: ChatDirectory = {
   agent: (projectId, sessionId) => ({ projectId, sessionId, title: sessionId, ownerId: null }),
   isLead: () => false,
 };
+
+export interface ConveneInput {
+  task: string;
+  members: CouncilMember[];
+  /** Defaults to the member model the convener owns, else the first member. */
+  chair?: CouncilMember;
+  rounds?: CouncilRound[];
+  discussionRounds?: number;
+  budget?: number | null;
+}
+
+/** The host records what a model said; everything but the text is optional. */
+export interface SaidInput {
+  text: string;
+  usage?: Usage;
+  cites?: CouncilCite[];
+  stance?: CouncilStance;
+}
+
+/** The actor a council's host-side events are recorded under. */
+export const COUNCIL_HOST_ACTOR = "council";
 
 export interface CreateGroupInput {
   name: string;
@@ -282,6 +323,216 @@ export class Chat {
     const upTo = seq ?? g.lastSeq;
     if ((this.current.reads[by]?.[groupId] ?? -1) >= upTo) return null;
     return this.emit(by, { kind: "group.read", payload: { groupId, seq: upTo } });
+  }
+
+  // ---- the council -------------------------------------------------------------------
+
+  /** A member of the group convenes a council on a task with the member models they chose. */
+  convene(by: string, groupId: string, input: ConveneInput): Council {
+    const g = this.group(groupId);
+    if (!isMember(g, by))
+      throw new KernelError("unauthorized", `${by} is not a member of ${g.name}`);
+    const task = input.task.trim();
+    if (!task) throw new KernelError("invalid", "a council needs a task");
+    const members: CouncilMember[] = [];
+    for (const raw of input.members) {
+      const m = this.resolveModel(raw);
+      if (!members.some((x) => sameCouncilMember(x, m))) members.push(m);
+    }
+    if (members.length === 0) throw new KernelError("invalid", "a council needs a member model");
+    const chair = input.chair
+      ? this.resolveModel(input.chair)
+      : (members.find((m) => m.userId === by) ?? (members[0] as CouncilMember));
+    const rounds = input.rounds?.length ? input.rounds : DEFAULT_COUNCIL_ROUNDS;
+    const discussionRounds = input.discussionRounds ?? 1;
+    if (!Number.isInteger(discussionRounds) || discussionRounds < 0)
+      throw new KernelError("invalid", "discussionRounds must be a whole number");
+    const budget = input.budget ?? null;
+    if (budget !== null && (!Number.isInteger(budget) || budget < 1))
+      throw new KernelError("invalid", "a budget is a positive number of tokens");
+    const councilId = shortId("cnc", groupId, by, this.current.seq + 1, task);
+    this.emit(by, {
+      kind: "council.convened",
+      payload: {
+        councilId,
+        groupId,
+        task,
+        chair,
+        members,
+        rounds,
+        discussionRounds,
+        budget,
+        by,
+      },
+    });
+    return this.council(councilId);
+  }
+
+  /** A person's private word to one model: lands as a steer in its session, cited next round. */
+  instruct(by: string, councilId: string, member: CouncilMember | string, text: string): ChatEvent {
+    const c = this.openCouncil(councilId);
+    const g = this.group(c.groupId);
+    if (!isMember(g, by))
+      throw new KernelError("unauthorized", `${by} is not a member of ${g.name}`);
+    const target = this.councilMember(c, member);
+    const t = text.trim();
+    if (!t) throw new KernelError("invalid", "nothing to say");
+    return this.emit(by, {
+      kind: "council.instructed",
+      payload: { councilId, member: target, by, text: t },
+    });
+  }
+
+  /** The convener or a lead ends a council early; the host ends it when it is done. */
+  endCouncil(by: string, councilId: string, summary = ""): ChatEvent {
+    const c = this.openCouncil(councilId);
+    const g = this.group(c.groupId);
+    if (c.by !== by && !this.directory.isLead(by, g.scope))
+      throw new KernelError("unauthorized", "only the convener or a lead ends a council");
+    return this.conclude(councilId, "abandoned", summary.trim() || `ended by ${by}`);
+  }
+
+  // The host's side: it runs the rounds and records them. Trusted, like an agent's reply.
+
+  startRound(councilId: string, ref: CouncilRoundRef): ChatEvent | null {
+    const c = this.openCouncil(councilId);
+    if (c.rounds.some((r) => r.round === ref.round && r.index === ref.index)) return null;
+    return this.emit(COUNCIL_HOST_ACTOR, {
+      kind: "council.round.started",
+      payload: { councilId, round: ref.round, index: ref.index },
+    });
+  }
+
+  said(
+    councilId: string,
+    ref: CouncilRoundRef,
+    member: CouncilMember | string,
+    input: SaidInput,
+  ): ChatEvent {
+    const c = this.openCouncil(councilId);
+    const who = this.councilMember(c, member);
+    const text = input.text.trim().slice(0, 12_000);
+    if (!text) throw new KernelError("invalid", "nothing to say");
+    return this.emit(`model:${who.profileId}`, {
+      kind: "council.said",
+      payload: {
+        councilId,
+        round: ref.round,
+        index: ref.index,
+        member: who,
+        text,
+        usage: input.usage ?? ZERO_USAGE,
+        cites: input.cites ?? [],
+        ...(input.stance ? { stance: input.stance } : {}),
+      },
+    });
+  }
+
+  synthesise(
+    councilId: string,
+    planId: string,
+    steps: CouncilStep[],
+    dissent: CouncilDissent[] = [],
+  ): ChatEvent {
+    const c = this.openCouncil(councilId);
+    if (steps.length === 0) throw new KernelError("invalid", "a synthesis needs steps");
+    const ids = new Set<string>();
+    const resolved = steps.map((s) => {
+      if (ids.has(s.id)) throw new KernelError("invalid", `step ${s.id} appears twice`);
+      ids.add(s.id);
+      return { ...s, owner: this.councilMember(c, s.owner) };
+    });
+    return this.emit(`model:${c.chair.profileId}`, {
+      kind: "council.synthesised",
+      payload: {
+        councilId,
+        planId,
+        steps: resolved,
+        dissent: dissent.map((d) => ({ member: this.councilMember(c, d.member), text: d.text })),
+      },
+    });
+  }
+
+  assign(councilId: string, stepId: string, projectId: string, sessionId: string): ChatEvent {
+    const c = this.openCouncil(councilId);
+    const step = this.councilStep(c, stepId);
+    return this.emit(COUNCIL_HOST_ACTOR, {
+      kind: "council.assigned",
+      payload: { councilId, stepId, owner: step.owner, projectId, sessionId },
+    });
+  }
+
+  report(
+    councilId: string,
+    stepId: string,
+    status: CouncilReportStatus,
+    text = "",
+    usage?: Usage,
+  ): ChatEvent {
+    const c = this.openCouncil(councilId);
+    const step = this.councilStep(c, stepId);
+    if (!c.assignments[stepId])
+      throw new KernelError("invalid", `step ${stepId} has not been assigned`);
+    return this.emit(`model:${step.owner.profileId}`, {
+      kind: "council.reported",
+      payload: {
+        councilId,
+        stepId,
+        owner: step.owner,
+        status,
+        text: text.trim().slice(0, 12_000),
+        usage: usage ?? ZERO_USAGE,
+      },
+    });
+  }
+
+  /** Close the council with its total spend on the record. */
+  conclude(councilId: string, outcome: CouncilOutcome, summary = ""): ChatEvent {
+    const c = this.openCouncil(councilId);
+    return this.emit(COUNCIL_HOST_ACTOR, {
+      kind: "council.concluded",
+      payload: { councilId, outcome, summary: summary.trim().slice(0, 12_000), usage: c.usage },
+    });
+  }
+
+  council(councilId: string): Council {
+    const c = this.current.councils[councilId];
+    if (!c) throw new KernelError("not_found", `unknown council ${councilId}`);
+    return c;
+  }
+
+  /** What the council does next (the protocol), given what the chair's session says of the vote. */
+  next(councilId: string, vote?: Parameters<typeof councilNext>[1]) {
+    return councilNext(this.council(councilId), vote);
+  }
+
+  private openCouncil(councilId: string): Council {
+    const c = this.council(councilId);
+    if (c.status === "concluded")
+      throw new KernelError("invalid", `council ${councilId} has concluded`);
+    return c;
+  }
+
+  /** A member model as the directory knows it; a directory without profiles takes it as given. */
+  private resolveModel(raw: CouncilMember): CouncilMember {
+    const m = CouncilMemberSchema.parse(raw);
+    const p = this.directory.profile?.(m.profileId);
+    if (this.directory.profile && !p)
+      throw new KernelError("not_found", `no member model ${m.profileId}`);
+    return p ? { kind: "agent", userId: p.ownerId, profileId: p.id, name: p.name } : m;
+  }
+
+  private councilMember(c: Council, member: CouncilMember | string): CouncilMember {
+    const profileId = typeof member === "string" ? member : member.profileId;
+    const found = [c.chair, ...c.members].find((m) => m.profileId === profileId);
+    if (!found) throw new KernelError("not_found", `${profileId} is not in council ${c.id}`);
+    return found;
+  }
+
+  private councilStep(c: Council, stepId: string): CouncilStep {
+    const step = c.synthesis?.steps.find((s) => s.id === stepId);
+    if (!step) throw new KernelError("not_found", `no step ${stepId} in council ${c.id}`);
+    return step;
   }
 
   // ---- internals ---------------------------------------------------------------------

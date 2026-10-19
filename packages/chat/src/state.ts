@@ -1,4 +1,5 @@
 /** Chat state: the fold of an organisation's chat log. Pure and total, like the session reducer. */
+import { type Council, reduceCouncils } from "./council.js";
 import {
   type ChatEvent,
   type ChatMember,
@@ -48,16 +49,27 @@ export interface ChatState {
   messages: Record<string, Message[]>;
   /** userId -> groupId -> seq of the last event the person has read. */
   reads: Record<string, Record<string, number>>;
+  /** The councils convened in the organisation's groups, by council id (docs/19_council.md). */
+  councils: Record<string, Council>;
 }
 
 export function initialChatState(): ChatState {
-  return { orgId: "", head: null, seq: -1, groups: {}, messages: {}, reads: {} };
+  return { orgId: "", head: null, seq: -1, groups: {}, messages: {}, reads: {}, councils: {} };
 }
 
 export function reduceChat(prev: ChatState, e: ChatEvent): ChatState {
   const s: ChatState = structuredClone(prev);
   s.head = e.id;
   s.seq = e.seq;
+  // A log written before councils existed folds without the field.
+  if (!s.councils) s.councils = {};
+  if (reduceCouncils(s.councils, e)) {
+    const councilId = "councilId" in e.payload ? e.payload.councilId : null;
+    const groupId = councilId ? s.councils[councilId]?.groupId : undefined;
+    const g = groupId ? s.groups[groupId] : undefined;
+    if (g) g.lastSeq = e.seq;
+    return s;
+  }
   switch (e.kind) {
     case "chat.created":
       s.orgId = e.payload.orgId;

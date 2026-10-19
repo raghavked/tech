@@ -2,8 +2,40 @@
  * Model interface. The runner builds a request from session state; a model returns text and
  * tool calls. Outputs are recorded in the log so replays never call a model.
  */
+import type { CouncilMember, CouncilRound, CouncilStance } from "@henosis/chat";
 import type { Intent } from "@henosis/kernel";
 import type { PlanStatus, RiskClass, ToolCall, ToolResult, Usage } from "@henosis/protocol";
+
+/** What a member model said in an earlier round, as the next round reads it. */
+export interface CouncilAnswer {
+  member: CouncilMember;
+  round: CouncilRound;
+  index: number;
+  text: string;
+  stance: CouncilStance | null;
+}
+
+/**
+ * A council round as one member model sees it (docs/19_council.md). Set on a request when the
+ * model speaks in a council rather than works in a session: the scripted model answers it
+ * deterministically, the Claude model from the member's persona.
+ */
+export interface CouncilContext {
+  councilId: string;
+  task: string;
+  round: CouncilRound;
+  index: number;
+  /** The member this request is for. */
+  member: CouncilMember;
+  chair: CouncilMember;
+  members: CouncilMember[];
+  /** Everything said in earlier rounds, oldest first; empty in the individual round. */
+  answers: CouncilAnswer[];
+  /** Private instructions to this member that it has not cited yet. */
+  instructions: { by: string; text: string }[];
+  /** The member's persona from its profile; empty for the default manner. */
+  persona: string;
+}
 
 export interface ToolSpec {
   name: string;
@@ -45,6 +77,8 @@ export interface ModelRequest {
   turn: number;
   /** New directives this epoch, rendered for the model. */
   newDirectives: string[];
+  /** Set when the model speaks in a council round instead of working in a session. */
+  council?: CouncilContext;
 }
 
 export interface ModelResponse {

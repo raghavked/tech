@@ -21,6 +21,12 @@ Respect every standing constraint. Do not act on scopes marked under discussion.
 Work in small steps, say what you are doing in one or two sentences, and call tools to make progress.
 When the goal is complete, reply with the word DONE on its own line.`;
 
+/** The system prompt for a member model speaking in a council (docs/19_council.md). */
+const COUNCIL_SYSTEM = `You are one member's model in a Henosis council: a team's own agents deliberating one task together, with the people in the room.
+The brief below names the task, who you are, who chairs, what the others said and what your owner instructed you in private.
+Speak for your owner's view, plainly and briefly. Cite a private instruction as "instructed by <name>" when you act on it.
+In a discussion round begin with AGREE, DIFFER or ADD on its own line. As chair in synthesis, call the synthesis tool with steps and owners.`;
+
 export class ClaudeModel implements Model {
   readonly name: string;
   private readonly client: Anthropic;
@@ -36,6 +42,9 @@ export class ClaudeModel implements Model {
       description: `${t.description} (risk: ${t.risk})`,
       input_schema: t.schema as Anthropic.Tool.InputSchema,
     }));
+    const system = req.council
+      ? `${COUNCIL_SYSTEM}${req.council.persona ? `\nYour manner: ${req.council.persona}` : ""}`
+      : SYSTEM;
     const opening = [
       `Session: ${req.title}`,
       "",
@@ -92,7 +101,7 @@ export class ClaudeModel implements Model {
     const response = await this.client.messages.create({
       model: this.name,
       max_tokens: 16000,
-      system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
+      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       tools,
       messages,
     });

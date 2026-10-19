@@ -4,10 +4,17 @@
  * through the shell (which needs approval), and deploys only when told to. In a plan-first
  * session it proposes its steps first and marks each one as it gets there. It is a pure
  * function of the request, so offline demos and tests are reproducible.
+ *
+ * In a council (a request with `council` set) it speaks as a member model: its stance and its
+ * words come from a hash of the task and the member, so two councils on one task with the
+ * same members say the same things; as chair it writes a plan with one step per member and
+ * the owners dealt round-robin.
  */
+import type { CouncilMember, CouncilStance } from "@henosis/chat";
 import { hashValue } from "@henosis/kernel";
 import type { ToolCall, Usage } from "@henosis/protocol";
-import type { Model, ModelRequest, ModelResponse } from "./model.js";
+import { COUNCIL_SYNTHESIS_TOOL } from "./council.js";
+import type { CouncilContext, Model, ModelRequest, ModelResponse } from "./model.js";
 
 const PLAN = "PLAN.md";
 
@@ -32,7 +39,138 @@ export class ScriptedModel implements Model {
   }
 }
 
+// ---- the council -----------------------------------------------------------------------
+
+const APPROACHES = [
+  "start from the tests and let them shape the interface",
+  "cut the scope to the smallest slice that ships",
+  "spike the risky part first and throw the spike away",
+  "reuse what the team already has before writing anything new",
+  "write the interface down and agree it before the implementation",
+  "measure the current behaviour first so the change can be judged",
+];
+const RISKS = [
+  "the estimate hides an unknown in the integration",
+  "the change touches what another team owns",
+  "the tests do not cover the path that matters",
+  "the rollback is harder than the rollout",
+];
+const STANCES: CouncilStance[] = ["agree", "differ", "add"];
+
+/** A stable number in [0, 2^32) from the task and the member. */
+function councilSeed(task: string, member: CouncilMember, salt = ""): number {
+  return Number.parseInt(hashValue({ task, member: member.profileId, salt }).slice(0, 8), 16);
+}
+
+/** The stance the scripted member takes in a discussion: a function of the task and the member. */
+export function scriptedStance(task: string, member: CouncilMember): CouncilStance {
+  return STANCES[councilSeed(task, member, "stance") % STANCES.length] ?? "agree";
+}
+
+/** The approach and the risk the scripted member names: a function of the task and the member. */
+export function scriptedApproach(
+  task: string,
+  member: CouncilMember,
+): { approach: string; risk: string } {
+  const n = councilSeed(task, member);
+  return {
+    approach: APPROACHES[n % APPROACHES.length] ?? APPROACHES[0] ?? "",
+    risk: RISKS[Math.floor(n / APPROACHES.length) % RISKS.length] ?? RISKS[0] ?? "",
+  };
+}
+
+/** "instructed by Ana" for each person whose private instruction the member answers. */
+function citeInstructions(ctx: CouncilContext): string {
+  if (!ctx.instructions.length) return "";
+  const names = [...new Set(ctx.instructions.map((i) => i.by))];
+  return ` (instructed by ${names.join(", ")}: ${ctx.instructions.map((i) => i.text).join("; ")})`;
+}
+
+function councilDecision(ctx: CouncilContext): Decision {
+  const me = ctx.member;
+  const { approach, risk } = scriptedApproach(ctx.task, me);
+  switch (ctx.round) {
+    case "individual":
+      return {
+        text: `${me.name} on "${ctx.task}": I would ${approach}. First step: write down what done looks like. Main risk: ${risk}.${citeInstructions(ctx)}`,
+        toolCalls: [],
+        done: true,
+      };
+    case "discussion": {
+      const stance = scriptedStance(ctx.task, me);
+      const others = ctx.answers.filter((a) => a.member.profileId !== me.profileId);
+      const first = others[0];
+      const word = stance.toUpperCase();
+      const reason = !first
+        ? `Nobody else has spoken; I hold to: ${approach}.`
+        : stance === "agree"
+          ? `${first.member.name} has it right; I would ${approach} as well.`
+          : stance === "differ"
+            ? `${first.member.name} starts elsewhere; I would ${approach}, because ${risk}.`
+            : `To what ${first.member.name} said I add: ${approach}.`;
+      return {
+        text: `${word}\n${reason}${citeInstructions(ctx)}`,
+        toolCalls: [],
+        done: true,
+      };
+    }
+    case "synthesis": {
+      const members = ctx.members;
+      const n = members.length;
+      const steps = [
+        ...members.map((m, i) => {
+          const a = scriptedApproach(ctx.task, m);
+          return {
+            id: `s${i + 1}`,
+            title: `${a.approach[0]?.toUpperCase()}${a.approach.slice(1)}`,
+            detail: `From ${m.name}'s answer; watch that ${a.risk}.`,
+            estTokens: 400 + (councilSeed(ctx.task, m, "est") % 5) * 100,
+            risk: "write",
+            owner: (members[i % n] ?? ctx.chair).profileId,
+          };
+        }),
+        {
+          id: `s${n + 1}`,
+          title: "Run the tests and report back to the council",
+          detail: "Every owner reports its step done, blocked or revised.",
+          estTokens: 300,
+          risk: "exec",
+          owner: (members[n % n] ?? ctx.chair).profileId,
+        },
+      ];
+      const dissent = ctx.answers
+        .filter((a) => a.round === "discussion" && a.stance === "differ")
+        .filter(
+          (a, i, all) => all.findIndex((b) => b.member.profileId === a.member.profileId) === i,
+        )
+        .map((a) => ({
+          member: a.member.profileId,
+          text: a.text.split("\n").slice(1).join(" ") || a.text,
+        }));
+      return {
+        text: `The council settles on ${steps.length} steps, one per member and a last one to verify; ${dissent.length ? `${dissent.length} dissent${dissent.length > 1 ? "s" : ""} recorded` : "no dissent"}.${citeInstructions(ctx)}`,
+        toolCalls: [
+          {
+            id: `c${ctx.index}_synth`,
+            name: COUNCIL_SYNTHESIS_TOOL,
+            args: {
+              steps,
+              rationale: "One step per answer, owners dealt in turn, tests before anything ships.",
+              dissent,
+            },
+            risk: "read",
+          },
+        ],
+        done: true,
+      };
+    }
+    case "vote":
+      return { text: "The people vote; I have nothing to add.", toolCalls: [], done: true };
+  }
+}
+
 function decide(req: ModelRequest): Decision {
+  if (req.council) return councilDecision(req.council);
   const intentKey = hashValue({
     goal: req.intent.goal?.text ?? null,
     steers: req.intent.steers,

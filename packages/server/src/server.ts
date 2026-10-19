@@ -253,6 +253,15 @@ export class HenosisServer {
         return { projectId, sessionId, title: st.title, ownerId: st.ownerId };
       },
       isLead: (userId, scope) => this.isLead(userId, orgId, scope),
+      // Phase-0 identity (no users.json, no agents.json) takes member models on trust.
+      ...(this.orgs.users.size > 0 || this.orgs.agents.agents.length > 0
+        ? {
+            profile: (profileId: string) => {
+              const p = this.orgs.agentProfile(profileId);
+              return p ? { id: p.id, name: p.name, ownerId: p.ownerId } : null;
+            },
+          }
+        : {}),
     };
   }
 
@@ -921,6 +930,24 @@ export class HenosisServer {
               break;
             case "chat.read":
               chat.read(me, msg.groupId);
+              break;
+            // The council (docs/19_council.md): the log records it here; the rounds run in
+            // the council host.
+            case "chat.council.convene":
+              chat.convene(me, msg.groupId, {
+                task: msg.task,
+                members: msg.members,
+                ...(msg.chair ? { chair: msg.chair } : {}),
+                rounds: msg.rounds,
+                discussionRounds: msg.discussionRounds,
+                budget: msg.budget,
+              });
+              break;
+            case "chat.council.instruct":
+              chat.instruct(me, msg.councilId, msg.profileId, msg.text);
+              break;
+            case "chat.council.end":
+              chat.endCouncil(me, msg.councilId, msg.summary);
               break;
           }
           return;

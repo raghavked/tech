@@ -9,6 +9,30 @@ import { ProjectRole } from "./events.js";
 export const OrgRole = z.enum(["member", "admin"]);
 export const TeamRole = z.enum(["member", "lead", "manager"]);
 
+/** Which model runs a member's agent: the scripted stand-in offline, or Claude. */
+export const AgentProvider = z.enum(["scripted", "claude"]);
+export type AgentProvider = z.infer<typeof AgentProvider>;
+
+/**
+ * A member model's profile (docs/19_council.md): the agent a person, a manager or a team
+ * brings to a council. A person's profile is the `agent` field of their users.json row
+ * (`ownerId` is them); a shared team agent is a row of the org's agents.json with no owner.
+ * `model` is the provider's model id, empty for the provider's default; `persona` is the
+ * manner it speaks in; `tools` names the tools it may call; `budget` is its soft token budget
+ * per council, null for none.
+ */
+export const AgentProfile = z.object({
+  id: z.string().min(1),
+  ownerId: z.string().min(1).nullable().default(null),
+  name: z.string().min(1).max(80),
+  provider: AgentProvider.default("scripted"),
+  model: z.string().max(120).default(""),
+  persona: z.string().max(4000).default(""),
+  tools: z.array(z.string().min(1)).default([]),
+  budget: z.number().int().min(1).nullable().default(null),
+});
+export type AgentProfile = z.infer<typeof AgentProfile>;
+
 export const User = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -17,11 +41,84 @@ export const User = z.object({
   orgs: z.array(z.object({ orgId: z.string(), role: OrgRole })).default([]),
   teams: z.array(z.object({ teamId: z.string(), role: TeamRole })).default([]),
   projects: z.array(z.object({ projectId: z.string(), role: ProjectRole })).default([]),
+  /** The person's own agent, edited in Settings → My agent; absent means the default. */
+  agent: AgentProfile.partial().optional(),
 });
 export type User = z.infer<typeof User>;
 
 export const UsersFile = z.object({ users: z.array(User) });
 export type UsersFile = z.infer<typeof UsersFile>;
+
+/** The org's shared team agents: `agents.json` beside users.json in the store root. */
+export const AgentsFile = z.object({ agents: z.array(AgentProfile).default([]) });
+export type AgentsFile = z.infer<typeof AgentsFile>;
+
+/** The profile id a person's own agent has when their users.json row names none. */
+export function personalAgentId(userId: string): string {
+  return `agent:${userId}`;
+}
+
+/** The manner a chair speaks in; a manager's agent has it by default. */
+export const CHAIR_PERSONA =
+  "You chair: you weigh every answer, name the disagreements, and write the plan with an owner for each step.";
+
+/** True when the person manages a team: their agent then chairs by default. */
+export function isManager(user: Pick<User, "teams">): boolean {
+  return user.teams.some((t) => t.role === "manager");
+}
+
+/**
+ * A person's member model: their `agent` field over the defaults (scripted provider, named
+ * "<Name>'s agent", the chair's manners for a manager). The owner is always the person.
+ */
+export function personalAgentProfile(user: User): AgentProfile {
+  const given = user.agent ?? {};
+  return AgentProfile.parse({
+    ...given,
+    id: given.id ?? personalAgentId(user.id),
+    ownerId: user.id,
+    name: given.name ?? `${user.name}'s agent`,
+    persona: given.persona ?? (isManager(user) ? CHAIR_PERSONA : ""),
+  });
+}
+
+/**
+ * Find a member model by profile id: a person's own agent (by its profile id, or by
+ * `agent:<userId>` when their row names none) or a shared team agent from agents.json.
+ */
+export function resolveAgentProfile(
+  users: Iterable<User>,
+  agents: AgentsFile | null | undefined,
+  profileId: string,
+): AgentProfile | null {
+  for (const u of users) {
+    const p = personalAgentProfile(u);
+    if (p.id === profileId || personalAgentId(u.id) === profileId) return p;
+  }
+  const shared = agents?.agents.find((a) => a.id === profileId);
+  return shared ? AgentProfile.parse({ ...shared, ownerId: shared.ownerId ?? null }) : null;
+}
+
+/** Every member model an org can convene: each person's agent, then the shared ones. */
+export function listAgentProfiles(
+  users: Iterable<User>,
+  agents: AgentsFile | null | undefined,
+): AgentProfile[] {
+  const out: AgentProfile[] = [];
+  for (const u of users) out.push(personalAgentProfile(u));
+  for (const a of agents?.agents ?? []) if (!out.some((p) => p.id === a.id)) out.push(a);
+  return out;
+}
+
+/** The council member a profile stands for (packages/chat's `CouncilMember`). */
+export function councilMemberOf(p: AgentProfile): {
+  kind: "agent";
+  userId: string | null;
+  profileId: string;
+  name: string;
+} {
+  return { kind: "agent", userId: p.ownerId, profileId: p.id, name: p.name };
+}
 
 /** A six-digit hex colour, `#RRGGBB`. */
 export const HexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, "a colour as #RRGGBB");

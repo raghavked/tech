@@ -1,14 +1,21 @@
-/** Org registry: the `orgs` and `users` documents of the store, with sane defaults when absent. */
+/**
+ * Org registry: the `orgs`, `users` and `agents` (the shared team agents) documents of the
+ * store, with sane defaults when absent.
+ */
 import {
+  type AgentProfile,
+  AgentsFile,
   canStyleTeam,
   DEFAULT_ORGS,
   deriveSessionRole,
   findProject,
   findTeam,
+  listAgentProfiles,
   membershipsOfGroups,
   mergeSsoUser,
   OrgsFile,
   type ProjectRef,
+  resolveAgentProfile,
   type SsoMapping,
   type TeamTheme,
   type User,
@@ -27,20 +34,34 @@ export class OrgRegistry {
    * request, so a group change reaches the next join. Never written to the store.
    */
   readonly resolved = new Map<string, User>();
+  /** The org's shared team agents (docs/19_council.md), empty when the `agents` doc is absent. */
+  readonly agents: AgentsFile;
   private readonly store: LiveStore;
 
-  /** A store root (orgs.json and users.json in it) or the store itself. */
+  /** A store root (orgs.json, users.json and agents.json in it) or the store itself. */
   constructor(rootOrStore: string | LiveStore) {
     this.store = typeof rootOrStore === "string" ? new FileStore(rootOrStore) : rootOrStore;
     const orgsDoc = this.store.readDoc("orgs");
     const usersDoc = this.store.readDoc("users");
+    const agentsDoc = this.store.readDoc("agents");
     this.orgs = orgsDoc ? OrgsFile.parse(orgsDoc) : structuredClone(DEFAULT_ORGS);
     const users = usersDoc ? UsersFile.parse(usersDoc) : { users: [] };
     this.users = new Map(users.users.map((u) => [u.id, u]));
+    this.agents = agentsDoc ? AgentsFile.parse(agentsDoc) : { agents: [] };
   }
 
   project(projectId: string) {
     return findProject(this.orgs, projectId);
+  }
+
+  /** A member model by profile id: a person's agent or a shared one; null when unknown. */
+  agentProfile(profileId: string): AgentProfile | null {
+    return resolveAgentProfile(this.users.values(), this.agents, profileId);
+  }
+
+  /** Every member model the org can convene. */
+  agentProfiles(): AgentProfile[] {
+    return listAgentProfiles(this.users.values(), this.agents);
   }
 
   team(teamId: string) {
