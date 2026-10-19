@@ -93,7 +93,7 @@ test("two peers steer one scope at once; the owner picks a direction", async ({ 
   await enter(bo, "Bo", "bo", "e2e-contention", session);
   const cy = await browser.newPage();
   await enter(cy, "Cy", "cy", "e2e-contention", session);
-  await expect(conversation(ana)).toContainText("Cy joined as contributor");
+  await expect(conversation(ana)).toContainText("Cy joins the circle");
 
   // Two contributors disagree on `api` before the agent acts: a contention, not an override.
   await steer(bo, "Use REST", "api");
@@ -143,10 +143,13 @@ test("fork, steer the branches apart, fold back with a conflict", async ({ page 
   await expect(approve(page)).toBeVisible({ timeout: 15_000 });
 
   // Folding the branch into main is a three-way merge: both sides changed PLAN.md.
+  await branches.getByRole("button", { name: "More for try/idea" }).click();
   await branches.getByRole("button", { name: "Unite into main" }).click();
   await expect(conversation(page)).toContainText("United try/idea into main");
   await expect(conversation(page)).toContainText(/\d+ conflicts?/);
   await expect(branches).toContainText("conflict");
+  // The file list is folded by default; the files line opens it.
+  await branches.getByRole("button", { name: /files/ }).click();
   await expect(branches).toContainText("PLAN.md · conflict");
 });
 
@@ -160,9 +163,11 @@ test("the memory panel shows an entry attributed to the engineer", async ({ page
   await steer(page, `Build a widget ${t}`);
   await expect(conversation(page)).toContainText(`Remembered ${key}`, { timeout: 15_000 });
 
-  // The session's memory panel lists it with Ana's name and the session it came from.
+  // The session's memory panel (folded by default in Details) lists it with Ana's name and the
+  // session it came from.
   await openDetails(page);
   const memory = details(page).getByRole("region", { name: "Memory" });
+  await memory.getByRole("button", { name: /Memory/ }).click();
   await expect(memory).toContainText(key);
   await expect(memory).toContainText("Ana");
   await expect(memory).toContainText(`session ${session}`);
@@ -231,7 +236,7 @@ test("a deploy waits until two contributors rate it 4 or better", async ({ brows
   await enter(bo, "Bo", "bo", "e2e-gate", session);
   const cy = await browser.newPage();
   await enter(cy, "Cy", "cy", "e2e-gate", session);
-  await expect(conversation(ana)).toContainText("Cy joined as contributor");
+  await expect(conversation(ana)).toContainText("Cy joins the circle");
 
   // The test run needs one contributor; Ana approves it without a rating.
   await steer(ana, `Build a doubler ${t} and deploy it`);

@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { activePlan, gateForCall, planForGoal, planWaiting, ratingSummary } from "../src/plans.js";
 import { checkReplay, replayBranch, stateHash } from "../src/replay.js";
 import { KernelError, Session } from "../src/session.js";
+import { fold } from "../src/state.js";
 
 const ana: Actor = { id: "ana", kind: "human", name: "Ana" };
 const bo: Actor = { id: "bo", kind: "human", name: "Bo" };
@@ -194,5 +195,44 @@ describe("plan first", () => {
     expect(stateHash(replayBranch(s.log, M))).toBe(stateHash(st));
     const again = Session.fromSerialized(s.log.serialize());
     expect(stateHash(again.state())).toBe(stateHash(st));
+  });
+
+  it("a gate requested while a step runs carries that step, so the notice and the plan row agree", () => {
+    const s = setup();
+    s.turnStarted(M, "agent");
+    s.proposePlan(M, "agent", { steps: STEPS });
+    s.decidePlan(M, "ana", planId(s), "approved");
+    // Before any step runs, an approval names no step.
+    const early = s.requestApproval(M, "agent", {
+      id: "c0",
+      name: "shell.run",
+      args: { command: "pnpm test" },
+      risk: "exec",
+    });
+    expect(s.state().approvals[early ?? ""]).toMatchObject({ planId: null, stepIndex: null });
+    s.vote(M, "bo", early ?? "", "approve");
+    s.startStep(M, "agent", null, "s1");
+    s.startStep(M, "agent", null, "s2");
+    s.startStep(M, "agent", null, "s3");
+    const gate = s.requestApproval(M, "agent", {
+      id: "c1",
+      name: "deploy",
+      args: { env: "production" },
+      risk: "irreversible",
+    });
+    const ev = s
+      .events()
+      .find((e) => e.kind === "approval.requested" && e.payload.call.id === "c1");
+    expect(ev?.kind === "approval.requested" && ev.payload.stepIndex).toBe(2);
+    expect(s.state().approvals[gate ?? ""]).toMatchObject({ planId: planId(s), stepIndex: 2 });
+    // An older log without the field folds to the same answer from the running step.
+    const bare = s
+      .events()
+      .map((e) =>
+        e.kind === "approval.requested" && e.payload.call.id === "c1"
+          ? { ...e, payload: { approvalId: e.payload.approvalId, call: e.payload.call } }
+          : e,
+      );
+    expect(fold(bare).approvals[gate ?? ""]).toMatchObject({ planId: planId(s), stepIndex: 2 });
   });
 });

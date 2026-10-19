@@ -1,6 +1,6 @@
 /** Small shared pieces on top of tokens.css v6: the mark, loaders, line icons, avatars, status, counts, pills, stars. */
 import type { Resource } from "@henosis/fleet";
-import { budgetStatus, compactTokens, formatTokens } from "@henosis/kernel";
+import { compactTokens, formatTokens } from "@henosis/kernel";
 import type { EntryRecord } from "@henosis/memory";
 import { type Usage, usageTotal } from "@henosis/protocol";
 import {
@@ -1130,74 +1130,8 @@ export async function copyText(text: string): Promise<boolean> {
 
 // ---- token usage -------------------------------------------------------------------------
 
-/** Warn at 80% of a budget, danger past it. */
-export const BUDGET_WARN = 0.8;
-
-/**
- * A quiet chip, "12.4k tokens", that opens on hover or focus to input, output and cache, with
- * a hairline budget bar beneath it when the policy sets one. A tap pins the breakdown (touch
- * has no hover); `open` keeps it shown, as the drawer's Usage section does.
- */
-export function TokenMeter({
-  usage,
-  budget = null,
-  open = false,
-}: {
-  usage: Usage;
-  budget?: number | null;
-  open?: boolean;
-}) {
-  const [pinned, setPinned] = useState(false);
-  const b = budgetStatus({ usage, policy: { tokenBudget: budget } });
-  const pct = b.budget === null ? null : Math.round(b.fraction * 100);
-  const tone = b.over ? " danger" : pct !== null && b.fraction >= BUDGET_WARN ? " warn" : "";
-  const rows: [string, string][] = [
-    [copy.usage.input, formatTokens(usage.input)],
-    [copy.usage.output, formatTokens(usage.output)],
-    [copy.usage.cacheRead, formatTokens(usage.cacheRead)],
-    [copy.usage.cacheWrite, formatTokens(usage.cacheWrite)],
-    [
-      copy.usage.budget,
-      b.budget === null || pct === null
-        ? copy.usage.noBudget
-        : copy.usage.ofBudget(formatTokens(b.used), formatTokens(b.budget), pct),
-    ],
-  ];
-  return (
-    <span className={`meter${tone}${open ? " open" : pinned ? " pinned" : ""}`}>
-      <button
-        type="button"
-        className="chip"
-        aria-label={copy.usage.label(formatTokens(b.used), pct)}
-        aria-expanded={open || pinned}
-        onClick={() => setPinned((v) => !v)}
-      >
-        {copy.usage.chip(compactTokens(b.used))}
-      </button>
-      {b.budget !== null && (
-        <span className="bar" aria-hidden="true">
-          <span
-            className="fill"
-            style={{ width: `${Math.min(100, Math.round(b.fraction * 100))}%` }}
-          />
-        </span>
-      )}
-      <span className="meter-pop">
-        {rows.map(([k, v]) => (
-          <span className="kv-line" key={k}>
-            <span className="muted">{k}</span>
-            <span className="mono">{v}</span>
-          </span>
-        ))}
-        {tone && (
-          <span className={`kv-line${b.over ? " danger" : " warnish"}`}>
-            {b.over ? copy.usage.over : copy.usage.nearing}
-          </span>
-        )}
-      </span>
-    </span>
-  );
-}
+/** The title row's token chip and its breakdown now live beside the stream (token-meter, N1). */
+export { BUDGET_WARN, TokenMeter } from "./stream/TokenMeter.js";
 
 // ---- the agents rail ---------------------------------------------------------------------
 

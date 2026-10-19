@@ -1,20 +1,38 @@
 /**
- * Plan first: the plan as a card in the stream. The goal, the steps with their estimates and
- * what they actually took, the totals against the budget, then the team's ratings: five stars
- * for the signed-in person, the count and average against the policy, and for an owner or
- * the driver the three decisions. It renders from `state.plans[planId]`, so it is live.
+ * Plan first: the plan as a ledger in the stream (plan-card). A white card with a stripe that
+ * carries the status; the goal with the italic serif "Goal" label; step rows on a grid of ring ·
+ * title + detail · risk pill · actual · estimate; the totals meter against the budget with the
+ * estimate tick; the team's ratings as chips with mini stars and "by the team's ratings" in
+ * green; the decisions with one sentence under them. It renders from `state.plans[planId]`, so
+ * it is live. The irreversible step's row points at the gate in the stream ("waits at the gate
+ * below") when its approval is pending, so plan and gate are one object.
  */
-import { planActualTokens, rankOf, ratingSummary, type SessionState } from "@henosis/kernel";
+import {
+  type ApprovalRecord,
+  compactTokens,
+  isRatingsRule,
+  type PlanStepRecord,
+  planActualTokens,
+  rankOf,
+  ratingSummary,
+  ruleFor,
+  type SessionState,
+} from "@henosis/kernel";
 import { type Actor, ROLE_RANK } from "@henosis/protocol";
-import { memo, useState } from "react";
+import { type KeyboardEvent, memo, useState } from "react";
 import type { HenosisClient } from "../client.js";
 import { copy } from "../copy.js";
-import { Stars } from "../ui.js";
+import { isTyping } from "../shortcuts.js";
+import { ICONS, Icon, Stars } from "../ui.js";
+import { isFresh } from "./clock.js";
 
 /** What the card shows, as one string: the state is cloned on every event, so compare by value. */
 export function planSig(s: SessionState, planId: string, meId: string): string {
   const p = s.plans[planId];
   if (!p) return "";
+  const gates = Object.values(s.approvals)
+    .filter((a) => a.planId === planId)
+    .map((a) => `${a.id}:${a.status}:${a.stepIndex}`);
   return [
     p.status,
     p.decidedBy,
@@ -25,6 +43,7 @@ export function planSig(s: SessionState, planId: string, meId: string): string {
     rankOf(s, meId),
     ...p.steps.map((st) => `${st.id}:${st.status}:${st.actualTokens}`),
     ...Object.entries(p.ratings).map(([id, r]) => `${id}=${r.rating}:${r.note}`),
+    ...gates,
   ].join("|");
 }
 
@@ -36,6 +55,16 @@ export const PlanCard = memo(
     prev.me.id === next.me.id &&
     planSig(prev.s, prev.planId, prev.me.id) === planSig(next.s, next.planId, next.me.id),
 );
+
+type Moment = "proposed" | "running" | "done" | "superseded" | "rejected";
+
+function momentOf(p: { status: string; supersededBy: string | null }): Moment {
+  if (p.supersededBy || p.status === "revise") return "superseded";
+  if (p.status === "approved") return "running";
+  if (p.status === "done") return "done";
+  if (p.status === "rejected") return "rejected";
+  return "proposed";
+}
 
 function PlanCardRow({
   s,
@@ -56,6 +85,7 @@ function PlanCardRow({
   const human = s.participants[me.id]?.actor.kind === "human";
   const rank = rankOf(s, me.id);
   const live = !p.supersededBy;
+  const moment = momentOf(p);
   const showStars = live && human && rank >= ROLE_RANK.contributor;
   const canRate = showStars && p.status === "proposed";
   const canDecide =
@@ -76,32 +106,97 @@ function PlanCardRow({
       : p.decidedBy
         ? copy.plan.decidedBy(name(p.decidedBy))
         : "";
+  const budget = s.policy.tokenBudget;
+  const scale = Math.max(budget ?? 0, p.estTokens, used, 1);
+  const pct = (n: number) => `${Math.min(100, (n / scale) * 100)}%`;
+  const gateFor = (st: PlanStepRecord, i: number): ApprovalRecord | null =>
+    Object.values(s.approvals).find(
+      (a) =>
+        a.status === "pending" &&
+        a.planId === planId &&
+        a.stepIndex === i &&
+        isRatingsRule(ruleFor(s.policy.approvals, a.call.risk)),
+    ) ??
+    (st.risk === "irreversible"
+      ? (Object.values(s.approvals).find(
+          (a) => a.status === "pending" && a.planId === planId && a.stepIndex === i,
+        ) ?? null)
+      : null);
+  // 1–5 rate the plan while the card has focus and nobody types (keyboard-first).
+  const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (!canRate || isTyping(e.target as HTMLElement) || e.metaKey || e.ctrlKey || e.altKey) return;
+    const n = Number(e.key);
+    if (n >= 1 && n <= 5) {
+      rate(n);
+      e.preventDefault();
+    }
+  };
+  const statusWord = copy.plan.status[p.status];
   return (
-    <section className={`notice plan${live ? "" : " past-plan"}`} aria-label={copy.plan.title}>
+    <section
+      className={`plan ${moment}${isFresh(p.id) ? " enter" : ""}`}
+      aria-label={copy.plan.title}
+      onKeyDown={onKeyDown}
+    >
       <div className="head">
         <span className="serif">{copy.plan.heading(p.steps.length)}</span>
         <span className="small faint">{copy.plan.proposedOn(p.turn)}</span>
-        <span className={`status plan-${p.status}`}>{copy.plan.status[p.status]}</span>
+        <span className={`status plan-${p.status}`}>{statusWord}</span>
       </div>
-      <p className="goal">{p.goal}</p>
-      {p.rationale && <p className="small muted">{p.rationale}</p>}
-      <ol className="plansteps">
-        {p.steps.map((st) => (
-          <li className={`planstep ${st.status}`} key={st.id}>
-            <span className="step-dot" aria-hidden="true" />
-            <span className="body">
-              <span className="title">{st.title}</span>
-              {st.detail && <span className="d small muted">{st.detail}</span>}
-            </span>
-            <span className="meta small faint">
-              {st.risk} · {copy.plan.est(st.estTokens)}
-              {st.status === "done" ? ` · ${copy.plan.used(st.actualTokens)}` : ""}
-              <span className="sr-only"> · {copy.plan.stepStatus[st.status]}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-      <p className="small muted">{copy.plan.totals(p.estTokens, used, s.policy.tokenBudget)}</p>
+      <p className="goal">
+        <span className="lbl">{copy.stream.goal}</span>
+        {p.goal}
+      </p>
+      {p.rationale && <p className="small muted why">{p.rationale}</p>}
+      <div className="steps">
+        {p.steps.map((st, i) => {
+          const gate = gateFor(st, i);
+          const state = gate ? "gate" : st.status;
+          const over = st.status === "done" && st.actualTokens > st.estTokens;
+          const under = st.status === "done" && st.actualTokens <= st.estTokens;
+          const detail = gate
+            ? copy.plan.waitsBelow
+            : st.risk === "irreversible" && st.status !== "done"
+              ? copy.plan.waitsAtGate
+              : st.detail;
+          return (
+            <div className={`pstep ${state}`} key={st.id}>
+              <span className="n" aria-hidden="true">
+                {st.status === "done" ? <Icon d={ICONS.check} size={12} /> : i + 1}
+              </span>
+              <span className="t">
+                <span className="title">{st.title}</span>
+                {detail && <span className="d">{detail}</span>}
+                <span className="sr-only"> · {copy.plan.stepStatus[st.status]}</span>
+              </span>
+              <span className={`pill risk sm ${st.risk}`}>{st.risk}</span>
+              <span
+                className={`used${st.status === "running" ? " sofar" : over ? " over" : under ? " under" : ""}`}
+              >
+                {st.status === "pending"
+                  ? "—"
+                  : st.status === "running"
+                    ? copy.plan.soFar(compactTokens(tokensSoFar(s, st)))
+                    : st.actualTokens.toLocaleString("en-US")}
+                {st.status === "done" && <span className="sr-only"> {copy.plan.usedWord}</span>}
+              </span>
+              <span className="est">{st.estTokens.toLocaleString("en-US")}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="totals">
+        <span className="budget" aria-hidden="true">
+          <i style={{ width: pct(used) }} />
+          <s className="tick est" style={{ left: pct(p.estTokens) }} />
+        </span>
+        <span className="cap mono">
+          {budget
+            ? copy.plan.ofBudget(compactTokens(used), compactTokens(budget))
+            : copy.plan.usedOfEst(compactTokens(used), compactTokens(p.estTokens))}
+        </span>
+        <span className="foot small muted">{copy.plan.totals(p.estTokens, used, budget)}</span>
+      </div>
       {!live && <p className="small faint">{copy.plan.replaced}</p>}
       {live && (
         <div className="rating">
@@ -122,28 +217,37 @@ function PlanCardRow({
               onChange={(e) => setNote(e.target.value)}
             />
           )}
-          <span className="small muted progress">
+          <span className="mono progress">
             {copy.plan.progress(
               r.count,
               s.policy.planApproval.min,
               r.average,
               copy.plan.statusWord[p.status],
             )}
-            {p.status !== "proposed" && decidedBy ? ` ${decidedBy}` : ""}
-            {p.status === "proposed" && r.count < s.policy.planApproval.min
+            {p.status === "proposed" &&
+            (r.count < s.policy.planApproval.min || r.average < s.policy.planApproval.average)
               ? ` · ${copy.plan.needs(s.policy.planApproval.min, s.policy.planApproval.average)}`
               : ""}
           </span>
         </div>
       )}
-      {live && raters.length > 0 && (
-        <div className="raters small faint">
+      {live && (raters.length > 0 || decidedBy) && (
+        <div className="raters">
           {raters.map(([id, x]) => (
-            <span key={id}>
-              {copy.plan.rated(name(id), x.rating)}
-              {x.note ? ` · ${x.note}` : ""}
+            <span className="rater" key={id} title={x.note || undefined}>
+              <span className="serif">{name(id)}</span>
+              <span className="sr-only"> {copy.plan.ratedIt} </span>
+              <MiniStars n={x.rating} />
+              <span className="mono">{x.rating}</span>
+              {x.note && <q>{x.note}</q>}
             </span>
           ))}
+          {p.status !== "proposed" && decidedBy && (
+            <span className={`by${p.decidedBy === "policy" ? "" : " owner"}`}>
+              {p.decidedBy === "policy" && <Icon d={ICONS.check} size={14} />}
+              {decidedBy}
+            </span>
+          )}
         </div>
       )}
       {live && p.note && p.decidedBy && p.decidedBy !== "policy" && (
@@ -166,11 +270,31 @@ function PlanCardRow({
           <button type="button" className="btn sm" onClick={() => decide("revise")}>
             {copy.plan.askRevise}
           </button>
-          <button type="button" className="btn ghost sm" onClick={() => decide("rejected")}>
+          <button type="button" className="btn ghost sm danger" onClick={() => decide("rejected")}>
             {copy.plan.reject}
           </button>
+          <span className="means">
+            {p.status === "proposed" ? copy.plan.approveMeans : copy.plan.reviseMeans}
+          </span>
         </div>
       )}
     </section>
+  );
+}
+
+/** Tokens the running step has spent so far: the branch's total since the step started. */
+function tokensSoFar(s: SessionState, st: PlanStepRecord): number {
+  const total = s.usage.input + s.usage.output + s.usage.cacheRead + s.usage.cacheWrite;
+  return Math.max(0, total - st.startedTokens);
+}
+
+/** Five tiny stars, `n` of them lit; the number beside them carries the value for readers. */
+export function MiniStars({ n }: { n: number }) {
+  return (
+    <span className="mini" aria-hidden="true">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Icon key={i} d={ICONS.star} size={11} className={i <= n ? "fill" : ""} />
+      ))}
+    </span>
   );
 }

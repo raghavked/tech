@@ -1,61 +1,41 @@
-import {
-  budgetStatus,
-  compactTokens,
-  describeRule,
-  formatTokens,
-  isRatingsRule,
-  planWaiting,
-  ruleFor,
-  type SessionState,
-} from "@henosis/kernel";
-import type { Actor, DirectiveMode, PresenceEntry, SessionEvent } from "@henosis/protocol";
-import {
-  memo,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+/**
+ * The session as a room (session-view): the title row with the status and turn, the Team pill,
+ * the token chip and the presence stack; the stream of the three message shapes, the plan, the
+ * approvals and the join lines; the composer; and one drawer with two faces, Team | Details.
+ * The scrubber under the title row folds the session back to any turn, in the client.
+ *
+ * The stream's parts live in src/stream: Message (the shapes, steps, the join line, the edge
+ * of the past), ApprovalNotice, PlanCard, Composer, Drawer and TokenMeter.
+ */
+import { isRatingsRule, planWaiting, ruleFor, type SessionState } from "@henosis/kernel";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Shell, type ShellContext } from "../App.js";
-import { api, type Me, refOf, type SessionRow, useFetch } from "../api.js";
-import { DEFAULT_RATING, ratingProgress } from "../approvalsQueue.js";
+import { api, type Me, refOf, useFetch } from "../api.js";
+import { DEFAULT_RATING } from "../approvalsQueue.js";
 import { HenosisClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
-import { EmptyState, OfflineState, useOffline, useOnline } from "../empty.js";
+import { OfflineState, useOffline, useOnline } from "../empty.js";
 import { actorOf, type Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
-import { describeQueued, type QueuedMessage } from "../offlineQueue.js";
 import { usePaletteActions } from "../palette.js";
-import {
-  composingLine,
-  isComposing,
-  PRESENCE_COMPOSING_TEAM,
-  presenceSummary,
-  useComposing,
-} from "../presence.js";
+import { isComposing, presenceSummary } from "../presence.js";
 import { rememberRecent } from "../recents.js";
 import { ReconnectLine } from "../reconnect.js";
-import { paths } from "../router.js";
 import { reportPendingApprovals } from "../shell.js";
 import type { ShortcutHandlers } from "../shortcuts.js";
-import { type Block, describeCall, estimateHeight, type Step } from "../stream/blocks.js";
-import { PlanCard } from "../stream/PlanCard.js";
-import { useBlocks } from "../stream/useBlocks.js";
-import { VirtualList } from "../stream/VirtualList.js";
+import { describeCall } from "../stream/blocks.js";
+import { Composer } from "../stream/Composer.js";
+import { rememberArrival } from "../stream/clock.js";
+import { Drawer, type Face } from "../stream/Drawer.js";
+import { Stream } from "../stream/Message.js";
+import { TokenMeter } from "../stream/TokenMeter.js";
 import {
-  AgentCard,
   Avatar,
   ErrorLine,
   ICONS,
   Icon,
   Loader,
-  Stars,
   Status,
-  TeamPill,
-  TokenMeter,
   teamOf,
   useConnectionToasts,
   useJustJoined,
@@ -63,7 +43,7 @@ import {
 } from "../ui.js";
 import { focusSoon } from "../useShortcuts.js";
 import { BranchCompare } from "./BranchCompare.js";
-import { ReplayScrubber, ReplayToggle, useReplay } from "./ReplayScrubber.js";
+import { ReplayScrubber, useReplay } from "./ReplayScrubber.js";
 import { ShareSheet } from "./ShareSheet.js";
 import { sessionCommands } from "./sessionCommands.js";
 
@@ -82,6 +62,8 @@ const FLEET_KINDS = new Set<string>([
   "plan.decided",
   "session.closed",
 ]);
+
+type Panel = Face | "share" | null;
 
 export function SessionView({
   projectId,
@@ -126,6 +108,9 @@ export function SessionView({
   const offline = useOffline(snap.connected);
   const netOnline = useOnline();
 
+  // The log has no wall clock: remember when each live event reached us (stream/clock.ts).
+  useEffect(() => client.onLiveEvent((e) => rememberArrival(e.id)), [client]);
+
   // Notifications for things that need this person, only while the tab is hidden.
   useEffect(
     () =>
@@ -148,7 +133,7 @@ export function SessionView({
             "handoff",
           );
         else if (e.kind === "note.posted" && e.actor !== identity.userId)
-          notifyIfHidden(`${who(e.actor)} to the team`, e.payload.text, e.id, "team");
+          notifyIfHidden(`${who(e.actor)} ${copy.stream.toTheTeam}`, e.payload.text, e.id, "team");
         else if (e.kind === "plan.proposed")
           notifyIfHidden(
             copy.notify.planTitle,
@@ -190,10 +175,11 @@ export function SessionView({
   useEffect(() => {
     rememberRecent({ projectId, sessionId, title: shownTitle });
   }, [projectId, sessionId, shownTitle]);
-  // share-invite: "share" opens the ShareSheet drawer (views/ShareSheet.tsx).
-  const [panel, setPanel] = useState<"none" | "details" | "team" | "share">("none");
+  // One drawer, two faces (team-panel): `panel` is which face is up, the share sheet, or none.
+  const [panel, setPanel] = useState<Panel>(null);
   const details = panel === "details";
-  const setDetails = useCallback((v: boolean) => setPanel(v ? "details" : "none"), []);
+  const setDetails = useCallback((v: boolean) => setPanel(v ? "details" : null), []);
+  const toggle = (face: Panel) => setPanel((v) => (v === face ? null : face));
   // Branch compare (views/BranchCompare.tsx): the other branch shown beside this one, or null.
   const [compare, setCompare] = useState<string | null>(null);
   const phone = useMediaQuery("(max-width: 640px)");
@@ -265,6 +251,8 @@ export function SessionView({
       ? compare
       : null;
   const online = snap.presence.filter((p) => p.online);
+  const name = (id: string) => s.participants[id]?.actor.name ?? id;
+  const agentName = agentNameOf(s, name);
   // Keyboard shortcuts (shortcuts.ts): what each key means on this page.
   const offered = Object.values(s.handoffs).find(
     (h) => h.status === "pending" && h.to === actor.id,
@@ -275,6 +263,7 @@ export function SessionView({
     ? isRatingsRule(ruleFor(s.policy.approvals, waiting.call.risk))
     : false;
   const planWaits = planWaiting(s);
+  const running = s.status === "running";
   const shortcuts: ShortcutHandlers = {
     steer: () => focusSoon(".composer textarea"),
     approve: () =>
@@ -291,7 +280,7 @@ export function SessionView({
     handoff: () => {
       if (offered) client.send({ type: "handoff.accept", handoffId: offered.id });
       else {
-        setPanel("details");
+        setPanel("team");
         focusSoon('.drawer button[data-shortcut="handoff"]');
       }
     },
@@ -299,8 +288,13 @@ export function SessionView({
       setPanel("details");
       focusSoon('.drawer input[aria-label="New branch name"]');
     },
-    details: () => setPanel((v) => (v === "details" ? "none" : "details")),
+    details: () => toggle("details"),
   };
+  const team = mine ? teamOf(mine) : null;
+  const withNames = team?.with.map((p) => p.name) ?? [];
+  const plan = s.activePlanId ? s.plans[s.activePlanId] : undefined;
+  const liveStep = liveStepOf(s);
+  const marksAt = view.marks.findIndex((m) => viewSeq !== null && viewSeq <= m.endSeq);
 
   return (
     <Shell
@@ -308,9 +302,21 @@ export function SessionView({
       title={
         <>
           <span className="ellipsis serif">{shownTitle}</span>
-          <Status status={s.status} />
-          {mine && <TeamPill row={mine} />}
-          <TokenMeter usage={s.usage} budget={s.policy.tokenBudget} />
+          <Status status={s.status}>
+            <span className="turn"> · {copy.stream.turn(s.turn)}</span>
+          </Status>
+          {team && (
+            <span className={`pill ${team.team ? "team" : "solo"}`}>
+              {team.team ? copy.session.teamWith(withNames) : copy.session.solo}
+            </span>
+          )}
+          <TokenMeter
+            usage={s.usage}
+            budget={s.policy.tokenBudget}
+            live={running}
+            session={shownTitle}
+            turn={s.turn}
+          />
           {planWaits && <span className="pill planning">{copy.plan.planning}</span>}
         </>
       }
@@ -344,7 +350,7 @@ export function SessionView({
             type="button"
             className={`btn ghost sm${panel === "share" ? " on" : ""}`}
             aria-pressed={panel === "share"}
-            onClick={() => setPanel((v) => (v === "share" ? "none" : "share"))}
+            onClick={() => toggle("share")}
           >
             <Icon d={ICONS.link} size={14} />
             <span className="lbl">{copy.session.share}</span>
@@ -353,17 +359,24 @@ export function SessionView({
             type="button"
             className={`btn sm${panel === "team" ? " on" : ""}${mine && teamOf(mine).team ? " team" : ""}`}
             aria-pressed={panel === "team"}
-            onClick={() => setPanel((v) => (v === "team" ? "none" : "team"))}
+            title={copy.session.teamTitle(online.length)}
+            onClick={() => toggle("team")}
           >
-            Team
+            {copy.session.team}
+            <span className="n mono" aria-hidden="true">
+              {online.length}
+            </span>
           </button>
           <button
             type="button"
             className={`btn sm${details ? " on" : ""}`}
             aria-pressed={details}
-            onClick={() => setPanel((v) => (v === "details" ? "none" : "details"))}
+            onClick={() => toggle("details")}
           >
             {copy.session.details}
+            <span className="kbd key" aria-hidden="true">
+              i
+            </span>
           </button>
         </>
       }
@@ -376,38 +389,33 @@ export function SessionView({
             asOf={snap.events.at(-1)?.ts}
             onTryNow={() => client.reconnectNow()}
           />
+          {!comparing && (
+            <ReplayScrubber
+              marks={view.marks}
+              viewSeq={viewSeq}
+              pinned={scrubber}
+              steps={plan ? plan.steps.map((st) => st.title) : []}
+              onView={setViewSeq}
+            />
+          )}
         </>
       }
       shortcuts={shortcuts}
       drawer={
-        details ? (
-          <Drawer
-            s={s}
-            me={actor}
-            client={client}
-            brief={snap.brief}
-            errors={snap.errors}
-            orgId={ref.orgId}
-            teamId={ref.teamId}
-            projectId={projectId}
-            onClose={() => setPanel("none")}
-            onCompare={(b) => {
-              setCompare(b);
-              if (phone) setPanel("none");
-            }}
-            replay={<ReplayToggle pinned={scrubber} onToggle={() => setScrubber((v) => !v)} />}
-          />
-        ) : panel === "share" ? (
+        panel === "share" ? (
           <ShareSheet
             s={s}
             me={actor}
             client={client}
             projectId={projectId}
             errors={snap.errors}
-            onClose={() => setPanel("none")}
+            onClose={() => setPanel(null)}
           />
-        ) : panel === "team" ? (
-          <TeamPanel
+        ) : panel ? (
+          <Drawer
+            face={panel}
+            onFace={setPanel}
+            onClose={() => setPanel(null)}
             s={s}
             me={actor}
             client={client}
@@ -415,8 +423,22 @@ export function SessionView({
             rows={rows.data ?? []}
             reload={rows.reload}
             projectId={projectId}
+            orgId={ref.orgId}
+            teamId={ref.teamId}
+            brief={snap.brief}
             errors={snap.errors}
-            onClose={() => setPanel("none")}
+            onCompare={(b) => {
+              setCompare(b);
+              if (phone) setPanel(null);
+            }}
+            onShare={() => setPanel("share")}
+            replay={{
+              marks: view.marks,
+              viewSeq,
+              pinned: scrubber,
+              onPin: () => setScrubber((v) => !v),
+              onView: setViewSeq,
+            }}
           />
         ) : null
       }
@@ -434,19 +456,15 @@ export function SessionView({
         />
       ) : (
         <>
-          <ReplayScrubber
-            marks={view.marks}
-            viewSeq={viewSeq}
-            pinned={scrubber}
-            onView={setViewSeq}
-          />
           <div className={past ? "past" : undefined}>
             <Stream
               events={view.events}
               s={view.state ?? s}
               me={actor}
               client={client}
-              showHandoff={!details && !past}
+              agentName={agentName}
+              showHandoff={panel !== "team" && !past}
+              past={past ? { marks: view.marks, at: marksAt } : null}
             />
           </div>
           <Composer
@@ -457,16 +475,8 @@ export function SessionView({
             queued={snap.queued}
             presence={snap.presence}
             planWaits={planWaits}
-            past={
-              past ? (
-                <>
-                  {copy.composer.viewingPast}
-                  <button type="button" className="linkish" onClick={() => setViewSeq(null)}>
-                    {copy.composer.returnToNow}
-                  </button>
-                </>
-              ) : null
-            }
+            liveStep={running ? liveStep : null}
+            readonly={past ? { onReturn: () => setViewSeq(null) } : null}
           />
         </>
       )}
@@ -474,315 +484,21 @@ export function SessionView({
   );
 }
 
-// ---- stream ----------------------------------------------------------------------------
-
-// Step, Block, describeCall and blocksOf moved to ../stream/blocks.ts (folded incrementally
-// there); the column is windowed by ../stream/VirtualList.tsx.
-
-function Stream({
-  events,
-  s,
-  me,
-  client,
-  showHandoff,
-}: {
-  events: SessionEvent[];
-  s: SessionState;
-  me: Actor;
-  client: HenosisClient;
-  showHandoff: boolean;
-}) {
-  const { blocks, version } = useBlocks(events, s, me.id);
-  // Which tool steps are expanded lives here, so a row keeps it when it is unmounted off-screen.
-  const [openSteps, setOpenSteps] = useState<ReadonlySet<string>>(() => new Set());
-  const toggleStep = useCallback(
-    (id: string) =>
-      setOpenSteps((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      }),
-    [],
-  );
-  const renderBlock = useCallback(
-    (b: Block) => {
-      switch (b.kind) {
-        case "human":
-          return (
-            <div className={`msg human${b.team ? " team" : ""}`}>
-              <div className="meta">
-                <span className="who">{b.who}</span>
-                {b.team && <span className="to">to the team</span>}
-                {b.sub && <span className="faint">{b.sub}</span>}
-              </div>
-              <div className="text">{b.text}</div>
-            </div>
-          );
-        case "agent":
-          return (
-            <div className="msg agent">
-              {b.text && <div className="text">{b.text}</div>}
-              {b.steps.length > 0 && (
-                <div className="steps">
-                  {b.steps.map((st) => (
-                    <StepLine
-                      key={st.id}
-                      step={st}
-                      open={openSteps.has(st.id)}
-                      onToggle={toggleStep}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        case "divider":
-          return <div className={`divider${b.danger ? " danger" : ""}`}>{b.text}</div>;
-        case "approval":
-          return <ApprovalNotice s={s} id={b.approvalId} client={client} />;
-        case "plan":
-          return <PlanCard s={s} planId={b.planId} me={me} client={client} />;
-        default:
-          return null;
-      }
-    },
-    [s, me, client, openSteps, toggleStep],
-  );
-  const name = (id: string) => s.participants[id]?.actor.name ?? id;
-  const contentions = Object.values(s.contentions).filter((c) => !c.resolved);
-  const handoffs = Object.values(s.handoffs).filter(
-    (h) => h.status === "pending" && h.to === me.id,
-  );
-  const canPick = s.driver === me.id || s.participants[me.id]?.role === "owner";
-  return (
-    <section className="column" aria-label={copy.stream.label}>
-      {blocks.length === 0 && (
-        <p className="muted" style={{ textAlign: "center", padding: "48px 0" }}>
-          {copy.stream.empty}
-        </p>
-      )}
-      <VirtualList
-        items={blocks}
-        version={version}
-        keyOf={blockKey}
-        estimate={estimateHeight}
-        render={renderBlock}
-      />
-      {contentions.map((c) => (
-        <div className="notice contention" key={c.id}>
-          <span>
-            {copy.stream.contentionBefore}
-            <b>{c.scope}</b>
-            {copy.stream.contentionAfter}
-            {s.driver === me.id ? copy.stream.youPick : copy.stream.theyPick(name(s.driver ?? ""))}.
-          </span>
-          {c.directiveIds.map((id) => {
-            const d = s.directives[id];
-            if (!d) return null;
-            return (
-              <div className="option" key={id}>
-                <span>
-                  {d.input.text} <span className="faint">{name(d.author)}</span>
-                </span>
-                <span className="actions">
-                  {canPick && (
-                    <button
-                      type="button"
-                      className="btn sm"
-                      aria-label={`Pick: ${d.input.text}`}
-                      onClick={() =>
-                        client.send({ type: "resolve", contentionId: c.id, winner: id })
-                      }
-                    >
-                      {copy.stream.pick}
-                    </button>
-                  )}
-                  {d.author === me.id && (
-                    <button
-                      type="button"
-                      className="btn ghost sm"
-                      aria-label={`Withdraw: ${d.input.text}`}
-                      onClick={() => client.send({ type: "withdraw", directiveId: id })}
-                    >
-                      {copy.stream.withdraw}
-                    </button>
-                  )}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-      {showHandoff &&
-        handoffs.map((h) => (
-          <div className="notice" key={h.id}>
-            <span>{copy.stream.offeredYou(name(h.from))}</span>
-            <div className="actions">
-              <button
-                type="button"
-                className="btn primary sm"
-                onClick={() => client.send({ type: "handoff.accept", handoffId: h.id })}
-              >
-                {copy.stream.accept}
-              </button>
-              <button
-                type="button"
-                className="btn sm"
-                onClick={() => client.send({ type: "handoff.decline", handoffId: h.id })}
-              >
-                {copy.stream.decline}
-              </button>
-            </div>
-          </div>
-        ))}
-    </section>
-  );
+/** "Ana's agent": the stream's name for the agent (the rail card carries the session title). */
+function agentNameOf(s: SessionState, name: (id: string) => string): string {
+  if (s.ownerId && s.participants[s.ownerId]) return copy.team.agentOf(name(s.ownerId));
+  const agent = Object.values(s.participants).find((p) => p.actor.kind === "agent");
+  return agent?.actor.name ?? copy.session.theAgent;
 }
 
-const blockKey = (b: Block) => b.id;
+/** What the agent is doing right now, for the composer's hint: the step with no result yet. */
+function liveStepOf(s: SessionState): string | null {
+  const t = s.currentTurn;
+  if (!t) return null;
+  const done = new Set(t.toolResults.map((r) => r.callId));
+  const call = t.toolCalls.find((c) => !done.has(c.id));
+  return call ? describeCall(call).doing : null;
 
-function StepLine({
-  step,
-  open: openProp,
-  onToggle,
-}: {
-  step: Step;
-  /** Controlled when the stream owns the state; otherwise the line keeps its own. */
-  open?: boolean;
-  onToggle?: (id: string) => void;
-}) {
-  const [openOwn, setOpenOwn] = useState(false);
-  const open = openProp ?? openOwn;
-  const setOpen = () => (onToggle ? onToggle(step.id) : setOpenOwn((v) => !v));
-  const shell = step.name === "shell.run";
-  const suffix =
-    step.ok === null ? "" : step.ok ? (shell ? copy.steps.exitOk : "") : copy.steps.failed;
-  return (
-    <div className={`step${step.ok === false ? " fail" : ""}`}>
-      <button type="button" className="step-head" aria-expanded={open} onClick={setOpen}>
-        <Icon d={step.icon} size={14} />
-        <span className="ellipsis">
-          {step.ok === null ? step.doing : step.done}
-          {suffix}
-        </span>
-        <Icon d={ICONS.chevron} size={12} className={`chev${open ? " open" : ""}`} />
-      </button>
-      {open && (
-        <pre className="step-out">
-          {step.args}
-          {step.output ? `\n\n${step.output.split("\n").slice(0, 20).join("\n")}` : ""}
-        </pre>
-      )}
-    </div>
-  );
-}
-
-/** What an approval row shows, as one string: the state is cloned on every event, so compare by value. */
-function approvalSig(s: SessionState, id: string): string {
-  const a = s.approvals[id];
-  if (!a) return "";
-  const name = (k: string) => s.participants[k]?.actor.name ?? k;
-  const votes = Object.entries(a.ballots).map(
-    ([k, b]) => `${name(k)}=${b.vote}:${b.rating ?? ""}:${b.note}`,
-  );
-  const gate = ratingProgress(s, a);
-  return [
-    a.status,
-    describeRule(ruleFor(s.policy.approvals, a.call.risk)),
-    gate ? `${gate.count}/${gate.min}/${gate.average}` : "",
-    ...votes,
-  ].join("|");
-}
-
-const ApprovalNotice = memo(ApprovalNoticeRow, (prev, next) => {
-  return (
-    prev.id === next.id &&
-    prev.client === next.client &&
-    approvalSig(prev.s, prev.id) === approvalSig(next.s, next.id)
-  );
-});
-
-function ApprovalNoticeRow({
-  s,
-  id,
-  client,
-}: {
-  s: SessionState;
-  id: string;
-  client: HenosisClient;
-}) {
-  const a = s.approvals[id];
-  // A release gate: the person picks a rating (and may add a note) before approving.
-  const [rating, setRating] = useState<number | null>(null);
-  const [note, setNote] = useState("");
-  if (!a) return null;
-  const name = (k: string) => s.participants[k]?.actor.name ?? k;
-  const votes = Object.entries(a.votes);
-  const d = describeCall(a.call);
-  if (a.status !== "pending") {
-    const by = votes
-      .filter(([, v]) => v === (a.status === "granted" ? "approve" : "deny"))
-      .map(([k]) => name(k));
-    return (
-      <div className="divider">
-        {/* the check draws itself when an approval is granted (.ic.draw) */}
-        {a.status === "granted" && <Icon d={ICONS.check} size={14} className="draw" />}
-        {a.status === "granted" ? copy.approval.approved : copy.approval.denied}: {d.ask}
-        {by.length ? ` · ${by.join(", ")}` : ""}
-      </div>
-    );
-  }
-  const rule = ruleFor(s.policy.approvals, a.call.risk);
-  const gate = ratingProgress(s, a);
-  const vote = (v: "approve" | "deny") =>
-    client.send({
-      type: "vote",
-      approvalId: a.id,
-      vote: v,
-      note: note.trim(),
-      ...(gate && v === "approve" ? { rating: rating ?? DEFAULT_RATING } : {}),
-    });
-  return (
-    <div className={`notice${gate ? " gate" : ""}`} data-approval={a.id}>
-      <span>{copy.approval.wants(d.ask, a.call.risk, describeRule(rule))}</span>
-      {votes.length > 0 && (
-        <span className="small muted">
-          {votes
-            .map(([k, v]) =>
-              copy.approval.vote(name(k), v === "approve", a.ballots[k]?.rating ?? null),
-            )
-            .join(" · ")}
-        </span>
-      )}
-      {gate && (
-        <div className="rating">
-          <Stars value={rating} onChange={setRating} onClear={() => setRating(null)} tick />
-          <input
-            className="input sm note"
-            aria-label={copy.approval.noteHint}
-            placeholder={copy.approval.noteHint}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-          <span className="small muted progress">
-            {copy.approval.progress(gate.count, gate.min, gate.average)}
-          </span>
-        </div>
-      )}
-      <div className="actions">
-        <button type="button" className="btn primary sm" onClick={() => vote("approve")}>
-          {gate ? copy.approval.approveWith(rating ?? DEFAULT_RATING) : copy.approval.approve}
-        </button>
-        <button type="button" className="btn ghost danger sm" onClick={() => vote("deny")}>
-          {copy.approval.deny}
-        </button>
-        {gate && rating === null && (
-          <span className="small faint hint">{copy.approval.ifYouLeaveIt(DEFAULT_RATING)}</span>
-        )}
-      </div>
-    </div>
-  );
 }
 
 /**
@@ -839,842 +555,6 @@ function GateChip({ count, id }: { count: number; id: string | undefined }) {
       <button type="button" className="chip gatechip" onClick={back}>
         <span className="mono">{count}</span> {copy.approval.waitsForYou(count)}
       </button>
-    </div>
-  );
-}
-
-// ---- composer --------------------------------------------------------------------------
-
-const MODES: DirectiveMode[] = ["steer", "constrain", "pause", "resume", "cancel"];
-
-function Composer({
-  s,
-  me,
-  client,
-  connected,
-  queued,
-  past = null,
-  presence,
-  planWaits = false,
-}: {
-  s: SessionState;
-  me: Actor;
-  client: HenosisClient;
-  connected: boolean;
-  /** Offline queue: what waits for the socket (see offlineQueue.ts). */
-  queued: QueuedMessage[];
-  /** replay-scrubber: when set, the composer is disabled and this replaces the hint. */
-  past?: ReactNode;
-  presence: PresenceEntry[];
-  /** Plan first: a proposed plan waits for the team's ratings. */
-  planWaits?: boolean;
-}) {
-  const [text, setText] = useState("");
-  const [scope, setScope] = useState("goal");
-  const [mode, setMode] = useState<DirectiveMode>("steer");
-  const [interrupt, setInterrupt] = useState(false);
-  const [more, setMore] = useState(false);
-  const [to, setTo] = useState<"agent" | "team">("agent");
-  const [showQueue, setShowQueue] = useState(false);
-  const ta = useRef<HTMLTextAreaElement>(null);
-  const role = s.participants[me.id]?.role ?? "observer";
-  const needsText = to === "team" || mode === "steer" || mode === "constrain";
-  // presence-composing: tell the others while this person types; cleared on send, blur, idle.
-  const sendPresence = useCallback(
-    (status: string) => client.send({ type: "presence", status }),
-    [client],
-  );
-  const composing = useComposing(sendPresence);
-  const writing = composingLine(presence, me.id);
-  // The send button presses: a glow ring leaves it for half a second after each send.
-  const [pressed, setPressed] = useState(0);
-  const submit = () => {
-    composing.clear();
-    if (needsText && !text.trim()) return;
-    setPressed((n) => n + 1);
-    if (to === "team") {
-      client.send({ type: "note", text: text.trim() });
-      setText("");
-      if (ta.current) ta.current.style.height = "auto";
-      return;
-    }
-    client.send({
-      type: "directive",
-      input: {
-        text: text.trim() || mode,
-        mode,
-        scope: scope.trim() || "goal",
-        supersedes: [],
-        interrupt,
-      },
-    });
-    setText("");
-    setMore(false);
-    if (ta.current) ta.current.style.height = "auto";
-  };
-  const grow = () => {
-    const el = ta.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-  };
-  return (
-    <div className="composer-wrap">
-      {planWaits && past === null && (
-        <p className="plan-waits small muted" role="status">
-          {copy.composer.planWaits}
-        </p>
-      )}
-      <p className="composing small faint" aria-live="polite">
-        {writing ?? ""}
-      </p>
-      <form
-        className={`composer${to === "team" ? " to-team" : ""}`}
-        aria-label={to === "team" ? copy.composer.labelTeam : copy.composer.label}
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <textarea
-          ref={ta}
-          rows={1}
-          aria-label={copy.composer.directive}
-          placeholder={
-            to === "team"
-              ? copy.composer.placeholderTeam
-              : needsText
-                ? copy.composer.placeholder
-                : copy.composer.placeholderFor(mode)
-          }
-          value={text}
-          disabled={past !== null}
-          onChange={(e) => {
-            setText(e.target.value);
-            grow();
-            if (e.target.value.trim())
-              composing.typing(to === "team" ? PRESENCE_COMPOSING_TEAM : undefined);
-            else composing.clear();
-          }}
-          onBlur={composing.clear}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-        />
-        <div className="bar">
-          <fieldset className="seg" aria-label={copy.composer.sendTo}>
-            <label className={to === "agent" ? "on" : ""}>
-              <input
-                type="radio"
-                name="to"
-                className="sr-only"
-                checked={to === "agent"}
-                onChange={() => setTo("agent")}
-              />
-              {copy.composer.toAgent}
-            </label>
-            <label className={to === "team" ? "on" : ""}>
-              <input
-                type="radio"
-                name="to"
-                className="sr-only"
-                checked={to === "team"}
-                onChange={() => {
-                  setTo("team");
-                  setMore(false);
-                }}
-              />
-              {copy.composer.toTeam}
-            </label>
-          </fieldset>
-          {to === "agent" && (
-            <>
-              <button
-                type="button"
-                className="btn ghost icon"
-                aria-label={copy.composer.modeAndScope}
-                aria-expanded={more}
-                onClick={() => setMore((v) => !v)}
-              >
-                <Icon d={more ? ICONS.close : ICONS.plus} />
-              </button>
-              <button
-                type="button"
-                className={`chip${mode !== "steer" ? " on" : ""}`}
-                onClick={() => setMore((v) => !v)}
-              >
-                {mode !== "steer" ? `${mode} · ` : ""}
-                {scope}
-                {interrupt ? ` · ${copy.stream.interrupt}` : ""}
-              </button>
-            </>
-          )}
-          <div className="right">
-            <button
-              type="submit"
-              key={pressed}
-              className={`send${pressed ? " pressed" : ""}`}
-              aria-label={copy.composer.send}
-              disabled={past !== null || (needsText && !text.trim())}
-            >
-              <Icon d={ICONS.send} />
-            </button>
-          </div>
-        </div>
-        {more && to === "agent" && past === null && (
-          <div className="popover">
-            <div className="group">
-              <span className="small muted">{copy.composer.mode}</span>
-              <div className="row">
-                {MODES.map((m) => (
-                  <button
-                    type="button"
-                    key={m}
-                    className={`chip${mode === m ? " on" : ""}`}
-                    aria-pressed={mode === m}
-                    onClick={() => setMode(m)}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="group">
-              <label className="small muted" htmlFor="scope-input">
-                {copy.composer.scope}
-              </label>
-              <input
-                id="scope-input"
-                className="input mono"
-                value={scope}
-                placeholder={copy.composer.scopeDefault}
-                onChange={(e) => setScope(e.target.value)}
-              />
-            </div>
-            <label className="row small">
-              <input
-                type="checkbox"
-                checked={interrupt}
-                onChange={(e) => setInterrupt(e.target.checked)}
-              />
-              {copy.composer.interruptNow}
-            </label>
-            <label className="row small">
-              <input
-                type="checkbox"
-                checked={showQueue}
-                onChange={(e) => setShowQueue(e.target.checked)}
-              />
-              Show queue
-              {queued.length > 0 && <span className="faint">{queued.length}</span>}
-            </label>
-          </div>
-        )}
-      </form>
-      {queued.length > 0 && (
-        <p className="queue-note small muted" role="status">
-          <Icon d={ICONS.clock} size={13} />
-          Queued · will send when back online
-        </p>
-      )}
-      {showQueue && <QueueList queued={queued} s={s} client={client} />}
-      <p className="hint small faint">
-        {past ?? (
-          <>
-            {connected ? "" : copy.composer.reconnecting}
-            {copy.composer.hint(me.name, role, s.driver === me.id)}
-          </>
-        )}
-      </p>
-    </div>
-  );
-}
-
-// ---- team panel ------------------------------------------------------------------------
-
-/** Who is in this session, which crew it works in, and a chat line to the people here. */
-function TeamPanel({
-  s,
-  me,
-  client,
-  presence,
-  rows,
-  reload,
-  projectId,
-  errors,
-  onClose,
-}: {
-  s: SessionState;
-  me: Actor;
-  client: HenosisClient;
-  presence: PresenceEntry[];
-  rows: SessionRow[];
-  reload: () => void;
-  projectId: string;
-  errors: string[];
-  onClose: () => void;
-}) {
-  const [crewName, setCrewName] = useState("");
-  // Crew changes live in the project ledger, not this session's log: look again now and then.
-  useEffect(() => {
-    const every = setInterval(reload, 5_000);
-    return () => clearInterval(every);
-  }, [reload]);
-  const [text, setText] = useState("");
-  const name = (id: string) => s.participants[id]?.actor.name ?? id;
-  const mine = rows.find((r) => r.sessionId === s.sessionId) ?? null;
-  const crew = mine?.crew ?? null;
-  const mates = rows.filter(
-    (r) => r.open && crew && r.crew === crew && r.sessionId !== s.sessionId,
-  );
-  const crewNames = [...new Set(rows.map((r) => r.crew).filter((c): c is string => Boolean(c)))];
-  const people = [...presence].sort((a, b) => Number(b.online) - Number(a.online));
-  const iOwn = s.ownerId === me.id || s.participants[me.id]?.role === "owner";
-  const setCrew = (value: string | null) => {
-    client.sendProject({ type: "project.crew", sessionId: s.sessionId, crew: value });
-    // The rail and the panel both read the project listing; tell them the fleet changed.
-    const tell = () => {
-      reload();
-      dispatchEvent(new Event("henosis:fleet"));
-    };
-    setTimeout(tell, 250);
-    setTimeout(tell, 1500);
-  };
-  const say = () => {
-    const t = text.trim();
-    if (!t) return;
-    client.send({ type: "note", text: t });
-    setText("");
-  };
-  return (
-    <>
-      <button
-        type="button"
-        className="scrim sheet-scrim"
-        aria-label="Close team"
-        onClick={onClose}
-      />
-      <aside className="drawer" aria-label="Team">
-        <div className="drawer-head">
-          <span>Team</span>
-          <button
-            type="button"
-            className="btn ghost icon sm"
-            aria-label="Close team"
-            onClick={onClose}
-          >
-            <Icon d={ICONS.close} size={14} />
-          </button>
-        </div>
-        <ErrorLine errors={errors} />
-        <section className="group">
-          <h3>In this session</h3>
-          {people.length === 0 && <p className="muted">Only you so far.</p>}
-          {people.map((p) => (
-            <div className={`person${p.online ? "" : " off"}`} key={p.actor.id}>
-              <Avatar id={p.actor.id} name={p.actor.name} driver={s.driver === p.actor.id} />
-              <span className="name">
-                {p.actor.name}
-                {p.actor.id === me.id ? " (you)" : ""}
-              </span>
-              <span className="role">
-                {s.driver === p.actor.id ? "driving" : p.role}
-                {p.online ? "" : " · away"}
-              </span>
-            </div>
-          ))}
-          <p className="small faint">
-            {mine && mine.people.filter((p) => p.online).length > 1
-              ? "A team: more than one person is steering this agent."
-              : "Solo: one person is steering this agent. Share the link to team up."}
-          </p>
-        </section>
-        <section className="group">
-          <h3>Crew</h3>
-          {crew ? (
-            <>
-              <p>
-                Working on <span className="serif">{crew}</span> with{" "}
-                {mates.length
-                  ? `${mates.length} other agent${mates.length === 1 ? "" : "s"}`
-                  : "no one else yet"}
-                .
-              </p>
-              {mates.map((r) => (
-                <AgentCard
-                  key={r.sessionId}
-                  row={r}
-                  href={paths.session(projectId, r.sessionId)}
-                  active={false}
-                  nameOf={name}
-                />
-              ))}
-              {iOwn && (
-                <button type="button" className="btn ghost sm" onClick={() => setCrew(null)}>
-                  Leave crew
-                </button>
-              )}
-            </>
-          ) : (
-            <>
-              <p className="muted">
-                Solo. Put this agent in a crew to share one task with other agents in {projectId}.
-              </p>
-              {iOwn && (
-                <form
-                  className="row"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (crewName.trim()) setCrew(crewName.trim());
-                  }}
-                >
-                  <input
-                    className="input grow"
-                    list="crew-names"
-                    aria-label="Crew name"
-                    placeholder="Name the task"
-                    value={crewName}
-                    onChange={(e) => setCrewName(e.target.value)}
-                  />
-                  <datalist id="crew-names">
-                    {crewNames.map((c) => (
-                      <option key={c} value={c} />
-                    ))}
-                  </datalist>
-                  <button type="submit" className="btn sm" disabled={!crewName.trim()}>
-                    Team up
-                  </button>
-                </form>
-              )}
-            </>
-          )}
-        </section>
-        <section className="group">
-          <h3>Chat</h3>
-          <div className="chat">
-            {s.notes.length === 0 && <p className="muted">Nothing said yet.</p>}
-            {s.notes.slice(-30).map((n) => (
-              <div className={`line${n.actor === me.id ? " mine" : ""}`} key={n.seq}>
-                <span className="who">{n.actor === me.id ? "You" : name(n.actor)}</span>
-                <span className="what">{n.text}</span>
-              </div>
-            ))}
-          </div>
-          <form
-            className="row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              say();
-            }}
-          >
-            <input
-              className="input grow"
-              aria-label="Say to the team"
-              placeholder="Say to the team"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-            <button type="submit" className="btn sm" disabled={!text.trim()}>
-              Send
-            </button>
-          </form>
-        </section>
-      </aside>
-    </>
-  );
-}
-
-/** The offline queue as quiet rows under the composer; each can be dropped before it sends. */
-function QueueList({
-  queued,
-  s,
-  client,
-}: {
-  queued: QueuedMessage[];
-  s: SessionState;
-  client: HenosisClient;
-}) {
-  const name = (id: string) => s.participants[id]?.actor.name ?? id;
-  const when = (at: number) =>
-    new Date(at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  return (
-    <section className="queue small" aria-label="Queued messages">
-      {queued.length === 0 && <span className="faint">Nothing queued.</span>}
-      {queued.map((q, i) => (
-        <div className="row" key={q.id}>
-          <span className="faint mono">{i + 1}</span>
-          <span className="grow ellipsis">{describeQueued(q.msg, name)}</span>
-          <span className="faint">{when(q.at)}</span>
-          <button
-            type="button"
-            className="btn ghost icon sm"
-            aria-label="Remove from queue"
-            onClick={() => client.unqueue(q.id)}
-          >
-            <Icon d={ICONS.close} size={12} />
-          </button>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-// ---- details drawer --------------------------------------------------------------------
-
-function Drawer({
-  s,
-  me,
-  client,
-  brief,
-  errors,
-  orgId,
-  teamId,
-  projectId,
-  onClose,
-  onCompare,
-  replay = null,
-}: {
-  s: SessionState;
-  me: Actor;
-  client: HenosisClient;
-  brief: string | null;
-  errors: string[];
-  orgId: string;
-  teamId: string;
-  projectId: string;
-  onClose: () => void;
-  /** Show a branch beside this one in the column (views/BranchCompare.tsx). */
-  onCompare: (branch: string) => void;
-  /** replay-scrubber: the time-travel section, rendered after Intent. */
-  replay?: ReactNode;
-}) {
-  const name = (id: string) => s.participants[id]?.actor.name ?? id;
-  const humans = Object.values(s.participants).filter((p) => p.actor.kind === "human");
-  const iOwn = s.participants[me.id]?.role === "owner";
-  const myHandoffs = Object.values(s.handoffs).filter(
-    (h) => h.status === "pending" && h.to === me.id,
-  );
-  const [forkName, setForkName] = useState("");
-  const branches = ["main", ...Object.keys(s.branches)];
-  const files = Object.keys(s.workspace).sort();
-  const paused = s.intent.control === "paused";
-  const ctxMem = useFetch(
-    () => api.memoryContext(orgId, { team: teamId, project: projectId, user: me.id }),
-    `${orgId}/${teamId}/${projectId}/${me.id}`,
-  );
-  const control = (mode: "pause" | "resume") =>
-    client.send({
-      type: "directive",
-      input: { text: mode, mode, scope: "goal", supersedes: [], interrupt: false },
-    });
-  return (
-    <>
-      <button
-        type="button"
-        className="scrim sheet-scrim"
-        aria-label={copy.details.close}
-        onClick={onClose}
-      />
-      <aside className="drawer" aria-label={copy.details.title}>
-        <div className="drawer-head">
-          <span>{copy.details.title}</span>
-          <button
-            type="button"
-            className="btn ghost icon sm"
-            aria-label={copy.details.close}
-            onClick={onClose}
-          >
-            <Icon d={ICONS.close} size={14} />
-          </button>
-        </div>
-        <ErrorLine errors={errors} />
-        <section className="group" aria-label={copy.details.intent}>
-          <h3>{copy.details.intent}</h3>
-          {s.intent.goal ? (
-            <p>
-              {s.intent.goal.text} <span className="faint">{name(s.intent.goal.author)}</span>
-            </p>
-          ) : (
-            <p className="muted">{copy.details.noGoal}</p>
-          )}
-          {Object.entries(s.intent.steers).map(([k, v]) => (
-            <p key={k}>
-              <span className="muted">{k}</span> {v.text}{" "}
-              <span className="faint">{name(v.author)}</span>
-            </p>
-          ))}
-          {s.intent.constraints.map((c) => (
-            <p key={c.directiveId}>
-              <span className="muted">{copy.details.always}</span> {c.text}{" "}
-              <span className="faint">
-                {name(c.author)}
-                {c.origin === "project" ? copy.details.fromProject : ""}
-              </span>
-            </p>
-          ))}
-          {s.intent.contendedScopes.length > 0 && (
-            <p className="muted">{copy.details.held(s.intent.contendedScopes)}</p>
-          )}
-          <p className="row">
-            <span className="muted">
-              {copy.details.control(s.intent.control, s.intent.interrupt, s.turn)}
-            </span>
-            <button
-              type="button"
-              className="btn sm"
-              onClick={() => control(paused ? "resume" : "pause")}
-            >
-              {paused ? copy.details.resume : copy.details.pause}
-            </button>
-          </p>
-        </section>
-        {replay}
-        <section className="group" aria-label={copy.details.people}>
-          <h3>{copy.details.people}</h3>
-          {humans.map((p) => (
-            <div className="person" key={p.actor.id}>
-              <Avatar id={p.actor.id} name={p.actor.name} driver={s.driver === p.actor.id} />
-              <span className="grow ellipsis">
-                {p.actor.name}
-                {p.actor.id === me.id ? copy.details.you : ""}
-              </span>
-              <span className="muted small">
-                {s.driver === p.actor.id ? copy.roles.driving : p.role}
-                {p.present ? "" : copy.details.away}
-              </span>
-              {p.actor.id !== me.id && s.driver === me.id && (
-                <button
-                  type="button"
-                  className="btn sm"
-                  data-shortcut="handoff"
-                  onClick={() => client.send({ type: "handoff.request", to: p.actor.id })}
-                >
-                  {copy.details.handOff}
-                </button>
-              )}
-              {p.actor.id !== me.id && iOwn && s.driver !== me.id && (
-                <select
-                  className="select sm"
-                  aria-label={copy.details.roleOf(p.actor.name)}
-                  value={p.role}
-                  onChange={(e) =>
-                    client.send({
-                      type: "role",
-                      actorId: p.actor.id,
-                      role: e.target.value as "observer" | "contributor" | "driver" | "owner",
-                    })
-                  }
-                >
-                  {["observer", "contributor", "driver", "owner"].map((r) => (
-                    <option key={r}>{r}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          ))}
-          {myHandoffs.map((h) => (
-            <div className="row" key={h.id}>
-              <span className="grow small">{copy.stream.offeredYou(name(h.from))}</span>
-              <button
-                type="button"
-                className="btn primary sm"
-                onClick={() => client.send({ type: "handoff.accept", handoffId: h.id })}
-              >
-                {copy.stream.accept}
-              </button>
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() => client.send({ type: "handoff.decline", handoffId: h.id })}
-              >
-                {copy.stream.decline}
-              </button>
-            </div>
-          ))}
-          {humans.length <= 1 && <p className="muted small">{copy.details.alone}</p>}
-        </section>
-        <section className="group" aria-label={copy.details.branches}>
-          <h3>{copy.details.branches}</h3>
-          {branches.map((b) => (
-            <div className="row" key={b}>
-              <span className={`grow${b === s.branch ? "" : " mono"}`}>
-                {b}
-                {b === s.branch && <span className="muted">{copy.details.here}</span>}
-              </span>
-              {b !== s.branch && (
-                <>
-                  <button
-                    type="button"
-                    className="btn ghost sm"
-                    onClick={() => client.send({ type: "switch", branch: b })}
-                  >
-                    {copy.details.switch}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn ghost icon sm"
-                    aria-label={`Compare ${b} with ${s.branch}`}
-                    title="Compare"
-                    onClick={() => onCompare(b)}
-                  >
-                    <Icon d={ICONS.columns} size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn ghost sm"
-                    onClick={() => client.send({ type: "merge", source: b })}
-                  >
-                    {copy.details.foldInto(s.branch)}
-                  </button>
-                </>
-              )}
-            </div>
-          ))}
-          <form
-            className="row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (forkName.trim()) client.send({ type: "fork", branch: forkName.trim() });
-              setForkName("");
-            }}
-          >
-            <input
-              className="input mono grow"
-              aria-label={copy.details.branchName}
-              placeholder={copy.details.branchHint}
-              value={forkName}
-              onChange={(e) => setForkName(e.target.value)}
-            />
-            <button type="submit" className="btn sm">
-              {copy.details.fork}
-            </button>
-          </form>
-          <p className="row small muted">
-            <span className="grow">
-              {copy.details.files(files.length)}
-              {s.openConflicts.length > 0 && (
-                <span className="danger">{copy.details.conflicts(s.openConflicts.length)}</span>
-              )}
-              {s.checkpoints.length > 0 && copy.details.checkpoints(s.checkpoints.length)}
-            </span>
-            <button
-              type="button"
-              className="btn ghost sm"
-              onClick={() => client.send({ type: "checkpoint", label: "manual" })}
-            >
-              {copy.details.checkpoint}
-            </button>
-          </p>
-          {files.slice(0, 12).map((p) => (
-            <div className="mono small ellipsis" key={p}>
-              {p}
-              {s.openConflicts.includes(p) && (
-                <span className="danger">{copy.details.conflict}</span>
-              )}
-            </div>
-          ))}
-        </section>
-        <UsageSection s={s} />
-        <section className="group" aria-label={copy.details.memory}>
-          <h3>{copy.details.memory}</h3>
-          {ctxMem.error && <p className="small danger">{ctxMem.error}</p>}
-          <MemoryContext text={ctxMem.data?.context ?? ""} loading={ctxMem.loading} />
-          <button type="button" className="btn ghost sm" onClick={ctxMem.reload}>
-            {copy.details.refresh}
-          </button>
-        </section>
-        <section className="group" aria-label={copy.details.catchUp}>
-          <h3>{copy.details.catchUp}</h3>
-          {brief ? (
-            <pre className="brief">{brief}</pre>
-          ) : (
-            <p className="muted small">{copy.details.briefHint}</p>
-          )}
-          <button type="button" className="btn sm" onClick={() => client.send({ type: "brief" })}>
-            {copy.details.askBrief}
-          </button>
-        </section>
-      </aside>
-    </>
-  );
-}
-
-/** token-usage: what this branch has spent, the budget left, and the last turns one by one. */
-function UsageSection({ s }: { s: SessionState }) {
-  const b = budgetStatus(s);
-  const turns = [...s.turns].slice(-8).reverse();
-  return (
-    <section className="group" aria-label={copy.details.usage}>
-      <h3>{copy.details.usage}</h3>
-      <TokenMeter usage={s.usage} budget={s.policy.tokenBudget} open />
-      <p className="small muted">
-        {b.budget === null
-          ? copy.usage.noBudget
-          : b.over
-            ? copy.usage.over
-            : copy.usage.left(compactTokens(b.budget - b.used))}
-      </p>
-      <span className="small faint">{copy.usage.byTurn}</span>
-      {turns.length === 0 && <p className="muted small">{copy.usage.noTurns}</p>}
-      {turns.map((t) => (
-        <div
-          className="row small"
-          key={t.turn}
-          title={`${copy.usage.input} ${formatTokens(t.usage.input)} · ${copy.usage.output} ${formatTokens(t.usage.output)}`}
-        >
-          <span className="grow muted">{copy.usage.turn(t.turn)}</span>
-          <span className="mono">{compactTokens(t.usage.input + t.usage.output)}</span>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-/** The memory context arrives as text; show each remembered line with its author beneath. */
-function MemoryContext({ text, loading }: { text: string; loading: boolean }) {
-  const lines = text
-    .split("\n")
-    .filter((l) => /^\s+[-!]\s/.test(l))
-    .map((l) => {
-      const conflict = /^\s+!/.test(l);
-      const body = l.replace(/^\s+[-!]\s/, "");
-      const m = body.match(/^(.*)\s\(([^()]*)\)$/);
-      const text = m ? (m[1] ?? body) : body;
-      const km = text.match(/^\[([^\]]+)\]\s(.*)$/s);
-      return {
-        conflict,
-        key: km ? (km[1] ?? "") : "",
-        text: km ? (km[2] ?? text) : text,
-        who: m ? (m[2] ?? "") : "",
-      };
-    });
-  if (lines.length === 0 && loading) return <p className="muted small">Loading…</p>;
-  if (lines.length === 0)
-    return (
-      <EmptyState
-        className="small"
-        text={copy.details.memoryEmptyHint}
-        action={{
-          label: copy.details.writeToAgent,
-          onClick: () => document.querySelector<HTMLTextAreaElement>(".composer textarea")?.focus(),
-        }}
-      />
-    );
-  return (
-    <div className="memlist">
-      {lines.map((l) => (
-        <div className={`memline${l.conflict ? " conflict" : ""}`} key={`${l.who}:${l.text}`}>
-          <span>
-            {l.conflict && <span className="muted">{copy.details.memoryConflict}</span>}
-            {l.key && <span className="mono muted">{l.key} </span>}
-            {l.text}
-          </span>
-          {l.who && <span className="small faint">{l.who}</span>}
-        </div>
-      ))}
     </div>
   );
 }

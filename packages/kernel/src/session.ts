@@ -27,7 +27,7 @@ import { shortId } from "./hash.js";
 import { type SerializedLog, SessionLog } from "./log.js";
 import { planMerge } from "./merge.js";
 import { activePlan, type PlanRecord, totalTokens } from "./plans.js";
-import { fold, rankOf, reduce, type SessionState } from "./state.js";
+import { fold, rankOf, reduce, runningStep, type SessionState } from "./state.js";
 import { type BlobStore, MemoryBlobStore, treeHash } from "./workspace.js";
 
 export class KernelError extends Error {
@@ -542,7 +542,16 @@ export class Session {
     const s = this.state(branch);
     if (!requiresApproval(s.policy.approvals, call.risk)) return null;
     const approvalId = shortId("apr", branch, s.seq + 1, call);
-    this.emit(branch, agentId, { kind: "approval.requested", payload: { approvalId, call } });
+    // The notice carries the plan step it waits at, so the plan's row and the gate are one thing.
+    const step = runningStep(s);
+    this.emit(branch, agentId, {
+      kind: "approval.requested",
+      payload: {
+        approvalId,
+        call,
+        ...(step ? { planId: step.planId, stepIndex: step.index } : {}),
+      },
+    });
     return approvalId;
   }
 

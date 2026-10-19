@@ -195,122 +195,603 @@ button.chip {
   padding: 0;
 }
 
-/* details drawer */
-.drawer .drawer-head {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 500;
+/* one drawer, two faces (team-panel, N2): the head's segmented switch, sections that carry their
+   summary, people rows, the crewmate as a navy tile, the chat with its input pinned, and the
+   Details face: intent, usage, branches, gates, then Memory and Catch-up folded, time travel */
+.drawer {
+  padding: 0;
+  gap: 0;
 }
-.drawer .person {
+.drawer .drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 12px 18px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 2;
+}
+.drawer .drawer-head .seg {
+  margin: 0 auto 0 0;
+  border: 0;
+  padding: 3px;
+}
+.drawer .drawer-head .seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 13px;
+}
+.drawer .drawer-head .seg .n {
+  font: var(--t-mono-sm);
+  color: var(--ink-3);
+}
+.drawer .drawer-head .seg .on .n {
+  color: var(--ink-2);
+}
+.drawer .drawer-head .seg .dot {
+  width: 6px;
+  height: 6px;
+}
+.drawer .drawer-head .seg .dot.running {
+  box-shadow: 0 0 0 2px var(--ok-soft);
+}
+.drawer > .sub {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 12px 20px 0;
+  font-size: 13px;
+  color: var(--ink-2);
+  min-width: 0;
+}
+.drawer .sub > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drawer .sub .serif {
+  font-size: 15px;
+  color: var(--ink);
+}
+.drawer .sub .sep {
+  color: var(--ink-3);
+  flex: none;
+}
+.drawer > .group {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  gap: 9px;
+}
+.drawer > .group:last-child {
+  border-bottom: 0;
+}
+.drawer > p.danger {
+  padding: 8px 20px 0;
+}
+.drawer h3 .sum .danger {
+  color: var(--danger-ink);
+  font-weight: 500;
+}
+.drawer h3 .sum .mono {
+  font-size: 12px;
+}
+.drawer h3 .foldhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.drawer h3 .foldhead .sum {
+  margin-left: auto;
+}
+.drawer h3 .foldhead .chev {
+  margin-left: 4px;
+  color: var(--ink-3);
+  transition: transform var(--t-fast);
+}
+.drawer h3 .foldhead .chev.open {
+  transform: rotate(90deg);
 }
 .drawer p {
   margin: 0;
-}
-.drawer .group > .btn {
-  align-self: flex-start;
 }
 .drawer .row {
   gap: 6px;
 }
 .drawer .input {
-  min-height: 30px;
+  min-height: 32px;
   font-size: 13px;
 }
-.sheet-scrim {
-  display: none;
+.drawer .btn.sm {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12.5px;
 }
-
-/* conversation */
-.column.page {
-  padding-top: 24px;
-  padding-bottom: 64px;
-  gap: 32px;
-}
-.group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.msg .meta .faint {
-  font-size: 12px;
-}
-.msg .text {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.step {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
+.drawer .btn.icon.sm {
+  width: 28px;
   padding: 0;
 }
-.step-head {
+.drawer .select.sm {
+  border-radius: var(--radius-full);
+  padding: 0 8px 0 10px;
+  font-size: 12.5px;
+  min-height: 28px;
+}
+.drawer .group > .btn {
+  align-self: flex-start;
+}
+/* people rows: serif name, "you" small, role in grey, driving as a chocolate flag */
+.drawer .person {
+  padding: 2px 0;
+}
+.drawer .person .avatar {
+  --size: 30px;
+}
+.drawer .person .who {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 4px 6px;
-  margin: 0 -6px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.step-head:hover {
-  background: var(--bg-2);
-}
-.step-head .chev {
-  color: var(--fg-3);
-  transition: transform 0.15s;
-}
-.step-head .chev.open {
-  transform: rotate(90deg);
-}
-.step-out {
-  margin: 4px 0 6px 28px;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  background: var(--bg-2);
-  font: 12px / 1.5 var(--mono);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--fg-2);
-  max-height: 280px;
-  overflow: auto;
-}
-.divider {
-  text-align: center;
-}
-.divider.danger {
-  color: var(--danger-ink);
-}
-.divider.danger::before,
-.divider.danger::after {
-  background: color-mix(in srgb, var(--danger) 30%, transparent);
-}
-.notice .option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.notice .option > span:first-child {
+  flex-direction: column;
+  line-height: 1.25;
   flex: 1;
   min-width: 0;
 }
-.notice .actions {
-  flex-wrap: wrap;
+.drawer .person .who .name {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.drawer .person .who .role {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.drawer .person .who .role .writing {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--apricot-deep);
+}
+.drawer .person.off {
+  color: var(--ink-2);
+}
+.drawer .person.off .who .name {
+  color: var(--ink-2);
+}
+.drawer .person.off .avatar {
+  opacity: 0.5;
+}
+.drawer .teamline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.drawer .teamline .btn {
+  flex: none;
+}
+.drawer .offer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: var(--apricot-soft);
+  font-size: 13px;
+}
+.drawer .offer em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+}
+/* the crewmate: a navy tile that is exactly the rail card */
+.drawer .crewname {
+  font-size: 16px;
+}
+.drawer .tile {
+  padding: 0;
+  --ink: var(--rail-fg);
+  --ink-2: var(--rail-muted);
+  --ink-3: var(--rail-fg-3);
+  --line: var(--rail-line);
+  --avatar-edge: var(--rail);
+  --surface-3: var(--rail-press);
+  --apricot-soft: var(--rail-active);
+  box-shadow: inset 0 0 0 1px var(--rail-line);
+  overflow: hidden;
+}
+.drawer .tile .agent {
+  padding: 10px 12px;
+}
+/* chat: lines, then the input pinned under them with the one rule */
+.drawer .group.chat {
+  padding-bottom: 0;
+}
+.drawer .chat .lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 6px;
+}
+.drawer .chat .line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 14px;
+}
+.drawer .chat .line .who {
+  font-size: 15px;
+}
+.drawer .chat .line.mine .who {
+  color: var(--accent-ink);
+}
+.drawer .chat .typing {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.drawer .chat .typing i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--apricot-deep);
+}
+.drawer .chatfoot {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+  padding: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.drawer .input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.drawer .input-row .input {
+  flex: 1;
+}
+.drawer .send.sm {
+  width: 32px;
+  height: 32px;
+}
+.drawer .fine {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+/* intent: the Goal chip on the apricot wash, scope keys in mono */
+.drawer .intent {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13.5px;
+}
+.drawer .intent .line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.drawer .intent .k {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 1px 6px;
+  line-height: 1.5;
+}
+.drawer .intent .k.goal {
+  background: var(--apricot-soft);
+  color: var(--accent-ink);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  padding: 0 7px;
+}
+.drawer .intent .by {
+  color: var(--ink-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.drawer .intent .goal-t {
+  font-size: 14.5px;
+}
+.drawer .held {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--warn-ink);
+}
+.drawer .control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.drawer .control .btn {
+  margin-left: auto;
+}
+/* branches: one labelled action plus a … menu per row; the file list folded */
+.drawer .branch {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 13.5px;
+}
+.drawer .branch .name {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drawer .branch .name .ic {
+  color: var(--ink-3);
+  flex: none;
+}
+.drawer .branch.here .name {
+  font-family: var(--serif);
+  font-size: 16px;
+}
+.drawer .branch.here .name .here {
+  font: 12px var(--font);
+  color: var(--ink-3);
+}
+.drawer .branch .acts {
+  display: inline-flex;
+  gap: 2px;
+}
+.drawer .branch .menu-row {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.drawer .fileline {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.drawer .fileline .linkish {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+.drawer .fileline .danger {
+  color: var(--danger-ink);
+}
+.drawer .files {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.drawer .files .f {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 12.5px var(--mono);
+  color: var(--ink-2);
+  min-width: 0;
+}
+.drawer .files .f span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drawer .files .f.hot {
+  color: var(--ink);
+}
+.drawer .files .f .mark-c {
+  flex: none;
+  font: 600 11.5px var(--font);
+  color: var(--danger-ink);
+  background: var(--danger-soft);
+  border-radius: 6px;
+  padding: 0 6px;
+  margin-left: auto;
+}
+/* usage: the big mono number, the four-way split, per-turn bars on one scale */
+.drawer .usage .big {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.drawer .usage .big b {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.drawer .usage .big span {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.drawer .usage .big .pct {
+  margin-left: auto;
+  font-family: var(--mono);
+  color: var(--ink-2);
+}
+.drawer .usage.warn .big .pct {
+  color: var(--warn-ink);
+}
+.drawer .usage.over .big .pct {
+  color: var(--danger-ink);
+}
+.drawer .usage .budget {
+  height: 8px;
+}
+.drawer .usage .split {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.drawer .usage .split span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.drawer .usage .split b {
+  font: 500 12.5px var(--mono);
+  color: var(--ink-2);
+}
+.drawer .usage .split .sw {
+  width: 10px;
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+.stacked {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 2px;
+  background: var(--surface-3);
+}
+.stacked i {
+  display: block;
+  height: 100%;
+}
+.stacked .k-in,
+.sw.k-in {
+  background: var(--bar-agent);
+}
+.stacked .k-out,
+.sw.k-out {
+  background: var(--accent);
+}
+.stacked .k-cache,
+.sw.k-cache {
+  background: var(--apricot);
+}
+.stacked .k-write,
+.sw.k-write {
+  background: repeating-linear-gradient(45deg, var(--apricot-deep) 0 2px, transparent 2px 4px);
+}
+.drawer .turns {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.drawer .turns .t {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.drawer .turns .t .lbl {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+.drawer .turns .t .lbl small {
+  font-size: 11px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drawer .turns .t .bar {
+  display: flex;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.drawer .turns .t .bar i {
+  display: block;
+  height: 100%;
+}
+.drawer .turns .t .bar .k-in {
+  background: var(--bar-agent);
+}
+.drawer .turns .t .bar .k-out {
+  background: var(--accent);
+}
+.drawer .turns .t.now {
+  color: var(--ink);
+}
+.drawer .turns .t.now .bar {
+  box-shadow: 0 0 0 2px var(--apricot-soft);
+}
+/* gates: the live gate on the apricot wash, granted and denied with their raters */
+.drawer .gaterow {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.drawer .gaterow.pending {
+  background: var(--apricot-soft);
+}
+.drawer .gaterow .ic {
+  margin-top: 3px;
+  color: var(--ink-3);
+}
+.drawer .gaterow.granted .ic {
+  color: var(--ok);
+}
+.drawer .gaterow.denied .ic {
+  color: var(--danger-ink);
+}
+.drawer .gaterow.pending .ic {
+  color: var(--warn-ink);
+}
+.drawer .gaterow .t {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.drawer .gaterow .what {
+  color: var(--ink);
+}
+.drawer .gaterow .what b {
+  font-weight: 500;
+  font-size: 12.5px;
+}
+.drawer .gaterow .s {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+/* memory and the brief */
 .memlist {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .memline {
   display: flex;
@@ -321,8 +802,528 @@ button.chip {
   padding-left: 10px;
   border-left: 2px solid var(--highlight);
 }
+.drawer .memline {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 13.5px;
+}
+.drawer .memline.conflict {
+  background: var(--warn-soft);
+  border-radius: 10px;
+  padding: 6px 9px;
+  margin: 0 -9px;
+  border-left: 0;
+}
+.drawer .memline .cf {
+  font: 600 11.5px var(--font);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--warn-ink);
+  margin-right: 6px;
+}
+.drawer .brief {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 11px 13px;
+  color: var(--ink);
+}
+/* time travel: the switch, the turns grouped by plan step */
+.drawer .switchrow {
+  font-size: 13.5px;
+}
+.drawer .turnlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.drawer .turnlist .stepgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.drawer .turnlist .kicker {
+  padding: 8px 0 2px;
+}
+.drawer .turnlist .turn {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.drawer .turnlist .turn:hover {
+  background: var(--surface-2);
+}
+.drawer .turnlist .turn.at {
+  background: var(--apricot-soft);
+}
+.drawer .turnlist .turn.later {
+  opacity: 0.5;
+}
+.drawer .turnlist .turn .n,
+.drawer .turnlist .turn .tok {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.sheet-scrim {
+  display: none;
+}
 
-/* composer */
+/* conversation (session-view, N1): the title row's extras, the three message shapes, the step
+   grid with the navy output block, the join line, the notices */
+.column.page {
+  padding-top: 24px;
+  padding-bottom: 64px;
+  gap: 32px;
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.topbar .status .turn {
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.topbar .title .pill {
+  font-family: var(--font);
+}
+.topbar .btn .n {
+  font: var(--t-mono-sm);
+  color: var(--ink-3);
+  margin-left: 2px;
+}
+.topbar .btn.on .n {
+  color: var(--ink-2);
+}
+.key {
+  margin-left: 2px;
+}
+.main:has(.composer.typing) .key {
+  display: none;
+}
+.stream {
+  padding-top: 22px;
+}
+.stream-empty {
+  text-align: center;
+  padding: 48px 0;
+}
+.msg .meta .scope {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.msg .meta .who {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.msg .meta .who .avatar.agent.sm {
+  --size: 22px;
+  border: 0;
+}
+.msg .text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg .text .goal {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--accent-ink);
+  margin-right: 6px;
+  font-size: 16px;
+}
+.msg.human .text,
+.msg.team .text {
+  max-width: 92%;
+}
+.steps {
+  gap: 2px;
+}
+.step {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+}
+.step-head {
+  display: grid;
+  grid-template-columns: 18px 1fr auto 12px;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.step-head:hover {
+  background: var(--surface-2);
+}
+.step-head > .ic:first-child {
+  width: 15px;
+  height: 15px;
+  color: var(--ink-3);
+  justify-self: center;
+}
+.step.done .step-head > .ic:first-child {
+  color: var(--ok);
+}
+.step .line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.step .line b {
+  font-weight: 500;
+  color: var(--ink);
+}
+.step .result {
+  margin-left: 0;
+}
+.step.live .step-head {
+  background: var(--apricot-soft);
+  box-shadow: inset 3px 0 0 var(--live-line);
+}
+.step.live .result {
+  color: var(--accent-ink);
+}
+.step .livedot {
+  width: 9px;
+  height: 9px;
+  justify-self: center;
+  border-radius: 50%;
+  background: var(--apricot-deep);
+  box-shadow: 0 0 0 3px var(--apricot-soft);
+}
+.step.held .step-head {
+  background: var(--surface-2);
+}
+.step.held .step-head > .ic:first-child,
+.step.held .result {
+  color: var(--warn-ink);
+}
+.step.fail .line,
+.step.fail .result,
+.step.fail .step-head > .ic:first-child {
+  color: var(--danger-ink);
+}
+.step.pending .line {
+  color: var(--ink-3);
+}
+.step-head .chev {
+  color: var(--ink-3);
+  transition: transform var(--t-fast);
+}
+.step-head .chev.open {
+  transform: rotate(90deg);
+}
+.step .out {
+  margin: 2px 0 4px 28px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 280px;
+}
+.divider {
+  text-align: center;
+}
+.divider.join {
+  gap: 10px;
+}
+.divider.join .mark {
+  width: 30px;
+  height: 30px;
+}
+.divider.join > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.divider.join .serif {
+  font-size: 16px;
+  color: var(--accent-ink);
+  font-style: normal;
+}
+.divider.join .sub {
+  font-family: var(--font);
+  font-style: normal;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.divider.decided .ic {
+  color: var(--ok);
+}
+.divider.danger {
+  color: var(--danger-ink);
+}
+.divider.danger::before,
+.divider.danger::after {
+  background: color-mix(in srgb, var(--danger) 30%, transparent);
+}
+/* notices: the ask, the votes as rows, the tally under a gate, the rating row, the keys */
+.notice .ask {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.notice .ask .lead {
+  font-size: 19px;
+}
+.notice .ask .command {
+  display: inline;
+  padding: 2px 8px;
+}
+.notice .ask .pill {
+  vertical-align: 2px;
+  margin-left: 2px;
+}
+.notice .kind .serif {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.notice.external::before {
+  background: var(--apricot-deep);
+}
+.notice.handoff::before {
+  background: var(--warn);
+}
+.notice.contention .option {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.notice.contention .option.mine {
+  box-shadow: inset 0 0 0 1.5px var(--select-line);
+  background: var(--select-wash);
+}
+.notice.contention .option .n {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.notice.contention .option .what {
+  min-width: 0;
+}
+.notice .actions {
+  flex-wrap: wrap;
+}
+.notice .actions .keys {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.notice .actions .note .ic {
+  color: var(--ok);
+  vertical-align: -2px;
+}
+.notice .ledger {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.notice .ledger.gated {
+  grid-template-columns: 1fr 212px;
+  align-items: start;
+}
+.notice .ledger:empty {
+  display: none;
+}
+.votes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.votes:empty {
+  display: none;
+}
+.vote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 13px;
+  color: var(--ink-2);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.vote .avatar {
+  --size: 24px;
+  font-size: 9.5px;
+  border: 0;
+}
+.vote .who {
+  font-family: var(--serif);
+  font-size: 15.5px;
+  color: var(--ink);
+  flex: none;
+}
+.vote .role {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.vote .q {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-3);
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  quotes: "“" "”";
+  padding-left: 32px;
+}
+.vote .st {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  flex: none;
+}
+.vote.rated .st {
+  color: var(--ink);
+}
+.vote.deny {
+  background: var(--danger-soft);
+}
+.vote.deny .st {
+  color: var(--danger-ink);
+}
+.vote.voice {
+  opacity: 0.75;
+  background: transparent;
+  border: 1px dashed var(--line);
+}
+.vote.waiting {
+  color: var(--ink-3);
+  background: transparent;
+  border: 1px dashed var(--line);
+}
+.vote.waiting .ring {
+  width: 10px;
+  height: 10px;
+  margin: 0 7px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--ink-3);
+  flex: none;
+}
+.vote.me .ring {
+  border-style: solid;
+  border-color: var(--apricot-deep);
+  background: var(--apricot-soft);
+}
+.vote.me .st {
+  color: var(--accent-ink);
+}
+.tally {
+  border-radius: 14px;
+  background: var(--surface-2);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.tally .big {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--mono);
+}
+.tally .big b {
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
+}
+.tally .avg b {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.tally.low .avg b {
+  color: var(--warn-ink);
+}
+.tally .segs {
+  display: flex;
+  gap: 4px;
+}
+.tally .segs i {
+  flex: 1;
+  width: auto;
+}
+.tally .need {
+  line-height: 1.4;
+}
+.notice .rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.notice .rating .lbl {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.notice .rating .note {
+  flex: 1;
+  min-width: 160px;
+}
+.notice .rating .picked {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* composer (composer, N1): the field with its key printed while nobody types, the Agent | Team
+   segment, the mono "how" chip, the Keys live / Typing chip, read-only while looking back */
 .composer-wrap {
   flex: none;
   margin-top: auto;
@@ -332,6 +1333,10 @@ button.chip {
   margin: 6px auto 0;
   padding: 0 4px;
   text-align: center;
+}
+.composer-wrap .hint .linkish {
+  color: var(--accent-ink);
+  font-weight: 500;
 }
 /* presence-composing: "Bo is writing a directive", a faint line that keeps its height when empty */
 .composer-wrap .composing {
@@ -345,19 +1350,73 @@ button.chip {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.composer input[type="text"] {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  color: var(--fg);
-  font: inherit;
-  outline: none;
-  min-height: 24px;
+.composer-wrap .plan-waits {
+  width: min(var(--col), 100%);
+  margin: 0 auto 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.composer .field {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+}
+.composer .field textarea {
+  padding-right: 28px;
+}
+.composer .field .key {
+  position: absolute;
+  right: 0;
+  top: 2px;
 }
 .composer textarea {
   max-height: 200px;
   line-height: 1.5;
   padding: 2px 0;
+}
+.composer .bar .how {
+  height: 26px;
+  font-size: 12px;
+  border: 0;
+  cursor: pointer;
+}
+.composer .bar .how b {
+  font-weight: 500;
+  color: var(--ink);
+}
+.composer .bar .how .chev {
+  color: var(--ink-3);
+}
+.composer .bar .to {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-ink);
+  font-size: 14px;
+}
+.composer .bar .to .stack .avatar {
+  --size: 20px;
+  font-size: 8px;
+  border-width: 1.5px;
+}
+.composer .bar .mode {
+  font-size: 11.5px;
+  height: 22px;
+}
+.composer .bar .mode.typing {
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.composer .bar .mode.typing::before {
+  background: var(--ink-3);
+}
+.composer.readonly textarea {
+  color: var(--ink-3);
+}
+.composer.readonly .seg {
+  opacity: 0.6;
 }
 .composer .popover {
   display: flex;
@@ -369,6 +1428,12 @@ button.chip {
 }
 .composer .popover .input {
   max-width: 240px;
+}
+@media (hover: none) {
+  .mode,
+  .key {
+    display: none;
+  }
 }
 /* offline queue: a note and quiet rows under the composer, same width as it */
 .composer-wrap .queue-note,
@@ -566,6 +1631,8 @@ button.chip {
     font-size: 19px;
   }
   .topbar .status,
+  .topbar .title .pill,
+  .scrubber.rest .viewing,
   .topbar .btn .lbl,
   .topbar .stack > :nth-child(n + 4) {
     display: none;
@@ -1087,75 +2154,317 @@ kbd + kbd {
     grid-template-columns: 1fr;
   }
 }
-/* replay-scrubber: time travel, a thin row under the top row with one dot per turn */
+/* replay-scrubber (N3): a 36 px resting row of dots under the title bar that grows to the 64 px
+   track when pinned or viewing; plan steps as spans above the line, the times beneath, NOW in
+   ink with an apricot dot; the hovered turn previews in the left label, never in a tip */
 .scrubber {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 2;
-  width: min(var(--col), 100%);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--canvas) 86%, transparent);
+  backdrop-filter: blur(8px);
+  padding: 0 20px;
+}
+.scrubber .inner {
+  width: min(calc(var(--col) + 120px), 100%);
   margin: 0 auto;
-  padding: 2px 20px;
+  display: grid;
+  grid-template-columns: minmax(150px, auto) 1fr auto;
+  gap: 22px;
+  align-items: center;
+}
+.scrubber.rest .inner {
+  grid-template-columns: auto 1fr auto;
+}
+.scrubber .viewing {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  line-height: 1.35;
+  min-width: 0;
+}
+.scrubber .viewing b {
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.scrubber.rest .viewing b {
+  font-weight: 500;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.scrubber .viewing .at {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.scrubber .viewing .at i {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.scrubber .viewing.preview .b {
+  color: var(--ink);
+  font-size: 12.5px;
+}
+.scrubber .right {
   display: flex;
   align-items: center;
-  gap: 14px;
-  font-size: 12px;
-  color: var(--fg-3);
-  background: var(--bg);
-  opacity: 0;
-  transition: opacity 0.15s;
+  gap: 12px;
+  justify-content: flex-end;
+  min-width: 0;
 }
-.scrubber:hover,
-.scrubber:focus-within,
-.scrubber.on {
-  opacity: 1;
+.scrubber .right .keys {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ink-3);
+  white-space: nowrap;
 }
 .scrubber .track {
-  flex: 1;
   position: relative;
-  height: 22px;
+  height: 36px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  padding: 0 6px;
+  transition: height var(--t) var(--ease-move);
+  outline-offset: -2px;
+}
+.scrubber .track:focus-visible {
+  outline-width: 1.5px;
+  box-shadow: none;
+}
+.scrubber.on .track {
+  height: 64px;
+}
+.track .line {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 17px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.scrubber.on .track .line {
+  top: 37px;
+}
+.track .line i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ink-3);
+  opacity: 0.55;
+}
+.scrubber.rest .track .line i {
+  opacity: 0.3;
+}
+.track .dots {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 10px;
+  height: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.scrubber.on .track .dots {
+  top: 30px;
+}
+.track .tick {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  border: 1.5px solid var(--line);
+  box-sizing: border-box;
+  flex: none;
+  transition: box-shadow var(--t-fast) ease;
+}
+.track .tick.seen {
+  background: var(--ink-3);
+  border-color: var(--ink-3);
+}
+.track .tick.hover {
+  box-shadow: 0 0 0 4px var(--apricot-soft);
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+}
+.track .tick.gate {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: transparent;
+  border: 1.5px solid var(--accent);
+}
+.track .tick.now {
+  background: var(--apricot);
+  border-color: var(--apricot);
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 0 3px var(--apricot-soft);
+}
+.track .tick.at {
+  width: 14px;
+  height: 14px;
+  background: var(--surface);
+  border: 2px solid var(--apricot-deep);
+  box-shadow: 0 0 0 3px var(--apricot-soft);
+  transform: none;
+  border-radius: 50%;
+}
+.track .steps {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 6px;
+  height: 18px;
+  margin: 0;
+}
+.track .pstep {
+  position: absolute;
+  top: 0;
+  height: 18px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  touch-action: none;
-  user-select: none;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
 }
-.scrubber .track::before {
+.track .pstep::before {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  top: 50%;
-  height: 1px;
-  background: var(--line);
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--surface-3);
 }
-.scrubber .tick {
-  position: relative;
+.track .pstep .n {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  display: grid;
+  place-items: center;
+  font: 600 9px var(--mono);
+  color: var(--ink-2);
+  background: var(--surface);
+  flex: none;
+}
+.track .pstep.done::before {
+  background: var(--ok);
+  opacity: 0.55;
+}
+.track .pstep.done .n {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
+.track .pstep.live::before {
+  background: var(--apricot-deep);
+}
+.track .pstep.live .n {
+  border-color: var(--apricot-deep);
+  box-shadow: 0 0 0 2px var(--apricot-soft);
+}
+.track .pstep.live {
+  color: var(--ink);
+}
+.track .times {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 2px;
+  height: 14px;
+  font: var(--t-mono-sm);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.track .times span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.track .times span:first-child {
+  transform: none;
+}
+.track .times .here {
+  color: var(--ink);
+  font-weight: 500;
+}
+.track .times .now {
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-size: 10.5px;
+  transform: translateX(-100%);
+}
+.track .times .now::before {
+  content: "";
+  display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--fg-3);
-  opacity: 0.5;
+  background: var(--apricot);
+  margin-right: 4px;
+  vertical-align: 1px;
 }
-.scrubber .tick.seen {
-  opacity: 1;
+/* the edge of the past: a dashed divider and quiet chips of what comes next */
+.edge {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  color: var(--ink-3);
+  font-size: 13px;
 }
-.scrubber .tick.at {
-  width: 10px;
-  height: 10px;
-  margin: -2px;
-  background: var(--fg);
-  opacity: 1;
+.edge .divider {
+  width: 100%;
 }
-.scrubber .label {
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+.edge .divider::before,
+.edge .divider::after {
+  background: none;
+  border-top: 1px dashed var(--line);
+  height: 0;
+}
+.edge .divider > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.edge .divider b {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.edge .next {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.edge .next .chip {
+  opacity: 0.75;
+  height: 26px;
+  font-size: 12px;
 }
 .linkish {
   border: 0;
   background: transparent;
   padding: 0;
-  color: var(--accent);
+  color: var(--accent-ink);
   font: inherit;
   cursor: pointer;
 }
@@ -1163,12 +2472,29 @@ kbd + kbd {
   text-decoration: underline;
 }
 /* while viewing the past the stream is read-only: notices keep their words, lose their buttons */
-.past .notice .actions {
+.past .notice .actions,
+.past .plan .actions,
+.past .plan .rating .note,
+.past .notice .rating {
   display: none;
+}
+.past .stars {
+  pointer-events: none;
 }
 @media (max-width: 640px) {
   .scrubber {
-    padding-inline: 16px;
+    padding-inline: 12px;
+  }
+  .scrubber .inner,
+  .scrubber.rest .inner {
+    grid-template-columns: 1fr auto;
+    gap: 4px 10px;
+  }
+  .scrubber .track {
+    grid-column: 1 / -1;
+  }
+  .scrubber .right .keys {
+    display: none;
   }
 }
 /* settings-page: #/settings. Rows, a quiet switch, keys; the switch is apricot-deep when on (the hand stays a verb). */
@@ -1243,77 +2569,100 @@ kbd + kbd {
   color: var(--fg-3);
   font-size: 13px;
 }
-/* plan first: the plan card in the stream, its steps, the rating stars and the release gate */
-.notice.plan {
-  gap: 12px;
-}
-.notice.plan.past-plan {
-  opacity: 0.7;
-}
-.notice.plan .head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.notice.plan .head .serif {
-  font-size: 17px;
-}
-.notice.plan .head .status {
-  margin-left: auto;
-}
-.notice.plan .goal {
+/* plan first (plan-card, N1): the ledger's goal, step rows, totals against the budget, the
+   raters as chips with mini stars, the decisions with one sentence under them */
+.plan .goal {
   font-size: 15px;
-}
-.plansteps {
-  list-style: none;
+  line-height: 1.5;
   margin: 0;
-  padding: 0;
+}
+.plan .goal .lbl {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--accent-ink);
+  margin-right: 6px;
+  font-size: 16px;
+}
+.plan .why {
+  margin-top: -6px;
+}
+.plan .steps .pstep:first-child {
+  border-top: 0;
+}
+.plan .pstep .t {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-.planstep {
-  display: grid;
-  grid-template-columns: 10px 1fr auto;
-  gap: 10px;
-  align-items: baseline;
-  font-size: 14px;
-}
-.planstep .step-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--fg-3);
-  align-self: center;
-}
-.planstep.running .step-dot {
-  background: var(--ok);
-  animation: pulse 1.6s ease-in-out infinite;
-}
-.planstep.done .step-dot {
-  background: var(--ok);
-}
-.planstep .body {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
   min-width: 0;
 }
-.planstep.done .title {
-  color: var(--fg-2);
+.plan .pstep .t .d {
+  font-size: 12.5px;
+  color: var(--ink-3);
 }
-.planstep .meta {
-  white-space: nowrap;
+.plan .pstep.done .t .title {
+  color: var(--ink-2);
 }
-.notice .rating {
+.plan .pstep.gate .t .d {
+  color: var(--accent-ink);
+}
+.plan .pstep.pending .used {
+  color: var(--ink-3);
+}
+.plan .pstep .used {
+  min-width: 56px;
+  text-align: right;
+}
+.plan .pstep .est {
+  min-width: 60px;
+  text-align: right;
+}
+.plan .pstep .n .ic {
+  width: 12px;
+  height: 12px;
+}
+.plan .pstep .risk {
+  font-size: 10.5px;
+}
+.plan .totals {
+  display: grid;
+  grid-template-columns: 160px auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.plan .totals .budget {
+  position: relative;
+  overflow: visible;
+}
+.plan .totals .budget .tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--accent);
+  text-decoration: none;
+}
+.plan .totals .cap {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.plan .totals .foot {
+  justify-self: end;
+  text-align: right;
+}
+.plan .rating {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
-.notice .rating .note,
-.notice .actions .note {
+.plan .rating .lbl {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.plan .rating .note {
   flex: 1;
   min-width: 160px;
 }
@@ -1364,14 +2713,67 @@ kbd + kbd {
   .notice .actions .btn.primary {
     flex: 1 1 auto;
   }
-  .notice .actions .hint {
+  .notice .actions .hint,
+  .notice .actions .note {
     width: 100%;
   }
 }
-.notice.plan .raters {
+.plan .rating .progress {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.plan .raters {
+  align-items: center;
+}
+.plan .rater .mini,
+.vote .mini {
+  display: inline-flex;
+  gap: 0;
+}
+.plan .rater .mini .ic {
+  width: 11px;
+  height: 11px;
+  stroke: var(--ink-3);
+}
+.plan .rater .mini .ic.fill {
+  fill: var(--star-on);
+  stroke: var(--star-on);
+}
+.plan .rater .mono {
+  font-size: 12px;
+}
+.plan .rater q {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-3);
+  quotes: "“" "”";
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan .raters .by {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+.plan .actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  align-items: center;
   flex-wrap: wrap;
+}
+.plan .actions .note {
+  flex: 1;
+  min-width: 160px;
+}
+.plan .actions .means {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  color: var(--ink-3);
 }
 .status.plan-proposed::before,
 .status.plan-revise::before {
@@ -1395,11 +2797,6 @@ kbd + kbd {
 .pill.planning {
   background: var(--highlight-soft);
   color: var(--fg);
-}
-.composer-wrap .plan-waits {
-  width: min(var(--col), 100%);
-  margin: 0 auto 6px;
-  text-align: center;
 }
 .input.sm {
   min-height: 28px;
@@ -1427,12 +2824,23 @@ kbd + kbd {
   margin-right: 4px;
 }
 @media (max-width: 640px) {
-  .planstep {
-    grid-template-columns: 10px 1fr;
+  .plan .pstep {
+    grid-template-columns: 22px 1fr auto;
   }
-  .planstep .meta {
-    grid-column: 2;
-    white-space: normal;
+  .plan .pstep .est,
+  .plan .pstep .risk {
+    display: none;
+  }
+  .plan .totals {
+    grid-template-columns: 1fr auto;
+  }
+  .plan .totals .foot {
+    grid-column: 1 / -1;
+    justify-self: start;
+    text-align: left;
+  }
+  .notice .ledger.gated {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1538,84 +2946,165 @@ a.btn:hover {
   border-bottom: 1px solid var(--line);
 }
 
-/* token-usage: a quiet chip that opens on hover or focus; a hairline bar under it when a budget
-   is set, warn colour past 80% and danger past 100% (tokens.css colours only) */
+/* token-meter (N1): the title row's chip over a 3 px hairline with the 80% tick, colour only when
+   the budget turns, a pulsing apricot dot while a turn spends; the breakdown in one fixed shape */
 .meter {
   position: relative;
   display: inline-flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+  min-width: 92px;
   flex: none;
 }
-.meter .chip {
+.meter .tchip {
+  font: var(--t-mono-sm);
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   height: 24px;
+  padding: 0 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  border-radius: 6px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.meter.open .chip {
-  cursor: default;
+.meter .tchip .pct {
+  color: var(--ink-3);
 }
-.meter.warn .chip {
+.meter.warn .tchip,
+.meter.over .tchip {
+  color: var(--ink);
+}
+.meter.warn .tchip .pct {
   color: var(--warn-ink);
 }
-.meter.danger .chip {
+.meter.over .tchip .pct {
   color: var(--danger-ink);
 }
-.meter .bar {
-  display: block;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--bg-3);
-  overflow: hidden;
+.meter.none .tchip {
+  color: var(--ink-3);
 }
-.meter .bar .fill {
-  display: block;
-  height: 100%;
-  background: var(--fg-3);
-}
-.meter.warn .bar .fill {
-  background: var(--warn);
-}
-.meter.danger .bar .fill {
-  background: var(--danger);
-}
-.meter .meter-pop {
+.meter.none .hair {
   display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 5;
-  min-width: 190px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--bg);
-  font-size: 13px;
-  flex-direction: column;
-  gap: 4px;
 }
-.meter:hover .meter-pop,
-.meter:focus-within .meter-pop,
-.meter.pinned .meter-pop,
-.meter.open .meter-pop {
-  display: flex;
+.meter .spend {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--apricot-deep);
+  box-shadow: 0 0 0 2px var(--apricot-soft);
+  flex: none;
+}
+.meter .hair::after {
+  content: "";
+  position: absolute;
+  left: 80%;
+  top: -1px;
+  bottom: -1px;
+  width: 1px;
+  background: var(--ink-3);
+  opacity: 0.6;
 }
 .meter.open {
   align-self: flex-start;
-  gap: 8px;
+  width: 100%;
 }
-.meter.open .meter-pop {
+.meter .pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 264px;
+  z-index: 12;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--overlay);
+  border: 1px solid var(--overlay-edge);
+  box-shadow: var(--shadow-pop), var(--edge);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.meter:hover .pop,
+.meter:focus-within .pop,
+.meter.pinned .pop,
+.meter.open .pop {
+  display: flex;
+}
+.meter.open .pop {
   position: static;
   border: 0;
+  box-shadow: none;
   padding: 0;
-  min-width: 0;
+  width: 100%;
+  background: transparent;
 }
-.meter .kv-line {
+.meter .pop .head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink);
+}
+.meter .pop .head .serif {
+  font-size: 15px;
+}
+.meter .pop .head .turn {
+  margin-left: auto;
+  font: var(--t-mono-sm);
+  color: var(--ink-3);
+}
+.meter .pop .kv {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.meter .pop .kv .sw {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.meter .pop .kv .v {
+  font: var(--t-mono-sm);
+  color: var(--ink);
+}
+.meter .pop .rule {
+  height: 1px;
+  background: var(--line);
+  margin: 2px 0;
+}
+.meter .pop .bud {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.meter .pop .bud .row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
 }
-.meter .kv-line.warnish {
-  color: var(--warn-ink);
+.meter .pop .bud .row .v {
+  font: var(--t-mono-sm);
+  color: var(--ink);
+}
+.meter .pop .bud .left {
+  color: var(--ink-3);
+}
+.meter .pop .bud .left b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.meter .pop .foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--ink-3);
+  font-size: 12px;
+  padding-top: 4px;
 }
 .agent .foot .tokens {
   margin-left: auto;
@@ -1628,6 +3117,28 @@ a.btn:hover {
 }
 .agent .foot .tokens.over {
   color: var(--danger-ink);
+}
+/* the pulses: the chip's dot while spending, the live step, now on the scrubber, the typing dots */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) .meter .spend,
+  :root:not([data-motion="calm"]) .step .livedot,
+  :root:not([data-motion="calm"]) .track .tick.now,
+  :root:not([data-motion="calm"]) .plan-waits .dot {
+    animation: pulse 1.8s var(--ease-move) 1s infinite;
+  }
+  :root:not([data-motion="calm"]) .drawer .chat .typing i {
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  :root:not([data-motion="calm"]) .drawer .chat .typing i + i {
+    animation-delay: 0.2s;
+  }
+  :root:not([data-motion="calm"]) .drawer .chat .typing i + i + i {
+    animation-delay: 0.4s;
+  }
+  :root:not([data-motion="calm"]) .divider.join.enter,
+  :root:not([data-motion="calm"]) .plan.enter {
+    animation: card-in var(--t-slow) var(--ease-arrive) both;
+  }
 }
 @media (max-width: 640px) {
   .topbar .meter {

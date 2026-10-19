@@ -12,24 +12,28 @@ async function enter(page: Page, name: string, userId: string, session: string) 
 }
 
 const conversation = (page: Page) => page.getByLabel("Conversation");
+/** One drawer, two faces: the aside is named after the face that is up. */
 const details = (page: Page) => page.getByRole("complementary", { name: "Details" });
+const team = (page: Page) => page.getByRole("complementary", { name: "Team" });
+/** The person's own row in the Team face: "Ana", "you", "owner · driving". */
+const myRow = (page: Page) => team(page).locator(".person", { hasText: "you" });
 
 test("two people share one live agent session in the browser", async ({ browser }) => {
   test.setTimeout(120_000);
   const session = `smoke-${Date.now()}`;
   const ana = await browser.newPage();
   await enter(ana, "Ana", "ana", session);
-  await ana.getByRole("button", { name: "Details" }).click();
-  await expect(details(ana)).toContainText("Ana (you)");
-  await expect(details(ana)).toContainText("driving");
+  await ana.getByRole("button", { name: "Team", exact: true }).click();
+  await expect(myRow(ana)).toContainText("Ana");
+  await expect(myRow(ana)).toContainText("driving");
 
   const bo = await browser.newPage();
   await enter(bo, "Bo", "bo", session);
-  await bo.getByRole("button", { name: "Details" }).click();
-  await expect(details(bo)).toContainText("Bo (you)");
-  await expect(details(bo)).toContainText("contributor");
-  await expect(details(ana)).toContainText("Bo");
-  await expect(conversation(ana)).toContainText("Bo joined as contributor");
+  await bo.getByRole("button", { name: "Team", exact: true }).click();
+  await expect(myRow(bo)).toContainText("Bo");
+  await expect(myRow(bo)).toContainText("contributor");
+  await expect(team(ana)).toContainText("Bo");
+  await expect(conversation(ana)).toContainText("Bo joins the circle");
 
   // Ana sets the goal. Sessions from the home page plan first: the agent proposes, Ana rates
   // the plan, then the agent starts and asks for approval to run tests.
@@ -49,14 +53,18 @@ test("two people share one live agent session in the browser", async ({ browser 
   await expect(conversation(ana)).toContainText("Done:", { timeout: 30_000 });
   await expect(conversation(ana)).toContainText("exit 0");
 
-  // Handoff to Bo and read the brief.
+  // Handoff to Bo (from the Team face) and read the brief (Catch-up, folded in Details).
   await ana.getByRole("button", { name: "Hand off", exact: true }).click();
   await expect(conversation(bo)).toContainText("Ana offers the baton to you");
   await bo.getByRole("button", { name: "Accept", exact: true }).click();
-  await expect(details(ana)).toContainText("driving");
+  await expect(team(ana).locator(".person", { hasText: "Bo" })).toContainText("driving");
   await expect(conversation(ana)).toContainText("Bo has the baton");
-  await expect(details(bo)).toContainText("driving");
-  await bo.getByRole("button", { name: "Ask for brief" }).click();
+  await expect(myRow(bo)).toContainText("driving");
+  await team(bo).getByRole("button", { name: "Details", exact: true }).click();
+  await details(bo)
+    .getByRole("button", { name: /Catch-up/ })
+    .click();
+  await details(bo).getByRole("button", { name: "Ask for brief" }).click();
   await expect(details(bo).locator("pre.brief")).toContainText("Driver: Bo");
 
   // The session is now in the sidebar as an agent card: a team of two, with Bo.
@@ -66,20 +74,17 @@ test("two people share one live agent session in the browser", async ({ browser 
   await expect(rail.locator(".agent", { hasText: session })).toContainText("with Bo");
 
   // Team chat: Ana talks to the people in the session, not to the agent.
-  await ana.getByRole("button", { name: "Details" }).click();
   await ana.getByLabel("Send to").getByText("Team").click();
   await ana.getByPlaceholder("Say something to the people in this session").fill("Bo, take tests?");
   await ana.getByPlaceholder("Say something to the people in this session").press("Enter");
   await expect(conversation(bo)).toContainText("to the team");
   await expect(conversation(bo)).toContainText("Bo, take tests?");
 
-  // Crew: Ana puts the session in a crew from the Team panel; the rail groups it under the crew.
-  await ana.getByRole("button", { name: "Team", exact: true }).click();
-  const team = ana.getByRole("complementary", { name: "Team" });
-  await expect(team).toContainText("Bo, take tests?");
-  await team.getByLabel("Crew name").fill("Greeter rollout");
-  await team.getByRole("button", { name: "Team up" }).click();
-  await expect(team).toContainText("Working on Greeter rollout");
+  // Crew: Ana puts the session in a crew from the Team face; the rail groups it under the crew.
+  await expect(team(ana)).toContainText("Bo, take tests?");
+  await team(ana).getByLabel("Crew name").fill("Greeter rollout");
+  await team(ana).getByRole("button", { name: "Team up" }).click();
+  await expect(team(ana)).toContainText("Working on Greeter rollout");
   await expect(rail).toContainText("Greeter rollout");
 });
 
@@ -113,10 +118,13 @@ test.describe("phone layout", () => {
     await expect(sidebar).not.toBeInViewport();
     await expect(details(page)).toHaveCount(0);
     await page.getByRole("button", { name: "Details" }).click();
-    await expect(details(page)).toContainText("Ana (you)");
+    await expect(details(page)).toContainText("Intent");
     await expect(details(page)).toContainText("Catch-up");
-    await details(page).getByRole("button", { name: "Close details" }).click();
-    await expect(details(page)).toHaveCount(0);
+    // The same sheet, the other face.
+    await details(page).getByRole("button", { name: "Team", exact: true }).click();
+    await expect(myRow(page)).toContainText("Ana");
+    await team(page).getByRole("button", { name: "Close team" }).click();
+    await expect(team(page)).toHaveCount(0);
     await expect(page.getByPlaceholder("Steer the agent")).toBeVisible();
   });
 });

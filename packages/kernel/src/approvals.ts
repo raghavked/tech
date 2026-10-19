@@ -20,6 +20,13 @@ export interface ApprovalRecord {
   status: "pending" | "granted" | "denied";
   requestedSeq: number;
   turn: number;
+  /**
+   * Plan first: the plan and the zero-based step that was running when the call was made, so a
+   * gate notice can say "step 4 of 4 · Migrate stored invoices" and the plan's row can point at
+   * the gate. Null when no plan step was running.
+   */
+  planId: string | null;
+  stepIndex: number | null;
 }
 
 export function ruleFor(policy: ApprovalPolicy, risk: RiskClass): ApprovalRule {

@@ -194,6 +194,17 @@ export function isHuman(state: SessionState, actorId: string): boolean {
   return state.participants[actorId]?.actor.kind === "human";
 }
 
+/** Plan first: the running step of the active plan with its zero-based index; null when none. */
+export function runningStep(
+  state: SessionState,
+): { planId: string; stepId: string; index: number } | null {
+  const plan = state.activePlanId ? state.plans[state.activePlanId] : undefined;
+  if (!plan) return null;
+  const index = plan.steps.findIndex((st) => st.status === "running");
+  const step = plan.steps[index];
+  return index >= 0 && step ? { planId: plan.id, stepId: step.id, index } : null;
+}
+
 /** Henosis one event. Returns a new state; the input is not mutated. */
 export function reduce(prev: SessionState, e: SessionEvent): SessionState {
   return reduceInto(structuredClone(prev), e);
@@ -355,6 +366,11 @@ function reduceInto(s: SessionState, e: SessionEvent): SessionState {
     }
 
     case "approval.requested": {
+      // The step the call waits at: from the payload, or (older logs) the step running right now.
+      const running = runningStep(s);
+      const planId = e.payload.planId ?? running?.planId ?? null;
+      const stepIndex =
+        e.payload.stepIndex ?? (running && running.planId === planId ? running.index : null);
       s.approvals[e.payload.approvalId] = {
         id: e.payload.approvalId,
         call: e.payload.call,
@@ -363,6 +379,8 @@ function reduceInto(s: SessionState, e: SessionEvent): SessionState {
         status: "pending",
         requestedSeq: e.seq,
         turn: s.turn,
+        planId,
+        stepIndex,
       };
       break;
     }

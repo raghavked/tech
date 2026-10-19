@@ -387,7 +387,16 @@ export const EventBody = z.discriminatedUnion("kind", [
     }),
   ),
 
-  base("approval.requested", z.object({ approvalId: z.string(), call: ToolCall })),
+  base(
+    "approval.requested",
+    z.object({
+      approvalId: z.string(),
+      call: ToolCall,
+      /** Plan first: the plan step the call belongs to, so a gate notice names the step it waits at. */
+      planId: z.string().optional(),
+      stepIndex: z.number().int().min(0).optional(),
+    }),
+  ),
   base(
     "approval.voted",
     z.object({
