@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · The glass rail</title>
+<style>
+/* ============================================================================================
+   sig-glass-rail · the agents rail as layered navy glass.
+   Tokens are inlined from design/henosis/tokens.css (v5 final values, the ones apps/web reads) so
+   the page is self-contained. Light in :root; dark twice, byte-identical: the system media query
+   and the chosen attribute. Fraunces and Inter are asked for first; Instrument and the system
+   faces are the fallbacks. No font is fetched, no asset is loaded.
+   ============================================================================================ */
+:root {
+  /* palette, by role */
+  --canvas: #FBF7F1; --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
+  --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42, 50, 68, 0.12);
+  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2;
+  --rail-active: rgba(226, 196, 166, 0.18); --rail-line: rgba(243, 237, 228, 0.10);
+  --crease: #E2C4A6;
+  --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
+  --apricot: #E2C4A6; --apricot-deep: #CFA782; --apricot-soft: rgba(226, 196, 166, 0.30);
+  --select-wash: rgba(226, 196, 166, 0.16); --select-line: rgba(207, 167, 130, 0.50);
+  --count-bg: #E2C4A6; --count-fg: #2A3244;            /* the count on navy: apricot, navy ink */
+  --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
+  --team-wash: var(--apricot-soft);
+  --ok: #4F7D4A; --ok-soft: rgba(79,125,74,.14); --warn: #B9792E; --warn-soft: rgba(185,121,46,.14); --danger: #A8463A; --info: #5B6273;
+  --rail-ok: #9BC88F; --rail-warn: #E2B06A; --rail-danger: #E2847A;   /* the dot on navy, both themes */
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #3E343B 55%, #56352D 100%);
+  --grad-fg: #F8F2EA;
+  --shadow-soft: 0 10px 30px rgba(42, 50, 68, 0.08); --shadow-pop: 0 18px 50px rgba(42, 50, 68, 0.16);
+  --edge: none; --scrim: rgba(42, 50, 68, 0.46);
+  --focus-ring: var(--accent); --focus-halo: rgba(226, 196, 166, 0.45);
+  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
+  /* type */
+  --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --serif: "Fraunces", "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  /* shape, layout */
+  --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px;
+  --rail-w: 296px; --col: 780px; --drawer-w: 340px; --topbar-h: 56px;
+  /* clocks and curves (MOTION §2) */
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
+  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
+  --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
+  --motion: 0;
+
+  /* ---- the glass (new; proposed for tokens.css under "frame") ---- */
+  --lamp: rgba(226, 196, 166, 0.15);        /* one apricot light at the rail's top-left corner */
+  --lacquer: rgba(255, 255, 255, 0.045);    /* the 170° sheen on the navy, three-colour-brands §7 */
+  --grain-alpha: 0.26;                      /* the 240 px tile at soft-light */
+  --glass: rgba(243, 237, 228, 0.055);      /* a pane's tint */
+  --glass-2: rgba(243, 237, 228, 0.05);     /* a pane on a pane adds this much */
+  --glass-rim: rgba(243, 237, 228, 0.075);  /* the 1 px rim all round */
+  --glass-edge: rgba(255, 255, 255, 0.14);  /* the light caught on the top edge */
+  --glass-foot: rgba(0, 0, 0, 0.32);        /* the shadow under the bottom edge */
+  --glass-drop: rgba(0, 0, 0, 0.20);        /* the 1 px the pane casts on the ground */
+  --glass-blur: 10px;                       /* backdrop blur on the two outer panes only */
+  --pulse: rgba(226, 196, 166, 0.24);       /* the running card's inner light */
+  --pulse-edge: rgba(226, 196, 166, 0.55);  /* its top edge, warmed */
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --canvas: #1A202C; --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240, 234, 224, 0.14);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08);
+  --crease: rgba(226, 196, 166, 0.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
+  --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
+  --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
+  --team-wash: rgba(226, 196, 166, 0.09);
+  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --info: #8E95A5;
+  --gradient-brand: linear-gradient(135deg, #3A4661, #7A4B3E);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.055); --scrim: rgba(0, 0, 0, 0.55);
+  --focus-ring: var(--ink);
+  --lamp: rgba(226, 196, 166, 0.11); --lacquer: rgba(255, 255, 255, 0.035); --grain-alpha: 0.22;
+  --glass: rgba(240, 234, 224, 0.04); --glass-2: rgba(240, 234, 224, 0.04);
+  --glass-rim: rgba(240, 234, 224, 0.06); --glass-edge: rgba(255, 255, 255, 0.10);
+  --glass-foot: rgba(0, 0, 0, 0.5); --glass-drop: rgba(0, 0, 0, 0.35);
+  --pulse: rgba(226, 196, 166, 0.20); --pulse-edge: rgba(226, 196, 166, 0.45);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --canvas: #1A202C; --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240, 234, 224, 0.14);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08);
+  --crease: rgba(226, 196, 166, 0.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
+  --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
+  --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
+  --team-wash: rgba(226, 196, 166, 0.09);
+  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --info: #8E95A5;
+  --gradient-brand: linear-gradient(135deg, #3A4661, #7A4B3E);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.055); --scrim: rgba(0, 0, 0, 0.55);
+  --focus-ring: var(--ink);
+  --lamp: rgba(226, 196, 166, 0.11); --lacquer: rgba(255, 255, 255, 0.035); --grain-alpha: 0.22;
+  --glass: rgba(240, 234, 224, 0.04); --glass-2: rgba(240, 234, 224, 0.04);
+  --glass-rim: rgba(240, 234, 224, 0.06); --glass-edge: rgba(255, 255, 255, 0.10);
+  --glass-foot: rgba(0, 0, 0, 0.5); --glass-drop: rgba(0, 0, 0, 0.35);
+  --pulse: rgba(226, 196, 166, 0.20); --pulse-edge: rgba(226, 196, 166, 0.45);
+  color-scheme: dark;
+}
+
+/* ---- base ---- */
+* { box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15px/1.55 var(--font); font-optical-sizing: auto; -webkit-font-smoothing: antialiased; }
+h1, h2, h3, p { margin: 0; }
+a { color: var(--accent-ink); text-decoration: none; }
+button { font: inherit; }
+.serif { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 50, "WONK" 0; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums slashed-zero; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: 0 0 0 6px var(--focus-halo); border-radius: 6px; }
+.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---- shell ---- */
+.shell { display: flex; height: 100%; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+
+/* ============================================================================================
+   THE RAIL · layered navy glass
+   Ground: Dress Blues lacquer (a 170° sheen), one apricot lamp at the top-left, a 240 px grain tile
+   at soft-light. Panes: translucent cream on the lacquer, a 1 px rim, the light caught on the top
+   edge, a shadow under the foot, the two outer panes frosted with a small backdrop blur. Cards are
+   panes on panes at concentric radii (18 − 4 = 14). Only transform, opacity and box-shadow move.
+   ============================================================================================ */
+.rail {
+  width: var(--rail-w); flex: none; height: 100%;
+  position: relative; isolation: isolate;
+  color: var(--rail-fg);
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px 10px;
+  background:
+    radial-gradient(560px 440px at 0% 0%, var(--lamp), transparent 62%),
+    linear-gradient(170deg, var(--lacquer), transparent 42%),
+    var(--rail);
+  border-right: 1px solid var(--crease);
+}
+/* the grain: a tile rendered once, never a live filter (generative-visuals §3) */
+.rail::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  opacity: var(--grain-alpha); mix-blend-mode: soft-light;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>") 0 0 / 240px 240px;
+}
+
+/* a pane of glass */
+.pane {
+  --pane-tint: var(--glass);
+  --pane-edge: var(--glass-edge);
+  position: relative;
+  background: var(--pane-tint);
+  border: 1px solid var(--glass-rim);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 var(--pane-edge), inset 0 -1px 0 var(--glass-foot), 0 1px 0 var(--glass-drop);
+}
+.pane.frost { backdrop-filter: blur(var(--glass-blur)) saturate(1.15); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.15); }
+.pane .pane { --pane-tint: var(--glass-2); border-radius: 14px; }
+
+/* brand row */
+.brand-row { display: flex; align-items: center; gap: 6px; padding: 2px 2px 4px; }
+.brand { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 4px 6px; color: inherit; }
+.brand .mark { width: 24px; height: 24px; flex: none; }
+.brand .wordmark { font-size: 24px; letter-spacing: -0.01em; line-height: 1; }
+.mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); }
+.rail .mark .arc.a { stroke: color-mix(in srgb, #E2C4A6 62%, #56352D); }   /* the one tinted arc: 22 px on navy */
+.mark .arc, .mark .dot { transform-origin: 48px 48px; }
+.fold, .me .dots, .close { width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; color: var(--rail-muted); display: grid; place-items: center; cursor: pointer; flex: none; transition: background var(--t-fast) var(--ease-move), color var(--t-fast) var(--ease-move); }
+.fold:hover, .me .dots:hover, .close:hover { background: var(--rail-2); color: var(--rail-fg); }
+.close { display: none; }
+.whowhere { display: none; }
+
+/* New session: the one gradient on the screen */
+.new { display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px var(--font); cursor: pointer; box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255,255,255,.14); text-align: left; }
+.new .ic { stroke-width: 2; }
+.new kbd { margin-left: auto; font: 500 11px var(--mono); color: rgba(255,255,255,.72); background: rgba(255,255,255,.12); border-radius: 6px; padding: 1px 6px; }
+
+/* search */
+.search { display: flex; align-items: center; gap: 9px; padding: 7px 10px 7px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13.5px; border: 1px solid transparent; cursor: text; box-shadow: var(--edge); }
+.search .ph { flex: 1; }
+.search kbd { font: 500 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 6px; padding: 1px 6px; }
+
+/* rows: rest · hover · active · focus (SYSTEM §6) */
+.item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 14px; color: var(--rail-fg); font-size: 14px; text-decoration: none; position: relative; transition: background var(--t-fast) var(--ease-move); }
+.item .ic { color: var(--rail-muted); transition: color var(--t-fast) var(--ease-move); }
+.item:hover { background: var(--rail-2); }
+.item:hover .ic, .item.active .ic { color: var(--apricot); }
+.item.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line); }
+.item .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .hint { font-size: 12px; color: var(--rail-muted); }
+.item .hash { color: var(--rail-muted); margin-right: -4px; }
+.item.read .lbl { color: var(--rail-muted); }
+.item.unread .lbl { font-weight: 500; }
+.count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--count-bg); color: var(--count-fg); font: 600 11.5px var(--mono); font-variant-numeric: tabular-nums; margin-left: auto; flex: none; }
+.count.sm { min-width: 18px; height: 18px; font-size: 11px; }
+
+/* the waits pane */
+.waits { padding: 4px; display: flex; flex-direction: column; gap: 1px; }
+
+/* the agents pane */
+.lists { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px; margin: 0 -4px; padding: 0 4px 2px; scrollbar-width: thin; scrollbar-color: var(--rail-2) transparent; }
+.section { padding: 8px 10px 2px; font: 600 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.section .n { margin-left: auto; letter-spacing: 0; font-weight: 500; }
+.roster { padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+.roster .project { padding: 6px 10px 2px; display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.roster .project .n { margin-left: auto; font: 12px var(--font); color: var(--rail-muted); }
+.crew { padding: 6px 10px 1px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.crew .serif { font-size: 15px; color: var(--apricot); }
+.crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); flex: none; }
+.crew.solo::before { border-color: var(--rail-line); }
+.rows { display: flex; flex-direction: column; gap: 3px; }
+.proj-links { display: flex; flex-direction: column; gap: 1px; padding: 2px 0 0; }
+.proj-links .item { padding: 5px 10px; font-size: 13.5px; }
+
+/* the agent card: a pane on a pane */
+/* the card rule never reaches an avatar or a message (SYSTEM §6) */
+.agent:not(.avatar):not(.msg) { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px 8px; color: var(--rail-fg); text-decoration: none; overflow: hidden; transition: background var(--t-fast) var(--ease-move), transform var(--t) var(--ease-mark); }
+.agent.pane:hover { --pane-tint: color-mix(in srgb, var(--rail-fg) 9%, transparent); }
+.agent.active { --pane-tint: var(--rail-active); box-shadow: inset 0 1px 0 var(--pane-edge), inset 0 -1px 0 var(--glass-foot), inset 0 0 0 1px var(--select-line), inset 3px 0 0 var(--apricot), 0 1px 0 var(--glass-drop); }
+.agent .head { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.agent .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--serif); font-size: 15.5px; font-variation-settings: "SOFT" 50, "WONK" 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; position: relative; box-shadow: 0 0 0 0 transparent; }
+.dot.running { background: var(--rail-ok); --dot-halo: rgba(155,200,143,.3); }
+.dot.awaiting { background: var(--rail-warn); box-shadow: 0 0 0 3px rgba(226,176,106,.22); }
+.dot.blocked { background: var(--rail-danger); }
+.dot.paused { background: var(--rail-muted); opacity: .75; }
+.dot.idle { background: transparent; box-shadow: inset 0 0 0 1.5px var(--rail-muted); }
+.pill { display: inline-flex; align-items: center; height: 19px; padding: 0 7px; border-radius: var(--radius-full); font: 600 10.5px var(--font); letter-spacing: .02em; flex: none; }
+.pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
+.pill.solo { border: 1px solid var(--rail-line); color: var(--rail-muted); }
+.agent .head .count { margin-left: auto; } .agent .head .count + .pill { margin-left: 0; } .agent .head .pill:only-of-type { margin-left: auto; }
+.agent .doing { font-size: 12.5px; color: var(--rail-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.agent .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); font-size: 13px; }
+.agent .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); min-width: 0; margin-top: 1px; }
+.agent .foot .with { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -5px; }
+.avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--rail-2); color: var(--rail-fg); display: inline-grid; place-items: center; font: 600 8.5px var(--font); border: 1.5px solid var(--rail); position: relative; }
+.avatar.driver { box-shadow: 0 0 0 1.5px var(--apricot-deep); }
+.agent .foot .tokens { margin-left: auto; font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; position: relative; padding-bottom: 4px; line-height: 1.2; }
+.agent .foot .tokens::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 1px; background: var(--rail-line); }
+.agent .foot .tokens > i { position: absolute; left: 0; bottom: 0; height: 2px; border-radius: 1px; background: var(--apricot); width: var(--spent, 0%); z-index: 1; }
+.agent .foot .tokens.warn > i { background: var(--rail-warn); } .agent .foot .tokens.over > i { background: var(--rail-danger); }
+
+/* THE PULSE: a running card holds an apricot light pooled under its top edge, and the edge itself
+   warms. It breathes under the one guard; at rest it is simply lit. (three-colour-brands §6,
+   SYSTEM principle 2: an apricot glow means alive) */
+.agent.running { --pane-edge: var(--pulse-edge); }
+.agent.running::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background: radial-gradient(150px 64px at 22% -6%, var(--pulse), transparent 72%); }
+.agent.pane > * { position: relative; z-index: 1; }
+
+/* the me row: the bottom pane */
+.me-wrap { margin-top: auto; position: relative; }
+.me { display: flex; align-items: center; gap: 10px; padding: 7px 8px 7px 10px; color: inherit; border-radius: 18px; }
+.me .avatar { width: 30px; height: 30px; font-size: 11px; border-width: 0; background: var(--rail-2); }
+.me .meta { flex: 1; min-width: 0; line-height: 1.25; display: flex; flex-direction: column; }
+.me .meta .name { font-family: var(--serif); font-size: 16px; }
+.me .meta .role { font-size: 12px; color: var(--rail-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me .meta .role i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+
+/* ---- main: topbar, the session, the composer ---- */
+.topbar { display: flex; align-items: center; gap: 12px; padding: 0 20px; min-height: var(--topbar-h); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: blur(8px); }
+.topbar .title { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; }
+.topbar .status { display: inline-flex; align-items: center; gap: 6px; font: 13px var(--font); color: var(--ink-2); }
+.topbar .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 0 13px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 13px var(--font); cursor: pointer; box-shadow: var(--edge); transition: box-shadow var(--t-fast) var(--ease-move), transform var(--t) var(--ease-mark); }
+.btn:hover { box-shadow: var(--shadow-soft), var(--edge); } .btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; } .btn.primary:hover { background: var(--accent-hover); }
+.btn.on { background: var(--select-wash); box-shadow: inset 0 0 0 1px var(--select-line); }
+.btn[disabled] { opacity: .5; cursor: default; }
+.menu { display: none; }
+.scroll { flex: 1; overflow: auto; }
+.column { width: min(var(--col), 100%); margin: 0 auto; padding: 22px 24px 40px; display: flex; flex-direction: column; gap: 24px; }
+.msg { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 12px; }
+.msg .who { font-family: var(--serif); font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.msg .meta { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--ink-2); grid-column: 2; }
+.msg .meta .time { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.msg .gutter { grid-row: 1 / span 2; display: flex; justify-content: flex-end; padding-top: 2px; }
+.msg .gutter .avatar { width: 28px; height: 28px; font-size: 11px; background: var(--surface-3); color: var(--ink); border: 0; }
+.msg .gutter .avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); display: inline-grid; }
+.msg .gutter .avatar.agent::after { content: ""; width: 28%; height: 28%; border-radius: 50%; background: var(--apricot); }
+.msg .text { grid-column: 2; margin-top: 4px; max-width: 600px; font-size: 15.5px; line-height: 24px; }
+.msg.human .text { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 18px; box-shadow: var(--shadow-soft), var(--edge); }
+.msg.team .text { background: var(--team-wash); border-radius: var(--radius-lg); padding: 12px 18px; }
+.msg.team .meta .to { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
+.steps { grid-column: 2; display: flex; flex-direction: column; gap: 2px; margin: 8px 0 2px; font: 12.5px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.steps .step { display: grid; grid-template-columns: 14px 44px 1fr auto; gap: 10px; padding: 3px 0; align-items: center; }
+.steps .step .tick { width: 14px; height: 14px; border-radius: 50%; background: var(--ok); display: grid; place-items: center; }
+.steps .step .tick.now { background: transparent; box-shadow: inset 0 0 0 1.5px var(--apricot-deep); }
+.steps .step .tick svg { width: 9px; height: 9px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.steps .step .verb { color: var(--ink-3); }
+.steps .step .n { color: var(--ink-3); }
+.plan { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); position: relative; overflow: hidden; }
+.plan::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
+.plan .head { display: flex; align-items: center; gap: 10px; }
+.plan .head .serif { font-size: 20px; }
+.plan .head .waitfor { margin-left: auto; font-size: 13px; color: var(--ink-2); }
+.plan .pstep { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.plan .pstep .k { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font: 11px var(--mono); color: var(--ink-2); }
+.plan .pstep.done .k { background: var(--ok); border-color: var(--ok); color: #fff; }
+.plan .pstep.now .k { border-color: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
+.plan .pstep .est { font: 12.5px var(--mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.plan .actions { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
+.stars { display: inline-flex; gap: 3px; margin-left: auto; }
+.stars i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--line); display: block; }
+.stars i.on { background: var(--accent); border-color: var(--accent); }
+.composer-wrap { padding: 12px 24px 20px; background: linear-gradient(to top, var(--canvas) 70%, transparent); }
+.composer { width: min(var(--col), 100%); margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 12px 10px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-pop), var(--edge); }
+.composer .input { color: var(--ink-3); font-size: 15px; }
+.composer .bar { display: flex; align-items: center; gap: 8px; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; }
+.seg span { font: 500 12.5px var(--font); color: var(--ink-2); padding: 3px 12px; border-radius: var(--radius-full); }
+.seg .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.composer .reach { font-size: 12.5px; color: var(--ink-3); }
+.send { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; }
+
+/* ---- the drawer: the anatomy of the glass ---- */
+.drawer { width: var(--drawer-w); flex: none; border-left: 1px solid var(--line); background: var(--surface); padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 18px; font-size: 14px; overflow: auto; box-shadow: var(--edge); }
+.drawer h2 { font-size: 22px; line-height: 1.15; }
+.drawer h3 { font: 600 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.drawer p { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.layers { display: flex; flex-direction: column; }
+.layer { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.layer:first-child { border-top: 0; }
+.layer .sw { width: 56px; height: 34px; border-radius: 9px; background: var(--rail); position: relative; overflow: hidden; isolation: isolate; box-shadow: inset 0 0 0 1px var(--line); }
+.layer .sw.lacquer { background: linear-gradient(170deg, rgba(255,255,255,.09), transparent 46%), var(--rail); }
+.layer .sw.lamp { background: radial-gradient(70px 56px at 0% 0%, rgba(226,196,166,.42), transparent 64%), var(--rail); }
+.layer .sw.grain::before { content: ""; position: absolute; inset: 0; opacity: .7; mix-blend-mode: soft-light; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>") 0 0 / 120px 120px; }
+.layer .sw.paneSw::after { content: ""; position: absolute; inset: 6px 8px; border-radius: 7px; background: rgba(243,237,228,.07); border: 1px solid rgba(243,237,228,.09); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(0,0,0,.25); }
+.layer .sw.pulseSw::after { content: ""; position: absolute; inset: 6px 8px; border-radius: 7px; background: radial-gradient(40px 20px at 24% 0%, rgba(226,196,166,.5), transparent 72%), rgba(243,237,228,.07); border: 1px solid rgba(243,237,228,.09); box-shadow: inset 0 1px 0 rgba(226,196,166,.6), inset 0 -1px 0 rgba(0,0,0,.35); }
+.layer .sw.hereSw::after { content: ""; position: absolute; inset: 6px 8px; border-radius: 7px; background: rgba(226,196,166,.18); box-shadow: inset 0 0 0 1px rgba(207,167,130,.5), inset 3px 0 0 #E2C4A6, inset 0 1px 0 rgba(255,255,255,.14); }
+.layer .t { font-size: 13.5px; line-height: 1.35; }
+.layer .t b { font-weight: 500; color: var(--ink); } .layer .t { color: var(--ink-2); }
+.zoom { border-radius: 12px; overflow: hidden; background: var(--rail); border: 1px solid var(--line); height: 206px; position: relative; isolation: isolate; }
+.zoom::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: var(--grain-alpha); mix-blend-mode: soft-light; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>") 0 0 / 120px 120px; }
+.zoom .z { position: absolute; left: 0; top: 0; width: 250px; zoom: 2; transform-origin: 0 0; color: var(--rail-fg); background: radial-gradient(260px 200px at 0% 0%, var(--lamp), transparent 62%); padding: 6px 0 6px 10px; }
+.zoom .z .pane { border-radius: 14px; }
+.zoom .z .roster { padding: 4px; }
+.zoom .z .agent { border-radius: 10px; }
+.zoom .z .agent .foot .tokens { padding-bottom: 3px; }
+.zoom .cap { position: absolute; right: 10px; top: 8px; font: 500 11px var(--mono); color: var(--rail-muted); letter-spacing: .06em; }
+.cost { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.cost div { display: grid; grid-template-columns: 1fr auto; gap: 12px; }
+.cost div b { font: 500 12.5px var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; color: var(--ink-2); }
+.keys kbd { font: 500 11px var(--mono); color: var(--ink-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; background: var(--surface-2); }
+
+/* toasts: the sentence on navy */
+.toasts { position: fixed; left: calc(var(--rail-w) + 24px); bottom: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 40; pointer-events: none; }
+.toast { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius); background: var(--rail); color: var(--rail-fg); font-size: 14px; box-shadow: var(--shadow-pop), inset 0 1px 0 rgba(255,255,255,.12); }
+.toast .serif { font-size: 16px; }
+.toast .mark { width: 20px; height: 20px; }
+.scrim { display: none; }
+
+/* ============================================================================================
+   MOTION · the one guard (MOTION §3). Every animation lives inside the positive block; Calm and
+   reduced motion zero the clocks and keep every end state.
+   ============================================================================================ */
+@keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--dot-halo) } 70% { box-shadow: 0 0 0 5px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
+@keyframes glass-breathe { 0%, 100% { opacity: .42 } 50% { opacity: 1 } }
+@keyframes card-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@keyframes pop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: none; opacity: 1 } }
+@keyframes ripple { 0% { box-shadow: 0 0 0 0 var(--apricot); opacity: 1 } 100% { box-shadow: 0 0 0 14px var(--apricot); opacity: 0 } }
+@keyframes toast-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+@keyframes arc-a-once { 0% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 85% { transform: rotate(2deg) } 100% { transform: rotate(0) } }
+@keyframes arc-b-once { 0% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 85% { transform: rotate(-2deg) } 100% { transform: rotate(0) } }
+@keyframes dot-once { 0%, 60% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) { --motion: 1; }
+  :root:not([data-motion="calm"]) .dot.running { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .agent.running::before { animation: glass-breathe 1.8s var(--ease-move) infinite; animation-delay: calc(var(--i, 0) * -450ms); }
+  :root:not([data-motion="calm"]) .agent.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(min(var(--i, 0), 8) * 36ms); }
+  :root:not([data-motion="calm"]) .count.changed { animation: pop var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .avatar.joined::after { content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; animation: ripple .9s var(--ease-leave) both; animation-delay: .9s; }
+  :root:not([data-motion="calm"]) .toast { animation: toast-up var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark.settle .arc.a { animation: arc-a-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark.settle .arc.b { animation: arc-b-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark.settle .dot { animation: dot-once 1s var(--ease-arrive) both; }
+}
+:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
+
+/* ============================================================================================
+   PHONE · the rail is a 332 px navy sheet over the session (SYSTEM §6, §17): the same glass, 44 px
+   rows, the "who · where" line, a close button, the me row pinned; an --edge hairline at night.
+   ============================================================================================ */
+@media (max-width: 480px) {
+  :root { --rail-w: 332px; }
+  .drawer, .topbar .right .btn, .toasts, .fold { display: none; }
+  .menu { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); margin-left: -6px; }
+  .topbar { padding: 0 14px; }
+  .topbar .status { display: none; }
+  .column { padding: 16px 16px 40px; }
+  .msg { grid-template-columns: 36px minmax(0, 1fr); }
+  .scrim { display: block; position: fixed; inset: 0; background: var(--scrim); z-index: 25; }
+  .rail { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; border-right: 0; box-shadow: var(--shadow-pop), var(--edge); border-radius: 0 26px 26px 0; }
+  .close { display: grid; }
+  .whowhere { display: flex; align-items: center; gap: 6px; padding: 0 10px 6px; font-size: 13px; color: var(--rail-muted); }
+  .whowhere .serif { color: var(--rail-fg); font-size: 15px; }
+  .item { min-height: 44px; }
+  .agent { padding: 10px 12px; }
+  .me { min-height: 52px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- design/mark.svg · #mark-small: disc r48, arcs r29 stroke 13, centre r8.5. The person's arc is on the right (12 → 6), the agent's on the left. -->
+    <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+    <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2 9h3.5l1 2h3l1-2H14M3.5 3h9l1.5 6v4H2V9z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="m5.5 8 2 2 3.5-4"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="m10.5 5.5-1.5 4-4 1.5 1.5-4z"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 16 16"><path d="M2 13h12M4 10V7M8 10V4M12 10V6"/></symbol>
+    <symbol id="i-users" viewBox="0 0 16 16"><circle cx="6" cy="6" r="2.5"/><path d="M2 13c0-2.2 1.8-4 4-4s4 1.8 4 4M10.5 4a2.5 2.5 0 0 1 0 5M14 13c0-1.8-1.2-3.3-2.8-3.8"/></symbol>
+    <symbol id="i-memory" viewBox="0 0 16 16"><path d="M3 3.5A1.5 1.5 0 0 1 4.5 2H13v10H4.5A1.5 1.5 0 0 0 3 13.5z"/><path d="M3 13.5A1.5 1.5 0 0 1 4.5 12H13M6 5.5h4"/></symbol>
+    <symbol id="i-fold" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 16 16"><circle cx="4" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12" cy="8" r=".9" fill="currentColor"/></symbol>
+    <symbol id="i-send" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></symbol>
+    <symbol id="i-x" viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 16 16"><path d="M3 5h10M3 8h10M3 11h10"/></symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <!-- ======================= THE RAIL ======================= -->
+  <aside class="rail" aria-label="Rail">
+    <div class="brand-row">
+      <a class="brand" href="#" aria-label="Henosis, home">
+        <svg class="mark" id="brandMark" viewBox="0 0 96 96" aria-hidden="true">
+          <circle cx="48" cy="48" r="48" fill="var(--mark-disc)"/>
+          <path class="arc a" d="M48 19 A29 29 0 0 1 48 77" fill="none" stroke-width="13"/>
+          <path class="arc b" d="M48 77 A29 29 0 0 1 48 19" fill="none" stroke-width="13"/>
+          <circle class="dot" cx="48" cy="48" r="8.5"/>
+        </svg>
+        <span class="wordmark serif">Henosis</span>
+      </a>
+      <button class="fold" title="Fold the rail  [" aria-label="Fold the rail"><svg class="ic"><use href="#i-fold"/></svg></button>
+      <button class="close" id="closeRail" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="whowhere"><span class="serif">Ana</span> · owner · <span class="serif">Payments</span></div>
+
+    <button class="new" title="New session · N"><svg class="ic"><use href="#i-plus"/></svg> New session <kbd>N</kbd></button>
+    <div class="search" role="search"><svg class="ic"><use href="#i-search"/></svg><span class="ph">Search sessions, people, memory</span><kbd>⌘K</kbd></div>
+
+    <!-- pane 1: the things that wait for you -->
+    <nav class="pane frost waits" aria-label="Waiting for you">
+      <a class="item" href="#"><svg class="ic"><use href="#i-inbox"/></svg><span class="lbl">Inbox</span><span class="count" id="inboxCount">3</span></a>
+      <a class="item" href="#"><svg class="ic"><use href="#i-check"/></svg><span class="lbl">Approvals</span><span class="count">2</span></a>
+    </nav>
+
+    <div class="lists">
+      <div class="section">Agents <span class="n" id="agentN">4</span></div>
+      <!-- pane 2: the roster, one pane per project; every card is a pane on it -->
+      <section class="pane frost roster" aria-label="Payments">
+        <div class="project serif">Payments <span class="n">2 crews</span></div>
+
+        <div class="crew"><span class="serif">Ana and Bo</span></div>
+        <div class="rows">
+          <a class="agent pane running active enter" href="#" style="--i:0" aria-current="page" aria-label="Billing page · Checkout, running, Team, writing proration.ts step 3 of 4, with Bo, 12.4k tokens of 20k">
+            <span class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Billing page · Checkout</span><span class="pill team">Team</span></span>
+            <span class="doing"><i>Writing proration.ts</i> · step 3 of 4 · the cent rounding on tax lines</span>
+            <span class="foot"><span class="stack"><span class="avatar driver" title="Ana, driving">AN</span><span class="avatar" title="Bo">BO</span></span><span class="with">with Bo</span><span class="tokens" style="--spent:62%" title="12.4k of 20k">12.4k<i></i></span></span>
+          </a>
+          <a class="agent pane enter" href="#" style="--i:1" aria-label="Invoice PDF, awaiting approval, 1 approval waits, Team, with Ana, 8.1k tokens of 9.6k">
+            <span class="head"><span class="dot awaiting"><span class="sr">awaiting approval</span></span><span class="t">Invoice PDF</span><span class="count sm" title="Approvals waiting">1</span><span class="pill team">Team</span></span>
+            <span class="doing"><i>Waits for two ratings</i> · stripe prorations apply</span>
+            <span class="foot"><span class="stack"><span class="avatar driver" title="Bo, driving">BO</span><span class="avatar" title="Ana">AN</span></span><span class="with">with Ana</span><span class="tokens warn" style="--spent:84%" title="8.1k of 9.6k">8.1k<i></i></span></span>
+          </a>
+        </div>
+
+        <div class="crew solo"><span class="serif" style="color:var(--rail-muted)">Solo</span></div>
+        <div class="rows" id="solos">
+          <a class="agent pane running enter" href="#" style="--i:2" aria-label="Tax lines, running, Solo, reading invoice.ts, Cy, 4.7k tokens">
+            <span class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></span>
+            <span class="doing"><i>Reading invoice.ts</i> · 3 files · the VAT line order</span>
+            <span class="foot"><span class="stack"><span class="avatar" title="Cy">CY</span></span><span class="with">Cy</span><span class="tokens" style="--spent:31%" title="4.7k of 15k">4.7k<i></i></span></span>
+          </a>
+          <a class="agent pane enter" href="#" style="--i:3" aria-label="Refund flow, paused, Solo, Dee, 3.2k tokens">
+            <span class="head"><span class="dot paused"><span class="sr">paused</span></span><span class="t">Refund flow</span><span class="pill solo">Solo</span></span>
+            <span class="doing"><i>Paused</i> · until the proration lands</span>
+            <span class="foot"><span class="stack"><span class="avatar" title="Dee">DE</span></span><span class="with">Dee</span><span class="tokens" title="3.2k">3.2k</span></span>
+          </a>
+        </div>
+
+        <div class="proj-links">
+          <a class="item" href="#"><svg class="ic"><use href="#i-compass"/></svg><span class="lbl">Overview</span></a>
+          <a class="item" href="#"><svg class="ic"><use href="#i-chart"/></svg><span class="lbl">Usage</span><span class="hint mono">41.2k today</span></a>
+          <a class="item" href="#"><svg class="ic"><use href="#i-users"/></svg><span class="lbl">Groups</span></a>
+          <a class="item" href="#"><svg class="ic"><use href="#i-memory"/></svg><span class="lbl">Memory</span><span class="hint">2 conflicts</span></a>
+        </div>
+      </section>
+
+      <div class="section">Chats <span class="n">4</span></div>
+      <nav class="rows" aria-label="Chats" style="padding:0 4px">
+        <a class="item unread" href="#"><span class="hash">#</span><span class="lbl">billing</span><span class="count">4</span></a>
+        <a class="item read" href="#"><span class="hash">#</span><span class="lbl">checkout</span></a>
+        <a class="item read" href="#"><span class="hash">#</span><span class="lbl">release</span></a>
+      </nav>
+    </div>
+
+    <!-- the bottom pane: you -->
+    <div class="me-wrap">
+      <a class="me pane" href="#">
+        <span class="avatar driver">AN</span>
+        <span class="meta"><span class="name">Ana</span><span class="role">owner · driving <i>Billing page · Checkout</i></span></span>
+        <button class="dots" aria-label="Account menu"><svg class="ic"><use href="#i-dots"/></svg></button>
+      </a>
+    </div>
+  </aside>
+  <div class="scrim"></div>
+
+  <!-- ======================= MAIN: the session ======================= -->
+  <main class="main">
+    <div class="topbar">
+      <button class="menu" aria-label="Open the rail"><svg class="ic"><use href="#i-menu"/></svg></button>
+      <div class="title"><span>Billing page · Checkout</span><span class="status">Running · step 3 of 4</span></div>
+      <div class="right">
+        <button class="btn primary" id="joinBtn">Dee's agent joins</button>
+        <button class="btn" id="calmBtn" aria-pressed="false">Calm</button>
+        <button class="btn" id="darkBtn" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="column">
+        <div class="msg human">
+          <span class="gutter"><span class="avatar">AN</span></span>
+          <div class="meta"><span class="who">Ana</span><span class="time">09:41</span></div>
+          <div class="text">The proration on the invoice PDF is off by a cent whenever a tax line rounds up. Fix it in <span class="mono">proration.ts</span> before Bo reviews the layout, and keep the tax lines in VAT order.</div>
+        </div>
+        <div class="msg agent">
+          <span class="gutter"><span class="avatar agent"></span></span>
+          <div class="meta"><span class="who">Bo's agent</span><span class="time">09:42</span></div>
+          <div class="text">The rounding happens before the lines are summed, so each VAT line carries its own half-cent. I am moving the round to the invoice total and adding a test for the three-line case Ana sent.</div>
+          <div class="steps">
+            <div class="step"><span class="tick"><svg viewBox="0 0 12 12"><path d="m2.5 6.5 2.5 2.5 4.5-5"/></svg></span><span class="verb">read</span><span>src/billing/proration.ts</span><span class="n">1 of 4</span></div>
+            <div class="step"><span class="tick"><svg viewBox="0 0 12 12"><path d="m2.5 6.5 2.5 2.5 4.5-5"/></svg></span><span class="verb">read</span><span>src/billing/invoice.ts · tax lines</span><span class="n">2 of 4</span></div>
+            <div class="step"><span class="tick now"></span><span class="verb">edit</span><span>src/billing/proration.ts <span class="n">+14 −3</span></span><span class="n">3 of 4</span></div>
+            <div class="step"><span class="tick" style="background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)"></span><span class="verb">test</span><span>billing/proration.test.ts</span><span class="n">4 of 4</span></div>
+          </div>
+        </div>
+        <div class="msg team">
+          <span class="gutter"><span class="avatar">BO</span></span>
+          <div class="meta"><span class="who">Bo</span><span class="to">to the team</span><span class="time">09:44</span></div>
+          <div class="text">I take the PDF layout once the tax lines land. Cy, hold the VAT order in <span class="mono">invoice.ts</span> until then.</div>
+        </div>
+        <div class="plan">
+          <div class="head"><span class="serif">Fix the cent rounding in proration</span><span class="waitfor">The plan waits for two ratings.</span></div>
+          <div>
+            <div class="pstep done"><span class="k">1</span><span>Read proration.ts and the tax lines</span><span class="est">1.2k</span></div>
+            <div class="pstep done"><span class="k">2</span><span>Find where the half-cent is lost</span><span class="est">0.8k</span></div>
+            <div class="pstep now"><span class="k">3</span><span>Round at the invoice total, not per line</span><span class="est">2.4k</span></div>
+            <div class="pstep"><span class="k">4</span><span>Test the three-line case · 12 cases</span><span class="est">1.6k</span></div>
+          </div>
+          <div class="actions"><button class="btn primary">Approve with 4</button><button class="btn">Revise</button><span class="stars" aria-label="Ana rated 4 of 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="input">Say something · reaches Bo's agent at its next step</div>
+        <div class="bar"><span class="seg"><span class="on">Agent</span><span>Team</span></span><span class="reach">Ana, Bo and Cy are here · Ana is driving</span><button class="send" aria-label="Send to the agent"><svg class="ic"><use href="#i-send"/></svg></button></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ======================= THE DRAWER: the anatomy ======================= -->
+  <aside class="drawer" aria-label="The glass">
+    <div>
+      <h3>Signature element</h3>
+      <h2 class="serif" style="margin-top:8px">The glass rail</h2>
+      <p style="margin-top:6px">The roster is a stack of navy glass. One lamp at the top-left lights every pane from above; a card that is working holds an apricot light under its edge and breathes.</p>
+    </div>
+    <div>
+      <h3>Six layers, bottom to top</h3>
+      <div class="layers" style="margin-top:6px">
+        <div class="layer"><span class="sw lacquer"></span><span class="t"><b>Lacquer.</b> Dress Blues with a 170° sheen; the rail is the one glossy object in a matte room.</span></div>
+        <div class="layer"><span class="sw lamp"></span><span class="t"><b>Lamp.</b> One apricot light, 15 %, at the top-left corner. The one gradient the rail adds.</span></div>
+        <div class="layer"><span class="sw grain"></span><span class="t"><b>Grain.</b> A 240 px tile at soft-light, rendered once; never a live filter.</span></div>
+        <div class="layer"><span class="sw paneSw"></span><span class="t"><b>Pane.</b> Cream at 5.5 %, a 1 px rim, light on the top edge, shadow under the foot. Cards nest at 18 − 4 = 14.</span></div>
+        <div class="layer"><span class="sw pulseSw"></span><span class="t"><b>Pulse.</b> A running card: apricot pooled under its top edge, breathing on the 1.8 s clock. Rest: lit, still.</span></div>
+        <div class="layer"><span class="sw hereSw"></span><span class="t"><b>Where you are.</b> The wash, the hairline ring, the 3 px bar. Apricot keeps its one meaning.</span></div>
+      </div>
+    </div>
+    <div>
+      <h3>At 2×</h3>
+      <div class="zoom" style="margin-top:8px">
+        <div class="z">
+          <div class="pane roster">
+            <a class="agent pane running" href="#" style="--i:5" tabindex="-1" aria-hidden="true">
+              <span class="head"><span class="dot running"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></span>
+              <span class="doing"><i>Reading invoice.ts</i> · 3 files</span>
+              <span class="foot"><span class="stack"><span class="avatar">CY</span></span><span class="with">Cy</span><span class="tokens" style="--spent:31%">4.7k<i></i></span></span>
+            </a>
+          </div>
+        </div>
+        <span class="cap">2× · EDGES STAY 1 PX</span>
+      </div>
+    </div>
+    <div>
+      <h3>Cost</h3>
+      <div class="cost" style="margin-top:8px">
+        <div><span>Backdrop blur layers</span><b>2 panes</b></div>
+        <div><span>Per-pixel filters at runtime</span><b>0</b></div>
+        <div><span>Animated properties</span><b>opacity · box-shadow · transform</b></div>
+        <div><span>Breathing panes at once</span><b>≤ 3</b></div>
+        <div><span>Extra DOM per card</span><b>0 nodes</b></div>
+      </div>
+    </div>
+    <div>
+      <h3>Keys</h3>
+      <div class="keys" style="margin-top:8px"><span><kbd>[</kbd> fold</span><span><kbd>]</kbd> unfold</span><span><kbd>N</kbd> new session</span><span><kbd>⌘K</kbd> search</span></div>
+    </div>
+  </aside>
+</div>
+<div class="toasts" role="status" aria-live="polite"></div>
+
+<template id="joinCard">
+  <a class="agent pane running enter" href="#" style="--i:4" aria-label="Receipt email, running, Solo, Dee's agent opening receipt.tsx, Dee, 0.3k tokens">
+    <span class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Receipt email</span><span class="pill solo">Solo</span></span>
+    <span class="doing"><i>Opening receipt.tsx</i> · reading the brief</span>
+    <span class="foot"><span class="stack"><span class="avatar joined" title="Dee">DE</span></span><span class="with">Dee</span><span class="tokens" style="--spent:2%" title="0.3k of 15k">0.3k<i></i></span></span>
+  </a>
+</template>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const motion = () => getComputedStyle(root).getPropertyValue('--motion').trim() === '1';
+
+  // Dark: the chosen attribute, exactly as theme.ts sets it.
+  const darkBtn = document.getElementById('darkBtn');
+  const isDark = () => root.dataset.theme === 'dark' || (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  const paintDark = () => { darkBtn.setAttribute('aria-pressed', String(isDark())); darkBtn.classList.toggle('on', isDark()); };
+  darkBtn.addEventListener('click', () => { root.dataset.theme = isDark() ? 'light' : 'dark'; paintDark(); });
+  paintDark();
+
+  // Calm: data-motion="calm" on <html>; the one guard does the rest, no script reads the media query.
+  const calmBtn = document.getElementById('calmBtn');
+  const paintCalm = () => { const on = root.dataset.motion === 'calm'; calmBtn.setAttribute('aria-pressed', String(on)); calmBtn.classList.toggle('on', on); };
+  calmBtn.addEventListener('click', () => { if (root.dataset.motion === 'calm') delete root.dataset.motion; else root.dataset.motion = 'calm'; paintCalm(); });
+  paintCalm();
+
+  // A join: the card arrives (card-in), its avatar ripples, the brand mark settles once, the toast
+  // carries the sentence. Nothing waits on animationend: under Calm the end states are simply there.
+  const joinBtn = document.getElementById('joinBtn');
+  joinBtn.addEventListener('click', () => {
+    const tpl = document.getElementById('joinCard');
+    document.getElementById('solos').appendChild(tpl.content.cloneNode(true));
+    const n = document.getElementById('agentN'); n.textContent = String(Number(n.textContent) + 1);
+    const mark = document.getElementById('brandMark');
+    mark.classList.remove('settle'); void mark.offsetWidth; mark.classList.add('settle');
+    const toasts = document.querySelector('.toasts');
+    const t = document.createElement('div'); t.className = 'toast';
+    t.innerHTML = '<svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="48" fill="var(--mark-disc)"/><path class="arc a" d="M48 19 A29 29 0 0 1 48 77" fill="none" stroke-width="13"/><path class="arc b" d="M48 77 A29 29 0 0 1 48 19" fill="none" stroke-width="13"/><circle class="dot" cx="48" cy="48" r="8.5"/></svg><span><span class="serif">Dee\'s agent</span> joins the circle.</span>';
+    toasts.appendChild(t);
+    setTimeout(() => t.remove(), 8000);
+    joinBtn.disabled = true;
+  });
+
+  // The phone sheet's close button and the menu button: the exploration only shows the sheet.
+  document.getElementById('closeRail').addEventListener('click', () => { document.querySelector('.rail').style.display = 'none'; document.querySelector('.scrim').style.display = 'none'; });
+  document.querySelector('.menu').addEventListener('click', () => { document.querySelector('.rail').style.display = ''; document.querySelector('.scrim').style.display = ''; });
+
+  // keys: [ and ] are the app's; here they only toggle the button state so the sheet reads
+  addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'c') calmBtn.click();
+    if (e.key === 'd') darkBtn.click();
+    if (e.key === 'j' && !joinBtn.disabled) joinBtn.click();
+  });
+  void motion;
+})();
+</script>
+</body>
+</html>
