@@ -114,8 +114,19 @@ export function Project({
           )}
           {s && sessions.length === 0 && (
             <EmptyState
-              text={copy.project.emptySessions}
+              spot="open"
+              title={copy.project.noSessionsOn(ref.name)}
+              text={copy.project.emptyLine}
               action={{ label: copy.project.startOne, onClick: () => setNewOpen(true) }}
+              ghost={
+                <>
+                  <span>
+                    <span className="serif">{copy.project.ghostTitle}</span>
+                    <span className="s">{copy.project.ghostLine(identity.name)}</span>
+                  </span>
+                  <span className="mono">{copy.project.ghostBudget}</span>
+                </>
+              }
             />
           )}
           <div className="list">
@@ -616,6 +627,7 @@ function TeamMemory({
       )}
       {rest.length === 0 && !feed.error && !feed.loading && (
         <EmptyState
+          spot="memory"
           text={copy.project.memoryEmptyHint}
           action={onStart ? { label: copy.project.startSession, onClick: onStart } : null}
         />

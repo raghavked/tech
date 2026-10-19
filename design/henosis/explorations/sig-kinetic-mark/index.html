@@ -23,7 +23,7 @@
   --ok: #4F7D4A; --warn: #B9792E; --warn-ink: #7F5320; --danger: #A8463A;
   --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
   --lacquer: #2A3244; --lacquer-hi: rgba(255,255,255,.10);
-  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6; --mark-b-page: #2A3244;
+  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6; --mark-b-page: #2A3244; --page-disc: none;
   --font: Inter, "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --serif: Fraunces, "Instrument Serif", "Iowan Old Style", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -45,7 +45,7 @@
   --ok: #9BC88F; --warn: #E2B06A; --warn-ink: #E2B06A; --danger: #E2847A;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
   --lacquer: #2A3244; --lacquer-hi: rgba(255,255,255,.08);
-  --mark-disc: #2A3244; --mark-b-page: #E2C4A6;
+  --mark-disc: #2A3244; --mark-b-page: #E2C4A6; --page-disc: block;
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
@@ -58,7 +58,7 @@
   --ok: #9BC88F; --warn: #E2B06A; --warn-ink: #E2B06A; --danger: #E2847A;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
   --lacquer: #2A3244; --lacquer-hi: rgba(255,255,255,.08);
-  --mark-disc: #2A3244; --mark-b-page: #E2C4A6;
+  --mark-disc: #2A3244; --mark-b-page: #E2C4A6; --page-disc: block;
   color-scheme: dark;
 }
 
@@ -100,7 +100,7 @@ h1, h2, h3, p { margin: 0; }
 .mark .arc.a { stroke: var(--mark-arc-a); }
 .mark .arc.b { stroke: var(--mark-arc-b); stroke-dasharray: var(--b-drawn) 100; }
 .mark .dot { fill: var(--mark-dot); }
-.mark .glow { stroke: var(--apricot); stroke-width: 10; opacity: 0; }
+.mark .glow { stroke: var(--apricot); stroke-width: 18; opacity: 0; }
 .mark .halo { fill: var(--apricot); opacity: 0; }
 .mark .trace { stroke: var(--apricot); stroke-width: 2; stroke-dasharray: 0 5; opacity: 0; transition: opacity var(--t-slow) ease; }
 .mark .baton { stroke: var(--apricot); stroke-width: 2.4; stroke-dasharray: 50 50; opacity: .95; transition: transform var(--t-baton) var(--ease-mark), opacity var(--t) ease; }
@@ -108,7 +108,7 @@ h1, h2, h3, p { margin: 0; }
 /* cuts and grounds */
 .mark.bare .disc { display: none; }
 .mark.on-cream { --mark-arc-b: #2A3244; }
-.mark.on-page { --mark-arc-b: var(--mark-b-page); }
+.mark.on-page { --mark-arc-b: var(--mark-b-page); } .mark.on-page .disc { display: var(--page-disc); } /* bare on cream; the disc returns on the dark canvas */
 .mark.small .arc { stroke-width: 13; } .mark.small .disc { r: 48; } .mark.small .dot { r: 8.5; }
 .mark.tiny .arc { stroke-width: 14; } .mark.tiny .disc { r: 48; } .mark.tiny .dot { r: 9.5; }
 .mark.tiny .arc.a, .rail .mark .arc.a { stroke: color-mix(in srgb, #56352D 62%, #E2C4A6); } /* the one tinted arc: on navy under 24 px chocolate is 1.4 : 1 */
@@ -131,8 +131,8 @@ h1, h2, h3, p { margin: 0; }
 @keyframes dot-once { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
 @keyframes notice { 0% { transform: scale(1); opacity: 0 } 12% { opacity: .55 } 100% { transform: scale(3.4); opacity: 0 } }         /* the circle notices: once, as the centre lands */
 @keyframes breath-arc { 0%, 100% { opacity: .72 } 50% { opacity: 1 } }                                                            /* the working side breathes */
-@keyframes breath-glow { 0% { transform: scale(1); opacity: 0 } 45% { opacity: .34 } 100% { transform: scale(1.24); opacity: 0 } } /* its apricot halo */
-@keyframes mark-halo { 0% { transform: scale(1); opacity: .5 } 100% { transform: scale(2.6); opacity: 0 } }                        /* the centre's halo pulse (MOTION §5.5) */
+@keyframes breath-glow { 0%, 100% { transform: scale(1); opacity: 0 } 50% { transform: scale(1.04); opacity: .16 } }            /* its apricot aura: lit from within, not a ripple */
+@keyframes mark-halo { 0% { transform: scale(1); opacity: .34 } 100% { transform: scale(2.3); opacity: 0 } }                        /* the centre's halo pulse (MOTION §5.5) */
 @keyframes take { 0% { stroke-width: 10 } 45% { stroke-width: 12.6 } 100% { stroke-width: 10 } }                                  /* the receiver takes the weight */
 @keyframes fade-in { from { opacity: 0 } }
 @keyframes card-in { from { opacity: 0; transform: translateY(6px) } }
@@ -168,6 +168,7 @@ h1, h2, h3, p { margin: 0; }
 .board { position: relative; z-index: 1; width: min(1440px, 100%); margin: 0 auto; padding: 22px 48px 80px; display: flex; flex-direction: column; gap: 22px; }
 .top { display: flex; align-items: center; gap: 14px; height: 40px; }
 .top .brand { display: inline-flex; align-items: center; gap: 9px; font: 400 22px/1 var(--serif); color: var(--ink); }
+.top .brand .mark { width: 24px; height: 24px; }
 .top .sep { width: 1px; height: 18px; background: var(--line); }
 .top .crumb { font-size: 13px; color: var(--ink-2); }
 .top .ctl { margin-left: auto; display: inline-flex; gap: 2px; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; box-shadow: var(--edge); }
@@ -175,26 +176,26 @@ h1, h2, h3, p { margin: 0; }
 .top .ctl button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
 
 /* hero · the one glossy object in a matte room (three-colour-brands §7: navy lacquer for committed) */
-.hero { display: grid; grid-template-columns: 440px 1fr; min-height: 456px; border-radius: var(--radius-lg); background: var(--lacquer); background-image: linear-gradient(168deg, var(--lacquer-hi), transparent 46%); color: var(--rail-fg); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), var(--shadow-pop); overflow: hidden; position: relative; }
+.hero { display: grid; grid-template-columns: 440px 1fr; min-height: 404px; border-radius: var(--radius-lg); background: var(--lacquer); background-image: linear-gradient(168deg, var(--lacquer-hi), transparent 46%); color: var(--rail-fg); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), var(--shadow-pop); overflow: hidden; position: relative; }
 .hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .05; mix-blend-mode: soft-light; background-image: inherit; }
 .hero .stage { display: grid; place-items: center; border-right: 1px solid var(--rail-line); position: relative; }
-.hero .stage .mark { width: 300px; height: 300px; }
+.hero .stage .mark { width: 272px; height: 272px; }
 .hero .stage .scene { position: absolute; left: 28px; bottom: 22px; right: 28px; display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11.5px; color: var(--rail-muted); letter-spacing: .02em; }
 .hero .stage .scene b { font-weight: 500; color: var(--apricot); }
-.hero .copy { padding: 30px 36px 26px 40px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.hero .copy { padding: 26px 36px 22px 40px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .hero .copy .kicker { color: var(--rail-muted); }
-.hero .copy h1 { font: 400 44px/1.06 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.015em; color: #FFF; min-height: 94px; text-wrap: balance; }
+.hero .copy h1 { font: 400 40px/1.06 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.015em; color: #FFF; min-height: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hero .copy h1 .name { color: var(--apricot); }
 .hero .copy .sub { font-size: 14px; color: var(--rail-muted); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
 .hero .copy .sub .mono { color: var(--apricot); font-size: 12px; }
 /* the state machine: nodes are the mark itself in each state; click one to enter it */
-.machine { position: relative; height: 236px; margin-top: 6px; }
+.machine { position: relative; width: 660px; max-width: 100%; height: 232px; margin-top: 4px; }
 .machine svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .machine .wires path, .machine .wires line { fill: none; stroke: var(--rail-line); stroke-width: 1.2; }
 .machine .wires .arrow { fill: var(--rail-muted); stroke: none; }
 .machine .wires text { font: 500 10.5px var(--mono); fill: var(--rail-muted); letter-spacing: .04em; }
 .machine .wires .dotted { stroke-dasharray: 1 5; stroke-linecap: round; stroke: var(--apricot); opacity: .7; }
-.node { position: absolute; width: 96px; margin-left: -48px; margin-top: -30px; display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--rail-fg); cursor: pointer; padding: 4px 0; border-radius: var(--radius); font: 400 14px/1 var(--serif); }
+.node { position: absolute; width: 96px; margin-left: -48px; margin-top: -27px; display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--rail-fg); cursor: pointer; padding: 4px 0; border-radius: var(--radius); font: 400 14px/1 var(--serif); }
 .node .mark { width: 46px; height: 46px; }
 .node .lbl { opacity: .78; }
 .node:hover .lbl, .node[aria-current="true"] .lbl { opacity: 1; color: var(--apricot); }
@@ -203,9 +204,9 @@ h1, h2, h3, p { margin: 0; }
 
 /* the six, in a row: hairlines between, never boxes (premium-product-ui §1) */
 .states { display: grid; grid-template-columns: repeat(6, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.state { padding: 22px 20px 20px 22px; display: flex; flex-direction: column; gap: 10px; min-width: 0; position: relative; }
+.state { padding: 18px 18px 18px 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; position: relative; }
 .state + .state { border-left: 1px solid var(--line); }
-.state .mark { width: 104px; height: 104px; margin: 0 0 8px; }
+.state .mark { width: 96px; height: 96px; margin: 0 0 6px; }
 .state .n { font: 400 24px/1.1 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 10px; }
 .state .n .mono { color: var(--ink-3); font-size: 11.5px; }
 .state .say { font-size: 13.5px; line-height: 20px; color: var(--ink-2); text-wrap: pretty; }
@@ -275,13 +276,13 @@ table.spec tr:last-child td { border-bottom: 0; }
 .rail .item .mark { width: 20px; height: 20px; }
 .rail .item.active { background: rgba(226,196,166,.14); }
 .rail .item .w { color: var(--rail-muted); margin-left: auto; font-size: 12px; }
-.stream { padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; height: 150px; }
+.stream { padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 150px; }
 .joinline { display: flex; align-items: center; gap: 12px; }
 .joinline .mark { width: 40px; height: 40px; }
-.joinline .s { display: flex; flex-direction: column; gap: 1px; }
+.joinline .s { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .joinline .s b { font: 400 16px/20px var(--serif); } .joinline .s b .name { color: var(--accent-ink); }
-.joinline .s span { font-size: 12.5px; color: var(--ink-3); }
-.joinline .stack { margin-left: auto; display: inline-flex; }
+.joinline .s span { font-size: 12.5px; line-height: 17px; color: var(--ink-3); }
+.joinline .stack { margin-left: 4px; display: inline-flex; flex: none; }
 .av { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); border: 2px solid var(--surface); display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--ink); }
 .av + .av { margin-left: -7px; }
 .av.agent { border-radius: 9px 9px 9px 3px; background: var(--rail); color: var(--rail-fg); }
@@ -292,8 +293,8 @@ table.spec tr:last-child td { border-bottom: 0; }
 .toast .mark { width: 32px; height: 32px; }
 .toast .s { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .toast .s b { font: 400 15px/20px var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .toast .s b .name { color: var(--apricot); }
-.toast .s span { font-size: 12px; color: var(--rail-muted); }
-.toast .act { margin-left: auto; font: 500 12.5px var(--font); color: var(--apricot); }
+.toast .s span { font-size: 12px; color: var(--rail-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast .act { margin-left: auto; flex: none; font: 500 12.5px var(--font); color: var(--apricot); }
 
 /* rules */
 .rules { columns: 2; column-gap: 40px; font-size: 14px; line-height: 21px; color: var(--ink-2); }
@@ -371,36 +372,36 @@ table.spec tr:last-child td { border-bottom: 0; }
       <div class="sub"><span id="sub">thinking · the agent's half of the ring breathes; the person's half is still</span><span class="mono" id="subt">1.8 s loop</span></div>
       <div class="statebar" id="statebar"></div>
       <div class="machine" id="machine">
-        <svg class="wires" viewBox="0 0 640 236" preserveAspectRatio="none" aria-hidden="true">
+        <svg class="wires" viewBox="0 0 660 232" preserveAspectRatio="xMinYMin meet" aria-hidden="true">
           <defs><marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="arrow" d="M0 0 L8 4 L0 8 z"/></marker></defs>
           <!-- idle → joining → settled → idle -->
-          <path d="M150 104 C 190 70, 220 54, 262 54" marker-end="url(#ah)"/>
-          <path d="M338 54 L 436 54" marker-end="url(#ah)"/>
-          <path d="M488 80 C 470 130, 360 150, 160 126" marker-end="url(#ah)"/>
+          <path d="M140 98 C 180 62, 212 46, 254 46" marker-end="url(#ah)"/>
+          <path d="M346 46 L 442 46" marker-end="url(#ah)"/>
+          <path d="M490 84 C 470 128, 360 140, 158 124" marker-end="url(#ah)"/>
           <!-- idle ↔ thinking -->
-          <path d="M150 128 C 190 162, 220 182, 262 182" marker-end="url(#ah)"/>
-          <path d="M262 196 C 220 196, 190 176, 158 146" marker-end="url(#ah)"/>
+          <path d="M140 134 C 180 170, 212 186, 254 186" marker-end="url(#ah)"/>
+          <path d="M254 200 C 212 200, 180 176, 150 150" marker-end="url(#ah)"/>
           <!-- thinking ↔ blocked -->
-          <path d="M338 176 L 436 176" marker-end="url(#ah)"/>
-          <path d="M436 192 L 338 192" marker-end="url(#ah)"/>
+          <path d="M346 180 L 442 180" marker-end="url(#ah)"/>
+          <path d="M442 196 L 346 196" marker-end="url(#ah)"/>
           <!-- baton: reachable from anywhere -->
-          <path class="dotted" d="M560 60 C 600 80, 600 160, 560 180"/>
-          <text x="186" y="66">connects</text>
-          <text x="352" y="44">lands · once · 1.8 s</text>
-          <text x="330" y="112">rests</text>
-          <text x="178" y="186">a turn starts</text>
-          <text x="186" y="212">it ends</text>
-          <text x="340" y="166">needs your hand · 320 ms</text>
-          <text x="356" y="208">you act · 450 ms</text>
-          <text x="548" y="34">any state · 500 ms</text>
+          <path class="dotted" d="M580 64 C 640 84, 640 152, 580 172"/>
+          <text x="172" y="58">connects</text>
+          <text x="352" y="38">lands · once</text>
+          <text x="292" y="112">rests</text>
+          <text x="166" y="182">a turn starts</text>
+          <text x="196" y="216">it ends</text>
+          <text x="352" y="172">needs your hand · 320 ms</text>
+          <text x="356" y="212">you act · 450 ms</text>
+          <text x="656" y="226" text-anchor="end">any state · 500 ms</text>
         </svg>
         <!-- nodes: the mark in each state, clickable -->
         <button class="node" style="left:110px;top:116px" data-go="idle" aria-current="false"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="idle"><use href="#m"/></svg><span class="lbl">idle</span></button>
-        <button class="node" style="left:300px;top:54px" data-go="joining"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="joining"><use href="#m"/></svg><span class="lbl">joining</span></button>
-        <button class="node" style="left:488px;top:54px" data-go="settled"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="3600"><use href="#m"/></svg><span class="lbl">settled</span></button>
-        <button class="node" style="left:300px;top:186px" data-go="thinking"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="thinking" data-who="agent"><use href="#m"/></svg><span class="lbl">thinking</span></button>
-        <button class="node" style="left:488px;top:186px" data-go="blocked"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="blocked"><use href="#m"/></svg><span class="lbl">blocked</span></button>
-        <button class="node" style="left:600px;top:120px" data-go="baton"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="idle" data-baton="person" data-flip="2400"><use href="#m"/></svg><span class="lbl">baton</span></button>
+        <button class="node" style="left:300px;top:46px" data-go="joining"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="joining"><use href="#m"/></svg><span class="lbl">joining</span></button>
+        <button class="node" style="left:490px;top:46px" data-go="settled"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="3600"><use href="#m"/></svg><span class="lbl">settled</span></button>
+        <button class="node" style="left:300px;top:188px" data-go="thinking"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="thinking" data-who="agent"><use href="#m"/></svg><span class="lbl">thinking</span></button>
+        <button class="node" style="left:490px;top:188px" data-go="blocked"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="blocked"><use href="#m"/></svg><span class="lbl">blocked</span></button>
+        <button class="node" style="left:608px;top:118px" data-go="baton"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="idle" data-baton="person" data-flip="2400"><use href="#m"/></svg><span class="lbl">baton</span></button>
       </div>
     </div>
   </div>
@@ -469,7 +470,7 @@ table.spec tr:last-child td { border-bottom: 0; }
         <tr><td>Idle</td><td>nothing is happening</td><td>nothing</td><td><span class="mono">0</span></td><td><span class="k">—</span></td><td>the closed ring, centre present</td><td>rail brand, avatars, tab, paper</td></tr>
         <tr><td>Joining</td><td>a session connecting, the app opening, a reconnect</td><td>both arcs swing from ±60°; the centre appears at 60 %</td><td><span class="mono">1 800 loop</span> · mark; centre on ease</td><td><span class="k">arc-a · arc-b · dot-in</span></td><td>the closed ring</td><td>splash 160, loading 96, rail brand 24 (once), never below 24: fade 200</td></tr>
         <tr><td>Settled</td><td>a join lands: a person, an agent, a session</td><td>arcs close once; the centre lands; one notice ripples out</td><td><span class="mono">800 · 550–1 000 · 900–1 800</span> · arrive, arrive, leave</td><td><span class="k">arc-a-once · arc-b-once · dot-once · notice</span></td><td>the closed ring; the join line carries the news</td><td>join line 40, group chat 30, toast 32, the newcomer's avatar ripples at 900</td></tr>
-        <tr><td>Thinking</td><td>a turn is running (agent) or someone is typing (person)</td><td>the working arc breathes 72→100 %; its apricot glow scales 1→1.24; the centre's halo scales 1→2.6</td><td><span class="mono">1 800 loop</span> · ease-in-out, move, move</td><td><span class="k">breath-arc · breath-glow · mark-halo</span></td><td>the closed ring; the status word says “running” beside it</td><td>rail card 20, topbar 24, Team panel row, tab 16 (two frames)</td></tr>
+        <tr><td>Thinking</td><td>a turn is running (agent) or someone is typing (person)</td><td>the working arc breathes 72→100 %; a wide apricot aura under it rises to 16 %; the centre's halo scales 1→2.3</td><td><span class="mono">1 800 loop</span> · ease-in-out, move, move</td><td><span class="k">breath-arc · breath-glow · mark-halo</span></td><td>the closed ring; the status word says “running” beside it</td><td>rail card 20, topbar 24, Team panel row, tab 16 (two frames)</td></tr>
         <tr><td>Blocked</td><td>an approval, a gate, a contention: the agent cannot continue without a hand</td><td>the person's arc retracts to 70 % from the top seam; a dotted stitch shows the missing share</td><td><span class="mono">320</span> · leave &nbsp;→&nbsp; redraw <span class="mono">450</span> · arrive</td><td><span class="k">transition stroke-dasharray · --a-drawn</span></td><td>the open seam with its stitch</td><td>rail card, approvals row, tab 16, tray; the same seam on a plan step the agent cannot finish</td></tr>
         <tr><td>Baton</td><td>the driver changes: person → agent, agent → person, agent → agent</td><td>the hairline half ring passes under the seam; the receiver's arc takes the weight</td><td><span class="mono">500 · 500</span> · mark, mark</td><td><span class="k">transition transform · take</span></td><td>the hairline over the holder, instantly</td><td>session header 32, presence stack, the contention/handoff notice; not the tab</td></tr>
       </tbody>
@@ -628,7 +629,6 @@ table.spec tr:last-child td { border-bottom: 0; }
   $$('.node').forEach(n => n.addEventListener('click', () => go(n.dataset.go, true)));
   const bar = $('#statebar');
   ['idle', 'joining', 'settled', 'thinking', 'blocked', 'baton'].forEach(n => { const b = document.createElement('button'); b.type = 'button'; b.dataset.go = n; b.textContent = n; b.addEventListener('click', () => go(n, true)); bar.appendChild(b); });
-  go('thinking'); schedule();
 
   /* ---- favicons: the tiny cut as a data URI, built per state; this tab follows the hero ---- */
   const LIFT = '#8B6B5B'; /* chocolate 62 % toward apricot: what the rail does to the person's arc on navy at 22 px */
@@ -685,8 +685,8 @@ table.spec tr:last-child td { border-bottom: 0; }
   }
   const rowsOf = {
     joining: [
-      { label: 'person’s arc · hold, swing, settle, rest', bars: [[0, 270, 'a', true], [270, 1260, 'a'], [1260, 1530, 'a', true], [1530, 1800, 'a', true]] },
-      { label: 'agent’s arc · the same, mirrored', bars: [[0, 270, 'b', true], [270, 1260, 'b'], [1260, 1530, 'b', true], [1530, 1800, 'b', true]] },
+      { label: 'person’s arc · hold · swing · settle', bars: [[0, 270, 'a', true], [270, 1260, 'a'], [1260, 1530, 'a', true], [1530, 1800, 'a', true]] },
+      { label: 'agent’s arc · mirrored', bars: [[0, 270, 'b', true], [270, 1260, 'b'], [1260, 1530, 'b', true], [1530, 1800, 'b', true]] },
       { label: 'centre · 0 → 1.25 → 1', bars: [[1080, 1440, 'dot'], [1440, 1800, 'dot', true]] },
     ],
     settled: [
@@ -696,9 +696,9 @@ table.spec tr:last-child td { border-bottom: 0; }
       { label: 'the notice · one ripple, leave', bars: [[900, 1800, 'halo']] },
     ],
     thinking: [
-      { label: 'working arc · opacity 72 → 100 → 72', bars: [[0, 900, 'b'], [900, 1800, 'b', true]] },
-      { label: 'its glow · scale 1 → 1.24, opacity 0 → .34 → 0', bars: [[0, 810, 'halo'], [810, 1800, 'halo', true]] },
-      { label: 'centre halo · scale 1 → 2.6, opacity .5 → 0', bars: [[0, 1800, 'halo']] },
+      { label: 'working arc · 72 → 100 → 72 %', bars: [[0, 900, 'b'], [900, 1800, 'b', true]] },
+      { label: 'its aura · opacity 0 → .16 → 0', bars: [[0, 900, 'halo'], [900, 1800, 'halo', true]] },
+      { label: 'centre halo · 1 → 2.3×, .34 → 0', bars: [[0, 1800, 'halo']] },
       { label: 'the other arc · still', bars: [[0, 1800, 'a', true]] },
     ],
     blocked: [
@@ -715,6 +715,9 @@ table.spec tr:last-child td { border-bottom: 0; }
   const meta = { joining: ['Joining', 'loop · 1.8 s'], settled: ['Settled', 'once · 1.8 s'], thinking: ['Thinking', 'loop · 1.8 s'], blocked: ['Blocked', '320 ms · 450 ms back'], baton: ['Baton', 'once · 500 ms'] };
   const tlEl = $('#tl');
   Object.keys(rowsOf).forEach(k => { const d = document.createElement('div'); d.className = 'row'; d.innerHTML = `<div class="who"><b>${meta[k][0]}</b><span>${meta[k][1]}</span></div>${tl(rowsOf[k])}`; tlEl.appendChild(d); });
+
+  /* start the hero last: everything it touches now exists */
+  go('thinking'); schedule();
 })();
 </script>
 </body>

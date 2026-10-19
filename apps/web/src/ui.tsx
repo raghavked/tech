@@ -4,8 +4,11 @@ import { budgetStatus, compactTokens, formatTokens } from "@henosis/kernel";
 import type { EntryRecord } from "@henosis/memory";
 import { type Usage, usageTotal } from "@henosis/protocol";
 import {
+  Children,
   type CSSProperties,
   Fragment,
+  isValidElement,
+  type ReactElement,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   useEffect,
@@ -436,34 +439,103 @@ export function Icon({
   );
 }
 
+/**
+ * The icon set (design/henosis/explorations/icon-set): a 16 grid, paths inside 1.5–14.5, stroke
+ * 1.5 at every size, round caps and joins, nothing filled, every dot a stroked circle so an icon
+ * is one path and one colour. An icon is the colour of its text; apricot only on the active rail
+ * item; `ok/warn/danger` only on verbs (approve, contention, reject), never on nouns. `crew` and
+ * `group` have a 14 px floor: below it use `person`/`agent` with a count beside.
+ */
 export const ICONS = {
+  // members: people and agents are the same kind of thing, on one shoulders curve
+  agent:
+    "M5.5 2h5A1.5 1.5 0 0 1 12 3.5v2A1.5 1.5 0 0 1 10.5 7h-5A1.5 1.5 0 0 1 4 5.5v-2A1.5 1.5 0 0 1 5.5 2zM8 4.5m-.75 0a.75.75 0 1 0 1.5 0a.75.75 0 1 0-1.5 0M2.5 14c.4-2.8 2.4-4.3 5.5-4.3s5.1 1.5 5.5 4.3",
+  person:
+    "M8 7.5a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5zM2.5 14c.4-2.8 2.4-4.3 5.5-4.3s5.1 1.5 5.5 4.3",
+  crew: "M3.25 3h3A1.25 1.25 0 0 1 7.5 4.25v1.5A1.25 1.25 0 0 1 6.25 7h-3A1.25 1.25 0 0 1 2 5.75v-1.5A1.25 1.25 0 0 1 3.25 3zM9.75 3h3A1.25 1.25 0 0 1 14 4.25v1.5A1.25 1.25 0 0 1 12.75 7h-3A1.25 1.25 0 0 1 8.5 5.75v-1.5A1.25 1.25 0 0 1 9.75 3zM4.75 5m-.75 0a.75.75 0 1 0 1.5 0a.75.75 0 1 0-1.5 0M11.25 5m-.75 0a.75.75 0 1 0 1.5 0a.75.75 0 1 0-1.5 0M1.5 14c.3-2.6 2.6-3.9 6.5-3.9s6.2 1.3 6.5 3.9",
+  group:
+    "M8 7.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5zM3.75 14c.3-2.5 1.9-3.8 4.25-3.8s3.95 1.3 4.25 3.8M11.75 7.5a1.9 1.9 0 0 0 .5-3.75M14.5 12.5c-.1-1.7-.9-2.8-2.3-3.3M4.25 7.5a1.9 1.9 0 0 1-.5-3.75M1.5 12.5c.1-1.7.9-2.8 2.3-3.3",
+  chat: "M2.5 3h11a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H7l-3.5 3v-3H2.5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z",
+  team: "M2.5 5.5h7a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H6l-2.5 2.5V11.5h-1a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM5 5.5V3.5a1 1 0 0 1 1-1h7.5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1",
+  invite:
+    "M6 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM1.5 14c.3-2.7 2.1-4.1 4.5-4.1 1 0 1.8.2 2.5.6M12.5 9.5v4M10.5 11.5h4",
+  watch:
+    "M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8zM8 10.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5z",
+  // driving: who has the wheel and what they may do with it
+  baton: "M2.44 11.44L11.44 2.44l2.12 2.12-9 9zM5.44 8.44l2.12 2.12M8.44 5.44l2.12 2.12",
+  handoff: "M1.5 8h6.5M5.5 5.5L8 8l-2.5 2.5M12 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+  join: "M9.42 2.69A5.5 5.5 0 0 1 9.42 13.31M6.58 13.31A5.5 5.5 0 0 1 6.58 2.69M8 8m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0",
+  steer: "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zM10.75 5.25l-1.5 4-4 1.5 1.5-4z",
+  constrain:
+    "M4 7.5h8a1 1 0 0 1 1 1v4.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1zM5.5 7.5V5a2.5 2.5 0 0 1 5 0v2.5M8 10.75m-.75 0a.75.75 0 1 0 1.5 0a.75.75 0 1 0-1.5 0",
+  contention: "M1.5 8h4M3.5 6l2 2-2 2M14.5 8h-4M12.5 6l-2 2 2 2M8 5v6",
+  claim: "M3.5 14.5V2M3.5 2.5h9l-2 3.25 2 3.25h-9",
+  pause: "M5 3v10M11 3v10",
+  play: "M5.5 3.5v9l7-4.5z",
+  // plan first: the plan, the ratings that approve it, the gate, the tokens
+  plan: "M3.5 5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM3.5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM3.5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM3.5 5v2M3.5 9v2M6.5 4h7M6.5 8h7M6.5 12h7",
+  rating: "M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z",
+  approve: "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zM5.25 8.25l1.9 1.9 3.6-3.8",
+  revise: "M11 2.5l2.5 2.5L6 12.5H3.5V10zM9 4.5l2.5 2.5M8.5 14h5",
+  reject: "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zM5.75 5.75l4.5 4.5M10.25 5.75l-4.5 4.5",
+  gate: "M2.5 14V7.5a5.5 5.5 0 0 1 11 0V14M2.5 10.5h11",
+  tokens:
+    "M8 6.5c3 0 5.5-.9 5.5-2s-2.5-2-5.5-2-5.5.9-5.5 2 2.5 2 5.5 2zM2.5 4.5v7c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-7M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2",
+  budget:
+    "M2.5 12a5.5 5.5 0 0 1 11 0M8 12l2.75-3.5M8 12m-.75 0a.75.75 0 1 0 1.5 0a.75.75 0 1 0-1.5 0",
+  savings: "M1.5 4.5l4 4 3-3 5 5M13.5 7v3.5H10",
+  // code and places
+  branch:
+    "M4.5 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM4.5 6v4M4.5 10a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11.5 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11.5 6c0 3-7 1.5-7 4",
+  unite:
+    "M3.5 2.5v2c0 3 4.5 3 4.5 6.5M12.5 2.5v2c0 3-4.5 3-4.5 6.5M8 11a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z",
+  compare: "M2 3.5h4.5v9H2zM9.5 3.5H14v9H9.5zM4.25 6.5v3M11.75 6.5v3",
+  workspace: "M8 2.5l6 3-6 3-6-3zM2 8.5l6 3 6-3M2 11.5l6 3 6-3",
+  tool: "M10.5 2.5l3 3-2 2-3-3zM8.5 4.5L3 10v3h3l5.5-5.5",
+  terminal:
+    "M2.5 3h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM4.5 6l2 2-2 2M8 10h3.5",
+  session:
+    "M2.5 3h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM3.5 8h2l1-2 2 4 1.5-2h2.5",
+  project: "M1.5 4.5a1 1 0 0 1 1-1h3.5l1.5 2h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z",
+  overview:
+    "M2 3a1 1 0 0 1 1-1h3.5v4.5H2zM9.5 2H13a1 1 0 0 1 1 1v3.5H9.5zM2 9.5h4.5V14H3a1 1 0 0 1-1-1zM9.5 9.5H14V13a1 1 0 0 1-1 1H9.5z",
+  inbox:
+    "M2.5 9h3l1 2h3l1-2h3M2.5 9V4.5A1.5 1.5 0 0 1 4 3h8a1.5 1.5 0 0 1 1.5 1.5V9M2.5 9v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9",
+  memory: "M3 2.5h8a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2zM3 11.5h10M6 6h4",
+  brief: "M4 1.5h5l3 3v10H4zM9 1.5v3h3M6.25 8h3.5M6.25 11h3.5",
+  replay: "M2.5 12.5h11M5.5 3v6l5-3zM10.5 11a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z",
+  needsYou: "M4 11V7a4 4 0 0 1 8 0v4l1 2H3zM6.5 14h3M13 3.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0",
+  settings:
+    "M1.5 4.5h6.25M12.25 4.5h2.25M1.5 11.5h2.25M8.25 11.5h6.25M10 6.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5zM6 13.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5z",
+  search: "M7 12.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM11 11l3.5 3.5",
+  share:
+    "M12 5.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5zM4 9.75a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5zM12 14.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5zM5.5 7.1l5-2.7M5.5 8.9l5 2.7",
+  export: "M8 10V2.5M5 5.5l3-3 3 3M2.5 9.5v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3",
+  // the rail's own chrome
+  collapse:
+    "M2.5 3.5h11a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1zM6 3.5v9M11 6.5L9.5 8l1.5 1.5",
+  expand:
+    "M2.5 3.5h11a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1zM6 3.5v9M9.5 6.5L11 8l-1.5 1.5",
+  // existing glyphs, kept on the same grid and stroke
   menu: "M2.5 4.5h11M2.5 8h11M2.5 11.5h11",
   plus: "M8 3v10M3 8h10",
-  search: "M7 12.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM11 11l3.5 3.5",
   send: "M8 13V3M4 7l4-4 4 4",
   close: "M4 4l8 8M12 4l-8 8",
   chevron: "M6 4l4 4-4 4",
-  file: "M4 2h5l3 3v9H4zM9 2v3h3",
-  pen: "M11 2.5l2.5 2.5L6 12.5H3.5V10z",
-  terminal: "M3 4l4 4-4 4M8 12h5",
-  memory: "M3 2.5h8a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2zM3 11.5h10",
-  rocket: "M8 2c2 1 4 4 3 8H5c-1-4 1-7 3-8zM5 10l-2 3M11 10l2 3M8 7h.01",
-  tool: "M10.5 2.5l3 3-2 2-3-3zM8.5 4.5L3 10v3h3l5.5-5.5",
-  handoff: "M2 8h11M9 4l4 4-4 4",
   check: "M3 8.5l3 3 7-7",
   dots: "M3 8h.01M8 8h.01M13 8h.01",
   sun: "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1",
   moon: "M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z",
   bell: "M4 11V7a4 4 0 0 1 8 0v4l1 2H3zM6.5 14h3",
   link: "M6.5 9.5l3-3M5 11l-1 1a2.5 2.5 0 0 1-3.5-3.5l2-2A2.5 2.5 0 0 1 6 6.5M11 5l1-1a2.5 2.5 0 0 1 3.5 3.5l-2 2A2.5 2.5 0 0 1 10 9.5",
-  branch: "M4 3v10M4 3a1.5 1.5 0 1 0 0 0M12 4a1.5 1.5 0 1 0 0 0M12 5.5c0 3-8 2-8 5",
   clock: "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zM8 5v3.5l2.5 1.5",
   down: "M8 3v10M4 9l4 4 4-4",
-  inbox:
-    "M2.5 9h3l1 2h3l1-2h3M2.5 9V4.5A1.5 1.5 0 0 1 4 3h8a1.5 1.5 0 0 1 1.5 1.5V9M2.5 9v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9",
   back: "M13 8H3M7 4L3 8l4 4",
   columns: "M2.5 3h11v10h-11zM8 3v10",
-  play: "M5.5 3.5v9l7-4.5z",
+  rocket: "M8 2c2 1 4 4 3 8H5c-1-4 1-7 3-8zM5 10l-2 3M11 10l2 3M8 7h.01",
+  // aliases for the keys the older call sites use (icon-set's open question: kept, not renamed)
+  file: "M4 1.5h5l3 3v10H4zM9 1.5v3h3M6.25 8h3.5M6.25 11h3.5",
+  pen: "M11 2.5l2.5 2.5L6 12.5H3.5V10zM9 4.5l2.5 2.5M8.5 14h5",
   star: "M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z",
 };
 
@@ -596,29 +668,155 @@ export function Stars({
 
 // ---- avatars, status, counts, pills ------------------------------------------------------
 
+export type AvatarKind = "person" | "agent";
+/** `xs` 18 · `sm` 22 · `md` 28 · `lg` 40 · `xl` 56, or any pixel size from one variable. */
+export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl" | number;
+const AVATAR_PX: Record<Exclude<AvatarSize, number>, number> = {
+  xs: 18,
+  sm: 22,
+  md: 28,
+  lg: 40,
+  xl: 56,
+};
+
+/** One of four quiet palette washes, hashed from the id: a tint is identity and never a state. */
+function tintOf(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return `t${(Math.abs(h) % 4) + 1}`;
+}
+
+/**
+ * One element, two shapes (design/henosis/explorations/avatar-system): a person is a circle with
+ * two initials on a palette wash; an agent is the rounded square with the tight bottom-left
+ * corner on the brand gradient, only the apricot centre below 40 px and the true mark inset from
+ * 40 px up. State is a dot (`.pr`), a ring (`.driver`, the baton) or a fade (`.off`, away), never
+ * a tint change. `--avatar-edge` is set by the ground (rail, card, team message) so stacks cut
+ * cleanly everywhere. `missing` is the dashed empty avatar for the voice not yet heard.
+ */
 export function Avatar({
   id,
   name,
-  driver = false,
+  kind,
   agent = false,
+  size = "md",
+  presence = null,
+  status = null,
+  driver = false,
   joined = false,
+  missing = false,
+  photo,
   title,
+  className = "",
 }: {
   id: string;
   name: string;
-  driver?: boolean;
+  kind?: AvatarKind;
+  /** The older spelling of `kind="agent"`. */
   agent?: boolean;
+  size?: AvatarSize;
+  /** People: the presence dot; away fades the avatar and hollows the dot. */
+  presence?: "online" | "away" | null;
+  /** Agents: the status dot (running, awaiting_approval, blocked, paused); an agent is never away. */
+  status?: string | null;
+  /** The 2 px apricot-deep ring: the baton. People only; an agent never takes it. */
+  driver?: boolean;
   /** Plays the "joined" ripple once: set for a second when this person enters the session. */
   joined?: boolean;
+  missing?: boolean;
+  photo?: string | undefined;
   title?: string;
+  className?: string;
 }) {
+  const isAgent = kind === "agent" || agent;
+  const px = typeof size === "number" ? size : AVATAR_PX[size];
+  const big = px >= 40;
+  const sizeCls = typeof size === "number" ? (big ? "lg" : "") : size === "md" ? "" : size;
+  const cls = [
+    "avatar",
+    isAgent ? "agent" : tintOf(id),
+    sizeCls,
+    driver && !isAgent ? "driver" : "",
+    joined ? "joined" : "",
+    missing ? "missing" : "",
+    presence === "away" ? "off" : "",
+    photo ? "photo" : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const style = typeof size === "number" ? ({ "--size": `${size}px` } as CSSProperties) : undefined;
+  const dot = isAgent
+    ? status
+      ? (STATUS[status]?.cls ?? null)
+      : null
+    : presence === "online"
+      ? "online"
+      : presence === "away"
+        ? "away"
+        : null;
+  if (missing)
+    return (
+      <span
+        className={cls}
+        style={style}
+        role="img"
+        aria-label={title ?? copy.shell.missingVoice}
+        data-id={id}
+      />
+    );
   return (
-    <span
-      className={`avatar${driver ? " driver" : ""}${agent ? " agent" : ""}${joined ? " joined" : ""}`}
-      title={title ?? name}
-      data-id={id}
-    >
-      {agent ? "A" : initials(name)}
+    <span className={cls} style={style} title={title ?? name} data-id={id}>
+      {isAgent ? (
+        big && <Mark size={Math.round(px * 0.64)} />
+      ) : photo ? (
+        <img src={photo} alt="" />
+      ) : (
+        initials(name)
+      )}
+      {dot && <i className={`pr ${dot}`} />}
+    </span>
+  );
+}
+
+/**
+ * Avatars overlapping in one order: the driver first, then people, then agents; `max` shown and
+ * the rest as "+n" in mono. `seam` draws the 2 px canvas hairline between the people and the
+ * agents (groups-list). Children are `Avatar`s; anything else keeps its place.
+ */
+export function Stack({
+  children,
+  max = 4,
+  seam = false,
+  className = "",
+  label,
+}: {
+  children: ReactNode;
+  max?: 3 | 4;
+  seam?: boolean;
+  className?: string;
+  /** Read out instead of the avatars (the stack is decorative otherwise). */
+  label?: string;
+}) {
+  const all = Children.toArray(children).filter((c): c is ReactElement => isValidElement(c));
+  const rank = (c: ReactElement) => {
+    const p = c.props as { driver?: boolean; kind?: string; agent?: boolean };
+    return p.driver ? 0 : p.kind === "agent" || p.agent ? 2 : 1;
+  };
+  const sorted = all.map((c, i) => ({ c, i, r: rank(c) })).sort((a, b) => a.r - b.r || a.i - b.i);
+  const shown = sorted.slice(0, max);
+  const rest = sorted.length - shown.length;
+  const firstAgent = shown.findIndex((x) => x.r === 2);
+  const a11y = label ? { role: "img" as const, "aria-label": label } : { "aria-hidden": true };
+  return (
+    <span className={`stack${className ? ` ${className}` : ""}`} {...a11y}>
+      {shown.map((x, i) => (
+        <Fragment key={x.c.key ?? x.i}>
+          {seam && i === firstAgent && i > 0 && <i className="seam" />}
+          {x.c}
+        </Fragment>
+      ))}
+      {rest > 0 && <span className="avatar more">+{rest}</span>}
     </span>
   );
 }

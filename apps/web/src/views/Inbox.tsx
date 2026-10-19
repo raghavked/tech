@@ -4,6 +4,7 @@ import { Shell, type ShellContext } from "../App.js";
 import type { Me, Notification } from "../api.js";
 import { DEFAULT_RATING } from "../approvalsQueue.js";
 import { copy } from "../copy.js";
+import { EmptyState } from "../empty.js";
 import type { Identity } from "../identity.js";
 import { acceptFromInbox, linkOf, markRead, useInbox, voteFromInbox } from "../inbox.js";
 import { Loader, Stars } from "../ui.js";
@@ -73,6 +74,13 @@ export function Inbox({
       <div className="column page">
         <h1>Inbox</h1>
         <p className="muted">{summary}</p>
+        {inbox.loaded && inbox.items.length === 0 && (
+          <EmptyState
+            spot="inbox"
+            title={copy.inboxPage.emptyTitle}
+            text={copy.inboxPage.emptyLine}
+          />
+        )}
         {inbox.error && <p className="small danger">{inbox.error}</p>}
         {!inbox.loaded && !inbox.error && (
           <Loader kind="shimmer" label={copy.wait.inbox} rows={3} title />

@@ -15,6 +15,8 @@ import {
   type MemoryConflict,
   useFetch,
 } from "../api.js";
+import { copy } from "../copy.js";
+import { EmptyState } from "../empty.js";
 import { navigate, paths } from "../router.js";
 import { ICONS, Icon, shortSha, useCursor } from "../ui.js";
 
@@ -262,14 +264,18 @@ export function Memory({
 
         <section className="group">
           <h2>Entries</h2>
-          {rows.length === 0 && !feed.loading && (
-            <p className="muted">
-              {needle
-                ? "Nothing matches."
-                : all.length
-                  ? "Nothing here at this scope."
-                  : "Nothing remembered yet."}
-            </p>
+          {rows.length === 0 && !feed.loading && needle && (
+            <p className="muted">Nothing matches.</p>
+          )}
+          {rows.length === 0 && !feed.loading && !needle && all.length > 0 && (
+            <p className="muted">Nothing here at this scope.</p>
+          )}
+          {rows.length === 0 && !feed.loading && !needle && all.length === 0 && (
+            <EmptyState
+              spot="memory"
+              title={copy.memoryPage.emptyTitle}
+              text={copy.memoryPage.emptyLine}
+            />
           )}
           <div className="list quiet">
             {rows.map((e) => {

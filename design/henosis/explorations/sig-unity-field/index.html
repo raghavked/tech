@@ -40,7 +40,7 @@
   --field-person: #56352D; --field-person-rest: 0.17; --field-person-ring: 0.64;
   --field-agent: #2A3244;  --field-agent-rest: 0.15;  --field-agent-ring: 0.56;
   --field-centre: #E2C4A6; --field-centre-alpha: 1;
-  --field-halo: #E2C4A6;   --field-halo-alpha: 0.16;
+  --field-halo: #E2C4A6;   --field-halo-alpha: 0.12;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -61,7 +61,7 @@
   --field-person: #7A4B3E; --field-person-rest: 0.36; --field-person-ring: 0.95;
   --field-agent: #E2C4A6;  --field-agent-rest: 0.13;  --field-agent-ring: 0.62;
   --field-centre: #E2C4A6; --field-centre-alpha: 0.95;
-  --field-halo: #E2C4A6;   --field-halo-alpha: 0.09;
+  --field-halo: #E2C4A6;   --field-halo-alpha: 0.07;
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
@@ -80,7 +80,7 @@
   --field-person: #7A4B3E; --field-person-rest: 0.36; --field-person-ring: 0.95;
   --field-agent: #E2C4A6;  --field-agent-rest: 0.13;  --field-agent-ring: 0.62;
   --field-centre: #E2C4A6; --field-centre-alpha: 0.95;
-  --field-halo: #E2C4A6;   --field-halo-alpha: 0.09;
+  --field-halo: #E2C4A6;   --field-halo-alpha: 0.07;
   color-scheme: dark;
 }
 
@@ -174,7 +174,7 @@ svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-wid
 /* ---- main: the field lives here, under the topbar and the column, over the wash ---- */
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--canvas); position: relative; isolation: isolate; overflow: hidden; }
 .main::before { content: ""; position: absolute; left: 10%; top: -320px; width: 1100px; height: 560px; max-width: 100%; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; z-index: -1; }
-canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+canvas.field { position: absolute; left: 0; right: 0; top: var(--topbar-h, 56px); bottom: 0; width: 100%; height: calc(100% - var(--topbar-h, 56px)); z-index: 0; pointer-events: none; } /* under the topbar, not behind it: a backdrop blur over a changing canvas repaints every frame */
 .main > .topbar, .main > .scroll { position: relative; z-index: 1; }
 .topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .topbar .title { font: 400 20px/24px var(--serif); display: inline-flex; align-items: center; gap: 12px; }
@@ -219,11 +219,12 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
 .rowitem .tok { font-family: var(--mono); font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
 /* the field inspector: a floating card, mono measurements, the exploration's own controls */
-.inspector { position: fixed; right: 16px; bottom: 16px; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: var(--radius-full); background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); box-shadow: var(--shadow-pop), var(--edge); font-size: 13px; }
-.inspector .k { font: 400 15px/20px var(--serif); color: var(--ink); white-space: nowrap; }
-.inspector .stat { font-family: var(--mono); font-size: 12px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.inspector .sep { width: 1px; height: 18px; background: var(--line); }
-.inspector .btn.sm { min-height: 28px; padding: 0 10px; }
+.inspector { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 4px 0 10px; margin-right: 6px; border-radius: var(--radius-full); border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 70%, transparent); font-size: 13px; }
+.inspector .k { font: 400 14px/20px var(--serif); color: var(--ink); white-space: nowrap; }
+.inspector .stat { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; margin-left: 4px; }
+.inspector .sep { width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
+.inspector .btn.sm { min-height: 24px; padding: 0 8px; font-size: 12.5px; border-radius: var(--radius-full); }
+.inspector .btn.sm.on { background: var(--apricot-soft); color: var(--ink); }
 
 /* ---- phone ---- */
 @media (max-width: 640px) {
@@ -282,15 +283,25 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
     <div class="topbar">
       <button type="button" class="btn ghost icon menu" aria-label="Menu"><svg class="ic" viewBox="0 0 16 16"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg></button>
       <span class="title">Home</span>
-      <div class="right"><span class="chip"><span class="avatar">A</span>Ana · Payments</span></div>
+      <div class="right">
+        <div class="inspector" role="group" aria-label="Unity field">
+          <span class="k">Field</span>
+          <span class="stat" id="stat" aria-live="off">measuring…</span>
+          <span class="sep"></span>
+          <button class="btn sm ghost" type="button" id="btnJoin">Ana joins</button>
+          <button class="btn sm ghost" type="button" id="btnMotion" aria-pressed="false">Calm</button>
+          <button class="btn sm ghost" type="button" id="btnTheme" aria-pressed="false">Dark</button>
+        </div>
+        <span class="chip"><span class="avatar">A</span>Ana · Payments</span>
+      </div>
     </div>
     <div class="scroll">
       <div class="column page home">
 
-        <section class="hero-field" data-field-quiet aria-label="Home">
+        <section class="hero-field" aria-label="Home">
           <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
-          <h1>Many hands, one team. One holds the baton at a time.</h1>
-          <p class="lede">Watch the course, redirect, hand off. <b>Three</b> agents and <b>four</b> people are in Payments this morning.</p>
+          <h1 data-field-quiet>Many hands, one team. One holds the baton at a time.</h1>
+          <p class="lede" data-field-quiet>Watch the course, redirect, hand off. <b>Three</b> agents and <b>four</b> people are in Payments this morning.</p>
           <span class="demo" data-field-demo></span>
         </section>
 
@@ -331,15 +342,6 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
   </div>
 </div>
 
-<div class="inspector" role="group" aria-label="Unity field">
-  <span class="k">Unity field</span>
-  <span class="stat" id="stat" aria-live="off">measuring…</span>
-  <span class="sep"></span>
-  <button class="btn sm ghost" type="button" id="btnJoin">Ana joins</button>
-  <button class="btn sm ghost" type="button" id="btnMotion" aria-pressed="false">Calm</button>
-  <button class="btn sm ghost" type="button" id="btnTheme" aria-pressed="false">Dark</button>
-</div>
-
 <script>
 /* The unity field. A 2D canvas behind the home and the welcome brief: faint half-arcs, a person's and
    an agent's for every pair, drift across the page. Near the cursor, near a live row, or when a join
@@ -369,7 +371,7 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
   const S = {
     w: 0, h: 0, dpr: 1, pairs: [], anchors: [], quiet: [], demo: null, pointer: null, pointerSeen: false,
     pulse: null, motion: false, col: null, raf: 0, last: 0, active: true, cost: 0, frames: 0, fpsT: 0, fps: 0,
-    visible: true, intersecting: true
+    visible: true, intersecting: true, warm: 0
   };
 
   const motionOn = () => getComputedStyle(root).getPropertyValue('--motion').trim() === '1';
@@ -413,7 +415,7 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
       pairs.push(makePair(x, y, 'free')); i++;
     }
     /* one ring per live row, in the margin beside it: marginalia (presence-and-agents) */
-    S.anchors.forEach((a, i) => { const p = makePair(a.x, a.cy, 'anchor'); p.ai = i; p.u = 1; p.s = 1; pairs.push(p); });
+    S.anchors.forEach((a, i) => { const p = makePair(a.at.x, a.at.y, 'anchor'); p.ai = i; p.u = 1; p.s = 1; pairs.push(p); });
     /* a few extra pairs gathered under the demonstration cursor */
     if (S.demo) for (let i = 0, tries = 0; i < 4 && tries < 60; tries++) {
       const ang = rr(0, TAU), dist = rr(34, 118);
@@ -424,21 +426,25 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
     S.pairs = pairs;
     settle(true);
   }
+  function anchorPoint(a) {
+    if (a.x >= 96) return { x: a.x - 44, y: a.cy };          /* the left margin beside the row: marginalia */
+    return { x: a.x + a.w - 20, y: a.y + a.h - 18 };         /* a phone has no margin: the row's empty corner */
+  }
   function anchorPos(p) {
     const a = S.anchors[p.ai]; if (!a) return;
-    if (a.x >= 96) { p.x = a.x - 44; } else { p.x = a.x + a.w - 14; }  /* left margin, or the row's end on a phone */
-    p.y = a.cy;
+    const at = anchorPoint(a); p.x = at.x; p.y = at.y;
+    if (a.x < 96) p.r = Math.min(p.r, 11);
   }
   function measure() {
-    const mr = main.getBoundingClientRect();
+    const mr = canvas.getBoundingClientRect();
     const rect = el => { const r = el.getBoundingClientRect(); return { x: r.left - mr.left, y: r.top - mr.top, w: r.width, h: r.height, cx: r.left - mr.left + r.width / 2, cy: r.top - mr.top + r.height / 2 }; };
-    S.anchors = Array.from(main.querySelectorAll('[data-field-anchor]')).map(rect);
+    S.anchors = Array.from(main.querySelectorAll('[data-field-anchor]')).map(el => { const r = rect(el); r.at = anchorPoint(r); return r; });
     S.quiet = Array.from(main.querySelectorAll('[data-field-quiet]')).map(rect);
     const d = main.querySelector('[data-field-demo]');
     S.demo = (d && S.w >= 760 && !S.pointerSeen) ? rect(d) : null;
   }
   function resize() {
-    const w = main.clientWidth, h = main.clientHeight;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
     const dpr = Math.min(DPR_CAP, window.devicePixelRatio || 1);
     const changed = w !== S.w || h !== S.h;
     S.w = w; S.h = h; S.dpr = dpr;
@@ -453,7 +459,8 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
     if (p.kind === 'anchor') return 1;
     const P = S.pointer || S.demo;
     if (P) { const dx = p.x - P.x, dy = p.y - P.y; if (dx * dx + dy * dy < R_POINTER * R_POINTER) return 1; }
-    for (let i = 0; i < S.anchors.length; i++) { const a = S.anchors[i], dx = p.x - a.cx, dy = p.y - a.cy; if (dx * dx + dy * dy < R_ANCHOR * R_ANCHOR) return 1; }
+    if (p.q < 1) return 0;                                   /* over text a loose pair stays loose */
+    for (let i = 0; i < S.anchors.length; i++) { const a = S.anchors[i].at, dx = p.x - a.x, dy = p.y - a.y; if (dx * dx + dy * dy < R_ANCHOR * R_ANCHOR) return 1; }
     const pu = S.pulse;
     if (pu) { const dx = p.x - pu.x, dy = p.y - pu.y, dist = Math.sqrt(dx * dx + dy * dy), el = now - pu.t, delay = dist * 2.4; if (dist < R_PULSE && el > delay && el < delay + 1500) return 1; }
     return 0;
@@ -465,7 +472,7 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
   /* the still frame: every pair sits at its end state (Calm, reduce, first paint) */
   function settle(all) {
     const now = performance.now();
-    S.pairs.forEach(p => { if (p.kind === 'anchor') anchorPos(p); const t = targetOf(p, now); if (all || t === 1) { p.u = t; p.du = 0; p.s = t; p.ds = 0; } p.q = quietOf(p); });
+    S.pairs.forEach(p => { if (p.kind === 'anchor') anchorPos(p); p.q = quietOf(p); const t = targetOf(p, now); if (all || t === 1) { p.u = t; p.du = 0; p.s = t; p.ds = 0; } });
   }
 
   function step(dt, now) {
@@ -474,13 +481,14 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
     for (let i = 0; i < S.pairs.length; i++) {
       const p = S.pairs[i];
       if (p.kind === 'anchor') anchorPos(p);
+      p.q = quietOf(p);
       const t = targetOf(p, now);
       const acc = p.k * (t - p.u) - p.c * p.du; p.du += acc * dt; p.u += p.du * dt;
       const st = p.u > 0.94 ? 1 : 0;                          /* the centre only after the ring is one */
       const acc2 = 170 * (st - p.s) - 2 * 0.46 * Math.sqrt(170) * p.ds; p.ds += acc2 * dt; p.s += p.ds * dt; if (p.s < 0) p.s = 0;
       if (Math.abs(t - p.u) > 0.004 || Math.abs(p.du) > 0.004 || Math.abs(st - p.s) > 0.01) active = true;
       if (p.kind !== 'anchor') {
-        const slow = 1 - 0.88 * clamp(p.u, 0, 1);              /* a formed ring rests; the drift is for the loose arcs */
+        const slow = 1 - 0.97 * clamp(p.u, 0, 1);              /* a formed ring rests; the drift is for the loose arcs */
         p.av += (rnd() - 0.5) * 0.9 * dt;
         p.x += Math.cos(p.av) * p.sp * slow * dt; p.y += Math.sin(p.av) * p.sp * slow * dt;
         p.phi += p.om * slow * dt;
@@ -488,7 +496,6 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
         if (p.x < -40) p.x = w + 38; else if (p.x > w + 40) p.x = -38;
         if (p.y < -40) p.y = h + 38; else if (p.y > h + 40) p.y = -38;
       }
-      p.q = quietOf(p);
     }
     if (S.pulse && now - S.pulse.t > R_PULSE * 2.4 + 1700) S.pulse = null;
     return active || !!S.pulse;
@@ -521,7 +528,7 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
       const p = S.pairs[i]; if (p.u <= 0.012) continue;
       const u = p.u, uc = clamp(u, 0, 1), q = p.q;
       const ox = Math.cos(p.phi) * p.d * (1 - uc), oy = Math.sin(p.phi) * p.d * (1 - uc);
-      if (uc > 0.3) { ctx.globalAlpha = C.haloA * (uc - 0.3) / 0.7 * q; ctx.fillStyle = C.halo; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.1, 0, TAU); ctx.fill(); }
+      if (uc > 0.3) { ctx.globalAlpha = C.haloA * (uc - 0.3) / 0.7 * q; ctx.fillStyle = C.halo; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 1.9, 0, TAU); ctx.fill(); }
       ctx.lineWidth = 1.5 + p.r * 0.075 * uc; ctx.lineCap = u > 0.985 ? 'butt' : 'round';
       ctx.beginPath(); half(p.x + ox, p.y + oy, p.r, (D60 + p.wob) * (1 - u));
       ctx.globalAlpha = lerp(C.pRest, C.pRing, uc) * q; ctx.strokeStyle = C.p; ctx.stroke();
@@ -541,19 +548,22 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
   /* ---- the clock --------------------------------------------------------------------------- */
   function frame(now) {
     S.raf = requestAnimationFrame(frame);
-    if (!S.active && now - S.last < 40) return;             /* nothing closing: drift at 24 fps */
+    if (now - S.last < (S.active ? 31 : 48)) return;        /* rings moving: 30 fps; only drift: 20 fps */
     const dt = Math.min(0.05, (now - S.last) / 1000) || 0.016;
     const t0 = performance.now();
     S.active = step(dt, now); S.last = now;
     draw();
     const c = performance.now() - t0;
-    S.cost = S.cost ? S.cost * 0.92 + c * 0.08 : c; S.frames++;
-    if (now - S.fpsT >= 1000) { S.fps = S.frames; S.frames = 0; S.fpsT = now; stat(); }
+    if (S.warm < 8) S.warm++;                                  /* the first frames carry the JIT, not the field */
+    else S.cost = S.cost ? S.cost * 0.92 + c * 0.08 : c;
+    S.frames++;
+    const period = S.fps ? 1000 : 500;
+    if (now - S.fpsT >= period) { S.fps = Math.round(S.frames * 1000 / (now - S.fpsT)); S.frames = 0; S.fpsT = now; stat(); }
   }
   function stat() {
     const arcs = S.pairs.length * 2;
-    if (!S.motion) { statEl.textContent = arcs + ' arcs · still frame · 0 fps · 0 % of a core'; return; }
-    statEl.textContent = arcs + ' arcs · ' + S.cost.toFixed(2) + ' ms/frame · ' + S.fps + ' fps · ' + (S.cost * S.fps / 10).toFixed(1) + ' % of a core';
+    if (!S.motion) { statEl.textContent = arcs + ' arcs · still · 0 fps · 0 % core'; return; }
+    statEl.textContent = arcs + ' arcs · ' + S.cost.toFixed(2) + ' ms · ' + S.fps + ' fps · ' + (S.cost * S.fps / 10).toFixed(1) + ' % core';
   }
   function run() {
     cancelAnimationFrame(S.raf); S.raf = 0;
@@ -567,7 +577,7 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
   /* ---- listeners ---------------------------------------------------------------------------- */
   main.addEventListener('pointermove', e => {
     if (!S.motion) return;
-    const r = main.getBoundingClientRect();
+    const r = canvas.getBoundingClientRect();
     S.pointer = { x: e.clientX - r.left, y: e.clientY - r.top };
     if (!S.pointerSeen) { S.pointerSeen = true; S.demo = null; }
     S.active = true;
@@ -575,7 +585,7 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
   main.addEventListener('pointerleave', () => { S.pointer = null; S.active = true; });
   main.addEventListener('pointerdown', e => {
     if (e.target.closest('button, a, input, .inspector')) return;
-    const r = main.getBoundingClientRect();
+    const r = canvas.getBoundingClientRect();
     pulse(e.clientX - r.left, e.clientY - r.top);
     if (e.pointerType === 'touch') { S.pointer = { x: e.clientX - r.left, y: e.clientY - r.top }; setTimeout(() => { S.pointer = null; S.active = true; }, 2400); }
   });
@@ -592,7 +602,7 @@ canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index:
 
   /* the inspector's three buttons: a join, the Calm switch, the theme */
   const btnJoin = document.getElementById('btnJoin'), btnMotion = document.getElementById('btnMotion'), btnTheme = document.getElementById('btnTheme');
-  btnJoin.addEventListener('click', () => { const a = S.anchors[0]; if (a) pulse(a.x - 44, a.cy); });
+  btnJoin.addEventListener('click', () => { const a = S.anchors[0]; if (a) pulse(a.at.x, a.at.y); });
   btnMotion.addEventListener('click', () => { if (root.dataset.motion === 'calm') delete root.dataset.motion; else root.dataset.motion = 'calm'; });
   btnTheme.addEventListener('click', () => { const dark = getComputedStyle(root).colorScheme === 'dark'; root.dataset.theme = dark ? 'light' : 'dark'; });
   function syncButtons() {

@@ -149,6 +149,32 @@ export const copy = {
     recents: "Recents",
     signIn: "Sign in",
     teamEmblem: "Team emblem",
+    // the rail (design/henosis SCREENS.md §1)
+    searchOrJump: "Search or jump to",
+    newSessionKey: "New session · N",
+    inbox: "Inbox",
+    approvals: "Approvals",
+    live: (n: number) => `${n} live`,
+    overview: "Overview",
+    groups: "Groups",
+    collapse: "Collapse the rail · [",
+    expand: "Expand the rail · ]",
+    closeRail: "Close the rail",
+    noAgents: "No agents running. Start a session and its card appears here.",
+    crewOf: (names: string[]) =>
+      names.length === 0
+        ? ""
+        : names.length === 1
+          ? (names[0] ?? "")
+          : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`,
+    agentsOf: (n: number) => `${n} agent${n === 1 ? "" : "s"}`,
+    crewsAndSolos: (crews: number, solos: number) =>
+      [crews ? `${crews} crew${crews === 1 ? "" : "s"}` : "", solos ? `${solos} solo` : ""]
+        .filter(Boolean)
+        .join(" · "),
+    driving: "driving",
+    member: "member",
+    missingVoice: "one more voice",
   },
 
   account: {
@@ -163,6 +189,15 @@ export const copy = {
     notifyBlocked: "Blocked by the browser",
     notifyUnsupported: "Not available here",
     notifyTurnOn: "Turn on",
+    notifyShort: "on while hidden",
+    calm: "Calm mode",
+    on: "on",
+    off: "off",
+    teamLook: "Team look",
+    shortcuts: "Shortcuts",
+    settings: "Settings",
+    session: "Session",
+    exportMarkdown: "Export as markdown",
     changeIdentity: "Change identity",
     signOut: "Sign out",
   },
@@ -457,6 +492,13 @@ export const copy = {
     withOthers: (names: string[]) => ` with ${names.join(", ")}`,
     noSessions: "No sessions yet.",
     emptySessions: "No sessions in this project yet.",
+    // the page-size empty state (empty-states): the sentence, the line, the ghost of the first row
+    noSessionsOn: (project: string) => `No sessions on ${project} yet.`,
+    emptyLine:
+      "Start one and the agent plans first; the people on the project rate the plan before any work.",
+    ghostTitle: "Invoice PDF: tax lines and proration",
+    ghostLine: (who: string) => `${who} · plan first`,
+    ghostBudget: "0 of 120k",
     startOne: "Start one",
     memoryEmptyHint: "Nothing remembered here yet; an agent adds facts as it works.",
     startSession: "Start a session",
@@ -673,6 +715,36 @@ export const copy = {
     resetDone: "Team look reset to the palette",
     failed: (error: string) => `Could not save the team look: ${error}`,
     badHex: "a colour as #RRGGBB",
+  },
+
+  /** The approvals queue when nothing waits: a good empty explains the gate it is waiting to hold. */
+  approvalsPage: {
+    emptyTitle: "Nothing needs you yet.",
+    emptyLine:
+      "When an agent reaches an exec or external call it waits here for a contributor; a push to main is a release gate that two people rate 4 or better. You rate, the agent goes on.",
+    reviewRules: "Review the approval rules",
+    ghostTitle: "Release gate · push invoice-tax-lines to main",
+    ghostLine: "3 files, 142 lines · the plan was rated 4.5",
+    ghostRatings: "0 of 2 ratings",
+  },
+
+  /** The memory browser before the first entry. */
+  memoryPage: {
+    emptyTitle: "Nothing remembered yet.",
+    emptyLine:
+      "Agents add facts as they work and every entry names who added it, in which session and commit. You can add the first one from a session's Details.",
+  },
+
+  /** The branch compare view. */
+  branches: {
+    nothingDiffers: "Nothing differs between these branches yet.",
+  },
+
+  /** The inbox before anything has needed you. */
+  inboxPage: {
+    emptyTitle: "Nothing has needed you yet.",
+    emptyLine:
+      "Approvals, handoffs, mentions and blocked agents land here, one sentence each, with the thing to do beside it.",
   },
 
   notify: {

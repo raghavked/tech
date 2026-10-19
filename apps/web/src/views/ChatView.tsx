@@ -165,6 +165,7 @@ export function ChatView({
             <h2>{copy.chat.groups}</h2>
             {s && groups.length === 0 && (
               <EmptyState
+                spot="crew"
                 text={copy.chat.noGroups}
                 action={{ label: copy.chat.newGroup, onClick: () => setCreating(true) }}
               />

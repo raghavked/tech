@@ -15,6 +15,8 @@ import { type Actor, ROLE_RANK } from "@henosis/protocol";
 import { useEffect, useState } from "react";
 import { getJson, useFetch } from "../api.js";
 import type { HenosisClient } from "../client.js";
+import { copy } from "../copy.js";
+import { EmptyState } from "../empty.js";
 import { ErrorLine, ICONS, Icon, Mark } from "../ui.js";
 
 interface SessionFile {
@@ -116,7 +118,9 @@ export function BranchCompare({
       <section className="group">
         <h2>Files that differ</h2>
         {!cmp.data && !cmp.error && <p className="muted">Comparing…</p>}
-        {cmp.data && files.length === 0 && <p className="muted">Nothing differs.</p>}
+        {cmp.data && files.length === 0 && (
+          <EmptyState spot="unite" text={copy.branches.nothingDiffers} />
+        )}
         {files.length > 0 && (
           <div className="list">
             {files.map((f) => (

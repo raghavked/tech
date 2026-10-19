@@ -10,6 +10,7 @@ import { api, type Me, type ProjectRef, type SessionRow } from "../api.js";
 import { DEFAULT_RATING, pendingOf, type QueueRow, rowsOf, sortRows } from "../approvalsQueue.js";
 import { HenosisClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
+import { EmptyState } from "../empty.js";
 import { actorOf, type Identity } from "../identity.js";
 import { navigate, paths } from "../router.js";
 import { ErrorLine, Stars, useCursor } from "../ui.js";
@@ -211,6 +212,23 @@ export function Approvals({
         <p className="muted">{summary}</p>
         {error && <p className="small danger">{error}</p>}
         <ErrorLine errors={errors} />
+        {loaded && pending.length === 0 && targets.length === 0 && projects.length > 0 && (
+          <EmptyState
+            spot="gate"
+            title={copy.approvalsPage.emptyTitle}
+            text={copy.approvalsPage.emptyLine}
+            action={{ label: copy.approvalsPage.reviewRules, href: paths.settings() }}
+            ghost={
+              <>
+                <span>
+                  <span className="serif">{copy.approvalsPage.ghostTitle}</span>
+                  <span className="s">{copy.approvalsPage.ghostLine}</span>
+                </span>
+                <span className="mono">{copy.approvalsPage.ghostRatings}</span>
+              </>
+            }
+          />
+        )}
         <section className="group">
           <div className="list">
             {pending.map((r) => (

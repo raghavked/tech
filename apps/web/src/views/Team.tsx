@@ -365,6 +365,7 @@ export function Team({
           )}
           {me && projects.length === 0 && (
             <EmptyState
+              spot="open"
               text={copy.team.noProjectsYet}
               action={{
                 label: copy.team.tryDemo,
@@ -406,6 +407,7 @@ export function Team({
           <h2>{copy.team.recentHandoffs}</h2>
           {handoffs.length === 0 && (
             <EmptyState
+              spot="baton"
               text={copy.team.noHandoffsYet}
               action={
                 perm === "default"
