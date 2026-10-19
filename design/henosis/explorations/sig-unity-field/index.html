@@ -395,7 +395,7 @@ canvas.field { position: absolute; left: 0; right: 0; top: var(--topbar-h, 56px)
       d: rr(1.6, 3.2) * r + 14,                  /* how far apart the two arcs sit at rest */
       phi: rr(0, TAU), om: rr(-0.14, 0.14),      /* the apart axis and its slow turn */
       wob: rr(-0.45, 0.45),                      /* the apart pose varies around ±60° */
-      av: rr(0, TAU), sp: rr(3.5, 8.5),          /* drift heading and speed, px/s */
+      av: rr(0, TAU), sp: rr(2, 5),              /* drift heading and speed, px/s: a tide, not a current */
       u: 0, du: 0, k, c: 2 * 0.72 * Math.sqrt(k),/* ζ 0.72: a small overshoot, the −4° / +2° of the mark */
       s: 0, ds: 0,                               /* the centre: 0 until the ring is one */
       t: 0, q: 1
@@ -548,13 +548,13 @@ canvas.field { position: absolute; left: 0; right: 0; top: var(--topbar-h, 56px)
   /* ---- the clock --------------------------------------------------------------------------- */
   function frame(now) {
     S.raf = requestAnimationFrame(frame);
-    if (now - S.last < (S.active ? 31 : 48)) return;        /* rings moving: 30 fps; only drift: 20 fps */
+    if (now - S.last < (S.active ? 31 : 80)) return;        /* rings moving: 30 fps; only the drift: 12 fps, sub-pixel steps */
     const dt = Math.min(0.05, (now - S.last) / 1000) || 0.016;
     const t0 = performance.now();
     S.active = step(dt, now); S.last = now;
     draw();
     const c = performance.now() - t0;
-    if (S.warm < 8) S.warm++;                                  /* the first frames carry the JIT, not the field */
+    if (S.warm < 4) S.warm++;                                  /* the first frames carry the JIT, not the field */
     else S.cost = S.cost ? S.cost * 0.92 + c * 0.08 : c;
     S.frames++;
     const period = S.fps ? 1000 : 500;

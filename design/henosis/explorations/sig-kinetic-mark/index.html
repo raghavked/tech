@@ -648,9 +648,10 @@ table.spec tr:last-child td { border-bottom: 0; }
   function setFavicon(state, who, baton) {
     clearInterval(favTimer);
     const draw = () => { favLink.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(tinySVG(state, who, baton)); };
-    if (state === 'thinking' && motionOn()) { favTimer = setInterval(() => { favFrame ^= 1; favLink.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(tinySVG(favFrame ? 'thinking' : 'idle', who, baton)); }, 900); }
+    if (state === 'thinking' && motionOn()) { favTimer = setInterval(() => { if (document.hidden) return; favFrame ^= 1; favLink.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(tinySVG(favFrame ? 'thinking' : 'idle', who, baton)); }, 900); }
     draw();
   }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) favLink.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(tinySVG(big.dataset.state, big.dataset.who, big.dataset.baton)); }); /* a hidden tab shows the state's still frame */
   /* the 4× row: the same strings, rendered large so the pixels can be judged */
   const favrow = $('#favrow');
   [
