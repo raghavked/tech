@@ -4,7 +4,7 @@
  * the agent. This is the shape a Durable Object or a single-partition actor would have.
  */
 import { join } from "node:path";
-import { handoffBrief, KernelError, Session } from "@henosis/kernel";
+import { handoffBrief, KernelError, type SerializedLog, Session } from "@henosis/kernel";
 import type {
   Actor,
   ClientMessage,
@@ -22,7 +22,8 @@ import {
   type ToolRegistry,
   type WorkspaceGuard,
 } from "@henosis/runner";
-import { FileBlobStore, readLog, sessionDir, writeLog } from "./storage.js";
+import { FileBlobStore, sessionDir } from "./storage.js";
+import { FileStore, type LiveStore, LogWriter } from "./store/index.js";
 
 export interface ClientLink {
   actor: Actor;
@@ -32,7 +33,10 @@ export interface ClientLink {
 }
 
 export interface HostOptions {
+  /** The store root; blobs live under it in every edition. */
   root: string;
+  /** Where the log is read and flushed; a `FileStore` on `root` when absent. */
+  store?: LiveStore | undefined;
   sessionId: string;
   model: Model;
   tools: ToolRegistry;
@@ -56,6 +60,7 @@ export class SessionHost {
   private readonly clients = new Set<ClientLink>();
   private readonly runners = new Map<string, Runner>();
   private readonly agent: Actor;
+  private readonly writer: LogWriter;
   private flushTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly opts: HostOptions) {
@@ -63,7 +68,9 @@ export class SessionHost {
     this.dir = sessionDir(opts.root, opts.sessionId);
     this.agent = opts.agent ?? AGENT;
     const store = new FileBlobStore(join(this.dir, "blobs"));
-    const existing = readLog(this.dir);
+    const logs = opts.store ?? new FileStore(opts.root);
+    const existing = logs.readLog("session", opts.sessionId) as SerializedLog | null;
+    this.writer = new LogWriter(logs, "session", opts.sessionId, existing);
     if (existing) {
       this.session = Session.fromSerialized(existing, store);
     } else if (opts.create) {
@@ -111,7 +118,7 @@ export class SessionHost {
   }
 
   flush(): void {
-    writeLog(this.dir, this.session.log.serialize());
+    this.writer.flush(this.session.log.serialize());
   }
 
   close(): void {

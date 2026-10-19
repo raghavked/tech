@@ -4,8 +4,6 @@
  * out to subscribers. The bridge between a mention and an agent's session lives in the server,
  * which owns the project and session hosts.
  */
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   Chat,
   type ChatDirectory,
@@ -14,7 +12,7 @@ import {
   type ChatState,
   type SerializedChat,
 } from "@henosis/chat";
-import { atomicWrite } from "./storage.js";
+import { FileStore, type LiveStore, LogWriter } from "./store/index.js";
 
 export interface ChatSubscriber {
   userId: string | null;
@@ -23,6 +21,8 @@ export interface ChatSubscriber {
 
 export interface ChatHostOptions {
   root: string;
+  /** Where the chat log is read and flushed; a `FileStore` on `root` when absent. */
+  store?: LiveStore | undefined;
   orgId: string;
   directory: ChatDirectory;
   log?: (line: string) => void;
@@ -31,18 +31,16 @@ export interface ChatHostOptions {
 export class ChatHost {
   readonly chat: Chat;
   readonly orgId: string;
-  private readonly path: string;
+  private readonly writer: LogWriter;
   private readonly subscribers = new Set<ChatSubscriber>();
 
   constructor(opts: ChatHostOptions) {
     this.orgId = opts.orgId;
-    const dir = join(opts.root, "chat");
-    mkdirSync(dir, { recursive: true });
-    this.path = join(dir, `${opts.orgId}.json`);
-    this.chat = existsSync(this.path)
-      ? Chat.fromSerialized(JSON.parse(readFileSync(this.path, "utf8")) as SerializedChat, {
-          directory: opts.directory,
-        })
+    const store = opts.store ?? new FileStore(opts.root);
+    const existing = store.readLog("chat", opts.orgId) as SerializedChat | null;
+    this.writer = new LogWriter(store, "chat", opts.orgId, existing);
+    this.chat = existing
+      ? Chat.fromSerialized(existing, { directory: opts.directory })
       : Chat.create(opts.orgId, { directory: opts.directory });
     this.chat.onEvent((e) => this.onEvent(e));
     this.flush();
@@ -62,7 +60,7 @@ export class ChatHost {
   }
 
   flush(): void {
-    atomicWrite(this.path, JSON.stringify(this.chat.log.serialize()));
+    this.writer.flush(this.chat.log.serialize());
   }
 
   close(): void {

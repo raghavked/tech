@@ -13,7 +13,7 @@ verify` proves it in both.
 | | Starter | Team | Enterprise |
 |---|---|---|---|
 | Who | A founding team, a lab, one squad | A company with several teams and projects | A company with many orgs, compliance and a platform team |
-| Server | One `henosis serve` process, a folder as the store | One process per org, a database behind it | Sharded session actors, a database and an object store, a control plane |
+| Server | One `henosis serve` process, a folder as the store | One process per org, `henosis serve --store postgres` with the same logs in a database (`docs/04_technical_architecture.md`, "Storage"); `henosis migrate` moves a folder in and proves the copy by head hash | Sharded session actors, a database and an object store, a control plane |
 | Identity | `users.json`, dev tokens | OIDC single sign-on, roles from the directory (`07_security_and_compliance.md`, "Identity") | SSO (OIDC or SAML), SCIM provisioning, device trust, per-event signatures |
 | Policy | Per project, set by its lead | Per team with project overrides | Org policy packs with team and project overrides; approval rules as code |
 | Models | The scripted model, one Claude key | A key per team, budgets per project | A credential broker, per-participant grants, model routing and spend limits |
@@ -25,11 +25,13 @@ verify` proves it in both.
 ## What scales, and how
 
 **State.** A session is a hash-chained log; a project is a ledger; an org has a chat log and a
-memory store. Starter keeps each as a JSON file under the store root (`packages/server/src/storage.ts`).
-Team and Enterprise keep the same documents in a database (one row per event, one table per
-log kind) with the same reducers folding them; the storage interface is the seam, and the
-logs' hash chains make migration verifiable: fold the old file and the new rows, compare the
-head hash. The research memos on compaction and snapshots
+memory store. Starter keeps each as a JSON file under the store root (`FileStore` in
+`packages/server/src/store/`). Team and Enterprise keep the same documents in a database
+(`PostgresStore`: one row per event, one table each for events, branches and documents) with
+the same reducers folding them; the `Store` interface is the seam
+(`docs/04_technical_architecture.md`, "Storage"), and the logs' hash chains make migration
+verifiable: `henosis migrate` folds the old file and the new rows and compares the head hash
+of every log before it finishes. The research memos on compaction and snapshots
 (`docs/research/log-compaction-snapshots.md`) and on fan-out
 (`docs/research/realtime-fanout-scaling.md`) are the design for week-long sessions and
 thousands of observers.

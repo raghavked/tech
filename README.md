@@ -118,7 +118,8 @@ groups to teams and projects through `sso` in `orgs.json`; `docs/07_security_and
 
 | Command | Purpose |
 |---|---|
-| `henosis serve [--port] [--dir] [--model scripted\|claude] [--token]` | host sessions over websockets |
+| `henosis serve [--port] [--dir] [--model scripted\|claude] [--token] [--store file\|postgres]` | host sessions over websockets; `--store postgres` keeps the logs in the database `HENOSIS_DATABASE_URL` names |
+| `henosis migrate --from <dir>\|postgres --to <dir>\|postgres` | copy every log and document between a store folder and Postgres, verifying the head hash of each |
 | `henosis demo [--dir]` | the offline multiplayer scenario; writes log, brief, report, narrative |
 | `henosis join <session> --as <name> [--url] [--token] [--branch]` | terminal participant |
 | `henosis replay <log.json> [--branch]` | fold a log and print the brief |

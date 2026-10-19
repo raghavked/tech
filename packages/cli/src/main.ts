@@ -12,7 +12,15 @@ import {
   type Model,
   ScriptedModel,
 } from "@henosis/runner";
-import { authConfigFromEnv, HenosisServer } from "@henosis/server";
+import {
+  authConfigFromEnv,
+  HenosisServer,
+  migrateStore,
+  openLiveStore,
+  openStoreEnd,
+  renderMigrateTable,
+  storeKindOf,
+} from "@henosis/server";
 import { runDemo } from "./demo.js";
 import { joinSession } from "./join.js";
 import { renderReport } from "./report.js";
@@ -20,6 +28,8 @@ import { renderReport } from "./report.js";
 const USAGE = `henosis <command> [options]
 
   serve    [--port 7700] [--dir ./store] [--model scripted|claude] [--token T]   run the session server
+           [--store file|postgres] [--database-url URL]                         (postgres: the Team edition's store)
+  migrate  --from <dir>|postgres --to <dir>|postgres [--database-url URL]      copy every log and document, verify head hashes
   demo     [--dir ./store-demo]                                                 offline multiplayer scenario
   join     <session> --as <name> [--url ws://127.0.0.1:7700/ws] [--token T] [--branch main]
   replay   <log.json> [--branch main]                                           fold the log, print the brief
@@ -34,6 +44,7 @@ slack.json: { "botToken": "xoxb-...", "appToken": "xapp-...", "map": { "teams": 
 Environment: HENOSIS_OFFLINE=1 blocks the Claude adapter; ANTHROPIC_API_KEY enables it.
              HENOSIS_TOKEN is the dev-mode shared token; HENOSIS_OIDC_ISSUER, HENOSIS_OIDC_CLIENT_ID
              and (optional) HENOSIS_OIDC_AUDIENCE switch serve to single sign-on (docs/07, "Identity").
+             HENOSIS_DATABASE_URL is the postgres store's connection string (or --database-url).
 Exit codes: 0 ok, 2 usage, 3 verification failed, 4 network.`;
 
 function parseArgs(argv: string[]): { positional: string[]; flags: Record<string, string | true> } {
@@ -63,6 +74,25 @@ function loadLog(path: string): Session {
   return Session.fromSerialized(data);
 }
 
+/** A store that cannot be opened as asked is a usage error: one line, exit 2. */
+class StoreUsageError extends Error {}
+
+/** The store `serve` and `slack` run on: a folder (the default) or postgres (`--store postgres`). */
+async function pickStore(flags: Record<string, string | true>, root: string) {
+  const databaseUrl = typeof flags["database-url"] === "string" ? flags["database-url"] : undefined;
+  try {
+    const kind = storeKindOf(flag(flags, "store", "file"));
+    const store = await openLiveStore(kind, {
+      root,
+      databaseUrl,
+      log: (l) => process.stderr.write(`${l}\n`),
+    });
+    return { kind, store };
+  } catch (err) {
+    throw new StoreUsageError(err instanceof Error ? err.message : String(err));
+  }
+}
+
 function pickModel(name: string): Model {
   if (name === "claude") {
     if (!claudeAvailable()) {
@@ -87,8 +117,10 @@ async function main(): Promise<number> {
       const tokenFlag = flags.token;
       const token = typeof tokenFlag === "string" ? tokenFlag : process.env.HENOSIS_TOKEN;
       const auth = authConfigFromEnv(process.env, token);
+      const { kind, store } = await pickStore(flags, root);
       const server = new HenosisServer({
         root,
+        store,
         model,
         tools: defaultTools(),
         token,
@@ -99,7 +131,7 @@ async function main(): Promise<number> {
       const identity =
         auth.mode === "oidc" ? `, sign-in via ${auth.issuer}` : token ? ", token required" : "";
       process.stdout.write(
-        `henosis server on ws://127.0.0.1:${bound}/ws (model ${model.name}, store ${root}${identity})\n`,
+        `henosis server on ws://127.0.0.1:${bound}/ws (model ${model.name}, store ${kind === "file" ? root : `postgres, blobs under ${root}`}${identity})\n`,
       );
       const stop = async () => {
         await server.close();
@@ -123,8 +155,10 @@ async function main(): Promise<number> {
       const { BoltSlackClient, ChannelMap, SlackAdapter } = await import("@henosis/slack");
       const port = Number(flag(flags, "port", "7700"));
       const root = resolve(flag(flags, "dir", "./store"));
+      const { store } = await pickStore(flags, root);
       const server = new HenosisServer({
         root,
+        store,
         model: pickModel(flag(flags, "model", "scripted")),
         tools: defaultTools(),
         token: process.env.HENOSIS_TOKEN,
@@ -154,6 +188,33 @@ async function main(): Promise<number> {
       process.on("SIGINT", stop);
       process.on("SIGTERM", stop);
       return new Promise(() => {});
+    }
+    case "migrate": {
+      const from = flag(flags, "from", "");
+      const to = flag(flags, "to", "");
+      if (!from || !to) return usage();
+      if (from === "postgres" && to === "postgres") {
+        process.stderr.write("migrate: one end must be a folder; there is one database URL\n");
+        return 2;
+      }
+      const databaseUrl =
+        typeof flags["database-url"] === "string" ? flags["database-url"] : undefined;
+      let source: Awaited<ReturnType<typeof openStoreEnd>>;
+      let target: Awaited<ReturnType<typeof openStoreEnd>>;
+      try {
+        source = await openStoreEnd(from, { databaseUrl });
+        target = await openStoreEnd(to, { databaseUrl });
+      } catch (err) {
+        throw new StoreUsageError(err instanceof Error ? err.message : String(err));
+      }
+      try {
+        const report = await migrateStore(source, target);
+        process.stdout.write(renderMigrateTable(report));
+        return report.ok ? 0 : 3;
+      } finally {
+        await source.close();
+        await target.close();
+      }
     }
     case "demo": {
       const root = resolve(flag(flags, "dir", "./store-demo"));
@@ -233,6 +294,11 @@ main().then(
     if (code !== undefined) process.exitCode = code;
   },
   (err) => {
+    if (err instanceof StoreUsageError) {
+      process.stderr.write(`${err.message}\n`);
+      process.exitCode = 2;
+      return;
+    }
     process.stderr.write(`${err instanceof Error ? (err.stack ?? err.message) : String(err)}\n`);
     process.exitCode = 1;
   },

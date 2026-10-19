@@ -4,12 +4,10 @@
  * push subscriptions recorded for a delivery adapter. Phase 0 delivers by pull (the shells
  * poll the inbox) and by an injectable sender; web push with VAPID is a one-file adapter.
  */
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { ProjectEvent } from "@henosis/fleet";
 import { isRatingsRule, ruleFor } from "@henosis/kernel";
 import type { SessionEvent, SessionPolicy } from "@henosis/protocol";
-import { atomicWrite } from "./storage.js";
+import { FileStore, type LiveStore } from "./store/index.js";
 
 export interface Notification {
   id: string;
@@ -40,22 +38,21 @@ export type Sender = (sub: PushSubscription, n: Notification) => Promise<void>;
 export class Notifier {
   private readonly inbox = new Map<string, Notification[]>();
   private readonly subs: PushSubscription[] = [];
-  private readonly path: string;
+  private readonly store: LiveStore;
   private counter = 0;
 
+  /** Push subscriptions live in the `push` document of the store (push.json under a root). */
   constructor(
-    root: string,
+    rootOrStore: string | LiveStore,
     private readonly sender: Sender | null = null,
     private readonly log: (line: string) => void = () => {},
   ) {
-    this.path = join(root, "push.json");
-    if (existsSync(this.path)) {
-      try {
-        const data = JSON.parse(readFileSync(this.path, "utf8")) as { subs: PushSubscription[] };
-        this.subs.push(...data.subs);
-      } catch {
-        /* start empty */
-      }
+    this.store = typeof rootOrStore === "string" ? new FileStore(rootOrStore) : rootOrStore;
+    try {
+      const data = this.store.readDoc("push") as { subs?: PushSubscription[] } | null;
+      if (data?.subs) this.subs.push(...data.subs);
+    } catch {
+      /* start empty */
     }
   }
 
@@ -65,7 +62,7 @@ export class Notifier {
     );
     if (i >= 0) this.subs[i] = sub;
     else this.subs.push(sub);
-    atomicWrite(this.path, JSON.stringify({ subs: this.subs }));
+    this.store.writeDoc("push", { subs: this.subs });
   }
 
   subscriptions(userId: string): PushSubscription[] {

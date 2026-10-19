@@ -4,8 +4,6 @@
  * subscribers. Sessions report status at turn boundaries; the host detects fleet contentions
  * after every change and mirrors them into the sessions involved.
  */
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   activePathsOf,
   type ClaimMode,
@@ -24,7 +22,12 @@ import {
   syncDirectives,
   withdrawPropagated,
 } from "@henosis/fleet";
-import { activePlan, planActualTokens, type SessionState } from "@henosis/kernel";
+import {
+  activePlan,
+  planActualTokens,
+  type SerializedLog,
+  type SessionState,
+} from "@henosis/kernel";
 import type { MemoryStore } from "@henosis/memory";
 import {
   type Actor,
@@ -35,7 +38,7 @@ import {
 } from "@henosis/protocol";
 import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@henosis/runner";
 import { SessionHost } from "./host.js";
-import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
+import { FileStore, type LiveStore, LogWriter } from "./store/index.js";
 
 export interface ProjectSubscriber {
   userId: string | null;
@@ -49,7 +52,10 @@ export interface ProjectSubscriber {
 }
 
 export interface ProjectHostOptions {
+  /** The store root; blobs live under it in every edition. */
   root: string;
+  /** Where the ledger and the session logs are read and flushed; a `FileStore` on `root` when absent. */
+  store?: LiveStore | undefined;
   projectId: string;
   orgId: string;
   teamId: string;
@@ -69,17 +75,18 @@ export class ProjectHost {
   readonly hosts = new Map<string, SessionHost>();
   private readonly subscribers = new Set<ProjectSubscriber>();
   private readonly attachListeners: ((sessionId: string, host: SessionHost) => void)[] = [];
-  private readonly dir: string;
+  private readonly store: LiveStore;
+  private readonly writer: LogWriter;
   private flushTimer: NodeJS.Timeout | null = null;
   private detecting = false;
 
   constructor(private readonly opts: ProjectHostOptions) {
     this.projectId = opts.projectId;
-    this.dir = join(opts.root, "projects", opts.projectId);
-    mkdirSync(this.dir, { recursive: true });
-    const path = join(this.dir, "ledger.json");
-    this.project = existsSync(path)
-      ? Project.fromSerialized(JSON.parse(readFileSync(path, "utf8")) as SerializedLedger)
+    this.store = opts.store ?? new FileStore(opts.root);
+    const existing = this.store.readLog("ledger", opts.projectId) as SerializedLedger | null;
+    this.writer = new LogWriter(this.store, "ledger", opts.projectId, existing);
+    this.project = existing
+      ? Project.fromSerialized(existing)
       : Project.create(
           opts.projectId,
           opts.orgId,
@@ -89,9 +96,9 @@ export class ProjectHost {
         );
     this.project.onEvent((e) => this.onProjectEvent(e));
     this.flush();
-    // Reopen every session registered in this project that still has a log on disk.
-    for (const id of listSessions(opts.root)) {
-      const log = readLog(sessionDir(opts.root, id));
+    // Reopen every session registered in this project that still has a log in the store.
+    for (const id of this.store.listLogs("session")) {
+      const log = this.store.readLog("session", id) as SerializedLog | null;
       const created = log?.events[MAIN_BRANCH]?.[0];
       if (created?.kind === "session.created" && created.payload.projectId === opts.projectId)
         this.session(id);
@@ -122,6 +129,7 @@ export class ProjectHost {
     if (h) return h;
     const base = {
       root: this.opts.root,
+      store: this.store,
       sessionId,
       model: this.opts.model,
       tools: this.opts.tools,
@@ -216,7 +224,7 @@ export class ProjectHost {
   }
 
   flush(): void {
-    atomicWrite(join(this.dir, "ledger.json"), JSON.stringify(this.project.ledger.serialize()));
+    this.writer.flush(this.project.ledger.serialize());
   }
 
   // ---- internals ---------------------------------------------------------------------

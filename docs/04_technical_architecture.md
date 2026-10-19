@@ -101,12 +101,57 @@ The scripted model is a pure function of the request (intent, files, this turn's
 turn summaries), which is what makes the demo and tests reproducible. The Claude adapter maps
 the same request onto the Messages API with custom tools and records the response verbatim.
 
-## Persistence
+## Storage
 
-`store/sessions/<id>/log.json` is the serialized log (atomic temp-and-rename on every flush,
-debounced 20 ms) and `blobs/<sha256>` are workspace file contents. This is deliberately
-boring. Phase 1 replaces it with an append-only JSONL per branch and a snapshot every k
-events; Phase 2 moves it into the actor's storage.
+Every edition keeps the same four logs (a session's log, a project's ledger, an organisation's
+memory and its chat) and the same documents (`orgs`, `users`, `push`). What differs is where,
+and that is the storage seam: `packages/server/src/store/`.
+
+**The seam.** `Store` has `readLog(kind, id)`, `writeLog(kind, id, serialized)`,
+`appendEvents(kind, id, events, branches?)`, `listLogs(kind)`, `readDoc(name)`,
+`writeDoc(name, json)`, `listDocs()` and `close()`. A file answers at once and a database
+answers later, so every caller of a `Store` awaits. A host cannot: it folds its log in memory
+and must answer a websocket message without a round trip, so hosts take a `LiveStore`, the
+same operations synchronous. The file store is a `LiveStore` as it is; a database becomes one
+through `MirrorStore`, which loads every log and document on start, answers reads from the
+mirror, and writes through on an ordered queue (`flush()` waits for it, `close()` flushes and
+closes the database). The hosts hold every open log folded anyway, so the mirror costs little
+more than arrays pointing at the same event objects; it is sound because one process owns a
+store (one `henosis serve` per org in the Team edition).
+
+**Appending, not rewriting.** A host flushes through a `LogWriter`, which remembers how much
+of each branch the store holds and appends only the events since the last flush, announcing a
+new branch when a fork made one; the whole log is written only the first time a log the store
+never saw is flushed. The file store applies an append to the copy it keeps and rewrites the
+file (atomic temp-and-rename, debounced 20 ms as before); the Postgres store inserts rows.
+
+**`FileStore`** (Starter) is the folder every store has been, byte for byte:
+`sessions/<id>/log.json` with `blobs/<sha256>` beside it, `projects/<id>/ledger.json`,
+`memory/<org>.json`, `chat/<org>.json`, and `orgs.json`, `users.json`, `push.json` in the
+root (the first two stay pretty-printed, as they are hand-edited). `henosis replay`, `verify`,
+`report` and `fleet` keep reading these files directly.
+
+**`PostgresStore`** (Team, Enterprise) is three tables, created by `ensureSchema()`:
+`branches (kind, log_id, name, parent, fork_point, created_seq, ord)`, one row per branch;
+`events (kind, log_id, branch, seq, event jsonb)`, one row per event; `docs (name, json
+jsonb)`. A log exists when it has a branch row; `writeLog` replaces it in one transaction and
+`appendEvents` inserts. The connection string is `HENOSIS_DATABASE_URL` (or
+`--database-url`); `henosis serve --store postgres` opens it, ensures the schema and runs the
+server on a mirror of it. The `pg` driver is the only runtime dependency; the tests run the
+same suite on `pg-mem`, so no database is needed to develop. Blobs stay on disk under the
+root in every edition (a `blobs` table is the next step).
+
+**Migration.** `henosis migrate --from <dir> --to postgres` (and `--from postgres --to <dir>`)
+copies every log and document, then folds both sides and compares them: a log's head hash is
+the id of the last event on each branch, which commits to the whole chain before it; a
+document's is its canonical hash. It prints a table (kind, id, branches, events, from, to,
+ok) and refuses to finish, exit code 3, when any row differs. A `jsonb` column keeps keys in
+its own order, which is why the chain hashes over canonical JSON (`hash.ts`) and why a log
+that went through Postgres verifies the same.
+
+**Phase 1 and after.** Compaction (an append-only JSONL per branch with a snapshot every k
+events for the file store; a snapshot row for the database) and moving the log into the
+actor's storage both sit behind the same seam.
 
 ## Token usage
 

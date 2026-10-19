@@ -16,10 +16,8 @@
  * usage grouped by the agent turn it was spent in, ten turns per bucket, which is the one
  * axis every session shares. An ISO `since` is accepted, ignored, and named in `warnings`.
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { Project, type ProjectState, type SerializedLedger } from "@henosis/fleet";
-import { Session } from "@henosis/kernel";
+import { type SerializedLog, Session } from "@henosis/kernel";
 import {
   addUsage,
   type Usage,
@@ -34,7 +32,7 @@ import {
 } from "@henosis/protocol";
 import type { OrgRegistry } from "./orgs.js";
 import type { ProjectHost } from "./projectHost.js";
-import { listSessions, readLog, sessionDir } from "./storage.js";
+import { FileStore, type LiveStore } from "./store/index.js";
 
 export const USAGE_PATH = "/api/usage";
 
@@ -43,6 +41,8 @@ export const TURN_BUCKET = 10;
 
 export interface UsageSource {
   root: string;
+  /** Where the logs and ledgers not hosted live; a `FileStore` on `root` when absent. */
+  store?: LiveStore | undefined;
   /** Live project hosts; their sessions and ledgers are read in memory. */
   projects: Map<string, ProjectHost>;
   orgs: Pick<OrgRegistry, "project" | "user">;
@@ -194,15 +194,12 @@ function bucket(buckets: Map<number, UsageTurnBucket>, turn: number, u: Usage): 
 function loadLedgers(src: UsageSource): Map<string, ProjectState> {
   const out = new Map<string, ProjectState>();
   for (const [id, host] of src.projects) out.set(id, host.state());
-  const dir = join(src.root, "projects");
-  if (!existsSync(dir)) return out;
-  for (const id of readdirSync(dir)) {
+  const store = src.store ?? new FileStore(src.root);
+  for (const id of store.listLogs("ledger")) {
     if (out.has(id)) continue;
-    const path = join(dir, id, "ledger.json");
-    if (!existsSync(path)) continue;
     try {
-      const data = JSON.parse(readFileSync(path, "utf8")) as SerializedLedger;
-      out.set(id, Project.fromSerialized(data).state());
+      const data = store.readLog("ledger", id) as SerializedLedger | null;
+      if (data) out.set(id, Project.fromSerialized(data).state());
     } catch {
       // an unreadable ledger contributes nothing
     }
@@ -214,10 +211,11 @@ function loadSessions(src: UsageSource): Map<string, Session> {
   const out = new Map<string, Session>();
   for (const host of src.projects.values())
     for (const [id, h] of host.hosts) out.set(id, h.session);
-  for (const id of listSessions(src.root)) {
+  const store = src.store ?? new FileStore(src.root);
+  for (const id of store.listLogs("session")) {
     if (out.has(id)) continue;
     try {
-      const log = readLog(sessionDir(src.root, id));
+      const log = store.readLog("session", id) as SerializedLog | null;
       if (log) out.set(id, Session.fromSerialized(log));
     } catch {
       // a malformed id or log is simply not a session

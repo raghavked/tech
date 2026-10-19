@@ -3,12 +3,14 @@
  * A live session is rendered from its host (so unflushed events are included); a session
  * only on disk is folded from its log. Pure apart from reading the log.
  */
-import { KernelError, renderReport, Session } from "@henosis/kernel";
+import { KernelError, renderReport, type SerializedLog, Session } from "@henosis/kernel";
 import type { ProjectHost } from "./projectHost.js";
-import { readLog, sessionDir } from "./storage.js";
+import { FileStore, type LiveStore } from "./store/index.js";
 
 export interface ExportSource {
   root: string;
+  /** Where a session not hosted is read from; a `FileStore` on `root` when absent. */
+  store?: LiveStore | undefined;
   projects: Map<string, ProjectHost>;
 }
 
@@ -18,13 +20,15 @@ export function sessionForExport(src: ExportSource, sessionId: string): Session 
     const h = p.hosts.get(sessionId);
     if (h) return h.session;
   }
-  let dir: string;
+  let log: SerializedLog | null;
   try {
-    dir = sessionDir(src.root, sessionId);
+    log = (src.store ?? new FileStore(src.root)).readLog(
+      "session",
+      sessionId,
+    ) as SerializedLog | null;
   } catch {
     return null; // a malformed id is simply not a session
   }
-  const log = readLog(dir);
   return log ? Session.fromSerialized(log) : null;
 }
 

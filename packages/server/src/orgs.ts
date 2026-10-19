@@ -1,6 +1,4 @@
-/** Org registry: orgs.json and users.json in the store root, with sane defaults when absent. */
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+/** Org registry: the `orgs` and `users` documents of the store, with sane defaults when absent. */
 import {
   canStyleTeam,
   DEFAULT_ORGS,
@@ -18,7 +16,7 @@ import {
 } from "@henosis/fleet";
 import type { Role } from "@henosis/protocol";
 import type { Principal } from "./auth.js";
-import { atomicWrite } from "./storage.js";
+import { FileStore, type LiveStore } from "./store/index.js";
 
 export class OrgRegistry {
   readonly orgs: OrgsFile;
@@ -26,21 +24,18 @@ export class OrgRegistry {
   /**
    * Identity (oidc): people a verified token has named, as users.json entries merged with
    * what their directory groups grant (`sso` in orgs.json). Refreshed on every verified
-   * request, so a group change reaches the next join. Never written to disk.
+   * request, so a group change reaches the next join. Never written to the store.
    */
   readonly resolved = new Map<string, User>();
-  private readonly orgsPath: string;
+  private readonly store: LiveStore;
 
-  constructor(root: string) {
-    const orgsPath = join(root, "orgs.json");
-    const usersPath = join(root, "users.json");
-    this.orgsPath = orgsPath;
-    this.orgs = existsSync(orgsPath)
-      ? OrgsFile.parse(JSON.parse(readFileSync(orgsPath, "utf8")))
-      : structuredClone(DEFAULT_ORGS);
-    const users = existsSync(usersPath)
-      ? UsersFile.parse(JSON.parse(readFileSync(usersPath, "utf8")))
-      : { users: [] };
+  /** A store root (orgs.json and users.json in it) or the store itself. */
+  constructor(rootOrStore: string | LiveStore) {
+    this.store = typeof rootOrStore === "string" ? new FileStore(rootOrStore) : rootOrStore;
+    const orgsDoc = this.store.readDoc("orgs");
+    const usersDoc = this.store.readDoc("users");
+    this.orgs = orgsDoc ? OrgsFile.parse(orgsDoc) : structuredClone(DEFAULT_ORGS);
+    const users = usersDoc ? UsersFile.parse(usersDoc) : { users: [] };
     this.users = new Map(users.users.map((u) => [u.id, u]));
   }
 
@@ -73,7 +68,7 @@ export class OrgRegistry {
     if (!found) throw new Error(`unknown team ${teamId}`);
     if (theme && Object.keys(theme).length > 0) found.team.theme = theme;
     else delete found.team.theme;
-    atomicWrite(this.orgsPath, `${JSON.stringify(this.orgs, null, 2)}\n`);
+    this.store.writeDoc("orgs", this.orgs);
   }
 
   user(id: string | null | undefined): User | null {

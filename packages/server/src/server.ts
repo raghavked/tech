@@ -4,9 +4,7 @@
  * that maps asserted user ids to memberships; without it, the first human in owns a session.
  */
 
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { join } from "node:path";
 import {
   CHAT_MESSAGE_TYPES,
   ChatClientMessage,
@@ -25,7 +23,7 @@ import {
   type ProjectEvent,
   TeamTheme,
 } from "@henosis/fleet";
-import { KernelError } from "@henosis/kernel";
+import { KernelError, type SerializedLog } from "@henosis/kernel";
 import { Curator, MemoryStore, type SerializedMemory } from "@henosis/memory";
 import {
   ClientMessage,
@@ -46,11 +44,14 @@ import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
 import { Notifier, type PushSubscription } from "./notify.js";
 import { OrgRegistry } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
-import { atomicWrite, listSessions, readLog, sessionDir } from "./storage.js";
+import { FileStore, type LiveStore, LogWriter } from "./store/index.js";
 import { computeUsage, USAGE_PATH, usageQueryOf } from "./usageApi.js";
 
 export interface ServerOptions {
+  /** The store root: the file store's folder, and where blobs live in every edition. */
   root: string;
+  /** The store every log and document is read from and flushed to; a `FileStore` on `root` when absent. */
+  store?: LiveStore | undefined;
   model: Model;
   tools: ToolRegistry;
   token?: string | undefined;
@@ -94,6 +95,8 @@ interface PendingReply {
 }
 
 export class HenosisServer {
+  /** The storage seam (docs/04, "Storage"); the server owns it and closes it with itself. */
+  readonly store: LiveStore;
   readonly projects = new Map<string, ProjectHost>();
   readonly orgs: OrgRegistry;
   readonly memories = new Map<string, MemoryStore>();
@@ -111,9 +114,10 @@ export class HenosisServer {
   private wss: WebSocketServer | null = null;
 
   constructor(private readonly opts: ServerOptions) {
-    this.orgs = new OrgRegistry(opts.root);
+    this.store = opts.store ?? new FileStore(opts.root);
+    this.orgs = new OrgRegistry(this.store);
     this.auth = new Auth(opts.auth ?? { mode: "dev", token: opts.token });
-    this.notifier = new Notifier(opts.root, null, opts.log ?? (() => {}));
+    this.notifier = new Notifier(this.store, null, opts.log ?? (() => {}));
     this.integrations = { slack: false, ...opts.integrations };
     for (const o of this.orgs.orgs.orgs) this.chat(o.id);
   }
@@ -126,6 +130,7 @@ export class HenosisServer {
     if (!ref) throw new KernelError("not_found", `unknown project ${projectId}`);
     const base = {
       root: this.opts.root,
+      store: this.store,
       projectId,
       orgId: ref.orgId,
       teamId: ref.teamId,
@@ -171,7 +176,12 @@ export class HenosisServer {
     if (c) return c;
     if (!this.orgs.orgs.orgs.some((o) => o.id === orgId))
       throw new KernelError("not_found", `unknown organisation ${orgId}`);
-    const base = { root: this.opts.root, orgId, directory: this.chatDirectory(orgId) };
+    const base = {
+      root: this.opts.root,
+      store: this.store,
+      orgId,
+      directory: this.chatDirectory(orgId),
+    };
     c = new ChatHost(this.opts.log ? { ...base, log: this.opts.log } : base);
     this.chats.set(orgId, c);
     const host = c;
@@ -409,25 +419,27 @@ export class HenosisServer {
   private readonly memoryTimers = new Map<string, NodeJS.Timeout>();
   private closed = false;
 
-  /** The organisation's memory store, persisted at store/memory/<org>.json and curated on a timer. */
+  /** Flushes the memory logs through the store (one per org). */
+  private readonly memoryWriters = new Map<string, LogWriter>();
+
+  /** The organisation's memory store, persisted as the `memory` log of the org and curated on a timer. */
   memory(orgId: string): MemoryStore {
     let m = this.memories.get(orgId);
     if (m) return m;
-    const dir = join(this.opts.root, "memory");
-    mkdirSync(dir, { recursive: true });
-    const path = join(dir, `${orgId}.json`);
-    m = existsSync(path)
-      ? MemoryStore.fromSerialized(JSON.parse(readFileSync(path, "utf8")) as SerializedMemory)
-      : MemoryStore.create(orgId);
+    const existing = this.store.readLog("memory", orgId) as SerializedMemory | null;
+    const writer = new LogWriter(this.store, "memory", orgId, existing);
+    this.memoryWriters.set(orgId, writer);
+    m = existing ? MemoryStore.fromSerialized(existing) : MemoryStore.create(orgId);
+    const store = m;
     m.onEvent(() => {
-      // Debounced persist; `close()` clears it and writes the ledger itself, so nothing lands
-      // after the store directory is gone.
+      // Debounced persist; `close()` clears it and flushes the ledger itself, so nothing lands
+      // after the store is closed.
       if (this.closed || this.memoryTimers.has(orgId)) return;
       this.memoryTimers.set(
         orgId,
         setTimeout(() => {
           this.memoryTimers.delete(orgId);
-          atomicWrite(path, JSON.stringify(m?.ledger.serialize()));
+          writer.flush(store.ledger.serialize());
         }, 20),
       );
     });
@@ -445,7 +457,7 @@ export class HenosisServer {
   /** Find which project a stored session belongs to, defaulting to "default". */
   projectOfSession(sessionId: string): string {
     for (const [id, p] of this.projects) if (p.hosts.has(sessionId)) return id;
-    const log = readLog(sessionDir(this.opts.root, sessionId));
+    const log = this.store.readLog("session", sessionId) as SerializedLog | null;
     const created = log?.events.main?.[0];
     return created?.kind === "session.created" ? created.payload.projectId : "default";
   }
@@ -461,7 +473,7 @@ export class HenosisServer {
   }
 
   sessions(): string[] {
-    const ids = new Set(listSessions(this.opts.root));
+    const ids = new Set(this.store.listLogs("session"));
     for (const p of this.projects.values()) for (const id of p.hosts.keys()) ids.add(id);
     return [...ids].sort();
   }
@@ -486,13 +498,10 @@ export class HenosisServer {
     this.memoryTimers.clear();
     for (const p of this.projects.values()) p.close();
     for (const c of this.chats.values()) c.close();
-    for (const [org, m] of this.memories)
-      atomicWrite(
-        join(this.opts.root, "memory", `${org}.json`),
-        JSON.stringify(m.ledger.serialize()),
-      );
+    for (const [org, m] of this.memories) this.memoryWriters.get(org)?.flush(m.ledger.serialize());
     this.wss?.close();
     await new Promise<void>((r) => (this.http ? this.http.close(() => r()) : r()));
+    await this.store.close();
   }
 
   // ---- HTTP: read-only API for the web app --------------------------------------------
@@ -600,7 +609,7 @@ export class HenosisServer {
         return json(
           200,
           computeUsage(
-            { root: this.opts.root, projects: this.projects, orgs: this.orgs },
+            { root: this.opts.root, store: this.store, projects: this.projects, orgs: this.orgs },
             usageQueryOf(url.searchParams),
           ),
         );
@@ -637,7 +646,7 @@ export class HenosisServer {
       if (ex) {
         const sessionId = decodeURIComponent(ex[1] as string);
         const markdown = exportSessionMarkdown(
-          { root: this.opts.root, projects: this.projects },
+          { root: this.opts.root, store: this.store, projects: this.projects },
           sessionId,
         );
         res.writeHead(200, exportHeaders(sessionId, url.searchParams.get("download") === "1"));
