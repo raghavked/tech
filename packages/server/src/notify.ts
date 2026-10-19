@@ -21,6 +21,12 @@ export interface Notification {
   ref?: string;
   /** An approval under a release gate: the shell asks for a 1..5 rating with the approve. */
   ratings?: boolean;
+  /**
+   * The needs-you figure for this person when the item was sent (approvals they can still
+   * vote on plus handoffs offered to them): the app badge and the lock screen show it, so the
+   * tab, the manager's sentence and the push agree. Absent when the server has no glance.
+   */
+  needsYou?: number;
   at: number;
   read: boolean;
 }
@@ -40,6 +46,8 @@ export class Notifier {
   private readonly subs: PushSubscription[] = [];
   private readonly store: LiveStore;
   private counter = 0;
+  /** The needs-you figure for a person, set by the server from its glance; rides in every payload. */
+  badge: ((userId: string) => number) | null = null;
 
   /** Push subscriptions live in the `push` document of the store (push.json under a root). */
   constructor(
@@ -86,6 +94,13 @@ export class Notifier {
       read: false,
       ...n,
     };
+    if (this.badge) {
+      try {
+        full.needsYou = this.badge(userId);
+      } catch (err) {
+        this.log(`badge for ${userId} failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
     const box = this.inbox.get(userId) ?? [];
     box.push(full);
     if (box.length > 200) box.splice(0, box.length - 200);

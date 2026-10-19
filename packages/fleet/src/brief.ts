@@ -45,6 +45,13 @@ export function fleetBrief(p: ProjectState, opts: FleetBriefOptions = {}): strin
       `- ${name(s.ownerId)}'s session "${s.title}"${marker}${crew}: ${r ? `${r.status}, turn ${r.turn}, goal: ${r.goal ?? "none"}` : "no report yet"}${held.length ? `; holds ${held.join(", ")}` : ""}${r?.pendingApprovals ? `; ${r.pendingApprovals} approval(s) pending` : ""}`,
     );
     if (r?.summary) lines.push(`  last: ${r.summary.slice(0, 160)}`);
+    const reads = s.briefs ?? [];
+    if (reads.length)
+      lines.push(
+        `  briefed: ${reads
+          .map((b) => `${name(b.reader)} read the ${b.kind} brief at seq ${b.atSeq}`)
+          .join("; ")}`,
+      );
     if (r) {
       const u = usageOf(s);
       const live = opts.sessions?.[s.sessionId];

@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Home · the unity field</title>
+<meta name="description" content="The signature element: a living field of faint arcs behind the home and the welcome brief that pair up and close into rings near the cursor and near activity.">
+<style>
+/* ---------------------------------------------------------------------------------------------
+   Tokens, inlined from design/henosis/tokens.css (v5 values, settled dark block from SYSTEM §16).
+   Self-contained: no @import, no web fonts. Fraunces and Inter are asked for first and fall back to
+   the Instrument faces, then to the system.
+   --------------------------------------------------------------------------------------------- */
+:root {
+  --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
+  --canvas: #FBF7F1; --wash: rgba(226, 196, 166, 0.35);
+  --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
+  --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42, 50, 68, 0.12); --edge: none;
+  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2;
+  --rail-active: rgba(226, 196, 166, 0.18); --rail-line: rgba(243, 237, 228, 0.10); --crease: #E2C4A6;
+  --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226, 196, 166, 0.30);
+  --glow: 0 0 0 4px rgba(226, 196, 166, 0.35);
+  --count-bg: #CFA782; --count-fg: #2A3244; --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --grad-fg: #F8F2EA;
+  --ok: #4F7D4A; --ok-soft: rgba(79,125,74,0.14); --warn: #B9792E; --warn-soft: rgba(185,121,46,0.14); --danger: #A8463A;
+  --shadow-soft: 0 10px 30px rgba(42, 50, 68, 0.08); --shadow-pop: 0 18px 50px rgba(42, 50, 68, 0.16);
+  --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --col: 780px; --rail-w: 296px;
+  --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --serif: "Fraunces", "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
+  --ease-arrive: cubic-bezier(0.2, 0.7, 0.2, 1); --ease-leave: cubic-bezier(0.4, 0, 1, 1);
+  --ease-move: cubic-bezier(0.4, 0, 0.2, 1); --ease-mark: cubic-bezier(0.3, 0.9, 0.3, 1);
+  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
+  --focus-ring: var(--accent);
+  --motion: 0;                                  /* 1 only under the one guard below */
+  /* the field: colour by ground (SYSTEM §5). On cream the person's arc is chocolate, the agent's is
+     navy, the centre is apricot. The numbers are stroke alphas at rest and once a ring has closed. */
+  --field-person: #56352D; --field-person-rest: 0.17; --field-person-ring: 0.64;
+  --field-agent: #2A3244;  --field-agent-rest: 0.15;  --field-agent-ring: 0.56;
+  --field-centre: #E2C4A6; --field-centre-alpha: 1;
+  --field-halo: #E2C4A6;   --field-halo-alpha: 0.16;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --canvas: #1A202C; --wash: rgba(226, 196, 166, 0.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240, 234, 224, 0.14); --edge: inset 0 1px 0 rgba(255,255,255,0.055);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08); --crease: rgba(226, 196, 166, 0.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
+  --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
+  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,0.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --danger: #E2847A;
+  --shadow-soft: 0 10px 30px rgba(0,0,0,0.35); --shadow-pop: 0 18px 50px rgba(0,0,0,0.5);
+  --focus-ring: var(--ink);
+  /* the dark canvas is a navy ground: the agent's arc and the centre keep apricot (illustration's fix),
+     the person's arc is the dark hand (SYSTEM §2.4) drawn a little heavier so it survives the night */
+  --field-person: #7A4B3E; --field-person-rest: 0.36; --field-person-ring: 0.95;
+  --field-agent: #E2C4A6;  --field-agent-rest: 0.13;  --field-agent-ring: 0.62;
+  --field-centre: #E2C4A6; --field-centre-alpha: 0.95;
+  --field-halo: #E2C4A6;   --field-halo-alpha: 0.09;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --canvas: #1A202C; --wash: rgba(226, 196, 166, 0.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240, 234, 224, 0.14); --edge: inset 0 1px 0 rgba(255,255,255,0.055);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08); --crease: rgba(226, 196, 166, 0.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
+  --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
+  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,0.18); --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --danger: #E2847A;
+  --shadow-soft: 0 10px 30px rgba(0,0,0,0.35); --shadow-pop: 0 18px 50px rgba(0,0,0,0.5);
+  --focus-ring: var(--ink);
+  --field-person: #7A4B3E; --field-person-rest: 0.36; --field-person-ring: 0.95;
+  --field-agent: #E2C4A6;  --field-agent-rest: 0.13;  --field-agent-ring: 0.62;
+  --field-centre: #E2C4A6; --field-centre-alpha: 0.95;
+  --field-halo: #E2C4A6;   --field-halo-alpha: 0.09;
+  color-scheme: dark;
+}
+
+/* ---- the one guard (MOTION §3): every animation lives inside it; Calm and reduce keep every end state ---- */
+@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+@keyframes card-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) { --motion: 1; }
+  :root:not([data-motion="calm"]) .dot.running { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .rise { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(min(var(--i, 0), 8) * 36ms); }
+}
+:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
+
+/* ---- base ---- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15px/24px var(--font); font-optical-sizing: auto; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 { font: 400 40px/44px var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.015em; }
+h2 { font: 400 26px/32px var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; }
+.serif { font-family: var(--serif); font-weight: 400; }
+.muted { color: var(--ink-2); } .faint { color: var(--ink-3); }
+.mono { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums slashed-zero; }
+a { color: var(--accent-ink); text-decoration: none; } a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: var(--glow); border-radius: 6px; }
+button { font: inherit; }
+
+/* ---- the mark (design/mark.svg geometry) ---- */
+.mark { flex: none; overflow: visible; display: block; }
+.mark .disc { fill: var(--mark-disc); }
+.mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; transform-box: view-box; transform-origin: 50% 50%; }
+.mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); }
+.rail .mark .arc.a { stroke: color-mix(in srgb, #56352D 38%, #E2C4A6); } /* the one tinted arc: 62 % lift on the rail at small sizes */
+
+/* ---- shell ---- */
+.shell { display: flex; height: 100%; }
+.rail { width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 6px; border-right: 1px solid var(--crease); overflow: hidden auto; }
+.rail .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font: 400 24px/28px var(--serif); }
+.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
+.rail .section { padding: 16px 10px 6px; font: 600 11.5px/16px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.rail .section .n { margin-left: auto; letter-spacing: 0; }
+.rail .item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); color: var(--rail-fg); font-size: 14px; text-decoration: none; }
+.rail .item:hover { background: var(--rail-2); text-decoration: none; }
+.rail .item.active { background: var(--rail-active); }
+.rail .item .n { margin-left: auto; font-size: 12px; color: var(--rail-muted); }
+.rail .item .n.count { background: var(--apricot); color: #56352D; border-radius: var(--radius-full); min-width: 20px; height: 20px; display: inline-grid; place-items: center; font: 600 11.5px/16px var(--font); padding: 0 6px; }
+.rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 14px; }
+.rail .me .meta { display: flex; flex-direction: column; line-height: 1.25; }
+.rail .me .meta .role { font-size: 12px; color: var(--rail-muted); }
+svg.ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* agent cards in the rail */
+.agent { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-radius: var(--radius); color: var(--rail-fg); text-decoration: none; }
+.agent:hover { background: var(--rail-2); }
+.agent.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px rgba(226,196,166,0.35); }
+.agent .head { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 500; min-width: 0; }
+.agent .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--serif); font-weight: 400; font-size: 16px; }
+.agent .doing { font-size: 13px; color: var(--rail-muted); line-height: 1.4; }
+.agent .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+.agent .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); }
+.agent .foot .tok { margin-left: auto; font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.crew { padding: 12px 12px 4px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.crew .serif { font-size: 15px; color: var(--apricot); }
+.crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
+
+/* dots, pills, counts */
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex: none; display: inline-block; position: relative; }
+.rail .dot { background: var(--rail-muted); }
+.dot.running { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.dot.awaiting { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+.dot.live { background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
+.dot .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/16px var(--font); letter-spacing: 0.02em; background: var(--surface-3); color: var(--ink-2); }
+.pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
+.pill.solo { background: transparent; border: 1px solid var(--line); }
+.rail .pill.solo { border-color: var(--rail-line); color: var(--rail-muted); }
+.count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--count-bg); color: var(--count-fg); font: 600 11.5px/16px var(--font); }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 600 11px/1 var(--font); border: 2px solid var(--canvas); flex: none; }
+.avatar.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
+.avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); color: var(--grad-fg); padding: 0; gap: 0; }
+.rail .avatar { border-color: var(--rail); }
+.stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -6px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px/20px var(--font); cursor: pointer; transition: background var(--t-fast) var(--ease-move), box-shadow var(--t-fast) var(--ease-move), transform var(--t) var(--ease-move); }
+.btn:hover { box-shadow: var(--shadow-soft); } .btn:active { transform: translateY(1px) scale(.99); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; } .btn.primary:hover { background: var(--accent-hover); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn.sm { min-height: 30px; padding: 0 11px; font-size: 13px; } .btn.icon { width: 36px; padding: 0; }
+.btn.on { background: var(--apricot-soft); color: var(--ink); border-color: transparent; }
+
+/* ---- main: the field lives here, under the topbar and the column, over the wash ---- */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--canvas); position: relative; isolation: isolate; overflow: hidden; }
+.main::before { content: ""; position: absolute; left: 10%; top: -320px; width: 1100px; height: 560px; max-width: 100%; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; z-index: -1; }
+canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.main > .topbar, .main > .scroll { position: relative; z-index: 1; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.topbar .title { font: 400 20px/24px var(--serif); display: inline-flex; align-items: center; gap: 12px; }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.topbar .menu { display: none; }
+.topbar .chip { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 4px; border-radius: var(--radius-full); border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 70%, transparent); font-size: 13px; color: var(--ink-2); }
+.topbar .chip .avatar { width: 22px; height: 22px; font-size: 9px; border-width: 1.5px; }
+.scroll { flex: 1; overflow: auto; }
+.column { width: min(var(--col), 100%); margin: 0 auto; padding: 8px 24px 120px; display: flex; flex-direction: column; gap: 34px; }
+
+/* the home hero: text on the page, no gradient card. The field is the ornament; the mark rests. */
+.hero-field { position: relative; display: grid; grid-template-columns: 56px 1fr; gap: 10px 22px; align-items: start; padding: 42px 0 8px; }
+.hero-field .mark { width: 56px; height: 56px; margin-top: 2px; }
+.hero-field h1 { max-width: 17ch; grid-column: 2; }
+.hero-field .lede { grid-column: 2; margin: 0; font-size: 16px; color: var(--ink-2); max-width: 44ch; }
+.hero-field .lede b { font-weight: 500; color: var(--ink); }
+.hero-field .demo { position: absolute; right: 56px; top: 60%; width: 1px; height: 1px; pointer-events: none; }
+
+/* the welcome brief: a ledger, flush left, no card (ai-interfaces-avoid: the column, not bubbles) */
+.brief header, .sessions header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.brief header .caption, .sessions header .caption { font-size: 13px; color: var(--ink-3); }
+.ledger { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ledger li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 46px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 15.5px; }
+.ledger li:first-child { border-top: 0; }
+.ledger li .g { display: grid; place-items: center; width: 28px; }
+.ledger li .name { font-family: var(--serif); font-weight: 400; font-size: 18px; line-height: 1; color: var(--ink); }
+.ledger li .name.hand { color: var(--accent-ink); }
+.ledger li .when { font-family: var(--mono); font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ledger li.quiet { color: var(--ink-3); font-size: 14px; min-height: 38px; }
+.ledger li .sub { display: block; font-size: 13px; color: var(--ink-3); line-height: 18px; }
+.ring-glyph { width: 14px; height: 14px; }
+.ring-glyph .a { stroke: var(--field-person); } .ring-glyph .b { stroke: var(--field-agent); } .ring-glyph .c { fill: var(--apricot); }
+
+/* sessions to open */
+.rowitem { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; padding: 12px 6px 12px 0; border-top: 1px solid var(--line); }
+.rowitem:last-child { border-bottom: 1px solid var(--line); }
+.rowitem .t { font-family: var(--serif); font-size: 19px; line-height: 24px; display: flex; align-items: center; gap: 10px; }
+.rowitem .t .goal { font-family: var(--font); font-size: 14px; color: var(--ink-2); }
+.rowitem .s { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
+.rowitem .s .status { display: inline-flex; align-items: center; gap: 6px; }
+.rowitem .who { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.rowitem .tok { font-family: var(--mono); font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* the field inspector: a floating card, mono measurements, the exploration's own controls */
+.inspector { position: fixed; right: 16px; bottom: 16px; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: var(--radius-full); background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); box-shadow: var(--shadow-pop), var(--edge); font-size: 13px; }
+.inspector .k { font: 400 15px/20px var(--serif); color: var(--ink); white-space: nowrap; }
+.inspector .stat { font-family: var(--mono); font-size: 12px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.inspector .sep { width: 1px; height: 18px; background: var(--line); }
+.inspector .btn.sm { min-height: 28px; padding: 0 10px; }
+
+/* ---- phone ---- */
+@media (max-width: 640px) {
+  .rail { display: none; }
+  .topbar { padding: 8px 12px; gap: 8px; }
+  .topbar .menu { display: inline-grid; place-items: center; }
+  .column { padding: 4px 16px 80px; gap: 28px; }
+  h1 { font-size: 31px; line-height: 35px; }
+  h2 { font-size: 23px; line-height: 28px; }
+  .hero-field { grid-template-columns: 40px 1fr; gap: 8px 14px; padding: 26px 0 4px; }
+  .hero-field .mark { width: 40px; height: 40px; }
+  .hero-field h1 { max-width: none; }
+  .ledger li { grid-template-columns: 24px minmax(0, 1fr); font-size: 15px; }
+  .ledger li .when { grid-column: 2; font-size: 11.5px; margin-top: -2px; }
+  .rowitem { grid-template-columns: 1fr auto; }
+  .rowitem .who { display: none; }
+  .inspector { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail" aria-label="Rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 96 96" width="28" height="28" role="img" aria-label="Henosis"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+      <span>Henosis</span>
+    </div>
+    <button class="new" type="button"><svg class="ic" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>New session</button>
+    <div class="section">Agents <span class="n">3</span></div>
+    <div class="crew"><span class="serif">Invoice rollout</span> · Payments</div>
+    <a class="agent active rise" style="--i:0" href="#">
+      <div class="head"><i class="dot running"><span class="sr">running</span></i><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing">On <i>proration for mid-cycle upgrades</i> · step 3 of 5</div>
+      <div class="foot"><span class="stack"><span class="avatar">A</span><span class="avatar driver">B</span></span><span>with Bo</span><span class="tok">3.6k</span></div>
+    </a>
+    <a class="agent rise" style="--i:1" href="#">
+      <div class="head"><i class="dot awaiting"><span class="sr">awaiting approval</span></i><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Plan: <i>tax lines on the invoice PDF</i> · waits for two ratings</div>
+      <div class="foot"><span class="avatar">D</span><span>Dee's agent</span><span class="tok">1.2k</span></div>
+    </a>
+    <a class="agent rise" style="--i:2" href="#">
+      <div class="head"><i class="dot"><span class="sr">idle</span></i><span class="t">Billing page</span><span class="pill solo">Solo</span></div>
+      <div class="doing">Bo has the baton · <i>invoice totals with tax lines</i></div>
+      <div class="foot"><span class="avatar">B</span><span>Bo's agent</span><span class="tok">0</span></div>
+    </a>
+    <div class="section">Pages</div>
+    <a class="item active" href="#"><svg class="ic" viewBox="0 0 16 16"><path d="M2.5 7.5 8 3l5.5 4.5V13a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 16 16"><path d="M2.5 9.5h3l1 2h3l1-2h3M2.5 9.5V4.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v5M2.5 9.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"/></svg>Inbox<span class="n count">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5"/></svg>Approvals<span class="n count">1</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 16 16"><path d="M3 3.5h10v9H3zM5.5 6.5h5M5.5 9.5h3"/></svg>Memory</a>
+    <div class="me"><span class="avatar driver">A</span><span class="meta"><span>Ana</span><span class="role">Payments · lead</span></span></div>
+  </aside>
+
+  <div class="main">
+    <canvas class="field" aria-hidden="true"></canvas>
+    <div class="topbar">
+      <button type="button" class="btn ghost icon menu" aria-label="Menu"><svg class="ic" viewBox="0 0 16 16"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg></button>
+      <span class="title">Home</span>
+      <div class="right"><span class="chip"><span class="avatar">A</span>Ana · Payments</span></div>
+    </div>
+    <div class="scroll">
+      <div class="column page home">
+
+        <section class="hero-field" data-field-quiet aria-label="Home">
+          <svg class="mark" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+          <h1>Many hands, one team. One holds the baton at a time.</h1>
+          <p class="lede">Watch the course, redirect, hand off. <b>Three</b> agents and <b>four</b> people are in Payments this morning.</p>
+          <span class="demo" data-field-demo></span>
+        </section>
+
+        <section class="brief" aria-labelledby="brief-h">
+          <header><h2 id="brief-h">Welcome back, Ana.</h2><span class="caption">Since Thursday 17:40 · Payments · <a href="#">Ask for a fuller brief</a></span></header>
+          <ol class="ledger" data-field-quiet>
+            <li class="rise" style="--i:0" data-field-anchor><span class="g"><i class="dot running"><span class="sr">running</span></i></span><span><span class="name">Bo</span> has the baton on <span class="name">Billing page</span>.<span class="sub">Invoice totals with tax lines · Checkout is on step 3 of 5 with him</span></span><span class="when">now</span></li>
+            <li class="rise" style="--i:1" data-field-anchor><span class="g"><span class="count">2</span></span><span>The plan for <span class="name">tax lines</span> waits for two ratings.<span class="sub">Dee's agent proposed 4 steps · est. 1.2k tokens · yours would be the first</span></span><span class="when">09:41</span></li>
+            <li class="rise" style="--i:2"><span class="g"><svg class="ring-glyph" viewBox="0 0 16 16" aria-hidden="true"><path class="a" d="M8 2.5a5.5 5.5 0 0 1 0 11" fill="none" stroke-width="2" stroke-linecap="round"/><path class="b" d="M8 13.5a5.5 5.5 0 0 1 0-11" fill="none" stroke-width="2" stroke-linecap="round"/><circle class="c" cx="8" cy="8" r="1.6"/></svg></span><span><span class="name">Checkout</span> united <span class="name">pdf-layout</span> into main.<span class="sub">Release gate held by Bo and Cy · 2 ratings at 4 · proration tests green</span></span><span class="when">09:12</span></li>
+            <li class="rise" style="--i:3"><span class="g"><i class="dot"></i></span><span><span class="name">Dee's agent</span> answered in <span class="name">#billing</span>.<span class="sub">"The invoice PDF keeps the tax lines under the subtotal, as the memory says."</span></span><span class="when">Thu 18:02</span></li>
+            <li class="rise quiet" style="--i:4"><span class="g"></span><span>Cy left the circle.</span><span class="when">Thu 17:55</span></li>
+          </ol>
+        </section>
+
+        <section class="sessions" aria-labelledby="sess-h">
+          <header><h2 id="sess-h">Open a session</h2><span class="caption">3 open in Payments · <a href="#">New session</a></span></header>
+          <div data-field-quiet>
+            <div class="rowitem rise" style="--i:2" data-field-anchor>
+              <div><div class="t">Checkout <span class="goal">Proration for mid-cycle upgrades</span></div><div class="s"><span class="status"><i class="dot running"><span class="sr">running</span></i>Running</span><span class="pill team">Team</span><span>Ana's agent with Bo</span><span class="tok">3,612 tokens</span></div></div>
+              <span class="who"><span class="stack"><span class="avatar agent">C</span><span class="avatar">A</span><span class="avatar driver">B</span></span></span>
+              <button class="btn sm" type="button">Open</button>
+            </div>
+            <div class="rowitem rise" style="--i:3">
+              <div><div class="t">Billing page <span class="goal">Invoice totals with tax lines</span></div><div class="s"><span class="status"><i class="dot live"></i>Bo has the baton</span><span class="pill solo">Solo</span><span class="tok">0 tokens</span></div></div>
+              <span class="who"><span class="stack"><span class="avatar driver">B</span></span></span>
+              <button class="btn sm" type="button">Open</button>
+            </div>
+            <div class="rowitem rise" style="--i:4">
+              <div><div class="t">Invoice PDF <span class="goal">Tax lines on the invoice PDF</span></div><div class="s"><span class="status"><i class="dot awaiting"><span class="sr">awaiting approval</span></i>Plan waits for two ratings</span><span class="pill solo">Solo</span><span>Dee's agent</span><span class="tok">1,204 tokens</span></div></div>
+              <span class="who"><span class="stack"><span class="avatar agent">I</span><span class="avatar">D</span></span></span>
+              <button class="btn sm primary" type="button">Rate the plan</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="inspector" role="group" aria-label="Unity field">
+  <span class="k">Unity field</span>
+  <span class="stat" id="stat" aria-live="off">measuring…</span>
+  <span class="sep"></span>
+  <button class="btn sm ghost" type="button" id="btnJoin">Ana joins</button>
+  <button class="btn sm ghost" type="button" id="btnMotion" aria-pressed="false">Calm</button>
+  <button class="btn sm ghost" type="button" id="btnTheme" aria-pressed="false">Dark</button>
+</div>
+
+<script>
+/* The unity field. A 2D canvas behind the home and the welcome brief: faint half-arcs, a person's and
+   an agent's for every pair, drift across the page. Near the cursor, near a live row, or when a join
+   ripples through, a pair travels to its shared centre and swings from the mark's "apart" pose (±60°)
+   into one ring; only once the ring is one does the apricot centre appear. Rest is the end state:
+   under Calm or prefers-reduced-motion the field is one still frame with the rings already closed. */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const main = document.querySelector('.main');
+  const canvas = main.querySelector('canvas.field');
+  const ctx = canvas.getContext('2d');
+  const scroller = main.querySelector('.scroll');
+  const statEl = document.getElementById('stat');
+  const TAU = Math.PI * 2, HALF = Math.PI / 2, D60 = Math.PI / 3;
+  const R_POINTER = 150, R_ANCHOR = 84, R_PULSE = 340;
+  const DPR_CAP = 1.5;                         /* flow-field craft: cap the ratio, stop when hidden */
+
+  /* seeded, so the composition is the same every time the page opens at a given size */
+  let seed = 0x9E3779B9;
+  function reseed() { seed = 0x9E3779B9; }
+  function rnd() { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+  const rr = (a, b) => a + (b - a) * rnd();
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  const S = {
+    w: 0, h: 0, dpr: 1, pairs: [], anchors: [], quiet: [], demo: null, pointer: null, pointerSeen: false,
+    pulse: null, motion: false, col: null, raf: 0, last: 0, active: true, cost: 0, frames: 0, fpsT: 0, fps: 0,
+    visible: true, intersecting: true
+  };
+
+  const motionOn = () => getComputedStyle(root).getPropertyValue('--motion').trim() === '1';
+  function readColours() {
+    const cs = getComputedStyle(main), v = n => cs.getPropertyValue(n).trim();
+    S.col = {
+      p: v('--field-person'), pRest: +v('--field-person-rest'), pRing: +v('--field-person-ring'),
+      a: v('--field-agent'), aRest: +v('--field-agent-rest'), aRing: +v('--field-agent-ring'),
+      c: v('--field-centre'), cA: +v('--field-centre-alpha'),
+      halo: v('--field-halo'), haloA: +v('--field-halo-alpha'),
+      ink: v('--ink'), canvas: v('--canvas')
+    };
+  }
+
+  /* ---- geometry ---------------------------------------------------------------------------- */
+  function makePair(x, y, kind) {
+    const r = kind === 'anchor' ? rr(13, 17) : rr(9, 26);
+    const k = rr(55, 110);                       /* spring stiffness; the mark's curve is not a spring, */
+    return {                                     /* but a field must be interruptible (motion-choreography) */
+      x, y, r, kind, ai: -1,
+      d: rr(1.6, 3.2) * r + 14,                  /* how far apart the two arcs sit at rest */
+      phi: rr(0, TAU), om: rr(-0.14, 0.14),      /* the apart axis and its slow turn */
+      wob: rr(-0.45, 0.45),                      /* the apart pose varies around ±60° */
+      av: rr(0, TAU), sp: rr(3.5, 8.5),          /* drift heading and speed, px/s */
+      u: 0, du: 0, k, c: 2 * 0.72 * Math.sqrt(k),/* ζ 0.72: a small overshoot, the −4° / +2° of the mark */
+      s: 0, ds: 0,                               /* the centre: 0 until the ring is one */
+      t: 0, q: 1
+    };
+  }
+  function farEnough(x, y, list, min) {
+    for (let i = 0; i < list.length; i++) { const p = list[i], dx = p.x - x, dy = p.y - y; if (dx * dx + dy * dy < min * min) return false; }
+    return true;
+  }
+  function seedField() {
+    reseed();
+    const w = S.w, h = S.h, pairs = [];
+    const n = clamp(Math.round(w * h / 23000), 12, 64);
+    for (let i = 0, tries = 0; i < n && tries < n * 30; tries++) {
+      const x = rr(16, w - 16), y = rr(16, h - 16);
+      if (!farEnough(x, y, pairs, 74)) continue;
+      pairs.push(makePair(x, y, 'free')); i++;
+    }
+    /* one ring per live row, in the margin beside it: marginalia (presence-and-agents) */
+    S.anchors.forEach((a, i) => { const p = makePair(a.x, a.cy, 'anchor'); p.ai = i; p.u = 1; p.s = 1; pairs.push(p); });
+    /* a few extra pairs gathered under the demonstration cursor */
+    if (S.demo) for (let i = 0, tries = 0; i < 4 && tries < 60; tries++) {
+      const ang = rr(0, TAU), dist = rr(34, 118);
+      const x = S.demo.x + Math.cos(ang) * dist, y = S.demo.y + Math.sin(ang) * dist;
+      if (x < 16 || y < 16 || x > w - 16 || y > h - 16 || !farEnough(x, y, pairs, 58)) continue;
+      pairs.push(makePair(x, y, 'free')); i++;
+    }
+    S.pairs = pairs;
+    settle(true);
+  }
+  function anchorPos(p) {
+    const a = S.anchors[p.ai]; if (!a) return;
+    if (a.x >= 96) { p.x = a.x - 44; } else { p.x = a.x + a.w - 14; }  /* left margin, or the row's end on a phone */
+    p.y = a.cy;
+  }
+  function measure() {
+    const mr = main.getBoundingClientRect();
+    const rect = el => { const r = el.getBoundingClientRect(); return { x: r.left - mr.left, y: r.top - mr.top, w: r.width, h: r.height, cx: r.left - mr.left + r.width / 2, cy: r.top - mr.top + r.height / 2 }; };
+    S.anchors = Array.from(main.querySelectorAll('[data-field-anchor]')).map(rect);
+    S.quiet = Array.from(main.querySelectorAll('[data-field-quiet]')).map(rect);
+    const d = main.querySelector('[data-field-demo]');
+    S.demo = (d && S.w >= 760 && !S.pointerSeen) ? rect(d) : null;
+  }
+  function resize() {
+    const w = main.clientWidth, h = main.clientHeight;
+    const dpr = Math.min(DPR_CAP, window.devicePixelRatio || 1);
+    const changed = w !== S.w || h !== S.h;
+    S.w = w; S.h = h; S.dpr = dpr;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    measure();
+    if (changed || !S.pairs.length) seedField(); else S.pairs.forEach(p => { if (p.kind === 'anchor') anchorPos(p); });
+    S.active = true;
+  }
+
+  /* ---- what each pair wants ------------------------------------------------------------------ */
+  function targetOf(p, now) {
+    if (p.kind === 'anchor') return 1;
+    const P = S.pointer || S.demo;
+    if (P) { const dx = p.x - P.x, dy = p.y - P.y; if (dx * dx + dy * dy < R_POINTER * R_POINTER) return 1; }
+    for (let i = 0; i < S.anchors.length; i++) { const a = S.anchors[i], dx = p.x - a.cx, dy = p.y - a.cy; if (dx * dx + dy * dy < R_ANCHOR * R_ANCHOR) return 1; }
+    const pu = S.pulse;
+    if (pu) { const dx = p.x - pu.x, dy = p.y - pu.y, dist = Math.sqrt(dx * dx + dy * dy), el = now - pu.t, delay = dist * 2.4; if (dist < R_PULSE && el > delay && el < delay + 1500) return 1; }
+    return 0;
+  }
+  function quietOf(p) {
+    for (let i = 0; i < S.quiet.length; i++) { const q = S.quiet[i]; if (p.x > q.x && p.x < q.x + q.w && p.y > q.y && p.y < q.y + q.h) return 0.5; }
+    return 1;
+  }
+  /* the still frame: every pair sits at its end state (Calm, reduce, first paint) */
+  function settle(all) {
+    const now = performance.now();
+    S.pairs.forEach(p => { if (p.kind === 'anchor') anchorPos(p); const t = targetOf(p, now); if (all || t === 1) { p.u = t; p.du = 0; p.s = t; p.ds = 0; } p.q = quietOf(p); });
+  }
+
+  function step(dt, now) {
+    let active = false;
+    const w = S.w, h = S.h;
+    for (let i = 0; i < S.pairs.length; i++) {
+      const p = S.pairs[i];
+      if (p.kind === 'anchor') anchorPos(p);
+      const t = targetOf(p, now);
+      const acc = p.k * (t - p.u) - p.c * p.du; p.du += acc * dt; p.u += p.du * dt;
+      const st = p.u > 0.94 ? 1 : 0;                          /* the centre only after the ring is one */
+      const acc2 = 170 * (st - p.s) - 2 * 0.46 * Math.sqrt(170) * p.ds; p.ds += acc2 * dt; p.s += p.ds * dt; if (p.s < 0) p.s = 0;
+      if (Math.abs(t - p.u) > 0.004 || Math.abs(p.du) > 0.004 || Math.abs(st - p.s) > 0.01) active = true;
+      if (p.kind !== 'anchor') {
+        const slow = 1 - 0.88 * clamp(p.u, 0, 1);              /* a formed ring rests; the drift is for the loose arcs */
+        p.av += (rnd() - 0.5) * 0.9 * dt;
+        p.x += Math.cos(p.av) * p.sp * slow * dt; p.y += Math.sin(p.av) * p.sp * slow * dt;
+        p.phi += p.om * slow * dt;
+        p.wob = clamp(p.wob + (rnd() - 0.5) * 0.25 * dt, -0.5, 0.5);
+        if (p.x < -40) p.x = w + 38; else if (p.x > w + 40) p.x = -38;
+        if (p.y < -40) p.y = h + 38; else if (p.y > h + 40) p.y = -38;
+      }
+      p.q = quietOf(p);
+    }
+    if (S.pulse && now - S.pulse.t > R_PULSE * 2.4 + 1700) S.pulse = null;
+    return active || !!S.pulse;
+  }
+
+  /* ---- drawing ----------------------------------------------------------------------------- */
+  function half(x, y, r, th) { ctx.moveTo(x + r * Math.cos(th - HALF), y + r * Math.sin(th - HALF)); ctx.arc(x, y, r, th - HALF, th + HALF); }
+  function restBatch(kind, quiet) {
+    const C = S.col, person = kind === 'p';
+    ctx.beginPath();
+    let n = 0;
+    for (let i = 0; i < S.pairs.length; i++) {
+      const p = S.pairs[i]; if (p.u > 0.012 || (p.q < 1) !== quiet) continue;
+      const cx = Math.cos(p.phi) * p.d, cy = Math.sin(p.phi) * p.d;
+      if (person) half(p.x + cx, p.y + cy, p.r, D60 + p.wob); else half(p.x - cx, p.y - cy, p.r, Math.PI - D60 - p.wob);
+      n++;
+    }
+    if (!n) return;
+    ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+    ctx.globalAlpha = (person ? C.pRest : C.aRest) * (quiet ? 0.5 : 1);
+    ctx.strokeStyle = person ? C.p : C.a;
+    ctx.stroke();
+  }
+  function draw() {
+    const C = S.col, dpr = S.dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, S.w, S.h);
+    restBatch('p', false); restBatch('a', false); restBatch('p', true); restBatch('a', true);
+    for (let i = 0; i < S.pairs.length; i++) {
+      const p = S.pairs[i]; if (p.u <= 0.012) continue;
+      const u = p.u, uc = clamp(u, 0, 1), q = p.q;
+      const ox = Math.cos(p.phi) * p.d * (1 - uc), oy = Math.sin(p.phi) * p.d * (1 - uc);
+      if (uc > 0.3) { ctx.globalAlpha = C.haloA * (uc - 0.3) / 0.7 * q; ctx.fillStyle = C.halo; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.1, 0, TAU); ctx.fill(); }
+      ctx.lineWidth = 1.5 + p.r * 0.075 * uc; ctx.lineCap = u > 0.985 ? 'butt' : 'round';
+      ctx.beginPath(); half(p.x + ox, p.y + oy, p.r, (D60 + p.wob) * (1 - u));
+      ctx.globalAlpha = lerp(C.pRest, C.pRing, uc) * q; ctx.strokeStyle = C.p; ctx.stroke();
+      ctx.beginPath(); half(p.x - ox, p.y - oy, p.r, Math.PI - (D60 + p.wob) * (1 - u));
+      ctx.globalAlpha = lerp(C.aRest, C.aRing, uc) * q; ctx.strokeStyle = C.a; ctx.stroke();
+      if (p.s > 0.02) { ctx.globalAlpha = C.cA * Math.min(1, p.s) * q; ctx.fillStyle = C.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.25 * p.s, 0, TAU); ctx.fill(); }
+    }
+    if (S.demo && !S.pointer) {  /* the demonstration cursor, drawn until a real pointer arrives */
+      ctx.globalAlpha = 1; ctx.translate(S.demo.x, S.demo.y);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 15.5); ctx.lineTo(4, 11.8); ctx.lineTo(6.6, 18.2); ctx.lineTo(9.3, 17); ctx.lineTo(6.8, 10.8); ctx.lineTo(11.8, 10.8); ctx.closePath();
+      ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.strokeStyle = C.canvas; ctx.stroke(); ctx.fillStyle = C.ink; ctx.fill();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* ---- the clock --------------------------------------------------------------------------- */
+  function frame(now) {
+    S.raf = requestAnimationFrame(frame);
+    if (!S.active && now - S.last < 40) return;             /* nothing closing: drift at 24 fps */
+    const dt = Math.min(0.05, (now - S.last) / 1000) || 0.016;
+    const t0 = performance.now();
+    S.active = step(dt, now); S.last = now;
+    draw();
+    const c = performance.now() - t0;
+    S.cost = S.cost ? S.cost * 0.92 + c * 0.08 : c; S.frames++;
+    if (now - S.fpsT >= 1000) { S.fps = S.frames; S.frames = 0; S.fpsT = now; stat(); }
+  }
+  function stat() {
+    const arcs = S.pairs.length * 2;
+    if (!S.motion) { statEl.textContent = arcs + ' arcs · still frame · 0 fps · 0 % of a core'; return; }
+    statEl.textContent = arcs + ' arcs · ' + S.cost.toFixed(2) + ' ms/frame · ' + S.fps + ' fps · ' + (S.cost * S.fps / 10).toFixed(1) + ' % of a core';
+  }
+  function run() {
+    cancelAnimationFrame(S.raf); S.raf = 0;
+    S.motion = motionOn();
+    if (!S.motion || !S.visible || !S.intersecting) { settle(true); draw(); stat(); return; }
+    S.last = performance.now(); S.fpsT = S.last; S.frames = 0; S.active = true;
+    S.raf = requestAnimationFrame(frame);
+  }
+  function pulse(x, y) { if (!S.motion) return; S.pulse = { x, y, t: performance.now() }; S.active = true; }
+
+  /* ---- listeners ---------------------------------------------------------------------------- */
+  main.addEventListener('pointermove', e => {
+    if (!S.motion) return;
+    const r = main.getBoundingClientRect();
+    S.pointer = { x: e.clientX - r.left, y: e.clientY - r.top };
+    if (!S.pointerSeen) { S.pointerSeen = true; S.demo = null; }
+    S.active = true;
+  });
+  main.addEventListener('pointerleave', () => { S.pointer = null; S.active = true; });
+  main.addEventListener('pointerdown', e => {
+    if (e.target.closest('button, a, input, .inspector')) return;
+    const r = main.getBoundingClientRect();
+    pulse(e.clientX - r.left, e.clientY - r.top);
+    if (e.pointerType === 'touch') { S.pointer = { x: e.clientX - r.left, y: e.clientY - r.top }; setTimeout(() => { S.pointer = null; S.active = true; }, 2400); }
+  });
+  let scrollRaf = 0;
+  scroller.addEventListener('scroll', () => { if (scrollRaf) return; scrollRaf = requestAnimationFrame(() => { scrollRaf = 0; measure(); if (!S.motion) { settle(true); draw(); } else S.active = true; }); }, { passive: true });
+  new ResizeObserver(() => { resize(); if (!S.motion) { settle(true); draw(); } }).observe(main);
+  new MutationObserver(() => { readColours(); syncButtons(); run(); }).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-motion'] });
+  try {
+    matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => { syncButtons(); run(); });
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColours(); syncButtons(); run(); });
+  } catch (e) { /* older engines */ }
+  document.addEventListener('visibilitychange', () => { S.visible = !document.hidden; run(); });
+  new IntersectionObserver(es => { S.intersecting = es[0].isIntersecting; run(); }).observe(canvas);
+
+  /* the inspector's three buttons: a join, the Calm switch, the theme */
+  const btnJoin = document.getElementById('btnJoin'), btnMotion = document.getElementById('btnMotion'), btnTheme = document.getElementById('btnTheme');
+  btnJoin.addEventListener('click', () => { const a = S.anchors[0]; if (a) pulse(a.x - 44, a.cy); });
+  btnMotion.addEventListener('click', () => { if (root.dataset.motion === 'calm') delete root.dataset.motion; else root.dataset.motion = 'calm'; });
+  btnTheme.addEventListener('click', () => { const dark = getComputedStyle(root).colorScheme === 'dark'; root.dataset.theme = dark ? 'light' : 'dark'; });
+  function syncButtons() {
+    const calm = !motionOn(), dark = getComputedStyle(root).colorScheme === 'dark';
+    btnMotion.textContent = calm ? 'Calm · on' : 'Calm'; btnMotion.setAttribute('aria-pressed', String(calm)); btnMotion.classList.toggle('on', calm);
+    btnTheme.textContent = dark ? 'Dark · on' : 'Dark'; btnTheme.setAttribute('aria-pressed', String(dark)); btnTheme.classList.toggle('on', dark);
+  }
+
+  readColours(); resize(); syncButtons(); run();
+})();
+</script>
+</body>
+</html>

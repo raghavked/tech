@@ -107,6 +107,7 @@ export class BoltSlackClient implements SlackClient {
       blocks: input.blocks,
       thread_ts: input.threadTs,
       reply_broadcast: input.broadcast,
+      ...(input.as ? { username: input.as } : {}),
     });
     return { channel: String(r.channel), ts: String(r.ts) };
   }

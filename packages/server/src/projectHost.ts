@@ -40,6 +40,11 @@ import type { MemoryAccess, Model, ToolRegistry, WorkspaceGuard } from "@henosis
 import { SessionHost } from "./host.js";
 import { FileStore, type LiveStore, LogWriter } from "./store/index.js";
 
+/** The reader a `session.briefed` names for the agent's standing brief (the runner's agent id). */
+export const AGENT_READER = "agent";
+/** What the agent is told when it is alone in the project (the fleet tool says the same). */
+export const NO_OTHER_AGENTS = "no other agents in this project";
+
 export interface ProjectSubscriber {
   userId: string | null;
   send(
@@ -135,6 +140,10 @@ export class ProjectHost {
       tools: this.opts.tools,
       guard: this.guardFor(sessionId),
       memory: this.memoryFor(sessionId),
+      onBriefed: (actorId: string, atSeq: number, markdown: string) => {
+        if (this.project.state().sessions[sessionId])
+          this.project.briefed(sessionId, actorId, "handoff", atSeq, markdown);
+      },
     };
     const withLog = this.opts.log ? { ...base, log: this.opts.log } : base;
     try {
@@ -158,6 +167,15 @@ export class ProjectHost {
     const st = h.session.state();
     if (!this.project.state().sessions[sessionId]) {
       this.project.registerSession(sessionId, st.ownerId ?? create?.ownerId ?? "unknown", st.title);
+      // The standing brief the agent joins with: what the other agents hold and do. Recorded
+      // once, at registration, so "What it was told" is in the ledger and replays.
+      this.project.briefed(
+        sessionId,
+        AGENT_READER,
+        "fleet",
+        st.seq,
+        renderFleetContext(this.project.state(), sessionId) || NO_OTHER_AGENTS,
+      );
     }
     syncDirectives(this.project.state(), sessionId, h.session);
     h.session.onEvent((e) => this.onSessionEvent(sessionId, e));

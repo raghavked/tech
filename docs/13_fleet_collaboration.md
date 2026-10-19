@@ -158,19 +158,87 @@ Bo and Ana's agent in one group over the front door; Bo's mention reaches the se
 directive, the scripted agent's reply lands in the group, unread counts, the inbox mention,
 and the chat log reloading on start.
 
+## Briefs in the ledger, the snapshot's reconnect line, offline directives
+
+`session.briefed` is a project event recording that a brief was read: `kind: "fleet"` with
+reader `agent` is the standing brief the agent is given when it registers (what the other
+agents hold and do, the text kept up to 4,000 characters, so "What it was told" is in the
+ledger and replays); `kind: "handoff"` with a user id is a person asking for the handoff brief
+over the wire. `atSeq` is the session seq the brief described. The fold keeps them on
+`sessions[id].briefs` and the fleet brief lists them ("Ana read the handoff brief at seq 12").
+
+A session `snapshot` carries `reconnect: { attempt, delayMs, resumed }`: the dial count the
+client reported in its `join` (`attempt`), the delay the server asks it to wait before dialling
+again should this socket drop (`reconnectBackoffMs(attempt + 1)`: 0.5 s doubling to 15 s, one
+policy for a fleet of tabs; clients add their own jitter), and whether the snapshot resumed a
+held history after `sinceSeq` or replaced it. A branch switch sends no `reconnect`.
+
+Offline directives (Decision 4): the web client holds directives, votes, plan ratings and
+handoff answers typed while the socket is closed, in order, and replays them on rejoin
+(`apps/web/src/offlineQueue.ts`). The kernel's safe-point rule for a replayed directive is the
+one it has for a live one: appended to the log at once, landing on the agent at the next turn
+boundary when the runner re-reads the intent; `interrupt` asks for the next safe point inside
+a turn, exactly as online. The kernel does not know a directive was replayed.
+
+## The glance
+
+`GET /api/glance?user=<id>` is the one needs-you number for the phone's Approvals tab, the
+manager's sentence, the widgets and the menu-bar panel: approvals the person can still vote
+on (pending, rule not `none`, their rank at or above the rule's, no ballot of theirs yet) plus
+handoffs offered to them, never mentions. It also carries the top gate with its quorum (the
+most consequential risk class first, then the oldest), the open sessions by live status, and
+the tokens the person's sessions spent today. The logs keep a logical clock, so the server
+counts model calls as they land into `store/usage-days.json`, attributed to the session owner
+like `/api/usage`, and keeps fourteen days. Every push payload and `GET /api/notifications`
+carry the same figure as `needsYou`, so the badge, the tab and the sentence agree.
+
 ## Slack
 
 `packages/slack` maps channels to the hierarchy: a channel per team, a channel per project,
 and a management channel. Every session is a thread in its project channel, opened when the
-session registers ("Ana's agent started 'Invoice PDF'. Reply in this thread to steer it").
-Turn summaries, directives and handoffs are coalesced into one reply per thread every 1.5 s so
-a fleet stays under Slack's per-channel posting limit. Approvals are Block Kit buttons in the
-thread; irreversible ones are broadcast to the channel; a click votes as the mapped Henosis
-user with the role identity gives them, and the message is updated with the outcome. Fleet
-contentions and team-memory conflicts go to the management channel with "X wins" and "X is
-right" buttons that resolve on click, and to the owners' threads. Replies in a thread become
-directives (`[scope] text`, `/constrain`, `/pause`, `/resume`, `/cancel`). Slash commands:
-`/fold brief <project>`, `/fold sessions <project>`, `/fold memory <org>`. The adapter
-runs against an interface with an in-memory fake, so the whole flow is tested offline
-(`packages/slack/test/adapter.test.ts`); `henosis slack --config slack.json` runs it on Bolt in
-socket mode, which needs no public URL.
+session registers ("Ana's agent started _Invoice PDF_ in Payments. Reply in this thread to
+steer it", with a context line: plan first, crew, who has the baton, the budget, and the link
+last). Turn summaries, directives, join lines ("Ana's agent joins the circle"), baton changes
+and refused writes are coalesced into one reply per thread every 1.5 s so a fleet stays under
+Slack's per-channel posting limit. The messages are the `slack-templates`
+(`packages/slack/src/templates.ts`, pure): one sentence first, a context line, the buttons,
+the link last; names bold, titles italic, tool names in backticks; one message edited in place
+when the decision lands, with "(edited)".
+
+Approvals are Block Kit buttons in the thread; irreversible ones are broadcast to the
+channel. Under a release gate the five buttons 1★–5★ are the vote: the rating travels in the
+button's `value` under the one route `vote:<project>:<session>:<approval>:approve` (the stars
+carry a trailing `:<n>` only because Slack needs action_ids unique within a block; the handler
+never reads it), Deny is `danger`, no star is primary, and the context line says that 4★ is
+what a plain Approve sends. A press without a value under a release gate sends
+`DEFAULT_RATING` (4, from `@henosis/protocol`), the same vote the app's Approve sends; a plain
+rule shows Approve and Deny only and the Approve carries no rating, as the app's does. The
+message names each voter while pending and, decided, lists raters with ratings, the average
+and the bar. A plan under plan-first gets the same five stars (`plan:<project>:<session>:<plan>`)
+and edits to "The plan is approved (Ana 4)". A click votes as the mapped Henosis user with the
+role identity gives them.
+
+Fleet contentions go to the management channel with both sides as fields (owner, title,
+status, turn, tokens, what they hold), "X wins" buttons none of which is primary, and the
+link; the resolution edits the message ("Dee resolved it: Bo wins. Ana's claims release.") and
+each thread gets the line. Team-memory conflicts use the same shape with "X is right" buttons
+and edit to "Dee settled `db`: Ana is right." A mention of "@Ana's agent" in a team channel
+routes to Ana's newest session that can answer (running, else idle), posts a placeholder as
+"Ana's agent" in the message's thread, steers the session in the scope `chat`, and edits the
+placeholder into the agent's next words with the cost in the context line and a "Remember for
+the team" button that files the answer as team memory; Ana's thread gets "Ana's agent
+answered Bo in #billing". Replies in a session thread become directives (`[scope] text`,
+`/constrain`, `/pause`, `/resume`, `/cancel`).
+
+The daily brief (`adapter.renderBrief(project)`, `adapter.postBrief(project)`) is the manager
+overview said in Slack, computed from the ledger: the header "Payments · Tuesday", the team
+sentence ("3 open sessions across 1 project: 2 running, 1 awaiting approval. 2 things need
+you."), what needs you with the link that answers it, the roster one line each, the numbers
+as fields (tokens, plans, release gates, crews), the ledger seq and direction in the context
+line, and Open the overview · Approvals · n · Contentions · n. A quiet morning is one line and
+no buttons. The schedule belongs to whoever runs the adapter. Slash commands: `/henosis brief
+<project>` (the "now" sentence, then the fleet brief, only to the asker), `/henosis sessions
+<project>`, `/henosis memory <org>`. The adapter runs against an interface with an in-memory
+fake, so the whole flow is tested offline (`packages/slack/test/adapter.test.ts`,
+`templates.test.ts`); `henosis slack --config slack.json` runs it on Bolt in socket mode,
+which needs no public URL.

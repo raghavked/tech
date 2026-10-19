@@ -57,6 +57,15 @@ export type DirectiveMode = z.infer<typeof DirectiveMode>;
 /** The scope "goal" is the top-level objective; every other scope is free-form (e.g. "api", "tests"). */
 export const GOAL_SCOPE = "goal";
 
+/**
+ * Offline directives (Decision 4): a disconnected client holds what a person typed
+ * (directives, votes, plan ratings, handoff answers) in order and replays it the moment the
+ * session is joined again (`apps/web/src/offlineQueue.ts`). The kernel's safe-point rule for
+ * a replayed directive is the one it has for a live one: it is appended to the log at once
+ * and lands on the agent at the next turn boundary, when the runner re-reads the intent.
+ * Nothing is injected into a turn in flight; `interrupt` asks for the next safe point inside
+ * the turn, exactly as online. The kernel does not know a directive was replayed.
+ */
 export const DirectiveInput = z.object({
   text: z.string().min(1).max(20_000),
   mode: DirectiveMode.default("steer"),
@@ -94,6 +103,13 @@ export type RiskClass = z.infer<typeof RiskClass>;
  */
 export const Rating = z.number().int().min(1).max(5);
 export type Rating = z.infer<typeof Rating>;
+
+/**
+ * The rating a plain Approve carries under a release gate when the person picked none. One
+ * value for every surface: the web app's Approve, the Slack adapter's Approve, a widget's App
+ * Intent. "4 is the default the app sends" must be true wherever a vote is cast.
+ */
+export const DEFAULT_RATING: Rating = 4;
 
 export const ApprovalRule = z.union([
   z.literal("none"),
@@ -236,6 +252,52 @@ export interface UsageReport {
   clock: "logical";
   /** Query parts that could not be applied, in words. */
   warnings: string[];
+}
+
+// ---------------------------------------------------------------------------------------
+// Glance: GET /api/glance?user= on the server; the one needs-you number for a phone tab, a
+// widget, a menu-bar panel and the push badge (mobile-rail, widgets)
+// ---------------------------------------------------------------------------------------
+
+/** The top gate a glance shows: the one approval the person should look at first. */
+export interface GlanceGate {
+  projectId: string;
+  sessionId: string;
+  title: string;
+  /** The session owner's name: "in Ana's session". */
+  owner: string;
+  approvalId: string;
+  call: { name: string; risk: RiskClass };
+  /** The rule in words, as `describeRule` says it. */
+  rule: string;
+  /** A release gate: the approve carries a 1..5 rating. */
+  ratings: boolean;
+  /** Approving ballots from eligible voters so far, and how many the rule needs. */
+  votes: number;
+  needed: number;
+  /** Under a release gate: the average rating so far and the bar; null otherwise. */
+  average: number | null;
+  bar: number | null;
+}
+
+export interface GlanceReport {
+  user: { id: string; name: string } | null;
+  /**
+   * The one needs-you number: approvals this person can still vote on plus handoffs offered
+   * to them. Never mentions. The same figure rides in every push payload as `needsYou`.
+   */
+  needsYou: number;
+  approvals: number;
+  handoffs: number;
+  topGate: GlanceGate | null;
+  /** Open sessions in the person's projects by live status. */
+  agents: { open: number; running: number; awaitingApproval: number; blocked: number };
+  /**
+   * Tokens the person's sessions spent today (UTC calendar day). The logs keep a logical clock,
+   * so the server counts model calls as they land and keeps the day totals beside the store.
+   */
+  tokensToday: Usage;
+  day: string;
 }
 
 /** One step of a plan the agent proposes before it acts. */
@@ -495,6 +557,11 @@ export const ClientMessage = z.discriminatedUnion("type", [
      * for the full history.
      */
     sinceSeq: z.number().int().min(0).optional(),
+    /**
+     * Reconnect: how many dials this socket took (0 or absent on a first connection). Echoed
+     * in the snapshot's `reconnect` so the views can say "back after 3 tries".
+     */
+    attempt: z.number().int().min(0).optional(),
   }),
   z.object({ type: z.literal("directive"), input: DirectiveInput }),
   z.object({ type: z.literal("withdraw"), directiveId: z.string() }),
@@ -547,9 +614,37 @@ export const PresenceEntry = z.object({
 });
 export type PresenceEntry = z.infer<typeof PresenceEntry>;
 
+/** Backoff for a dropped socket: 0.5s, 1s, 2s, 4s … capped at 15s. Clients add their own jitter. */
+export const RECONNECT_BASE_MS = 500;
+export const RECONNECT_MAX_MS = 15_000;
+export function reconnectBackoffMs(attempt: number): number {
+  return Math.min(RECONNECT_BASE_MS * 2 ** Math.max(0, Math.floor(attempt)), RECONNECT_MAX_MS);
+}
+
+/**
+ * What a snapshot says about the dial that produced it: the attempt the client reported, the
+ * delay the server asks it to wait before dialling again should this socket drop (one backoff
+ * policy for a fleet of tabs), and whether the snapshot resumed a held history (a delta after
+ * `sinceSeq`) or replaced it.
+ */
+export const ReconnectInfo = z.object({
+  attempt: z.number().int().min(0),
+  delayMs: z.number().int().min(0),
+  resumed: z.boolean(),
+});
+export type ReconnectInfo = z.infer<typeof ReconnectInfo>;
+
 export const ServerMessage = z.discriminatedUnion("type", [
-  /** Full event history of a branch; the client folds it with the same reducer as the server. */
-  z.object({ type: z.literal("snapshot"), branch: z.string(), events: z.array(SessionEvent) }),
+  /**
+   * Full event history of a branch (or the events after `sinceSeq`); the client folds it with
+   * the same reducer as the server. `reconnect` is absent on a branch switch.
+   */
+  z.object({
+    type: z.literal("snapshot"),
+    branch: z.string(),
+    events: z.array(SessionEvent),
+    reconnect: ReconnectInfo.optional(),
+  }),
   z.object({ type: z.literal("event"), event: SessionEvent }),
   z.object({ type: z.literal("presence"), entries: z.array(PresenceEntry) }),
   z.object({ type: z.literal("brief"), markdown: z.string() }),

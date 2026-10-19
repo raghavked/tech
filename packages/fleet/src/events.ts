@@ -87,6 +87,23 @@ export const ProjectEventBody = z.discriminatedUnion("kind", [
    * session solo again.
    */
   base("session.crewed", z.object({ sessionId: z.string(), crew: z.string().nullable() })),
+  /**
+   * A brief was read. `fleet`: the standing brief the agent is given when it joins the project
+   * (what the other agents hold and do; "What it was told" on the arrival card). `handoff`: a
+   * person read the session's handoff brief. `atSeq` is the session seq the brief described.
+   */
+  base(
+    "session.briefed",
+    z.object({
+      sessionId: z.string(),
+      /** The agent's id, or the person's user id. */
+      reader: z.string(),
+      kind: z.enum(["fleet", "handoff"]),
+      atSeq: z.number().int().min(-1),
+      /** The brief as it was read, trimmed to a few thousand characters. */
+      brief: z.string(),
+    }),
+  ),
 
   base(
     "claim.requested",

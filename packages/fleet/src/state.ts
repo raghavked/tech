@@ -18,6 +18,17 @@ export interface ProjectMember {
   present: boolean;
 }
 
+/** One read of a brief, as `session.briefed` records it. */
+export interface BriefRead {
+  reader: string;
+  kind: "fleet" | "handoff";
+  /** The ledger seq of the read. */
+  seq: number;
+  /** The session seq the brief described. */
+  atSeq: number;
+  brief: string;
+}
+
 export interface SessionSummary {
   sessionId: string;
   ownerId: string;
@@ -27,6 +38,8 @@ export interface SessionSummary {
   report: SessionStatusReport | null;
   /** Named task this session works on with other sessions, or null when solo. */
   crew: string | null;
+  /** Briefs read in this session, oldest first: the agent's standing brief, then people's reads. */
+  briefs: BriefRead[];
 }
 
 export interface ProjectDirective {
@@ -125,11 +138,26 @@ export function reduceProject(prev: ProjectState, e: ProjectEvent): ProjectState
         registeredSeq: e.seq,
         report: null,
         crew: null,
+        briefs: [],
       };
       break;
     case "session.crewed": {
       const ss = s.sessions[e.payload.sessionId];
       if (ss) ss.crew = e.payload.crew;
+      break;
+    }
+    case "session.briefed": {
+      const ss = s.sessions[e.payload.sessionId];
+      if (ss) {
+        if (!ss.briefs) ss.briefs = [];
+        ss.briefs.push({
+          reader: e.payload.reader,
+          kind: e.payload.kind,
+          seq: e.seq,
+          atSeq: e.payload.atSeq,
+          brief: e.payload.brief,
+        });
+      }
       break;
     }
     case "session.status.reported": {

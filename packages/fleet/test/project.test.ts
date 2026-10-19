@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { fleetBrief } from "../src/brief.js";
 import { detectFleetContentions } from "../src/contention.js";
 import { deriveSessionRole, type User } from "../src/identity.js";
-import { Project } from "../src/project.js";
+import { BRIEF_KEEP, Project } from "../src/project.js";
 import { propagateDirective, syncDirectives, withdrawPropagated } from "../src/propagate.js";
 import { renderFleetContext } from "../src/render.js";
 import { foldProject } from "../src/state.js";
@@ -115,6 +115,29 @@ describe("project ledger and claims", () => {
     });
     p.closeSession("s");
     expect(p.state().claims[v.claimId]?.status).toBe("released");
+  });
+
+  it("records who read which brief, keeps the text trimmed, and folds the same from disk", () => {
+    const p = setup();
+    expect(p.state().sessions["s-ana"]?.briefs).toEqual([]);
+    p.briefed("s-ana", "agent", "fleet", 0, "OTHER AGENTS IN THIS PROJECT: Bo's agent: Tax lines");
+    const long = "x".repeat(BRIEF_KEEP + 50);
+    const ev = p.briefed("s-ana", "bo", "handoff", 12, long);
+    expect(ev.kind).toBe("session.briefed");
+    const reads = p.state().sessions["s-ana"]?.briefs ?? [];
+    expect(reads.map((r) => [r.reader, r.kind, r.atSeq])).toEqual([
+      ["agent", "fleet", 0],
+      ["bo", "handoff", 12],
+    ]);
+    expect(reads[1]?.brief.length).toBe(BRIEF_KEEP);
+    expect(reads[1]?.seq).toBe(ev.seq);
+    expect(() => p.briefed("nope", "bo", "handoff", 0, "")).toThrow();
+    expect(fleetBrief(p.state())).toContain(
+      "briefed: agent read the fleet brief at seq 0; Bo read the handoff brief at seq 12",
+    );
+    expect(JSON.stringify(Project.fromSerialized(p.ledger.serialize()).state())).toBe(
+      JSON.stringify(p.state()),
+    );
   });
 });
 

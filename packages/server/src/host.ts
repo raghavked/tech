@@ -14,7 +14,7 @@ import type {
   SessionEvent,
   SessionPolicy,
 } from "@henosis/protocol";
-import { MAIN_BRANCH, type ROLE_RANK } from "@henosis/protocol";
+import { MAIN_BRANCH, type ROLE_RANK, reconnectBackoffMs } from "@henosis/protocol";
 import {
   type MemoryAccess,
   type Model,
@@ -49,6 +49,8 @@ export interface HostOptions {
   memory?: MemoryAccess | undefined;
   /** Role to give a joining human, by actor id; falls back to first-in-owns. */
   roleFor?: ((actorId: string) => Role | null) | undefined;
+  /** A person asked for the handoff brief: the project ledger records the read (`session.briefed`). */
+  onBriefed?: ((actorId: string, atSeq: number, markdown: string) => void) | undefined;
 }
 
 const AGENT: Actor = { id: "agent", kind: "agent", name: "Agent" };
@@ -186,9 +188,11 @@ export class SessionHost {
 
   /**
    * Attach a client with a role derived from identity; null falls back to first-in-owns.
-   * `sinceSeq` (reconnect-resume) trims the snapshot to the events after that seq.
+   * `sinceSeq` (reconnect-resume) trims the snapshot to the events after that seq; `attempt`
+   * is the dial count the client reported, echoed in the snapshot's `reconnect` with the delay
+   * the server asks it to wait before its next dial should this socket drop.
    */
-  joinWithRole(link: ClientLink, derived: Role | null, sinceSeq?: number): void {
+  joinWithRole(link: ClientLink, derived: Role | null, sinceSeq?: number, attempt = 0): void {
     const branch = this.session.log.hasBranch(link.branch) ? link.branch : MAIN_BRANCH;
     link.branch = branch;
     const st = this.session.state(branch);
@@ -200,7 +204,14 @@ export class SessionHost {
     this.session.join(branch, link.actor, role);
     this.clients.add(link);
     link.send({ type: "joined", sessionId: this.sessionId, branch });
-    link.send({ type: "snapshot", branch, events: this.eventsSince(branch, sinceSeq) });
+    const events = this.eventsSince(branch, sinceSeq);
+    const resumed = sinceSeq !== undefined && (events.length === 0 || events[0]?.seq !== 0);
+    link.send({
+      type: "snapshot",
+      branch,
+      events,
+      reconnect: { attempt, delayMs: reconnectBackoffMs(attempt + 1), resumed },
+    });
     this.broadcastPresence();
   }
 
@@ -301,12 +312,13 @@ export class SessionHost {
           link.status = msg.status;
           this.broadcastPresence();
           return;
-        case "brief":
-          link.send({
-            type: "brief",
-            markdown: handoffBrief(s.state(b), { forActor: me, events: s.events(b) }),
-          });
+        case "brief": {
+          const st = s.state(b);
+          const markdown = handoffBrief(st, { forActor: me, events: s.events(b) });
+          link.send({ type: "brief", markdown });
+          this.opts.onBriefed?.(me, st.seq, markdown);
           return;
+        }
         case "leave":
           this.leave(link);
           return;

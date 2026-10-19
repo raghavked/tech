@@ -30,6 +30,9 @@ import { activeClaims, foldProject, type ProjectState, reduceProject } from "./s
 
 export type ProjectListener = (event: ProjectEvent, state: ProjectState) => void;
 
+/** Characters of a brief kept in a `session.briefed` event. */
+export const BRIEF_KEEP = 4000;
+
 export interface ClaimVerdict {
   claimId: string;
   granted: boolean;
@@ -134,6 +137,26 @@ export class Project {
   closeSession(sessionId: string): ProjectEvent {
     this.requireSession(sessionId);
     return this.emit(`session:${sessionId}`, { kind: "session.closed", payload: { sessionId } });
+  }
+
+  /**
+   * Record that a brief was read: the standing fleet brief the agent is given when it joins
+   * (`kind: "fleet"`, the agent's actor id as reader) or the handoff brief a person asked for
+   * (`kind: "handoff"`, their user id). The text is kept, trimmed, so "What it was told" can
+   * be shown and replayed; `atSeq` is the session seq the brief described.
+   */
+  briefed(
+    sessionId: string,
+    reader: string,
+    kind: "fleet" | "handoff",
+    atSeq: number,
+    brief: string,
+  ): ProjectEvent {
+    this.requireSession(sessionId);
+    return this.emit(reader, {
+      kind: "session.briefed",
+      payload: { sessionId, reader, kind, atSeq, brief: brief.slice(0, BRIEF_KEEP) },
+    });
   }
 
   // ---- claims ------------------------------------------------------------------------

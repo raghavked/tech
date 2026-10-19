@@ -8,6 +8,8 @@
  * five status words.
  */
 
+import { DEFAULT_RATING } from "@henosis/protocol";
+
 /** "1 approval" / "3 approvals". */
 export const plural = (n: number, one: string, many = `${one}s`): string =>
   `${n} ${n === 1 ? one : many}`;
@@ -35,8 +37,8 @@ export const cast = {
   dee: { id: "dee", name: "Dee", short: "Dee" },
 } as const;
 
-/** The rating a plain Approve carries under a release gate: the product's default, shared everywhere. */
-export const DEFAULT_RATING = 4;
+/** The rating a plain Approve carries under a release gate: the product's default, one value for the app and Slack. */
+export { DEFAULT_RATING };
 
 /**
  * The five words of the rating scale, one per star (rating-control): the word says what the pick

@@ -15,6 +15,8 @@ export interface PostInput {
   threadTs?: string;
   /** Also show a thread reply in the channel (Slack's reply_broadcast). */
   broadcast?: boolean;
+  /** Post under this name ("Ana's agent"): Slack's `username` override; the APP badge stays. */
+  as?: string;
 }
 
 export interface Posted {
@@ -95,6 +97,7 @@ export class FakeSlackClient implements SlackClient {
   async stop(): Promise<void> {}
 
   // ---- test drivers ------------------------------------------------------------------
+  /** Press the button with this action_id; the value sent is the button's, as Slack sends it. */
   async click(actionId: string, userId: string, messageTs?: string): Promise<void> {
     const msg = [...this.posts]
       .reverse()
@@ -108,10 +111,45 @@ export class FakeSlackClient implements SlackClient {
     for (const h of this.actions)
       await h({ actionId, value, userId, channel: msg.channel, messageTs: msg.ts });
   }
+  /** Deliver a button press as Slack would from any message, e.g. one posted by an older adapter. */
+  async press(actionId: string, value: string, userId: string, channel = ""): Promise<void> {
+    for (const h of this.actions) await h({ actionId, value, userId, channel, messageTs: "" });
+  }
+  /** The buttons of the latest message whose action_ids start with `prefix`. */
+  buttonsOf(
+    prefix: string,
+    messageTs?: string,
+  ): { actionId: string; value: string; text: string }[] {
+    const msg = [...this.posts]
+      .reverse()
+      .find(
+        (p) =>
+          (messageTs ? p.ts === messageTs : true) &&
+          (p.blocks ?? []).some((b) =>
+            elementsOf(b).some((e) => String(e.action_id ?? "").startsWith(prefix)),
+          ),
+      );
+    if (!msg) return [];
+    return (msg.blocks ?? [])
+      .flatMap(elementsOf)
+      .filter((e) => String(e.action_id ?? "").startsWith(prefix))
+      .map((e) => ({
+        actionId: String(e.action_id),
+        value: String(e.value ?? ""),
+        text: String((e.text as { text?: string } | undefined)?.text ?? ""),
+      }));
+  }
   async reply(channel: string, threadTs: string, userId: string, text: string): Promise<void> {
     this.counter += 1;
     for (const h of this.messages)
       await h({ channel, threadTs, ts: `${1700000000 + this.counter}.1`, userId, text });
+  }
+  /** A top-level message in a channel (not in a thread), as a person types it. */
+  async say(channel: string, userId: string, text: string): Promise<string> {
+    this.counter += 1;
+    const ts = `${1700000000 + this.counter}.2`;
+    for (const h of this.messages) await h({ channel, threadTs: null, ts, userId, text });
+    return ts;
   }
   async slash(command: string, text: string, userId: string, channel: string): Promise<string[]> {
     const h = this.slashes.get(command);
@@ -125,14 +163,16 @@ export class FakeSlackClient implements SlackClient {
   }
 }
 
+function elementsOf(b: Block): Block[] {
+  return b.type === "actions" ? ((b.elements as Block[] | undefined) ?? []) : [];
+}
+
 function blockHasAction(b: Block, actionId: string): boolean {
-  const elements = (b.elements as Block[] | undefined) ?? [];
-  return elements.some((e) => e.action_id === actionId);
+  return elementsOf(b).some((e) => e.action_id === actionId);
 }
 
 function findActionValue(blocks: Block[], actionId: string): string {
   for (const b of blocks)
-    for (const e of (b.elements as Block[] | undefined) ?? [])
-      if (e.action_id === actionId) return String(e.value ?? "");
+    for (const e of elementsOf(b)) if (e.action_id === actionId) return String(e.value ?? "");
   return "";
 }

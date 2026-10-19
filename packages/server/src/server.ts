@@ -39,6 +39,7 @@ import { Auth, type AuthConfig, AuthError, type Principal } from "./auth.js";
 import { handleBranchApi } from "./branchApi.js";
 import { ChatHost, type ChatSubscriber } from "./chatHost.js";
 import { EXPORT_PATH, exportHeaders, exportSessionMarkdown } from "./export.js";
+import { computeGlance, GLANCE_PATH, type GlanceSource, UsageDays } from "./glance.js";
 import type { ClientLink, SessionHost } from "./host.js";
 import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
 import { Notifier, type PushSubscription } from "./notify.js";
@@ -105,6 +106,8 @@ export class HenosisServer {
   readonly notifier: Notifier;
   /** Who is asking: dev-mode assertions or verified ID tokens (auth.ts). */
   readonly auth: Auth;
+  /** Tokens per person per calendar day, for the glance's "tokens today" (glance.ts); a file under `root` in every edition. */
+  readonly usageDays: UsageDays;
   /** Live adapter status; mutable so an adapter started after `listen` can report itself. */
   readonly integrations: Integrations;
   /** Display names learned from sessions and chat subscriptions for people users.json does not know. */
@@ -118,8 +121,34 @@ export class HenosisServer {
     this.orgs = new OrgRegistry(this.store);
     this.auth = new Auth(opts.auth ?? { mode: "dev", token: opts.token });
     this.notifier = new Notifier(this.store, null, opts.log ?? (() => {}));
+    this.usageDays = new UsageDays(opts.root);
+    // Every push payload carries the needs-you figure, so the badge and the tab agree.
+    this.notifier.badge = (userId) => this.glance(userId).needsYou;
     this.integrations = { slack: false, ...opts.integrations };
     for (const o of this.orgs.orgs.orgs) this.chat(o.id);
+  }
+
+  /**
+   * The glance for a person: what needs them, the top gate, the agents running and the
+   * tokens today, over the projects identity gives them (every project for an unknown user,
+   * as `/api/me` lists them).
+   */
+  glance(userId: string) {
+    const projects: ProjectHost[] = [];
+    for (const p of this.orgs.projectsFor(userId)) projects.push(this.project(p.projectId));
+    for (const [id, p] of this.projects)
+      if (!projects.some((x) => x.projectId === id)) projects.push(p);
+    const user = this.orgs.user(userId);
+    const src: GlanceSource = {
+      projects,
+      user: user ? { id: user.id, name: user.name } : null,
+      roleIn: (projectId, ownerId) => {
+        const ref = this.orgs.project(projectId);
+        return ref ? this.orgs.sessionRole(userId, ref, ownerId) : null;
+      },
+      usageDays: this.usageDays,
+    };
+    return computeGlance(src, userId);
   }
 
   /** Get or create the host for a project known to the org registry (or "default"). */
@@ -160,6 +189,8 @@ export class HenosisServer {
           kind: pp.actor.kind,
         }));
         this.notifier.onSessionEvent(projectId, sessionId, e, participants, st.policy);
+        if (e.kind === "agent.model.completed" && e.payload.usage)
+          this.usageDays.record(st.ownerId ?? "unknown", e.payload.usage);
         if (e.kind === "participant.joined" && e.payload.actor.kind === "human")
           this.names.set(e.payload.actor.id, e.payload.actor.name);
         this.answerMentions(sessionId, e);
@@ -498,6 +529,7 @@ export class HenosisServer {
     this.memoryTimers.clear();
     for (const p of this.projects.values()) p.close();
     for (const c of this.chats.values()) c.close();
+    this.usageDays.flush();
     for (const [org, m] of this.memories) this.memoryWriters.get(org)?.flush(m.ledger.serialize());
     this.wss?.close();
     await new Promise<void>((r) => (this.http ? this.http.close(() => r()) : r()));
@@ -614,6 +646,9 @@ export class HenosisServer {
           ),
         );
       if (url.pathname === "/api/integrations") return json(200, { ...this.integrations });
+      // mobile-rail / widgets: the one needs-you number, the top gate, agents running, tokens today.
+      if (url.pathname === GLANCE_PATH)
+        return json(200, this.glance(url.searchParams.get("user") ?? ""));
       if (url.pathname === "/api/notifications") {
         const user = url.searchParams.get("user") ?? "";
         if (req.method === "POST") {
@@ -626,6 +661,7 @@ export class HenosisServer {
         }
         return json(200, {
           notifications: this.notifier.list(user, url.searchParams.get("unread") === "1"),
+          needsYou: this.glance(user).needsYou,
         });
       }
       if (url.pathname === "/api/push/subscribe" && req.method === "POST") {
@@ -825,7 +861,7 @@ export class HenosisServer {
           const sessionOwner = host.session.state().ownerId;
           const derived = ref ? this.orgs.sessionRole(userId, ref, sessionOwner) : null;
           link = { actor, branch: msg.branch, status: "", send };
-          host.joinWithRole(link, derived, msg.sinceSeq);
+          host.joinWithRole(link, derived, msg.sinceSeq, msg.attempt ?? 0);
           return;
         }
         if (msg.type === "project.subscribe") {
