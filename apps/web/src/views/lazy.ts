@@ -18,6 +18,7 @@ export const Approvals = lazy(() =>
   import("./Approvals.js").then((m) => ({ default: m.Approvals })),
 );
 export const ChatView = lazy(() => import("./ChatView.js").then((m) => ({ default: m.ChatView })));
+export const Search = lazy(() => import("./Search.js").then((m) => ({ default: m.Search })));
 
 let warmed = false;
 export function warmViews(): void {

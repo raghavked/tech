@@ -19,6 +19,7 @@ import {
 import { isTyping, moveCursor } from "./approvalsQueue.js";
 import { copy, DEFAULT_RATING, RATING_WORDS, status as statusWords } from "./copy.js";
 import { initials } from "./identity.js";
+import type { TargetLike } from "./shortcuts.js";
 import { useMotion } from "./theme.js";
 import { getToasts, subscribeToasts, toast } from "./toast.js";
 
@@ -1017,7 +1018,7 @@ export function useCursor(
   latest.current = { keys, cursor, opts };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target as TargetLike | null)) return;
       const { keys, cursor, opts } = latest.current;
       if (opts.enabled === false) return;
       switch (e.key) {

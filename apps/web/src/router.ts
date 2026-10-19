@@ -1,4 +1,4 @@
-/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId]`, `#/inbox`, `#/approvals`, `#/memory/:orgId`, `#/settings`, `#/auth/callback`. */
+/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId]`, `#/inbox`, `#/approvals`, `#/memory/:orgId`, `#/settings`, `#/auth/callback`, `#/search`. */
 import { useSyncExternalStore } from "react";
 
 export type Route =
@@ -12,6 +12,8 @@ export type Route =
   | { name: "chat"; orgId: string; groupId: string | null; newGroup: boolean }
   | { name: "inbox" }
   | { name: "approvals" }
+  /** Search over everything the team keeps; `q` is the query, `org` the scope. */
+  | { name: "search"; q: string; org: string | null }
   | { name: "memory"; orgId: string; team: string | null; project: string | null }
   | { name: "settings" };
 
@@ -49,6 +51,8 @@ export function parseHash(hash: string): Route {
   if (parts[0] === "settings") return { name: "settings" };
   if (parts[0] === "approvals") return { name: "approvals" };
   if (parts[0] === "auth" && parts[1] === "callback") return { name: "auth", query };
+  if (parts[0] === "search")
+    return { name: "search", q: params.get("q") ?? "", org: params.get("org") };
   return { name: "home" };
 }
 
@@ -74,6 +78,13 @@ export const paths = {
   settings: () => "#/settings",
   approvals: () => "#/approvals",
   authCallback: () => "#/auth/callback",
+  search: (q = "", org?: string | null) => {
+    const p = new URLSearchParams();
+    if (q) p.set("q", q);
+    if (org) p.set("org", org);
+    const qs = p.toString();
+    return `#/search${qs ? `?${qs}` : ""}`;
+  },
 };
 
 export function navigate(href: string): void {

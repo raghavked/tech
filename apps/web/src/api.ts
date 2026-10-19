@@ -77,19 +77,41 @@ export interface MemoryQuery {
   q?: string;
 }
 
+/**
+ * One sentence at three distances (toast, OS banner, inbox row): `who · verb · what` with the
+ * mono part in `code`, a `body` that says where and what it means for you, a `tag` so a repeat
+ * replaces, the client `route` beside the deep `link`, and the `age` when listed. The grammar
+ * fields are optional for an older server, which sends `title` and `body` only.
+ */
 export interface Notification {
   id: string;
   userId: string;
-  kind: "approval" | "handoff" | "contention" | "done" | "blocked" | "plan" | "mention";
+  kind:
+    | "approval"
+    | "handoff"
+    | "contention"
+    | "done"
+    | "blocked"
+    | "plan"
+    | "mention"
+    | "joined"
+    | "search";
   title: string;
   body: string;
+  who?: string;
+  verb?: string;
+  what?: string;
+  code?: string;
   /** henosis://p/<project>/s/<session>, or henosis://c/<org>/<group> for a mention */
   link: string;
+  route?: string;
+  tag?: string;
   /** The approvalId, handoffId, contentionId, planId or messageId behind the item, when there is one to act on. */
   ref?: string;
   /** An approval under a release gate: Approve carries a 1..5 rating. */
   ratings?: boolean;
   at: number;
+  age?: number;
   read: boolean;
 }
 

@@ -45,6 +45,7 @@ import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
 import { Notifier, type PushSubscription } from "./notify.js";
 import { OrgRegistry } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
+import { SAVED_SEARCH_PATH, SavedSearches, SEARCH_PATH, search, searchQueryOf } from "./search.js";
 import { FileStore, type LiveStore, LogWriter } from "./store/index.js";
 import { computeUsage, USAGE_PATH, usageQueryOf } from "./usageApi.js";
 
@@ -108,6 +109,8 @@ export class HenosisServer {
   readonly auth: Auth;
   /** Tokens per person per calendar day, for the glance's "tokens today" (glance.ts); a file under `root` in every edition. */
   readonly usageDays: UsageDays;
+  /** "Keep this search": saved queries per person, persisted at <root>/searches.json. */
+  readonly searches: SavedSearches;
   /** Live adapter status; mutable so an adapter started after `listen` can report itself. */
   readonly integrations: Integrations;
   /** Display names learned from sessions and chat subscriptions for people users.json does not know. */
@@ -122,6 +125,7 @@ export class HenosisServer {
     this.auth = new Auth(opts.auth ?? { mode: "dev", token: opts.token });
     this.notifier = new Notifier(this.store, null, opts.log ?? (() => {}));
     this.usageDays = new UsageDays(opts.root);
+    this.searches = new SavedSearches(opts.root);
     // Every push payload carries the needs-you figure, so the badge and the tab agree.
     this.notifier.badge = (userId) => this.glance(userId).needsYou;
     this.integrations = { slack: false, ...opts.integrations };
@@ -176,7 +180,7 @@ export class HenosisServer {
       const leads = Object.values(host.state().members)
         .filter((m) => m.role !== "member")
         .map((m) => m.userId);
-      this.notifier.onProjectEvent(projectId, e, leads);
+      this.notifier.onProjectEvent(projectId, e, leads, host.state().name || ref.name);
     });
     host.onSessionAttached((sessionId, sh) => {
       sh.session.onEvent((e) => {
@@ -188,12 +192,18 @@ export class HenosisServer {
           isDriver: st.driver === pp.actor.id,
           kind: pp.actor.kind,
         }));
-        this.notifier.onSessionEvent(projectId, sessionId, e, participants, st.policy);
+        this.notifier.onSessionEvent(projectId, sessionId, e, participants, st.policy, {
+          title: st.title,
+          ownerId: st.ownerId,
+          projectName: host.state().name || ref.name,
+        });
         if (e.kind === "agent.model.completed" && e.payload.usage)
           this.usageDays.record(st.ownerId ?? "unknown", e.payload.usage);
         if (e.kind === "participant.joined" && e.payload.actor.kind === "human")
           this.names.set(e.payload.actor.id, e.payload.actor.name);
         this.answerMentions(sessionId, e);
+        this.matchSavedSearches(projectId, sessionId, st.title || sessionId, e);
+        this.notifier.settle(settledTags(st, e));
       });
     });
     return p;
@@ -287,6 +297,60 @@ export class HenosisServer {
    * scope "chat", authored by the person who wrote it (joined as a contributor first when the
    * identity rules allow); a mention of a person lands in their inbox.
    */
+  /** Something said in a session: a steer, a note to the team, or the agent's words. */
+  private matchSavedSearches(
+    projectId: string,
+    sessionId: string,
+    title: string,
+    e: SessionEvent,
+  ): void {
+    const text =
+      e.kind === "directive.submitted"
+        ? e.payload.input.text
+        : e.kind === "note.posted"
+          ? e.payload.text
+          : e.kind === "agent.model.completed"
+            ? e.payload.text
+            : null;
+    if (!text?.trim()) return;
+    const ref = this.orgs.project(projectId);
+    const st = this.projects.get(projectId)?.hosts.get(sessionId)?.session.state();
+    this.notifySavedSearches(text, {
+      author: e.actor,
+      authorName: st?.participants[e.actor]?.actor.name ?? this.names.get(e.actor) ?? e.actor,
+      place: title,
+      orgId: ref?.orgId ?? "default",
+      link: `henosis://p/${projectId}/s/${sessionId}`,
+      ref: e.id,
+    });
+  }
+
+  /** The "Keep this search" path: a kept query that a new text matches lands in that inbox. */
+  private notifySavedSearches(
+    text: string,
+    meta: {
+      author: string;
+      authorName: string;
+      place: string;
+      orgId: string;
+      link: string;
+      ref: string;
+    },
+  ): void {
+    for (const s of this.searches.matching(text, meta))
+      this.notifier.notify(s.userId, {
+        kind: "search",
+        who: meta.authorName,
+        verb: "said",
+        what: `something that matches “${s.name}”.`,
+        body: `${meta.place} · ${text.replace(/\s+/g, " ").trim().slice(0, 140)}`,
+        link: meta.link,
+        route: `#/search?q=${encodeURIComponent(s.q)}`,
+        tag: `search:${s.id}:${meta.ref}`,
+        ref: s.id,
+      });
+  }
+
   private onChatEvent(host: ChatHost, e: ChatEvent): void {
     if (e.kind !== "message.posted") return;
     const group = host.state().groups[e.payload.groupId];
@@ -294,6 +358,14 @@ export class HenosisServer {
     const author = e.actor;
     const me = group.members.find((m) => m.kind === "human" && m.userId === author);
     const authorName = (me ? memberName(me) : null) ?? this.names.get(author) ?? author;
+    this.notifySavedSearches(e.payload.text, {
+      author,
+      authorName,
+      place: `#${group.name}`,
+      orgId: host.orgId,
+      link: `henosis://c/${host.orgId}/${group.id}`,
+      ref: e.payload.messageId,
+    });
     for (const mention of e.payload.mentions) {
       const member = memberOfMention(group, mention);
       if (!member) continue;
@@ -301,9 +373,12 @@ export class HenosisServer {
         if (member.userId === author) continue;
         this.notifier.notify(member.userId, {
           kind: "mention",
-          title: `${authorName} mentioned you in #${group.name}`,
+          who: authorName,
+          verb: "mentioned you in",
+          what: `#${group.name}`,
           body: e.payload.text.slice(0, 160),
           link: `henosis://c/${host.orgId}/${group.id}`,
+          tag: `mention:${e.payload.messageId}`,
           ref: e.payload.messageId,
         });
         continue;
@@ -658,6 +733,49 @@ export class HenosisServer {
       // mobile-rail / widgets: the one needs-you number, the top gate, agents running, tokens today.
       if (url.pathname === GLANCE_PATH)
         return json(200, this.glance(url.searchParams.get("user") ?? ""));
+      // search: one query over sessions, messages, memory, people and agents (search.ts).
+      if (url.pathname === SEARCH_PATH)
+        return json(
+          200,
+          search(
+            {
+              root: this.opts.root,
+              projects: this.projects,
+              orgs: this.orgs,
+              chats: this.chats,
+              memory: (org) => this.memory(org),
+              names: this.names,
+            },
+            searchQueryOf(url.searchParams),
+          ),
+        );
+      // "Keep this search": a person's saved queries; a new match becomes a notification.
+      const ss = url.pathname.match(SAVED_SEARCH_PATH);
+      if (ss) {
+        const user = url.searchParams.get("user") ?? "";
+        if (!user) return json(400, { error: "user is required" });
+        if (req.method === "POST") {
+          void readBody(req).then((body) => {
+            try {
+              const input = JSON.parse(body || "{}") as { name?: string; q?: string; org?: string };
+              const saved = this.searches.save(user, {
+                q: input.q ?? "",
+                ...(input.name ? { name: input.name } : {}),
+                ...(input.org ? { org: input.org } : {}),
+              });
+              json(200, { saved, searches: this.searches.list(user) });
+            } catch (err) {
+              json(400, { error: err instanceof Error ? err.message : String(err) });
+            }
+          });
+          return true;
+        }
+        if (req.method === "DELETE" && ss[1]) {
+          const removed = this.searches.remove(user, decodeURIComponent(ss[1]));
+          return json(removed ? 200 : 404, { ok: removed, searches: this.searches.list(user) });
+        }
+        return json(200, { searches: this.searches.list(user) });
+      }
       if (url.pathname === "/api/notifications") {
         const user = url.searchParams.get("user") ?? "";
         if (req.method === "POST") {
@@ -1123,6 +1241,29 @@ function bearerOf(req: IncomingMessage, url: URL): string | null {
   const h = req.headers.authorization;
   if (typeof h === "string" && h.toLowerCase().startsWith("bearer ")) return h.slice(7).trim();
   return url.searchParams.get("token");
+}
+
+/** The notification tags a session event settles: the thing behind them is no longer waiting. */
+function settledTags(
+  st: { approvals: Record<string, { status: string }>; plans: Record<string, { status: string }> },
+  e: SessionEvent,
+): string[] {
+  switch (e.kind) {
+    case "approval.voted":
+      return st.approvals[e.payload.approvalId]?.status === "pending"
+        ? []
+        : [`approval:${e.payload.approvalId}`];
+    case "handoff.accepted":
+    case "handoff.declined":
+      return [`handoff:${e.payload.handoffId}`];
+    case "plan.decided":
+      return [`plan:${e.payload.planId}`];
+    case "plan.rated":
+      // A rating can decide the plan by policy; once it is no longer proposed, the item is settled.
+      return st.plans[e.payload.planId]?.status === "proposed" ? [] : [`plan:${e.payload.planId}`];
+    default:
+      return [];
+  }
 }
 
 function readBody(req: IncomingMessage): Promise<string> {

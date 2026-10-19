@@ -448,6 +448,8 @@ export const EventBody = z.discriminatedUnion("kind", [
       vote: z.enum(["approve", "deny"]),
       rating: Rating.optional(),
       note: z.string().default(""),
+      /** Decision 3: an owner decided alone, logged in their name. */
+      override: z.boolean().optional(),
     }),
   ),
 
@@ -630,6 +632,8 @@ export const ClientMessage = z.discriminatedUnion("type", [
     vote: z.enum(["approve", "deny"]),
     rating: Rating.optional(),
     note: z.string().default(""),
+    /** Decision 3: an owner decides alone ("Approve for Cy · logged in your name"). */
+    override: z.boolean().optional(),
   }),
   z.object({
     type: z.literal("plan.rate"),

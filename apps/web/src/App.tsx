@@ -10,6 +10,7 @@ import { api, type Me, useFetch } from "./api.js";
 import { copy } from "./copy.js";
 import { ErrorBoundary, Recover } from "./ErrorBoundary.js";
 import { type Identity, useIdentity } from "./identity.js";
+import { TypedToasts } from "./notify.js";
 import { CommandPalette } from "./palette.js";
 // The rail is drawn once, in Rail.tsx; the Shell only places it.
 import { Rail, teamOfRoute } from "./Rail.js";
@@ -26,6 +27,7 @@ import {
   Inbox,
   Memory,
   Project,
+  Search,
   SessionView,
   Settings,
   Team,
@@ -49,6 +51,8 @@ export function App() {
         <Page />
       </ErrorBoundary>
       <Toasts />
+      {/* notifications: one sentence at three distances; the typed stack above the composer */}
+      <TypedToasts />
     </>
   );
 }
@@ -142,6 +146,8 @@ function View({
       return <Settings identity={identity} me={me} ctx={ctx} />;
     case "approvals": // hook: approvals-queue
       return <Approvals identity={identity} me={me} ctx={ctx} />;
+    case "search": // search: everything the team keeps
+      return <Search q={route.q} org={route.org} me={me} ctx={ctx} />;
     default:
       return null;
   }

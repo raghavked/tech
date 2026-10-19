@@ -393,6 +393,7 @@ function reduceInto(s: SessionState, e: SessionEvent): SessionState {
         vote: e.payload.vote,
         rating: e.payload.rating ?? null,
         note: e.payload.note ?? "",
+        ...(e.payload.override ? { override: true } : {}),
       };
       a.status = evaluate(ruleFor(s.policy.approvals, a.call.risk), a.ballots, (id) =>
         rankOf(s, id),

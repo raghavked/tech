@@ -257,7 +257,7 @@ export class SessionHost {
           s.resolve(b, me, msg.contentionId, msg.winner, msg.replacement);
           break;
         case "vote":
-          s.vote(b, me, msg.approvalId, msg.vote, msg.rating, msg.note);
+          s.vote(b, me, msg.approvalId, msg.vote, msg.rating, msg.note, msg.override ?? false);
           break;
         // Plan first: a rating or a decision may approve the plan; the drive below resumes the
         // runner, the way a granted approval does.

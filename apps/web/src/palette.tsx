@@ -1,8 +1,11 @@
 /**
- * The command palette: ⌘K / Ctrl+K opens one centred list of actions, sessions and team
- * memory. Views register the actions that belong to their page with `usePaletteActions`;
- * the sidebar publishes the sessions it lists with `publishSidebarSessions`; memory comes
- * from /api/memory/:org when the palette opens. Everything is keyboard-first; Escape closes.
+ * The command palette: ⌘K / Ctrl+K lifts one lit surface over the page behind a navy scrim.
+ * Five groups in one fixed order answer the five questions a person has mid-session: Actions
+ * (on this session), Switch session, Go to, People and agents (on what matched), Team memory.
+ * Views register the actions that belong to their page with `usePaletteActions`; the sidebar
+ * publishes the sessions it lists with `publishSidebarSessions`; memory comes from
+ * /api/memory/:org when the palette opens. Matches are drawn as weight and ink, never a
+ * background; ↵ appears only on the highlighted row. Everything is keyboard-first.
  */
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -14,10 +17,15 @@ import {
 } from "react";
 import type { ShellContext } from "./App.js";
 import { api, type EntryRecord, type Me, type SessionRow } from "./api.js";
+import { DEFAULT_RATING, pendingOf } from "./approvalsQueue.js";
+import { copy } from "./copy.js";
+import { fuzzyScore, matchSpans } from "./fuzzy.js";
 import { useRecents } from "./recents.js";
 import { navigate, paths } from "./router.js";
 import { setTheme, useTheme } from "./theme.js";
-import { attribLine, ICONS, Icon, Status } from "./ui.js";
+import { attribLine, ICONS, Icon, Mark, Status } from "./ui.js";
+
+export { fuzzyScore };
 
 // ---- actions that pages register -------------------------------------------------------
 
@@ -29,6 +37,12 @@ export interface PaletteAction {
   icon?: string;
   /** When set, picking the action asks for one line of text first (the placeholder). */
   prompt?: string;
+  /** With `prompt`: Enter on an empty line runs it anyway (a rating prompt sends the default). */
+  allowEmpty?: boolean;
+  /** A release gate: the row carries the pill and a second line with the rating step. */
+  gate?: { code: string; rated: { who: string; rating: number }[] };
+  /** A quiet subtitle: who asked, where. */
+  sub?: string;
   run: (arg: string) => void;
 }
 
@@ -89,33 +103,6 @@ function useSidebarSessions(): Record<string, SessionRow[]> {
   );
 }
 
-// ---- fuzzy matching ------------------------------------------------------------------------
-
-/**
- * Subsequence match, scored: 0 when `needle` is not in `hay` in order; higher for a
- * contiguous run, a match at a word start, and a short haystack.
- */
-export function fuzzyScore(needle: string, hay: string): number {
-  const n = needle.trim().toLowerCase();
-  if (!n) return 1;
-  const h = hay.toLowerCase();
-  const at = h.indexOf(n);
-  if (at >= 0) return 100 + (at === 0 || /\s|[./:_-]/.test(h[at - 1] ?? "") ? 20 : 0) - at / 50;
-  let score = 0;
-  let i = 0;
-  let last = -2;
-  for (let j = 0; j < h.length && i < n.length; j++) {
-    if (h[j] !== n[i]) continue;
-    score += 1;
-    if (j === last + 1) score += 2;
-    if (j === 0 || /\s|[./:_-]/.test(h[j - 1] ?? "")) score += 3;
-    last = j;
-    i += 1;
-  }
-  if (i < n.length) return 0;
-  return score + Math.max(0, 20 - h.length / 10);
-}
-
 const openListeners = new Set<() => void>();
 
 /** Open the palette from anywhere (a button, a shell menu); the hotkey does the same. */
@@ -134,14 +121,23 @@ export function hotkeyLabel(): string {
 
 // ---- the palette ---------------------------------------------------------------------------
 
+type Kind = "action" | "session" | "go" | "person" | "agent" | "memory";
+
 interface Item {
   id: string;
-  kind: "action" | "session" | "go" | "memory";
+  kind: Kind;
+  /** The text that is matched and drawn; `serif` sets it in the serif (a name). */
   label: string;
+  serif?: boolean;
+  /** A verb before a serif name: "Open project" + Billing page. */
+  lead?: string;
   sub?: string;
   icon?: string;
+  avatar?: { text: string; agent?: boolean };
   hint?: string;
   status?: string | null;
+  pill?: string;
+  two?: { stars: number; text: string };
   action?: PaletteAction;
   go?: string;
 }
@@ -149,6 +145,34 @@ interface Item {
 function truncate(s: string, n: number): string {
   const one = s.replace(/\s+/g, " ").trim();
   return one.length > n ? `${one.slice(0, n - 1)}…` : one;
+}
+
+/** The label with the matched letters in weight and ink. */
+export function Highlight({
+  text,
+  needle,
+  className,
+}: {
+  text: string;
+  needle: string;
+  className?: string;
+}) {
+  const spans = matchSpans(needle, text);
+  return (
+    <span className={className}>
+      {spans.map((s, i) =>
+        s.match ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the spans are positional
+          <b className="m" key={i}>
+            {s.text}
+          </b>
+        ) : (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the spans are positional
+          <span key={i}>{s.text}</span>
+        ),
+      )}
+    </span>
+  );
 }
 
 export function CommandPalette({ ctx }: { ctx: ShellContext }) {
@@ -204,10 +228,14 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
     };
   }, [open, orgKey]);
 
-  const items = useMemo(
-    () => (open ? itemsFor({ q, route, me, registered, sidebar, recents, memory, theme }) : []),
+  const built = useMemo(
+    () =>
+      open
+        ? itemsFor({ q, route, me, registered, sidebar, recents, memory, theme })
+        : { groups: [], total: 0 },
     [open, q, route, me, registered, sidebar, recents, memory, theme],
   );
+  const items = built.groups;
   const flat = items.flatMap((g) => g.items);
   const current = flat[Math.min(index, Math.max(0, flat.length - 1))];
 
@@ -245,9 +273,26 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
   const submitPending = () => {
     if (!pending) return;
     const text = q.trim();
-    if (!text) return;
+    if (!text && !pending.allowEmpty) return;
     pending.run(text);
     close();
+  };
+  const nextGroup = (delta: 1 | -1) => {
+    if (items.length === 0) return;
+    let at = 0;
+    let gi = 0;
+    for (let i = 0; i < items.length; i++) {
+      const n = items[i]?.items.length ?? 0;
+      if (index < at + n) {
+        gi = i;
+        break;
+      }
+      at += n;
+    }
+    const target = (gi + delta + items.length) % items.length;
+    let start = 0;
+    for (let i = 0; i < target; i++) start += items[i]?.items.length ?? 0;
+    setIndex(start);
   };
   const onKeyDown = (e: ReactKeyboardEvent) => {
     if (e.key === "ArrowDown") {
@@ -256,6 +301,9 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setIndex((i) => (flat.length ? (i - 1 + flat.length) % flat.length : 0));
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      nextGroup(e.shiftKey ? -1 : 1);
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (pending) submitPending();
@@ -268,12 +316,27 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
     }
   };
 
+  // The scope chip: the session the Actions belong to, with its status dot.
+  const scope =
+    route.name === "session"
+      ? (() => {
+          const row = (sidebar[route.projectId] ?? []).find((r) => r.sessionId === route.sessionId);
+          return {
+            title: row?.title || route.title || route.sessionId,
+            status: row?.live ?? row?.report?.status ?? null,
+          };
+        })()
+      : null;
+  const orgName = me?.projects[0]?.orgName ?? "";
+  const needle = q.trim();
+
   return (
     <>
       <button type="button" className="palette-scrim" aria-label="Close commands" onClick={close} />
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Commands">
+      <div className="palette" role="dialog" aria-modal="true" aria-label={copy.palette.label}>
+        <div className="handle" aria-hidden="true" />
         <label className="q">
-          <Icon d={pending ? pending.icon || ICONS.chevron : ICONS.search} size={15} />
+          <Icon d={pending ? pending.icon || ICONS.chevron : ICONS.search} size={17} />
           <input
             ref={input}
             type="text"
@@ -283,7 +346,7 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
             aria-expanded="true"
             aria-controls="palette-list"
             aria-activedescendant={current && !pending ? `palette-${current.id}` : undefined}
-            placeholder={pending ? pending.prompt : "Type a command or search"}
+            placeholder={pending ? pending.prompt : copy.palette.placeholder}
             value={q}
             onChange={(e) => {
               setQ(e.target.value);
@@ -292,17 +355,28 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
             onKeyDown={onKeyDown}
           />
           {pending ? (
-            <span className="k">{pending.label} · Enter</span>
+            <span className="scope">
+              <span className="serif">{pending.label}</span>
+            </span>
           ) : (
-            <span className="k">Esc</span>
+            scope && (
+              <span className={`scope${scope.status ? ` ${scope.status}` : ""}`}>
+                <span className="serif">{scope.title}</span>
+              </span>
+            )
           )}
+          <kbd>{copy.palette.esc}</kbd>
         </label>
         {!pending && (
-          <div className="items" id="palette-list" role="listbox" aria-label="Results">
-            {flat.length === 0 && <p className="empty">Nothing matches.</p>}
+          <div className="list" id="palette-list" role="listbox" aria-label="Results">
+            {flat.length === 0 && <p className="empty">{copy.palette.nothing}</p>}
             {items.map((g) => (
               <div key={g.title}>
-                <div className="section">{g.title}</div>
+                <div className="section">
+                  {g.title}
+                  <span className="n">{g.items.length}</span>
+                  {g.why && <span className="why">{g.why}</span>}
+                </div>
                 {g.items.map((it) => {
                   const on = current?.id === it.id;
                   return (
@@ -312,22 +386,54 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
                       id={`palette-${it.id}`}
                       role="option"
                       aria-selected={on}
-                      className={`item${on ? " on" : ""}`}
-                      onMouseEnter={() => setIndex(flat.indexOf(it))}
+                      className={`row${on ? " on" : ""}${it.two ? " two" : ""}${it.kind === "memory" ? " mem" : ""}`}
                       onClick={() => pick(it)}
                     >
-                      {it.icon && <Icon d={it.icon} size={14} />}
-                      <span className="grow ellipsis">
-                        {it.label}
-                        {it.sub && <span className="sub"> {it.sub}</span>}
-                      </span>
-                      {it.status !== undefined ? (
-                        <span className="k">
-                          <Status status={it.status} />
+                      {it.avatar ? (
+                        <span className={`avatar sm${it.avatar.agent ? " agent" : ""}`}>
+                          {it.avatar.agent ? "" : it.avatar.text}
                         </span>
-                      ) : it.hint ? (
-                        <span className="k">{it.hint}</span>
-                      ) : null}
+                      ) : (
+                        <Icon d={it.icon ?? ICONS.chevron} size={17} />
+                      )}
+                      <span className="lab">
+                        {it.lead && <span>{it.lead} </span>}
+                        <Highlight
+                          text={it.label}
+                          needle={needle}
+                          className={it.serif ? "name" : undefined}
+                        />
+                        {it.sub && (
+                          <span className="sub">
+                            <Highlight text={it.sub} needle={needle} />
+                          </span>
+                        )}
+                      </span>
+                      <span className="right">
+                        {it.pill && <span className="pill risk irreversible sm">{it.pill}</span>}
+                        {it.status !== undefined ? (
+                          <Status status={it.status} />
+                        ) : it.hint ? (
+                          <span className="hint">{it.hint}</span>
+                        ) : null}
+                        <span className="enter">
+                          <kbd>↵</kbd>
+                        </span>
+                      </span>
+                      {it.two && (
+                        <span className="more">
+                          {copy.palette.rateFirst}
+                          <span className="stars sm" aria-hidden="true">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <span key={n} className={n <= (it.two?.stars ?? 0) ? "on" : ""}>
+                                ★
+                              </span>
+                            ))}
+                          </span>
+                          {copy.palette.enterSends(DEFAULT_RATING)}
+                          {it.two.text && <span className="long"> · {it.two.text}</span>}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -335,6 +441,27 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
             ))}
           </div>
         )}
+        <div className="foot">
+          <span className="k">
+            <kbd>↑</kbd>
+            <kbd>↓</kbd> {copy.palette.move}
+          </span>
+          <span className="k">
+            <kbd>↵</kbd> {copy.palette.run}
+          </span>
+          {items.length > 1 && (
+            <span className="k tab">
+              <kbd>⇥</kbd> {copy.palette.nextGroup}
+            </span>
+          )}
+          <span className="k">
+            <kbd>esc</kbd> {copy.palette.close}
+          </span>
+          <span className="brandline">
+            <Mark size={16} />
+            <span>{copy.palette.across(flat.length, built.total, orgName)}</span>
+          </span>
+        </div>
       </div>
     </>
   );
@@ -344,6 +471,7 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
 
 interface Group {
   title: string;
+  why?: string;
   items: Item[];
 }
 
@@ -365,18 +493,23 @@ function itemsFor({
   recents: ReturnType<typeof useRecents>;
   memory: EntryRecord[];
   theme: ReturnType<typeof useTheme>[0];
-}): Group[] {
+}): { groups: Group[]; total: number } {
   const projects = me?.projects ?? [];
   const needle = q.trim();
+  let total = 0;
   const rank = <T,>(xs: T[], text: (x: T) => string, max: number): T[] => {
-    if (!needle) return xs.slice(0, max);
-    return xs
+    if (!needle) {
+      total += Math.min(xs.length, max);
+      return xs.slice(0, max);
+    }
+    const hits = xs
       .map((x) => ({ x, s: fuzzyScore(needle, text(x)) }))
       .filter((r) => r.s > 0)
-      .sort((a, b) => b.s - a.s)
-      .slice(0, max)
-      .map((r) => r.x);
+      .sort((a, b) => b.s - a.s);
+    total += hits.length;
+    return hits.slice(0, max).map((r) => r.x);
   };
+  const nameOfProject = (id: string) => projects.find((p) => p.projectId === id)?.name ?? id;
 
   // Actions: the page's own first, then the ones every page has.
   const dark =
@@ -393,6 +526,9 @@ function itemsFor({
     route.name === "session" || route.name === "fleet"
       ? projects.find((p) => p.projectId === route.projectId)
       : undefined;
+  const waiting = Object.values(sidebar)
+    .flat()
+    .reduce((n, r) => n + pendingOf(r), 0);
   const global: PaletteAction[] = [
     {
       id: "new-session",
@@ -406,6 +542,7 @@ function itemsFor({
             id: "open-project",
             label: `Open project ${here.name}`,
             icon: ICONS.branch,
+            hint: copy.palette.hints.project,
             run: () => navigate(paths.fleet(here.projectId)),
           },
         ]
@@ -416,10 +553,26 @@ function itemsFor({
             id: "open-team",
             label: `Open team ${here.teamName}`,
             icon: ICONS.handoff,
+            hint: copy.palette.hints.team,
             run: () => navigate(paths.management(here.teamId)),
           },
         ]
       : []),
+    {
+      id: "approvals",
+      label: copy.palette.approvalsQueue,
+      icon: ICONS.check,
+      hint: copy.palette.hints.page,
+      ...(waiting ? { sub: copy.palette.waitingOnYou(waiting) } : {}),
+      run: () => navigate(paths.approvals()),
+    },
+    {
+      id: "inbox",
+      label: copy.palette.inbox,
+      icon: ICONS.inbox,
+      hint: copy.palette.hints.page,
+      run: () => navigate(paths.inbox()),
+    },
     {
       id: "theme",
       label: dark ? "Switch to light theme" : "Switch to dark theme",
@@ -429,41 +582,95 @@ function itemsFor({
   ];
   const actions: Item[] = rank(
     [...registered, ...global],
-    (a) => `${a.label} ${a.hint ?? ""}`,
-    needle ? 8 : 40,
+    (a) => `${a.label} ${a.sub ?? ""} ${a.hint ?? ""}`,
+    needle ? 8 : 6,
   ).map((a) => ({
     id: `a:${a.id}`,
     kind: "action",
     label: a.label,
     icon: a.icon,
     hint: a.hint,
+    sub: a.sub,
     action: a,
+    ...(a.gate
+      ? {
+          pill: "irreversible",
+          two: {
+            stars: a.gate.rated[0]?.rating ?? DEFAULT_RATING,
+            text: a.gate.rated.map((r) => copy.palette.alreadyRated(r.who, r.rating)).join(" · "),
+          },
+        }
+      : {}),
   }));
+  if (needle)
+    actions.push({
+      id: "a:search",
+      kind: "action",
+      label: copy.palette.searchFor(needle),
+      icon: ICONS.search,
+      hint: copy.palette.hints.page,
+      go: paths.search(needle),
+    });
 
   // Sessions: what the sidebar lists, then recents it does not.
   const listed = new Set<string>();
   const sessions: Item[] = [];
+  const people = new Map<string, Item>();
+  const agents: Item[] = [];
   for (const [projectId, rows] of Object.entries(sidebar)) {
     for (const r of rows) {
       if (!r.open) continue;
       listed.add(r.sessionId);
+      const title = r.title || r.sessionId;
+      const ownerName = r.people.find((p) => p.id === r.ownerId)?.name ?? r.ownerId;
       sessions.push({
         id: `s:${projectId}/${r.sessionId}`,
         kind: "session",
-        label: r.title || r.sessionId,
-        sub: projects.find((p) => p.projectId === projectId)?.name ?? projectId,
+        label: title,
+        serif: true,
+        sub: `${ownerName}'s agent · ${nameOfProject(projectId)}`,
+        avatar: { text: "", agent: true },
         status: r.live ?? "idle",
         go: paths.session(projectId, r.sessionId),
       });
+      agents.push({
+        id: `g:${projectId}/${r.sessionId}`,
+        kind: "agent",
+        label: `${ownerName}'s agent`,
+        serif: true,
+        sub: `${title} · ${nameOfProject(projectId)}`,
+        avatar: { text: "", agent: true },
+        status: r.live ?? "idle",
+        go: paths.session(projectId, r.sessionId),
+      });
+      for (const p of r.people) {
+        const have = people.get(p.id);
+        const sub = p.driving ? `driving ${title}` : `${p.role} in ${title}`;
+        if (!have || (p.driving && !have.sub?.startsWith("driving")))
+          people.set(p.id, {
+            id: `p:${p.id}`,
+            kind: "person",
+            label: p.name,
+            serif: true,
+            sub: `${nameOfProject(projectId)} · ${sub}`,
+            avatar: { text: p.name.slice(0, 2) },
+            hint: copy.palette.hints.person,
+            go: paths.session(projectId, r.sessionId),
+          });
+      }
     }
   }
+  const recent: Item[] = [];
   for (const r of recents) {
     if (listed.has(r.sessionId)) continue;
-    sessions.push({
+    recent.push({
       id: `r:${r.projectId}/${r.sessionId}`,
       kind: "session",
       label: r.title || r.sessionId,
-      sub: "recent",
+      serif: true,
+      sub: nameOfProject(r.projectId),
+      avatar: { text: "", agent: true },
+      hint: "recent",
       go: paths.session(r.projectId, r.sessionId),
     });
   }
@@ -471,12 +678,17 @@ function itemsFor({
   const switchable = rank(
     sessions.filter((s) => !s.id.endsWith(`/${current}`)),
     (s) => `${s.label} ${s.sub ?? ""}`,
-    8,
+    needle ? 8 : 5,
   );
+  const recentShown = needle
+    ? rank(recent, (s) => `${s.label} ${s.sub ?? ""}`, 4)
+    : recent.slice(0, 3);
 
-  // Places: every project and team, by name, only when searching.
+  // Places: every project and team, by name, plus the pages, only when searching.
   const teams = new Map<string, string>();
   for (const p of projects) teams.set(p.teamId, p.teamName);
+  const orgsSeen = new Map<string, string>();
+  for (const p of projects) orgsSeen.set(p.orgId, p.orgName);
   const places: Item[] = needle
     ? rank(
         [
@@ -484,15 +696,28 @@ function itemsFor({
             id: `p:${p.projectId}`,
             kind: "go",
             label: p.name,
-            hint: "project",
+            serif: true,
+            icon: ICONS.columns,
+            hint: copy.palette.hints.project,
+            sub: `${(sidebar[p.projectId] ?? []).filter((r) => r.open).length} sessions`,
             go: paths.fleet(p.projectId),
           })),
           ...[...teams].map<Item>(([id, name]) => ({
             id: `t:${id}`,
             kind: "go",
             label: name,
-            hint: "team",
+            serif: true,
+            icon: ICONS.handoff,
+            hint: copy.palette.hints.team,
             go: paths.management(id),
+          })),
+          ...[...orgsSeen].map<Item>(([id, name]) => ({
+            id: `m:${id}`,
+            kind: "go",
+            label: `${name} memory`,
+            icon: ICONS.memory,
+            hint: copy.palette.hints.page,
+            go: paths.memory(id),
           })),
         ],
         (p) => `${p.label} ${p.hint}`,
@@ -500,27 +725,49 @@ function itemsFor({
       )
     : [];
 
-  // Memory: only when searching; a hit opens the project or team it belongs to.
-  const mem: Item[] = needle
-    ? rank(memory, (e) => `${e.key ?? ""} ${e.content} ${e.tags.join(" ")}`, 6).map((e) => ({
-        id: `m:${e.id}`,
-        kind: "memory",
-        label: truncate(e.key ? `${e.key} · ${e.content}` : e.content, 90),
-        sub: attribLine(e),
-        icon: ICONS.memory,
-        hint: "memory",
-        go: e.scope.projectId
-          ? paths.fleet(e.scope.projectId)
-          : e.scope.teamId
-            ? paths.management(e.scope.teamId)
-            : undefined,
-      }))
+  // People and agents: on what matched.
+  const who: Item[] = needle
+    ? rank([...people.values(), ...agents], (p) => `${p.label} ${p.sub ?? ""}`, 6)
     : [];
 
+  // Memory: the two newest when nothing is typed; otherwise what matches.
+  const mem: Item[] = (
+    needle
+      ? rank(memory, (e) => `${e.key ?? ""} ${e.content} ${e.tags.join(" ")}`, 6)
+      : [...memory].sort((a, b) => b.seq - a.seq).slice(0, 2)
+  ).map((e) => ({
+    id: `e:${e.id}`,
+    kind: "memory",
+    label: truncate(e.content, 110),
+    lead: e.key ?? undefined,
+    sub: attribLine(e),
+    icon: ICONS.memory,
+    hint: copy.palette.hints.memory,
+    go: e.scope.projectId
+      ? paths.fleet(e.scope.projectId)
+      : e.scope.teamId
+        ? paths.management(e.scope.teamId)
+        : paths.memory(e.scope.orgId),
+  }));
+  if (!needle) total += mem.length;
+
   const groups: Group[] = [];
-  if (actions.length) groups.push({ title: "Actions", items: actions });
-  if (switchable.length) groups.push({ title: "Switch session", items: switchable });
-  if (places.length) groups.push({ title: "Go to", items: places });
-  if (mem.length) groups.push({ title: "Team memory", items: mem });
-  return groups;
+  if (actions.length)
+    groups.push({
+      title: copy.palette.actions,
+      why: route.name === "session" ? copy.palette.actionsWhy : undefined,
+      items: actions,
+    });
+  if (switchable.length) groups.push({ title: copy.palette.switchSession, items: switchable });
+  if (recentShown.length) groups.push({ title: copy.palette.recent, items: recentShown });
+  if (places.length) groups.push({ title: copy.palette.goTo, items: places });
+  if (who.length)
+    groups.push({ title: copy.palette.people, why: copy.palette.peopleWhy, items: who });
+  if (mem.length)
+    groups.push({
+      title: copy.palette.memory,
+      why: orgsSeen.values().next().value ?? undefined,
+      items: mem,
+    });
+  return { groups, total };
 }

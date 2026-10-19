@@ -1,11 +1,50 @@
-/** The command-palette actions of one session page; SessionView registers them. */
+/** The command-palette actions of one session page, and the shortcut sheet's context; SessionView registers both. */
 import { isRatingsRule, ruleFor, type SessionState } from "@henosis/kernel";
 import type { Actor } from "@henosis/protocol";
 import { DEFAULT_RATING } from "../approvalsQueue.js";
 import type { HenosisClient } from "../client.js";
 import { copy } from "../copy.js";
 import type { PaletteAction } from "../palette.js";
+import type { ShortcutContext } from "../shortcuts.js";
 import { ICONS } from "../ui.js";
+
+/** What the "?" sheet needs to say what each key would do right now in this session. */
+export function shortcutContextOf(
+  s: SessionState | null,
+  meId: string,
+  detailsOpen: boolean,
+  title: string,
+): ShortcutContext {
+  if (!s) return { session: null };
+  const name = (id: string) => s.participants[id]?.actor.name ?? id;
+  const waiting = Object.values(s.approvals).find((a) => a.status === "pending");
+  const offered = Object.values(s.handoffs).find((h) => h.status === "pending" && h.to === meId);
+  const others = Object.values(s.participants)
+    .filter((p) => p.actor.kind === "human" && p.actor.id !== meId && p.present)
+    .map((p) => p.actor.name);
+  return {
+    session: {
+      title: s.title || title,
+      driving: s.driver === meId,
+      driver: s.driver && s.driver !== meId ? name(s.driver) : null,
+      waiting: waiting
+        ? {
+            code: waiting.call.name,
+            risk: waiting.call.risk,
+            irreversible: waiting.call.risk === "irreversible",
+            ratings: isRatingsRule(ruleFor(s.policy.approvals, waiting.call.risk)),
+            rated: Object.entries(waiting.ballots)
+              .filter(([, b]) => b.vote === "approve" && b.rating !== null)
+              .map(([id, b]) => ({ who: name(id), rating: b.rating ?? DEFAULT_RATING })),
+          }
+        : null,
+      offered: offered ? { from: name(offered.from) } : null,
+      others,
+      branch: s.branch,
+      detailsOpen,
+    },
+  };
+}
 
 /** "4" or "" to the default; anything outside 1..5 is the default too. */
 export function ratingOf(text: string, fallback = DEFAULT_RATING): number {
@@ -60,6 +99,13 @@ export function sessionCommands({
         icon: ICONS.check,
         hint: "pending",
         prompt: copy.approval.ratePrompt,
+        allowEmpty: true,
+        gate: {
+          code: a.call.name,
+          rated: Object.entries(a.ballots)
+            .filter(([, b]) => b.vote === "approve" && b.rating !== null)
+            .map(([id, b]) => ({ who: name(id), rating: b.rating ?? DEFAULT_RATING })),
+        },
         run: (text) =>
           client.send({
             type: "vote",

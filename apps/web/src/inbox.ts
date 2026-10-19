@@ -1,26 +1,40 @@
 /**
- * The inbox: one shared poll of GET /api/notifications per user, read by the sidebar (unread
- * count) and the Inbox view; mark-read; and the inline actions, which join the session over the
- * websocket, vote or accept, and leave again. Every storage and network call is guarded.
+ * The inbox: one shared poll of GET /api/notifications per user, read by the sidebar (the
+ * count of decisions waiting) and the Inbox view; mark-read; the typed toasts for what just
+ * arrived; and the inline actions, which join the session over the websocket, vote or accept,
+ * and leave again. Every storage and network call is guarded. The pure parts (the sentence,
+ * the kind, the group, the lede) are here too so the row, the toast and the aside agree.
  */
 import type { SessionState } from "@henosis/kernel";
 import type { SessionEvent } from "@henosis/protocol";
 import { useEffect, useSyncExternalStore } from "react";
 import { api, type Notification } from "./api.js";
 import { HenosisClient, wsUrl } from "./client.js";
+import { copy } from "./copy.js";
 import { actorOf, type Identity } from "./identity.js";
 import { notifyIfHidden } from "./notify.js";
 import { paths } from "./router.js";
+import { DECISION_KINDS, dismissNotice, type Notice, type NoticeKind, notice } from "./toast.js";
 
 export interface InboxSnapshot {
   userId: string | null;
   items: Notification[];
+  /** Decisions waiting (approvals, plans, the baton, contentions, blocks): the badge counts these only. */
   unread: number;
+  /** Everything unread, mentions and news included. */
+  unreadAll: number;
   error: string | null;
   loaded: boolean;
 }
 
-const EMPTY: InboxSnapshot = { userId: null, items: [], unread: 0, error: null, loaded: false };
+const EMPTY: InboxSnapshot = {
+  userId: null,
+  items: [],
+  unread: 0,
+  unreadAll: 0,
+  error: null,
+  loaded: false,
+};
 const EVERY_MS = 10_000;
 
 let current: InboxSnapshot = EMPTY;
@@ -29,16 +43,199 @@ let timer: ReturnType<typeof setInterval> | null = null;
 let interest = 0;
 let seen: Set<string> | null = null;
 
+// ---- the grammar, shared by the row, the toast and the banner ----------------------------
+
+/** The kind a row or toast wears: a gated approval is its own crease. */
+export function kindOf(n: Notification): NoticeKind {
+  if (n.kind === "approval" && n.ratings) return "gate";
+  return n.kind;
+}
+
+/** Whether something stops until this person acts. */
+export function isDecision(n: Notification): boolean {
+  return DECISION_KINDS.has(kindOf(n));
+}
+
+/** who · verb · what; an older server sends only `title`, which stands in for the sentence. */
+export function sentenceOf(n: Notification): { who: string; verb: string; what: string } {
+  if (n.who !== undefined && n.what !== undefined)
+    return { who: n.who, verb: n.verb ?? "", what: n.what };
+  return { who: "", verb: "", what: n.title };
+}
+
+/** The body split at its first " · ": where, then what it means for you. */
+export function bodyOf(n: Notification): { where: string; forYou: string | null } {
+  const at = n.body.indexOf(" · ");
+  if (at < 0) return { where: n.body, forYou: null };
+  return { where: n.body.slice(0, at), forYou: n.body.slice(at + 3) };
+}
+
+export type InboxGroup = "needs-you" | "mentions" | "done";
+
+/** Needs you first (something stops until you act), then mentions, then the quiet rest. */
+export function groupOf(n: Notification, acted = false): InboxGroup {
+  if (acted || n.read) return "done";
+  if (isDecision(n)) return "needs-you";
+  if (n.kind === "mention" || n.kind === "search") return "mentions";
+  return "done";
+}
+
+export type InboxFilter =
+  | "needs-you"
+  | "mentions"
+  | "approvals"
+  | "handoffs"
+  | "contentions"
+  | "done";
+
+export function matchesFilter(n: Notification, f: InboxFilter, acted = false): boolean {
+  const g = groupOf(n, acted);
+  switch (f) {
+    case "needs-you":
+      return g === "needs-you";
+    case "mentions":
+      return n.kind === "mention" || n.kind === "search";
+    case "approvals":
+      return n.kind === "approval" || n.kind === "plan";
+    case "handoffs":
+      return n.kind === "handoff";
+    case "contentions":
+      return n.kind === "contention" || n.kind === "blocked";
+    default:
+      return g === "done";
+  }
+}
+
+export const INBOX_FILTERS: InboxFilter[] = [
+  "needs-you",
+  "mentions",
+  "approvals",
+  "handoffs",
+  "contentions",
+  "done",
+];
+
+export function filterCounts(
+  items: Notification[],
+  acted: (n: Notification) => boolean = () => false,
+): Record<InboxFilter, number> {
+  const out = { "needs-you": 0, mentions: 0, approvals: 0, handoffs: 0, contentions: 0, done: 0 };
+  for (const n of items)
+    for (const f of INBOX_FILTERS) if (matchesFilter(n, f, acted(n))) out[f] += 1;
+  return out;
+}
+
+/** "Six things need you. Two wait on a rating, and Ana is holding the baton out." */
+export function ledeOf(items: Notification[]): { lead: string; emphasis: string; rest: string } {
+  const needs = items.filter((n) => groupOf(n) === "needs-you");
+  if (items.length === 0) return { lead: copy.inbox.nothingYet, emphasis: "", rest: "" };
+  if (needs.length === 0) return { lead: copy.inbox.nothingNew, emphasis: "", rest: "" };
+  const ratings = needs.filter((n) => n.kind === "plan" || (n.kind === "approval" && n.ratings));
+  const baton = needs.find((n) => n.kind === "handoff");
+  const emphasis = ratings.length ? copy.inbox.ledeRatings(ratings.length) : "";
+  const who = baton ? copy.inbox.ledeBaton(sentenceOf(baton).who || "Someone") : "";
+  // `rest` carries its own punctuation and follows the emphasis without a space.
+  const rest = who
+    ? emphasis
+      ? `, and ${who}.`
+      : ` ${who.charAt(0).toUpperCase() + who.slice(1)}.`
+    : emphasis
+      ? "."
+      : "";
+  return { lead: copy.inbox.lede(needs.length), emphasis, rest };
+}
+
+/** The aside's "Where things stand". */
+export function standOf(
+  items: Notification[],
+  acted: (n: Notification) => boolean = () => false,
+): { onYou: number; onOthers: number; moving: number } {
+  let onYou = 0;
+  let onOthers = 0;
+  let moving = 0;
+  for (const n of items) {
+    if (groupOf(n, acted(n)) === "needs-you") onYou += 1;
+    else if (acted(n) && isDecision(n)) onOthers += 1;
+    else if (n.kind === "done" || n.kind === "joined") moving += 1;
+  }
+  return { onYou, onOthers, moving };
+}
+
+/** "6 min ago" from a wall-clock time. */
+export function ago(at: number, now = Date.now()): string {
+  const s = Math.max(0, Math.round((now - at) / 1000));
+  if (s < 60) return "just now";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h ago`;
+  const d = Math.round(h / 24);
+  if (d < 7) return `${d} d ago`;
+  return new Date(at).toLocaleDateString();
+}
+
+/** The short mono age for a row: "6 min", "2 h", "3 d". */
+export function ageOf(at: number, now = Date.now()): string {
+  const s = Math.max(0, Math.round((now - at) / 1000));
+  if (s < 60) return "now";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h`;
+  return `${Math.round(h / 24)} d`;
+}
+
+/** The toast for an inbox item: the same sentence at the second distance. */
+export function noticeOf(n: Notification): Notice {
+  const { who, verb, what } = sentenceOf(n);
+  const { where, forYou } = bodyOf(n);
+  const { projectId, sessionId } = linkOf(n.link);
+  const kind = kindOf(n);
+  return {
+    id: n.id,
+    kind,
+    who,
+    verb,
+    what,
+    ...(n.code ? { code: n.code } : {}),
+    where: n.kind === "mention" || n.kind === "search" ? what : where,
+    ...(forYou && n.kind !== "mention" && n.kind !== "search" ? { forYou } : {}),
+    ...(n.kind === "mention" || n.kind === "search" ? { quote: n.body } : {}),
+    route: n.route ?? linkOf(n.link).href ?? paths.inbox(),
+    sticky: DECISION_KINDS.has(kind),
+    ...(n.ratings ? { ratings: true } : {}),
+    ...(n.ref ? { ref: n.ref } : {}),
+    ...(projectId ? { projectId } : {}),
+    ...(sessionId ? { sessionId } : {}),
+    at: n.at,
+  };
+}
+
+// ---- the poll ------------------------------------------------------------------------------
+
 function set(patch: Partial<InboxSnapshot>): void {
+  const items = patch.items ?? current.items;
   current = {
     ...current,
     ...patch,
-    unread: (patch.items ?? current.items).filter((n) => !n.read).length,
+    unread: items.filter((n) => !n.read && isDecision(n)).length,
+    unreadAll: items.filter((n) => !n.read).length,
   };
   for (const fn of listeners) fn();
 }
 
-/** Fetch the inbox now; new unread items that arrive while the tab is hidden become browser notifications. */
+function hidden(): boolean {
+  try {
+    return typeof document !== "undefined" && document.hidden;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fetch the inbox now. New unread items become typed toasts while the tab is in view and
+ * browser notifications while it is hidden; "joins the circle" never becomes a banner.
+ */
 export function refreshInbox(): void {
   const userId = current.userId;
   if (!userId) return;
@@ -48,9 +245,15 @@ export function refreshInbox(): void {
       if (current.userId !== userId) return;
       const items = [...r.notifications].sort((a, b) => b.at - a.at);
       if (seen) {
-        for (const n of items)
-          if (!n.read && !seen.has(n.id)) notifyIfHidden(n.title, n.body, n.id);
+        for (const n of items) {
+          if (n.read || seen.has(n.id)) continue;
+          if (hidden()) {
+            if (n.kind !== "joined") notifyIfHidden(n.title, n.body, n.tag ?? n.id, n.kind);
+          } else notice(noticeOf(n));
+        }
       }
+      // An item answered elsewhere (the session, another device) leaves the corner too.
+      for (const n of items) if (n.read) dismissNotice(n.id);
       seen = new Set(items.map((n) => n.id));
       set({ items, error: null, loaded: true });
     })
@@ -223,7 +426,7 @@ function awaitEvent(
  */
 export async function voteFromInbox(
   identity: Identity,
-  n: Notification,
+  n: Pick<Notification, "link" | "ref">,
   vote: "approve" | "deny",
   rating: number | null = null,
 ): Promise<string> {
@@ -252,14 +455,19 @@ export async function voteFromInbox(
         e.actor === identity.userId,
     );
     const after = client.snapshot.state?.approvals[approvalId];
-    const word = vote === "approve" ? "Approved" : "Denied";
+    const word =
+      vote === "approve" ? `Approved${rating !== null ? ` · ★ ${rating}` : ""}` : "Denied";
     if (after?.status === "pending") return `${word} · waiting on others`;
+    if (after?.status === "granted" && vote === "approve") return `${word} · the gate opened`;
     return word;
   });
 }
 
 /** Accept a handoff from the inbox. */
-export async function acceptFromInbox(identity: Identity, n: Notification): Promise<string> {
+export async function acceptFromInbox(
+  identity: Identity,
+  n: Pick<Notification, "link" | "ref">,
+): Promise<string> {
   const { projectId, sessionId } = linkOf(n.link);
   if (!sessionId || !n.ref) throw new Error("Open the session to accept this");
   const handoffId = n.ref;
@@ -273,6 +481,27 @@ export async function acceptFromInbox(identity: Identity, n: Notification): Prom
       client,
       (e) => e.kind === "handoff.accepted" && e.payload.handoffId === handoffId,
     );
-    return "You have the fold";
+    return "You have the baton";
+  });
+}
+
+/** Decline a handoff from the inbox ("Not now"). */
+export async function declineFromInbox(
+  identity: Identity,
+  n: Pick<Notification, "link" | "ref">,
+): Promise<string> {
+  const { projectId, sessionId } = linkOf(n.link);
+  if (!sessionId || !n.ref) throw new Error("Open the session to answer this");
+  const handoffId = n.ref;
+  return inSession(identity, projectId, sessionId, async (client, state) => {
+    const h = state.handoffs[handoffId];
+    if (!h) return "No longer offered";
+    if (h.status !== "pending") return h.status === "accepted" ? "Already accepted" : "Declined";
+    client.send({ type: "handoff.decline", handoffId });
+    await awaitEvent(
+      client,
+      (e) => e.kind === "handoff.declined" && e.payload.handoffId === handoffId,
+    );
+    return "Declined · they keep driving";
   });
 }

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { isTyping, matchShortcut, modLabel, SHORTCUTS, stepSession, withMod } from "./shortcuts.js";
+import {
+  isTyping,
+  matchShortcut,
+  modLabel,
+  pressTwoStep,
+  registerOf,
+  SHORTCUTS,
+  stepSession,
+  withMod,
+} from "./shortcuts.js";
 
 describe("shortcut map", () => {
   it("names every key once", () => {
@@ -57,5 +66,72 @@ describe("shortcut map", () => {
     expect(stepSession(hrefs, "#/p/a", 1)).toBe("#/p/a/s/1");
     expect(stepSession(hrefs, "#/p/a", -1)).toBe("#/p/b/s/3");
     expect(stepSession([], "#/", 1)).toBeNull();
+  });
+
+  it("takes two presses for an irreversible action from another page, one otherwise", () => {
+    // Off-page irreversible gate: the first `a` arms the card, the second sends.
+    expect(pressTwoStep(null, "a", true)).toEqual({ fire: false, armed: "a" });
+    expect(pressTwoStep("a", "a", true)).toEqual({ fire: true, armed: null });
+    // Another key, or esc, leaves it; the next `a` starts over.
+    expect(pressTwoStep("a", "d", true)).toEqual({ fire: false, armed: "d" });
+    expect(pressTwoStep("a", "Escape", true)).toEqual({ fire: false, armed: null });
+    // Rating keys and ↵ on a revisable plan stay one-step.
+    expect(pressTwoStep(null, "4", false)).toEqual({ fire: true, armed: null });
+    expect(pressTwoStep("a", "Enter", false)).toEqual({ fire: true, armed: null });
+  });
+
+  it("registers what each key would do right now", () => {
+    const rows = registerOf(
+      {
+        session: {
+          title: "Invoice PDF",
+          driving: true,
+          others: ["Dee", "Bo"],
+          branch: "billing/invoice-pdf",
+          waiting: {
+            code: "git push origin main",
+            risk: "irreversible",
+            irreversible: true,
+            ratings: true,
+            rated: [{ who: "Bo", rating: 4 }],
+          },
+          offered: null,
+        },
+        neighbours: { prev: null, next: "Tally" },
+      },
+      "⌘",
+    );
+    const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
+    expect(byId.approve?.live).toBe(true);
+    expect(byId.approve?.now).toBe(
+      "approves git push origin main and sends 4 stars, which joins Bo's 4 · irreversible",
+    );
+    expect(byId.deny?.live).toBe(true);
+    expect(byId.handoff?.now).toBe("Offers the baton · Dee and Bo are here");
+    expect(byId.handoff?.live).toBe(false);
+    expect(byId.next?.now).toBe("Tally");
+    expect(byId.previous?.idle).toBe(true);
+    expect(byId.help?.pressed).toBe(true);
+    expect(byId.help?.now).toBe("⌘ / opens it while you are typing");
+    expect(byId.palette?.keys).toEqual(["⌘", "K"]);
+    expect(rows.filter((r) => r.live).map((r) => r.id)).toEqual(["approve", "deny"]);
+    // Without a session the session keys step back; an offered baton lights `h`.
+    const bare = registerOf({}, "Ctrl");
+    expect(bare.find((r) => r.id === "approve")?.idle).toBe(true);
+    expect(bare.find((r) => r.id === "steer")?.now).toBe("Open a session first");
+    const offered = registerOf(
+      {
+        session: {
+          title: "Tally",
+          driving: false,
+          driver: "Ana",
+          others: ["Ana"],
+          offered: { from: "Ana" },
+        },
+      },
+      "⌘",
+    );
+    expect(offered.find((r) => r.id === "handoff")?.live).toBe(true);
+    expect(offered.find((r) => r.id === "handoff")?.now).toBe("Takes the baton from Ana");
   });
 });

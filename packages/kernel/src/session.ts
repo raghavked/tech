@@ -217,6 +217,7 @@ export class Session {
     vote: "approve" | "deny",
     rating?: number,
     note = "",
+    override = false,
   ): SessionEvent {
     const s = this.state(branch);
     const a = s.approvals[approvalId];
@@ -226,8 +227,13 @@ export class Session {
     if (p?.actor.kind !== "human") throw new KernelError("unauthorized", "only humans vote");
     return this.emit(branch, actorId, {
       kind: "approval.voted",
-      payload:
-        rating === undefined ? { approvalId, vote, note } : { approvalId, vote, rating, note },
+      payload: {
+        approvalId,
+        vote,
+        note,
+        ...(rating === undefined ? {} : { rating }),
+        ...(override ? { override: true } : {}),
+      },
     });
   }
 

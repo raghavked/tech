@@ -41,11 +41,11 @@ import {
   useJustJoined,
   useMediaQuery,
 } from "../ui.js";
-import { focusSoon } from "../useShortcuts.js";
+import { focusSoon, useShortcutContextPublisher } from "../useShortcuts.js";
 import { BranchCompare } from "./BranchCompare.js";
 import { ReplayScrubber, useReplay } from "./ReplayScrubber.js";
 import { ShareSheet } from "./ShareSheet.js";
-import { sessionCommands } from "./sessionCommands.js";
+import { sessionCommands, shortcutContextOf } from "./sessionCommands.js";
 
 /** Live events after which the project listing (people, status, goal) reads differently. */
 const FLEET_KINDS = new Set<string>([
@@ -200,6 +200,13 @@ export function SessionView({
   const past = viewSeq !== null;
   // presence join: whoever just came online wears the ripple for a second.
   const justJoined = useJustJoined(snap.presence.filter((p) => p.online).map((p) => p.actor.id));
+  // shortcuts: the "?" sheet says what each key would do right now in this session.
+  useShortcutContextPublisher(
+    useMemo(
+      () => shortcutContextOf(s, actor.id, details, shownTitle),
+      [s, actor.id, details, shownTitle],
+    ),
+  );
 
   if (!s)
     return (

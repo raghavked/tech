@@ -9,6 +9,8 @@ export interface VoteRecord {
   vote: Vote;
   rating: number | null;
   note: string;
+  /** Decision 3: an owner decided alone, logged in their name; the rule's count is set aside. */
+  override?: boolean;
 }
 
 export interface ApprovalRecord {
@@ -77,6 +79,9 @@ export function evaluate(
     );
   if (eligible.some(([, v]) => v.vote === "deny")) return "denied";
   const approvals = eligible.filter(([, v]) => v.vote === "approve");
+  // Decision 3: an owner who decided alone grants the call whatever the count still wants.
+  if (approvals.some(([actor, v]) => v.override === true && canOverride(rankOf(actor))))
+    return "granted";
   if (isRatingsRule(rule)) {
     // Only rated approvals count toward a release gate; an unrated approve is a voice, not a vote.
     const rated = approvals.filter(([, v]) => v.rating !== null);
@@ -85,6 +90,31 @@ export function evaluate(
     return avg >= rule.ratings.average ? "granted" : "pending";
   }
   return approvals.length >= requiredVotes(rule) ? "granted" : "pending";
+}
+
+/**
+ * Decision 3 (settled): an owner may approve any risk class. The override exists where one
+ * owner's plain vote would not already grant the call: a quorum above one, or a release gate
+ * that needs more than one rater. Under a single-role rule the owner outranks it and needs no
+ * override, so the queue must not offer one there.
+ */
+export interface OwnerOverride {
+  risk: RiskClass;
+  rule: ApprovalRule;
+  /** What the rule asks for, so the button can say what the override sets aside. */
+  requires: string;
+}
+
+export function ownerOverride(policy: ApprovalPolicy, risk: RiskClass): OwnerOverride | null {
+  const rule = ruleFor(policy, risk);
+  if (rule === "none" || typeof rule === "string") return null;
+  if (requiredVotes(rule) <= 1) return null;
+  return { risk, rule, requires: describeRule(rule) };
+}
+
+/** True when a voter of this rank may decide alone under Decision 3. */
+export function canOverride(rank: number): boolean {
+  return rank >= ROLE_RANK.owner;
 }
 
 export function describeRule(rule: ApprovalRule): string {

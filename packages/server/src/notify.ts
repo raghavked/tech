@@ -1,22 +1,53 @@
 /**
- * Notifications for the mobile and desktop shells: a per-user inbox fed by session and
- * project events (approval needed, handoff offered, fleet contention, session done), with
- * push subscriptions recorded for a delivery adapter. Phase 0 delivers by pull (the shells
- * poll the inbox) and by an injectable sender; web push with VAPID is a one-file adapter.
+ * Notifications for the web, mobile and desktop shells: a per-user inbox fed by session and
+ * project events (approval needed, handoff offered, fleet contention, session done, a mention
+ * in a group chat), with push subscriptions recorded for a delivery adapter. Phase 0 delivers
+ * by pull (the shells poll the inbox) and by an injectable sender; web push with VAPID is a
+ * one-file adapter.
+ *
+ * One notification is one sentence said at three distances (toast, OS banner, inbox row), so
+ * every item carries the same grammar: `who · verb · what` (the title), a `body` that says
+ * where and then what it means for you, a `tag` so a repeat replaces instead of stacking, a
+ * `route` (the client's hash path) beside the `link` (the henosis:// deep link every shell
+ * understands), and an `age` in seconds at the time it was listed.
  */
 import type { ProjectEvent } from "@henosis/fleet";
 import { isRatingsRule, ruleFor } from "@henosis/kernel";
-import type { SessionEvent, SessionPolicy } from "@henosis/protocol";
+import type { SessionEvent, SessionPolicy, ToolCall } from "@henosis/protocol";
 import { FileStore, type LiveStore } from "./store/index.js";
+
+export type NotificationKind =
+  | "approval"
+  | "handoff"
+  | "contention"
+  | "done"
+  | "blocked"
+  | "plan"
+  | "mention"
+  | "joined"
+  | "search";
 
 export interface Notification {
   id: string;
   userId: string;
-  kind: "approval" | "handoff" | "contention" | "done" | "blocked" | "plan" | "mention";
+  kind: NotificationKind;
+  /** The named thing the sentence starts with: "Bo's agent", "Cy", "Invoice PDF". */
+  who: string;
+  /** "wants to", "offers you", "mentioned you in", "joins", "finished". */
+  verb: string;
+  /** The rest of the sentence; `code` is the part of it set in mono (a command, a path). */
+  what: string;
+  code?: string;
+  /** `who verb what`, for shells that print one line (the tray, an OS banner). */
   title: string;
+  /** Where, then what it means for you: "Invoice PDF · You can approve, Ana". */
   body: string;
   /** Deep link understood by every shell: henosis://p/<project>/s/<session>, or henosis://c/<org>/<group> for a mention. */
   link: string;
+  /** The web client's hash route for the same place: "#/p/<project>/s/<session>". */
+  route: string;
+  /** A repeat with the same tag replaces the earlier item instead of stacking beside it. */
+  tag: string;
   /** What the shell acts on inline: the approvalId, handoffId, contentionId, planId or messageId behind this item. */
   ref?: string;
   /** An approval under a release gate: the shell asks for a 1..5 rating with the approve. */
@@ -28,8 +59,14 @@ export interface Notification {
    */
   needsYou?: number;
   at: number;
+  /** Seconds since `at`, filled in when the inbox is listed. */
+  age?: number;
   read: boolean;
 }
+
+/** What a caller gives `notify`: the grammar; everything derivable has a default. */
+export type NotificationInput = Pick<Notification, "kind" | "who" | "verb" | "what" | "link"> &
+  Partial<Pick<Notification, "code" | "body" | "route" | "tag" | "ref" | "ratings" | "title">>;
 
 export interface PushSubscription {
   userId: string;
@@ -40,6 +77,60 @@ export interface PushSubscription {
 }
 
 export type Sender = (sub: PushSubscription, n: Notification) => Promise<void>;
+
+/** The one line: who · verb · what, with the mono part inside the sentence. */
+export function sentenceOf(n: Pick<Notification, "who" | "verb" | "what">): string {
+  return [n.who, n.verb, n.what].filter((s) => s.trim()).join(" ");
+}
+
+/** The web client's hash route for a henosis:// link. */
+export function routeOfLink(link: string): string {
+  const c = link.match(/^henosis:\/\/c\/([^/?#]+)\/([^/?#]+)/);
+  if (c) return `#/c/${c[1]}/${c[2]}`;
+  const m = link.match(/^henosis:\/\/p\/([^/?#]+)(?:\/s\/([^/?#]+))?/);
+  if (m) return m[2] ? `#/p/${m[1]}/s/${m[2]}` : `#/p/${m[1]}`;
+  if (link.startsWith("henosis://inbox")) return "#/inbox";
+  return "#/";
+}
+
+/** A tool call in the product's words: the verb phrase and the part of it set in mono. */
+export function describeCall(call: ToolCall): { what: string; code: string } {
+  const a = call.args as Record<string, unknown>;
+  const str = (k: string) => (typeof a[k] === "string" ? (a[k] as string) : "");
+  const list = (k: string) => (Array.isArray(a[k]) ? (a[k] as unknown[]).map(String) : []);
+  switch (call.name) {
+    case "workspace.read":
+      return { what: `read ${str("path")}`, code: str("path") };
+    case "workspace.write":
+      return { what: `write ${str("path")}`, code: str("path") };
+    case "workspace.delete":
+      return { what: `delete ${str("path")}`, code: str("path") };
+    case "workspace.list":
+      return { what: "list the workspace", code: "" };
+    case "shell.run": {
+      const cmd = [str("command"), ...list("args")].join(" ").trim();
+      return { what: `run ${cmd}`, code: cmd };
+    }
+    case "deploy":
+      return { what: `deploy to ${str("env")}`, code: str("env") };
+    case "memory.remember":
+      return { what: `remember ${str("key")}`, code: str("key") };
+    case "memory.recall":
+      return { what: "recall team memory", code: "" };
+    case "fleet.claim":
+      return { what: "claim a resource", code: "" };
+    case "fleet.release":
+      return { what: "release a claim", code: "" };
+    default:
+      return { what: `call ${call.name}`, code: call.name };
+  }
+}
+
+export interface SessionMeta {
+  title?: string;
+  ownerId?: string | null;
+  projectName?: string;
+}
 
 export class Notifier {
   private readonly inbox = new Map<string, Notification[]>();
@@ -77,22 +168,54 @@ export class Notifier {
     return this.subs.filter((s) => s.userId === userId);
   }
 
-  list(userId: string, unreadOnly = false): Notification[] {
-    return (this.inbox.get(userId) ?? []).filter((n) => !unreadOnly || !n.read);
+  /** The inbox, each item with its age in seconds at this moment. */
+  list(userId: string, unreadOnly = false, now = Date.now()): Notification[] {
+    return (this.inbox.get(userId) ?? [])
+      .filter((n) => !unreadOnly || !n.read)
+      .map((n) => ({ ...n, age: Math.max(0, Math.round((now - n.at) / 1000)) }));
   }
 
   markRead(userId: string, ids: string[]): void {
     for (const n of this.inbox.get(userId) ?? []) if (ids.includes(n.id)) n.read = true;
   }
 
-  notify(userId: string, n: Omit<Notification, "id" | "userId" | "at" | "read">): Notification {
-    this.counter += 1;
+  /**
+   * A decision anywhere settles the item everywhere: the approval was granted or denied, the
+   * baton taken or declined, the plan decided. The rows go read in every inbox, so the toast,
+   * the banner and the badge agree with the session.
+   */
+  settle(tags: string[]): void {
+    if (tags.length === 0) return;
+    for (const box of this.inbox.values())
+      for (const n of box) if (tags.includes(n.tag)) n.read = true;
+  }
+
+  /**
+   * File one notification. A repeat (same user, same tag) replaces the earlier item in place,
+   * keeping its id so a shell that shows it updates rather than stacks; it becomes unread again.
+   */
+  notify(userId: string, input: NotificationInput): Notification {
+    const box = this.inbox.get(userId) ?? [];
+    const tag = input.tag ?? `${input.kind}:${input.ref ?? input.link}`;
+    const earlier = box.find((n) => n.tag === tag);
+    if (!earlier) this.counter += 1;
     const full: Notification = {
-      id: `n${Date.now()}_${this.counter}`,
+      id: earlier?.id ?? `n${Date.now()}_${this.counter}`,
       userId,
+      kind: input.kind,
+      who: input.who,
+      verb: input.verb,
+      what: input.what,
+      ...(input.code ? { code: input.code } : {}),
+      title: input.title ?? sentenceOf(input),
+      body: input.body ?? "",
+      link: input.link,
+      route: input.route ?? routeOfLink(input.link),
+      tag,
+      ...(input.ref ? { ref: input.ref } : {}),
+      ...(input.ratings ? { ratings: true } : {}),
       at: Date.now(),
       read: false,
-      ...n,
     };
     if (this.badge) {
       try {
@@ -101,8 +224,8 @@ export class Notifier {
         this.log(`badge for ${userId} failed: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
-    const box = this.inbox.get(userId) ?? [];
-    box.push(full);
+    if (earlier) box[box.indexOf(earlier)] = full;
+    else box.push(full);
     if (box.length > 200) box.splice(0, box.length - 200);
     this.inbox.set(userId, box);
     if (this.sender) {
@@ -124,34 +247,52 @@ export class Notifier {
     e: SessionEvent,
     participants: { id: string; name: string; role: string; isDriver: boolean; kind: string }[],
     policy?: SessionPolicy,
+    meta: SessionMeta = {},
   ): void {
     const link = `henosis://p/${projectId}/s/${sessionId}`;
     const humans = participants.filter((p) => p.kind === "human");
-    const actorName = humans.find((p) => p.id === e.actor)?.name ?? e.actor;
+    const nameOf = (id: string) => humans.find((p) => p.id === id)?.name ?? id;
+    const actorName = nameOf(e.actor);
+    const where = meta.title || sessionId;
+    // The agent is named after its owner ("Ana's agent"); a session without one keeps the actor's name.
+    const owner = meta.ownerId ? humans.find((p) => p.id === meta.ownerId) : undefined;
+    const agentActor = participants.find((p) => p.kind === "agent");
+    const agentName = owner ? `${owner.name}'s agent` : (agentActor?.name ?? "The agent");
+    const deciders = humans.filter((p) => p.role === "owner" || p.isDriver);
     switch (e.kind) {
       case "approval.requested": {
         const eligible = humans.filter((p) => p.role !== "observer");
-        const ratings = policy
-          ? isRatingsRule(ruleFor(policy.approvals, e.payload.call.risk))
-          : false;
+        const rule = policy ? ruleFor(policy.approvals, e.payload.call.risk) : null;
+        const ratings = rule ? isRatingsRule(rule) : false;
+        const call = describeCall(e.payload.call);
         for (const p of eligible)
           this.notify(p.id, {
             kind: "approval",
-            title: "Approval needed",
-            body: `${e.payload.call.name} [${e.payload.call.risk}] in ${sessionId}`,
+            who: agentName,
+            verb: "wants to",
+            what: `${call.what}.`,
+            ...(call.code ? { code: call.code } : {}),
+            body: ratings
+              ? `${where} · a release gate: rate it, then approve`
+              : `${where} · You can approve, ${p.name}`,
             link,
+            tag: `approval:${e.payload.approvalId}`,
             ref: e.payload.approvalId,
             ...(ratings ? { ratings: true } : {}),
           });
         break;
       }
       case "plan.proposed": {
+        const n = e.payload.steps.length;
         for (const p of humans.filter((p) => p.role !== "observer"))
           this.notify(p.id, {
             kind: "plan",
-            title: "A plan waits for your rating",
-            body: `${e.payload.steps.length} steps, about ${e.payload.estTokens} tokens, in ${sessionId}`,
+            who: agentName,
+            verb: "proposes",
+            what: `a plan of ${n} step${n === 1 ? "" : "s"}.`,
+            body: `${where} · about ${e.payload.estTokens.toLocaleString("en-US")} tokens · rate it 1 to 5`,
             link,
+            tag: `plan:${e.payload.planId}`,
             ref: e.payload.planId,
           });
         break;
@@ -159,40 +300,67 @@ export class Notifier {
       case "handoff.requested":
         this.notify(e.payload.to, {
           kind: "handoff",
-          title: "You are offered the driver seat",
-          body: `${actorName} wants to hand off ${sessionId}`,
+          who: actorName,
+          verb: "offers you",
+          what: "the baton.",
+          body: `${where} · you drive once you accept`,
           link,
+          tag: `handoff:${e.payload.handoffId}`,
           ref: e.payload.handoffId,
         });
         break;
+      case "participant.joined":
+        if (e.payload.actor.kind === "human")
+          for (const p of humans.filter((p) => p.id !== e.payload.actor.id))
+            this.notify(p.id, {
+              kind: "joined",
+              who: e.payload.actor.name,
+              verb: "joins",
+              what: "the circle.",
+              body: `${where} · as ${e.payload.role}`,
+              link,
+              tag: `joined:${sessionId}:${e.payload.actor.id}`,
+            });
+        break;
       case "fleet.contention.mirrored":
         if (!e.payload.resolved)
-          for (const p of humans.filter((p) => p.role === "owner" || p.isDriver))
+          for (const p of deciders)
             this.notify(p.id, {
               kind: "contention",
-              title: "Fleet contention",
-              body: `${e.payload.kind} on ${e.payload.resource}`,
+              who: where,
+              verb: "collides on",
+              what: `${e.payload.resource}.`,
+              code: e.payload.resource,
+              body: `${e.payload.kind} with another session · one of you picks`,
               link,
+              tag: `contention:${e.payload.contentionId}`,
               ref: e.payload.contentionId,
             });
         break;
       case "workspace.blocked":
-        for (const p of humans.filter((p) => p.role === "owner" || p.isDriver))
+        for (const p of deciders)
           this.notify(p.id, {
             kind: "blocked",
-            title: "Write refused",
-            body: `${e.payload.path} is held by ${e.payload.holderSessionId}`,
+            who: where,
+            verb: "is blocked on",
+            what: `${e.payload.path}.`,
+            code: e.payload.path,
+            body: `held by ${e.payload.holderSessionId} · retry once it is free`,
             link,
+            tag: `blocked:${sessionId}:${e.payload.path}`,
           });
         break;
       case "agent.turn.ended":
         if (e.payload.summary.startsWith("DONE"))
-          for (const p of humans.filter((p) => p.role === "owner" || p.isDriver))
+          for (const p of deciders)
             this.notify(p.id, {
               kind: "done",
-              title: "Agent finished",
-              body: e.payload.summary.slice(5, 160),
+              who: agentName,
+              verb: "finished",
+              what: `${e.payload.summary.slice(5, 160).trim() || "what it was asked"}.`,
+              body: `${where} · nothing waits on you`,
               link,
+              tag: `done:${sessionId}:${e.payload.turn}`,
             });
         break;
       default:
@@ -200,14 +368,18 @@ export class Notifier {
     }
   }
 
-  onProjectEvent(projectId: string, e: ProjectEvent, leads: string[]): void {
+  onProjectEvent(projectId: string, e: ProjectEvent, leads: string[], projectName?: string): void {
     if (e.kind !== "fleet.contention.opened") return;
     for (const lead of leads)
       this.notify(lead, {
         kind: "contention",
-        title: "Fleet contention",
-        body: `${e.payload.kind} on ${e.payload.resource}: ${e.payload.detail.slice(0, 140)}`,
+        who: projectName ?? projectId,
+        verb: "has two sessions on",
+        what: `${e.payload.resource}.`,
+        code: e.payload.resource,
+        body: `${e.payload.kind} · ${e.payload.detail.slice(0, 140)}`,
         link: `henosis://p/${projectId}`,
+        tag: `contention:${e.payload.contentionId}`,
         ref: e.payload.contentionId,
       });
   }
