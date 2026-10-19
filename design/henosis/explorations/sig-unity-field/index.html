@@ -371,7 +371,7 @@ canvas.field { position: absolute; left: 0; right: 0; top: var(--topbar-h, 56px)
   const S = {
     w: 0, h: 0, dpr: 1, pairs: [], anchors: [], quiet: [], demo: null, pointer: null, pointerSeen: false,
     pulse: null, motion: false, col: null, raf: 0, last: 0, active: true, cost: 0, frames: 0, fpsT: 0, fps: 0,
-    visible: true, intersecting: true, warm: 0
+    visible: true, intersecting: true, t0: 0
   };
 
   const motionOn = () => getComputedStyle(root).getPropertyValue('--motion').trim() === '1';
@@ -554,8 +554,7 @@ canvas.field { position: absolute; left: 0; right: 0; top: var(--topbar-h, 56px)
     S.active = step(dt, now); S.last = now;
     draw();
     const c = performance.now() - t0;
-    if (S.warm < 4) S.warm++;                                  /* the first frames carry the JIT, not the field */
-    else S.cost = S.cost ? S.cost * 0.92 + c * 0.08 : c;
+    if (now - S.t0 > 1000) S.cost = S.cost ? S.cost * 0.92 + c * 0.08 : c;   /* the first second carries the JIT, not the field: it is not measured */
     S.frames++;
     const period = S.fps ? 1000 : 500;
     if (now - S.fpsT >= period) { S.fps = Math.round(S.frames * 1000 / (now - S.fpsT)); S.frames = 0; S.fpsT = now; stat(); }
@@ -563,13 +562,14 @@ canvas.field { position: absolute; left: 0; right: 0; top: var(--topbar-h, 56px)
   function stat() {
     const arcs = S.pairs.length * 2;
     if (!S.motion) { statEl.textContent = arcs + ' arcs · still · 0 fps · 0 % core'; return; }
+    if (!S.cost) { statEl.textContent = arcs + ' arcs · measuring…'; return; }
     statEl.textContent = arcs + ' arcs · ' + S.cost.toFixed(2) + ' ms · ' + S.fps + ' fps · ' + (S.cost * S.fps / 10).toFixed(1) + ' % core';
   }
   function run() {
     cancelAnimationFrame(S.raf); S.raf = 0;
     S.motion = motionOn();
     if (!S.motion || !S.visible || !S.intersecting) { settle(true); draw(); stat(); return; }
-    S.last = performance.now(); S.fpsT = S.last; S.frames = 0; S.active = true;
+    S.last = performance.now(); S.fpsT = S.last; S.t0 = S.last; S.frames = 0; S.cost = 0; S.active = true;
     S.raf = requestAnimationFrame(frame);
   }
   function pulse(x, y) { if (!S.motion) return; S.pulse = { x, y, t: performance.now() }; S.active = true; }
