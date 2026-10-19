@@ -28,6 +28,22 @@ least a minor bump; a fix is a patch. The pipeline itself is in `docs/16_desktop
 
 ### Added
 
+- Henosis: the product is one team of people and agents; the two-arcs mark; the merge verb
+  is "unite" and the driver token is "the baton".
+- Token usage counted on every model call and summed per turn, session, project and person;
+  a meter in the session top bar with a budget bar; `GET /api/usage`.
+- Plan first: a session proposes its plan with token estimates before it may write; the team
+  rates it one to five; approvals carry ratings and a release gate waits for the consumers of
+  the code to rate a push or a deploy.
+- Groups and chats with people and agents as members; @mentioning an agent reaches its
+  session and its reply lands back in the group.
+- The manager's view: stat tiles, tokens by project, person and agent, tokens over turns, a
+  roster of people and agents, crews.
+- [web] The vibrant theme with motion (loaders, the arcs closing when something joins, cards
+  rising, a granted approval drawing its check) and a team look leads can set.
+- [web] Tokens v6 from the design wave: one dark status triplet, a lifted hand in dark,
+  selection and status ink tokens, one motion guard.
+
 - [desktop] Auto-update: the shell checks a signed manifest after launch and every six
   hours, downloads a newer build quietly, and shows one "Restart to update" row in the
   sidebar; it never relaunches on its own.

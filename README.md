@@ -1,14 +1,24 @@
 # Henosis
 
-**The studio where your team and its agents work on one piece.**
+**One team, people and agents.** Henosis (ἕνωσις, union) is the shared, living session for
+a team's long-running AI agents, where agents are members of the team.
 
 <p><img src="design/logo.svg" alt="Henosis" height="56"></p>
 
 Agents now run for hours, days and weeks. Work at that scale pulls in many people, but every
-agent product today gives the run to one person: everyone else gets a read-only link, or a
-Slack thread the model has to make sense of. Henosis makes the session itself the shared
-object. Anyone on the team drops in, watches, steers, approves, forks, merges and hands off,
-and the kernel decides what happens when two people steer at once.
+agent product today gives the run to one person and treats the agent as a tool that person
+holds. Henosis makes the agent a member and the session the shared object: anyone on the team
+drops in, watches, steers, approves, forks, unites and hands off; the kernel decides what
+happens when two people steer at once; people and agents sit in the same groups and chats;
+nothing is built before the team has rated the plan, and nothing ships before the people who
+will live with it have rated the release. The selling moment is joining: a new engineer and a
+new agent enter the same circle on the same day, with the same memory, the same manners and
+the same manager's view.
+
+Henosis runs the same way for a two-person startup and a company of thousands: one server
+and a folder for the first team, an identity provider, a database and sharded session actors
+for the large one, the same kernel and the same product in between. The editions and what
+scales between them are in [`docs/18_editions.md`](docs/18_editions.md).
 
 Three layers, all event-sourced, all replayable:
 
