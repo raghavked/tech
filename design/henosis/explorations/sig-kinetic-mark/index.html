@@ -4,26 +4,32 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henosis · The kinetic mark</title>
+<meta name="description" content="The Henosis mark as a system of six states: idle, joining, settled, thinking, blocked, handing the baton. Spec sheet, timing score, 16 px favicons.">
 <link id="favicon" rel="icon" type="image/svg+xml" href="">
 <style>
 /* ======================================================================
    Henosis · signature element · the kinetic mark
-   Self-contained: token values copied from design/henosis/tokens.v5.css (light in :root, dark twice:
-   the system media query and [data-theme="dark"], byte-identical). No external assets. Fonts: Fraunces
-   and Inter when the OS has them, else Instrument Serif / Instrument Sans, else the system faces.
+   Self-contained. Token values from design/henosis/tokens.css (light in :root; dark twice, byte-identical:
+   the system media query and [data-theme="dark"]). No external assets. Fraunces and Inter when the OS has
+   them, then Instrument Serif / Instrument Sans, then the system faces.
+   The mark's disc is held at Dress Blues in dark (SYSTEM §5): tokens.css's #0F131B dropped chocolate on
+   the disc to 1.7 : 1.
    ====================================================================== */
 :root {
   --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
   --canvas: #FBF7F1; --wash: rgba(226,196,166,.35);
   --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
   --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --edge: none;
-  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2; --rail-line: rgba(243,237,228,.10);
-  --accent: #56352D; --accent-ink: #56352D; --accent-fg: #FFF8F1;
+  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2; --rail-line: rgba(243,237,228,.10); --rail-active: rgba(226,196,166,.18);
+  --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
   --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30);
-  --ok: #4F7D4A; --warn: #B9792E; --warn-ink: #7F5320; --danger: #A8463A;
+  --ok: #4F7D4A; --warn: #B9792E; --danger: #A8463A;
   --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
-  --lacquer: #2A3244; --lacquer-hi: rgba(255,255,255,.10);
-  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6; --mark-b-page: #2A3244; --page-disc: none;
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%);
+  /* the mark: brand constants, never --accent */
+  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
+  --mark-a-lift: #8B6B5B;             /* the person's arc lifted 62 % toward apricot: the rail under 24 px and the favicon */
+  --page-b: #2A3244; --page-disc: none; /* on the cream canvas a bare mark takes a navy agent's arc; on the dark canvas the disc returns */
   --font: Inter, "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --serif: Fraunces, "Instrument Serif", "Iowan Old Style", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -32,38 +38,34 @@
   --t-fast: 120ms; --t: 200ms; --t-slow: 320ms; --t-retract: 320ms; --t-draw: 450ms; --t-baton: 500ms;
   --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
   --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
-  --motion: 0;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
-  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
-  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
-  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5; --rail-line: rgba(240,234,224,.08);
-  --accent: #7A4B3E; --accent-ink: #CAA49B; --accent-fg: #FFF8F1;
+  --canvas: #1C2230; --wash: rgba(226,196,166,.10);
+  --surface: #232B3B; --surface-2: #2A3344; --surface-3: #343E52;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.12); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #161B26; --rail-2: #1E2432; --rail-fg: #F0EAE0; --rail-muted: #8E95A5; --rail-line: rgba(240,234,224,.08); --rail-active: rgba(226,196,166,.16);
+  --accent: #E2C4A6; --accent-hover: #EBD3BB; --accent-fg: #1C2230; --accent-ink: #E2C4A6;
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
-  --ok: #9BC88F; --warn: #E2B06A; --warn-ink: #E2B06A; --danger: #E2847A;
+  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
-  --lacquer: #2A3244; --lacquer-hi: rgba(255,255,255,.08);
-  --mark-disc: #2A3244; --mark-b-page: #E2C4A6; --page-disc: block;
+  --mark-disc: #2A3244; --page-b: #E2C4A6; --page-disc: block;
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
-  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
-  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
-  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
-  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5; --rail-line: rgba(240,234,224,.08);
-  --accent: #7A4B3E; --accent-ink: #CAA49B; --accent-fg: #FFF8F1;
+  --canvas: #1C2230; --wash: rgba(226,196,166,.10);
+  --surface: #232B3B; --surface-2: #2A3344; --surface-3: #343E52;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.12); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #161B26; --rail-2: #1E2432; --rail-fg: #F0EAE0; --rail-muted: #8E95A5; --rail-line: rgba(240,234,224,.08); --rail-active: rgba(226,196,166,.16);
+  --accent: #E2C4A6; --accent-hover: #EBD3BB; --accent-fg: #1C2230; --accent-ink: #E2C4A6;
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
-  --ok: #9BC88F; --warn: #E2B06A; --warn-ink: #E2B06A; --danger: #E2847A;
+  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
-  --lacquer: #2A3244; --lacquer-hi: rgba(255,255,255,.08);
-  --mark-disc: #2A3244; --mark-b-page: #E2C4A6; --page-disc: block;
+  --mark-disc: #2A3244; --page-b: #E2C4A6; --page-disc: block;
   color-scheme: dark;
 }
 
-/* ---------- the one guard: motion plays only here; every rest state is written outside it ---------- */
-@media (prefers-reduced-motion: no-preference) { :root:not([data-motion="calm"]) { --motion: 1; } }
+/* ---------- the one guard (MOTION §3): animation plays only inside it; clocks go to zero outside it ---------- */
 :root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-retract: 0ms; --t-draw: 0ms; --t-baton: 0ms; }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-retract: 0ms; --t-draw: 0ms; --t-baton: 0ms; } }
 
@@ -71,101 +73,108 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--canvas); background-image: radial-gradient(1200px 600px at 20% -10%, var(--wash), transparent 60%); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; }
-/* paper grain: a 240 px feTurbulence tile rendered once and repeated, never a live filter (generative-visuals §3) */
-body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .07; mix-blend-mode: soft-light;
+/* paper grain: one 240 px feTurbulence tile, rendered once, repeated; never a live filter (generative-visuals §3) */
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .06; mix-blend-mode: soft-light;
   background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 h1, h2, h3, p { margin: 0; }
 .serif { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.01em; }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums slashed-zero; font-size: 12.5px; }
 .kicker { font: 500 11px/16px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
 .muted { color: var(--ink-2); } .faint { color: var(--ink-3); }
-.name { color: var(--accent-ink); }
+.name { color: var(--accent-ink); font-family: var(--serif); font-weight: 400; }
+button { font-family: inherit; }
 :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; border-radius: var(--radius-sm); }
 
 /* ======================================================================
-   THE MARK · one markup, six states. design/mark.svg geometry on the 96 grid.
-   Both arcs are drawn 6 → 12 so they END at the top seam; with pathLength=100 the arc's drawn share is
-   `--a-drawn` / `--b-drawn` (the ring meter of ai-interfaces-avoid §5) and a missing share opens at 12.
-   .disc   the navy ground (hidden on the bare cut, where the ground is the disc)
-   .trace  a dotted hairline on the person's radius: shows only where the hand's arc is missing
-   .glow   a wide apricot halo under each arc: the breath while that side works
-   .halo   the centre's halo: breathes while working, ripples once when a join lands
-   .baton  a hairline half ring outside the arcs over whoever holds the baton
-   .arc.a  the person's arc, chocolate, right · .arc.b the agent's arc, apricot, left · .dot the centre
+   THE MARK · one markup, six states · design/mark.svg geometry on the 96 grid
+   Both arcs are drawn 6 → 12 so they END at the top seam; with pathLength=100 the drawn share of each arc is
+   `--a-drawn` / `--b-drawn` (the ring meter of ai-interfaces-avoid §5), and a missing share opens at 12.
+     .disc   the navy ground (hidden on the bare cut, where the ground is the disc)
+     .trace  a dotted hairline on the person's radius; shows only where the hand's arc is missing
+     .glow   a wide apricot aura under each arc: the breath while that side works
+     .halo   the centre's halo: breathes while working, ripples once when a join lands
+     .arc.a  the person's arc, chocolate, right · .arc.b the agent's arc, apricot, left · .dot the centre
+   State is data on the <svg>: data-state, data-who (agent | person), data-baton (person | agent | none).
    ====================================================================== */
-.mark { flex: none; overflow: visible; display: block; --a-drawn: 100; --b-drawn: 100; }
+.mark { flex: none; overflow: visible; display: block; --a-drawn: 100; --b-drawn: 100; --w: 10; --lean: 5px; }
 .mark .disc { fill: var(--mark-disc); }
-.mark .arc, .mark .glow, .mark .trace, .mark .baton { fill: none; stroke-linecap: round; }
-.mark .arc { stroke-width: 10; stroke-dasharray: var(--a-drawn) 100; transition: stroke-dasharray var(--t-draw) var(--ease-arrive), opacity var(--t) ease; }
+.mark .arc, .mark .glow, .mark .trace { fill: none; stroke-linecap: round; }
+.mark .arc { stroke-width: var(--w); stroke-dasharray: var(--a-drawn) 100; transition: stroke-dasharray var(--t-draw) var(--ease-arrive), opacity var(--t) ease; }
 .mark .arc.a { stroke: var(--mark-arc-a); }
 .mark .arc.b { stroke: var(--mark-arc-b); stroke-dasharray: var(--b-drawn) 100; }
-.mark .dot { fill: var(--mark-dot); }
-.mark .glow { stroke: var(--apricot); stroke-width: 18; opacity: 0; }
-.mark .halo { fill: var(--apricot); opacity: 0; }
+.mark .dot { fill: var(--mark-dot); transition: translate var(--t-baton) var(--ease-mark), opacity var(--t) ease; }
+.mark .halo { fill: var(--apricot); opacity: 0; transition: translate var(--t-baton) var(--ease-mark); }
+.mark .glow { stroke: var(--apricot); stroke-width: calc(var(--w) + 8); opacity: 0; }
 .mark .trace { stroke: var(--apricot); stroke-width: 2; stroke-dasharray: 0 5; opacity: 0; transition: opacity var(--t-slow) ease; }
-.mark .baton { stroke: var(--apricot); stroke-width: 2.4; stroke-dasharray: 50 50; opacity: .95; transition: transform var(--t-baton) var(--ease-mark), opacity var(--t) ease; }
-.mark .arc, .mark .dot, .mark .glow, .mark .halo, .mark .baton { transform-box: view-box; transform-origin: 50% 50%; }
+.mark .arc, .mark .dot, .mark .glow, .mark .halo { transform-box: view-box; transform-origin: 50% 50%; }
 /* cuts and grounds */
 .mark.bare .disc { display: none; }
-.mark.on-cream { --mark-arc-b: #2A3244; }
-.mark.on-page { --mark-arc-b: var(--mark-b-page); } .mark.on-page .disc { display: var(--page-disc); } /* bare on cream; the disc returns on the dark canvas */
-.mark.small .arc { stroke-width: 13; } .mark.small .disc { r: 48; } .mark.small .dot { r: 8.5; }
-.mark.tiny .arc { stroke-width: 14; } .mark.tiny .disc { r: 48; } .mark.tiny .dot { r: 9.5; }
-.mark.tiny .arc.a, .rail .mark .arc.a { stroke: color-mix(in srgb, #56352D 62%, #E2C4A6); } /* the one tinted arc: on navy under 24 px chocolate is 1.4 : 1 */
-/* rest states, written once, outside the guard */
-.mark[data-baton="none"] .baton, .mark:not([data-baton]) .baton { opacity: 0; }
-.mark[data-baton="person"] .baton { transform: rotate(0deg); }
-.mark[data-baton="agent"] .baton { transform: rotate(180deg); }
+.mark.on-page { --mark-arc-b: var(--page-b); } .mark.on-page .disc { display: var(--page-disc); }
+.mark.small { --w: 13; } .mark.tiny { --w: 16; }
+.mark.tiny .arc.a, .rail .mark .arc.a { stroke: var(--mark-a-lift); }   /* the one tinted arc: chocolate on navy is 1.4 : 1 under 24 px */
+/* rest states, written once, outside the guard (MOTION §1: rest is the end state) */
 .mark[data-state="blocked"] { --a-drawn: 70; }
 .mark[data-state="blocked"] .arc.a { transition-duration: var(--t-retract); transition-timing-function: var(--ease-leave); }
 .mark[data-state="blocked"] .trace { opacity: .6; }
 .mark[data-state="blocked"] .dot { opacity: .85; }
-.mark[data-state="apart"] .arc.a { transform: rotate(60deg); opacity: .5; } .mark[data-state="apart"] .arc.b { transform: rotate(-60deg); opacity: .5; } .mark[data-state="apart"] .dot { transform: scale(0); }
+.mark[data-baton="person"] .dot, .mark[data-baton="person"] .halo { translate: var(--lean) 0; }   /* the centre sits with whoever drives */
+.mark[data-baton="agent"]  .dot, .mark[data-baton="agent"]  .halo { translate: calc(-1 * var(--lean)) 0; }
+.mark.apart .arc.a { transform: rotate(60deg); opacity: .5; } .mark.apart .arc.b { transform: rotate(-60deg); opacity: .5; } .mark.apart .dot { transform: scale(0); }
 
-/* keyframes: the tokens' own (arc-a, arc-b, dot-in, *-once) plus this element's four */
+/* keyframes: the tokens' own (arc-a, arc-b, dot-in, the -once set, mark-halo) plus this element's four */
 @keyframes arc-a { 0% { transform: rotate(60deg); opacity: .35 } 15% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 85% { transform: rotate(2deg) } 100% { transform: rotate(0) } }
 @keyframes arc-b { 0% { transform: rotate(-60deg); opacity: .35 } 15% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 85% { transform: rotate(-2deg) } 100% { transform: rotate(0) } }
 @keyframes dot-in { 0%, 60% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
 @keyframes arc-a-once { 0% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 100% { transform: rotate(0) } }
 @keyframes arc-b-once { 0% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 100% { transform: rotate(0) } }
 @keyframes dot-once { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
-@keyframes notice { 0% { transform: scale(1); opacity: 0 } 12% { opacity: .55 } 100% { transform: scale(3.4); opacity: 0 } }         /* the circle notices: once, as the centre lands */
-@keyframes breath-arc { 0%, 100% { opacity: .72 } 50% { opacity: 1 } }                                                            /* the working side breathes */
-@keyframes breath-glow { 0%, 100% { transform: scale(1); opacity: 0 } 50% { transform: scale(1.04); opacity: .16 } }            /* its apricot aura: lit from within, not a ripple */
-@keyframes mark-halo { 0% { transform: scale(1); opacity: .34 } 100% { transform: scale(2.3); opacity: 0 } }                        /* the centre's halo pulse (MOTION §5.5) */
-@keyframes take { 0% { stroke-width: 10 } 45% { stroke-width: 12.6 } 100% { stroke-width: 10 } }                                  /* the receiver takes the weight */
+@keyframes mark-halo { 0% { transform: scale(1); opacity: .34 } 100% { transform: scale(2.3); opacity: 0 } }      /* the centre's halo pulse (MOTION §5.5) */
+@keyframes notice { 0% { transform: scale(1); opacity: 0 } 12% { opacity: .55 } 100% { transform: scale(3.4); opacity: 0 } } /* the circle notices: once, as the centre lands */
+@keyframes breath-arc { 0%, 100% { opacity: .72 } 50% { opacity: 1 } }                                              /* the working side breathes */
+@keyframes breath-glow { 0%, 100% { transform: scale(1); opacity: 0 } 50% { transform: scale(1.04); opacity: .16 } } /* its aura: lit from within, not a ripple */
+@keyframes take { 0% { stroke-width: var(--w) } 45% { stroke-width: calc(var(--w) * 1.26) } 100% { stroke-width: var(--w) } } /* the receiver takes the weight */
 @keyframes fade-in { from { opacity: 0 } }
 @keyframes card-in { from { opacity: 0; transform: translateY(6px) } }
-@media (prefers-reduced-motion: no-preference) { :root:not([data-motion="calm"]) {
+@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+@keyframes playhead { from { transform: translateX(0) } to { transform: translateX(var(--run)) } }
+
+@media (prefers-reduced-motion: no-preference) {
   /* joining · the loop · 1.8 s · the tokens' run */
-  & .mark[data-state="joining"] .arc.a { animation: arc-a 1.8s var(--ease-mark) infinite; }
-  & .mark[data-state="joining"] .arc.b { animation: arc-b 1.8s var(--ease-mark) infinite; }
-  & .mark[data-state="joining"] .dot   { animation: dot-in 1.8s ease infinite; }
+  :root:not([data-motion="calm"]) .mark[data-state="joining"] .arc.a { animation: arc-a 1.8s var(--ease-mark) infinite; }
+  :root:not([data-motion="calm"]) .mark[data-state="joining"] .arc.b { animation: arc-b 1.8s var(--ease-mark) infinite; }
+  :root:not([data-motion="calm"]) .mark[data-state="joining"] .dot   { animation: dot-in 1.8s ease infinite; }
   /* settled · once · arcs 800, centre 550–1000, the notice 900–1800 */
-  & .mark[data-state="settled"] .arc.a { animation: arc-a-once .8s var(--ease-arrive) both; }
-  & .mark[data-state="settled"] .arc.b { animation: arc-b-once .8s var(--ease-arrive) both; }
-  & .mark[data-state="settled"] .dot   { animation: dot-once 1s var(--ease-arrive) both; }
-  & .mark[data-state="settled"] .halo  { animation: notice .9s var(--ease-leave) .9s both; }
-  /* thinking · loop · 1.8 s · only the working side moves */
-  & .mark[data-state="thinking"] .halo { animation: mark-halo 1.8s var(--ease-move) infinite; }
-  & .mark[data-state="thinking"]:not([data-who="person"]) .arc.b  { animation: breath-arc 1.8s ease-in-out infinite; }
-  & .mark[data-state="thinking"]:not([data-who="person"]) .glow.b { animation: breath-glow 1.8s var(--ease-move) infinite; }
-  & .mark[data-state="thinking"][data-who="person"] .arc.a  { animation: breath-arc 1.8s ease-in-out infinite; }
-  & .mark[data-state="thinking"][data-who="person"] .glow.a { animation: breath-glow 1.8s var(--ease-move) infinite; }
-  /* handing the baton · once · 500 ms · the hairline slides (a transition) and the receiver takes weight */
-  & .mark.take-a .arc.a { animation: take .5s var(--ease-mark); }
-  & .mark.take-b .arc.b { animation: take .5s var(--ease-mark); }
-  & .mark[data-state="thinking"]:not([data-who="person"]).take-b .arc.b { animation: breath-arc 1.8s ease-in-out infinite, take .5s var(--ease-mark); }
-  & .mark[data-state="thinking"][data-who="person"].take-a .arc.a { animation: breath-arc 1.8s ease-in-out infinite, take .5s var(--ease-mark); }
-  /* below 24 px there is no swing: the closed mark fades in */
-  & .mark.tiny[data-state="joining"] .arc, & .mark.tiny[data-state="settled"] .arc, & .mark.tiny[data-state="joining"] .dot, & .mark.tiny[data-state="settled"] .dot { animation: fade-in .2s ease both; }
-  & .rise { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(var(--i, 0) * 40ms); }
-} }
+  :root:not([data-motion="calm"]) .mark[data-state="settled"] .arc.a { animation: arc-a-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark[data-state="settled"] .arc.b { animation: arc-b-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark[data-state="settled"] .dot   { animation: dot-once 1s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark[data-state="settled"] .halo  { animation: notice .9s var(--ease-leave) .9s both; }
+  /* thinking · loop · 1.8 s · only the working side moves; hue alone differs (motion-choreography §9) */
+  :root:not([data-motion="calm"]) .mark[data-state="thinking"] .halo { animation: mark-halo 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .mark[data-state="thinking"]:not([data-who="person"]) .arc.b  { animation: breath-arc 1.8s ease-in-out infinite; }
+  :root:not([data-motion="calm"]) .mark[data-state="thinking"]:not([data-who="person"]) .glow.b { animation: breath-glow 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .mark[data-state="thinking"][data-who="person"] .arc.a  { animation: breath-arc 1.8s ease-in-out infinite; }
+  :root:not([data-motion="calm"]) .mark[data-state="thinking"][data-who="person"] .glow.a { animation: breath-glow 1.8s var(--ease-move) infinite; }
+  /* handing the baton · once · 500 ms · the centre crosses (a transition on translate) and the receiver takes weight */
+  :root:not([data-motion="calm"]) .mark.take-a .arc.a { animation: take .5s var(--ease-mark); }
+  :root:not([data-motion="calm"]) .mark.take-b .arc.b { animation: take .5s var(--ease-mark); }
+  :root:not([data-motion="calm"]) .mark[data-state="thinking"]:not([data-who="person"]).take-b .arc.b { animation: breath-arc 1.8s ease-in-out infinite, take .5s var(--ease-mark); }
+  :root:not([data-motion="calm"]) .mark[data-state="thinking"][data-who="person"].take-a .arc.a { animation: breath-arc 1.8s ease-in-out infinite, take .5s var(--ease-mark); }
+  /* below 24 px there is no swing: the closed mark fades in over --t (MOTION §4.4) */
+  :root:not([data-motion="calm"]) .mark.tiny[data-state="joining"] .arc, :root:not([data-motion="calm"]) .mark.tiny[data-state="settled"] .arc,
+  :root:not([data-motion="calm"]) .mark.tiny[data-state="joining"] .dot, :root:not([data-motion="calm"]) .mark.tiny[data-state="settled"] .dot { animation: fade-in .2s ease both; }
+  /* page motion */
+  :root:not([data-motion="calm"]) .rise { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(var(--i, 0) * 40ms); }
+  :root:not([data-motion="calm"]) .st.running::before { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .score .head { animation: playhead var(--dur) linear var(--iter, 1) both; }
+}
+/* calm: the playhead sits at the end of the run, like every other rest state */
+:root[data-motion="calm"] .score .head { transform: translateX(var(--run)); }
+@media (prefers-reduced-motion: reduce) { .score .head { transform: translateX(var(--run)); } }
 
 /* ======================================================================
    BOARD
    ====================================================================== */
-.board { position: relative; z-index: 1; width: min(1440px, 100%); margin: 0 auto; padding: 22px 48px 80px; display: flex; flex-direction: column; gap: 22px; }
+.board { position: relative; z-index: 1; width: min(1440px, 100%); margin: 0 auto; padding: 20px 48px 80px; display: flex; flex-direction: column; gap: 22px; }
 .top { display: flex; align-items: center; gap: 14px; height: 40px; }
 .top .brand { display: inline-flex; align-items: center; gap: 9px; font: 400 22px/1 var(--serif); color: var(--ink); }
 .top .brand .mark { width: 24px; height: 24px; }
@@ -175,67 +184,64 @@ h1, h2, h3, p { margin: 0; }
 .top .ctl button { border: 0; background: transparent; font: 500 12.5px/1 var(--font); color: var(--ink-2); padding: 6px 11px; border-radius: var(--radius-full); cursor: pointer; }
 .top .ctl button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
 
-/* hero · the one glossy object in a matte room (three-colour-brands §7: navy lacquer for committed) */
-.hero { display: grid; grid-template-columns: 440px 1fr; min-height: 404px; border-radius: var(--radius-lg); background: var(--lacquer); background-image: linear-gradient(168deg, var(--lacquer-hi), transparent 46%); color: var(--rail-fg); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), var(--shadow-pop); overflow: hidden; position: relative; }
-.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .05; mix-blend-mode: soft-light; background-image: inherit; }
-.hero .stage { display: grid; place-items: center; border-right: 1px solid var(--rail-line); position: relative; }
-.hero .stage .mark { width: 272px; height: 272px; }
-.hero .stage .scene { position: absolute; left: 28px; bottom: 22px; right: 28px; display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11.5px; color: var(--rail-muted); letter-spacing: .02em; }
+/* hero · navy lacquer: the one glossy object in a matte room (three-colour-brands §7) */
+.hero { display: grid; grid-template-columns: 450px 1fr; min-height: 428px; border-radius: var(--radius-lg); background: var(--blues); background-image: linear-gradient(168deg, rgba(255,255,255,.10), transparent 46%); color: var(--rail-fg); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), var(--shadow-pop); overflow: hidden; position: relative; }
+.hero .stage { display: grid; place-items: center; border-right: 1px solid rgba(243,237,228,.10); position: relative; }
+.hero .stage .dial { position: absolute; width: 356px; height: 356px; border-radius: 50%; border: 1px solid rgba(243,237,228,.10); pointer-events: none; }
+.hero .stage .dial i { position: absolute; top: 50%; font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--rail-muted); transform: translateY(-50%); }
+.hero .stage .dial i.p { right: -4px; transform: translate(100%, -50%) rotate(90deg); transform-origin: left center; }
+.hero .stage .dial i.g { left: -4px; transform: translate(-100%, -50%) rotate(-90deg); transform-origin: right center; }
+.hero .stage .mark { width: 270px; height: 270px; }
+.hero .stage .scene { position: absolute; left: 24px; bottom: 18px; right: 24px; display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11.5px; color: var(--rail-muted); letter-spacing: .02em; }
 .hero .stage .scene b { font-weight: 500; color: var(--apricot); }
-.hero .copy { padding: 26px 36px 22px 40px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.hero .copy { padding: 26px 34px 20px 38px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .hero .copy .kicker { color: var(--rail-muted); }
-.hero .copy h1 { font: 400 40px/1.06 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.015em; color: #FFF; min-height: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero .copy h1 { font: 400 38px/1.08 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.015em; color: #FFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 42px; }
 .hero .copy h1 .name { color: var(--apricot); }
-.hero .copy .sub { font-size: 14px; color: var(--rail-muted); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-.hero .copy .sub .mono { color: var(--apricot); font-size: 12px; }
-/* the state machine: nodes are the mark itself in each state; click one to enter it */
-.machine { position: relative; width: 660px; max-width: 100%; height: 232px; margin-top: 4px; }
-.machine svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.machine .wires path, .machine .wires line { fill: none; stroke: var(--rail-line); stroke-width: 1.2; }
-.machine .wires .arrow { fill: var(--rail-muted); stroke: none; }
-.machine .wires text { font: 500 10.5px var(--mono); fill: var(--rail-muted); letter-spacing: .04em; }
-.machine .wires .dotted { stroke-dasharray: 1 5; stroke-linecap: round; stroke: var(--apricot); opacity: .7; }
-.node { position: absolute; width: 96px; margin-left: -48px; margin-top: -27px; display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--rail-fg); cursor: pointer; padding: 4px 0; border-radius: var(--radius); font: 400 14px/1 var(--serif); }
-.node .mark { width: 46px; height: 46px; }
-.node .lbl { opacity: .78; }
-.node:hover .lbl, .node[aria-current="true"] .lbl { opacity: 1; color: var(--apricot); }
-.node[aria-current="true"]::after { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--apricot); }
-.node::after { content: ""; width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+.hero .copy .sub { font-size: 14px; color: var(--rail-muted); display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; min-height: 22px; }
+.hero .copy .sub .mono { color: var(--apricot); font-size: 12px; flex: none; }
+/* the score: the state's two seconds as notation; a playhead runs in step with the mark */
+.score { margin-top: 6px; }
+.score svg { width: 100%; height: auto; display: block; overflow: visible; }
+.score .rule line { stroke: rgba(243,237,228,.14); stroke-width: 1; }
+.score .rule .major { stroke: rgba(243,237,228,.26); }
+.score .rule text { font: 400 10.5px var(--mono); fill: var(--rail-muted); }
+.score .row text.n { font: 400 13px var(--serif); fill: var(--rail-fg); }
+.score .row text.k { font: 400 10.5px var(--mono); fill: var(--rail-muted); }
+.score .bar { rx: 2; }
+.score .bar.a { fill: #9C7C69; } .score .bar.b { fill: var(--apricot); } .score .bar.dot { fill: #FBF7F1; } .score .bar.aura { fill: var(--apricot); opacity: .45; }
+.score .bar.hold { fill: none; stroke: rgba(243,237,228,.32); stroke-width: 1; }
+.score .bar.wait { fill: none; stroke: var(--apricot); stroke-width: 1; stroke-dasharray: 1 4; stroke-linecap: round; }
+.score .lbl { font: 400 10.5px var(--mono); fill: rgba(243,237,228,.78); }
+.score .head { stroke: var(--apricot); stroke-width: 1.2; }
+.score .head-cap { fill: var(--apricot); }
+.score .none { font: italic 400 15px var(--serif); fill: var(--rail-muted); }
+/* the six states as a picker: the mark itself, at 28, in each state */
+.picker { display: flex; gap: 4px; margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(243,237,228,.10); flex-wrap: wrap; }
+.picker button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; background: transparent; color: var(--rail-fg); font: 400 14px/1 var(--serif); padding: 6px 12px 6px 7px; border-radius: var(--radius-full); cursor: pointer; opacity: .8; }
+.picker button .mark { width: 26px; height: 26px; }
+.picker button:hover { opacity: 1; background: rgba(243,237,228,.06); }
+.picker button[aria-pressed="true"] { opacity: 1; background: rgba(226,196,166,.14); border-color: rgba(226,196,166,.35); color: var(--apricot); }
+.picker button kbd { font: 400 10.5px var(--mono); color: var(--rail-muted); margin-left: 2px; }
 
 /* the six, in a row: hairlines between, never boxes (premium-product-ui §1) */
 .states { display: grid; grid-template-columns: repeat(6, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.state { padding: 18px 18px 18px 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; position: relative; }
+.state { padding: 18px 18px 18px 20px; display: flex; flex-direction: column; gap: 9px; min-width: 0; position: relative; }
 .state + .state { border-left: 1px solid var(--line); }
 .state .mark { width: 96px; height: 96px; margin: 0 0 6px; }
 .state .n { font: 400 24px/1.1 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 10px; }
 .state .n .mono { color: var(--ink-3); font-size: 11.5px; }
 .state .say { font-size: 13.5px; line-height: 20px; color: var(--ink-2); text-wrap: pretty; }
-.state .say .name { color: var(--accent-ink); font-family: var(--serif); font-size: 15px; }
+.state .say .name { font-size: 15px; }
 .state .move { font-size: 12.5px; line-height: 18px; color: var(--ink-3); border-top: 1px dotted var(--line); padding-top: 8px; margin-top: auto; }
+.state .calm { font: 400 11px/16px var(--mono); color: var(--ink-3); letter-spacing: .04em; }
+.state .calm b { font-weight: 500; color: var(--ink-2); }
 
 /* sections below the fold */
 section.sec { display: grid; grid-template-columns: 300px 1fr; gap: 40px; padding-top: 34px; border-top: 1px solid var(--line); }
 section.sec > header { display: flex; flex-direction: column; gap: 10px; }
 section.sec > header h2 { font: 400 30px/1.1 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.015em; }
 section.sec > header p { font-size: 14px; line-height: 21px; color: var(--ink-2); }
-section.sec > header .kicker { margin-bottom: 2px; }
-
-/* timelines: hairline tally bars, direct labels, no legend (data-craft §4, §8) */
-.tl { display: flex; flex-direction: column; gap: 26px; }
-.tl .row { display: grid; grid-template-columns: 150px 1fr; gap: 18px; align-items: start; }
-.tl .row .who { display: flex; flex-direction: column; gap: 3px; padding-top: 2px; }
-.tl .row .who b { font: 400 18px/1.1 var(--serif); }
-.tl .row .who span { font-size: 12px; color: var(--ink-3); }
-.tl svg { width: 100%; height: auto; display: block; overflow: visible; }
-.tl .grid line { stroke: var(--line); stroke-width: 1; }
-.tl .grid .major { stroke: var(--ink-3); opacity: .5; }
-.tl .grid text { font: 400 10.5px var(--mono); fill: var(--ink-3); }
-.tl .bar { rx: 2; }
-.tl .bar.a { fill: var(--accent); } .tl .bar.b { fill: var(--mark-b-page); } .tl .bar.dot { fill: var(--apricot-deep); } .tl .bar.halo { fill: var(--apricot-deep); opacity: .45; } .tl .bar.line { fill: var(--ink-3); }
-.tl .bar.soft { opacity: .35; }
-.tl .lbl { font: 400 11.5px var(--font); fill: var(--ink-2); }
-.tl .lbl.k { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-3); }
-.tl .mark-ico { font: 400 11px var(--mono); fill: var(--ink-3); }
 
 /* the spec table */
 table.spec { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 19px; }
@@ -250,45 +256,56 @@ table.spec tr:last-child td { border-bottom: 0; }
 .fav { display: flex; flex-direction: column; gap: 22px; }
 .tabs { display: flex; gap: 10px; align-items: flex-end; padding: 10px 10px 0; border-radius: 12px 12px 0 0; border: 1px solid var(--line); border-bottom: 0; background: var(--surface-2); box-shadow: var(--edge); }
 .tabs.dark { background: #10141C; border-color: rgba(255,255,255,.08); }
-.tab { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 12px; border-radius: 9px 9px 0 0; font-size: 12.5px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-bottom: 0; min-width: 180px; max-width: 220px; white-space: nowrap; overflow: hidden; }
+.tab { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 12px; border-radius: 9px 9px 0 0; font-size: 12.5px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-bottom: 0; min-width: 180px; max-width: 230px; white-space: nowrap; overflow: hidden; }
 .tab .mark { width: 16px; height: 16px; }
 .tab .t { overflow: hidden; text-overflow: ellipsis; }
 .tabs.dark .tab { background: #1A202C; color: #B4BAC6; border-color: rgba(255,255,255,.08); }
 .tab .count { margin-left: auto; font: 500 10.5px/16px var(--mono); background: var(--apricot); color: #2A3244; padding: 0 5px; border-radius: 8px; }
-.favrow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
-.favrow .cell { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.favrow .px { width: 64px; height: 64px; image-rendering: pixelated; border-radius: 6px; background: var(--surface-2); display: grid; place-items: center; box-shadow: var(--edge); }
-.favrow .px .mark { width: 64px; height: 64px; }
-.favrow .cell b { font: 400 15px/1.2 var(--serif); }
-.favrow .cell span { font-size: 12px; line-height: 17px; color: var(--ink-3); }
+.favrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.favrow .cell { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: start; }
+.favrow .px { width: 64px; height: 64px; image-rendering: pixelated; border-radius: 6px; background: var(--surface-2); display: grid; place-items: center; box-shadow: var(--edge); overflow: hidden; }
+.favrow .px canvas { width: 64px; height: 64px; image-rendering: pixelated; }
+.favrow .cell b { font: 400 16px/1.2 var(--serif); display: block; }
+.favrow .cell span { font-size: 12.5px; line-height: 18px; color: var(--ink-2); display: block; }
+.favrow .cell .file { font: 400 11px/16px var(--mono); color: var(--ink-3); margin-top: 4px; }
 .favrow .cell .live { font: 500 10.5px/16px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ok); }
 .favrow .cell .live.no { color: var(--ink-3); }
 
 /* homes: the element where it lives */
-.homes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.homes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .home { border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); box-shadow: var(--edge); overflow: hidden; display: flex; flex-direction: column; }
-.home .cap { padding: 10px 14px; font-size: 12px; color: var(--ink-3); border-top: 1px solid var(--line); margin-top: auto; }
+.home .cap { padding: 10px 14px; font-size: 12px; line-height: 17px; color: var(--ink-3); border-top: 1px solid var(--line); margin-top: auto; }
 .home .cap b { font-weight: 500; color: var(--ink-2); }
-.rail { background: var(--rail); color: var(--rail-fg); padding: 14px; display: flex; flex-direction: column; gap: 8px; height: 150px; }
-.rail .brand { display: flex; align-items: center; gap: 9px; font: 400 20px/1 var(--serif); padding: 2px 4px 10px; }
+.rail { background: var(--rail); color: var(--rail-fg); padding: 12px; display: flex; flex-direction: column; gap: 4px; height: 168px; }
+.rail .brand { display: flex; align-items: center; gap: 9px; font: 400 20px/1 var(--serif); padding: 4px 4px 10px; }
 .rail .brand .mark { width: 24px; height: 24px; }
 .rail .item { display: flex; align-items: center; gap: 9px; font-size: 13px; padding: 6px 8px; border-radius: 10px; }
 .rail .item .mark { width: 20px; height: 20px; }
-.rail .item.active { background: rgba(226,196,166,.14); }
-.rail .item .w { color: var(--rail-muted); margin-left: auto; font-size: 12px; }
-.stream { padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 150px; }
+.rail .item.active { background: var(--rail-active); }
+.rail .item .st { color: var(--rail-muted); margin-left: auto; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+.rail .item .st::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rail-muted); }
+.rail .item .st.running::before { background: #9BC88F; } .rail .item .st.awaiting::before { background: #E2B06A; }
+.stream { padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 12px; height: 168px; }
 .joinline { display: flex; align-items: center; gap: 12px; }
 .joinline .mark { width: 40px; height: 40px; }
 .joinline .s { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
-.joinline .s b { font: 400 16px/20px var(--serif); } .joinline .s b .name { color: var(--accent-ink); }
+.joinline .s b { font: 400 16px/20px var(--serif); }
 .joinline .s span { font-size: 12.5px; line-height: 17px; color: var(--ink-3); }
-.joinline .stack { margin-left: 4px; display: inline-flex; flex: none; }
+.quiet { display: flex; align-items: center; gap: 10px; font: 400 11.5px var(--mono); color: var(--ink-3); }
+.quiet::before, .quiet::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .av { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-3); border: 2px solid var(--surface); display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--ink); }
-.av + .av { margin-left: -7px; }
-.av.agent { border-radius: 9px 9px 9px 3px; background: var(--rail); color: var(--rail-fg); }
+.stack { display: inline-flex; flex: none; } .stack .av + .av { margin-left: -7px; }
+.av.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); color: #fff; }
 .av.joined { box-shadow: 0 0 0 2px var(--apricot); }
-.toastwrap { padding: 18px; display: grid; place-items: center; background: var(--surface-2); height: 150px; }
-.toast { display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 14px; background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); box-shadow: var(--shadow-pop); width: 100%; max-width: 360px; position: relative; overflow: hidden; }
+.sesh { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; height: 168px; }
+.sesh .head { display: flex; align-items: center; gap: 10px; }
+.sesh .head .mark { width: 32px; height: 32px; }
+.sesh .head b { font: 400 18px/22px var(--serif); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sesh .line { font-size: 13px; color: var(--ink-2); }
+.sesh .hand { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius-full); padding: 5px 12px 5px 8px; font: 500 12.5px var(--font); color: var(--ink); cursor: pointer; }
+.sesh .hand .mark { width: 18px; height: 18px; }
+.toastwrap { padding: 18px; display: grid; place-items: center; background: var(--surface-2); height: 168px; }
+.toast { display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 14px; background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); box-shadow: var(--shadow-pop); width: 100%; position: relative; overflow: hidden; }
 .toast::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--apricot); }
 .toast .mark { width: 32px; height: 32px; }
 .toast .s { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -306,15 +323,15 @@ table.spec tr:last-child td { border-bottom: 0; }
   .board { padding: 14px 16px 60px; gap: 18px; }
   .top .crumb { display: none; }
   .hero { grid-template-columns: 1fr; min-height: 0; }
-  .hero .stage { border-right: 0; border-bottom: 1px solid var(--rail-line); padding: 26px 0 40px; }
+  .hero .stage { border-right: 0; border-bottom: 1px solid rgba(243,237,228,.10); padding: 28px 0 40px; }
+  .hero .stage .dial { width: 236px; height: 236px; }
   .hero .stage .mark { width: 176px; height: 176px; }
   .hero .stage .scene { left: 16px; right: 16px; bottom: 12px; font-size: 10.5px; }
-  .hero .copy { padding: 20px 18px 18px; }
-  .hero .copy h1 { font-size: 30px; min-height: 0; }
-  .machine { display: none; }
-  .statebar { display: flex; flex-wrap: wrap; gap: 6px; }
-  .statebar button { border: 1px solid var(--rail-line); background: transparent; color: var(--rail-fg); font: 400 13px/1 var(--serif); padding: 7px 11px; border-radius: 9px; cursor: pointer; }
-  .statebar button[aria-pressed="true"] { background: rgba(226,196,166,.16); border-color: rgba(226,196,166,.4); color: var(--apricot); }
+  .hero .copy { padding: 20px 16px 16px; }
+  .hero .copy h1 { font-size: 27px; white-space: normal; min-height: 0; }
+  .score .row text.n { font-size: 12px; }
+  .picker button { padding: 5px 10px 5px 6px; font-size: 13px; }
+  .picker button kbd { display: none; }
   .states { grid-template-columns: 1fr 1fr; border: 0; }
   .state { padding: 16px 10px 16px 0; border-top: 1px solid var(--line); }
   .state + .state { border-left: 0; }
@@ -322,17 +339,16 @@ table.spec tr:last-child td { border-bottom: 0; }
   .state .mark { width: 72px; height: 72px; }
   .state .n { font-size: 20px; }
   section.sec { grid-template-columns: 1fr; gap: 20px; padding-top: 24px; }
-  .tl .row { grid-template-columns: 1fr; gap: 8px; }
-  .favrow { grid-template-columns: repeat(3, 1fr); }
+  table.spec td:nth-child(5), table.spec th:nth-child(5), table.spec td:nth-child(7), table.spec th:nth-child(7) { display: none; }
+  .tabs { overflow: hidden; } .tab { min-width: 0; flex: 1; padding: 0 8px; }
+  .favrow { grid-template-columns: 1fr; }
   .homes { grid-template-columns: 1fr; }
   .rules { columns: 1; }
-  table.spec td:nth-child(5), table.spec th:nth-child(5), table.spec td:nth-child(6), table.spec th:nth-child(6) { display: none; }
 }
-@media (min-width: 761px) { .statebar { display: none; } }
 </style>
 </head>
 <body>
-<!-- one symbol, used by every mark on the page. pathLength=100 on each arc; both arcs end at the top seam. -->
+<!-- one symbol, used by every mark on the page before the script inlines it (page CSS cannot reach inside a <use>; MOTION §4.3) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="m" viewBox="0 0 96 96">
     <circle class="disc" cx="48" cy="48" r="46"/>
@@ -342,7 +358,6 @@ table.spec tr:last-child td { border-bottom: 0; }
     <path class="glow b" d="M48 76 A28 28 0 0 1 48 20" pathLength="100"/>
     <path class="arc a" d="M48 76 A28 28 0 0 0 48 20" pathLength="100"/>
     <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" pathLength="100"/>
-    <path class="baton" d="M48 8 A40 40 0 0 1 48 88 A40 40 0 0 1 48 8" pathLength="100"/>
     <circle class="dot" cx="48" cy="48" r="7"/>
   </symbol>
 </svg>
@@ -363,6 +378,7 @@ table.spec tr:last-child td { border-bottom: 0; }
   <!-- ============================ HERO ============================ -->
   <div class="hero" id="hero">
     <div class="stage">
+      <div class="dial" aria-hidden="true"><i class="p">person · chocolate</i><i class="g">agent · apricot</i></div>
       <svg class="mark bare" id="big" viewBox="0 0 96 96" role="img" aria-labelledby="bigname" data-state="thinking" data-who="agent" data-baton="agent"><title id="bigname">The Henosis mark, live</title><use href="#m"/></svg>
       <div class="scene"><span id="scene-l">Billing page · Checkout</span><span id="scene-r"><b>4 here</b> · 09:41</span></div>
     </div>
@@ -370,109 +386,74 @@ table.spec tr:last-child td { border-bottom: 0; }
       <div class="kicker">The mark as the room's status</div>
       <h1 id="say"><span class="name">Ana's agent</span> is reading invoice.ts.</h1>
       <div class="sub"><span id="sub">thinking · the agent's half of the ring breathes; the person's half is still</span><span class="mono" id="subt">1.8 s loop</span></div>
-      <div class="statebar" id="statebar"></div>
-      <div class="machine" id="machine">
-        <svg class="wires" viewBox="0 0 660 232" preserveAspectRatio="xMinYMin meet" aria-hidden="true">
-          <defs><marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="arrow" d="M0 0 L8 4 L0 8 z"/></marker></defs>
-          <!-- idle → joining → settled → idle -->
-          <path d="M140 98 C 180 62, 212 46, 254 46" marker-end="url(#ah)"/>
-          <path d="M346 46 L 442 46" marker-end="url(#ah)"/>
-          <path d="M490 84 C 470 128, 360 140, 158 124" marker-end="url(#ah)"/>
-          <!-- idle ↔ thinking -->
-          <path d="M140 134 C 180 170, 212 186, 254 186" marker-end="url(#ah)"/>
-          <path d="M254 200 C 212 200, 180 176, 150 150" marker-end="url(#ah)"/>
-          <!-- thinking ↔ blocked -->
-          <path d="M346 180 L 442 180" marker-end="url(#ah)"/>
-          <path d="M442 196 L 346 196" marker-end="url(#ah)"/>
-          <!-- baton: reachable from anywhere -->
-          <path class="dotted" d="M580 64 C 640 84, 640 152, 580 172"/>
-          <text x="172" y="58">connects</text>
-          <text x="352" y="38">lands · once</text>
-          <text x="292" y="112">rests</text>
-          <text x="166" y="182">a turn starts</text>
-          <text x="196" y="216">it ends</text>
-          <text x="352" y="172">needs your hand · 320 ms</text>
-          <text x="356" y="212">you act · 450 ms</text>
-          <text x="656" y="226" text-anchor="end">any state · 500 ms</text>
-        </svg>
-        <!-- nodes: the mark in each state, clickable -->
-        <button class="node" style="left:110px;top:116px" data-go="idle" aria-current="false"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="idle"><use href="#m"/></svg><span class="lbl">idle</span></button>
-        <button class="node" style="left:300px;top:46px" data-go="joining"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="joining"><use href="#m"/></svg><span class="lbl">joining</span></button>
-        <button class="node" style="left:490px;top:46px" data-go="settled"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="3600"><use href="#m"/></svg><span class="lbl">settled</span></button>
-        <button class="node" style="left:300px;top:188px" data-go="thinking"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="thinking" data-who="agent"><use href="#m"/></svg><span class="lbl">thinking</span></button>
-        <button class="node" style="left:490px;top:188px" data-go="blocked"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="blocked"><use href="#m"/></svg><span class="lbl">blocked</span></button>
-        <button class="node" style="left:608px;top:118px" data-go="baton"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="idle" data-baton="person" data-flip="2400"><use href="#m"/></svg><span class="lbl">baton</span></button>
-      </div>
+      <div class="score" id="score" aria-label="Timing of the current state"></div>
+      <div class="picker" id="picker" role="group" aria-label="State"></div>
     </div>
   </div>
 
   <!-- ============================ THE SIX ============================ -->
   <div class="states" id="states">
     <div class="state rise" style="--i:0">
-      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true" data-state="idle" data-baton="none"><use href="#m"/></svg>
+      <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="idle"><use href="#m"/></svg>
       <div class="n">Idle <span class="mono">rest · 0 ms</span></div>
       <div class="say">The ring is one and nothing moves. <span class="name">Checkout</span> · 4 here.</div>
-      <div class="move">Rest is the end state: every other state lands exactly here. Under Calm this is all five of them.</div>
+      <div class="move">Rest is the end state: every other state lands exactly here. Resting marks never show a frame from the middle of a run.</div>
+      <div class="calm"><b>Calm</b> · this, always</div>
     </div>
     <div class="state rise" style="--i:1">
-      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true" data-state="joining" data-baton="none"><use href="#m"/></svg>
+      <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="joining"><use href="#m"/></svg>
       <div class="n">Joining <span class="mono">loop · 1.8 s</span></div>
       <div class="say">Something is connecting. <span class="name">Ana's session</span> is opening the circle.</div>
-      <div class="move">The arcs hold apart at ±60° for 270 ms, swing in on the mark's curve, overshoot −4° / +2°, land; the centre only after the ring is one (60 %).</div>
+      <div class="move">The arcs hold apart at ±60° for 270 ms, swing in on the mark's curve, overshoot −4° / +2° and land; the centre appears only after the ring is one (60 %).</div>
+      <div class="calm"><b>Calm</b> · the closed ring</div>
     </div>
     <div class="state rise" style="--i:2">
-      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-baton="none" data-replay="3800"><use href="#m"/></svg>
+      <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="3800" data-t0="-500"><use href="#m"/></svg>
       <div class="n">Settled <span class="mono">once · 1.8 s</span></div>
       <div class="say"><span class="name">Ana</span> joins the circle. From the invite link · Bo has the baton.</div>
-      <div class="move">The once run: arcs 800 ms on arrive, the centre lands at 550–1000, then one apricot notice ripples out 900–1800 as the circle sees her. It never pops again.</div>
+      <div class="move">The once run: arcs close in 800 ms on arrive, the centre lands at 550–1000, then one apricot notice ripples out 900–1800 as the circle sees her. It never pops again.</div>
+      <div class="calm"><b>Calm</b> · the closed ring; the line carries the news</div>
     </div>
     <div class="state rise" style="--i:3">
-      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true" data-state="thinking" data-who="agent" data-baton="agent"><use href="#m"/></svg>
+      <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="thinking" data-who="agent" data-baton="agent"><use href="#m"/></svg>
       <div class="n">Thinking <span class="mono">loop · 1.8 s</span></div>
       <div class="say"><span class="name">Ana's agent</span> is reading invoice.ts · 11 tool uses · 1m 06s.</div>
-      <div class="move">Only the working half breathes: the agent's arc 72→100 % with an apricot halo, the centre's halo pulses. When Bo types, his half breathes instead. Hue alone differs.</div>
+      <div class="move">Only the working half breathes: the agent's arc 72→100 % with an apricot aura under it; the centre's halo pulses. When Bo types, his half breathes instead. Hue alone differs.</div>
+      <div class="calm"><b>Calm</b> · the closed ring; the status word says it</div>
     </div>
     <div class="state rise" style="--i:4">
-      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true" data-state="blocked" data-baton="none" data-unblock="2600"><use href="#m"/></svg>
-      <div class="n">Blocked <span class="mono">once · 320 ms</span></div>
+      <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="blocked" data-unblock="2600"><use href="#m"/></svg>
+      <div class="n">Blocked <span class="mono">320 → 450 ms</span></div>
       <div class="say">The plan waits for your rating. <span class="name">Bo's agent</span> asks to run stripe prorations apply.</div>
-      <div class="move">The person's arc draws back 30 % from the top seam in 320 ms and a dotted stitch shows where your hand is missing. Nothing pulses: the wait is yours. Your act redraws it in 450 ms.</div>
+      <div class="move">The person's arc draws back 30 % from the top seam in 320 ms; a dotted stitch shows where your hand is missing. Nothing pulses: the wait is yours. Your act redraws it in 450 ms.</div>
+      <div class="calm"><b>Calm</b> · the open seam with its stitch</div>
     </div>
     <div class="state rise" style="--i:5">
-      <svg class="mark" viewBox="0 0 96 96" aria-hidden="true" data-state="idle" data-baton="person" data-flip="2600"><use href="#m"/></svg>
+      <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="idle" data-baton="person" data-flip="2600"><use href="#m"/></svg>
       <div class="n">Baton <span class="mono">once · 500 ms</span></div>
       <div class="say"><span class="name">Bo</span> has the baton → <span class="name">Bo's agent</span> has the baton.</div>
-      <div class="move">A hairline half ring outside the arcs sits over whoever drives. On a handoff it passes under the seam in 500 ms on the mark's curve and the receiver's arc takes the weight (10→12.6→10).</div>
+      <div class="move">The centre sits 5 units toward whoever drives. On a handoff it crosses the ring in 500 ms on the mark's curve and the receiver's arc takes the weight (10 → 12.6 → 10). Nothing travels around the ring.</div>
+      <div class="calm"><b>Calm</b> · the centre on the holder's side, instantly</div>
     </div>
   </div>
-
-  <!-- ============================ TIMING ============================ -->
-  <section class="sec">
-    <header>
-      <div class="kicker">Timing</div>
-      <h2>Every state in milliseconds.</h2>
-      <p>Two tracks per state, the arcs and the centre, on one 2 s rule. Bars are what moves; the faint bars are holds. Chocolate is the person's arc, navy the agent's on this page (apricot on the disc), apricot the centre and its halo.</p>
-      <p class="mono faint" style="font-size:11.5px">curves · mark .3,.9,.3,1 · arrive .2,.7,.2,1 · leave .4,0,1,1 · move .4,0,.2,1</p>
-    </header>
-    <div class="tl" id="tl"></div>
-  </section>
 
   <!-- ============================ SPEC ============================ -->
   <section class="sec">
     <header>
       <div class="kicker">Spec sheet</div>
       <h2>Six states, one markup.</h2>
-      <p>The state is a <span class="mono">data-state</span> on the SVG; who is working is <span class="mono">data-who</span>; who drives is <span class="mono">data-baton</span>. Every animation sits under the one guard; every rest state is written outside it, so Calm and reduced motion show the end frame and nothing is ever hidden.</p>
+      <p>The state is <span class="mono">data-state</span> on the SVG; who is working is <span class="mono">data-who</span>; who drives is <span class="mono">data-baton</span>. Every animation sits under the one guard; every rest state is written outside it, so Calm and reduced motion show the end frame and nothing is ever hidden.</p>
+      <p class="mono faint" style="font-size:11.5px">curves · mark .3,.9,.3,1 · arrive .2,.7,.2,1 · leave .4,0,1,1 · move .4,0,.2,1</p>
     </header>
     <table class="spec">
       <thead><tr><th>State</th><th>Trigger</th><th>What moves</th><th>Time · curve</th><th>Keyframes</th><th>Calm shows</th><th>Home</th></tr></thead>
       <tbody>
         <tr><td>Idle</td><td>nothing is happening</td><td>nothing</td><td><span class="mono">0</span></td><td><span class="k">—</span></td><td>the closed ring, centre present</td><td>rail brand, avatars, tab, paper</td></tr>
-        <tr><td>Joining</td><td>a session connecting, the app opening, a reconnect</td><td>both arcs swing from ±60°; the centre appears at 60 %</td><td><span class="mono">1 800 loop</span> · mark; centre on ease</td><td><span class="k">arc-a · arc-b · dot-in</span></td><td>the closed ring</td><td>splash 160, loading 96, rail brand 24 (once), never below 24: fade 200</td></tr>
-        <tr><td>Settled</td><td>a join lands: a person, an agent, a session</td><td>arcs close once; the centre lands; one notice ripples out</td><td><span class="mono">800 · 550–1 000 · 900–1 800</span> · arrive, arrive, leave</td><td><span class="k">arc-a-once · arc-b-once · dot-once · notice</span></td><td>the closed ring; the join line carries the news</td><td>join line 40, group chat 30, toast 32, the newcomer's avatar ripples at 900</td></tr>
-        <tr><td>Thinking</td><td>a turn is running (agent) or someone is typing (person)</td><td>the working arc breathes 72→100 %; a wide apricot aura under it rises to 16 %; the centre's halo scales 1→2.3</td><td><span class="mono">1 800 loop</span> · ease-in-out, move, move</td><td><span class="k">breath-arc · breath-glow · mark-halo</span></td><td>the closed ring; the status word says “running” beside it</td><td>rail card 20, topbar 24, Team panel row, tab 16 (two frames)</td></tr>
-        <tr><td>Blocked</td><td>an approval, a gate, a contention: the agent cannot continue without a hand</td><td>the person's arc retracts to 70 % from the top seam; a dotted stitch shows the missing share</td><td><span class="mono">320</span> · leave &nbsp;→&nbsp; redraw <span class="mono">450</span> · arrive</td><td><span class="k">transition stroke-dasharray · --a-drawn</span></td><td>the open seam with its stitch</td><td>rail card, approvals row, tab 16, tray; the same seam on a plan step the agent cannot finish</td></tr>
-        <tr><td>Baton</td><td>the driver changes: person → agent, agent → person, agent → agent</td><td>the hairline half ring passes under the seam; the receiver's arc takes the weight</td><td><span class="mono">500 · 500</span> · mark, mark</td><td><span class="k">transition transform · take</span></td><td>the hairline over the holder, instantly</td><td>session header 32, presence stack, the contention/handoff notice; not the tab</td></tr>
+        <tr><td>Joining</td><td>a session connecting, the app opening, a reconnect</td><td>both arcs swing from ±60°; the centre appears at 60 %</td><td><span class="mono">1 800 loop</span> · mark; the centre on ease</td><td><span class="k">arc-a · arc-b · dot-in</span></td><td>the closed ring</td><td>splash 160, loading 96, rail brand 24 (once); never below 24: fade 200</td></tr>
+        <tr><td>Settled</td><td>a join lands: a person, an agent, a session</td><td>arcs close once; the centre lands; one notice ripples out</td><td><span class="mono">800 · 550–1 000 · 900–1 800</span> · arrive, arrive, leave</td><td><span class="k">arc-a-once · arc-b-once · dot-once · notice</span></td><td>the closed ring; the join line carries the news</td><td>join line 40, group chat 30, toast 32; the newcomer's avatar ripples at 900</td></tr>
+        <tr><td>Thinking</td><td>a turn is running (agent) or someone is typing (person)</td><td>the working arc breathes 72→100 %; its aura rises to 16 %; the centre's halo scales 1→2.3</td><td><span class="mono">1 800 loop</span> · ease-in-out, move, move</td><td><span class="k">breath-arc · breath-glow · mark-halo</span></td><td>the closed ring; “running” beside it</td><td>rail card 20, topbar 24, Team panel row, tab 16 (two frames)</td></tr>
+        <tr><td>Blocked</td><td>an approval, a gate, a contention: the agent cannot continue without a hand</td><td>the person's arc retracts to 70 % from the top seam; a dotted stitch shows the missing share</td><td><span class="mono">320</span> · leave &nbsp;→&nbsp; redraw <span class="mono">450</span> · arrive</td><td><span class="k">transition stroke-dasharray · --a-drawn</span></td><td>the open seam with its stitch</td><td>rail card, approvals row, tab 16, tray; the same seam on a plan step that waits</td></tr>
+        <tr><td>Baton</td><td>the driver changes: person → agent, agent → person, agent → agent</td><td>the centre crosses 10 units to the receiver's side; the receiver's arc takes the weight</td><td><span class="mono">500 · 500</span> · mark, mark</td><td><span class="k">transition translate · take</span></td><td>the centre on the holder's side, instantly</td><td>session header 32, the handoff pill 18, the contention notice; not the tab</td></tr>
       </tbody>
     </table>
   </section>
@@ -482,7 +463,7 @@ table.spec tr:last-child td { border-bottom: 0; }
     <header>
       <div class="kicker">16 px</div>
       <h2>The tab tells you whether to come back.</h2>
-      <p>The tiny cut (disc to the edge, arcs r30 stroke 14, centre r9.5; the person's arc lifted 62 % toward apricot as the rail does, because chocolate on navy is 1.4 : 1 at this size). Three states are live favicons; this page's own tab follows the hero. No swing under 24 px.</p>
+      <p>The tiny cut (disc to the edge, arcs r32 stroke 16, centre r10; the person's arc lifted 62 % toward apricot, as the rail does, because chocolate on navy is 1.4 : 1 at this size). Three live states, told apart by <b>shape</b>, never by a status colour. This page's own tab follows the hero. No swing under 24 px.</p>
     </header>
     <div class="fav">
       <div class="tabs">
@@ -504,36 +485,46 @@ table.spec tr:last-child td { border-bottom: 0; }
     <header>
       <div class="kicker">Homes</div>
       <h2>Where it lives.</h2>
-      <p>The same markup at 24, 20, 40 and 32 px. On navy the disc is the ground; on cream the bare cut with a navy agent's arc; on the dark canvas the disc returns. The word beside the mark always says what the mark says.</p>
+      <p>The same markup at 24, 20, 40, 32 and 18 px. On navy the disc is the ground; on cream the bare cut with a navy agent's arc; on the dark canvas the disc returns. The word beside the mark always says what the mark says.</p>
     </header>
     <div class="homes">
       <div class="home">
         <div class="rail">
           <div class="brand"><svg class="mark small bare" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="4200"><use href="#m"/></svg>henosis</div>
-          <div class="item active"><svg class="mark small bare" viewBox="0 0 96 96" aria-hidden="true" data-state="thinking" data-who="agent"><use href="#m"/></svg>Ana's agent <span class="w">running</span></div>
-          <div class="item"><svg class="mark small bare" viewBox="0 0 96 96" aria-hidden="true" data-state="blocked"><use href="#m"/></svg>Bo's agent <span class="w">awaiting</span></div>
+          <div class="item active"><svg class="mark small bare" viewBox="0 0 96 96" aria-hidden="true" data-state="thinking" data-who="agent"><use href="#m"/></svg>Ana's agent <span class="st running">running</span></div>
+          <div class="item"><svg class="mark small bare" viewBox="0 0 96 96" aria-hidden="true" data-state="blocked"><use href="#m"/></svg>Bo's agent <span class="st awaiting">awaiting</span></div>
+          <div class="item"><svg class="mark small bare" viewBox="0 0 96 96" aria-hidden="true" data-state="idle"><use href="#m"/></svg>Cy's agent <span class="st">idle</span></div>
         </div>
-        <div class="cap"><b>Rail</b> · brand 24 settles once on a cold open; cards 20 carry thinking and blocked beside the status word</div>
+        <div class="cap"><b>Rail</b> · the brand at 24 settles once on a cold open; cards at 20 carry thinking and blocked beside the status word</div>
       </div>
       <div class="home">
         <div class="stream">
           <div class="joinline">
-            <svg class="mark bare on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="4200"><use href="#m"/></svg>
+            <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="4600" data-t0="-700"><use href="#m"/></svg>
             <div class="s"><b><span class="name">Ana</span> joins the circle.</b><span>From the invite link · 4 here · Bo has the baton</span></div>
-            <div class="stack"><span class="av">B</span><span class="av agent">C</span><span class="av">D</span><span class="av joined">A</span></div>
+            <div class="stack"><div class="av">Bo</div><div class="av agent">B</div><div class="av">Cy</div><div class="av joined">An</div></div>
           </div>
-          <div class="joinline">
-            <svg class="mark bare on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="idle" data-baton="agent" data-flip="3100"><use href="#m"/></svg>
-            <div class="s"><b><span class="name">Bo's agent</span> has the baton.</b><span>Handed by Bo · step 3 of 5 · proration rules</span></div>
-          </div>
+          <div class="quiet">Cy left the circle · 09:47</div>
         </div>
-        <div class="cap"><b>Stream</b> · join line 40, bare on cream (disc on the dark canvas); the baton line is the handoff notice's header</div>
+        <div class="cap"><b>Stream</b> · the join line at 40 plays settled once; the avatar ripples as the centre lands. Leaving is a quiet divider, no motion</div>
+      </div>
+      <div class="home">
+        <div class="sesh">
+          <div class="head"><svg class="mark on-page" id="sesh-mark" viewBox="0 0 96 96" aria-hidden="true" data-state="thinking" data-who="agent" data-baton="person"><use href="#m"/></svg><b>Checkout</b><span class="mono faint">4 here</span></div>
+          <div class="line" id="sesh-line"><span class="name">Bo</span> has the baton · Bo's agent is running</div>
+          <button class="hand" type="button" id="hand"><svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="idle" data-baton="agent"><use href="#m"/></svg>Hand the baton to Bo's agent</button>
+        </div>
+        <div class="cap"><b>Session header</b> · 32 px carries thinking and the baton at once; the pill at 18 shows the hand the receiver would get</div>
       </div>
       <div class="home">
         <div class="toastwrap">
-          <div class="toast"><svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="4200"><use href="#m"/></svg><div class="s"><b><span class="name">Ana</span> joins the circle</b><span>Billing page · Checkout · as observer</span></div><span class="act">View</span></div>
+          <div class="toast">
+            <svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="5200" data-t0="-900"><use href="#m"/></svg>
+            <div class="s"><b><span class="name">Dee's agent</span> joins the circle.</b><span>Crew Invoice rollout · Team with Dee</span></div>
+            <span class="act">View</span>
+          </div>
         </div>
-        <div class="cap"><b>Toast</b> · 32 on navy, the same sentence; a news toast holds 8 s under Calm and gains Dismiss</div>
+        <div class="cap"><b>Toast</b> · 32 px on navy, the one toast with motion of its own: the mark settles once inside it</div>
       </div>
     </div>
   </section>
@@ -542,15 +533,18 @@ table.spec tr:last-child td { border-bottom: 0; }
   <section class="sec">
     <header>
       <div class="kicker">Rules</div>
-      <h2>What keeps it ours.</h2>
+      <h2>What never happens.</h2>
+      <p>The lines that keep six states from becoming a spinner.</p>
     </header>
     <div class="rules">
-      <p><b>Motion means joining or living.</b> The arcs swing only on a join. Thinking never reopens the ring: the ring is whole, half of it is awake. Blocked opens the seam but does not move it. The baton is the only thing that travels, once, half a turn, under the seam.</p>
-      <p><b>The hand is a verb, the pulse is alive.</b> Everything that breathes, glows or ripples is apricot, on both arcs. Chocolate never pulses. Status colours never touch the mark; the word beside it carries them.</p>
-      <p><b>The seam is on the side that must act.</b> Blocked retracts the person's arc because the missing thing is a hand. The agent's arc never retracts in the product (a server gone is the ghost centre, not a seam).</p>
-      <p><b>Rest is the end state.</b> Six states land on <span class="mono">mark.svg</span>. Calm and reduce show the end frame: closed ring, open seam, hairline over the holder. Nothing is hidden until it plays.</p>
-      <p><b>One moving mark per screen.</b> If a loader is joining, a join line shows the closed ring and only the avatar ripples. Thinking at 20 px in the rail is allowed beside a 40 px settled in the stream: breath is not a swing.</p>
-      <p><b>Not a spinner, not a sparkle.</b> Nothing orbits, nothing is purple, nothing is a badge. At 16 px the state is weight and seam, not colour: the three favicons differ in shape.</p>
+      <p><b>The ring never reopens to say “waiting”.</b> Joining is the only swing. Thinking breathes one half; blocked opens the top seam by retracting, never by swinging apart.</p>
+      <p><b>Nothing travels around the ring.</b> The retired bead stays retired. The baton is the centre crossing a diameter, once, in 500 ms.</p>
+      <p><b>Status colour never touches the mark.</b> Blocked is a shape; the amber lives in the word beside it. At 16 px the three favicons differ in shape.</p>
+      <p><b>One breathing mark per surface.</b> The rail breathes on running cards only; the topbar carries one; the tab carries one.</p>
+      <p><b>The centre pops once, at a join.</b> Resting marks are the end frame. Under Calm the once-states are their end frame and the loops are the closed ring.</p>
+      <p><b>Below 24 px there is no swing.</b> The closed mark fades in over 200 ms; waiting is the halo; blocked is the open seam.</p>
+      <p><b>The lean is the baton, not an error.</b> 5 units toward the holder: 1.7 px at 32, 14 px at 270. It is never on the brand row, the tab or paper; those marks have no driver.</p>
+      <p><b>Only transform, translate, opacity, stroke-width and stroke-dasharray move.</b> No filters, no layout, no colour on the arcs.</p>
     </div>
   </section>
 </div>
@@ -558,167 +552,203 @@ table.spec tr:last-child td { border-bottom: 0; }
 <script>
 (() => {
   const root = document.documentElement;
-  /* page CSS cannot reach inside a <use> shadow tree (print-export's finding), so every mark is inlined from the
-     symbol once; without script the <use> still draws the resting ring. The app's Mark component inlines the same. */
-  const sym = document.getElementById('m');
-  document.querySelectorAll('svg.mark').forEach(svg => {
-    const u = svg.querySelector('use'); if (!u) return;
-    const frag = document.createDocumentFragment();
-    Array.from(sym.children).forEach(c => frag.appendChild(c.cloneNode(true)));
-    u.replaceWith(frag);
-  });
-  const $ = (s, el = document) => el.querySelector(s);
-  const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
-  const motionOn = () => root.dataset.motion !== 'calm' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const motionOn = () => !reduce.matches && root.dataset.motion !== 'calm';
 
-  /* ---- preview controls ---- */
-  $$('[data-theme-btn]').forEach(b => b.addEventListener('click', () => { root.dataset.theme = b.dataset.themeBtn; syncCtl(); }));
-  $$('[data-motion-btn]').forEach(b => b.addEventListener('click', () => { root.dataset.motion = b.dataset.motionBtn; syncCtl(); }));
-  function syncCtl() {
-    const theme = root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    $$('[data-theme-btn]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.themeBtn === theme)));
-    $$('[data-motion-btn]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.motionBtn === (root.dataset.motion || 'full'))));
-  }
-  new MutationObserver(syncCtl).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-motion'] });
-  syncCtl();
-
-  /* ---- replay helpers for the demo tiles: a once-run is replayed by re-setting data-state ---- */
-  function replay(el) { const s = el.dataset.state; el.dataset.state = 'idle'; void el.getBoundingClientRect(); el.dataset.state = s; }
-  $$('[data-replay]').forEach(el => setInterval(() => replay(el), Number(el.dataset.replay)));
-  function flip(el) { const to = el.dataset.baton === 'person' ? 'agent' : 'person'; hand(el, to); }
-  $$('[data-flip]').forEach(el => setInterval(() => flip(el), Number(el.dataset.flip)));
-  $$('[data-unblock]').forEach(el => { let blocked = true; setInterval(() => { blocked = !blocked; el.dataset.state = blocked ? 'blocked' : 'idle'; }, Number(el.dataset.unblock)); });
-  function hand(el, to) {
-    el.dataset.baton = to;
-    el.classList.remove('take-a', 'take-b'); void el.getBoundingClientRect();
-    el.classList.add(to === 'agent' ? 'take-b' : 'take-a');
-    setTimeout(() => el.classList.remove('take-a', 'take-b'), 520);
-  }
-
-  /* ---- the hero: a scene script in the product voice; click a node to hold a state ---- */
-  const big = $('#big'), say = $('#say'), sub = $('#sub'), subt = $('#subt'), sl = $('#scene-l'), sr = $('#scene-r');
-  const scenes = {
-    idle:     { say: '<span class="name">Checkout</span> is quiet.', sub: 'idle · the ring is one; nothing moves', t: 'rest', who: 'agent', baton: 'none', l: 'Billing page · Checkout', r: '<b>4 here</b> · 09:41' },
-    joining:  { say: 'Opening the circle.', sub: 'joining · the arcs swing in from ±60° and close; the centre lands last', t: '1.8 s loop', who: 'agent', baton: 'none', l: 'Billing page · Checkout', r: '<b>connecting</b> · 09:41' },
-    settled:  { say: '<span class="name">Ana</span> joins the circle.', sub: 'settled · once; the circle notices her as the centre lands', t: '1.8 s once', who: 'agent', baton: 'person', l: 'From the invite link', r: '<b>4 here</b> · Bo has the baton' },
-    thinking: { say: '<span class="name">Ana’s agent</span> is reading invoice.ts.', sub: 'thinking · the agent’s half of the ring breathes; the person’s half is still', t: '1.8 s loop', who: 'agent', baton: 'agent', l: 'Billing page · Checkout', r: '<b>11 tool uses</b> · 1m 06s' },
-    typing:   { say: '<span class="name">Bo</span> is typing to the team.', sub: 'thinking · a person: the same breath on the other half; hue alone differs', t: '1.8 s loop', who: 'person', baton: 'person', l: 'Billing page · Checkout', r: '<b>to the team</b> · 09:42' },
-    blocked:  { say: 'The plan waits for <span class="name">your</span> rating.', sub: 'blocked · the person’s arc draws back from the seam; the stitch is where your hand goes', t: '320 ms', who: 'agent', baton: 'agent', l: 'stripe prorations apply', r: '<b>needs 2 ratings</b> at 4 or above' },
-    baton:    { say: '<span class="name">Bo’s agent</span> has the baton.', sub: 'handing the baton · the hairline passes under the seam; the receiver takes the weight', t: '500 ms', who: 'agent', baton: 'agent', l: 'Handed by Bo', r: '<b>step 3 of 5</b> · proration rules' },
+  /* ---------- one geometry, three cuts (design/mark.svg) ---------- */
+  const CUTS = { default: { R: 28, disc: 46, dot: 7 }, small: { R: 29, disc: 48, dot: 8.5 }, tiny: { R: 32, disc: 48, dot: 10 } };
+  const inner = (c) => {
+    const { R, disc, dot } = CUTS[c];
+    const a = `M48 ${48 + R} A${R} ${R} 0 0 0 48 ${48 - R}`, b = `M48 ${48 + R} A${R} ${R} 0 0 1 48 ${48 - R}`;
+    return `<circle class="disc" cx="48" cy="48" r="${disc}"/><circle class="halo" cx="48" cy="48" r="${dot}"/>` +
+      `<path class="trace" d="${a}" pathLength="100"/><path class="glow a" d="${a}" pathLength="100"/><path class="glow b" d="${b}" pathLength="100"/>` +
+      `<path class="arc a" d="${a}" pathLength="100"/><path class="arc b" d="${b}" pathLength="100"/><circle class="dot" cx="48" cy="48" r="${dot}"/>`;
   };
-  const script = ['thinking', 'blocked', 'thinking', 'baton', 'typing', 'idle', 'joining', 'settled', 'thinking'];
-  let held = null, idx = 0, timer = null;
-  function go(name, fromClick) {
-    const s = scenes[name];
-    const state = name === 'typing' ? 'thinking' : name === 'baton' ? 'thinking' : name;
-    const prevBaton = big.dataset.baton;
-    big.dataset.who = s.who;
-    if (name === 'baton') { hand(big, prevBaton === 'agent' ? 'person' : 'agent'); } else { big.dataset.baton = s.baton; }
-    if (state === 'settled' && big.dataset.state === 'settled') replay(big); else big.dataset.state = state;
-    say.innerHTML = name === 'baton' ? (big.dataset.baton === 'agent' ? scenes.baton.say : '<span class="name">Bo</span> has the baton.') : s.say;
-    sub.textContent = s.sub; subt.textContent = s.t; sl.textContent = s.l; sr.innerHTML = s.r;
-    $$('.node').forEach(n => n.setAttribute('aria-current', String(n.dataset.go === name)));
-    $$('#statebar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.go === name)));
-    setFavicon(state, big.dataset.who, big.dataset.baton);
-    if (fromClick) { held = name; clearTimeout(timer); timer = setTimeout(() => { held = null; schedule(); }, 9000); }
-  }
-  function schedule() {
-    clearTimeout(timer);
-    timer = setTimeout(() => { if (held) return; idx = (idx + 1) % script.length; go(script[idx]); schedule(); }, motionOn() ? 3400 : 2200);
-  }
-  $$('.node').forEach(n => n.addEventListener('click', () => go(n.dataset.go, true)));
-  const bar = $('#statebar');
-  ['idle', 'joining', 'settled', 'thinking', 'blocked', 'baton'].forEach(n => { const b = document.createElement('button'); b.type = 'button'; b.dataset.go = n; b.textContent = n; b.addEventListener('click', () => go(n, true)); bar.appendChild(b); });
+  const inline = (svg) => {
+    const use = svg.querySelector('use'); if (!use) return;
+    const cut = svg.classList.contains('tiny') ? 'tiny' : svg.classList.contains('small') ? 'small' : 'default';
+    use.outerHTML = inner(cut);
+  };
+  document.querySelectorAll('svg.mark').forEach(inline);
 
-  /* ---- favicons: the tiny cut as a data URI, built per state; this tab follows the hero ---- */
-  const LIFT = '#8B6B5B'; /* chocolate 62 % toward apricot: what the rail does to the person's arc on navy at 22 px */
-  function tinySVG(state, who = 'agent', baton = 'none') {
-    const aDrawn = state === 'blocked' ? 70 : 100;
-    const aOp = (baton === 'agent') ? .55 : 1, bOp = (baton === 'person') ? .55 : 1;
-    const dotR = state === 'thinking' ? 13 : 9.5;
-    const halo = state === 'thinking' ? `<circle cx="48" cy="48" r="20" fill="none" stroke="#E2C4A6" stroke-width="3" opacity=".45"/>` : '';
-    const bBright = state === 'thinking' && who !== 'person';
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="16" height="16"><circle cx="48" cy="48" r="48" fill="#2A3244"/>` +
-      `<path d="M48 78 A30 30 0 0 0 48 18" pathLength="100" stroke="${LIFT}" stroke-width="14" fill="none" stroke-linecap="round" stroke-dasharray="${aDrawn} 100" opacity="${aOp}"/>` +
-      `<path d="M48 78 A30 30 0 0 1 48 18" stroke="#E2C4A6" stroke-width="14" fill="none" stroke-linecap="round" opacity="${bBright ? 1 : bOp}"/>` +
-      halo + `<circle cx="48" cy="48" r="${dotR}" fill="#E2C4A6"/></svg>`;
-  }
-  const favLink = $('#favicon');
-  let favTimer = null, favFrame = 0;
-  function setFavicon(state, who, baton) {
-    clearInterval(favTimer);
-    const draw = () => { favLink.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(tinySVG(state, who, baton)); };
-    if (state === 'thinking' && motionOn()) { favTimer = setInterval(() => { if (document.hidden) return; favFrame ^= 1; favLink.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(tinySVG(favFrame ? 'thinking' : 'idle', who, baton)); }, 900); }
-    draw();
-  }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) favLink.href = 'data:image/svg+xml;utf8,' + encodeURIComponent(tinySVG(big.dataset.state, big.dataset.who, big.dataset.baton)); }); /* a hidden tab shows the state's still frame */
-  /* the 4× row: the same strings, rendered large so the pixels can be judged */
-  const favrow = $('#favrow');
-  [
-    ['idle', 'At rest', 'the closed ring', 'live', { who: 'agent', baton: 'none' }],
-    ['joining', 'Joining', 'no swing under 24: the closed mark fades in over 200 ms', 'no', { who: 'agent', baton: 'none' }],
-    ['settled', 'Settled', 'identical to rest; the toast carries the news', 'no', { who: 'agent', baton: 'none' }],
-    ['thinking', 'Working', 'the centre swells to r13 with a halo; two frames at 1.8 s, one frame under Calm', 'live', { who: 'agent', baton: 'none' }],
-    ['blocked', 'Needs you', 'the seam opens at the top: 4.7 px at 16, legible as shape', 'live', { who: 'agent', baton: 'none' }],
-    ['idle', 'Baton', 'weight, not a line: the other arc at 55 %. Not a tab state; shown for completeness', 'no', { who: 'agent', baton: 'agent' }],
-  ].forEach(([state, name, note, live, o]) => {
-    const cell = document.createElement('div'); cell.className = 'cell';
-    const svg = tinySVG(state, o.who, o.baton);
-    cell.innerHTML = `<div class="px">${svg.replace('width="16" height="16"', 'width="64" height="64"')}</div><b>${name}</b><span>${note}</span><span class="live ${live === 'no' ? 'no' : ''}">${live === 'no' ? 'not a favicon' : 'live favicon'}</span>`;
-    favrow.appendChild(cell);
-  });
+  /* restart a mark's once-animation by cloning it; negative --t0 lands a still mid-run for the screenshot */
+  const restart = (svg, t0) => {
+    const c = svg.cloneNode(true);
+    if (t0) c.querySelectorAll('.arc, .dot, .halo').forEach(el => el.style.animationDelay = `${t0}ms`);
+    svg.replaceWith(c); return c;
+  };
 
-  /* ---- timelines ---- */
-  const W = 760, L = 0, PX = (W - 120) / 2000; /* 2 s rule across the track; 120 px reserved for labels */
-  function tl(rows) {
-    const H = rows.length * 22 + 26;
-    let s = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">`;
-    s += `<g class="grid">`;
-    for (let ms = 0; ms <= 2000; ms += 100) { const x = L + ms * PX; const major = ms % 500 === 0; s += `<line class="${major ? 'major' : ''}" x1="${x}" y1="0" x2="${x}" y2="${H - 18}"/>`; if (major) s += `<text x="${x + 3}" y="${H - 4}">${ms === 0 ? '0' : (ms / 1000).toFixed(1) + ' s'}</text>`; }
-    s += `</g>`;
+  /* ---------- the six states: copy and score ---------- */
+  const S = {
+    idle:     { say: '<span class="name">Checkout</span> is quiet.', sub: 'idle · the ring is one and nothing moves', t: '0 ms', fav: 'rest', dur: 0,
+                rows: [] },
+    joining:  { say: '<span class="name">Ana\'s session</span> is opening the circle.', sub: 'joining · the arcs swing in from ±60°; the centre lands once the ring is one', t: '1.8 s loop', fav: 'working', dur: 1800, loop: true,
+                rows: [
+                  { n: 'person\'s arc', k: 'arc-a · mark', c: 'a', bars: [[0,270,'hold','+60°, .35→.5'],[270,1260,'move','swing → −4°'],[1260,1530,'move','+2°'],[1530,1800,'move','0°']] },
+                  { n: 'agent\'s arc',  k: 'arc-b · mark', c: 'b', bars: [[0,270,'hold','−60°, .35→.5'],[270,1260,'move','swing → +4°'],[1260,1530,'move','−2°'],[1530,1800,'move','0°']] },
+                  { n: 'centre',        k: 'dot-in · ease', c: 'dot', bars: [[0,1080,'hold','scale 0'],[1080,1440,'move','→ 1.25'],[1440,1800,'move','→ 1']] } ] },
+    settled:  { say: '<span class="name">Ana</span> joins the circle.', sub: 'settled · the arcs close once, the centre lands, the circle notices', t: '1.8 s once', fav: 'rest', dur: 1800, replay: 3800,
+                rows: [
+                  { n: 'person\'s arc', k: 'arc-a-once · arrive', c: 'a', bars: [[0,560,'move','+60° → −4°'],[560,800,'move','→ 0°']] },
+                  { n: 'agent\'s arc',  k: 'arc-b-once · arrive', c: 'b', bars: [[0,560,'move','−60° → +4°'],[560,800,'move','→ 0°']] },
+                  { n: 'centre',        k: 'dot-once · arrive', c: 'dot', bars: [[0,550,'hold','scale 0'],[550,800,'move','→ 1.25'],[800,1000,'move','→ 1']] },
+                  { n: 'notice',        k: 'notice · leave', c: 'aura', bars: [[900,1800,'move','halo 1 → 3.4×, .55 → 0']] } ] },
+    thinking: { say: '<span class="name">Ana\'s agent</span> is reading invoice.ts.', sub: 'thinking · the agent\'s half of the ring breathes; the person\'s half is still', t: '1.8 s loop', fav: 'working', dur: 1800, loop: true,
+                rows: [
+                  { n: 'person\'s arc', k: 'still', c: 'a', bars: [[0,1800,'hold','opacity 1, no motion']] },
+                  { n: 'agent\'s arc',  k: 'breath-arc · ease-in-out', c: 'b', bars: [[0,900,'move','.72 → 1'],[900,1800,'move','1 → .72']] },
+                  { n: 'aura',          k: 'breath-glow · move', c: 'aura', bars: [[0,900,'move','0 → .16, ×1.04'],[900,1800,'move','→ 0']] },
+                  { n: 'centre halo',   k: 'mark-halo · move', c: 'dot', bars: [[0,1800,'move','1 → 2.3×, .34 → 0']] } ] },
+    blocked:  { say: 'The plan waits for your rating.', sub: 'blocked · the person\'s arc draws back from the seam; it stays open until you act', t: '320 ms · 450 ms', fav: 'needs-you', dur: 2000, replay: 4000,
+                rows: [
+                  { n: 'person\'s arc', k: 'stroke-dasharray · leave, arrive', c: 'a', bars: [[0,320,'move','100 → 70 %'],[320,1550,'wait','waits for you'],[1550,2000,'move','70 → 100 %']] },
+                  { n: 'agent\'s arc',  k: 'still', c: 'b', bars: [[0,2000,'hold','opacity 1, no motion']] },
+                  { n: 'stitch',        k: 'opacity · 320', c: 'aura', bars: [[0,320,'move','0 → .6'],[320,1550,'wait','dotted, in the gap'],[1550,1870,'move','→ 0']] },
+                  { n: 'centre',        k: 'opacity · 200', c: 'dot', bars: [[0,200,'move','1 → .85'],[200,1550,'hold','.85'],[1550,1750,'move','→ 1']] } ] },
+    baton:    { say: '<span class="name">Bo</span> hands the baton to <span class="name">Bo\'s agent</span>.', sub: 'baton · the centre crosses to whoever drives; the receiver takes the weight', t: '500 ms once', fav: 'rest', dur: 500, replay: 2600,
+                rows: [
+                  { n: 'centre',        k: 'translate · mark', c: 'dot', bars: [[0,500,'move','+5 → −5 units']] },
+                  { n: 'agent\'s arc',  k: 'take · mark', c: 'b', bars: [[0,225,'move','10 → 12.6'],[225,500,'move','→ 10']] },
+                  { n: 'person\'s arc', k: 'still', c: 'a', bars: [[0,500,'hold','lets go']] } ] },
+  };
+  const ORDER = ['idle','joining','settled','thinking','blocked','baton'];
+
+  const PX = 0.31, X0 = 128, X1 = X0 + 2000 * PX;
+  const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const drawScore = (key) => {
+    const s = S[key], rows = s.rows, H = 26 + Math.max(rows.length, 1) * 34 + 6;
+    let g = `<svg viewBox="0 0 ${X1 + 8} ${H}" preserveAspectRatio="xMinYMin meet" aria-hidden="true">`;
+    g += '<g class="rule">';
+    for (let ms = 0; ms <= 2000; ms += 250) {
+      const x = X0 + ms * PX, major = ms % 500 === 0;
+      g += `<line x1="${x}" y1="18" x2="${x}" y2="${H - 6}" class="${major ? 'major' : ''}"/>`;
+      if (major) g += `<text x="${x + 3}" y="12">${ms === 0 ? '0' : ms === 2000 ? '2 s' : ms / 1000 + ' s'}</text>`;
+    }
+    g += '</g>';
+    if (!rows.length) g += `<text class="none" x="${X0 + 4}" y="${H / 2 + 12}">nothing moves · the rest state is the whole score</text>`;
     rows.forEach((r, i) => {
-      const y = i * 22 + 4;
-      r.bars.forEach(b => { const x = L + b[0] * PX, w = Math.max(2, (b[1] - b[0]) * PX); s += `<rect class="bar ${b[2]}${b[3] ? ' soft' : ''}" x="${x}" y="${y}" width="${w}" height="10"/>`; });
-      const last = r.bars[r.bars.length - 1]; const lx = L + last[1] * PX + 8;
-      s += `<text class="lbl" x="${lx}" y="${y + 9}">${r.label}</text>`;
+      const y = 26 + i * 34;
+      g += `<g class="row"><text class="n" x="0" y="${y + 13}">${esc(r.n)}</text><text class="k" x="0" y="${y + 26}">${esc(r.k)}</text>`;
+      r.bars.forEach(([f, t, k, l]) => {
+        const x = X0 + f * PX, w = Math.max((t - f) * PX, 2);
+        if (k === 'move') g += `<rect class="bar ${r.c}" x="${x}" y="${y + 6}" width="${w}" height="10"/>`;
+        else if (k === 'hold') g += `<rect class="bar hold" x="${x + .5}" y="${y + 6.5}" width="${w - 1}" height="9"/>`;
+        else g += `<line class="bar wait" x1="${x + 2}" y1="${y + 11}" x2="${x + w - 2}" y2="${y + 11}"/>`;
+        if (w >= 54) g += `<text class="lbl" x="${x + 3}" y="${y + 1}">${esc(l)}</text>`;
+      });
+      g += '</g>';
     });
-    return s + `</svg>`;
-  }
-  const rowsOf = {
-    joining: [
-      { label: 'person’s arc · hold · swing · settle', bars: [[0, 270, 'a', true], [270, 1260, 'a'], [1260, 1530, 'a', true], [1530, 1800, 'a', true]] },
-      { label: 'agent’s arc · mirrored', bars: [[0, 270, 'b', true], [270, 1260, 'b'], [1260, 1530, 'b', true], [1530, 1800, 'b', true]] },
-      { label: 'centre · 0 → 1.25 → 1', bars: [[1080, 1440, 'dot'], [1440, 1800, 'dot', true]] },
-    ],
-    settled: [
-      { label: 'arcs · once, arrive', bars: [[0, 800, 'a']] },
-      { label: '', bars: [[0, 800, 'b']] },
-      { label: 'centre · held to 55 %, 1.25× at 80 %', bars: [[0, 550, 'dot', true], [550, 1000, 'dot']] },
-      { label: 'the notice · one ripple, leave', bars: [[900, 1800, 'halo']] },
-    ],
-    thinking: [
-      { label: 'working arc · 72 → 100 → 72 %', bars: [[0, 900, 'b'], [900, 1800, 'b', true]] },
-      { label: 'its aura · opacity 0 → .16 → 0', bars: [[0, 900, 'halo'], [900, 1800, 'halo', true]] },
-      { label: 'centre halo · 1 → 2.3×, .34 → 0', bars: [[0, 1800, 'halo']] },
-      { label: 'the other arc · still', bars: [[0, 1800, 'a', true]] },
-    ],
-    blocked: [
-      { label: 'person’s arc · 100 → 70 %, leave', bars: [[0, 320, 'a']] },
-      { label: 'the stitch · fades in', bars: [[0, 320, 'halo']] },
-      { label: 'when you act · 70 → 100 %, arrive', bars: [[0, 450, 'a', true]] },
-    ],
-    baton: [
-      { label: 'hairline · half a turn, mark', bars: [[0, 500, 'dot']] },
-      { label: 'receiver’s arc · 10 → 12.6 → 10', bars: [[0, 225, 'b'], [225, 500, 'b', true]] },
-      { label: 'giver’s arc · still', bars: [[0, 500, 'a', true]] },
-    ],
+    const run = s.dur * PX;
+    g += `<g class="head-g" style="--run:${run}px;--dur:${Math.max(s.dur, 1)}ms;--iter:${s.loop ? 'infinite' : 1}"><line class="head" x1="${X0}" y1="14" x2="${X0}" y2="${H - 4}"/><circle class="head-cap" cx="${X0}" cy="14" r="2.2"/></g>`;
+    g += '</svg>';
+    document.getElementById('score').innerHTML = g;
+    document.querySelectorAll('#score .head, #score .head-cap').forEach(el => { el.style.setProperty('--run', run + 'px'); el.style.setProperty('--dur', Math.max(s.dur, 1) + 'ms'); el.style.setProperty('--iter', s.loop ? 'infinite' : 1); });
+    // the cap rides with the line
+    const cap = document.querySelector('#score .head-cap'); if (cap) cap.classList.add('head');
   };
-  const meta = { joining: ['Joining', 'loop · 1.8 s'], settled: ['Settled', 'once · 1.8 s'], thinking: ['Thinking', 'loop · 1.8 s'], blocked: ['Blocked', '320 ms · 450 ms back'], baton: ['Baton', 'once · 500 ms'] };
-  const tlEl = $('#tl');
-  Object.keys(rowsOf).forEach(k => { const d = document.createElement('div'); d.className = 'row'; d.innerHTML = `<div class="who"><b>${meta[k][0]}</b><span>${meta[k][1]}</span></div>${tl(rowsOf[k])}`; tlEl.appendChild(d); });
 
-  /* start the hero last: everything it touches now exists */
-  go('thinking'); schedule();
+  /* ---------- the hero driver ---------- */
+  let big = document.getElementById('big'), timers = [], current = 'thinking', favTimer = null;
+  const clear = () => { timers.forEach(clearTimeout); timers = []; };
+  const after = (ms, fn) => timers.push(setTimeout(fn, ms));
+  const setBig = (state, who, baton) => {
+    big.dataset.state = state; if (who) big.dataset.who = who; else delete big.dataset.who; if (baton) big.dataset.baton = baton; else delete big.dataset.baton;
+  };
+  const run = (key) => {
+    clear(); current = key; const s = S[key];
+    document.getElementById('say').innerHTML = s.say; document.getElementById('sub').textContent = s.sub; document.getElementById('subt').textContent = s.t;
+    document.querySelectorAll('#picker button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.go === key)));
+    big = restart(big);
+    const cycle = () => {
+      if (key === 'idle') setBig('idle', null, null);
+      if (key === 'joining') setBig('joining', null, null);
+      if (key === 'settled') { setBig('settled', null, null); }
+      if (key === 'thinking') setBig('thinking', 'agent', 'agent');
+      if (key === 'blocked') { setBig('blocked', null, 'agent'); if (motionOn()) after(1550, () => setBig('idle', null, 'agent')); }
+      if (key === 'baton') { setBig('idle', null, 'person'); if (motionOn()) after(40, () => { setBig('idle', null, 'agent'); big.classList.add('take-b'); after(520, () => big.classList.remove('take-b')); }); else setBig('idle', null, 'agent'); }
+      drawScore(key);
+      if (s.replay && motionOn()) after(s.replay, () => { big = restart(big); cycle(); });
+    };
+    cycle();
+    setFavicon(s.fav);
+  };
+
+  /* ---------- picker ---------- */
+  const picker = document.getElementById('picker');
+  ORDER.forEach((k, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.go = k; b.setAttribute('aria-pressed', String(k === current));
+    const who = k === 'thinking' ? ' data-who="agent" data-baton="agent"' : k === 'baton' ? ' data-baton="person"' : '';
+    b.innerHTML = `<svg class="mark bare" viewBox="0 0 96 96" aria-hidden="true" data-state="${k === 'baton' ? 'idle' : k}"${who}>${inner('default')}</svg>${k}<kbd>${i + 1}</kbd>`;
+    b.addEventListener('click', () => run(k));
+    picker.appendChild(b);
+  });
+  addEventListener('keydown', (e) => { if (e.target.closest('input, textarea')) return; const i = Number(e.key) - 1; if (ORDER[i]) run(ORDER[i]); });
+
+  /* ---------- the favicon: three states, told apart by shape ---------- */
+  const tiny = (state, frame) => {
+    const dot = state === 'working' ? (frame ? [13, 20, 3, .45] : [11.5, 24, 2, .22]) : null;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="16" height="16"><title>Henosis · ${state}</title>` +
+      `<circle cx="48" cy="48" r="48" fill="#2A3244"/>` +
+      `<path d="M48 80 A32 32 0 0 0 48 16" pathLength="100" stroke="#8B6B5B" stroke-width="16" fill="none" stroke-linecap="round" stroke-dasharray="${state === 'needs-you' ? 70 : 100} 100"/>` +
+      `<path d="M48 80 A32 32 0 0 1 48 16" stroke="#E2C4A6" stroke-width="16" fill="none" stroke-linecap="round"/>` +
+      (state === 'needs-you' ? `<path d="M48 80 A32 32 0 0 0 48 16" pathLength="100" stroke="#E2C4A6" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="0 6" stroke-dashoffset="-70" opacity=".7"/>` : '') +
+      (dot ? `<circle cx="48" cy="48" r="${dot[1]}" fill="none" stroke="#E2C4A6" stroke-width="${dot[2]}" opacity="${dot[3]}"/><circle cx="48" cy="48" r="${dot[0]}" fill="#E2C4A6"/>` : `<circle cx="48" cy="48" r="10" fill="#E2C4A6"/>`) +
+      `</svg>`;
+  };
+  const uri = (svg) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  const link = document.getElementById('favicon');
+  const setFavicon = (state) => {
+    clearInterval(favTimer); favTimer = null; let frame = 1;
+    link.href = uri(tiny(state, 1));
+    if (state === 'working' && motionOn()) favTimer = setInterval(() => { if (document.hidden) return; frame = 1 - frame; link.href = uri(tiny(state, frame)); }, 900);
+  };
+
+  /* the 4× row: the true 16 px raster, upscaled without smoothing */
+  const favrow = document.getElementById('favrow');
+  [['rest', 'Rest', 'The closed ring. Idle, settled, baton: the tab has nothing to tell you.', 'favicon-rest.svg', false],
+   ['working', 'Working', 'The centre swells and wears a halo, two frames at 900 ms; the ring stays one. A turn runs here.', 'favicon-working.svg', true],
+   ['needs-you', 'Needs you', 'The seam opens where your hand is missing: an approval, a gate, a contention waits for you.', 'favicon-needs-you.svg', false]].forEach(([k, n, d, f, live]) => {
+    const cell = document.createElement('div'); cell.className = 'cell';
+    cell.innerHTML = `<div class="px"><canvas width="16" height="16"></canvas></div><div><b>${n}</b><span>${d}</span><span class="file">${f} · 16 × 16 · <span class="live ${live ? '' : 'no'}">${live ? 'two frames' : 'one frame'}</span></span></div>`;
+    favrow.appendChild(cell);
+    const img = new Image(); img.onload = () => { const c = cell.querySelector('canvas').getContext('2d'); c.imageSmoothingEnabled = false; c.drawImage(img, 0, 0, 16, 16); }; img.src = uri(tiny(k, 1));
+  });
+
+  /* ---------- replays on the board: once-states that play again so the page stays alive ---------- */
+  document.querySelectorAll('svg.mark[data-replay]').forEach(svg => {
+    const ms = Number(svg.dataset.replay), t0 = Number(svg.dataset.t0 || 0);
+    let el = restart(svg, t0);
+    const again = () => { if (!motionOn()) return; el = restart(el, 0); };
+    setInterval(again, ms);
+  });
+  document.querySelectorAll('svg.mark[data-unblock]').forEach(svg => {
+    const ms = Number(svg.dataset.unblock);
+    setInterval(() => { if (!motionOn()) return; svg.dataset.state = 'idle'; setTimeout(() => svg.dataset.state = 'blocked', 1400); }, ms);
+  });
+  document.querySelectorAll('svg.mark[data-flip]').forEach(svg => {
+    const ms = Number(svg.dataset.flip);
+    setInterval(() => { if (!motionOn()) return; const to = svg.dataset.baton === 'person' ? 'agent' : 'person'; svg.dataset.baton = to; const cls = to === 'agent' ? 'take-b' : 'take-a'; svg.classList.add(cls); setTimeout(() => svg.classList.remove(cls), 520); }, ms);
+  });
+  /* the session header's handoff pill */
+  const sesh = document.getElementById('sesh-mark'), hand = document.getElementById('hand'), seshLine = document.getElementById('sesh-line');
+  hand.addEventListener('click', () => {
+    const toAgent = sesh.dataset.baton === 'person';
+    sesh.dataset.baton = toAgent ? 'agent' : 'person'; const cls = toAgent ? 'take-b' : 'take-a'; sesh.classList.add(cls); setTimeout(() => sesh.classList.remove(cls), 520);
+    seshLine.innerHTML = toAgent ? '<span class="name">Bo\'s agent</span> has the baton · running' : '<span class="name">Bo</span> has the baton · Bo\'s agent is running';
+    hand.querySelector('.mark').dataset.baton = toAgent ? 'person' : 'agent';
+    hand.lastChild.textContent = toAgent ? 'Take the baton back' : 'Hand the baton to Bo\'s agent';
+  });
+
+  /* ---------- controls ---------- */
+  const sysDark = matchMedia('(prefers-color-scheme: dark)');
+  const syncTheme = () => { const dark = root.dataset.theme ? root.dataset.theme === 'dark' : sysDark.matches; document.querySelectorAll('[data-theme-btn]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.themeBtn === 'dark') === dark))); };
+  const syncMotion = () => { const calm = !motionOn(); document.querySelectorAll('[data-motion-btn]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.motionBtn === 'calm') === calm))); };
+  document.querySelectorAll('[data-theme-btn]').forEach(b => b.addEventListener('click', () => { root.dataset.theme = b.dataset.themeBtn; syncTheme(); }));
+  document.querySelectorAll('[data-motion-btn]').forEach(b => b.addEventListener('click', () => { root.dataset.motion = b.dataset.motionBtn; syncMotion(); run(current); }));
+  new MutationObserver(() => { syncTheme(); syncMotion(); }).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-motion'] });
+  sysDark.addEventListener('change', syncTheme); reduce.addEventListener('change', () => { syncMotion(); run(current); });
+  syncTheme(); syncMotion();
+  run('thinking');
 })();
 </script>
 </body>
