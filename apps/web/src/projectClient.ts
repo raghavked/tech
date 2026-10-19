@@ -12,7 +12,14 @@ import {
   reduceProject,
 } from "@henosis/fleet";
 import type { SessionPolicyPatch } from "@henosis/protocol";
+import { getIdentity } from "./identity.js";
 import { Reconnector } from "./reconnect.js";
+
+/** Identity: the subscribe message carries the token the identity store holds (the ID token in oidc mode). */
+function subscribeMessage(projectId: string, userId: string): ProjectClientMessage {
+  const token = getIdentity()?.token;
+  return { type: "project.subscribe", projectId, userId, ...(token ? { token } : {}) };
+}
 
 /**
  * Start a session with a policy of its own (plan first, a token budget) over a short-lived
@@ -52,7 +59,7 @@ export function createSession(
     const timer = setTimeout(finish, 4000);
     ws.onopen = () => {
       const send = (m: ProjectClientMessage) => ws.send(JSON.stringify(m));
-      send({ type: "project.subscribe", projectId: input.projectId, userId: input.userId });
+      send(subscribeMessage(input.projectId, input.userId));
       send({
         type: "session.create",
         sessionId: input.sessionId,
@@ -129,7 +136,7 @@ export class ProjectClient {
     ws.onopen = () => {
       if (this.ws !== ws) return;
       this.emit({ connected: true });
-      this.send({ type: "project.subscribe", projectId, userId });
+      this.send(subscribeMessage(projectId, userId));
       this.send({ type: "fleet.brief" });
     };
     ws.onclose = () => {

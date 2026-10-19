@@ -98,6 +98,15 @@ export const copy = {
     planFirstHint: "The agent proposes a plan; the team rates it before any work",
     tokenBudget: "Token budget",
     tokenBudgetHint: "tokens, optional",
+    // Identity (auth.ts): single sign-on in oidc mode.
+    continueWith: (provider: string) => `Continue with ${provider}`,
+    ssoLine: (provider: string) => `Your team signs in through ${provider}.`,
+    ssoObserver: " · known to the provider, not yet to a team; ask a lead to add you",
+    signingIn: "Signing you in…",
+    signInFailed: (error: string) => `Could not sign you in: ${error}`,
+    signedOut: "Your sign-in ended; continue to pick up where you were.",
+    tryAgain: "Try again",
+    signOut: "Sign out",
   },
 
   session: {

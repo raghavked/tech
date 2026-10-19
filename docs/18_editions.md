@@ -14,7 +14,7 @@ verify` proves it in both.
 |---|---|---|---|
 | Who | A founding team, a lab, one squad | A company with several teams and projects | A company with many orgs, compliance and a platform team |
 | Server | One `henosis serve` process, a folder as the store | One process per org, a database behind it | Sharded session actors, a database and an object store, a control plane |
-| Identity | `users.json`, dev tokens | OIDC single sign-on, roles from the directory | SSO (OIDC or SAML), SCIM provisioning, device trust, per-event signatures |
+| Identity | `users.json`, dev tokens | OIDC single sign-on, roles from the directory (`07_security_and_compliance.md`, "Identity") | SSO (OIDC or SAML), SCIM provisioning, device trust, per-event signatures |
 | Policy | Per project, set by its lead | Per team with project overrides | Org policy packs with team and project overrides; approval rules as code |
 | Models | The scripted model, one Claude key | A key per team, budgets per project | A credential broker, per-participant grants, model routing and spend limits |
 | Memory | One org store, the curator on a timer | One store per org, scoped to teams and projects | Tiered storage, retention rules, legal hold |
@@ -36,7 +36,9 @@ thousands of observers.
 
 **Identity.** `users.json` names people, their orgs, teams and projects (`packages/fleet/src/identity.ts`).
 Team maps the same shape onto an OIDC provider: the directory's groups become teams, the
-token's subject becomes the user id, roles stay in Henosis. Enterprise adds SCIM so joining
+token's subject becomes the user id, roles stay in Henosis (`packages/server/src/auth.ts`,
+`HENOSIS_OIDC_ISSUER`; the modes, claims and the `sso` mapping in `orgs.json` are in
+`07_security_and_compliance.md`, "Identity"). Enterprise adds SCIM so joining
 the company joins the circle on day one, device trust for the desktop, and per-participant
 signatures on approvals so a release gate is a cryptographic claim
 (`docs/research/identity-sso-device-trust.md`, `docs/research/approval-cryptography.md`).
@@ -70,7 +72,8 @@ customer names (`docs/research/compliance-evidence-export.md`,
 Starter, in full: the kernel, fleet, memory, chat, Slack, notifications, the web app, CLI,
 desktop and mobile shells, the scripted model for offline work and the Claude adapter, all
 tested offline. Team, in part: orgs, teams and projects from `orgs.json`, roles from
-`users.json`, per-project policy on session creation, budgets and the usage API, the team
+`users.json`, OIDC single sign-on with groups mapped to teams (dev tokens stay the
+default), per-project policy on session creation, budgets and the usage API, the team
 look. Enterprise: the designs and the research are in `docs/research/`; the roadmap
 (`docs/06_roadmap.md`) puts SSO and the database behind the store in phase 1, the credential
 broker and sandboxing in phase 2, and evidence export and sharding in phase 3.

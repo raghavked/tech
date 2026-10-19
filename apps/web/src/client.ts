@@ -12,6 +12,7 @@ import type {
   ServerMessage,
   SessionEvent,
 } from "@henosis/protocol";
+import { getIdentity } from "./identity.js";
 import { isQueueable, OfflineQueue, type QueuedMessage, queueKey } from "./offlineQueue.js";
 import { Reconnector } from "./reconnect.js";
 import { wsBase } from "./shell.js";
@@ -96,6 +97,8 @@ export class HenosisClient {
   }
 
   private joinMessage(opts: JoinOptions, resume: { branch: string; sinceSeq: number } | null) {
+    // Identity: the token given, else the one the identity store holds now (a refreshed ID token).
+    const token = opts.token ?? getIdentity()?.token;
     const join: ClientMessage = {
       type: "join",
       sessionId: opts.sessionId,
@@ -104,7 +107,7 @@ export class HenosisClient {
       userId: opts.userId,
       projectId: opts.projectId,
       title: opts.title,
-      ...(opts.token ? { token: opts.token } : {}),
+      ...(token ? { token } : {}),
       ...(resume ? { sinceSeq: resume.sinceSeq } : {}),
     };
     return join;
@@ -157,7 +160,8 @@ export class HenosisClient {
           this.emit({ brief: msg.markdown });
           break;
         case "error":
-          if (msg.message === "unauthorized") this.fatal = true;
+          // "unauthorized" or "unauthorized: <reason>" (an expired or mismatched ID token).
+          if (msg.message.startsWith("unauthorized")) this.fatal = true;
           this.emit({ errors: [...this.snapshot.errors.slice(-4), msg.message] });
           break;
         case "joined":

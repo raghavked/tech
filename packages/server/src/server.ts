@@ -36,7 +36,8 @@ import {
   type SessionPolicy,
 } from "@henosis/protocol";
 import type { Model, ToolRegistry } from "@henosis/runner";
-import { type WebSocket, WebSocketServer } from "ws";
+import { type RawData, type WebSocket, WebSocketServer } from "ws";
+import { Auth, type AuthConfig, AuthError, type Principal } from "./auth.js";
 import { handleBranchApi } from "./branchApi.js";
 import { ChatHost, type ChatSubscriber } from "./chatHost.js";
 import { EXPORT_PATH, exportHeaders, exportSessionMarkdown } from "./export.js";
@@ -53,6 +54,11 @@ export interface ServerOptions {
   model: Model;
   tools: ToolRegistry;
   token?: string | undefined;
+  /**
+   * Identity (auth.ts): dev mode with `token` as the shared token when absent; oidc mode
+   * verifies ID tokens from the provider named (`authConfigFromEnv` reads HENOSIS_OIDC_*).
+   */
+  auth?: AuthConfig | undefined;
   defaultPolicy?: SessionPolicy;
   log?: (line: string) => void;
   /** Which adapters run beside this server; reported by GET /api/integrations. */
@@ -94,6 +100,8 @@ export class HenosisServer {
   /** One chat host per organisation, loaded on start and persisted on every event. */
   readonly chats = new Map<string, ChatHost>();
   readonly notifier: Notifier;
+  /** Who is asking: dev-mode assertions or verified ID tokens (auth.ts). */
+  readonly auth: Auth;
   /** Live adapter status; mutable so an adapter started after `listen` can report itself. */
   readonly integrations: Integrations;
   /** Display names learned from sessions and chat subscriptions for people users.json does not know. */
@@ -104,6 +112,7 @@ export class HenosisServer {
 
   constructor(private readonly opts: ServerOptions) {
     this.orgs = new OrgRegistry(opts.root);
+    this.auth = new Auth(opts.auth ?? { mode: "dev", token: opts.token });
     this.notifier = new Notifier(opts.root, null, opts.log ?? (() => {}));
     this.integrations = { slack: false, ...opts.integrations };
     for (const o of this.orgs.orgs.orgs) this.chat(o.id);
@@ -460,7 +469,7 @@ export class HenosisServer {
   listen(port: number, hostname = "127.0.0.1"): Promise<number> {
     const http = createServer((req, res) => this.handleHttp(req, res));
     const wss = new WebSocketServer({ server: http, path: "/ws" });
-    wss.on("connection", (ws) => this.connection(ws));
+    wss.on("connection", (ws, req) => this.connection(ws, req));
     this.http = http;
     this.wss = wss;
     return new Promise((resolve) => {
@@ -488,16 +497,48 @@ export class HenosisServer {
 
   // ---- HTTP: read-only API for the web app --------------------------------------------
 
-  private handleHttp(req: IncomingMessage, res: ServerResponse): boolean {
+  /**
+   * Identity first: `GET /api/auth` says how to sign in; every other route is reached once the
+   * bearer token (or `?token=`) has been read. In oidc mode a verified token names the person
+   * and a `?user=` that disagrees with it is refused; a `?user=` without a token is refused;
+   * a verified person who sent no `?user=` gets it filled in, so the routes below read one
+   * field either way. Dev mode takes `?user=` at its word, as before.
+   */
+  private handleHttp(req: IncomingMessage, res: ServerResponse): void {
     const url = new URL(req.url ?? "/", "http://localhost");
-    const json = (code: number, body: unknown): boolean => {
-      res.writeHead(code, {
-        "content-type": "application/json",
+    const json = jsonOn(res);
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, {
         "access-control-allow-origin": "*",
+        "access-control-allow-headers": "authorization, content-type",
+        "access-control-allow-methods": "GET, POST, PUT, OPTIONS",
       });
-      res.end(JSON.stringify(body));
-      return true;
-    };
+      res.end();
+      return;
+    }
+    if (url.pathname === "/api/auth") {
+      void this.auth.describe().then((d) => json(200, d));
+      return;
+    }
+    void this.auth
+      .authenticate({ token: bearerOf(req, url), userId: url.searchParams.get("user") })
+      .then(
+        (who) => {
+          if (who?.verified) {
+            this.orgs.resolve(who);
+            if (!url.searchParams.get("user")) url.searchParams.set("user", who.userId);
+          }
+          this.route(req, res, url);
+        },
+        (err: unknown) =>
+          json(err instanceof AuthError ? 401 : 500, {
+            error: err instanceof Error ? err.message : String(err),
+          }),
+      );
+  }
+
+  private route(req: IncomingMessage, res: ServerResponse, url: URL): boolean {
+    const json = jsonOn(res);
     try {
       if (url.pathname === "/health")
         return json(200, {
@@ -522,7 +563,7 @@ export class HenosisServer {
         const found = this.orgs.team(teamId);
         if (!found) return json(404, { error: `unknown team ${teamId}` });
         if (req.method === "PUT") {
-          if (this.opts.token && bearerOf(req, url) !== this.opts.token)
+          if (!this.auth.acceptsSharedToken(bearerOf(req, url)))
             return json(401, { error: "unauthorized" });
           const userId = url.searchParams.get("user");
           if (!this.orgs.canStyleTeam(userId, teamId))
@@ -693,7 +734,7 @@ export class HenosisServer {
 
   // ---- websocket -----------------------------------------------------------------------
 
-  private connection(ws: WebSocket): void {
+  private connection(ws: WebSocket, req?: IncomingMessage): void {
     let host: SessionHost | null = null;
     let link: ClientLink | null = null;
     let projectHost: ProjectHost | null = null;
@@ -701,10 +742,38 @@ export class HenosisServer {
     let chatHost: ChatHost | null = null;
     let chatSub: ChatSubscriber | null = null;
     let userId: string | null = null;
+    /** A token on the upgrade request (`authorization` header or `?token=`) covers every message without one. */
+    const connToken = req ? bearerOf(req, new URL(req.url ?? "/", "http://localhost")) : null;
     const send = (msg: OutgoingMessage) => {
       if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
     };
+    /**
+     * Identity: who this message is from. A refusal is sent as an `unauthorized…` error (the
+     * web client stops re-dialling on it); in oidc mode the verified person is remembered in
+     * the org registry, with the memberships their groups grant, before roles are derived.
+     */
+    const identify = async (
+      token: string | undefined,
+      asserted: string | null | undefined,
+      name?: string,
+      enforceShared = false,
+    ): Promise<Principal | null> => {
+      const who = await this.auth.authenticate({
+        token: token ?? connToken,
+        userId: asserted,
+        name,
+        enforceShared,
+      });
+      if (who?.verified) this.orgs.resolve(who);
+      return who;
+    };
+    // Messages are handled one after another, in order, so a verification in flight for a
+    // `join` finishes before the directive that follows it is looked at.
+    let chain: Promise<void> = Promise.resolve();
     ws.on("message", (raw) => {
+      chain = chain.then(() => handle(raw));
+    });
+    const handle = async (raw: RawData): Promise<void> => {
       let msg: AnyClientMessage;
       try {
         msg = AnyClientMessageSchema.parse(JSON.parse(raw.toString()));
@@ -717,13 +786,23 @@ export class HenosisServer {
       }
       try {
         if (msg.type === "join") {
-          if (this.opts.token && msg.token !== this.opts.token) {
-            send({ type: "error", message: "unauthorized" });
+          let who: Principal | null;
+          try {
+            who = await identify(msg.token, msg.userId ?? msg.actor.id, msg.actor.name, true);
+          } catch (err) {
+            send({
+              type: "error",
+              message: err instanceof AuthError ? err.message : "unauthorized",
+            });
             ws.close();
             return;
           }
           if (host && link) host.leave(link);
-          userId = msg.userId ?? msg.actor.id;
+          // oidc: the actor is who the token says, by the server's hand, not the client's.
+          const actor = who?.verified
+            ? { ...msg.actor, id: who.userId, name: who.name ?? msg.actor.name }
+            : msg.actor;
+          userId = msg.userId ?? actor.id;
           const pid = msg.projectId ?? this.projectOfSession(msg.sessionId);
           projectHost = this.project(pid);
           this.ensureLedgerRole(projectHost, userId);
@@ -736,11 +815,12 @@ export class HenosisServer {
           });
           const sessionOwner = host.session.state().ownerId;
           const derived = ref ? this.orgs.sessionRole(userId, ref, sessionOwner) : null;
-          link = { actor: msg.actor, branch: msg.branch, status: "", send };
+          link = { actor, branch: msg.branch, status: "", send };
           host.joinWithRole(link, derived, msg.sinceSeq);
           return;
         }
         if (msg.type === "project.subscribe") {
+          await identify(msg.token, msg.userId ?? userId);
           if (subscriber && projectHost) projectHost.unsubscribe(subscriber);
           projectHost = this.project(msg.projectId);
           userId = msg.userId ?? userId;
@@ -755,6 +835,7 @@ export class HenosisServer {
           return;
         }
         if (msg.type === "chat.subscribe") {
+          await identify(msg.token, msg.userId, msg.name);
           if (chatSub && chatHost) chatHost.unsubscribe(chatSub);
           userId = msg.userId;
           if (msg.name && !this.orgs.user(msg.userId)) this.names.set(msg.userId, msg.name);
@@ -850,7 +931,7 @@ export class HenosisServer {
       } catch (err) {
         send({ type: "error", message: err instanceof Error ? err.message : String(err) });
       }
-    });
+    };
     ws.on("close", () => {
       if (host && link) host.leave(link);
       if (subscriber && projectHost) projectHost.unsubscribe(subscriber);
@@ -879,7 +960,19 @@ function isProjectMessage(m: AnyClientMessage): m is ProjectClientMessage {
   ].includes(m.type);
 }
 
-/** The shared token a write carries: `authorization: Bearer <token>` or `?token=`. */
+/** A JSON reply with the CORS header the web app's dev server and the shells rely on. */
+function jsonOn(res: ServerResponse): (code: number, body: unknown) => boolean {
+  return (code, body) => {
+    res.writeHead(code, {
+      "content-type": "application/json",
+      "access-control-allow-origin": "*",
+    });
+    res.end(JSON.stringify(body));
+    return true;
+  };
+}
+
+/** The token a request carries: `authorization: Bearer <token>` or `?token=` (dev: the shared token; oidc: the ID token). */
 function bearerOf(req: IncomingMessage, url: URL): string | null {
   const h = req.headers.authorization;
   if (typeof h === "string" && h.toLowerCase().startsWith("bearer ")) return h.slice(7).trim();

@@ -11,6 +11,7 @@ import {
   foldChat,
   reduceChat,
 } from "@henosis/chat";
+import { getIdentity } from "./identity.js";
 import { Reconnector } from "./reconnect.js";
 
 export interface ChatSnapshot {
@@ -70,7 +71,9 @@ export class ChatClient {
     ws.onopen = () => {
       if (this.ws !== ws) return;
       this.emit({ connected: true });
-      this.send({ type: "chat.subscribe", orgId, userId, name });
+      // Identity: the token the identity store holds rides along (the ID token in oidc mode).
+      const token = getIdentity()?.token;
+      this.send({ type: "chat.subscribe", orgId, userId, name, ...(token ? { token } : {}) });
     };
     ws.onclose = () => {
       if (this.ws !== ws) return;

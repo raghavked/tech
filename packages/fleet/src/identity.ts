@@ -49,7 +49,42 @@ export const TeamTheme = z
   .strict();
 export type TeamTheme = z.infer<typeof TeamTheme>;
 
+/**
+ * Single sign-on (Team edition, docs/07_security_and_compliance.md "Identity"): how the
+ * provider's `groups` claim becomes memberships. A group maps to an org, a team or a project
+ * as a plain id (member) or as `{ teamId, role }` so leads and managers can come from the
+ * directory too. What the mapping yields is merged with the person's users.json entry.
+ */
+export const SsoMapping = z.object({
+  /** The provider's name on the sign-in button ("Continue with Okta"); defaults to the issuer host. */
+  name: z.string().optional(),
+  /** The claim naming the person: `sub` (default, stable) or `email` (readable, may change). */
+  userIdClaim: z.enum(["sub", "email"]).optional(),
+  /** The claim carrying the directory groups; `groups` by default. */
+  groupsClaim: z.string().optional(),
+  orgs: z
+    .record(
+      z.string(),
+      z.union([z.string(), z.object({ orgId: z.string(), role: OrgRole.optional() })]),
+    )
+    .default({}),
+  teams: z
+    .record(
+      z.string(),
+      z.union([z.string(), z.object({ teamId: z.string(), role: TeamRole.optional() })]),
+    )
+    .default({}),
+  projects: z
+    .record(
+      z.string(),
+      z.union([z.string(), z.object({ projectId: z.string(), role: ProjectRole.optional() })]),
+    )
+    .default({}),
+});
+export type SsoMapping = z.infer<typeof SsoMapping>;
+
 export const OrgsFile = z.object({
+  sso: SsoMapping.optional(),
   orgs: z.array(
     z.object({
       id: z.string(),
@@ -135,6 +170,68 @@ export function findProject(
           };
       }
   return null;
+}
+
+/** Memberships the directory groups grant under an SSO mapping; empty without one. */
+export function membershipsOfGroups(
+  sso: SsoMapping | null | undefined,
+  groups: readonly string[],
+): Pick<User, "orgs" | "teams" | "projects"> {
+  const out: Pick<User, "orgs" | "teams" | "projects"> = { orgs: [], teams: [], projects: [] };
+  if (!sso) return out;
+  for (const g of groups) {
+    const o = sso.orgs[g];
+    if (o)
+      out.orgs.push(
+        typeof o === "string"
+          ? { orgId: o, role: "member" }
+          : { orgId: o.orgId, role: o.role ?? "member" },
+      );
+    const t = sso.teams[g];
+    if (t)
+      out.teams.push(
+        typeof t === "string"
+          ? { teamId: t, role: "member" }
+          : { teamId: t.teamId, role: t.role ?? "member" },
+      );
+    const p = sso.projects[g];
+    if (p)
+      out.projects.push(
+        typeof p === "string"
+          ? { projectId: p, role: "member" }
+          : { projectId: p.projectId, role: p.role ?? "member" },
+      );
+  }
+  return out;
+}
+
+/**
+ * The person a verified token names, as a User: the users.json entry (when there is one)
+ * with the memberships the directory groups grant added; where both name the same org, team
+ * or project, users.json wins, so a lead can still raise someone by hand. A person neither
+ * file nor directory places anywhere has no memberships and is an observer everywhere until a
+ * lead adds them. users.json keeps the name it knows; the token's name fills in for others.
+ */
+export function mergeSsoUser(
+  known: User | null,
+  principal: { userId: string; name?: string | null; email?: string | null },
+  granted: Pick<User, "orgs" | "teams" | "projects">,
+): User {
+  const union = <T>(ours: T[], theirs: T[], key: (x: T) => string): T[] => {
+    const seen = new Map<string, T>();
+    for (const x of [...theirs, ...ours]) seen.set(key(x), x);
+    return [...seen.values()];
+  };
+  const email = known?.email ?? principal.email ?? undefined;
+  return {
+    id: principal.userId,
+    name: known?.name ?? principal.name ?? principal.email ?? principal.userId,
+    ...(email ? { email } : {}),
+    ...(known?.slackId ? { slackId: known.slackId } : {}),
+    orgs: union(known?.orgs ?? [], granted.orgs, (m) => m.orgId),
+    teams: union(known?.teams ?? [], granted.teams, (m) => m.teamId),
+    projects: union(known?.projects ?? [], granted.projects, (m) => m.projectId),
+  };
 }
 
 export const DEFAULT_ORGS: OrgsFile = {

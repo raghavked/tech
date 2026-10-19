@@ -7,18 +7,28 @@ import {
   deriveSessionRole,
   findProject,
   findTeam,
+  membershipsOfGroups,
+  mergeSsoUser,
   OrgsFile,
   type ProjectRef,
+  type SsoMapping,
   type TeamTheme,
   type User,
   UsersFile,
 } from "@henosis/fleet";
 import type { Role } from "@henosis/protocol";
+import type { Principal } from "./auth.js";
 import { atomicWrite } from "./storage.js";
 
 export class OrgRegistry {
   readonly orgs: OrgsFile;
   readonly users: Map<string, User>;
+  /**
+   * Identity (oidc): people a verified token has named, as users.json entries merged with
+   * what their directory groups grant (`sso` in orgs.json). Refreshed on every verified
+   * request, so a group change reaches the next join. Never written to disk.
+   */
+  readonly resolved = new Map<string, User>();
   private readonly orgsPath: string;
 
   constructor(root: string) {
@@ -67,7 +77,27 @@ export class OrgRegistry {
   }
 
   user(id: string | null | undefined): User | null {
-    return id ? (this.users.get(id) ?? null) : null;
+    return id ? (this.resolved.get(id) ?? this.users.get(id) ?? null) : null;
+  }
+
+  /** The SSO group mapping from orgs.json, or null when there is none. */
+  get sso(): SsoMapping | null {
+    return this.orgs.sso ?? null;
+  }
+
+  /**
+   * Identity (oidc): remember the person a verified token names. The user is their users.json
+   * entry (if any) plus the memberships their groups grant; someone placed nowhere is a User
+   * with no memberships, an observer everywhere until a lead adds them. Dev-mode assertions
+   * are not remembered: `user()` keeps answering from users.json for those.
+   */
+  resolve(principal: Principal): User {
+    const known = this.users.get(principal.userId) ?? null;
+    if (!principal.verified)
+      return known ?? mergeSsoUser(null, principal, membershipsOfGroups(null, []));
+    const u = mergeSsoUser(known, principal, membershipsOfGroups(this.sso, principal.groups));
+    this.resolved.set(u.id, u);
+    return u;
   }
 
   /** Session role for a user in a project, or null when identity is unknown (fall back to first-in-owns). */

@@ -9,6 +9,8 @@ export const ChatClientMessage = z.discriminatedUnion("type", [
     userId: z.string().min(1),
     /** Display name hint for a person users.json does not know (phase-0 identity). */
     name: z.string().optional(),
+    /** Identity: the provider's ID token in oidc mode (packages/server/src/auth.ts). */
+    token: z.string().optional(),
   }),
   z.object({ type: z.literal("chat.unsubscribe") }),
   z.object({

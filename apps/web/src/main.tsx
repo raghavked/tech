@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
+import { hoistCallback, watchExpiry } from "./auth.js";
 import { ErrorBoundary } from "./ErrorBoundary.js";
+import { onIdentityChange } from "./identity.js";
 import { connectLinks } from "./links.js";
 import { connectShell } from "./shell.js";
 
@@ -15,6 +17,10 @@ try {
   // ignore
 }
 
+// Identity (auth.ts): the provider's ?code=&state= on this page becomes #/auth/callback, and
+// an ID token is refreshed, or the person signed out, shortly before it expires.
+hoistCallback();
+watchExpiry(onIdentityChange);
 // Deep links: ?link=henosis://… on load, then "henosis:link" DOM events (the desktop shell dispatches them).
 connectLinks();
 // Desktop shell (Tauri): learn where the server is, then tray clicks and henosis:// deep links

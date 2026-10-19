@@ -40,6 +40,7 @@ import {
   Team,
   warmViews,
 } from "./views/lazy.js";
+import { AuthCallback } from "./views/SignIn.js";
 
 /**
  * Hook point (error-boundary-toasts): every view renders inside one error boundary that resets
@@ -96,6 +97,8 @@ function Page() {
   useEffect(warmViews, []);
   // team-theme: the page wears the team's colours while the route is in that team.
   useTeamTheme(identity ? teamOfRoute(route, me.data) : null);
+  // Identity (auth.ts): back from the provider; the code becomes a token, then the route before.
+  if (route.name === "auth") return <AuthCallback query={route.query} ctx={ctx} />;
   if (!identity || route.name === "home")
     return (
       <Home me={me.data} meError={me.error} identity={identity} ctx={ctx} onRetry={me.reload} />

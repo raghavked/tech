@@ -12,7 +12,7 @@ import {
   type Model,
   ScriptedModel,
 } from "@henosis/runner";
-import { HenosisServer } from "@henosis/server";
+import { authConfigFromEnv, HenosisServer } from "@henosis/server";
 import { runDemo } from "./demo.js";
 import { joinSession } from "./join.js";
 import { renderReport } from "./report.js";
@@ -32,6 +32,8 @@ slack.json: { "botToken": "xoxb-...", "appToken": "xapp-...", "map": { "teams": 
              "projects": {"billing": "C..."}, "management": "C...", "users": {"U123": "ana"} }, "projects": ["billing"] }
 
 Environment: HENOSIS_OFFLINE=1 blocks the Claude adapter; ANTHROPIC_API_KEY enables it.
+             HENOSIS_TOKEN is the dev-mode shared token; HENOSIS_OIDC_ISSUER, HENOSIS_OIDC_CLIENT_ID
+             and (optional) HENOSIS_OIDC_AUDIENCE switch serve to single sign-on (docs/07, "Identity").
 Exit codes: 0 ok, 2 usage, 3 verification failed, 4 network.`;
 
 function parseArgs(argv: string[]): { positional: string[]; flags: Record<string, string | true> } {
@@ -84,16 +86,20 @@ async function main(): Promise<number> {
       const model = pickModel(flag(flags, "model", "scripted"));
       const tokenFlag = flags.token;
       const token = typeof tokenFlag === "string" ? tokenFlag : process.env.HENOSIS_TOKEN;
+      const auth = authConfigFromEnv(process.env, token);
       const server = new HenosisServer({
         root,
         model,
         tools: defaultTools(),
         token,
+        auth,
         log: (l) => process.stderr.write(`${l}\n`),
       });
       const bound = await server.listen(port, flag(flags, "host", "127.0.0.1"));
+      const identity =
+        auth.mode === "oidc" ? `, sign-in via ${auth.issuer}` : token ? ", token required" : "";
       process.stdout.write(
-        `henosis server on ws://127.0.0.1:${bound}/ws (model ${model.name}, store ${root}${token ? ", token required" : ""})\n`,
+        `henosis server on ws://127.0.0.1:${bound}/ws (model ${model.name}, store ${root}${identity})\n`,
       );
       const stop = async () => {
         await server.close();
@@ -122,6 +128,7 @@ async function main(): Promise<number> {
         model: pickModel(flag(flags, "model", "scripted")),
         tools: defaultTools(),
         token: process.env.HENOSIS_TOKEN,
+        auth: authConfigFromEnv(process.env, process.env.HENOSIS_TOKEN),
         log: (l) => process.stderr.write(`${l}\n`),
       });
       const bound = await server.listen(port, flag(flags, "host", "127.0.0.1"));

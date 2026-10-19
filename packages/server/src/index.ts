@@ -1,3 +1,4 @@
+export * from "./auth.js";
 export * from "./chatHost.js";
 export * from "./export.js";
 export * from "./host.js";

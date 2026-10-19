@@ -5,6 +5,7 @@ import type { SessionStatus } from "@henosis/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@henosis/memory";
 import type { SessionPolicy, UsageQuery, UsageReport } from "@henosis/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { authHeaders } from "./identity.js";
 import { apiUrl } from "./shell.js";
 
 export interface ProjectRef {
@@ -108,7 +109,10 @@ export type { CuratorReport, EntryRecord, MemoryConflict, ProjectState, UsageQue
 
 export async function getJson<T>(url: string): Promise<T> {
   // `apiUrl` is a no-op in a browser; the desktop shell's bundled client prefixes its server.
-  const res = await fetch(apiUrl(url), { headers: { accept: "application/json" } });
+  // Identity: the token rides along (the ID token in oidc mode; the server checks `?user=` against it).
+  const res = await fetch(apiUrl(url), {
+    headers: { accept: "application/json", ...authHeaders() },
+  });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`);
   return (await res.json()) as T;
 }
@@ -156,7 +160,10 @@ export const api = {
     token?: string,
   ): Promise<TeamThemeResponse> => {
     const url = `/api/teams/${encodeURIComponent(teamId)}/theme?user=${encodeURIComponent(userId)}`;
-    const headers: Record<string, string> = { "content-type": "application/json" };
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      ...authHeaders(),
+    };
     if (token) headers.authorization = `Bearer ${token}`;
     const res = await fetch(apiUrl(url), {
       method: "PUT",
@@ -185,7 +192,7 @@ export const api = {
   markRead: async (user: string, ids: string[]): Promise<void> => {
     const res = await fetch(`/api/notifications?user=${encodeURIComponent(user)}`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...authHeaders() },
       body: JSON.stringify({ read: ids }),
     });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText} for /api/notifications`);
@@ -197,7 +204,7 @@ export async function markNotificationsRead(userId: string, ids: string[]): Prom
   if (ids.length === 0) return;
   const res = await fetch(`/api/notifications?user=${encodeURIComponent(userId)}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...authHeaders() },
     body: JSON.stringify({ read: ids }),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} marking notifications read`);

@@ -8,6 +8,8 @@ export const ProjectClientMessage = z.discriminatedUnion("type", [
     type: z.literal("project.subscribe"),
     projectId: z.string(),
     userId: z.string().optional(),
+    /** Identity: the provider's ID token in oidc mode (packages/server/src/auth.ts). */
+    token: z.string().optional(),
   }),
   z.object({ type: z.literal("project.unsubscribe") }),
   z.object({

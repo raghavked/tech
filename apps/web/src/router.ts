@@ -1,8 +1,10 @@
-/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId]`, `#/inbox`, `#/approvals`, `#/memory/:orgId`, `#/settings`. */
+/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId]`, `#/inbox`, `#/approvals`, `#/memory/:orgId`, `#/settings`, `#/auth/callback`. */
 import { useSyncExternalStore } from "react";
 
 export type Route =
   | { name: "home" }
+  /** Identity (auth.ts): the provider sent the person back; `query` is its `code=&state=`. */
+  | { name: "auth"; query: string }
   | { name: "fleet"; projectId: string }
   | { name: "session"; projectId: string; sessionId: string; title: string | null }
   | { name: "management"; teamId: string }
@@ -46,6 +48,7 @@ export function parseHash(hash: string): Route {
     };
   if (parts[0] === "settings") return { name: "settings" };
   if (parts[0] === "approvals") return { name: "approvals" };
+  if (parts[0] === "auth" && parts[1] === "callback") return { name: "auth", query };
   return { name: "home" };
 }
 
@@ -70,6 +73,7 @@ export const paths = {
   },
   settings: () => "#/settings",
   approvals: () => "#/approvals",
+  authCallback: () => "#/auth/callback",
 };
 
 export function navigate(href: string): void {

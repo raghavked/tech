@@ -98,6 +98,22 @@ In Ana's terminal type `Build a doubling helper and deploy it`; in Bo's type
 With `ANTHROPIC_API_KEY` set, `pnpm serve -- --model claude` runs a real model through the
 same kernel. `HENOSIS_OFFLINE=1` blocks it.
 
+Environment the server reads:
+
+| Variable | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | enables the Claude adapter (`--model claude`) |
+| `HENOSIS_OFFLINE=1` | blocks the Claude adapter; tests and e2e set it |
+| `HENOSIS_TOKEN` | dev mode: the shared token every `join` must carry (same as `--token`) |
+| `HENOSIS_OIDC_ISSUER` | switches identity to single sign-on: the provider's issuer URL (Team edition) |
+| `HENOSIS_OIDC_CLIENT_ID` | the public client the web app signs in as; required with the issuer |
+| `HENOSIS_OIDC_AUDIENCE` | what ID tokens' `aud` must carry when it is not the client id (optional) |
+| `HENOSIS_APP_URL` | where the web app is served, for links in Slack messages |
+
+In oidc mode the server verifies every ID token against the provider and maps the token's
+groups to teams and projects through `sso` in `orgs.json`; `docs/07_security_and_compliance.md`,
+"Identity", has the shape.
+
 ## Commands
 
 | Command | Purpose |
