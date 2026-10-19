@@ -14,7 +14,7 @@ import type {
 } from "@henosis/protocol";
 import { getIdentity } from "./identity.js";
 import { isQueueable, OfflineQueue, type QueuedMessage, queueKey } from "./offlineQueue.js";
-import { Reconnector } from "./reconnect.js";
+import { Reconnector, type Retry } from "./reconnect.js";
 import { wsBase } from "./shell.js";
 
 export interface ClientSnapshot {
@@ -26,6 +26,8 @@ export interface ClientSnapshot {
   connected: boolean;
   /** The socket dropped and a re-dial is pending or in flight; `state` is kept meanwhile. */
   reconnecting: boolean;
+  /** The re-dial scheduled while reconnecting: its attempt number and when it fires. */
+  retry: Retry | null;
   /** Messages waiting for the socket to come back (offline queue), oldest first. */
   queued: QueuedMessage[];
 }
@@ -50,6 +52,7 @@ const EMPTY: ClientSnapshot = {
   brief: null,
   connected: false,
   reconnecting: false,
+  retry: null,
   queued: [],
 };
 
@@ -113,6 +116,11 @@ export class HenosisClient {
     return join;
   }
 
+  /** "Try now": dial at once instead of waiting out the backoff. */
+  reconnectNow(): void {
+    if (this.target) this.reconnector.now();
+  }
+
   private dial(): void {
     const target = this.target;
     if (!target) return;
@@ -132,11 +140,11 @@ export class HenosisClient {
       if (this.ws !== ws) return;
       this.ws = null;
       if (this.fatal || !this.target) {
-        this.emit({ connected: false, reconnecting: false });
+        this.emit({ connected: false, reconnecting: false, retry: null });
         return;
       }
-      this.reconnector.schedule();
-      this.emit({ connected: false, reconnecting: true });
+      const delay = this.reconnector.schedule();
+      this.emit({ connected: false, reconnecting: true, retry: this.reconnector.pending(delay) });
     };
     ws.onmessage = (m) => {
       if (this.ws !== ws) return;
@@ -144,7 +152,7 @@ export class HenosisClient {
       switch (msg.type) {
         case "snapshot":
           this.reconnector.reset();
-          this.emit({ reconnecting: false });
+          this.emit({ reconnecting: false, retry: null });
           this.applySnapshot(msg.events, opts);
           break;
         case "event": {
@@ -210,7 +218,7 @@ export class HenosisClient {
       ws.onclose = null;
       ws.close();
     }
-    this.emit({ connected: false, reconnecting: false });
+    this.emit({ connected: false, reconnecting: false, retry: null });
   }
 
   send(msg: ClientMessage): void {

@@ -222,18 +222,36 @@ export function SessionView({
           {offline ? (
             <OfflineState online={netOnline} onRetry={join} />
           ) : (
-            <p className="muted">
-              <Loader
-                kind="join"
-                label={
-                  snap.reconnecting
-                    ? copy.session.reconnecting
-                    : snap.connected
-                      ? copy.session.joining
-                      : copy.session.connecting
-                }
-              />
-            </p>
+            <div className="centre-wait">
+              {snap.connected ? (
+                <Loader
+                  kind="orbit"
+                  stack
+                  label={copy.wait.joining(
+                    (mine?.people ?? [])
+                      .filter((p) => p.online && p.id !== identity.userId)
+                      .map((p) => p.name),
+                    shownTitle,
+                  )}
+                  count={snap.events.length ? copy.wait.folded(snap.events.length, null) : null}
+                  after8s={copy.wait.longSession}
+                />
+              ) : (
+                <Loader
+                  kind="join"
+                  size={96}
+                  stack
+                  label={
+                    snap.reconnecting
+                      ? copy.wait.reconnecting(mine?.people.find((p) => p.driving)?.name ?? null)
+                      : copy.wait.connecting(shownTitle)
+                  }
+                  after8s={copy.wait.serverSlow}
+                  after30s={{ label: copy.wait.tryAgain, onClick: join }}
+                />
+              )}
+              <p className="small muted">{copy.wait.composerMuted}</p>
+            </div>
           )}
         </div>
       </Shell>
@@ -348,8 +366,14 @@ export function SessionView({
           </button>
         </>
       }
-      below={<ReconnectLine reconnecting={snap.reconnecting} />}
-      busy={snap.reconnecting}
+      below={
+        <ReconnectLine
+          reconnecting={snap.reconnecting}
+          retry={snap.retry}
+          asOf={snap.events.at(-1)?.ts}
+          onTryNow={() => client.reconnectNow()}
+        />
+      }
       shortcuts={shortcuts}
       drawer={
         details ? (
@@ -729,7 +753,7 @@ function ApprovalNoticeRow({
       )}
       {gate && (
         <div className="rating">
-          <Stars value={rating} onChange={setRating} />
+          <Stars value={rating} onChange={setRating} onClear={() => setRating(null)} tick />
           <input
             className="input sm note"
             aria-label={copy.approval.noteHint}
@@ -744,12 +768,14 @@ function ApprovalNoticeRow({
       )}
       <div className="actions">
         <button type="button" className="btn primary sm" onClick={() => vote("approve")}>
-          {copy.approval.approve}
+          {gate ? copy.approval.approveWith(rating ?? DEFAULT_RATING) : copy.approval.approve}
         </button>
         <button type="button" className="btn sm" onClick={() => vote("deny")}>
           {copy.approval.deny}
         </button>
-        {gate && rating === null && <span className="small faint">{copy.approval.rateHint}</span>}
+        {gate && rating === null && (
+          <span className="small faint">{copy.approval.ifYouLeaveIt(DEFAULT_RATING)}</span>
+        )}
       </div>
     </div>
   );

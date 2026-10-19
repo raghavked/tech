@@ -84,8 +84,13 @@ export function Project({
     <Shell
       ctx={ctx}
       title={name}
-      below={<ReconnectLine reconnecting={snap.reconnecting} />}
-      busy={snap.reconnecting}
+      below={
+        <ReconnectLine
+          reconnecting={snap.reconnecting}
+          retry={snap.retry}
+          onTryNow={() => client.reconnectNow()}
+        />
+      }
     >
       <div className="column page">
         <h1>{name}</h1>
@@ -104,7 +109,9 @@ export function Project({
         />
         <section className="group" aria-label={copy.project.agents}>
           <h2>{copy.project.agents}</h2>
-          {!s && !snap.errors.length && <Loader kind="shimmer" label={copy.loading} rows={3} />}
+          {!s && !snap.errors.length && (
+            <Loader kind="shimmer" label={copy.wait.project(name, null, null)} rows={3} />
+          )}
           {s && sessions.length === 0 && (
             <EmptyState
               text={copy.project.emptySessions}
@@ -605,7 +612,7 @@ function TeamMemory({
         </div>
       ))}
       {rest.length === 0 && !feed.error && feed.loading && (
-        <Loader kind="shimmer" label={copy.loading} rows={2} />
+        <Loader kind="shimmer" label={copy.wait.rows} rows={2} />
       )}
       {rest.length === 0 && !feed.error && !feed.loading && (
         <EmptyState

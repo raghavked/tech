@@ -360,7 +360,9 @@ export function Team({
         )}
         <section className="group">
           <h2>{copy.team.projects}</h2>
-          {loading && <Loader kind="shimmer" label={copy.loading} rows={projects.length} />}
+          {loading && (
+            <Loader kind="shimmer" label={copy.wait.team(teamName)} rows={projects.length} />
+          )}
           {me && projects.length === 0 && (
             <EmptyState
               text={copy.team.noProjectsYet}

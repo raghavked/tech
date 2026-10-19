@@ -36,7 +36,7 @@ import type { Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
 import { ReconnectLine } from "../reconnect.js";
 import { navigate, paths } from "../router.js";
-import { Avatar, ErrorLine, ICONS, Icon, STATUS, toast, useConnectionToasts } from "../ui.js";
+import { Avatar, Dot, ErrorLine, ICONS, Icon, STATUS, toast, useConnectionToasts } from "../ui.js";
 
 export function ChatView({
   orgId,
@@ -141,7 +141,13 @@ export function ChatView({
       <Shell
         ctx={ctx}
         title={copy.chat.title}
-        below={<ReconnectLine reconnecting={snap.reconnecting} />}
+        below={
+          <ReconnectLine
+            reconnecting={snap.reconnecting}
+            retry={snap.retry}
+            onTryNow={() => client.reconnectNow()}
+          />
+        }
         right={
           <button type="button" className="btn sm" onClick={() => setCreating(true)}>
             <Icon d={ICONS.plus} size={14} />
@@ -218,7 +224,13 @@ export function ChatView({
           </button>
         </>
       }
-      below={<ReconnectLine reconnecting={snap.reconnecting} />}
+      below={
+        <ReconnectLine
+          reconnecting={snap.reconnecting}
+          retry={snap.retry}
+          onTryNow={() => client.reconnectNow()}
+        />
+      }
       drawer={
         members ? (
           <MembersDrawer
@@ -272,7 +284,7 @@ function MemberAvatar({ m, live }: { m: ChatMember; live: Map<string, string | n
   return (
     <span className="avatar-wrap" title={`${memberName(m)} · ${word}`}>
       <Avatar id={m.sessionId} name={memberName(m)} agent />
-      <span className={`livedot ${status}`} />
+      <Dot status={status} className="livedot" label={word} />
     </span>
   );
 }
@@ -338,7 +350,7 @@ function Messages({
                 <div className="meta">
                   <span className="avatar-wrap">
                     <Avatar id={m.author.sessionId} name={nameOf(m)} agent />
-                    <span className={`livedot ${live.get(m.author.sessionId) ?? "offline"}`} />
+                    <Dot status={live.get(m.author.sessionId) ?? "offline"} className="livedot" />
                   </span>
                   <span className="who serif">{nameOf(m)}</span>
                   <span className="faint">{copy.chat.agentReplied}</span>

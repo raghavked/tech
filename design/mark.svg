@@ -1,7 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 96 96" width="96" height="96">
   <title>Henosis mark: two arcs, a person's and an agent's, close into one ring around one centre</title>
-  <circle cx="48" cy="48" r="46" fill="#2A3244"/>
-  <path d="M48 20 A28 28 0 0 1 48 76" stroke="#56352D" stroke-width="10" fill="none" stroke-linecap="round"/>
-  <path d="M48 76 A28 28 0 0 1 48 20" stroke="#E2C4A6" stroke-width="10" fill="none" stroke-linecap="round"/>
-  <circle cx="48" cy="48" r="7" fill="#E2C4A6"/>
+  <!-- The one mark file. Five cuts on a 96 grid; every page <use>s a symbol from here and the app's
+       ui.tsx Mark renders the same geometry inline so the arcs can move.
+       Colour reaches a <use> only through custom properties: --mark-disc, --mark-arc-a (the person's
+       arc, chocolate, right, 12→6), --mark-arc-b (the agent's arc, apricot, left), --mark-dot (the
+       centre, the lightest colour present), --mark-dash (a dotted agent arc on the one-ink cut).
+       The disc cuts read --disc-arc-* (pinned to --mark-arc-* at :root) so a ground class can never
+       recolour an arc inside a disc. Page CSS cannot style inside the shadow tree; do not try. -->
+  <defs>
+    <!-- #mark · default, 32 px and up: disc r46, arcs r28 stroke 10, centre r7 -->
+    <symbol id="mark" viewBox="0 0 96 96">
+      <circle class="disc" cx="48" cy="48" r="46" style="fill:var(--mark-disc, #2A3244)"/>
+      <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" style="stroke:var(--disc-arc-a, var(--mark-arc-a, #56352D))" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" style="stroke:var(--disc-arc-b, var(--mark-arc-b, #E2C4A6))" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="7" style="fill:var(--disc-dot, var(--mark-dot, #E2C4A6))"/>
+    </symbol>
+    <!-- #mark-bare · a coloured ground that is the disc (app icons, the hero): arcs r30 stroke 12, centre r8 -->
+    <symbol id="mark-bare" viewBox="0 0 96 96">
+      <path class="arc a" d="M48 18 A30 30 0 0 1 48 78" style="stroke:var(--mark-arc-a, #56352D)" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 78 A30 30 0 0 1 48 18" style="stroke:var(--mark-arc-b, #E2C4A6)" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="8" style="fill:var(--mark-dot, #E2C4A6)"/>
+    </symbol>
+    <!-- #mark-small · 20 to 31 px (the rail brand at 24, chips, avatars): disc to the edge r48, arcs r29 stroke 13, centre r8.5 -->
+    <symbol id="mark-small" viewBox="0 0 96 96">
+      <circle class="disc" cx="48" cy="48" r="48" style="fill:var(--mark-disc, #2A3244)"/>
+      <path class="arc a" d="M48 19 A29 29 0 0 1 48 77" style="stroke:var(--disc-arc-a, var(--mark-arc-a, #56352D))" stroke-width="13" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 77 A29 29 0 0 1 48 19" style="stroke:var(--disc-arc-b, var(--mark-arc-b, #E2C4A6))" stroke-width="13" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="8.5" style="fill:var(--disc-dot, var(--mark-dot, #E2C4A6))"/>
+    </symbol>
+    <!-- #mark-tiny · below 20 px (favicon, tray, the widget head): no disc, arcs r32 stroke 16, centre r10; the ground is the disc -->
+    <symbol id="mark-tiny" viewBox="0 0 96 96">
+      <path class="arc a" d="M48 16 A32 32 0 0 1 48 80" style="stroke:var(--mark-arc-a, #56352D)" stroke-width="16" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 80 A32 32 0 0 1 48 16" style="stroke:var(--mark-arc-b, #E2C4A6)" stroke-width="16" fill="none" stroke-linecap="round"/>
+      <circle class="dot" cx="48" cy="48" r="10" style="fill:var(--mark-dot, #E2C4A6)"/>
+    </symbol>
+    <!-- #mark-mono · one ink (tray template, print): currentColor; the agent's arc at 55 % so there are still two arcs, or dotted via --mark-dash -->
+    <symbol id="mark-mono" viewBox="0 0 96 96">
+      <path class="arc a" d="M48 18 A30 30 0 0 1 48 78" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <path class="arc b" d="M48 78 A30 30 0 0 1 48 18" stroke="currentColor" opacity=".55" stroke-width="12" fill="none" stroke-linecap="round" style="stroke-dasharray:var(--mark-dash, 0)"/>
+      <circle class="dot" cx="48" cy="48" r="8" fill="currentColor"/>
+    </symbol>
+  </defs>
+  <use href="#mark" xlink:href="#mark" width="96" height="96"/>
 </svg>

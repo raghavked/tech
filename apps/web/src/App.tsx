@@ -24,7 +24,7 @@ import { MemoryResults, matchSession, needleOf, searchKeys, useMemorySearch } fr
 import { isDesktop } from "./shell.js";
 import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
 import { type Theme, useTeamTheme, useTeamThemeValue, useTheme } from "./theme.js";
-import { AgentCard, Avatar, ICONS, Icon, Loader, Mark, Toasts } from "./ui.js";
+import { AgentCard, Avatar, ICONS, Icon, Loader, Mark, markLook, Toasts } from "./ui.js";
 import { UpdateRow } from "./update.js";
 import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
 import { Home } from "./views/Home.js";
@@ -170,7 +170,15 @@ function Loading({ ctx }: { ctx: ShellContext }) {
   return (
     <Shell ctx={ctx} title="">
       <div className="column page">
-        <Loader kind="shimmer" label={copy.loading} title rows={4} />
+        <div className="centre-wait">
+          <Loader
+            kind="join"
+            size={96}
+            stack
+            label={copy.wait.launch}
+            after8s={copy.wait.launchSlow()}
+          />
+        </div>
       </div>
     </Shell>
   );
@@ -201,8 +209,8 @@ export function Shell({
   right?: ReactNode;
   /** One quiet line under the top row, e.g. the reconnect notice. */
   below?: ReactNode;
-  /** A long operation is under way: the weave loader runs under the top row. */
-  busy?: boolean;
+  /** A long operation is under way: the weave loader runs under the top row; a string names it. */
+  busy?: boolean | string;
   drawer?: ReactNode;
   /** Page-specific keys (shortcuts.ts); j, k and ? are handled here for every page. */
   shortcuts?: ShortcutHandlers;
@@ -252,7 +260,7 @@ export function Shell({
           <div className="right">{right}</div>
         </div>
         <div className={`busybar${busy ? " on" : ""}`} aria-hidden={!busy}>
-          {busy && <Loader kind="weave" label={copy.loading} />}
+          {busy && <Loader kind="weave" label={typeof busy === "string" ? busy : copy.wait.rows} />}
         </div>
         {below}
         <div className="body">
@@ -384,7 +392,7 @@ const Sidebar = memo(function Sidebar({
         }
       >
         <a className="brand" href={paths.home()}>
-          <Mark size={24} settle style={look?.mark ?? "ring"} emblem={look?.emblem} />
+          <Mark size={24} settle {...markLook(look?.mark)} emblem={look?.emblem} />
           <span className="serif">{copy.product}</span>
           {look?.emblem && look.mark !== "dot" && (
             <span className="emblem" title={copy.shell.teamEmblem}>

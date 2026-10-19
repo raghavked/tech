@@ -57,7 +57,7 @@ export function Inbox({
     <Shell
       ctx={ctx}
       title="Inbox"
-      busy={busy}
+      busy={busy ? copy.wait.sendingVote : false}
       right={
         inbox.unread > 0 ? (
           <button
@@ -75,7 +75,7 @@ export function Inbox({
         <p className="muted">{summary}</p>
         {inbox.error && <p className="small danger">{inbox.error}</p>}
         {!inbox.loaded && !inbox.error && (
-          <Loader kind="shimmer" label={copy.loading} rows={3} title />
+          <Loader kind="shimmer" label={copy.wait.inbox} rows={3} title />
         )}
         {groups.map(([projectId, items]) => (
           <section className="group" key={projectId}>
@@ -151,9 +151,19 @@ function InboxRow({
         {outcome?.error && <span className="small danger">{outcome.error}</span>}
         {actionable && n.kind === "approval" && (
           <>
-            {n.ratings && <Stars value={rating} onChange={setRating} />}
+            {n.ratings && (
+              <Stars
+                value={rating}
+                onChange={setRating}
+                onClear={() => setRating(null)}
+                size="sm"
+                tick
+              />
+            )}
             <button type="button" className="btn primary sm" onClick={() => onApprove(rating)}>
-              Approve
+              {n.ratings
+                ? copy.approval.approveWith(rating ?? DEFAULT_RATING)
+                : copy.approval.approve}
             </button>
             <button type="button" className="btn sm" onClick={onDeny}>
               Deny

@@ -205,7 +205,7 @@ test("plan first: the agent proposes, Ana rates it, the plan is approved and the
   await expect(conversation(page)).not.toContainText("Wrote src/");
 
   // Ana rates it 5: one rating at 3 or above is the default bar, so the plan is approved.
-  await plan.getByRole("button", { name: "Rate 5 of 5" }).click();
+  await plan.getByRole("radio", { name: "5 of 5, Ship it" }).click();
   await expect(plan).toContainText("1 of 1 ratings · 5 average · approved");
   await expect(plan).toContainText("Ana rated it 5");
   await expect(page.getByText("The plan waits for ratings")).toHaveCount(0);
@@ -241,18 +241,18 @@ test("a deploy waits until two contributors rate it 4 or better", async ({ brows
   // The deploy is a release gate: two contributors or above, rating it 4+ on average.
   await expect(conversation(bo)).toContainText("deploy to production", { timeout: 15_000 });
   await expect(conversation(bo)).toContainText("2 contributors or above rating it 4+ of 5");
-  await expect(bo.getByRole("button", { name: "Rate 3 of 5" })).toBeVisible();
+  await expect(bo.getByRole("radio", { name: "3 of 5, Fine" })).toBeVisible();
 
-  // Bo rates it 3 and approves: one rater, and the average is short.
-  await bo.getByRole("button", { name: "Rate 3 of 5" }).click();
-  await approve(bo).click();
+  // Bo rates it 3 and approves: the button carries the number it sends; one rater, and the average is short.
+  await bo.getByRole("radio", { name: "3 of 5, Fine" }).click();
+  await bo.getByRole("button", { name: "Approve with 3" }).click();
   await expect(conversation(ana)).toContainText("Bo approved · 3 of 5");
   await expect(conversation(ana)).toContainText("1 of 2 raters · 3 average");
   await expect(conversation(ana)).not.toContainText("Deployed to production");
 
   // Cy rates it 5: two raters, an average of 4, the deploy goes.
-  await cy.getByRole("button", { name: "Rate 5 of 5" }).click();
-  await approve(cy).click();
+  await cy.getByRole("radio", { name: "5 of 5, Ship it" }).click();
+  await cy.getByRole("button", { name: "Approve with 5" }).click();
   await expect(conversation(ana)).toContainText("Approved: deploy to production");
   await expect(conversation(ana)).toContainText("Deployed to production", { timeout: 15_000 });
 });

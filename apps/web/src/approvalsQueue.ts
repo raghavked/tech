@@ -16,10 +16,10 @@ import {
 import type { RiskClass } from "@henosis/protocol";
 import type { SessionRow } from "./api.js";
 import { describeCall } from "./calls.js";
-import { copy } from "./copy.js";
+import { copy, DEFAULT_RATING } from "./copy.js";
 
-/** The rating a plain Approve carries under a release gate when the person picked none. */
-export const DEFAULT_RATING = 4;
+/** The rating a plain Approve carries under a release gate when the person picked none: copy.ts owns it. */
+export { DEFAULT_RATING };
 
 /**
  * A release gate's progress: rated approvals from eligible voters against the rule's minimum,

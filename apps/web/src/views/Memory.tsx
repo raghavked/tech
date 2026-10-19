@@ -16,7 +16,7 @@ import {
   useFetch,
 } from "../api.js";
 import { navigate, paths } from "../router.js";
-import { ICONS, Icon, shortSha } from "../ui.js";
+import { ICONS, Icon, shortSha, useCursor } from "../ui.js";
 
 type Level = "org" | "team" | "project";
 
@@ -92,6 +92,19 @@ export function Memory({
     .filter((e) => !inOpenConflict.has(e.id))
     .filter(matches)
     .sort((a, b) => b.seq - a.seq);
+
+  // The keyboard cursor (ui.tsx useCursor, shared with the approvals queue): j/k move, Enter opens
+  // the session the entry came from. Never while typing in the search field.
+  const openEntry = (id: string) => {
+    const e = rows.find((x) => x.id === id);
+    const p = e?.scope.projectId;
+    const sid = e?.attribution.sessionId;
+    if (p && sid) navigate(paths.session(p, sid));
+  };
+  const { cursor, set: setCursor } = useCursor(
+    rows.map((e) => e.id),
+    { keys: { Enter: openEntry, o: openEntry } },
+  );
 
   const scopeWord = (e: EntryRecord): string => {
     const s = e.scope;
@@ -205,6 +218,9 @@ export function Memory({
           </button>
         </div>
         <p className="muted">{summary}</p>
+        {rows.length > 0 && (
+          <p className="small faint hint">j / k to move · Enter opens the session it came from</p>
+        )}
         {feed.error && <p className="small danger">{feed.error}</p>}
 
         {conflicts.length > 0 && (
@@ -277,6 +293,8 @@ export function Memory({
                   note={note}
                   gone={e.status === "retracted" || e.status === "redacted"}
                   dim={e.status === "superseded" || e.status === "folded"}
+                  cursor={e.id === cursor}
+                  onFocus={() => setCursor(e.id)}
                 />
               );
             })}
@@ -309,16 +327,27 @@ function EntryRow({
   note,
   gone,
   dim,
+  cursor = false,
+  onFocus,
 }: {
   e: EntryRecord;
   scope: string | null;
   note: string | null;
   gone: boolean;
   dim: boolean;
+  cursor?: boolean;
+  onFocus?: () => void;
 }) {
   const word = e.status !== "active" ? e.status : e.level > 0 ? "summary" : e.kind;
   return (
-    <div className={`rowitem memrow${gone ? " gone" : dim ? " dim" : ""}`}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: the row only moves the keyboard cursor
+    // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handling lives on the window (j/k/Enter)
+    <div
+      className={`rowitem memrow${gone ? " gone" : dim ? " dim" : ""}${cursor ? " cursor" : ""}`}
+      data-key={e.id}
+      aria-current={cursor ? "true" : undefined}
+      onClick={onFocus}
+    >
       <span className="ellipsis">
         <span className="t">
           {e.key && <span className="mono muted">{e.key} </span>}

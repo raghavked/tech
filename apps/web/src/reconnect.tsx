@@ -4,7 +4,9 @@
  * or the tab is shown again, and the one quiet line the views show while it happens.
  */
 
+import { useEffect, useState } from "react";
 import { copy } from "./copy.js";
+import { Loader } from "./ui.js";
 
 export const RECONNECT_BASE_MS = 500;
 export const RECONNECT_MAX_MS = 15_000;
@@ -28,6 +30,12 @@ function onWake(fn: () => void): () => void {
   };
 }
 
+/** What a client reports about the re-dial it has scheduled: which attempt, and when it fires. */
+export interface Retry {
+  attempt: number;
+  at: number;
+}
+
 /** Schedules one dial at a time with backoff; a wake event dials at once instead of waiting. */
 export class Reconnector {
   attempt = 0;
@@ -45,10 +53,20 @@ export class Reconnector {
     return delay;
   }
 
+  /** The retry just scheduled, for the snapshot: attempt number and the time it fires. */
+  pending(delay: number): Retry {
+    return { attempt: this.attempt, at: Date.now() + delay };
+  }
+
   /** A dial succeeded: start the backoff over. */
   reset(): void {
     this.attempt = 0;
     this.cancel();
+  }
+
+  /** "Try now": dial at once instead of waiting out the backoff. */
+  now(): void {
+    this.fire();
   }
 
   cancel(): void {
@@ -64,12 +82,53 @@ export class Reconnector {
   }
 }
 
-/** The grey line under the top row while a dropped socket is being re-dialled. */
-export function ReconnectLine({ reconnecting }: { reconnecting: boolean }) {
+/** "14:02": the clock time of a timestamp, for "the stream is as of 14:02". */
+export function clockOf(ts: number | null | undefined): string | null {
+  if (!ts) return null;
+  const d = new Date(ts);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Whole seconds until `at`, re-read every second while the line shows. */
+function useCountdown(at: number | null | undefined): number | null {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!at) return;
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [at]);
+  return at ? Math.max(0, Math.round((at - now) / 1000)) : null;
+}
+
+/**
+ * The one quiet line under the top row while a dropped socket is being re-dialled (error-states):
+ * the mark's halo pulse, then "Reconnecting · attempt 3 · again in 4s · the stream is as of 14:02 ·
+ * Try now". Every part but the first is optional; a view passes what its client knows.
+ */
+export function ReconnectLine({
+  reconnecting,
+  retry,
+  asOf,
+  onTryNow,
+}: {
+  reconnecting: boolean;
+  retry?: Retry | null | undefined;
+  /** The timestamp of the last event the view holds. */
+  asOf?: number | null | undefined;
+  onTryNow?: (() => void) | undefined;
+}) {
+  const inSeconds = useCountdown(reconnecting ? retry?.at : null);
   if (!reconnecting) return null;
+  const line = copy.wait.reconnectLine(retry?.attempt ?? null, inSeconds, clockOf(asOf));
   return (
-    <div className="conn" role="status" aria-live="polite">
-      <span className="status">{copy.session.reconnecting}</span>
+    <div className="conn">
+      <Loader kind="halo" label={line} after8s={copy.wait.offlineCause} />
+      {onTryNow && (
+        <button type="button" className="btn ghost sm" onClick={onTryNow}>
+          {copy.wait.tryNow}
+        </button>
+      )}
     </div>
   );
 }

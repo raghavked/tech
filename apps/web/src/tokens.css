@@ -285,6 +285,8 @@ kbd + kbd, .kbd + .kbd { margin-left: 3px; }
 .sidebar .kbd.live, .rail .kbd.live { background: var(--apricot); color: #56352D; }
 .btn .kbd, .btn kbd { margin: 0 -6px 0 4px; }
 @media (hover: none) and (pointer: coarse) { kbd, .kbd { display: none; } }
+/* switches and checkboxes are apricot-deep when on, never the hand: the hand stays a verb (accessibility) */
+input[type="checkbox"]:not(.switch), input[type="radio"] { accent-color: var(--apricot-deep); }
 
 /* the newcomer's centre on a folded box (was "the bead"; it is the mark's centre dot) */
 .folded { position: relative; }
@@ -296,7 +298,7 @@ kbd + kbd, .kbd + .kbd { margin-left: 3px; }
    The disc cuts pin their arcs at :root so a ground class can never recolour an arc inside a disc. */
 :root { --disc-arc-a: var(--mark-arc-a); --disc-arc-b: var(--mark-arc-b); --disc-dot: var(--mark-dot); }
 .mark { flex: none; overflow: visible; }
-.mark .arc, .mark .dot, .mark .bead, .mark .ring { transform-box: view-box; transform-origin: 50% 50%; }
+.mark .arc, .mark .dot, .mark .ring5 { transform-box: view-box; transform-origin: 50% 50%; }
 .mark .disc { fill: var(--mark-disc); }
 .mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); }
 .mark.live .dot { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--team-glow) 60%, transparent)); }
@@ -312,6 +314,14 @@ kbd + kbd, .kbd + .kbd { margin-left: 3px; }
 /* ghost centre: not yet in the circle, or the circle cannot be seen */
 .mark.ghost .dot { fill: none; stroke: var(--mark-dot); stroke-width: 2; stroke-dasharray: 3 3; }
 .mark.apart .arc.a { transform: rotate(60deg); opacity: .5; } .mark.apart .arc.b { transform: rotate(-60deg); opacity: .5; }
+/* the onboarding set (first-run, tour): faint ring → one arc → two arcs apart → closed ring; the tour's five-segment ring keeps a ghost centre */
+.mark.faint .arc { opacity: .35; } .mark.faint .dot, .mark.one-arc .arc.b, .mark.one-arc .dot { display: none; }
+.mark .ring5 { fill: none; stroke: var(--mark-arc-b); stroke-linecap: butt; }
+/* the halo pulse: an inline or toast wait at 18–32 px breathes one apricot ring from the centre (MOTION.md §5.5) */
+.mark.waiting { border-radius: 50%; }
+/* the joining line: a 30–40 px mark playing arcs-close once, a serif sentence with the name in chocolate, the time in mono */
+.joinline { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 16px; color: var(--ink); }
+.joinline .who { color: var(--accent-ink); } .joinline .when { margin-left: auto; font: var(--t-mono-sm); color: var(--ink-3); }
 
 /* ============================ SHELL ============================ */
 .shell { display: flex; height: 100%; }
@@ -377,7 +387,7 @@ kbd + kbd, .kbd + .kbd { margin-left: 3px; }
 
 /* ============================ STATUS: THE DOT CARRIES THE COLOUR ============================ */
 /* one drawing at four sizes: filled · filled+halo · hollow · hollow-faint · dashed. Only Running moves. */
-.dot, .agent .head .dot, .status::before { width: 8px; height: 8px; border-radius: 50%; background: var(--dot-idle); flex: none; box-sizing: border-box; }
+.dot, .status::before { width: 8px; height: 8px; border-radius: 50%; background: var(--dot-idle); flex: none; box-sizing: border-box; display: inline-block; }   /* the base stays at one class so .dot.idle / .closed / .offline win inside a rail card too */
 .dot.xs, .status.xs::before { width: 6px; height: 6px; } .dot.lg, .status.lg::before { width: 10px; height: 10px; } .dot.xl { width: 12px; height: 12px; }
 .dot.running, .agent .head .dot.running, .status.running::before { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
 .dot.awaiting_approval, .dot.awaiting, .agent .head .dot.awaiting_approval, .status.awaiting::before { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
@@ -421,6 +431,9 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
 /* selection: apricot with a hairline; hover is surface-2 so both can show at once (micro-interactions) */
 .selected, .cursor { background: var(--select-wash); box-shadow: inset 0 0 0 1.5px var(--select-line), inset 3px 0 0 var(--apricot-deep); }
 .selected .hint, .cursor .hint { color: var(--ink-2); }
+/* on dark the wash sits at 55 % so --ink-3 metadata in the row stays legible (memory-browser) */
+:root[data-theme="dark"] .selected, :root[data-theme="dark"] .cursor { background: color-mix(in srgb, var(--select-wash) 55%, transparent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .selected, :root:not([data-theme="light"]) .cursor { background: color-mix(in srgb, var(--select-wash) 55%, transparent); } }
 
 /* ============================ CONVERSATION ============================ */
 .msg { display: flex; flex-direction: column; gap: 6px; }
@@ -640,7 +653,16 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
 .loader.halo { width: 18px; height: 18px; border-radius: 50%; background: var(--apricot); }                /* inline and toast waits: the mark's halo pulse */
 .loader.weave { display: block; position: relative; width: 100%; height: 4px; overflow: hidden; border-radius: 2px; background: color-mix(in srgb, var(--apricot) 22%, transparent); }
 .loader.weave i { position: absolute; top: 1px; height: 2px; width: 34%; border-radius: 2px; left: 0; }
-.loader.weave i:nth-child(1) { background: var(--accent); } .loader.weave i:nth-child(2) { background: var(--apricot); left: 33%; }
+.loader.weave i:nth-child(1) { background: var(--apricot-deep); } .loader.weave i:nth-child(2) { background: var(--ink-2); left: 33%; }   /* the hand does not run along a loader */
+/* the sentence beside a wait: serif, names who and what; a count or a cause in the second line; one chocolate action after 30 s */
+.wait { display: inline-flex; align-items: center; gap: 10px; color: var(--ink-2); font-size: 13px; flex-wrap: wrap; }
+.wait.stack, .loader.stack { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.loader.join .lbl, .wait .lbl { font-family: var(--serif); font-size: 16px; color: var(--ink); }
+.wait .n, .loader .n { font: var(--t-mono-sm); color: var(--ink-3); }
+.wait .cause, .loader .cause { font-size: 13px; color: var(--ink-2); }
+/* rest: strand 1 at full width, strand 2 hidden (MOTION.md §5.3) */
+:root[data-motion="calm"] .loader.weave i:nth-child(1) { width: 100%; } :root[data-motion="calm"] .loader.weave i:nth-child(2) { display: none; }
+@media (prefers-reduced-motion: reduce) { .loader.weave i:nth-child(1) { width: 100%; } .loader.weave i:nth-child(2) { display: none; } }
 .loader.shimmer { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .loader.shimmer i { display: block; height: 14px; border-radius: 7px; background: linear-gradient(90deg, var(--surface-3) 0%, var(--surface-3) 35%, var(--apricot-soft) 50%, var(--surface-3) 65%, var(--surface-3) 100%); background-size: 220% 100%; background-position: 100% 0; }
 .loader.shimmer i:nth-child(1) { width: 62%; } .loader.shimmer i:nth-child(2) { width: 84%; } .loader.shimmer i:nth-child(3) { width: 48%; } .loader.shimmer i:nth-child(4) { width: 70%; }
@@ -674,6 +696,7 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
 @keyframes orbit-2 { 0% { transform: rotate(120deg) translateX(18px); } 60% { transform: rotate(420deg) translateX(0); } 100% { transform: rotate(480deg) translateX(18px); } }
 @keyframes orbit-3 { 0% { transform: rotate(240deg) translateX(18px); } 60% { transform: rotate(540deg) translateX(0); } 100% { transform: rotate(600deg) translateX(18px); } }
 @keyframes halo { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--apricot) 60%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes mark-halo { 0% { box-shadow: 0 0 0 0 var(--apricot-soft); } 70% { box-shadow: 0 0 0 6px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
 @keyframes weave-slide { 0% { left: -34%; } 100% { left: 100%; } }
 @keyframes weave-over { 0%, 100% { top: 0; } 50% { top: 2px; } }
 @keyframes weave-under { 0%, 100% { top: 2px; } 50% { top: 0; } }
@@ -702,9 +725,10 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
   :root:not([data-motion="calm"]) .mark.settle .arc.a { animation: arc-a-once 0.8s var(--ease-arrive) both; }
   :root:not([data-motion="calm"]) .mark.settle .arc.b { animation: arc-b-once 0.8s var(--ease-arrive) both; }
   :root:not([data-motion="calm"]) .mark.settle .dot { animation: dot-once 1s var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .mark.tiny.joining .arc, :root:not([data-motion="calm"]) .mark.small.joining .arc { animation: fade-in 0.2s ease both; }
-  :root:not([data-motion="calm"]) .mark.tiny.joining .dot, :root:not([data-motion="calm"]) .mark.small.joining .dot { animation: fade-in 0.2s ease both; }
+  :root:not([data-motion="calm"]) .mark.still.joining .arc { animation: fade-in 0.2s ease both; }      /* below 24 px nothing swings: the closed mark fades in */
+  :root:not([data-motion="calm"]) .mark.still.joining .dot { animation: fade-in 0.2s ease both; }
   :root:not([data-motion="calm"]) .mark.live .dot { animation: pulse 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .mark.waiting { animation: mark-halo 1.8s var(--ease-move) infinite; }
   /* loaders */
   :root:not([data-motion="calm"]) .loader.orbit i:nth-child(1) { animation: orbit-1 1.5s var(--ease-move) infinite; }
   :root:not([data-motion="calm"]) .loader.orbit i:nth-child(2) { animation: orbit-2 1.5s var(--ease-move) infinite; }

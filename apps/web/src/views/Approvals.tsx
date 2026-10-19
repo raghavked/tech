@@ -7,20 +7,12 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, type ProjectRef, type SessionRow } from "../api.js";
-import {
-  DEFAULT_RATING,
-  isTyping,
-  moveCursor,
-  pendingOf,
-  type QueueRow,
-  rowsOf,
-  sortRows,
-} from "../approvalsQueue.js";
+import { DEFAULT_RATING, pendingOf, type QueueRow, rowsOf, sortRows } from "../approvalsQueue.js";
 import { HenosisClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import { actorOf, type Identity } from "../identity.js";
 import { navigate, paths } from "../router.js";
-import { ErrorLine, Stars } from "../ui.js";
+import { ErrorLine, Stars, useCursor } from "../ui.js";
 
 interface Target {
   ref: ProjectRef;
@@ -163,9 +155,6 @@ export function Approvals({
   const sessionsWaiting = new Set(pending.map((r) => `${r.projectId}/${r.sessionId}`)).size;
   const projectsWaiting = new Set(pending.map((r) => r.projectId)).size;
 
-  const [cursorKey, setCursorKey] = useState<string | null>(null);
-  const keys = pending.map((r) => r.key);
-  const cursor = cursorKey && keys.includes(cursorKey) ? cursorKey : (keys[0] ?? null);
   // Under a release gate an approve carries the chosen rating, or the default when none was picked.
   const vote = (r: QueueRow, v: "approve" | "deny", rating: number | null = null) =>
     hub.joined.get(`${r.projectId}/${r.sessionId}`)?.client.send({
@@ -176,47 +165,31 @@ export function Approvals({
       ...(r.ratings && v === "approve" ? { rating: rating ?? DEFAULT_RATING } : {}),
     });
 
-  // j/k move, a/d decide, Enter opens the session. Never while typing somewhere.
-  const latest = useRef({ keys, cursor, pending, vote });
-  latest.current = { keys, cursor, pending, vote };
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
-      const { keys, cursor, pending, vote } = latest.current;
-      const row = pending.find((r) => r.key === cursor) ?? null;
-      switch (e.key) {
-        case "j":
-        case "ArrowDown":
-          setCursorKey(moveCursor(keys, cursor, 1));
-          break;
-        case "k":
-        case "ArrowUp":
-          setCursorKey(moveCursor(keys, cursor, -1));
-          break;
-        case "a":
+  // The keyboard cursor (ui.tsx useCursor): j/k move, a/d decide, Enter opens. Never while typing.
+  const rowOf = (key: string) => pending.find((r) => r.key === key) ?? null;
+  const { cursor, set: setCursorKey } = useCursor(
+    pending.map((r) => r.key),
+    {
+      keys: {
+        a: (k) => {
+          const row = rowOf(k);
           if (row) vote(row, "approve");
-          break;
-        case "d":
+        },
+        d: (k) => {
+          const row = rowOf(k);
           if (row) vote(row, "deny");
-          break;
-        case "Enter":
-        case "o":
+        },
+        Enter: (k) => {
+          const row = rowOf(k);
           if (row) navigate(paths.session(row.projectId, row.sessionId));
-          break;
-        default:
-          return;
-      }
-      e.preventDefault();
-    };
-    addEventListener("keydown", onKey);
-    return () => removeEventListener("keydown", onKey);
-  }, []);
-  useEffect(() => {
-    if (!cursor) return;
-    document
-      .querySelector(`[data-key="${CSS.escape(cursor)}"]`)
-      ?.scrollIntoView({ block: "nearest" });
-  }, [cursor]);
+        },
+        o: (k) => {
+          const row = rowOf(k);
+          if (row) navigate(paths.session(row.projectId, row.sessionId));
+        },
+      },
+    },
+  );
 
   const summary =
     projects.length === 0
@@ -318,7 +291,14 @@ function QueueRowItem({
       <span className="row">
         <span className="status awaiting">needs {r.needs}</span>
         {r.ratings && (
-          <Stars value={rating} onChange={setRating} disabled={r.myVote === "approve"} />
+          <Stars
+            value={rating}
+            onChange={setRating}
+            onClear={() => setRating(null)}
+            size="sm"
+            tick
+            readonly={r.myVote === "approve"}
+          />
         )}
         <button
           type="button"
@@ -326,7 +306,7 @@ function QueueRowItem({
           disabled={r.myVote === "approve"}
           onClick={() => onVote("approve", rating)}
         >
-          {copy.approval.approve}
+          {r.ratings ? copy.approval.approveWith(rating ?? DEFAULT_RATING) : copy.approval.approve}
         </button>
         <button
           type="button"

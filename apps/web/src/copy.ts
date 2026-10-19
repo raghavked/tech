@@ -18,6 +18,32 @@ export const tokens = (n: number): string => `${n.toLocaleString("en-US")} token
 /** A rating average with at most one decimal: 4, 4.5, 4.3. */
 export const average = (n: number): string => String(Math.round(n * 10) / 10);
 
+/** "Bo", "Bo and Cy", "Bo, Cy and Dee": names in a sentence. */
+export const list = (names: readonly string[]): string =>
+  names.length <= 1
+    ? (names[0] ?? "")
+    : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+
+/**
+ * The one cast (SYSTEM.md, the cast rule): every example, fixture, preview and board uses these
+ * four people, in this order, and an agent is "X's agent". Ids match the e2e identities.
+ */
+export const cast = {
+  ana: { id: "ana", name: "Ana Moreau", short: "Ana" },
+  bo: { id: "bo", name: "Bo Lindqvist", short: "Bo" },
+  cy: { id: "cy", name: "Cy Okafor", short: "Cy" },
+  dee: { id: "dee", name: "Dee", short: "Dee" },
+} as const;
+
+/** The rating a plain Approve carries under a release gate: the product's default, shared everywhere. */
+export const DEFAULT_RATING = 4;
+
+/**
+ * The five words of the rating scale, one per star (rating-control): the word says what the pick
+ * does and doubles as the star's accessible name ("4 of 5, Good").
+ */
+export const RATING_WORDS = ["Not yet", "Risky", "Fine", "Good", "Ship it"] as const;
+
 /** The five status words, the same everywhere (sidebar dot, top row, fleet rows, Slack). */
 export const status = {
   running: "Running",
@@ -34,6 +60,75 @@ export const copy = {
   product: "Henosis",
   loading: "Loading…",
   roles: { driving: "driving", you: "you" },
+
+  /**
+   * Copy for the waits (loading-screens, MOTION.md §5.6): one sentence, present tense, names who
+   * and what, never "loading"; counts, not bars; after 8 s a cause, after 30 s one action.
+   */
+  wait: {
+    launch: "Opening the circle.",
+    launchSlow: (version?: string) => (version ? `Still opening. ${version}` : "Still opening."),
+    connecting: (where: string) => `Connecting to ${where}.`,
+    serverSlow: "The server is slow to answer.",
+    tryAgain: "Try again",
+    joining: (names: readonly string[], where: string) =>
+      names.length ? `Joining ${list(names)} in ${where}.` : `Joining ${where}.`,
+    folded: (n: number, total: number | null) =>
+      total === null
+        ? `${n.toLocaleString("en-US")} events folded so far`
+        : `${n.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} events folded`,
+    longSession: "A long session; the count keeps moving.",
+    openReplay: "Open the replay",
+    reconnecting: (driver: string | null) =>
+      driver ? `Reconnecting · ${driver} still has the baton.` : "Reconnecting.",
+    /** "Reconnecting · attempt 3 · again in 4s · the stream is as of 14:02" */
+    reconnectLine: (attempt: number | null, inSeconds: number | null, asOf: string | null) =>
+      [
+        "Reconnecting",
+        attempt !== null ? `attempt ${attempt}` : null,
+        inSeconds !== null ? `again in ${inSeconds}s` : null,
+        asOf ? `the stream is as of ${asOf}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    offlineCause: "Offline. Open the last brief?",
+    openBrief: "Open the last brief",
+    tryNow: "Try now",
+    project: (name: string, inCount: number | null, of: number | null) =>
+      inCount !== null && of !== null
+        ? `Opening ${name}. ${inCount} of ${of} sessions in`
+        : `Opening ${name}.`,
+    notAnswering: (n: number) => `${plural(n, "session")} ${n === 1 ? "is" : "are"} not answering.`,
+    longOp: (agent: string, what: string) => `${agent} is ${what}. About a minute.`,
+    longer: "Longer than expected",
+    watchTests: "Watch tests",
+    failed: (where: string) => `Could not join ${where}.`,
+    composerMuted: "You can type once the history is in.",
+    inbox: "Opening your inbox.",
+    team: (name: string) => `Opening ${name}.`,
+    page: "Opening the page.",
+    rows: "The rows are on their way.",
+    sendingVote: "Sending your vote.",
+    tidying: (org: string) => `Tidying ${org}'s memory.`,
+  },
+
+  /** The joining line (welcome-agent, members-drawer, MOTION.md §7): the same sentence for a person, an agent or a session. */
+  join: {
+    line: (name: string) => `${name} joins the circle.`,
+    /** The toast on navy: the same sentence. */
+    toast: (name: string) => `${name} joins the circle.`,
+  },
+
+  /** The rating scale (rating-control): five words, one accessible name, the number the button sends. */
+  rating: {
+    words: RATING_WORDS,
+    word: (n: number) => RATING_WORDS[Math.min(5, Math.max(1, n)) - 1] ?? "",
+    /** "4 of 5, Good": the star's accessible name. */
+    name: (n: number) => `${n} of 5, ${RATING_WORDS[n - 1] ?? ""}`,
+    yourRating: "Your rating",
+    ratePlan: "Rate the plan",
+    cleared: "No rating",
+  },
 
   shell: {
     menu: "Menu",
@@ -255,7 +350,11 @@ export const copy = {
     /** A release gate: how many rated approvals there are against the rule's minimum. */
     progress: (count: number, min: number, avg: number) =>
       `${count} of ${min} raters${count ? ` · ${average(avg)} average` : ""}`,
-    rateHint: "Rate it before you approve; 4 if you leave it",
+    /** "Approve with 4": the button carries the number it sends. */
+    approveWith: (n: number) => `Approve with ${n}`,
+    /** The hint beside it while nothing is picked: "4 if you leave it". */
+    ifYouLeaveIt: (n: number) => `${n} if you leave it`,
+    rateHint: `Rate it before you approve; ${DEFAULT_RATING} if you leave it`,
     noteHint: "A note with your vote (optional)",
     approveRated: (action: string, risk: string) => `Approve ${action} (${risk}) with a rating`,
     ratePrompt: "Rate it 1 to 5 (Enter for 4)",
@@ -535,18 +634,18 @@ export const copy = {
     preset: "Preset",
     presetHint: "Three looks made only of the palette",
     accent: "Accent",
-    accentHint: "Buttons, links, the bead",
+    accentHint: "Buttons, links, the hand",
     highlight: "Highlight",
-    highlightHint: "The crease, the driver ring, the ring of the mark",
+    highlightHint: "The crease, the driver ring, the glow",
     surface: "Surface",
     surfaceHint: "The rail and the disc of the mark",
     glow: "Glow",
     glowHint: "Around anything live",
     mark: "Mark",
-    markHint: "What sits on the disc",
-    markRing: "Ring",
-    markBead: "Bead",
-    markDot: "Dot",
+    markHint: "What sits at the centre of the mark",
+    markRing: "Centre dot",
+    markBead: "Emblem",
+    markDot: "Dot only",
     motion: "Motion",
     motionHint: "Calm turns the loaders and side animations off for the team",
     motionFull: "Full",
@@ -557,7 +656,7 @@ export const copy = {
     previewCard: "Invoice PDF",
     previewDoing: "working on",
     previewGoal: "tax lines under the subtotal",
-    previewWith: "with Bo, Cy",
+    previewWith: `with ${cast.bo.short}, ${cast.cy.short}`,
     previewButton: "Approve",
     previewRunning: "Running",
     contrast: (what: string, ratio: string, ok: boolean) =>

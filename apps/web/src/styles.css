@@ -24,15 +24,36 @@
 .topbar .menu {
   display: none;
 }
-/* reconnect-resume: the one grey line under the top row while a dropped socket re-dials */
+/* reconnect-resume: the one quiet line under the top row while a dropped socket re-dials: the halo pulse and the sentence */
 .conn {
   width: min(var(--col), 100%);
   margin: 0 auto;
   padding: 0 20px 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-.conn .status {
-  font-size: 12px;
-  color: var(--fg-3);
+.conn .wait .lbl {
+  font: var(--t-caption);
+  color: var(--ink-2);
+}
+.conn .wait .cause {
+  font-size: 12.5px;
+}
+/* a wait at the page centre: the loader over its sentence, the count beneath, the rail live beside it */
+.centre-wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 42vh;
+  padding: 40px 0;
+  text-align: center;
+}
+.centre-wait .wait,
+.centre-wait .loader {
+  gap: 14px;
 }
 .row {
   display: flex;
@@ -50,7 +71,7 @@
   white-space: nowrap;
 }
 .danger {
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 .btn.on {
   background: var(--bg-3);
@@ -231,18 +252,6 @@ button.chip {
   background: var(--highlight-soft);
   color: var(--fg);
 }
-.sidebar .item .dot {
-  background: var(--fg-3);
-}
-.sidebar .item .dot.running {
-  background: var(--ok);
-}
-.sidebar .item .dot.awaiting_approval {
-  background: var(--warn);
-}
-.sidebar .item .dot.blocked {
-  background: var(--danger);
-}
 .sidebar .item.inbox {
   margin-bottom: 4px;
 }
@@ -402,7 +411,7 @@ button.chip {
   text-align: center;
 }
 .divider.danger {
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 .divider.danger::before,
 .divider.danger::after {
@@ -748,7 +757,7 @@ fieldset.seg {
   padding: 2px;
 }
 .seg label:has(:focus-visible) {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus-ring);
 }
 /* groups-chats: small avatars in the composer's mention list and the new-group sheet */
 .mention-list .avatar,
@@ -1141,7 +1150,7 @@ kbd + kbd {
     padding-inline: 16px;
   }
 }
-/* settings-page: #/settings. Rows, a quiet switch, keys; the switch is the one accent. */
+/* settings-page: #/settings. Rows, a quiet switch, keys; the switch is apricot-deep when on (the hand stays a verb). */
 .settings .rowitem .s {
   white-space: normal;
 }
@@ -1168,11 +1177,11 @@ kbd + kbd {
   transition: transform 0.15s;
 }
 .settings .switch:checked {
-  background: var(--accent);
+  background: var(--apricot-deep);
 }
 .settings .switch:checked::after {
   transform: translateX(14px);
-  background: var(--accent-fg);
+  background: var(--count-fg);
 }
 .settings .keys {
   display: inline-flex;
@@ -1303,32 +1312,13 @@ kbd + kbd {
 .status.plan-rejected::before {
   background: var(--danger);
 }
-.stars {
-  display: inline-flex;
-  gap: 2px;
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-.stars .star {
-  border: 0;
-  background: transparent;
-  padding: 2px;
-  color: var(--fg-3);
-  cursor: pointer;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 4px;
-}
-.stars .star.on {
-  color: var(--accent);
-}
-.stars .star .ic.fill {
-  fill: var(--highlight);
-}
-.stars .star:disabled {
+/* the rating control is tokens.css's .stars (SVG radios, the gate tick, the word); the locked one keeps its colours */
+.stars.locked .star {
   cursor: default;
+}
+.stars .ic.draw {
+  color: var(--ok-ink);
+  margin-left: 4px;
 }
 .pill.planning {
   background: var(--highlight-soft);
@@ -1384,11 +1374,18 @@ kbd + kbd {
 .rowitem.queuerow .t {
   white-space: normal;
 }
-.rowitem.queuerow.cursor {
-  background: var(--highlight-soft);
-  border-radius: var(--radius);
-  padding-inline: 10px;
-  margin-inline: -10px;
+/* the keyboard cursor is tokens.css's .rowitem.cursor (wash, hairline ring, gutter stripe); hover keeps the wash */
+.list .rowitem.cursor:hover {
+  background: var(--select-wash);
+}
+/* the row that waits: the sentence on one line, the controls (needs · stars · Approve with N · Deny) beneath it */
+.rowitem.queuerow {
+  grid-template-columns: 1fr;
+  row-gap: 8px;
+}
+.rowitem.queuerow > .row {
+  flex-wrap: wrap;
+  row-gap: 6px;
 }
 .rowitem.queuerow.done .s {
   white-space: normal;
@@ -1503,10 +1500,10 @@ a.btn:hover {
   cursor: default;
 }
 .meter.warn .chip {
-  color: var(--warn);
+  color: var(--warn-ink);
 }
 .meter.danger .chip {
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 .meter .bar {
   display: block;
@@ -1563,7 +1560,7 @@ a.btn:hover {
   gap: 12px;
 }
 .meter .kv-line.warnish {
-  color: var(--warn);
+  color: var(--warn-ink);
 }
 .agent .foot .tokens {
   margin-left: auto;
@@ -1818,28 +1815,14 @@ mark.mention {
   position: relative;
   display: inline-flex;
 }
-.livedot {
+/* the agent avatar's live dot: tokens.css's .dot (the drawing and the colour) cut out of the avatar's corner */
+.dot.livedot {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 2px solid var(--bg);
-  background: var(--fg-3);
-}
-.livedot.running {
-  background: var(--ok);
-  animation: pulse 1.6s ease-in-out infinite;
-}
-.livedot.awaiting_approval {
-  background: var(--warn);
-}
-.livedot.blocked {
-  background: var(--danger);
-}
-.livedot.paused {
-  background: var(--info);
+  right: -3px;
+  bottom: -3px;
+  width: 11px;
+  height: 11px;
+  box-shadow: 0 0 0 2px var(--bg);
 }
 .mention-list {
   display: flex;
@@ -1957,10 +1940,10 @@ mark.mention {
   gap: 4px 16px;
 }
 .teamlook .check {
-  color: var(--ok);
+  color: var(--ok-ink);
 }
 .teamlook .check.low {
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 .look-preview {
   display: grid;
@@ -1979,8 +1962,6 @@ mark.mention {
   --fg-3: var(--rail-fg-3);
   --line: var(--rail-line);
   --highlight-soft: var(--rail-active);
-  --ok: #8fb07a;
-  --warn: #dda363;
   background: var(--rail-bg);
   color: var(--fg);
   padding: 12px 10px;

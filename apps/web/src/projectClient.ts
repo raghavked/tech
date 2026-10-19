@@ -13,7 +13,7 @@ import {
 } from "@henosis/fleet";
 import type { SessionPolicyPatch } from "@henosis/protocol";
 import { getIdentity } from "./identity.js";
-import { Reconnector } from "./reconnect.js";
+import { Reconnector, type Retry } from "./reconnect.js";
 
 /** Identity: the subscribe message carries the token the identity store holds (the ID token in oidc mode). */
 function subscribeMessage(projectId: string, userId: string): ProjectClientMessage {
@@ -86,6 +86,8 @@ export interface ProjectSnapshot {
   connected: boolean;
   /** The socket dropped and a re-dial is pending or in flight; `state` is kept meanwhile. */
   reconnecting: boolean;
+  /** The re-dial scheduled while reconnecting: its attempt number and when it fires. */
+  retry: Retry | null;
 }
 
 type Incoming = ProjectServerMessage | { type: "error"; message: string };
@@ -97,6 +99,7 @@ const EMPTY: ProjectSnapshot = {
   errors: [],
   connected: false,
   reconnecting: false,
+  retry: null,
 };
 
 export class ProjectClient {
@@ -127,6 +130,11 @@ export class ProjectClient {
     this.dial();
   }
 
+  /** "Try now": dial at once instead of waiting out the backoff. */
+  reconnectNow(): void {
+    if (this.target) this.reconnector.now();
+  }
+
   private dial(): void {
     const target = this.target;
     if (!target) return;
@@ -143,11 +151,11 @@ export class ProjectClient {
       if (this.ws !== ws) return;
       this.ws = null;
       if (!this.target) {
-        this.emit({ connected: false, reconnecting: false });
+        this.emit({ connected: false, reconnecting: false, retry: null });
         return;
       }
-      this.reconnector.schedule();
-      this.emit({ connected: false, reconnecting: true });
+      const delay = this.reconnector.schedule();
+      this.emit({ connected: false, reconnecting: true, retry: this.reconnector.pending(delay) });
     };
     ws.onmessage = (m) => {
       if (this.ws !== ws) return;
@@ -155,7 +163,12 @@ export class ProjectClient {
       switch (msg.type) {
         case "project.snapshot":
           this.reconnector.reset();
-          this.emit({ state: foldProject(msg.events), events: msg.events, reconnecting: false });
+          this.emit({
+            state: foldProject(msg.events),
+            events: msg.events,
+            reconnecting: false,
+            retry: null,
+          });
           break;
         case "project.event": {
           const state = this.snapshot.state ? reduceProject(this.snapshot.state, msg.event) : null;
@@ -182,7 +195,7 @@ export class ProjectClient {
       ws.onclose = null;
       ws.close();
     }
-    this.emit({ connected: false, reconnecting: false });
+    this.emit({ connected: false, reconnecting: false, retry: null });
   }
 
   /** Sends on an open socket; while a re-dial is in flight the message is dropped, not thrown. */

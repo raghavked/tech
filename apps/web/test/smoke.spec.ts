@@ -38,7 +38,7 @@ test("two people share one live agent session in the browser", async ({ browser 
   await expect(conversation(bo)).toContainText("Build a greeter");
   const plan = ana.getByRole("region", { name: "Plan" });
   await expect(plan).toContainText("Waiting for ratings", { timeout: 30_000 });
-  await plan.getByRole("button", { name: "Rate 5 of 5" }).click();
+  await plan.getByRole("radio", { name: "5 of 5, Ship it" }).click();
   await expect(bo.getByRole("region", { name: "Plan" })).toContainText("approved");
   await expect(conversation(bo)).toContainText("The agent wants to run", { timeout: 30_000 });
   await expect(conversation(bo)).toContainText("Wrote src/build_a_greeter.mjs");

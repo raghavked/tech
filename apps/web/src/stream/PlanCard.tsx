@@ -105,7 +105,14 @@ function PlanCardRow({
       {!live && <p className="small faint">{copy.plan.replaced}</p>}
       {live && (
         <div className="rating">
-          {showStars && <Stars value={mine?.rating ?? null} onChange={rate} disabled={!canRate} />}
+          {showStars && (
+            <Stars
+              value={mine?.rating ?? null}
+              onChange={rate}
+              label={copy.rating.ratePlan}
+              readonly={!canRate}
+            />
+          )}
           {canRate && (
             <input
               className="input sm note"

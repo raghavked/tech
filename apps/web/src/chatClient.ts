@@ -12,7 +12,7 @@ import {
   reduceChat,
 } from "@henosis/chat";
 import { getIdentity } from "./identity.js";
-import { Reconnector } from "./reconnect.js";
+import { Reconnector, type Retry } from "./reconnect.js";
 
 export interface ChatSnapshot {
   state: ChatState | null;
@@ -21,6 +21,8 @@ export interface ChatSnapshot {
   connected: boolean;
   /** The socket dropped and a re-dial is pending or in flight; `state` is kept meanwhile. */
   reconnecting: boolean;
+  /** The re-dial scheduled while reconnecting: its attempt number and when it fires. */
+  retry: Retry | null;
 }
 
 type Incoming = ChatServerMessage | { type: "error"; message: string };
@@ -31,6 +33,7 @@ const EMPTY: ChatSnapshot = {
   errors: [],
   connected: false,
   reconnecting: false,
+  retry: null,
 };
 
 export class ChatClient {
@@ -62,6 +65,11 @@ export class ChatClient {
     this.dial();
   }
 
+  /** "Try now": dial at once instead of waiting out the backoff. */
+  reconnectNow(): void {
+    if (this.target) this.reconnector.now();
+  }
+
   private dial(): void {
     const target = this.target;
     if (!target) return;
@@ -79,11 +87,11 @@ export class ChatClient {
       if (this.ws !== ws) return;
       this.ws = null;
       if (!this.target) {
-        this.emit({ connected: false, reconnecting: false });
+        this.emit({ connected: false, reconnecting: false, retry: null });
         return;
       }
-      this.reconnector.schedule();
-      this.emit({ connected: false, reconnecting: true });
+      const delay = this.reconnector.schedule();
+      this.emit({ connected: false, reconnecting: true, retry: this.reconnector.pending(delay) });
     };
     ws.onmessage = (m) => {
       if (this.ws !== ws) return;
@@ -91,7 +99,12 @@ export class ChatClient {
       switch (msg.type) {
         case "chat.snapshot":
           this.reconnector.reset();
-          this.emit({ state: foldChat(msg.events), events: msg.events, reconnecting: false });
+          this.emit({
+            state: foldChat(msg.events),
+            events: msg.events,
+            reconnecting: false,
+            retry: null,
+          });
           break;
         case "chat.event": {
           const state = this.snapshot.state ? reduceChat(this.snapshot.state, msg.event) : null;
@@ -115,7 +128,7 @@ export class ChatClient {
       ws.onclose = null;
       ws.close();
     }
-    this.emit({ connected: false, reconnecting: false });
+    this.emit({ connected: false, reconnecting: false, retry: null });
   }
 
   send(msg: ChatClientMessage): void {

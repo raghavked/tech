@@ -10,7 +10,7 @@ import { api, type Me, type TeamTheme } from "../api.js";
 import { copy } from "../copy.js";
 import type { Identity } from "../identity.js";
 import { PALETTE, rememberTeamTheme, TEAM_PRESETS, useTeamThemeValue } from "../theme.js";
-import { Mark, toast } from "../ui.js";
+import { Count, Dot, Mark, markLook, toast } from "../ui.js";
 
 type Draft = Required<Pick<TeamTheme, "accent" | "highlight" | "surface" | "glow">> & {
   mark: NonNullable<TeamTheme["mark"]>;
@@ -355,8 +355,6 @@ function Preview({ draft, teamName }: { draft: Draft; teamName: string }) {
     "--rail-bg": surface,
     "--rail-active": `color-mix(in srgb, ${highlight} 20%, transparent)`,
     "--mark-disc": surface,
-    "--mark-ring": highlight,
-    "--mark-bead": accent,
     "--grad": `linear-gradient(135deg, ${surface} 0%, color-mix(in srgb, ${surface} 45%, ${accent}) 55%, ${accent} 100%)`,
   } as CSSProperties;
   return (
@@ -369,7 +367,7 @@ function Preview({ draft, teamName }: { draft: Draft; teamName: string }) {
     >
       <div className="rail">
         <div className="brand">
-          <Mark size={22} style={draft.mark} emblem={draft.emblem.trim() || undefined} />
+          <Mark size={22} {...markLook(draft.mark)} emblem={draft.emblem.trim() || undefined} />
           <span className="serif">{copy.product}</span>
           {draft.emblem.trim() && draft.mark !== "dot" && (
             <span className="emblem">{draft.emblem.trim()}</span>
@@ -377,9 +375,9 @@ function Preview({ draft, teamName }: { draft: Draft; teamName: string }) {
         </div>
         <span className="agent active">
           <span className="head">
-            <span className="dot running" />
+            <Dot status="running" />
             <span className="t">{copy.teamLook.previewCard}</span>
-            <span className="pill badge">1</span>
+            <Count n={1} pop={false} />
           </span>
           <span className="doing">
             <i>{copy.teamLook.previewDoing}</i> {copy.teamLook.previewGoal}
