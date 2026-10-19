@@ -384,6 +384,9 @@ export const copy = {
       `${who} ${approve ? "approved" : "denied"}${rating ? ` · ${rating} of 5` : ""}`,
     approve: "Approve",
     deny: "Deny",
+    releaseGate: "Release gate",
+    /** The chip in the top row once the pending gate has scrolled out of view; the number precedes it. */
+    waitsForYou: (n: number) => (n === 1 ? "waits for you" : "wait for you"),
     /** A release gate: how many rated approvals there are against the rule's minimum. */
     progress: (count: number, min: number, avg: number) =>
       `${count} of ${min} raters${count ? ` · ${average(avg)} average` : ""}`,

@@ -190,7 +190,7 @@ button.chip {
   position: fixed;
   inset: 0;
   z-index: 8;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--scrim);
   border: 0;
   padding: 0;
 }
@@ -517,22 +517,101 @@ button.chip {
   padding-top: 8px;
 }
 
-/* phones */
+/* phones: the frame stays Dress Blues without a rail, so the top row goes on --rail (the
+   sidebar's own remap), a 40px menu button at the left, the serif title at 19px, 40px controls
+   on the right with the pressed one on --rail-active; the sidebar is a 332px drawer with a hairline
+   edge (visible over a dark page too), the drawer a bottom sheet, every scrim the token. */
 @media (max-width: 640px) {
   .topbar {
-    padding: 8px 12px;
-    gap: 8px;
+    --bg: var(--rail);
+    --bg-2: var(--rail-2);
+    --bg-3: var(--rail-press);
+    --surface: var(--rail-2);
+    --surface-2: var(--rail-2);
+    --surface-3: var(--rail-press);
+    --fg: var(--rail-fg);
+    --fg-2: var(--rail-muted);
+    --fg-3: var(--rail-fg-3);
+    --ink: var(--rail-fg);
+    --ink-2: var(--rail-muted);
+    --ink-3: var(--rail-fg-3);
+    --line: var(--rail-line);
+    --highlight-soft: var(--rail-active);
+    --apricot-soft: var(--rail-active);
+    --select-wash: var(--rail-active);
+    --count-bg: var(--apricot);
+    --count-fg: #2a3244;
+    --ok: #9bc88f;
+    --dot-idle: var(--rail-muted);
+    --avatar-edge: var(--rail);
+    min-height: 56px;
+    padding: 6px 8px;
+    gap: 6px;
+    background: var(--rail);
+    color: var(--rail-fg);
+    border-bottom: 1px solid var(--crease);
+    backdrop-filter: none;
   }
   .topbar .menu {
     display: inline-grid;
+    width: 40px;
+    min-height: 40px;
+    color: var(--rail-fg);
   }
   .topbar .title {
-    font-size: 15px;
+    font-size: 19px;
+    gap: 8px;
+  }
+  .topbar .title .serif {
+    font-size: 19px;
   }
   .topbar .status,
   .topbar .btn .lbl,
   .topbar .stack > :nth-child(n + 4) {
     display: none;
+  }
+  .topbar .right .btn {
+    min-height: 40px;
+    color: var(--rail-fg);
+    border-color: var(--rail-line);
+    background: transparent;
+  }
+  .topbar .right .btn.icon {
+    width: 40px;
+  }
+  .topbar .right .btn.ghost {
+    border-color: transparent;
+  }
+  /* "Team" once: the title's Team pill folds into the Team button, which takes the pill's colours */
+  .topbar .title .pill.team {
+    display: none;
+  }
+  .topbar .right .btn.team:not(.on) {
+    background: var(--pill-team-bg);
+    color: var(--pill-team-fg);
+    border-color: transparent;
+  }
+  .strip {
+    padding-top: 10px;
+  }
+  .topbar .right .btn.on {
+    background: var(--rail-active);
+    border-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--select-line);
+  }
+  .sidebar .menu .chip {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 40px;
+    font-size: 14px;
+  }
+  .sidebar .menu .btn.sm {
+    min-height: 40px;
+  }
+  .sidebar .menu a.small {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
   }
   .scrim {
     display: block;
@@ -553,17 +632,30 @@ button.chip {
     left: 0;
     right: 0;
     bottom: 0;
+    top: auto;
     z-index: 10;
     width: auto;
     max-height: 72dvh;
     border-left: 0;
     border-top: 1px solid var(--line);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    background: var(--bg);
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+    background: var(--surface);
+    box-shadow: var(--shadow-pop);
+    padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+  /* the sheet's handle: 40 × 5 on --surface-3, as the one bottom sheet draws it */
+  .drawer::before {
+    content: "";
+    flex: none;
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface-3);
+    margin: 0 auto -10px;
   }
   .drawer .drawer-head {
     display: flex;
+    min-height: 32px;
   }
   .sheet-scrim {
     display: block;
@@ -604,6 +696,31 @@ button.chip {
 }
 .topbar .title .pill {
   margin-left: 2px;
+}
+/* the strip under the top row (the gate's survival chip lives here): aligned with the column */
+.strip {
+  width: min(var(--col), 100%);
+  margin: 0 auto;
+  padding: 8px var(--gutter) 0;
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+/* the gate's survival chip: solid apricot, the count in mono; taps back to the pending gate */
+.strip .gatechip {
+  border: 0;
+  cursor: pointer;
+  background: var(--apricot);
+  color: #56352d;
+  font: 500 13px var(--font);
+  white-space: nowrap;
+}
+.strip .gatechip:hover {
+  background: var(--apricot-deep);
+}
+.strip .gatechip .mono {
+  font-size: 13px;
+  font-weight: 500;
 }
 .drawer .chat {
   max-height: 260px;
@@ -804,7 +921,7 @@ fieldset.seg {
 .sheet-wrap .sheet-dim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--scrim);
   border: 0;
   padding: 0;
 }
@@ -813,7 +930,7 @@ fieldset.seg {
   width: min(400px, 100%);
   max-height: calc(100dvh - 32px);
   overflow: auto;
-  background: var(--bg);
+  background: var(--overlay);
   border-radius: var(--radius-lg);
   padding: 14px 20px 18px;
   display: flex;
@@ -840,6 +957,30 @@ fieldset.seg {
 }
 .sheet p {
   margin: 10px 0 0;
+}
+/* on a phone every sheet is the one bottom sheet: --surface, 26px top corners, a handle, 16px gutters */
+@media (max-width: 640px) {
+  .sheet-wrap {
+    place-items: end center;
+    padding: 0;
+  }
+  .sheet,
+  .sheet.newgroup {
+    width: 100%;
+    max-height: 88dvh;
+    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+    padding: 10px 16px calc(24px + env(safe-area-inset-bottom));
+    box-shadow: var(--shadow-pop);
+  }
+  .sheet::before {
+    content: "";
+    flex: none;
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface-3);
+    margin: 0 auto 6px;
+  }
 }
 kbd {
   display: inline-grid;
@@ -1175,6 +1316,57 @@ kbd + kbd {
 .notice .actions .note {
   flex: 1;
   min-width: 160px;
+}
+.notice .actions .hint {
+  font-size: 14px;
+}
+.notice .actions .wait {
+  font-family: var(--mono);
+  font-weight: 500;
+}
+@media (max-width: 640px) {
+  /* the star tile: five-up at 48px, off tiles --surface-2 at .55, tiles up to the pick on the
+     apricot wash with the star in --apricot-deep, the pick solid apricot with a chocolate star */
+  .notice .rating .stars {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+  .notice .rating .stars .star {
+    width: auto;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    opacity: 0.55;
+    color: var(--ink-3);
+  }
+  .notice .rating .stars .star.on {
+    background: var(--apricot-soft);
+    color: var(--apricot-deep);
+    opacity: 1;
+  }
+  .notice .rating .stars .star.on .ic.fill {
+    fill: currentColor;
+    stroke: currentColor;
+  }
+  .notice .rating .stars .star.on[aria-pressed="true"] {
+    background: var(--apricot);
+    color: #56352d;
+    box-shadow: var(--glow);
+  }
+  .notice .rating .note {
+    min-width: 100%;
+  }
+  .notice .actions .btn {
+    min-height: 44px;
+  }
+  .notice .actions .btn.primary {
+    flex: 1 1 auto;
+  }
+  .notice .actions .hint {
+    width: 100%;
+  }
 }
 .notice.plan .raters {
   display: flex;
@@ -1531,10 +1723,15 @@ a.btn:hover {
 .bar-fill {
   display: block;
   height: 100%;
-  background: var(--accent);
+  background: var(--bar-agent);
   border-radius: 0 4px 4px 0;
   min-width: 2px;
-  transition: width 0.3s ease;
+  /* --motion is 0 under reduced motion and [data-motion="calm"] (tokens.css) */
+  transition: width calc(var(--motion) * var(--t-slow)) var(--ease-move);
+}
+/* one row is a total, not a comparison: the hand */
+.bars.lone .bar-fill {
+  background: var(--accent);
 }
 .bar-fill.on {
   filter: brightness(1.15);
@@ -1543,6 +1740,11 @@ a.btn:hover {
   text-align: right;
   color: var(--fg-2);
   font-size: 12px;
+}
+@media (max-width: 640px) {
+  .bar-row {
+    grid-template-columns: 92px 1fr 52px;
+  }
 }
 .chart-tip {
   position: absolute;
@@ -2863,7 +3065,8 @@ a.btn:hover {
     z-index: 9;
     width: min(var(--rail-sheet), 86vw);
     transform: translateX(-100%);
-    transition: transform var(--t-slow) var(--ease-mark);
+    /* --motion is 0 under reduced motion and [data-motion="calm"] (tokens.css) */
+    transition: transform calc(var(--motion) * var(--t-slow)) var(--ease-mark);
     box-shadow:
       24px 0 60px rgba(0, 0, 0, 0.28),
       var(--edge);

@@ -51,7 +51,8 @@ async function steer(page: Page, text: string, scope?: string) {
   await expect(conversation(page)).toContainText(text);
 }
 
-const approve = (page: Page) => page.getByRole("button", { name: "Approve", exact: true });
+// Under a release gate the primary reads "Approve with N" (N the rating it sends).
+const approve = (page: Page) => page.getByRole("button", { name: /^Approve( with \d)?$/ });
 const planCard = (page: Page) => page.getByRole("region", { name: "Plan" }).last();
 
 test("a lead's project direction reaches a session and leaves when withdrawn", async ({

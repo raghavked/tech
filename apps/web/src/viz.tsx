@@ -121,7 +121,7 @@ export function Bars({
         </table>
       )}
       {rows.length > 0 && !table && (
-        <ul className="bars">
+        <ul className={`bars${rows.length === 1 ? " lone" : ""}`}>
           {rows.map((r) => {
             const pct = (r.value / max) * 100;
             const on = hover === r.key;

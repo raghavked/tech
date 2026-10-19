@@ -56,6 +56,7 @@ import {
   Status,
   TeamPill,
   TokenMeter,
+  teamOf,
   useConnectionToasts,
   useJustJoined,
   useMediaQuery,
@@ -350,7 +351,7 @@ export function SessionView({
           </button>
           <button
             type="button"
-            className={`btn sm${panel === "team" ? " on" : ""}`}
+            className={`btn sm${panel === "team" ? " on" : ""}${mine && teamOf(mine).team ? " team" : ""}`}
             aria-pressed={panel === "team"}
             onClick={() => setPanel((v) => (v === "team" ? "none" : "team"))}
           >
@@ -367,12 +368,15 @@ export function SessionView({
         </>
       }
       below={
-        <ReconnectLine
-          reconnecting={snap.reconnecting}
-          retry={snap.retry}
-          asOf={snap.events.at(-1)?.ts}
-          onTryNow={() => client.reconnectNow()}
-        />
+        <>
+          <GateChip count={pendingApprovals.length} id={waiting?.id} />
+          <ReconnectLine
+            reconnecting={snap.reconnecting}
+            retry={snap.retry}
+            asOf={snap.events.at(-1)?.ts}
+            onTryNow={() => client.reconnectNow()}
+          />
+        </>
       }
       shortcuts={shortcuts}
       drawer={
@@ -740,7 +744,7 @@ function ApprovalNoticeRow({
       ...(gate && v === "approve" ? { rating: rating ?? DEFAULT_RATING } : {}),
     });
   return (
-    <div className="notice">
+    <div className={`notice${gate ? " gate" : ""}`} data-approval={a.id}>
       <span>{copy.approval.wants(d.ask, a.call.risk, describeRule(rule))}</span>
       {votes.length > 0 && (
         <span className="small muted">
@@ -770,13 +774,71 @@ function ApprovalNoticeRow({
         <button type="button" className="btn primary sm" onClick={() => vote("approve")}>
           {gate ? copy.approval.approveWith(rating ?? DEFAULT_RATING) : copy.approval.approve}
         </button>
-        <button type="button" className="btn sm" onClick={() => vote("deny")}>
+        <button type="button" className="btn ghost danger sm" onClick={() => vote("deny")}>
           {copy.approval.deny}
         </button>
         {gate && rating === null && (
-          <span className="small faint">{copy.approval.ifYouLeaveIt(DEFAULT_RATING)}</span>
+          <span className="small faint hint">{copy.approval.ifYouLeaveIt(DEFAULT_RATING)}</span>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The gate's survival rule: once the pending approval has scrolled out of view (or the windowed
+ * stream has unmounted it), a chip in the strip under the top row says how many wait and taps
+ * back to it.
+ */
+function GateChip({ count, id }: { count: number; id: string | undefined }) {
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    if (!id) return;
+    const find = () => document.querySelector<HTMLElement>(`[data-approval="${CSS.escape(id)}"]`);
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const el = find();
+      const scroller = el?.closest(".scroll");
+      if (!el || !scroller) {
+        setAway(true);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const v = scroller.getBoundingClientRect();
+      setAway(r.bottom < v.top + 8 || r.top > v.bottom - 8);
+    };
+    const queue = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    addEventListener("scroll", queue, true);
+    addEventListener("resize", queue);
+    // rows mount and unmount with the window (VirtualList), so the DOM says when to look again
+    const mo = typeof MutationObserver === "undefined" ? null : new MutationObserver(queue);
+    const scroller = document.querySelector(".scroll");
+    if (mo && scroller) mo.observe(scroller, { childList: true, subtree: true });
+    queue();
+    return () => {
+      removeEventListener("scroll", queue, true);
+      removeEventListener("resize", queue);
+      mo?.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [id]);
+  if (!id || count === 0 || !away) return null;
+  const back = () => {
+    const el = document.querySelector<HTMLElement>(`[data-approval="${CSS.escape(id)}"]`);
+    if (el) el.scrollIntoView({ block: "center" });
+    else {
+      const scroller = document.querySelector(".scroll");
+      if (scroller) scroller.scrollTop = scroller.scrollHeight;
+    }
+  };
+  return (
+    <div className="strip">
+      <button type="button" className="chip gatechip" onClick={back}>
+        <span className="mono">{count}</span> {copy.approval.waitsForYou(count)}
+      </button>
     </div>
   );
 }

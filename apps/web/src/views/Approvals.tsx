@@ -302,6 +302,8 @@ function QueueRowItem({
           wants to {r.action}
         </span>
         <span className="s">
+          {r.ratings && <span className="pill gate sm">{copy.approval.releaseGate}</span>}
+          {r.ratings && " "}
           {r.projectName} · {r.risk} · {voted}
           {r.progress ? ` · ${r.progress}` : ""}
         </span>
@@ -328,7 +330,7 @@ function QueueRowItem({
         </button>
         <button
           type="button"
-          className="btn sm"
+          className="btn ghost danger sm"
           disabled={r.myVote === "deny"}
           onClick={() => onVote("deny", null)}
         >
