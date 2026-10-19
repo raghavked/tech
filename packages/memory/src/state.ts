@@ -1,12 +1,29 @@
 import type { MemoryEntry, MemoryEvent, MemoryPolicy } from "./events.js";
 import { DEFAULT_MEMORY_POLICY } from "./events.js";
 
+/** One recorded read of an entry: who took it into context, at which ledger seq and wall-clock ms. */
+export interface MemoryRead {
+  by: string;
+  seq: number;
+  /** Wall clock in ms, or null for a read journaled before the log carried one. */
+  at: number | null;
+}
+
+/** How many reads an entry keeps, newest last; older ones are counted in `reads` only. */
+export const READ_LOG_KEEP = 32;
+
 export interface EntryRecord extends MemoryEntry {
   seq: number;
   status: "active" | "superseded" | "retracted" | "folded" | "redacted";
   /** Ledger seq of the last recorded read; used for staleness. */
   lastReadSeq: number;
   reads: number;
+  /** Wall clock of the last read, or null when no read carried one. */
+  lastReadAt: number | null;
+  /** Distinct readers (session ids, people, "api"), first read first. */
+  readBy: string[];
+  /** The newest reads, oldest first, at most READ_LOG_KEEP. */
+  readLog: MemoryRead[];
 }
 
 export interface MemoryConflict {
@@ -65,6 +82,9 @@ export function reduceMemory(prev: MemoryState, e: MemoryEvent): MemoryState {
         status: "active",
         lastReadSeq: e.seq,
         reads: 0,
+        lastReadAt: null,
+        readBy: [],
+        readLog: [],
       };
       for (const id of entry.supersedes) {
         const t = s.entries[id];
@@ -122,15 +142,23 @@ export function reduceMemory(prev: MemoryState, e: MemoryEvent): MemoryState {
       }
       break;
     }
-    case "memory.read":
+    case "memory.read": {
+      const at = e.payload.at ?? null;
       for (const id of e.payload.entryIds) {
         const t = s.entries[id];
-        if (t) {
-          t.lastReadSeq = e.seq;
-          t.reads += 1;
-        }
+        if (!t) continue;
+        t.lastReadSeq = e.seq;
+        t.reads += 1;
+        if (at !== null) t.lastReadAt = at;
+        // Ledgers folded before the read log existed lack these fields.
+        if (!t.readBy) t.readBy = [];
+        if (!t.readLog) t.readLog = [];
+        if (!t.readBy.includes(e.payload.by)) t.readBy.push(e.payload.by);
+        t.readLog.push({ by: e.payload.by, seq: e.seq, at });
+        if (t.readLog.length > READ_LOG_KEEP) t.readLog.splice(0, t.readLog.length - READ_LOG_KEEP);
       }
       break;
+    }
   }
   return s;
 }

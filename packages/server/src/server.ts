@@ -698,10 +698,80 @@ export class HenosisServer {
         res.end(markdown);
         return true;
       }
-      const mm = url.pathname.match(/^\/api\/memory\/([^/]+)(?:\/(curate|context))?$/);
+      const mm = url.pathname.match(/^\/api\/memory\/([^/]+)(?:\/(curate|context|keep|retract))?$/);
       if (mm) {
         const store = this.memory(mm[1] as string);
         if (mm[2] === "curate") return json(200, new Curator(store).tick());
+        // memory-browser: a person keeps one side of a conflict or retracts an entry, in their
+        // name. Any contributor to the scope may (Decision 1): a member of the org, or of the
+        // team or project the request names; an observer may not, and the curator never does.
+        if (mm[2] === "keep" || mm[2] === "retract") {
+          if (req.method !== "POST") return json(405, { error: "POST" });
+          if (this.opts.token && bearerOf(req, url) !== this.opts.token)
+            return json(401, { error: "unauthorized" });
+          const userId = url.searchParams.get("user") ?? "";
+          const user = this.orgs.user(userId);
+          if (!user) return json(403, { error: "sign in as a person to change team memory" });
+          const standing = this.orgs.memoryRole(user.id, mm[1] as string, {
+            ...(url.searchParams.get("team") ? { teamId: url.searchParams.get("team") ?? "" } : {}),
+            ...(url.searchParams.get("project")
+              ? { projectId: url.searchParams.get("project") ?? "" }
+              : {}),
+          });
+          if (standing === "observer")
+            return json(403, {
+              error:
+                "only a contributor to this team's memory can keep or retract what it remembers",
+            });
+          const act = mm[2];
+          void readBody(req).then((body) => {
+            let parsed: {
+              conflictId?: string;
+              winnerId?: string | null;
+              entryId?: string;
+              reason?: string;
+              note?: string;
+            };
+            try {
+              parsed = JSON.parse(body || "{}") as typeof parsed;
+            } catch {
+              return json(400, { error: "bad json" });
+            }
+            try {
+              if (act === "keep") {
+                if (!parsed.conflictId) return json(400, { error: "conflictId" });
+                store.resolveConflict(
+                  user.id,
+                  parsed.conflictId,
+                  parsed.winnerId ?? null,
+                  parsed.note ?? "",
+                );
+                const c = store.state().conflicts[parsed.conflictId];
+                // The loser is retracted in the person's name, as the foot of the card says.
+                if (c?.winnerId)
+                  for (const id of c.entryIds)
+                    if (id !== c.winnerId && store.state().entries[id]?.status !== "retracted")
+                      store.retract(
+                        { userId: user.id, userName: user.name },
+                        id,
+                        parsed.note ||
+                          `kept ${store.state().entries[c.winnerId]?.key ?? "the other side"}`,
+                      );
+              } else {
+                if (!parsed.entryId) return json(400, { error: "entryId" });
+                store.retract(
+                  { userId: user.id, userName: user.name },
+                  parsed.entryId,
+                  parsed.reason ?? "",
+                );
+              }
+              return json(200, memoryFeed(store.state(), memoryQueryOf(url.searchParams)));
+            } catch (err) {
+              return json(400, { error: err instanceof Error ? err.message : String(err) });
+            }
+          });
+          return true;
+        }
         if (mm[2] === "context") {
           const scope = {
             orgId: mm[1] as string,
@@ -985,6 +1055,9 @@ export class HenosisServer {
             case "project.crew":
               projectHost.project.crew(me, msg.sessionId, msg.crew);
               break;
+            case "project.policy":
+              projectHost.project.setPolicy(me, msg.policy);
+              break;
             case "session.create":
               projectHost.session(msg.sessionId, {
                 title: msg.title,
@@ -1026,6 +1099,7 @@ function isProjectMessage(m: AnyClientMessage): m is ProjectClientMessage {
     "fleet.brief",
     "project.note",
     "project.crew",
+    "project.policy",
     "session.create",
     "project.subscribe",
     "project.unsubscribe",

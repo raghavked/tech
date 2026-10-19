@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { fleetBrief } from "../src/brief.js";
 import { SessionStatusReport } from "../src/events.js";
 import { Project } from "../src/project.js";
-import { projectUsage, usageOf } from "../src/state.js";
+import { projectBudget, projectUsage, usageOf } from "../src/state.js";
 
 const report = (sessionId: string, turn: number) => ({
   sessionId,
@@ -60,5 +60,54 @@ describe("token usage on the project ledger", () => {
     // A closed session drops out of the total.
     p.closeSession("s-bo");
     expect(projectUsage(p.state()).input).toBe(10_000);
+  });
+
+  it("the project budget is the sum of the sessions' budgets until a lead sets one (Decision 8)", () => {
+    const p = Project.create("billing", "nw", "pay", "Billing", {
+      autoClaimOnWrite: true,
+      claimTtlTurns: 0,
+    });
+    p.join("dee", "Dee", "lead");
+    p.join("ana", "Ana", "member");
+    p.join("bo", "Bo", "member");
+    p.registerSession("s-ana", "ana", "Invoices");
+    p.registerSession("s-bo", "bo", "Receipts");
+    p.registerSession("s-cy", "ana", "Fonts");
+    // Nothing reported yet: no budget anywhere.
+    expect(projectBudget(p.state())).toEqual({
+      budget: null,
+      source: null,
+      sessionsWithBudget: 0,
+      sessionsWithout: 3,
+    });
+    p.reportStatus({ ...report("s-ana", 3), budget: 120_000 });
+    p.reportStatus({ ...report("s-bo", 1), budget: 60_000 });
+    p.reportStatus({ ...report("s-cy", 1), budget: null });
+    expect(projectBudget(p.state())).toEqual({
+      budget: 180_000,
+      source: "sessions",
+      sessionsWithBudget: 2,
+      sessionsWithout: 1,
+    });
+    // A caller that knows the session policies (the usage API) overrides the reports.
+    expect(projectBudget(p.state(), new Map([["s-cy", 20_000]])).budget).toBe(200_000);
+    // A closed session's budget drops out.
+    p.closeSession("s-bo");
+    expect(projectBudget(p.state()).budget).toBe(120_000);
+    // Only a lead sets the project's own number; it then replaces the sum.
+    expect(() => p.setPolicy("ana", { tokenBudget: 320_000 })).toThrow(/lead/);
+    expect(() => p.setPolicy("dee", {})).toThrow(/nothing/);
+    p.setPolicy("dee", { tokenBudget: 320_000 });
+    expect(p.state().policy).toMatchObject({
+      autoClaimOnWrite: true,
+      claimTtlTurns: 0,
+      tokenBudget: 320_000,
+    });
+    expect(projectBudget(p.state())).toMatchObject({ budget: 320_000, source: "project" });
+    // Clearing it returns to the sum; the fold is deterministic across a reload.
+    p.setPolicy("dee", { tokenBudget: null });
+    expect(projectBudget(p.state())).toMatchObject({ budget: 120_000, source: "sessions" });
+    expect(Project.fromSerialized(p.ledger.serialize()).state().policy).toEqual(p.state().policy);
+    expect(p.ledger.verify()).toEqual({ ok: true });
   });
 });

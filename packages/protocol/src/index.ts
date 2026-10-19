@@ -202,6 +202,8 @@ export interface UsageQuery {
   user?: string;
   /** A seq on the logical clock: events after it count. An ISO time is accepted and ignored. */
   since?: string;
+  /** Count only the last N agent turns of every session (the range control's honest unit). */
+  turns?: string;
 }
 
 export interface UsageSessionRow {
@@ -226,6 +228,42 @@ export interface UsageProjectRow {
   projectId: string;
   name: string;
   usage: Usage;
+  /**
+   * The project's soft budget (Decision 8): a number a lead set on the ledger policy, else
+   * the sum of its open sessions' budgets, else null. `budgetSource` says which.
+   */
+  budget: number | null;
+  budgetSource: "project" | "sessions" | null;
+}
+
+/**
+ * The pace read against a budget. The store keeps a logical clock, so the pace is tokens per
+ * agent turn over the counted range, and the forecast says how many turns are left before the
+ * budget's 80 % line and its end, never a date. Nothing stops at 100 %.
+ */
+export interface UsageForecast {
+  /** The budget the pace is read against: the project's, or the sum of the projects' in scope. */
+  budget: number | null;
+  /** Input + output spent so far in the counted range. */
+  spent: number;
+  /** Agent turns that ended in the counted range. */
+  turns: number;
+  /** Tokens per turn over the counted range; 0 before the first turn. */
+  perTurn: number;
+  /** Turns at this pace until 80 % of the budget; 0 when already past; null without a budget or a pace. */
+  turnsToWarn: number | null;
+  /** Turns at this pace until the budget; 0 when already over; null without a budget or a pace. */
+  turnsToBudget: number | null;
+  /** The method, in words, for the page foot. */
+  method: string;
+}
+
+/** Cache tokens, reported beside the budget and never counted against it. */
+export interface UsageCache {
+  read: number;
+  write: number;
+  /** Cache reads as a share of all input the model saw (input + cache read), 0..1. */
+  shareOfInput: number;
 }
 
 /** Usage spent in agent turns `from`..`to` (inclusive) across the sessions in the report. */
@@ -247,8 +285,14 @@ export interface UsageReport {
    * so usage is grouped by the agent turn it was spent in rather than by day.
    */
   byTurnBucket: UsageTurnBucket[];
+  /** Cache reads and writes in the counted range; outside every budget. */
+  cache: UsageCache;
+  /** The pace against the budget in scope. */
+  forecast: UsageForecast;
   /** The seq the report counts from, or null for everything. */
   since: number | null;
+  /** Only the last N agent turns of every session were counted, when `turns` was asked for. */
+  turns: number | null;
   clock: "logical";
   /** Query parts that could not be applied, in words. */
   warnings: string[];

@@ -27,8 +27,17 @@ export const ProjectPolicy = z.object({
   autoClaimOnWrite: z.boolean().default(true),
   /** Claims expire after this many turns of inactivity by the holder (0 = never). */
   claimTtlTurns: z.number().int().min(0).default(0),
+  /**
+   * A soft token budget for the whole project (Decision 8). Absent or null, the project's
+   * budget is the sum of its open sessions' budgets; a lead sets a number here to replace
+   * that sum. Nothing stops at 100 %: the meter turns amber, then red.
+   */
+  tokenBudget: z.number().int().min(0).nullable().optional(),
 });
 export type ProjectPolicy = z.infer<typeof ProjectPolicy>;
+/** What a lead may change on a project's policy after it was created. */
+export const ProjectPolicyPatch = ProjectPolicy.partial();
+export type ProjectPolicyPatch = z.infer<typeof ProjectPolicyPatch>;
 
 export const SessionStatusReport = z.object({
   sessionId: z.string(),
@@ -40,6 +49,8 @@ export const SessionStatusReport = z.object({
   pendingApprovals: z.number().int(),
   /** Tokens the session has used so far; absent in ledgers written before usage was counted. */
   usage: Usage.optional(),
+  /** The session policy's soft budget, so the ledger can sum a project budget (Decision 8). */
+  budget: z.number().int().min(0).nullable().optional(),
   /** Plan first: the plan the session is on, its estimate and what it has spent so far. */
   plan: z
     .object({
@@ -74,6 +85,8 @@ export const ProjectEventBody = z.discriminatedUnion("kind", [
   ),
   base("project.member.left", z.object({ userId: z.string() })),
   base("project.role.changed", z.object({ userId: z.string(), role: ProjectRole })),
+  /** A lead changes part of the policy; the rest keeps its value. */
+  base("project.policy.changed", z.object({ policy: ProjectPolicyPatch })),
 
   base(
     "session.registered",

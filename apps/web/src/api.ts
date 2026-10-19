@@ -41,6 +41,17 @@ export interface Person {
 }
 export type SessionRow = SessionSummary & { live: SessionStatus | null; people: Person[] };
 
+/** The aside's "At this scope" figures (packages/server/src/memoryQuery.ts `MemoryStats`). */
+export interface MemoryStats {
+  entries: number;
+  openConflicts: number;
+  retracted: number;
+  readInLastHour: number;
+  oldestStillRead: { id: string; key: string | null; seq: number; at: number } | null;
+  readersInLastHour: number;
+  now: number;
+}
+
 export interface MemoryFeed {
   orgId: string;
   seq: number;
@@ -53,6 +64,7 @@ export interface MemoryFeed {
     folded: number;
     seq: number;
   }[];
+  stats: MemoryStats;
 }
 
 /** Optional filters on the memory feed; see packages/server/src/memoryQuery.ts. */
@@ -117,6 +129,17 @@ export async function getJson<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function postJson<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(apiUrl(url), {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(data.error ?? `${res.status} ${res.statusText} for ${url}`);
+  return data;
+}
+
 export const api = {
   me: (userId: string) => getJson<Me>(`/api/me?user=${encodeURIComponent(userId)}`),
   project: (id: string) => getJson<ProjectState>(`/api/projects/${encodeURIComponent(id)}`),
@@ -138,6 +161,22 @@ export const api = {
     return getJson<{ context: string }>(`/api/memory/${encodeURIComponent(org)}/context?${p}`);
   },
   curate: (org: string) => getJson<CuratorReport>(`/api/memory/${encodeURIComponent(org)}/curate`),
+  /** memory-browser: a person keeps one side of a conflict; the loser is retracted in their name. */
+  memoryKeep: (org: string, user: string, conflictId: string, winnerId: string, note = "") =>
+    postJson<MemoryFeed>(
+      `/api/memory/${encodeURIComponent(org)}/keep?user=${encodeURIComponent(user)}`,
+      {
+        conflictId,
+        winnerId,
+        note,
+      },
+    ),
+  /** memory-browser: a person retracts an entry with a reason; the curator never does. */
+  memoryRetract: (org: string, user: string, entryId: string, reason: string) =>
+    postJson<MemoryFeed>(
+      `/api/memory/${encodeURIComponent(org)}/retract?user=${encodeURIComponent(user)}`,
+      { entryId, reason },
+    ),
   /** settings-page: the policy new sessions in a project are created with. */
   policy: (id: string) => getJson<SessionPolicy>(`/api/projects/${encodeURIComponent(id)}/policy`),
   /** settings-page: which adapters run beside the server. */

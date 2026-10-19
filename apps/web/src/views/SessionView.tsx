@@ -498,7 +498,6 @@ function liveStepOf(s: SessionState): string | null {
   const done = new Set(t.toolResults.map((r) => r.callId));
   const call = t.toolCalls.find((c) => !done.has(c.id));
   return call ? describeCall(call).doing : null;
-
 }
 
 /**

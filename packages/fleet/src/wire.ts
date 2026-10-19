@@ -1,7 +1,7 @@
 /** Project-level websocket messages, layered beside the session messages. */
 import { DirectiveInput, SessionPolicyPatch } from "@henosis/protocol";
 import { z } from "zod";
-import { ClaimMode, ProjectEventBody, Resource } from "./events.js";
+import { ClaimMode, ProjectEventBody, ProjectPolicyPatch, Resource } from "./events.js";
 
 export const ProjectClientMessage = z.discriminatedUnion("type", [
   z.object({
@@ -34,6 +34,8 @@ export const ProjectClientMessage = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("fleet.brief") }),
   z.object({ type: z.literal("project.note"), text: z.string() }),
+  /** A lead changes part of the project policy, e.g. sets or clears the project budget. */
+  z.object({ type: z.literal("project.policy"), policy: ProjectPolicyPatch }),
   z.object({
     type: z.literal("project.crew"),
     sessionId: z.string(),

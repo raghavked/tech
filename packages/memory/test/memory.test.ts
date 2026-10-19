@@ -176,4 +176,62 @@ describe("memory store", () => {
       m.state().entries[m.recall(project, "nightly")[0]?.id ?? ""]?.reads,
     ).toBeGreaterThanOrEqual(0);
   });
+
+  it("keeps a per-entry read log with the wall clock, the readers and the newest reads", () => {
+    const m = MemoryStore.create("northwind");
+    const T = 1_700_000_000_000;
+    let now = T;
+    m.now = () => now;
+    const a = m.remember({
+      scope: org,
+      key: "auth",
+      content: "SSO through Okta",
+      attribution: dee,
+    });
+    const b = m.remember({ scope: project, content: "Invoices run nightly", attribution: ana });
+    // Nobody has read anything: the log is empty and the wall clock unknown.
+    expect(m.state().entries[a.entry.id]).toMatchObject({
+      reads: 0,
+      lastReadAt: null,
+      readBy: [],
+      readLog: [],
+    });
+    m.contextFor(project, "s-ana");
+    now = T + 60_000;
+    m.contextFor(project, "s-bo");
+    now = T + 120_000;
+    m.contextFor(org, "s-ana");
+    const ea = m.state().entries[a.entry.id];
+    const eb = m.state().entries[b.entry.id];
+    expect(ea?.reads).toBe(3);
+    expect(ea?.readBy).toEqual(["s-ana", "s-bo"]);
+    expect(ea?.lastReadAt).toBe(T + 120_000);
+    expect(ea?.readLog.map((r) => [r.by, r.at])).toEqual([
+      ["s-ana", T],
+      ["s-bo", T + 60_000],
+      ["s-ana", T + 120_000],
+    ]);
+    // The project entry is not in the org reader's context.
+    expect(eb?.readBy).toEqual(["s-ana", "s-bo"]);
+    expect(eb?.lastReadAt).toBe(T + 60_000);
+    // "Read since": the entries and readers with a read at or after a wall-clock instant.
+    expect(m.readSince(T + 90_000)).toEqual({ entryIds: [a.entry.id], readers: ["s-ana"] });
+    expect(m.readSince(T).entryIds.sort()).toEqual([a.entry.id, b.entry.id].sort());
+    expect(m.readSince(T + 200_000)).toEqual({ entryIds: [], readers: [] });
+    // The log is capped at READ_LOG_KEEP newest reads; the count keeps growing.
+    for (let i = 0; i < 40; i++) {
+      now = T + 200_000 + i;
+      m.contextFor(org, `s-${i}`);
+    }
+    const capped = m.state().entries[a.entry.id];
+    expect(capped?.reads).toBe(43);
+    expect(capped?.readLog).toHaveLength(32);
+    expect(capped?.readLog[0]?.by).toBe("s-8");
+    expect(capped?.readBy).toHaveLength(42);
+    // The ledger replays to the same log, and the event carries the wall clock.
+    const again = MemoryStore.fromSerialized(m.ledger.serialize());
+    expect(again.state().entries[a.entry.id]?.readLog).toEqual(capped?.readLog);
+    const read = m.ledger.eventsOf("main").find((e) => e.kind === "memory.read");
+    expect(read?.kind === "memory.read" && read.payload.at).toBe(T);
+  });
 });

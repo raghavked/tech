@@ -315,6 +315,7 @@ export class ProjectHost {
           pendingApprovals: Object.values(st.approvals).filter((a) => a.status === "pending")
             .length,
           usage: st.usage,
+          budget: st.policy.tokenBudget ?? null,
           ...(plan
             ? {
                 plan: {

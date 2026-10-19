@@ -106,7 +106,15 @@ export const MemoryEventBody = z.discriminatedUnion("kind", [
     }),
   ),
   base("memory.redacted", z.object({ entryId: z.string() })),
-  base("memory.read", z.object({ entryIds: z.array(z.string()), by: z.string() })),
+  /**
+   * A reader (a session id, a person, "api") took these entries into its context. `at` is the
+   * wall clock in ms: the ledger's own `ts` is a logical clock, and the browser's "read in the
+   * last hour" needs a real one. Absent in ledgers written before the read log.
+   */
+  base(
+    "memory.read",
+    z.object({ entryIds: z.array(z.string()), by: z.string(), at: z.number().optional() }),
+  ),
 ]);
 export type MemoryEventBody = z.infer<typeof MemoryEventBody>;
 export type MemoryEvent = MemoryEventBody & ChainEvent;

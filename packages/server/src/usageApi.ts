@@ -15,12 +15,19 @@
  * logical clock (events with seq > since count), and the time series is `byTurnBucket`:
  * usage grouped by the agent turn it was spent in, ten turns per bucket, which is the one
  * axis every session shares. An ISO `since` is accepted, ignored, and named in `warnings`.
+ * `turns=N` is the range control's unit: only the last N agent turns of every session count.
+ *
+ * Every row carries its `usage` with the in/out split (the charts are labelled "in + out"),
+ * `cache` reports what never counts against a budget, each project row carries its budget
+ * (Decision 8: the ledger policy's number, else the sum of its sessions' budgets) and
+ * `forecast` reads the pace against the budget in scope, in turns rather than days.
  */
-import { Project, type ProjectState, type SerializedLedger } from "@henosis/fleet";
+import { Project, type ProjectState, projectBudget, type SerializedLedger } from "@henosis/fleet";
 import { type SerializedLog, Session } from "@henosis/kernel";
 import {
   addUsage,
   type Usage,
+  type UsageForecast,
   type UsageProjectRow,
   type UsageQuery,
   type UsageReport,
@@ -56,12 +63,18 @@ export function usageQueryOf(params: URLSearchParams): UsageQuery {
   }
   const since = params.get("since")?.trim();
   if (since) out.since = since;
+  const turns = params.get("turns")?.trim();
+  if (turns) out.turns = turns;
   return out;
 }
+
+/** The budget's amber line, as a fraction; the same 0.8 every meter uses. */
+export const BUDGET_WARN = 0.8;
 
 export function computeUsage(src: UsageSource, q: UsageQuery = {}): UsageReport {
   const warnings: string[] = [];
   const since = sinceSeq(q.since, warnings);
+  const lastTurns = turnsOf(q.turns, warnings);
   const ledgers = loadLedgers(src);
   const rows: UsageSessionRow[] = [];
   const buckets = new Map<number, UsageTurnBucket>();
@@ -88,11 +101,13 @@ export function computeUsage(src: UsageSource, q: UsageQuery = {}): UsageReport 
     if (!keep(st.projectId, ownerId)) continue;
     let usage: Usage = { ...ZERO_USAGE };
     let turns = 0;
+    // The last N turns: everything spent in turn numbers above `st.turn - N`.
+    const fromTurn = lastTurns === null ? 0 : Math.max(0, st.turn - lastTurns);
     for (const branch of session.branches()) {
       for (const e of session.log.ownEvents(branch)) {
         if (since !== null && e.seq <= since) continue;
-        if (e.kind === "agent.turn.ended") turns++;
-        if (e.kind === "agent.model.completed" && e.payload.usage) {
+        if (e.kind === "agent.turn.ended" && e.payload.turn > fromTurn) turns++;
+        if (e.kind === "agent.model.completed" && e.payload.usage && e.payload.turn > fromTurn) {
           usage = addUsage(usage, e.payload.usage);
           bucket(buckets, e.payload.turn, e.payload.usage);
         }
@@ -114,15 +129,16 @@ export function computeUsage(src: UsageSource, q: UsageQuery = {}): UsageReport 
     for (const ss of Object.values(ledger.sessions)) {
       if (seen.has(ss.sessionId) || !keep(projectId, ss.ownerId)) continue;
       seen.add(ss.sessionId);
-      const usage = since === null ? (ss.report?.usage ?? { ...ZERO_USAGE }) : { ...ZERO_USAGE };
+      const whole = since === null && lastTurns === null;
+      const usage = whole ? (ss.report?.usage ?? { ...ZERO_USAGE }) : { ...ZERO_USAGE };
       rows.push({
         projectId,
         sessionId: ss.sessionId,
         title: ss.title,
         ownerId: ss.ownerId,
         usage,
-        turns: since === null ? (ss.report?.turn ?? 0) : 0,
-        budget: null,
+        turns: whole ? (ss.report?.turn ?? 0) : 0,
+        budget: ss.report?.budget ?? null,
       });
     }
   }
@@ -144,26 +160,99 @@ export function computeUsage(src: UsageSource, q: UsageQuery = {}): UsageReport 
       projectId: r.projectId,
       name: nameOfProject(src, ledgers, r.projectId),
       usage: { ...ZERO_USAGE },
+      budget: null,
+      budgetSource: null,
     };
     p.usage = addUsage(p.usage, r.usage);
     projects.set(r.projectId, p);
   }
+  // Decision 8: a project's budget is the ledger policy's number when a lead set one, else the
+  // sum of its open sessions' budgets (read from the logs here, where the policy is known).
+  for (const p of projects.values()) {
+    const ledger = ledgers.get(p.projectId);
+    const budgets = new Map<string, number | null>();
+    for (const r of rows) if (r.projectId === p.projectId) budgets.set(r.sessionId, r.budget);
+    if (ledger) {
+      const b = projectBudget(ledger, budgets);
+      p.budget = b.budget;
+      p.budgetSource = b.source;
+    } else {
+      let sum = 0;
+      for (const b of budgets.values()) if (b) sum += b;
+      p.budget = sum > 0 ? sum : null;
+      p.budgetSource = sum > 0 ? "sessions" : null;
+    }
+  }
   const byTotal = <T extends { usage: Usage }>(xs: T[], key: (x: T) => string) =>
     xs.sort((a, b) => usageTotal(b.usage) - usageTotal(a.usage) || cmp(key(a), key(b)));
+  const byProject = byTotal([...projects.values()], (p) => p.projectId);
+  const turnsCounted = rows.reduce((n, r) => n + r.turns, 0);
+  const seenInput = totals.input + totals.cacheRead;
 
   return {
     totals,
     bySession: rows,
     byUser: byTotal([...users.values()], (u) => u.userId),
-    byProject: byTotal([...projects.values()], (p) => p.projectId),
+    byProject,
     byTurnBucket: [...buckets.values()].sort((a, b) => a.from - b.from),
+    cache: {
+      read: totals.cacheRead,
+      write: totals.cacheWrite,
+      shareOfInput: seenInput ? totals.cacheRead / seenInput : 0,
+    },
+    forecast: forecastOf(usageTotal(totals), turnsCounted, byProject),
     since,
+    turns: lastTurns,
     clock: "logical",
     warnings,
   };
 }
 
+/**
+ * The pace against the budget in scope: tokens per counted turn, carried forward until the
+ * budget's 80 % line and its end. The budget is the sum of the project budgets in scope; a
+ * project without one contributes nothing, and the forecast says so in its method line.
+ */
+export function forecastOf(
+  spent: number,
+  turns: number,
+  byProject: readonly UsageProjectRow[],
+): UsageForecast {
+  const withBudget = byProject.filter((p) => p.budget !== null);
+  const budget = withBudget.length ? withBudget.reduce((n, p) => n + (p.budget ?? 0), 0) : null;
+  const perTurn = turns > 0 ? spent / turns : 0;
+  const left = (line: number): number | null => {
+    if (budget === null || perTurn <= 0) return null;
+    return Math.max(0, Math.ceil((budget * line - spent) / perTurn));
+  };
+  const unbudgeted = byProject.length - withBudget.length;
+  const method =
+    budget === null
+      ? "No budget in scope: the pace is tokens per agent turn over the counted range."
+      : `The pace is tokens per agent turn over the counted range, carried forward against ${
+          unbudgeted
+            ? `the ${withBudget.length} budgeted of ${byProject.length} projects`
+            : "the budget"
+        }. The budget is soft: the meter turns amber at 80 %, then red, and nothing stops.`;
+  return {
+    budget,
+    spent,
+    turns,
+    perTurn: Math.round(perTurn),
+    turnsToWarn: left(BUDGET_WARN),
+    turnsToBudget: left(1),
+    method,
+  };
+}
+
 // ---- internals ---------------------------------------------------------------------------
+
+function turnsOf(raw: string | undefined, warnings: string[]): number | null {
+  if (!raw) return null;
+  if (/^\d+$/.test(raw) && Number(raw) > 0) return Number(raw);
+  warnings.push(`turns=${raw} ignored: not a count of turns`);
+  return null;
+}
 
 function sinceSeq(raw: string | undefined, warnings: string[]): number | null {
   if (!raw) return null;

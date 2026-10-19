@@ -143,6 +143,56 @@ describe("GET /api/usage", () => {
     );
   });
 
+  it("turns=N counts the last N turns of every session; cache, forecast and budgets ride along", async () => {
+    const all = (await (await fetch(`${base}/api/usage?user=ana`)).json()) as UsageReport;
+    const s = server.host("s-ana").session.state();
+    expect(all.turns).toBeNull();
+    // Every row keeps its in/out split; cache is reported beside the budget, never in it.
+    expect(all.bySession[0]?.usage.input).toBeGreaterThan(0);
+    expect(all.cache).toEqual({
+      read: all.totals.cacheRead,
+      write: all.totals.cacheWrite,
+      shareOfInput: all.totals.cacheRead / (all.totals.input + all.totals.cacheRead) || 0,
+    });
+    // Decision 8: no project budget on the ledger, so the project's is the sum of its open
+    // sessions' budgets (both at 50k), whoever the report is filtered to.
+    const proj = all.byProject.find((p) => p.projectId === "default");
+    expect(proj).toMatchObject({ budget: 100_000, budgetSource: "sessions" });
+    // The forecast reads the pace per turn against that budget.
+    const spent = usageTotal(all.totals);
+    expect(all.forecast.budget).toBe(100_000);
+    expect(all.forecast.spent).toBe(spent);
+    expect(all.forecast.turns).toBe(s.turns.length);
+    expect(all.forecast.perTurn).toBe(Math.round(spent / s.turns.length));
+    expect(all.forecast.turnsToBudget).toBe(
+      Math.max(0, Math.ceil((100_000 - spent) / (spent / s.turns.length))),
+    );
+    expect(all.forecast.turnsToWarn).toBeLessThanOrEqual(all.forecast.turnsToBudget ?? 0);
+    expect(all.forecast.method).toContain("nothing stops");
+    // The last turn only: the usage of the model calls in that turn, one turn ended.
+    const last = (await (await fetch(`${base}/api/usage?user=ana&turns=1`)).json()) as UsageReport;
+    expect(last.turns).toBe(1);
+    expect(last.bySession[0]?.turns).toBe(1);
+    const lastTurn = s.turns[s.turns.length - 1];
+    expect(last.totals).toEqual(lastTurn?.usage);
+    // More turns than the session has: everything, same as no range.
+    const wide = (await (
+      await fetch(`${base}/api/usage?user=ana&turns=999`)
+    ).json()) as UsageReport;
+    expect(wide.totals).toEqual(all.totals);
+    const bad = (await (await fetch(`${base}/api/usage?turns=soon`)).json()) as UsageReport;
+    expect(bad.turns).toBeNull();
+    expect(bad.warnings[0]).toContain("turns=soon");
+    // A lead's project budget replaces the sum.
+    const ledger = server.project("default").project;
+    ledger.join("lee", "Lee", "lead");
+    ledger.setPolicy("lee", { tokenBudget: 1_000_000 });
+    const set = (await (await fetch(`${base}/api/usage`)).json()) as UsageReport;
+    expect(set.byProject[0]).toMatchObject({ budget: 1_000_000, budgetSource: "project" });
+    expect(set.forecast.budget).toBe(1_000_000);
+    ledger.setPolicy("lee", { tokenBudget: null });
+  });
+
   it("reads sessions and ledgers from disk when nothing is hosted", async () => {
     const live = (await (await fetch(`${base}/api/usage`)).json()) as UsageReport;
     await server.close();

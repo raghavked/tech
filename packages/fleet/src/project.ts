@@ -19,6 +19,8 @@ import {
   type ProjectEvent,
   type ProjectEventBody,
   type ProjectPolicy,
+  type ProjectPolicyPatch,
+  ProjectPolicyPatch as ProjectPolicyPatchSchema,
   type ProjectRole,
   type Resource,
   Resource as ResourceSchema,
@@ -103,6 +105,22 @@ export class Project {
     if (!this.current.members[userId])
       throw new KernelError("not_found", `unknown member ${userId}`);
     return this.emit(by, { kind: "project.role.changed", payload: { userId, role } });
+  }
+
+  /** A lead or admin changes part of the policy, e.g. the project's soft token budget. */
+  setPolicy(by: string, patch: ProjectPolicyPatch): ProjectEvent {
+    if (this.rankOf(by) < PROJECT_RANK.lead)
+      throw new KernelError(
+        "unauthorized",
+        "changing the project policy requires a lead or an admin",
+      );
+    const parsed = ProjectPolicyPatchSchema.parse(patch);
+    const policy: ProjectPolicyPatch = {};
+    for (const k of Object.keys(parsed) as (keyof ProjectPolicyPatch)[])
+      if (parsed[k] !== undefined) (policy as Record<string, unknown>)[k] = parsed[k];
+    if (Object.keys(policy).length === 0)
+      throw new KernelError("invalid", "nothing to change in the policy");
+    return this.emit(by, { kind: "project.policy.changed", payload: { policy } });
   }
 
   // ---- sessions ----------------------------------------------------------------------

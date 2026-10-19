@@ -129,6 +129,13 @@ export function reduceProject(prev: ProjectState, e: ProjectEvent): ProjectState
       if (m) m.role = e.payload.role;
       break;
     }
+    case "project.policy.changed": {
+      const p = e.payload.policy;
+      if (p.autoClaimOnWrite !== undefined) s.policy.autoClaimOnWrite = p.autoClaimOnWrite;
+      if (p.claimTtlTurns !== undefined) s.policy.claimTtlTurns = p.claimTtlTurns;
+      if (p.tokenBudget !== undefined) s.policy.tokenBudget = p.tokenBudget;
+      break;
+    }
     case "session.registered":
       s.sessions[e.payload.sessionId] = {
         sessionId: e.payload.sessionId,
@@ -288,6 +295,56 @@ export function projectUsage(s: ProjectState): Usage {
   let total: Usage = { ...ZERO_USAGE };
   for (const ss of Object.values(s.sessions)) if (ss.open) total = addUsage(total, usageOf(ss));
   return total;
+}
+
+/** Where a project's budget comes from: a number a lead set, or the sum of its sessions' budgets. */
+export type BudgetSource = "project" | "sessions" | null;
+
+export interface ProjectBudget {
+  /** Input + output tokens the project may spend before the meter turns red; null when nobody set one. */
+  budget: number | null;
+  source: BudgetSource;
+  /** Open sessions with a budget of their own, and those without. */
+  sessionsWithBudget: number;
+  sessionsWithout: number;
+}
+
+/**
+ * The project budget (Decision 8): the ledger policy's `tokenBudget` when a lead set one, else
+ * the sum of the open sessions' budgets, else null. `budgets` lets a caller that knows the
+ * session policies (the usage API reads the logs) override what the status reports carried.
+ */
+export function projectBudget(
+  s: ProjectState,
+  budgets?: ReadonlyMap<string, number | null>,
+): ProjectBudget {
+  let sum = 0;
+  let withBudget = 0;
+  let without = 0;
+  for (const ss of Object.values(s.sessions)) {
+    if (!ss.open) continue;
+    const b = budgets?.has(ss.sessionId) ? budgets.get(ss.sessionId) : ss.report?.budget;
+    if (typeof b === "number" && b > 0) {
+      sum += b;
+      withBudget += 1;
+    } else without += 1;
+  }
+  const set = s.policy.tokenBudget;
+  if (typeof set === "number" && set > 0)
+    return {
+      budget: set,
+      source: "project",
+      sessionsWithBudget: withBudget,
+      sessionsWithout: without,
+    };
+  if (withBudget > 0)
+    return {
+      budget: sum,
+      source: "sessions",
+      sessionsWithBudget: withBudget,
+      sessionsWithout: without,
+    };
+  return { budget: null, source: null, sessionsWithBudget: 0, sessionsWithout: without };
 }
 
 export function activeClaims(s: ProjectState): ClaimRecord[] {

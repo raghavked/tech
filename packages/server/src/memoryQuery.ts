@@ -24,12 +24,33 @@ export interface MemoryQuery {
   q?: string;
 }
 
+/** How long an entry counts as "still read": the oldest entry read in this window is named. */
+export const STILL_READ_WINDOW_MS = 7 * 24 * 3600_000;
+export const LAST_HOUR_MS = 3600_000;
+
+/** The aside's "At this scope" figures, computed from the per-entry read log (memory/state.ts). */
+export interface MemoryStats {
+  /** Active entries after the filter. */
+  entries: number;
+  openConflicts: number;
+  retracted: number;
+  /** Entries a session or person took into context in the last hour of wall-clock time. */
+  readInLastHour: number;
+  /** The oldest entry (by ledger seq) still read within STILL_READ_WINDOW_MS, when there is one. */
+  oldestStillRead: { id: string; key: string | null; seq: number; at: number } | null;
+  /** Distinct readers (session ids, people) in the last hour. */
+  readersInLastHour: number;
+  /** The wall clock the figures were read at, so a client can age them. */
+  now: number;
+}
+
 export interface MemoryFeed {
   orgId: string;
   seq: number;
   entries: EntryRecord[];
   conflicts: MemoryConflict[];
   compactions: MemoryState["compactions"];
+  stats: MemoryStats;
 }
 
 const STATUSES = new Set<EntryRecord["status"]>([
@@ -82,7 +103,39 @@ export function entryMatches(e: EntryRecord, q: MemoryQuery): boolean {
   return true;
 }
 
-export function memoryFeed(st: MemoryState, q: MemoryQuery = {}): MemoryFeed {
+export function memoryStats(
+  entries: readonly EntryRecord[],
+  conflicts: readonly MemoryConflict[],
+  now = Date.now(),
+): MemoryStats {
+  const hourAgo = now - LAST_HOUR_MS;
+  const windowStart = now - STILL_READ_WINDOW_MS;
+  let readInLastHour = 0;
+  const readers = new Set<string>();
+  let oldest: MemoryStats["oldestStillRead"] = null;
+  for (const e of entries) {
+    const log = e.readLog ?? [];
+    const lastHour = log.filter((r) => r.at !== null && r.at >= hourAgo);
+    if (lastHour.length) {
+      readInLastHour += 1;
+      for (const r of lastHour) readers.add(r.by);
+    }
+    const stillRead = e.lastReadAt !== null && e.lastReadAt >= windowStart;
+    if (stillRead && e.status === "active" && (oldest === null || e.seq < oldest.seq))
+      oldest = { id: e.id, key: e.key, seq: e.seq, at: e.lastReadAt as number };
+  }
+  return {
+    entries: entries.filter((e) => e.status === "active" && e.kind !== "retraction").length,
+    openConflicts: conflicts.filter((c) => !c.resolved).length,
+    retracted: entries.filter((e) => e.status === "retracted").length,
+    readInLastHour,
+    oldestStillRead: oldest,
+    readersInLastHour: readers.size,
+    now,
+  };
+}
+
+export function memoryFeed(st: MemoryState, q: MemoryQuery = {}, now = Date.now()): MemoryFeed {
   const entries = Object.values(st.entries).filter((e) => entryMatches(e, q));
   const kept = new Set(entries.map((e) => e.id));
   const conflicts = Object.values(st.conflicts).filter((c) =>
@@ -97,5 +150,12 @@ export function memoryFeed(st: MemoryState, q: MemoryQuery = {}): MemoryFeed {
     if (q.level === "project" && !project) return false;
     return true;
   });
-  return { orgId: st.orgId, seq: st.seq, entries, conflicts, compactions };
+  return {
+    orgId: st.orgId,
+    seq: st.seq,
+    entries,
+    conflicts,
+    compactions,
+    stats: memoryStats(entries, conflicts, now),
+  };
 }

@@ -79,6 +79,8 @@ export class MemoryStore {
   readonly ledger: MemoryLedger;
   private current: MemoryState;
   private readonly listeners = new Set<MemoryListener>();
+  /** The wall clock a read is stamped with; tests replace it. */
+  now: () => number = () => Date.now();
 
   constructor(ledger: MemoryLedger = new MemoryLedger()) {
     this.ledger = ledger;
@@ -323,8 +325,27 @@ export class MemoryStore {
       if (!push(`  - ${head.replace(/\n/g, "\n    ")} (${who(e)})`, e.id)) break;
     }
     if (used.length)
-      this.emit(reader, { kind: "memory.read", payload: { entryIds: used, by: reader } });
+      this.emit(reader, {
+        kind: "memory.read",
+        payload: { entryIds: used, by: reader, at: this.now() },
+      });
     return lines.join("\n");
+  }
+
+  /**
+   * Reads at wall-clock `at` or later, for the browser's aside: how many entries were read in
+   * the last hour, the oldest entry still being read, and who reads a conflict's sides.
+   */
+  readSince(at: number): { entryIds: string[]; readers: string[] } {
+    const entryIds: string[] = [];
+    const readers = new Set<string>();
+    for (const e of Object.values(this.current.entries)) {
+      const recent = (e.readLog ?? []).filter((r) => r.at !== null && r.at >= at);
+      if (!recent.length) continue;
+      entryIds.push(e.id);
+      for (const r of recent) readers.add(r.by);
+    }
+    return { entryIds, readers: [...readers].sort() };
   }
 
   // ---- internals ---------------------------------------------------------------------

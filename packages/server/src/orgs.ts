@@ -126,6 +126,56 @@ export class OrgRegistry {
     return u ? deriveSessionRole(u, ref, sessionOwnerId) : null;
   }
 
+  /**
+   * memory-browser: a person's standing in an org's memory, for Keep-this and Retract. A lead
+   * or admin of the org, of the team or project asked for, or (at org level) of any of its
+   * teams or projects is an owner; any other member is a contributor; a person placed nowhere
+   * in the org observes and may not change what the team remembers. Null for an unknown user.
+   * A team or project the registry does not know falls back to the person's standing in the org.
+   */
+  memoryRole(
+    userId: string | null | undefined,
+    orgId: string,
+    scope: { teamId?: string; projectId?: string } = {},
+  ): Role | null {
+    const u = this.user(userId);
+    if (!u) return null;
+    const org = this.orgs.orgs.find((o) => o.id === orgId);
+    const best = (roles: (Role | null)[]): Role =>
+      roles.includes("owner")
+        ? "owner"
+        : roles.includes("contributor")
+          ? "contributor"
+          : "observer";
+    const ofProject = (projectId: string): Role | null => {
+      const ref = findProject(this.orgs, projectId);
+      return ref && ref.orgId === orgId ? deriveSessionRole(u, ref, null) : null;
+    };
+    const ofTeam = (teamId: string): Role | null => {
+      const found = findTeam(this.orgs, teamId);
+      if (!found || found.orgId !== orgId) return null;
+      const t = u.teams.find((m) => m.teamId === teamId);
+      if (t) return t.role === "member" ? "contributor" : "owner";
+      const o = u.orgs.find((m) => m.orgId === orgId);
+      if (o) return o.role === "admin" ? "owner" : "contributor";
+      return "observer";
+    };
+    // A project or team the registry knows decides; one it does not falls back to the org.
+    const scoped = scope.projectId
+      ? ofProject(scope.projectId)
+      : scope.teamId
+        ? ofTeam(scope.teamId)
+        : null;
+    if (scoped) return scoped;
+    const o = u.orgs.find((m) => m.orgId === orgId);
+    if (o) return o.role === "admin" ? "owner" : "contributor";
+    if (!org) return "observer";
+    return best([
+      ...org.teams.map((t) => ofTeam(t.id)),
+      ...org.teams.flatMap((t) => t.projects.map((p) => ofProject(p.id))),
+    ]);
+  }
+
   projectsFor(userId: string | null | undefined) {
     const u = this.user(userId);
     const out: {
