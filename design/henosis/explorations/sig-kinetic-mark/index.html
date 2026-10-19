@@ -29,7 +29,7 @@
   /* the mark: brand constants, never --accent */
   --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
   --mark-a-lift: #8B6B5B;             /* the person's arc lifted 62 % toward apricot: the rail under 24 px and the favicon */
-  --page-b: #2A3244; --page-disc: none; /* on the cream canvas a bare mark takes a navy agent's arc; on the dark canvas the disc returns */
+  --page-b: #2A3244; --page-disc: none; --page-blend: normal; /* on the cream canvas a bare mark takes a navy agent's arc; on the dark canvas the disc returns */
   --font: Inter, "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --serif: Fraunces, "Instrument Serif", "Iowan Old Style", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -49,7 +49,7 @@
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
   --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
-  --mark-disc: #2A3244; --page-b: #E2C4A6; --page-disc: block;
+  --mark-disc: #2A3244; --page-b: #E2C4A6; --page-disc: block; --page-blend: screen;
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
@@ -61,7 +61,7 @@
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
   --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
-  --mark-disc: #2A3244; --page-b: #E2C4A6; --page-disc: block;
+  --mark-disc: #2A3244; --page-b: #E2C4A6; --page-disc: block; --page-blend: screen;
   color-scheme: dark;
 }
 
@@ -103,13 +103,14 @@ button { font-family: inherit; }
 .mark .arc.a { stroke: var(--mark-arc-a); }
 .mark .arc.b { stroke: var(--mark-arc-b); stroke-dasharray: var(--b-drawn) 100; }
 .mark .dot { fill: var(--mark-dot); transition: translate var(--t-baton) var(--ease-mark), opacity var(--t) ease; }
-.mark .halo { fill: var(--apricot); opacity: 0; transition: translate var(--t-baton) var(--ease-mark); }
-.mark .glow { stroke: var(--apricot); stroke-width: calc(var(--w) + 8); opacity: 0; }
+.mark .halo { fill: var(--apricot); opacity: 0; transition: translate var(--t-baton) var(--ease-mark); mix-blend-mode: var(--mark-blend, screen); }
+.mark .glow { stroke: var(--apricot); stroke-width: calc(var(--w) + 8); opacity: 0; mix-blend-mode: var(--mark-blend, screen); }
 .mark .trace { stroke: var(--apricot); stroke-width: 2; stroke-dasharray: 0 5; opacity: 0; transition: opacity var(--t-slow) ease; }
 .mark .arc, .mark .dot, .mark .glow, .mark .halo { transform-box: view-box; transform-origin: 50% 50%; }
 /* cuts and grounds */
 .mark.bare .disc { display: none; }
 .mark.on-page { --mark-arc-b: var(--page-b); } .mark.on-page .disc { display: var(--page-disc); }
+.mark.on-page .trace, .mark.on-page .glow, .mark.on-page .halo { stroke: var(--apricot-deep); } .mark.on-page .halo { fill: var(--apricot-deep); } .mark.on-page { --mark-blend: var(--page-blend); }
 .mark.small { --w: 13; } .mark.tiny { --w: 16; }
 .mark.tiny .arc.a, .rail .mark .arc.a { stroke: var(--mark-a-lift); }   /* the one tinted arc: chocolate on navy is 1.4 : 1 under 24 px */
 /* rest states, written once, outside the guard (MOTION §1: rest is the end state) */
@@ -128,10 +129,10 @@ button { font-family: inherit; }
 @keyframes arc-a-once { 0% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 100% { transform: rotate(0) } }
 @keyframes arc-b-once { 0% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 100% { transform: rotate(0) } }
 @keyframes dot-once { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
-@keyframes mark-halo { 0% { transform: scale(1); opacity: .34 } 100% { transform: scale(2.3); opacity: 0 } }      /* the centre's halo pulse (MOTION §5.5) */
+@keyframes mark-halo { 0% { transform: scale(1); opacity: .42 } 100% { transform: scale(2.3); opacity: 0 } }      /* the centre's halo pulse (MOTION §5.5) */
 @keyframes notice { 0% { transform: scale(1); opacity: 0 } 12% { opacity: .55 } 100% { transform: scale(3.4); opacity: 0 } } /* the circle notices: once, as the centre lands */
 @keyframes breath-arc { 0%, 100% { opacity: .72 } 50% { opacity: 1 } }                                              /* the working side breathes */
-@keyframes breath-glow { 0%, 100% { transform: scale(1); opacity: 0 } 50% { transform: scale(1.04); opacity: .16 } } /* its aura: lit from within, not a ripple */
+@keyframes breath-glow { 0%, 100% { transform: scale(1); opacity: 0 } 50% { transform: scale(1.04); opacity: .2 } } /* its aura: lit from within, not a ripple */
 @keyframes take { 0% { stroke-width: var(--w) } 45% { stroke-width: calc(var(--w) * 1.26) } 100% { stroke-width: var(--w) } } /* the receiver takes the weight */
 @keyframes fade-in { from { opacity: 0 } }
 @keyframes card-in { from { opacity: 0; transform: translateY(6px) } }
@@ -185,18 +186,19 @@ button { font-family: inherit; }
 .top .ctl button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
 
 /* hero · navy lacquer: the one glossy object in a matte room (three-colour-brands §7) */
-.hero { display: grid; grid-template-columns: 450px 1fr; min-height: 428px; border-radius: var(--radius-lg); background: var(--blues); background-image: linear-gradient(168deg, rgba(255,255,255,.10), transparent 46%); color: var(--rail-fg); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), var(--shadow-pop); overflow: hidden; position: relative; }
+.hero { display: grid; grid-template-columns: 450px 1fr; min-height: 396px; border-radius: var(--radius-lg); background: var(--blues); background-image: linear-gradient(168deg, rgba(255,255,255,.10), transparent 46%); color: var(--rail-fg); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), var(--shadow-pop); overflow: hidden; position: relative; }
 .hero .stage { display: grid; place-items: center; border-right: 1px solid rgba(243,237,228,.10); position: relative; }
 .hero .stage .dial { position: absolute; width: 356px; height: 356px; border-radius: 50%; border: 1px solid rgba(243,237,228,.10); pointer-events: none; }
-.hero .stage .dial i { position: absolute; top: 50%; font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--rail-muted); transform: translateY(-50%); }
-.hero .stage .dial i.p { right: -4px; transform: translate(100%, -50%) rotate(90deg); transform-origin: left center; }
-.hero .stage .dial i.g { left: -4px; transform: translate(-100%, -50%) rotate(-90deg); transform-origin: right center; }
+.hero .stage .who { position: absolute; top: 18px; left: 24px; right: 24px; display: flex; justify-content: space-between; font: 500 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--rail-muted); pointer-events: none; }
+.hero .stage .who i { font-style: normal; display: inline-flex; align-items: center; gap: 7px; }
+.hero .stage .who i::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--apricot); }
+.hero .stage .who i.p::before { background: #9C7C69; } .hero .stage .who i.p { flex-direction: row-reverse; }
 .hero .stage .mark { width: 270px; height: 270px; }
 .hero .stage .scene { position: absolute; left: 24px; bottom: 18px; right: 24px; display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11.5px; color: var(--rail-muted); letter-spacing: .02em; }
 .hero .stage .scene b { font-weight: 500; color: var(--apricot); }
-.hero .copy { padding: 26px 34px 20px 38px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.hero .copy { padding: 22px 34px 16px 38px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
 .hero .copy .kicker { color: var(--rail-muted); }
-.hero .copy h1 { font: 400 38px/1.08 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.015em; color: #FFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 42px; }
+.hero .copy h1 { font: 400 36px/1.08 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.015em; color: #FFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 42px; }
 .hero .copy h1 .name { color: var(--apricot); }
 .hero .copy .sub { font-size: 14px; color: var(--rail-muted); display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; min-height: 22px; }
 .hero .copy .sub .mono { color: var(--apricot); font-size: 12px; flex: none; }
@@ -217,7 +219,7 @@ button { font-family: inherit; }
 .score .head-cap { fill: var(--apricot); }
 .score .none { font: italic 400 15px var(--serif); fill: var(--rail-muted); }
 /* the six states as a picker: the mark itself, at 28, in each state */
-.picker { display: flex; gap: 4px; margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(243,237,228,.10); flex-wrap: wrap; }
+.picker { display: flex; gap: 4px; margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(243,237,228,.10); flex-wrap: wrap; }
 .picker button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; background: transparent; color: var(--rail-fg); font: 400 14px/1 var(--serif); padding: 6px 12px 6px 7px; border-radius: var(--radius-full); cursor: pointer; opacity: .8; }
 .picker button .mark { width: 26px; height: 26px; }
 .picker button:hover { opacity: 1; background: rgba(243,237,228,.06); }
@@ -226,15 +228,15 @@ button { font-family: inherit; }
 
 /* the six, in a row: hairlines between, never boxes (premium-product-ui §1) */
 .states { display: grid; grid-template-columns: repeat(6, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.state { padding: 18px 18px 18px 20px; display: flex; flex-direction: column; gap: 9px; min-width: 0; position: relative; }
+.state { padding: 16px 18px 16px 20px; display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; }
 .state + .state { border-left: 1px solid var(--line); }
-.state .mark { width: 96px; height: 96px; margin: 0 0 6px; }
+.state .mark { width: 96px; height: 96px; margin: 0 0 4px; }
 .state .n { font: 400 24px/1.1 var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 10px; }
 .state .n .mono { color: var(--ink-3); font-size: 11.5px; }
 .state .say { font-size: 13.5px; line-height: 20px; color: var(--ink-2); text-wrap: pretty; }
 .state .say .name { font-size: 15px; }
 .state .move { font-size: 12.5px; line-height: 18px; color: var(--ink-3); border-top: 1px dotted var(--line); padding-top: 8px; margin-top: auto; }
-.state .calm { font: 400 11px/16px var(--mono); color: var(--ink-3); letter-spacing: .04em; }
+.state .calm { display: block; font: 400 11px/16px var(--mono); color: var(--ink-3); letter-spacing: .04em; margin-top: 6px; }
 .state .calm b { font-weight: 500; color: var(--ink-2); }
 
 /* sections below the fold */
@@ -272,7 +274,7 @@ table.spec tr:last-child td { border-bottom: 0; }
 .favrow .cell .live.no { color: var(--ink-3); }
 
 /* homes: the element where it lives */
-.homes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.homes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .home { border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); box-shadow: var(--edge); overflow: hidden; display: flex; flex-direction: column; }
 .home .cap { padding: 10px 14px; font-size: 12px; line-height: 17px; color: var(--ink-3); border-top: 1px solid var(--line); margin-top: auto; }
 .home .cap b { font-weight: 500; color: var(--ink-2); }
@@ -305,7 +307,7 @@ table.spec tr:last-child td { border-bottom: 0; }
 .sesh .hand { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius-full); padding: 5px 12px 5px 8px; font: 500 12.5px var(--font); color: var(--ink); cursor: pointer; }
 .sesh .hand .mark { width: 18px; height: 18px; }
 .toastwrap { padding: 18px; display: grid; place-items: center; background: var(--surface-2); height: 168px; }
-.toast { display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 14px; background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); box-shadow: var(--shadow-pop); width: 100%; position: relative; overflow: hidden; }
+.toast { display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 14px; background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); box-shadow: var(--shadow-pop); width: 100%; max-width: 400px; position: relative; overflow: hidden; }
 .toast::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--apricot); }
 .toast .mark { width: 32px; height: 32px; }
 .toast .s { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -329,7 +331,8 @@ table.spec tr:last-child td { border-bottom: 0; }
   .hero .stage .scene { left: 16px; right: 16px; bottom: 12px; font-size: 10.5px; }
   .hero .copy { padding: 20px 16px 16px; }
   .hero .copy h1 { font-size: 27px; white-space: normal; min-height: 0; }
-  .score .row text.n { font-size: 12px; }
+  .score { overflow-x: auto; -webkit-overflow-scrolling: touch; } .score svg { min-width: 640px; }
+  .hero .stage .who { display: none; }
   .picker button { padding: 5px 10px 5px 6px; font-size: 13px; }
   .picker button kbd { display: none; }
   .states { grid-template-columns: 1fr 1fr; border: 0; }
@@ -378,7 +381,7 @@ table.spec tr:last-child td { border-bottom: 0; }
   <!-- ============================ HERO ============================ -->
   <div class="hero" id="hero">
     <div class="stage">
-      <div class="dial" aria-hidden="true"><i class="p">person · chocolate</i><i class="g">agent · apricot</i></div>
+      <div class="dial" aria-hidden="true"></div><div class="who" aria-hidden="true"><i class="g">agent · left</i><i class="p">person · right</i></div>
       <svg class="mark bare" id="big" viewBox="0 0 96 96" role="img" aria-labelledby="bigname" data-state="thinking" data-who="agent" data-baton="agent"><title id="bigname">The Henosis mark, live</title><use href="#m"/></svg>
       <div class="scene"><span id="scene-l">Billing page · Checkout</span><span id="scene-r"><b>4 here</b> · 09:41</span></div>
     </div>
@@ -397,43 +400,37 @@ table.spec tr:last-child td { border-bottom: 0; }
       <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="idle"><use href="#m"/></svg>
       <div class="n">Idle <span class="mono">rest · 0 ms</span></div>
       <div class="say">The ring is one and nothing moves. <span class="name">Checkout</span> · 4 here.</div>
-      <div class="move">Rest is the end state: every other state lands exactly here. Resting marks never show a frame from the middle of a run.</div>
-      <div class="calm"><b>Calm</b> · this, always</div>
+      <div class="move">Rest is the end state: every other state lands exactly here. A resting mark is never a frame from the middle of a run.<span class="calm"><b>Calm</b> · this, always</span></div>
     </div>
     <div class="state rise" style="--i:1">
       <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="joining"><use href="#m"/></svg>
       <div class="n">Joining <span class="mono">loop · 1.8 s</span></div>
       <div class="say">Something is connecting. <span class="name">Ana's session</span> is opening the circle.</div>
-      <div class="move">The arcs hold apart at ±60° for 270 ms, swing in on the mark's curve, overshoot −4° / +2° and land; the centre appears only after the ring is one (60 %).</div>
-      <div class="calm"><b>Calm</b> · the closed ring</div>
+      <div class="move">The arcs hold apart at ±60° for 270 ms, swing in on the mark's curve, overshoot −4° / +2°, land; the centre only after the ring is one (60 %).<span class="calm"><b>Calm</b> · the closed ring</span></div>
     </div>
     <div class="state rise" style="--i:2">
       <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="settled" data-replay="3800" data-t0="-500"><use href="#m"/></svg>
       <div class="n">Settled <span class="mono">once · 1.8 s</span></div>
       <div class="say"><span class="name">Ana</span> joins the circle. From the invite link · Bo has the baton.</div>
-      <div class="move">The once run: arcs close in 800 ms on arrive, the centre lands at 550–1000, then one apricot notice ripples out 900–1800 as the circle sees her. It never pops again.</div>
-      <div class="calm"><b>Calm</b> · the closed ring; the line carries the news</div>
+      <div class="move">The once run: arcs close in 800 ms, the centre lands at 550–1000, one apricot notice ripples out 900–1800 as the circle sees her. It never pops again.<span class="calm"><b>Calm</b> · the closed ring; the line carries the news</span></div>
     </div>
     <div class="state rise" style="--i:3">
       <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="thinking" data-who="agent" data-baton="agent"><use href="#m"/></svg>
       <div class="n">Thinking <span class="mono">loop · 1.8 s</span></div>
       <div class="say"><span class="name">Ana's agent</span> is reading invoice.ts · 11 tool uses · 1m 06s.</div>
-      <div class="move">Only the working half breathes: the agent's arc 72→100 % with an apricot aura under it; the centre's halo pulses. When Bo types, his half breathes instead. Hue alone differs.</div>
-      <div class="calm"><b>Calm</b> · the closed ring; the status word says it</div>
+      <div class="move">Only the working half breathes: the agent's arc 72→100 % with an aura under it; the centre's halo pulses. When Bo types, his half breathes instead.<span class="calm"><b>Calm</b> · the closed ring; the status word says it</span></div>
     </div>
     <div class="state rise" style="--i:4">
       <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="blocked" data-unblock="2600"><use href="#m"/></svg>
       <div class="n">Blocked <span class="mono">320 → 450 ms</span></div>
       <div class="say">The plan waits for your rating. <span class="name">Bo's agent</span> asks to run stripe prorations apply.</div>
-      <div class="move">The person's arc draws back 30 % from the top seam in 320 ms; a dotted stitch shows where your hand is missing. Nothing pulses: the wait is yours. Your act redraws it in 450 ms.</div>
-      <div class="calm"><b>Calm</b> · the open seam with its stitch</div>
+      <div class="move">The person's arc draws back 30 % from the top seam in 320 ms; a dotted stitch shows where your hand is missing. Nothing pulses. Your act redraws it in 450 ms.<span class="calm"><b>Calm</b> · the open seam with its stitch</span></div>
     </div>
     <div class="state rise" style="--i:5">
       <svg class="mark on-page" viewBox="0 0 96 96" aria-hidden="true" data-state="idle" data-baton="person" data-flip="2600"><use href="#m"/></svg>
       <div class="n">Baton <span class="mono">once · 500 ms</span></div>
       <div class="say"><span class="name">Bo</span> has the baton → <span class="name">Bo's agent</span> has the baton.</div>
-      <div class="move">The centre sits 5 units toward whoever drives. On a handoff it crosses the ring in 500 ms on the mark's curve and the receiver's arc takes the weight (10 → 12.6 → 10). Nothing travels around the ring.</div>
-      <div class="calm"><b>Calm</b> · the centre on the holder's side, instantly</div>
+      <div class="move">The centre sits 5 units toward whoever drives. On a handoff it crosses in 500 ms on the mark's curve and the receiver's arc takes the weight (10 → 12.6 → 10).<span class="calm"><b>Calm</b> · the centre on the holder's side, instantly</span></div>
     </div>
   </div>
 
@@ -596,12 +593,12 @@ table.spec tr:last-child td { border-bottom: 0; }
     thinking: { say: '<span class="name">Ana\'s agent</span> is reading invoice.ts.', sub: 'thinking · the agent\'s half of the ring breathes; the person\'s half is still', t: '1.8 s loop', fav: 'working', dur: 1800, loop: true,
                 rows: [
                   { n: 'person\'s arc', k: 'still', c: 'a', bars: [[0,1800,'hold','opacity 1, no motion']] },
-                  { n: 'agent\'s arc',  k: 'breath-arc · ease-in-out', c: 'b', bars: [[0,900,'move','.72 → 1'],[900,1800,'move','1 → .72']] },
+                  { n: 'agent\'s arc',  k: 'breath-arc · in-out', c: 'b', bars: [[0,900,'move','.72 → 1'],[900,1800,'move','1 → .72']] },
                   { n: 'aura',          k: 'breath-glow · move', c: 'aura', bars: [[0,900,'move','0 → .16, ×1.04'],[900,1800,'move','→ 0']] },
                   { n: 'centre halo',   k: 'mark-halo · move', c: 'dot', bars: [[0,1800,'move','1 → 2.3×, .34 → 0']] } ] },
     blocked:  { say: 'The plan waits for your rating.', sub: 'blocked · the person\'s arc draws back from the seam; it stays open until you act', t: '320 ms · 450 ms', fav: 'needs-you', dur: 2000, replay: 4000,
                 rows: [
-                  { n: 'person\'s arc', k: 'stroke-dasharray · leave, arrive', c: 'a', bars: [[0,320,'move','100 → 70 %'],[320,1550,'wait','waits for you'],[1550,2000,'move','70 → 100 %']] },
+                  { n: 'person\'s arc', k: 'dasharray · leave → arrive', c: 'a', bars: [[0,320,'move','100 → 70 %'],[320,1550,'wait','waits for you'],[1550,2000,'move','70 → 100 %']] },
                   { n: 'agent\'s arc',  k: 'still', c: 'b', bars: [[0,2000,'hold','opacity 1, no motion']] },
                   { n: 'stitch',        k: 'opacity · 320', c: 'aura', bars: [[0,320,'move','0 → .6'],[320,1550,'wait','dotted, in the gap'],[1550,1870,'move','→ 0']] },
                   { n: 'centre',        k: 'opacity · 200', c: 'dot', bars: [[0,200,'move','1 → .85'],[200,1550,'hold','.85'],[1550,1750,'move','→ 1']] } ] },
@@ -613,7 +610,7 @@ table.spec tr:last-child td { border-bottom: 0; }
   };
   const ORDER = ['idle','joining','settled','thinking','blocked','baton'];
 
-  const PX = 0.31, X0 = 128, X1 = X0 + 2000 * PX;
+  const PX = 0.3, X0 = 170, X1 = X0 + 2000 * PX;
   const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const drawScore = (key) => {
     const s = S[key], rows = s.rows, H = 26 + Math.max(rows.length, 1) * 34 + 6;
@@ -628,13 +625,13 @@ table.spec tr:last-child td { border-bottom: 0; }
     if (!rows.length) g += `<text class="none" x="${X0 + 4}" y="${H / 2 + 12}">nothing moves · the rest state is the whole score</text>`;
     rows.forEach((r, i) => {
       const y = 26 + i * 34;
-      g += `<g class="row"><text class="n" x="0" y="${y + 13}">${esc(r.n)}</text><text class="k" x="0" y="${y + 26}">${esc(r.k)}</text>`;
+      g += `<g class="row"><text class="n" x="0" y="${y + 15}">${esc(r.n)}</text><text class="k" x="0" y="${y + 28}">${esc(r.k)}</text>`;
       r.bars.forEach(([f, t, k, l]) => {
         const x = X0 + f * PX, w = Math.max((t - f) * PX, 2);
-        if (k === 'move') g += `<rect class="bar ${r.c}" x="${x}" y="${y + 6}" width="${w}" height="10"/>`;
-        else if (k === 'hold') g += `<rect class="bar hold" x="${x + .5}" y="${y + 6.5}" width="${w - 1}" height="9"/>`;
-        else g += `<line class="bar wait" x1="${x + 2}" y1="${y + 11}" x2="${x + w - 2}" y2="${y + 11}"/>`;
-        if (w >= 54) g += `<text class="lbl" x="${x + 3}" y="${y + 1}">${esc(l)}</text>`;
+        if (k === 'move') g += `<rect class="bar ${r.c}" x="${x}" y="${y + 10}" width="${w}" height="10"/>`;
+        else if (k === 'hold') g += `<rect class="bar hold" x="${x + .5}" y="${y + 10.5}" width="${w - 1}" height="9"/>`;
+        else g += `<line class="bar wait" x1="${x + 2}" y1="${y + 15}" x2="${x + w - 2}" y2="${y + 15}"/>`;
+        if (w >= 54) g += `<text class="lbl" x="${x + 3}" y="${y + 5}">${esc(l)}</text>`;
       });
       g += '</g>';
     });
