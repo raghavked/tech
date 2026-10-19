@@ -1,0 +1,99 @@
+# The council: a team's models deliberate together
+
+Henosis's differentiator. Every member of a team has a model of their own, the agent they
+bring to the circle: a person's agent, a manager's agent, a team's shared agent. A **council**
+convenes several of them on one task so they deliberate the way a good team does: each
+answers alone first, then they discuss as a group, then a chair writes the plan the team
+rates, and the work is split among the members' agents who report back into the same room.
+People sit in the room throughout: they brief, they interject, they instruct an agent in
+private, they rate, they decide. Compared with a single assistant or a one-model answer, a
+council gives a team several perspectives it chose itself, a record of who argued what, and
+a plan with named owners.
+
+## Vocabulary
+
+- **Member model**: the agent a member brings. Its *profile* (provider, model id, persona,
+  tools, budget) belongs to the member and is edited in Settings → My agent. A manager's
+  profile defaults to the chair's manners. Profiles live in `users.json` (`agent` field) and
+  in the org's `agents.json` for shared team agents.
+- **Council**: a deliberation convened in a group (packages/chat) on one task, with a chair,
+  a set of member models, a round plan and a budget. One council is one chain of events in
+  the group's chat log, so it replays and its spend is counted.
+- **Round**: *individual* (each model answers alone, in parallel, without seeing the others),
+  *discussion* (each model reads every answer and replies: agree, differ, add, with reasons),
+  *synthesis* (the chair writes the plan: steps with estimates and an owner each), *vote*
+  (people rate the plan with the ordinary plan ratings; the chair's own model does not vote).
+- **Assignment**: a step owned by a member model becomes a directive in that member's
+  session (a crew is created for the council's task); progress and the step's result are
+  posted back into the council as the agent's report.
+- **Instruction**: a human's private message to one model during a council (a one-to-one
+  room with that agent), which lands as a steer in that agent's session and is cited in the
+  model's next council message as "instructed by Ana".
+- **Dissent**: a model that disagrees with the synthesis records it; the council's conclusion
+  carries the dissent beside the plan.
+
+## Events (packages/chat, in the group's log)
+
+```
+council.convened   { councilId, groupId, task, chair: Member, members: Member[], rounds: ["individual","discussion","synthesis","vote"], discussionRounds: 1, budget: number|null, by: userId }
+council.round.started { councilId, round, index }
+council.said       { councilId, round, index, member: Member, text, usage, cites: [{kind:"instruction", by}], stance?: "agree"|"differ"|"add" }
+council.instructed { councilId, member: Member, by: userId, text }          // private; visible to the instructed member's owner and the chair
+council.synthesised { councilId, planId, steps: [{id,title,detail,estTokens,risk,owner: Member}], dissent: [{member, text}] }
+council.assigned   { councilId, stepId, owner: Member, projectId, sessionId }
+council.reported   { councilId, stepId, owner: Member, status: "done"|"blocked"|"revised", text, usage }
+council.concluded  { councilId, outcome: "done"|"abandoned"|"revised", summary, usage }
+```
+
+The plan the chair writes is a real plan (`plan.proposed`) in a council session owned by the
+chair, so the existing ratings, release gates and token accounting apply unchanged. Votes
+are plan ratings; the policy's `planApproval` decides.
+
+## Orchestration (packages/server, CouncilHost)
+
+The host runs the rounds. An individual round calls every member model in parallel with the
+task, the group's recent messages and that member's instructions, records each answer as
+`council.said`, and sums usage against the budget. A discussion round gives each model the
+others' answers. Synthesis calls the chair's model with every answer and dissent and asks for
+steps with owners from the member list; the host opens the council session, proposes the
+plan, and waits for ratings. When approved, each step is assigned: a session is opened or
+reused for the owner (their member session in the project, in a crew named for the council)
+with a directive `council <id> step <n>: <title>`, and the host relays each session's next
+turn summary back as `council.reported`. When every step reports done, the host concludes.
+A council stops early when the budget is spent, when the convener ends it, or when a round
+has no answers.
+
+Member models run through the same `Model` interface as sessions (`packages/runner`): the
+scripted model answers deterministically offline (a stance from a hash of task and member);
+the Claude model uses the member's profile. Usage from every call is `council.said.usage`
+and rolls into the usage API as a `council` row per person.
+
+## Rooms (apps/web)
+
+- **Convene** from any group: task, members (people's and managers' agents, shared agents),
+  chair (defaults to the convener's manager's agent, else the convener's agent), rounds,
+  budget. The council appears as a threaded room inside the group.
+- **Council view**: the task at the top; rounds as sections; in the individual round each
+  model's answer is a column card with its owner's name and model; in discussion, replies in
+  the stream with stances as words; the synthesis as a plan card with owners; the vote as
+  the plan card's ratings; assignments as agent cards with live status; the conclusion with
+  dissent. A side panel lists members with their models and a private "Instruct" box per
+  model. Usage meter for the council.
+- **Instruct**: a one-to-one room with a model, opened from the member list; messages land
+  as steers in that agent's session and are cited in its next council message.
+- The rail shows a council as a live agent card group under its group name: "Council ·
+  4 models · discussion 1 of 1".
+
+## Slack and CLI
+
+`/henosis council <group> <task>` convenes; the council's rounds post into the group's
+thread; the synthesis posts with rating buttons. `henosis council` in the CLI prints a
+council's rounds and conclusion from the log.
+
+## Why it is new
+
+Model councils answer one question with several vendors' models and a synthesis. Henosis's
+council is a team's own models, each with an owner who can instruct it in private, with the
+plan rated by people, the work assigned to the models that proposed it, their reports in the
+same room, and every word and token in a replayable log. The council is the unit of
+cooperation between a team's people and its agents, not a feature of a chat box.
