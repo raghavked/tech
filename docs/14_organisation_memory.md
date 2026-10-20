@@ -60,9 +60,12 @@ for on-demand search and `memory.remember` for attributed writes.
 ## Where it lives in the product
 
 The session view shows project memory with "added by Ana · session billing-42 · commit
-9f3c1a" on every entry; the fleet board has an attributed memory feed; the management view
-shows the curator's report: compactions, stale entries, conflicts awaiting a lead. Slack
-shows conflicts in the project channel with both authors named.
+9f3c1a" on every entry, and a person adds the first one from a session's Details; the project
+page carries the team's memory feed with its open conflicts and a Keep on each. The memory
+browser (`#/memory`, on `GET /api/memory/:org` and its `context`, `curate`, `keep` and
+`retract` routes) lists what the team keeps by scope, the conflicts with both names, and what
+the curator proposes to retract. Slack shows conflicts in the project channel with both
+authors named and "X is right" buttons.
 
 ## Tests
 

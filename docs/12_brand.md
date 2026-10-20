@@ -158,4 +158,6 @@ newcomer *joins the circle*. Never "AI-powered".
 `web-session-details.html`, `web-project.html`, `web-team.html`, `mobile.html`, `desktop.html`,
 all on `design/tokens.css`, which the web app copies verbatim. The desktop and mobile shells load
 the same client, so the three are one product the way Claude on the web, Claude Desktop and
-Claude mobile are.
+Claude mobile are. The design system that followed the v5 mockups lives in `design/henosis/`:
+`SYSTEM.md`, `MOTION.md`, `SCREENS.md`, `COMPONENTS.md`, the judged explorations, and
+`BACKLOG.md`, the ordered list of what takes the app from v5 to the judged designs.

@@ -10,7 +10,7 @@
   `Session`, and the reducer independently shadows under-ranked directives on replay.
 - **Approvals bound to content.** An approval id is derived from the hash of the exact tool
   call; votes reference that id. Only humans vote; a deny by any eligible voter wins.
-  Henosis rules require distinct voters at or above a role.
+  Quorum rules require distinct voters at or above a role; a release gate adds ratings.
 - **Replayable audit.** `henosis verify` checks every branch's chain and that replay from a
   snapshot equals full replay. `henosis report` renders the full who-did-what table.
 

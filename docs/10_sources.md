@@ -138,3 +138,23 @@ snippets from this environment; those are marked (snippet). Re-verify before ext
 - Linear design refresh and type discipline (snippets): opendesigner.io, linear.app blog
 - Notion AI sidebar and panel (fetched): https://www.notion.com/help/sidebar
 Pixel values in the memo are marked unverified; confirm in DevTools before using as spec.
+
+## Research memos, 19 and 20 October 2026
+
+Four memos in `docs/research/`, each with its own source list and its own marks for what
+could not be read from this environment. They are the newest of the memos there.
+
+- `research/multi-agent-coordination.md` (2026-10-19): what ships for many agents on one
+  codebase (AutoGen, CrewAI, LangGraph, the OpenAI Agents SDK, Anthropic's research system,
+  Claude Code agent teams, Devin's managed Devins): who coordinates, how context is shared,
+  and what happens when two agents want the same thing; what the project ledger and crews add.
+- `research/model-councils.md` (2026-10-19): the literature on multi-model deliberation
+  (self-consistency, LLM debate, society of mind, mixture-of-agents, Perplexity's model
+  council), what improves answers and what only adds cost, and how Henosis's council differs;
+  read with `19_council.md`.
+- `research/approval-economics.md` (2026-10-20): ratings versus votes (Bargagliotti and Li),
+  how CI/CD products gate releases, what SOC 2 and NIST auditors expect of change control,
+  and what to change in the plan ratings and the release gate.
+- `research/enterprise-rollout.md` (2026-10-20): how Slack, Linear, Figma, Notion and Cursor
+  went from one team to a company; seat and usage pricing, SSO, audit and self-hosting, and
+  what that means for the editions in `18_editions.md`.

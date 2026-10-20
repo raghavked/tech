@@ -32,5 +32,5 @@ an injectable sender on the server; the per-user inbox is also readable at
 `GET /api/notifications?user=<id>`. A tapped notification carries a deep link
 `henosis://p/<project>/s/<session>` that the shell turns into the client's hash route.
 
-Add `fold` as a URL scheme in the iOS target (Info → URL Types) and an intent filter in
+Add `henosis` as a URL scheme in the iOS target (Info → URL Types) and an intent filter in
 `AndroidManifest.xml` so links open the app.

@@ -12,7 +12,7 @@ same reducer the server uses. There is no second source of truth: presence is th
 ephemeral state, and it is never written to the log.
 
 ```
-                 humans (web, CLI, Slack adapter later)
+                 humans (web, CLI, Slack)
                         │  websocket: join / directive / vote / fork / merge / handoff
                         ▼
    ┌─────────────────────────────────────────────────────────────┐
@@ -45,9 +45,10 @@ session; nothing in the kernel changes because the kernel never does I/O.
 | `@henosis/runner` | the agent loop, tool registry, scripted and Claude models | kernel |
 | `@henosis/fleet` | project ledger, claims, lead directives, contentions, fleet brief, identity | kernel |
 | `@henosis/memory` | organisation memory: attributed entries, conflicts, compaction, curator | kernel |
-| `@henosis/server` | websocket and HTTP front door, project and session hosts, notifications, persistence | runner, fleet, memory |
+| `@henosis/chat` | groups and chats: a chained log per org with people and agents as members, mentions, agent replies, read markers, the council's events | kernel |
+| `@henosis/server` | websocket and HTTP front door, project, session and chat hosts, notifications, the store seam | runner, fleet, memory, chat |
 | `@henosis/slack` | Slack adapter (interface, fake, Bolt socket mode) | server |
-| `@henosis/cli` | `henosis serve / demo / join / replay / verify / report / fleet / slack` | server, slack |
+| `@henosis/cli` | `henosis serve / migrate / demo / join / replay / verify / report / fleet / slack` | server, slack |
 | `@henosis/web` | the product: React client that folds the same events as the server; PWA | kernel, fleet, protocol |
 
 The kernel has **no Node dependency**: it ships its own SHA-256 so the browser, the CLI and
@@ -60,11 +61,14 @@ Every change to a session is an event: `{ id, prev, seq, branch, ts, actor, kind
 `id` is SHA-256 over the canonical JSON of everything else, including `prev`, so any edit
 to the past breaks the chain (`SessionLog.verify()`). `ts` is a per-branch logical clock.
 
-Thirty event kinds cover the whole surface (see `packages/protocol/src/index.ts`):
-participants and roles; directives, withdrawals and contention resolutions; agent turn
-start, model completion, tool request and completion, turn end; approval request and vote;
-handoff request, accept, decline; checkpoint; workspace change; branch create and merge;
-notes. Model text and tool outputs are *in* the log, so replay never calls a model or a tool.
+Thirty-one event kinds cover the whole surface (`EventBody` in
+`packages/protocol/src/index.ts`): session created; participants and roles; directives,
+withdrawals and contention resolutions; agent turn start, model completion, tool request
+and completion, turn end; approval request and vote; plan proposed, rated and decided, step
+started and completed; handoff request, accept, decline; checkpoint; workspace change and
+blocked write; branch create and merge; notes; project directives applied and withdrawn;
+fleet contentions mirrored in. Model text and tool outputs are *in* the log, so replay never
+calls a model or a tool.
 
 Branches share history: a branch is `(parent, forkPoint)` plus its own events, and
 `eventsOf(branch)` returns the linear history a reducer folds. Forks start only at
@@ -176,15 +180,22 @@ changing the rest of the shape.
 
 ## Wire protocol
 
-Client to server: `join`, `directive`, `withdraw`, `resolve`, `vote`, `handoff.*`, `role`,
-`checkpoint`, `fork`, `merge`, `switch`, `note`, `presence`, `brief`, `leave`.
-Server to client: `joined`, `snapshot` (full branch history), `event`, `presence`, `brief`,
-`error`. Clients never receive derived state; they derive it. A reconnecting client can ask
-for events after a sequence number in phase 1 and verify the prefix it already holds against
-the chain.
+Session, client to server: `join`, `directive`, `withdraw`, `resolve`, `vote`, `plan.rate`,
+`plan.decide`, `handoff.request`, `handoff.accept`, `handoff.decline`, `role`, `checkpoint`,
+`fork`, `merge`, `switch`, `note`, `presence`, `brief`, `leave`. Server to client: `joined`,
+`snapshot` (the branch history, or the tail after the `sinceSeq` a rejoining client sends,
+with a `reconnect` line; `13_fleet_collaboration.md`), `event`, `presence`, `brief`, `error`.
+Projects: `project.subscribe` and `project.unsubscribe` in, `project.snapshot`,
+`project.event` and `fleet.brief` out. Chat: `chat.subscribe`, `chat.unsubscribe`,
+`chat.create`, `chat.add`, `chat.remove`, `chat.rename`, `chat.say`, `chat.read` and the
+council's `chat.council.convene`, `chat.council.instruct`, `chat.council.end` in;
+`chat.snapshot` and `chat.event` out. The schemas are `ClientMessage` and `ServerMessage`
+in the protocol package and `packages/chat/src/wire.ts`. Clients never receive derived
+state; they derive it.
 
-Authentication in phase 0 is a shared token and client-asserted identity, acceptable for a
-dev server and nothing else. See `07_security_and_compliance.md`.
+Authentication is a shared token and client-asserted identity in dev mode, acceptable for a
+dev server and nothing else, or OIDC ID tokens verified on every request in the Team edition.
+See `07_security_and_compliance.md`, "Identity".
 
 ## Fleet and memory hosts
 
@@ -205,7 +216,8 @@ load the same built client, add a tray and native push, and open deep links of t
 
 ## What is not here yet
 
-Multi-process hosting, real authentication, a GitHub adapter, LLM-assisted merge of
-context, Merkle inclusion proofs for observers, compaction of long session logs, semantic
-overlap detection for claims, and adapters for third-party harnesses. All are on the roadmap
-with the reasoning in `06_roadmap.md`.
+Multi-process hosting, per-event signatures (sign-in is OIDC; see `07`), a GitHub adapter,
+LLM-assisted merge of context, Merkle inclusion proofs for observers, compaction of long
+session logs, semantic overlap detection for claims, adapters for third-party harnesses, and
+the host that runs a council's rounds (`19_council.md`). All are on the roadmap with the
+reasoning in `06_roadmap.md`.

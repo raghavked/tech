@@ -95,6 +95,32 @@ After, by chunk:
 | 4x CPU | before | 2830 ms | 27 ms | 46 ms | 1187 ms |
 | | after | 3061 ms | **11 ms** | **21 ms** | **481 ms** |
 
+### The bundle since then
+
+The tables above are the measurement of that pass and are kept as it was. The app has grown
+since: the approvals queue, the inbox, groups and chats, the memory browser, search,
+settings, the share sheet and the charts each load as their own chunk, and the stylesheet
+carries the vibrant theme. `node scripts/perf.mjs --no-browser` on 20 October 2026:
+
+| chunk | raw | gzip | on first paint |
+|---|---:|---:|---|
+| react | 216.5 kB | 67.3 kB | yes |
+| index (app shell, Home, rail, overlays) | 200.4 kB | 67.0 kB | yes |
+| index.css | 169.1 kB | 31.5 kB | yes |
+| zod | 54.0 kB | 12.4 kB | yes |
+| SessionView | 74.1 kB | 22.2 kB | lazy |
+| ChatView | 30.4 kB | 8.7 kB | lazy |
+| Project | 20.5 kB | 6.5 kB | lazy |
+| Memory | 19.7 kB | 5.7 kB | lazy |
+| Team | 15.0 kB | 4.5 kB | lazy |
+| Approvals | 14.9 kB | 4.7 kB | lazy |
+| Settings | 14.0 kB | 4.4 kB | lazy |
+| Inbox, Search, viz, ShareSheet | 30.0 kB | 10.6 kB | lazy |
+
+First paint waits on four files, 178 kB gzip; the entry chunk and the stylesheet are where
+the growth is, and zod is back on the first paint. The time-to-interactive and live-event
+runs were not repeated; re-run the full script before quoting them for this build.
+
 ## Reading the numbers
 
 - The first paint carries 27% fewer gzipped bytes and is interactive about 20 ms sooner on a

@@ -82,7 +82,7 @@ vendors today; the first party harnesses have no reason to build it vendor-neutr
 
 The runs got long this year; the RFS was published this quarter; the first-party vendors
 are each one feature deep and single-vendor. This repository is a runnable vertical slice of
-all three layers with 39 tests, a browser test, and an offline demo that walks a four-person
+all three layers with 257 unit and integration tests, a browser smoke test, and an offline demo that walks a four-person
 team through contention, approval, fork, merge and handoff.
 
 ## Who pays

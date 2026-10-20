@@ -1,8 +1,10 @@
 # Copy: the words in the interface
 
 Every user-facing string of the web app lives in `apps/web/src/copy.ts`, grouped by surface
-(shell, account, home, session, stream, plan, steps, approval, composer, details, project,
-team, notify) plus the five status words. Views import `copy` and carry no literal of their own.
+(shell, account, home, session, stream, plan, steps, approval, composer, panel, replay,
+details, usage, project, memory, viz, team, chat, teamLook, the approvals, memory and inbox
+pages, branches, queue, inbox, palette, search, sheet, toast, notify) plus the five status
+words. Views import `copy` and carry no literal of their own.
 Strings that take data are functions, so word order and plurals are decided once, next to
 the sentence they belong to.
 

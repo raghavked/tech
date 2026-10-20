@@ -16,10 +16,10 @@ verify` proves it in both.
 | Server | One `henosis serve` process, a folder as the store | One process per org, `henosis serve --store postgres` with the same logs in a database (`docs/04_technical_architecture.md`, "Storage"); `henosis migrate` moves a folder in and proves the copy by head hash | Sharded session actors, a database and an object store, a control plane |
 | Identity | `users.json`, dev tokens | OIDC single sign-on, roles from the directory (`07_security_and_compliance.md`, "Identity") | SSO (OIDC or SAML), SCIM provisioning, device trust, per-event signatures |
 | Policy | Per project, set by its lead | Per team with project overrides | Org policy packs with team and project overrides; approval rules as code |
-| Models | The scripted model, one Claude key | A key per team, budgets per project | A credential broker, per-participant grants, model routing and spend limits |
+| Models | The scripted model, one Claude key | Soft budgets per project and session (built); a key per team (owed) | A credential broker, per-participant grants, model routing and spend limits |
 | Memory | One org store, the curator on a timer | One store per org, scoped to teams and projects | Tiered storage, retention rules, legal hold |
 | Surfaces | Web, CLI, desktop | Web, CLI, desktop, mobile, Slack | All, plus the PR adapter and a harness SDK |
-| Evidence | `henosis report`, exports as markdown | The audit view, exports per session | PROV and in-toto exports, SIEM streams, data residency |
+| Evidence | `henosis report`, exports as markdown | Session exports from the app (built); the audit view (owed) | PROV and in-toto exports, SIEM streams, data residency |
 | Price | Free, self-hosted | Per active session-hour plus approver seats | Platform fee plus usage; a signed agreement |
 
 ## What scales, and how
@@ -63,8 +63,9 @@ glance endpoints aggregate on the server, not in the browser. Observers get Merk
 consistency proofs on resume so a thousand viewers cost a few hundred bytes each
 (`docs/research/merkle-proofs-observers.md`).
 
-**Evidence.** Every edition has the log. Team adds the audit view (who planned, rated,
-approved what) and session exports. Enterprise exports provenance in standard shapes (PROV,
+**Evidence.** Every edition has the log. Team adds session exports
+(`GET /api/sessions/:id/export.md` and the share sheet, today) and an audit view (who planned,
+rated, approved what; owed). Enterprise exports provenance in standard shapes (PROV,
 in-toto attestations per commit), streams events to a SIEM, and keeps data in the region the
 customer names (`docs/research/compliance-evidence-export.md`,
 `docs/research/provenance-standards.md`).
@@ -75,10 +76,13 @@ Starter, in full: the kernel, fleet, memory, chat, Slack, notifications, the web
 desktop and mobile shells, the scripted model for offline work and the Claude adapter, all
 tested offline. Team, in part: orgs, teams and projects from `orgs.json`, roles from
 `users.json`, OIDC single sign-on with groups mapped to teams (dev tokens stay the
-default), per-project policy on session creation, budgets and the usage API, the team
-look. Enterprise: the designs and the research are in `docs/research/`; the roadmap
-(`docs/06_roadmap.md`) puts SSO and the database behind the store in phase 1, the credential
-broker and sandboxing in phase 2, and evidence export and sharding in phase 3.
+default), `henosis serve --store postgres` and `henosis migrate`, per-project policy on
+session creation, soft budgets and the usage API, session exports, the team look. Not yet
+in Team: a key per team, policy per team with project overrides, the audit view, the mobile
+shell in the stores. Enterprise: the designs and the research are in `docs/research/`; the
+roadmap (`docs/06_roadmap.md`) puts per-event signatures, the credential broker and
+sandboxing in phase 1, policy packs and hosting on sharded session actors in phase 2, and
+the audit exports in phase 3.
 
 ## Why one product and not three
 

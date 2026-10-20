@@ -122,7 +122,7 @@ Treat those as test artifacts, never publish such a draft.
 
 ```bash
 cd apps/desktop
-npx tauri signer generate -w ~/.tauri/fold-desktop.key     # asks for a password
+npx tauri signer generate -w ~/.tauri/henosis-desktop.key  # asks for a password
 ```
 
 Put the printed public key into `plugins.updater.pubkey` in `tauri.conf.json` (replacing
@@ -150,7 +150,8 @@ list on the environment.
 ### Windows signing
 
 `src-tauri/signing/windows.conf.json` names the Trusted Signing endpoint, account and
-certificate profile (`fold-desktop`, both placeholders until the Azure resources exist).
+certificate profile (`fold-desktop` in the file: placeholders from the old product name,
+to be replaced when the Azure resources exist).
 The workflow installs `trusted-signing-cli` and passes the file with `--config` only when
 `AZURE_CLIENT_ID` is set; a local `npx tauri build` never sees it.
 
@@ -177,5 +178,9 @@ the plugin's `version_comparator`, which is undocumented territory and not wired
   check that the current actor holds no driver seat and has no open approval before
   appearing (recommendation 5). The hook is `UpdateRow`, which already has the only
   relaunch path.
+- **The deep-link scheme.** Every link the app writes is `henosis://`, but the shell still
+  registers `fold` (`tauri.conf.json`, `plugins.deep-link`, and the scheme check in
+  `src/main.rs`); the mobile shell's native project needs the same scheme. Rename them
+  together; until then a `henosis://` link does not reach the desktop shell.
 - **Linux `.rpm`, Flatpak, Snap.** Outside the Tauri updater; AppImage and `.deb` only.
 - **Mobile.** The Capacitor shell updates through the stores, not this pipeline.

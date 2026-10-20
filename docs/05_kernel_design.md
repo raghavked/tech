@@ -147,6 +147,7 @@ never logged. Joins, leaves and role changes are logged because they change auth
 
 Scopes are declared by the author; a classifier can propose them later. Conflict detection is
 by scope, not by semantic overlap of text. The merge of agent context is structural, not
-LLM-assisted. Authentication is a shared token. None of these change the semantics above;
+LLM-assisted. Authentication is a shared token in dev mode and OIDC sign-in in the Team
+edition; events are not yet signed per participant. None of these change the semantics above;
 they are the places where product polish goes once the semantics have been validated with
 teams.

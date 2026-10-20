@@ -27,7 +27,7 @@ The three features a buyer can point at in a demo:
 | Engineering teams (bottom-up) | A multi-hour agent run that one person babysits while others wait for the diff | Live co-presence, plan ratings, release gates, handoff, groups with the agent in them |
 | Engineering managers | Three engineers, nine agents, one token bill and no idea what waits on whom | The manager's view: tokens by project, person and agent; plans and gates; crews and groups |
 | Platform or developer-productivity teams | Three harnesses in use, no common record of what agents did or who approved it | One session layer across harnesses; replay; policy |
-| Security and compliance | An agent took an irreversible action and nobody can say who authorised it | Henosis approvals, attributed logs, exportable evidence |
+| Security and compliance | An agent took an irreversible action and nobody can say who authorised it | Quorum approvals and release gates, attributed logs, exportable evidence |
 | Vertical teams (sales, support, legal, finance, marketing) | Several people already crowd one agent-driven task in a chat thread | Templates, roles, briefs, policy packs |
 
 ## Pricing (working hypothesis)

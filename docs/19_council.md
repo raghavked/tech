@@ -10,10 +10,21 @@ private, they rate, they decide. Compared with a single assistant or a one-model
 council gives a team several perspectives it chose itself, a record of who argued what, and
 a plan with named owners.
 
+## Where it stands
+
+This document is the design. What is built: the eight council events and their fold in
+`packages/chat` (`council.ts`, `councilProtocol.ts`, which says what round is due next), the
+wire commands `chat.council.convene`, `chat.council.instruct` and `chat.council.end` that
+the server records into the group's log, the member profiles (`agent` on a `users.json`
+row, shared agents in `agents.json`), and the prompts, the synthesis tool and the parsers in
+`packages/runner/src/council.ts`, with the scripted model answering every round offline.
+What is owed: the host that runs the rounds, the rooms in the web app, the Slack and CLI
+commands, and "My agent" in Settings. The sections below describe those as they will work.
+
 ## Vocabulary
 
 - **Member model**: the agent a member brings. Its *profile* (provider, model id, persona,
-  tools, budget) belongs to the member and is edited in Settings → My agent. A manager's
+  tools, budget) belongs to the member and will be edited in Settings → My agent. A manager's
   profile defaults to the chair's manners. Profiles live in `users.json` (`agent` field) and
   in the org's `agents.json` for shared team agents.
 - **Council**: a deliberation convened in a group (packages/chat) on one task, with a chair,
@@ -49,10 +60,12 @@ The plan the chair writes is a real plan (`plan.proposed`) in a council session 
 chair, so the existing ratings, release gates and token accounting apply unchanged. Votes
 are plan ratings; the policy's `planApproval` decides.
 
-## Orchestration (packages/server, CouncilHost)
+## Orchestration (packages/server, the council host; owed)
 
-The host runs the rounds. An individual round calls every member model in parallel with the
-task, the group's recent messages and that member's instructions, records each answer as
+The host will run the rounds. Today the server records what a person convenes, instructs
+and ends; nothing calls a model between those events. An individual round calls every
+member model in parallel with the task, the group's recent messages and that member's
+instructions, records each answer as
 `council.said`, and sums usage against the budget. A discussion round gives each model the
 others' answers. Synthesis calls the chair's model with every answer and dissent and asks for
 steps with owners from the member list; the host opens the council session, proposes the
@@ -87,7 +100,7 @@ council.
 session says of the vote (`vote`, `plan` with its ratings), what the protocol does next and
 the member sessions by profile; `GET /api/chat/:org/councils` lists them, latest first.
 
-## Rooms (apps/web)
+## Rooms (apps/web; owed)
 
 - **Convene** from any group: task, members (people's and managers' agents, shared agents),
   chair (defaults to the convener's manager's agent, else the convener's agent), rounds,
@@ -103,7 +116,7 @@ the member sessions by profile; `GET /api/chat/:org/councils` lists them, latest
 - The rail shows a council as a live agent card group under its group name: "Council ·
   4 models · discussion 1 of 1".
 
-## Slack and CLI
+## Slack and CLI (owed)
 
 `/henosis council <group> <task>` convenes a council of the group's people's agents (the
 group by id or by name, dashes for spaces; the convener must be a member; their agent chairs).

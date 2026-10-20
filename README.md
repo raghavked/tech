@@ -151,7 +151,7 @@ packages/chat       groups and chats: a chained log per org where people and age
 packages/server     websocket and HTTP server, project, session and chat hosts, notifications, persistence
 packages/slack      Slack adapter on an interface with an in-memory fake; Bolt socket mode;
                     the council as a thread with rating buttons
-packages/cli        the fold binary
+packages/cli        the henosis binary
 apps/web            the product: React client that folds the same events as the server (PWA);
                     agents rail, team panel, groups and chats, command palette (⌘K), inbox,
                     approvals queue, memory browser, replay scrubber, branch compare, settings,
@@ -163,7 +163,8 @@ design/             brand tokens, logo, static mockups of every surface
 scripts/            e2e.sh and the scripted websocket clients it drives
 docs/               thesis, market, landscape, product spec, architecture, kernel design,
                     roadmap, security, business model, threat model, sources, open questions,
-                    brand, fleet, memory, copy, desktop release, performance; docs/research/
+                    brand, fleet, memory, copy, desktop release, performance, editions,
+                    council; docs/research/
                     holds the deep-tech memos
 ```
 

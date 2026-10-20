@@ -24,7 +24,10 @@ with ratings and the release gate held by the consumers of the code; groups and 
 people and agents as members and @mentions that reach the agent's session; a vibrant,
 expressive theme on the palette with loading and side motion; team customisation (accent,
 mark, motion, emblem) set by leads; the manager's view with token charts, plan compliance
-and gates; desktop first, mobile second.
+and gates; desktop first, mobile second. Also landed here, ahead of phase 1: OIDC sign-in
+and the Postgres store with `henosis migrate` (`18_editions.md`). The council
+(`19_council.md`) has its events, wire commands and prompts; the host that runs its rounds,
+the rooms in the web app and the Slack and CLI commands are still owed.
 
 ## Phase 1: design partners (months 1 to 4)
 
@@ -33,16 +36,18 @@ Goal: three engineering teams using Henosis weekly on real multi-hour agent runs
 - **Harness adapters.** Host a Claude Agent SDK run as a Henosis session (the adapter maps
   its hooks to turn, tool and approval events). Then LangGraph and the OpenAI Agents SDK.
   The kernel does not change; the runner grows a `HarnessRunner`.
-- **Identity.** OIDC login, server-issued actor ids, per-event signatures. Per-participant
-  tool credentials through a server-side broker so an action runs with the authority of
-  those who approved it.
+- **Identity.** OIDC login is done (`07_security_and_compliance.md`, "Identity"). Next:
+  per-event signatures, SCIM, a device-flow sign-in for the CLI. Per-participant tool
+  credentials through a server-side broker so an action runs with the authority of those
+  who approved it.
 - **Sandboxing.** Per-session container for tools; network off by default.
 - **Slack adapter in production.** Install the Bolt app with three design partners; add
   per-channel digests and a daily management summary.
 - **Receiver synthesis on handoff.** The incoming driver restates the plan; the restatement
   is journaled before authority moves.
-- **Log compaction and reconnect.** JSONL per branch, periodic snapshots, resume-from-seq
-  for clients, Merkle inclusion proofs so an observer can verify its prefix.
+- **Log compaction and proofs.** JSONL per branch, periodic snapshots, Merkle inclusion
+  proofs so an observer can verify its prefix. Resume-from-seq is done: a rejoining client
+  sends `sinceSeq` and gets the tail.
 - **Context merge.** When a branch merges, a journaled summariser call folds its decisions
   into the target's context.
 

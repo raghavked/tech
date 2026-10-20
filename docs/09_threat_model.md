@@ -19,7 +19,7 @@ the model context (confidentiality across participants), and the team's time.
 |---|---|---|
 | Observer steers | Rank check at submission; reducer shadows on replay | `Session.directive`, `arbitrate` |
 | Peer buries a peer's directive | Same-rank concurrent directives become a contention, visible to all | `arbitrate` rule 4 |
-| One person approves an irreversible action | Henosis rule: two distinct drivers or owners by default; agent cannot vote | `approvals.evaluate`, `Session.vote` |
+| One person approves an irreversible action | Release gate by default: two distinct contributors rating 4 or more on average, any deny denies; the agent cannot vote | `approvals.evaluate`, `Session.vote` |
 | Approval reused for a different action | Approval id derived from the call's content hash | `Session.requestApproval` |
 | Injected text claims authority | Only logged `directive.submitted` events from ranked participants affect intent; tool output is data in a `ToolResult` | runner, reducer |
 | Edit history | Hash chain; `verify` in CLI and CI; atomic writes | `SessionLog.verify` |
@@ -29,8 +29,9 @@ the model context (confidentiality across participants), and the team's time.
 
 ## Gaps to close (phase 1)
 
-- Identity is asserted by the client; a stolen token impersonates anyone. Fix: server-issued
-  identities and per-event signatures.
+- In dev mode identity is asserted by the client; a stolen token impersonates anyone. The
+  Team edition verifies OIDC ID tokens on every request (`07`, "Identity"). Still to do:
+  per-event signatures.
 - Tool credentials are not per-participant. Fix: server-side credential broker keyed by the
   approver, so an action runs with the authority of the humans who approved it.
 - No rate limits, no quotas: a participant can spam directives or forks.

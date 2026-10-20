@@ -70,7 +70,9 @@ it, nothing is cut off.
 
 - **Web client** (`apps/web`): the agents rail, the event stream with team messages, the
   Team panel (people, crew, chat), the Details drawer (intent, roles, branches, workspace,
-  brief), contention and approval notices. One page; folds the same events as the server.
+  brief), contention and approval notices; beside the session, the approvals queue, the
+  inbox, groups and chats, the memory browser, search, the manager's view and settings with
+  the team look. One app; folds the same events as the server.
 - **CLI** (`henosis join`): the same session from a terminal, for people who live there.
 - **Server** (`henosis serve`): hosts sessions, persists logs, runs the agent.
 - **Slack** (`packages/slack`): channels per team, project and management; a thread per
@@ -107,7 +109,8 @@ The Details drawer has a Usage section with the budget left and the last turns o
 the agents rail and the project page show each agent's spend at the end of its line; the
 handoff brief, the fleet brief and `henosis report` all say what was spent. Leads read totals
 by session, engineer, project and turn from `GET /api/usage`. Nothing stops an agent at the
-budget: it is a number people watch, not a gate (a gate is on the roadmap with plan-first).
+budget: it is a number people watch, not a gate. The gate is the plan: with plan first on,
+nothing above `read` runs until the plan is approved.
 
 ## Non-goals for phase 0
 
