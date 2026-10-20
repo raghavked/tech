@@ -299,9 +299,9 @@ export function Composer({
         )}
       </form>
       {queued.length > 0 && (
-        <p className="queue-note small muted" role="status">
+        <p className="queue-note small" role="status">
           <Icon d={ICONS.clock} size={13} />
-          {copy.composer.queued}
+          {copy.composer.held(queued.length)}
         </p>
       )}
       {showQueue && <QueueList queued={queued} s={s} client={client} />}

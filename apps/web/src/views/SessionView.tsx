@@ -20,7 +20,7 @@ import { notifyIfHidden } from "../notify.js";
 import { usePaletteActions } from "../palette.js";
 import { isComposing, presenceSummary } from "../presence.js";
 import { rememberRecent } from "../recents.js";
-import { ReconnectLine } from "../reconnect.js";
+import { clockOf, ReconnectLine } from "../reconnect.js";
 import { reportPendingApprovals } from "../shell.js";
 import type { ShortcutHandlers } from "../shortcuts.js";
 import { describeCall } from "../stream/blocks.js";
@@ -330,9 +330,12 @@ export function SessionView({
       right={
         <>
           <fieldset
-            className="stack"
+            className={`stack${snap.connected ? "" : " stale"}`}
             aria-label={copy.session.presentSummary(presenceSummary(snap.presence, s.driver))}
-            title={presenceSummary(snap.presence, s.driver)}
+            title={
+              presenceSummary(snap.presence, s.driver) +
+              (snap.connected ? "" : copy.session.asOf(clockOf(snap.events.at(-1)?.ts)))
+            }
           >
             {online.slice(0, 4).map((p) => (
               <Avatar

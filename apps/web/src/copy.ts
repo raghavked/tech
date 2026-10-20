@@ -275,6 +275,8 @@ export const copy = {
     joining: "Joining…",
     connecting: "Connecting…",
     reconnecting: "Reconnecting…",
+    /** " · as of 14:02": stamped on presence while the socket is away (error-states). */
+    asOf: (clock: string | null) => (clock ? ` · as of ${clock}` : ""),
     present: (names: string[]) => `Present: ${names.join(", ")}`,
     avatarTitle: (name: string, role: string, driving: boolean) =>
       `${name} · ${role}${driving ? " · driving" : ""}`,
@@ -322,7 +324,6 @@ export const copy = {
     offered: (who: string, to: string) => `${who} offers the baton to ${to}`,
     hasTheBaton: (who: string) => `${who} has the baton`,
     declined: (who: string) => `${who} declined the baton`,
-    joined: (who: string, role: string) => `${who} joined as ${role}`,
     left: (who: string) => `${who} left`,
     roleChanged: (who: string, role: string) => `${who} is now ${role}`,
     checkpoint: (label: string) => `Checkpoint ${label}`,
@@ -545,6 +546,8 @@ export const copy = {
     toSteer: " to steer the agent",
     nothingSent: "Nothing is sent while you look back",
     reconnecting: "Reconnecting · ",
+    /** The offline queue's chip: the app holds what was typed and sends it, in order, when the socket is back. */
+    held: (n: number) => `${plural(n, "message")} held until the socket is back`,
     planWaits: "The plan waits for ratings",
     sendTeam: "Send to the team",
     keysLive: "Keys live",
