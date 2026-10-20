@@ -98,7 +98,22 @@ export function Team({
   // onboarding-empty-states: the inbox's empty state offers to turn notifications on.
   const [perm, setPerm] = useState(notifyPermission());
   const key = projects.map((p) => p.projectId).join(",");
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the identity of `projects`
+  // No Refresh control (pages polish): the page refetches when it is looked at again and when
+  // the fleet changes (the project page's `henosis:fleet` event).
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const again = () => setTick((t) => t + 1);
+    const seen = () => {
+      if (document.visibilityState === "visible") again();
+    };
+    document.addEventListener("visibilitychange", seen);
+    addEventListener("henosis:fleet", again);
+    return () => {
+      document.removeEventListener("visibilitychange", seen);
+      removeEventListener("henosis:fleet", again);
+    };
+  }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the identity of `projects`; `tick` forces a refetch
   useEffect(() => {
     let alive = true;
     Promise.all(
@@ -126,9 +141,10 @@ export function Team({
     return () => {
       alive = false;
     };
-  }, [key, identity.userId]);
+  }, [key, identity.userId, tick]);
   // The range control drives every number: the usage report is re-read per range.
   const turns = RANGES.find((r) => r.key === range)?.turns ?? null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `tick` forces a refetch
   useEffect(() => {
     let alive = true;
     api
@@ -138,7 +154,7 @@ export function Team({
     return () => {
       alive = false;
     };
-  }, [teamId, turns]);
+  }, [teamId, turns, tick]);
 
   const totals = data.reduce<Counts>(
     (acc, d) => {
