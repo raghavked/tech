@@ -213,7 +213,7 @@ a { color: var(--accent-ink); text-decoration: none; } a:hover { text-decoration
 .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 20px; min-height: var(--topbar-h); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: blur(8px); position: relative; z-index: 2; }
 .topbar .title { font-family: var(--serif); font-size: 20px; line-height: 24px; display: inline-flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; font-variation-settings: "SOFT" 50, "WONK" 0; }
 .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.scroll { flex: 1; overflow: auto; }
+.scroll { flex: 1; min-height: 0; overflow: auto; }
 .sheet { display: grid; grid-template-columns: minmax(0, 1fr) 432px; gap: 24px; padding: 20px var(--gutter) 140px; }
 .col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .spec { display: flex; flex-direction: column; gap: 14px; }
@@ -262,7 +262,7 @@ a { color: var(--accent-ink); text-decoration: none; } a:hover { text-decoration
 .notice { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 16px 22px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); position: relative; overflow: hidden; }
 .notice::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
 .notice.gate::before { background: var(--gate-stripe); } .notice.contention::before { background: var(--warn); }
-.notice .kind { font: 600 11.5px/16px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 10px; }
+.notice .kind { font: 600 11.5px/16px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; }
 .notice .kind .origin { margin-left: auto; font: 400 12.5px/16px var(--mono); letter-spacing: 0; text-transform: none; color: var(--ink-3); }
 .notice .sentence { font-family: var(--serif); font-size: 18px; line-height: 24px; font-variation-settings: "SOFT" 50, "WONK" 0; }
 .notice .sentence i { color: var(--accent-ink); }
@@ -511,6 +511,8 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
   .msg.human .text, .msg.team .text { max-width: 100%; }
   .pstep { grid-template-columns: 22px 1fr auto; } .pstep .pill, .pstep .est { display: none; }
   .sheet .ladder { grid-template-columns: 1fr; }
+  .notice .kind .origin { margin-left: 0; width: 100%; }
+  .command { white-space: normal; }
 }
 </style>
 </head>
@@ -708,8 +710,8 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
               <span class="role">light</span>
               <div class="steps">
                 <div class="sw lamp"><b>lamp</b><span class="hx" data-prop="--apricot">#E2C4A6</span></div>
-                <div class="sw edge"><b>edge</b><span class="hx">apricot 14 %</span></div>
-                <div class="sw pulse"><b>pulse</b><span class="hx">apricot 35 %</span></div>
+                <div class="sw edge"><b>edge</b><span class="hx" id="edge-hx">apricot 14 %</span></div>
+                <div class="sw pulse"><b>pulse</b><span class="hx" id="pulse-hx">apricot 35 %</span></div>
               </div>
               <span class="role">air</span>
               <div class="steps">
@@ -771,6 +773,7 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
     </div>
     <div class="toasts" role="status" aria-live="polite">
   <div class="toast"><span class="who">Cy's agent answered in <span class="i">#billing</span>.</span><span>“The dry run prints 23.60; same as the PDF.”</span><span class="acts"><button class="btn primary" type="button">Open</button><button class="btn" type="button">Later</button><span class="small" style="margin-left:auto;color:var(--rail-muted)">14:12</span></span><span class="life"></span></div>
+    </div>
     <nav class="tabbar" aria-label="Sections">
       <a href="#" class="on"><svg><use href="#i-sessions"/></svg>Sessions</a>
       <a href="#"><svg><use href="#i-hash"/></svg>Chats<span class="count sm at">@</span></a>
@@ -778,8 +781,6 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
       <a href="#"><svg><use href="#i-me"/></svg>Me</a>
     </nav>
   </div>
-</div>
-
 </div>
 
 <script>
@@ -803,6 +804,8 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
     });
     var night = root.dataset.theme === 'dark' || (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
     document.getElementById('shadow-hx').textContent = night ? 'chocolate 60 %' : 'navy 16 %';
+    document.getElementById('edge-hx').textContent = night ? 'apricot 14 %' : 'none by day';
+    document.getElementById('pulse-hx').textContent = night ? 'apricot 35 %' : 'apricot 30 %';
   }
   document.getElementById('th-light').onclick = function () { setTheme('light'); };
   document.getElementById('th-dark').onclick = function () { setTheme('dark'); };
