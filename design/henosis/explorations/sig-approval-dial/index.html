@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Approval dial</title>
+<meta name="description" content="The signature element: the release gate's rating as a dial. Five stops with a detent, the gate's bar cut into the rim as a notch, the team's average as a thin needle, the ballots as rows beneath.">
+<style>
+/* -------------------------------------------------------------------------------------------
+   Tokens, inlined from design/henosis/tokens.v5.css (SYSTEM §2, §16). Self-contained: no @import,
+   no web font, no external asset. Fraunces and Inter are asked for first; the Instrument faces and
+   the system faces follow (premium-product-ui §9, three-colour-brands §10).
+   ------------------------------------------------------------------------------------------- */
+:root {
+  --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
+  --canvas: #FBF7F1; --wash: rgba(226,196,166,.35);
+  --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
+  --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --edge: none;
+  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2;
+  --rail-active: rgba(226,196,166,.18); --rail-line: rgba(243,237,228,.10); --crease: #E2C4A6;
+  --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30);
+  --select-wash: rgba(226,196,166,.16); --select-line: rgba(207,167,130,.5);
+  --glow: 0 0 0 4px rgba(226,196,166,.35);
+  --count-bg: #CFA782; --count-fg: #2A3244; --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --grad-fg: #F8F2EA;
+  --ok: #4F7D4A; --ok-soft: rgba(79,125,74,.14); --ok-ink: #3E6639;
+  --warn: #B9792E; --warn-soft: rgba(185,121,46,.14); --warn-ink: #7F5320;
+  --danger: #A8463A; --danger-soft: rgba(168,70,58,.14); --danger-ink: #8E3A30;
+  --star-on: #B4865C; --star-pre: #CFA782;
+  --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
+  --radius: 14px; --radius-lg: 22px; --radius-sm: 8px; --radius-full: 999px; --rail-w: 296px; --col: 780px;
+  --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --serif: "Fraunces", "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
+  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
+  --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
+  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
+  --focus-ring: var(--accent); --focus-halo: rgba(226,196,166,.45);
+  --motion: 0;                                  /* 1 only inside the one guard (MOTION §3) */
+  /* the dial: colour by ground (SYSTEM principles 1, 4, 5). The rim is navy stepped in lightness
+     (data-craft's palette rule), the pick's arc is the pulse's deep step like every meter, the knob
+     and its hand are chocolate because they are the one thing you press, the needle is data ink. */
+  --dial-rim: rgba(42,50,68,.16);
+  --dial-zone: rgba(226,196,166,.30);           /* the band at and above the bar: picks here clear it */
+  --dial-fill: #CFA782;                          /* the arc up to the pick */
+  --dial-pre: #E2C4A6;                           /* the preview arc: lighter than the pick (rating-control) */
+  --dial-hand: #56352D; --dial-hand-fg: #FFF8F1; /* the knob and its hand: the hand is a verb */
+  --dial-needle: #2A3244;                        /* the team's average: data ink */
+  --dial-tick: rgba(42,50,68,.42);
+  --dial-notch: #1F2634;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --rail-active: rgba(226,196,166,.12); --rail-line: rgba(240,234,224,.08); --crease: rgba(226,196,166,.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6;
+  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
+  --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
+  --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A;
+  --star-on: #E2C4A6; --star-pre: #CFA782;
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --focus-ring: var(--ink);
+  --dial-rim: rgba(240,234,224,.16); --dial-zone: rgba(226,196,166,.14);
+  --dial-fill: #E2C4A6; --dial-pre: rgba(226,196,166,.55);
+  --dial-hand: #7A4B3E; --dial-hand-fg: #FFF8F1;
+  --dial-needle: #E2C4A6; --dial-tick: rgba(240,234,224,.42); --dial-notch: #F0EAE0;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --rail-active: rgba(226,196,166,.12); --rail-line: rgba(240,234,224,.08); --crease: rgba(226,196,166,.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6;
+  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
+  --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
+  --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A;
+  --star-on: #E2C4A6; --star-pre: #CFA782;
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --focus-ring: var(--ink);
+  --dial-rim: rgba(240,234,224,.16); --dial-zone: rgba(226,196,166,.14);
+  --dial-fill: #E2C4A6; --dial-pre: rgba(226,196,166,.55);
+  --dial-hand: #7A4B3E; --dial-hand-fg: #FFF8F1;
+  --dial-needle: #E2C4A6; --dial-tick: rgba(240,234,224,.42); --dial-notch: #F0EAE0;
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------------------------------- base */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 15px/1.6 var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.01em; }
+.serif { font-family: var(--serif); font-weight: 400; } .serif.i { font-style: italic; }
+.mono { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums slashed-zero; }
+.muted { color: var(--ink-2); } .faint { color: var(--ink-3); } .small { font-size: 13px; }
+.kicker { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); box-shadow: 0 0 0 6px var(--focus-halo); }
+kbd { font: 500 11px/16px var(--mono); padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); }
+
+/* ------------------------------------------------------------------------------------------- shell */
+.shell { display: flex; height: 100%; }
+.rail { width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 6px; box-shadow: inset -1px 0 0 var(--crease); }
+.rail .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font-family: var(--serif); font-size: 24px; }
+.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
+.rail .section { padding: 16px 10px 6px; font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.rail .section .n { margin-left: auto; letter-spacing: 0; }
+.rail .item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); color: var(--rail-fg); font-size: 14px; }
+.rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 14px; }
+.crew { padding: 12px 12px 4px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.crew .serif { font-size: 15px; color: var(--apricot); }
+.crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
+.agent { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-radius: var(--radius); color: var(--rail-fg); text-decoration: none; }
+.agent.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line); }
+.agent .head { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 500; min-width: 0; }
+.agent .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
+.agent .head .dot.running { background: #9BC88F; box-shadow: 0 0 0 3px rgba(155,200,143,.25); }
+.agent .head .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); }
+.agent .head .dot.idle { background: transparent; box-shadow: inset 0 0 0 1.5px var(--rail-muted); }
+.agent .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--serif); font-size: 16px; font-weight: 400; }
+.agent .doing { font-size: 13px; color: var(--rail-muted); line-height: 1.4; }
+.agent .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+.agent .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; background: var(--surface-3); color: var(--ink-2); }
+.pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
+.pill.solo { background: transparent; border: 1px solid var(--rail-line); color: var(--rail-muted); }
+.pill.gate { background: var(--blues); color: var(--apricot); }
+.count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--count-bg); color: var(--count-fg); font: 500 11px/1 var(--mono); }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 400 13px var(--serif); border: 2px solid var(--canvas); flex: none; }
+.avatar.sm { width: 22px; height: 22px; font-size: 11px; }
+.avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); color: var(--grad-fg); padding: 0; gap: 0; }
+.rail .avatar { border-color: var(--rail); }
+.stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -6px; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; isolation: isolate; }
+.main::before { content: ""; position: absolute; left: 10%; top: -320px; width: 1100px; height: 560px; max-width: 100%; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; z-index: -1; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: blur(8px); }
+.topbar .title { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+.status.awaiting::before { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; }
+.seg button { border: 0; background: transparent; font: 500 12.5px var(--font); color: var(--ink-2); padding: 4px 12px; border-radius: var(--radius-full); cursor: pointer; transition: background var(--t) var(--ease-move), color var(--t) var(--ease-move); }
+.seg .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.scroll { flex: 1; overflow: auto; }
+.column { width: min(var(--col), 100%); margin: 0 auto; padding: 18px 24px 40px; display: flex; flex-direction: column; gap: 26px; }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 12px; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* the ledger column: a message is author mark in the gutter, no balloon (ai-interfaces-avoid §1) */
+.msg { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px 12px; }
+.msg .meta { grid-column: 2; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.msg .meta .who { font-family: var(--serif); font-size: 16px; color: var(--ink); }
+.msg .gutter { grid-row: 1 / span 3; padding-top: 2px; }
+.msg .text { grid-column: 2; font-size: 15.5px; max-width: 600px; }
+.msg .text p { margin: 0 0 8px; }
+.steps { grid-column: 2; display: flex; flex-direction: column; gap: 2px; }
+.step { display: flex; align-items: center; gap: 8px; font: 400 12.5px/20px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.step::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--ok); flex: none; }
+.step .t { color: var(--ink-3); margin-left: auto; }
+
+/* ------------------------------------------------------------------------------------------- the gate notice */
+.notice { display: flex; flex-direction: column; gap: 14px; padding: 18px 22px 18px 24px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); position: relative; overflow: hidden; }
+.notice::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--gradient-brand); }
+.notice .kind { display: flex; align-items: center; gap: 8px; font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.notice .kind .serif { text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--ink-2); }
+.notice .ask { font-size: 15.5px; line-height: 1.55; max-width: 62ch; }
+.notice .ask .lead { font-family: var(--serif); font-size: 21px; }
+.notice .ask .command { font-family: var(--mono); font-size: 13.5px; background: var(--surface-2); padding: 1px 7px; border-radius: 6px; }
+.notice .ask .rule { font-family: var(--mono); font-size: 13.5px; }
+
+/* the dial and its sentence side by side; the ballots run under both */
+.gate { display: grid; grid-template-columns: 372px minmax(0, 1fr); gap: 10px 26px; align-items: start; margin-top: 2px; }
+.gate .say { padding-top: 26px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.gate .say .you { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.gate .say .word { font-family: var(--serif); font-style: italic; font-size: 38px; line-height: 1.05; letter-spacing: -.01em; color: var(--ink); display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.gate .say .word .n { font: 400 13px/16px var(--mono); color: var(--ink-3); font-style: normal; letter-spacing: 0; }
+.gate .say .word.low { color: var(--danger-ink); } .gate .say .word.risky { color: var(--warn-ink); } .gate .say .word.high { color: var(--ok-ink); }
+.gate .say .word.rest { color: var(--ink-3); }
+.gate .say .means { font-size: 14.5px; line-height: 1.5; color: var(--ink-2); max-width: 38ch; }
+.gate .say .means b { font-weight: 500; color: var(--ink); }
+.gate .say .nudge { display: none; font-size: 13.5px; color: var(--warn-ink); }
+.gate .say.lowpick .nudge { display: block; }
+.gate .say .note { width: 100%; max-width: 340px; min-height: 34px; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: 400 13.5px var(--font); }
+.gate .say .note::placeholder { color: var(--ink-3); }
+
+/* ---- the dial itself ---------------------------------------------------------------------------- */
+.dial { position: relative; width: 372px; max-width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: 18px; outline-offset: 4px; cursor: grab; }
+.dial.dragging { cursor: grabbing; }
+.dial svg { display: block; width: 100%; height: auto; overflow: visible; }
+.dial .rim { fill: none; stroke: var(--dial-rim); stroke-width: 2; stroke-linecap: round; }
+.dial .zone { fill: none; stroke: var(--dial-zone); stroke-width: 14; }
+.dial .fill, .dial .pre { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: var(--len, 0) 240; }
+.dial .fill { stroke: var(--dial-fill); transition: stroke-dasharray var(--t) var(--ease-mark), opacity var(--t-fast) ease; }
+.dial .pre { stroke: var(--dial-pre); stroke-dasharray: var(--plen, 0) 240; opacity: 0; transition: opacity var(--t-fast) ease, stroke-dasharray var(--t) var(--ease-mark); }
+.dial.previewing .pre { opacity: 1; }
+.dial.rest .fill { opacity: 0; }
+.dial .cut { stroke: var(--surface); stroke-width: 7; stroke-linecap: butt; }
+.dial .notch { fill: none; stroke: var(--dial-notch); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.dial .bar-label { font: 500 10.5px var(--mono); fill: var(--ink-3); letter-spacing: .04em; }
+.dial .stop { cursor: pointer; }
+.dial .stop .hit { fill: transparent; }
+.dial .stop .tick { stroke: var(--dial-tick); stroke-width: 1.5; stroke-linecap: round; transform-box: fill-box; transform-origin: center; transition: stroke var(--t-fast) ease, stroke-width var(--t-fast) ease; }
+.dial .stop.cur .tick { stroke: var(--dial-hand); stroke-width: 2.5; }
+.dial .stop .label { font: italic 400 15px var(--serif); fill: var(--ink-2); transition: fill var(--t-fast) ease; }
+.dial .stop .num { font: 400 10.5px var(--mono); fill: var(--ink-3); }
+.dial .stop:hover .label, .dial .stop.pre .label { fill: var(--ink); }
+.dial .stop.cur .label { fill: var(--ink); }
+.dial .stop.cur .num { fill: var(--ink-2); }
+.dial .needle { stroke: var(--dial-needle); stroke-width: 1; stroke-linecap: round; transform-box: view-box; transform-origin: 180px 128px; transform: rotate(var(--avg-deg, 0deg)); transition: transform var(--t-slow) var(--ease-mark), opacity var(--t) ease; }
+.dial .needle-cap { fill: var(--dial-needle); transform-box: view-box; transform-origin: 180px 128px; transform: rotate(var(--avg-deg, 0deg)); transition: transform var(--t-slow) var(--ease-mark); }
+.dial.noavg .needle, .dial.noavg .needle-cap { opacity: 0; }
+.dial .hand { transform-box: view-box; transform-origin: 180px 128px; transform: rotate(var(--deg, 60deg)); transition: transform var(--t) var(--ease-mark); }
+.dial.dragging .hand, .dial.dragging .fill { transition: none; }
+.dial .knob { fill: var(--dial-hand); transition: transform var(--t-fast) var(--ease-mark); transform-box: view-box; transform-origin: 180px 128px; }
+.dial .knob-edge { fill: none; stroke: rgba(255,255,255,.14); stroke-width: 1; }
+.dial.pressing .knob { transform: scale(.96); }
+.dial .pointer { stroke: var(--dial-hand); stroke-width: 3; stroke-linecap: round; }
+.dial .slot { stroke: var(--dial-hand-fg); stroke-width: 2.5; stroke-linecap: round; }
+.dial.rest .pointer { stroke-dasharray: 2 5; stroke-width: 2; }
+.dial.rest .slot { opacity: .55; }
+.dial .check { fill: none; stroke: var(--dial-hand-fg); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; opacity: 0; }
+.dial.locked { cursor: default; }
+.dial.locked .check { opacity: 1; stroke-dashoffset: 0; }
+.dial.locked .slot, .dial.locked .pointer { opacity: 0; }
+.dial.locked .stop { cursor: default; }
+.dial .bottom { font: 400 11.5px var(--mono); fill: var(--ink-3); letter-spacing: .02em; }
+
+/* ---- the ballots ------------------------------------------------------------------------------- */
+.ballots { grid-column: 1 / -1; display: flex; flex-direction: column; border-top: 1px solid var(--line); margin-top: 2px; }
+.ballot { display: grid; grid-template-columns: 28px 150px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.ballot .who { display: flex; flex-direction: column; line-height: 1.25; }
+.ballot .who .name { font-family: var(--serif); font-size: 16px; }
+.ballot .who .role { font-size: 12px; color: var(--ink-3); }
+.ballot .said { font-family: var(--serif); font-style: italic; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ballot .said q { quotes: "“" "”"; }
+.ballot .said .wait { font-family: var(--font); font-style: normal; font-size: 13px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 7px; }
+.ballot .said .wait::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
+.ballot .said .wait.live::before { background: var(--apricot-deep); }
+.ballot .mark { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 92px; }
+.ballot .mark .mini { width: 26px; height: 18px; overflow: visible; }
+.ballot .mark .mini .r { fill: none; stroke: var(--dial-rim); stroke-width: 1.5; stroke-linecap: round; }
+.ballot .mark .mini .f { fill: none; stroke: var(--dial-fill); stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: var(--len, 0) 240; transition: stroke-dasharray var(--t) var(--ease-mark); }
+.ballot .mark .mini .p { stroke: var(--dial-hand); stroke-width: 1.5; stroke-linecap: round; transform-box: view-box; transform-origin: 18px 14px; transform: rotate(var(--deg, 0deg)); transition: transform var(--t) var(--ease-mark); }
+.ballot .mark .mini .k { fill: var(--dial-hand); }
+.ballot .mark .n { font: 400 13px var(--mono); font-variant-numeric: tabular-nums; min-width: 1.2ch; text-align: right; }
+.ballot .mark .w { font-family: var(--serif); font-style: italic; color: var(--ink-2); font-size: 14px; }
+.ballot .mark .voice { font-size: 12.5px; color: var(--ink-3); }
+.ballot.voice { opacity: .72; }
+.ballot.you .who .name::after { content: "you"; font: 500 11px var(--font); color: var(--ink-3); margin-left: 7px; vertical-align: 2px; }
+.ballot.you .mark .n, .ballot.you .mark .w { color: var(--ink); }
+.ballot.you.rest .mark { opacity: .55; }
+.ballot.waiting .mark .mini .p, .ballot.waiting .mark .mini .k { opacity: .25; }
+
+/* ---- the tally and the actions ---------------------------------------------------------------- */
+.tally { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 14px; color: var(--ink-2); }
+.tally b { font-weight: 500; color: var(--ink); font-family: var(--mono); font-size: 13px; }
+.tally .segs { display: inline-flex; gap: 4px; }
+.tally .segs i { width: 26px; height: 6px; border-radius: 3px; background: var(--surface-3); }
+.tally .segs i.on { background: var(--apricot-deep); }
+.tally .segs i.next { background: var(--apricot-soft); box-shadow: inset 0 0 0 1px var(--select-line); }
+.tally .verdict { margin-left: auto; font-family: var(--serif); font-style: italic; color: var(--ink); font-size: 15px; }
+.tally.low .verdict { color: var(--warn-ink); }
+.actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px var(--font); cursor: pointer; box-shadow: var(--edge); transition: background var(--t-fast) ease, box-shadow var(--t) ease, transform var(--t-fast) var(--ease-move); }
+.btn:hover { box-shadow: var(--shadow-soft); } .btn:active { transform: translateY(1px) scale(.99); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.primary .n { font-family: var(--mono); font-weight: 500; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn.ghost.danger { color: var(--danger-ink); }
+.btn.sm { min-height: 30px; padding: 0 12px; font-size: 13px; }
+.actions .hint { font-size: 13px; color: var(--ink-3); }
+.actions .keys { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font: 400 12px var(--mono); color: var(--ink-3); }
+.notice.decided .actions, .notice.decided .say .note, .notice.decided .say .nudge { display: none; }
+.notice.decided .say .means { color: var(--ok-ink); }
+.toasts { position: fixed; right: 24px; bottom: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
+.toast { background: var(--rail); color: var(--rail-fg); padding: 11px 16px; border-radius: var(--radius); box-shadow: var(--shadow-pop); font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.toast .serif { color: var(--apricot); }
+
+/* ------------------------------------------------------------------------------------------- composer */
+.composer-wrap { padding: 10px 24px 18px; background: linear-gradient(to top, var(--canvas) 70%, transparent); }
+.composer { width: min(var(--col), 100%); margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px 10px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-pop), var(--edge); }
+.composer .input { color: var(--ink-3); min-height: 24px; }
+.composer .bar { display: flex; align-items: center; gap: 8px; } .composer .bar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.send { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-soft); }
+
+/* ------------------------------------------------------------------------------------------- drawer */
+.drawer { width: 340px; flex: none; border-left: 1px solid var(--line); background: var(--surface); padding: 22px; display: flex; flex-direction: column; gap: 22px; font-size: 14px; overflow: auto; box-shadow: var(--edge); }
+.drawer h3 { font: 600 11.5px/16px var(--font); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+.drawer section { display: flex; flex-direction: column; gap: 10px; }
+.drawer .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; font-size: 13.5px; color: var(--ink-2); }
+.drawer .row .k { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+.drawer .legend { display: grid; grid-template-columns: 28px 1fr; gap: 8px 10px; align-items: center; font-size: 13.5px; color: var(--ink-2); }
+.drawer .legend svg { width: 28px; height: 20px; overflow: visible; }
+.drawer .legend b { font-weight: 500; color: var(--ink); }
+.drawer .person { display: flex; align-items: center; gap: 10px; font-size: 14px; } .drawer .person .name { flex: 1; font-family: var(--serif); font-size: 15px; } .drawer .person .role { font-size: 12px; color: var(--ink-3); }
+.drawer p { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+
+/* ------------------------------------------------------------------------------------------- motion: the one guard (MOTION §3) */
+@keyframes detent { 0% { transform: scale(1); } 45% { transform: scale(1.55); } 100% { transform: scale(1); } }
+@keyframes word-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes dot-live { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes toast-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes card-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes needle-settle { 0% { transform: rotate(var(--avg-from, 0deg)); } 100% { transform: rotate(var(--avg-deg, 0deg)); } }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) { --motion: 1; }
+  :root:not([data-motion="calm"]) .dial .stop.click .tick { animation: detent 180ms var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .gate .say .word.in { animation: word-in var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .ballot .said .wait.live::before { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .agent .head .dot.running { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .dial.locked .check { animation: draw .45s var(--ease-move) .05s both; }
+  :root:not([data-motion="calm"]) .toast { animation: toast-up var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .ballot.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; }
+}
+/* calm or reduced: clocks to zero, every end state kept (the locked check is drawn, the rows sit) */
+:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
+
+/* ------------------------------------------------------------------------------------------- the phone */
+@media (max-width: 480px) {
+  body { font-size: 16px; }
+  .rail, .drawer, .composer-wrap, .topbar .status, .topbar .pill { display: none; }
+  .topbar { background: var(--rail); color: var(--rail-fg); border: 0; min-height: 60px; padding: 14px 16px 10px; }
+  .topbar .title { font-size: 20px; }
+  .topbar .seg { background: var(--rail-2); } .topbar .seg button { color: var(--rail-muted); } .topbar .seg .on { background: var(--rail-active); color: var(--rail-fg); box-shadow: none; }
+  .column { padding: 14px 16px 120px; gap: 20px; }
+  .msg { display: none; } .divider { display: none; }
+  .notice { padding: 16px 16px 18px 18px; gap: 12px; }
+  .notice .ask { font-size: 15px; }
+  .gate { grid-template-columns: 1fr; gap: 6px; }
+  .dial { width: 100%; margin: 0 auto; }
+  .dial .stop .label { font-size: 17px; }
+  .gate .say { padding-top: 0; gap: 10px; align-items: center; text-align: center; }
+  .gate .say .word { justify-content: center; font-size: 34px; }
+  .gate .say .means { max-width: none; }
+  .gate .say .note { max-width: none; font-size: 16px; }
+  .ballot { grid-template-columns: 24px minmax(0, 1fr) auto; }
+  .ballot .said { display: none; }
+  .ballot .who .name { font-size: 17px; }
+  .tally .verdict { margin-left: 0; flex-basis: 100%; }
+  .actions { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--canvas) 80%, transparent); z-index: 4; }
+  .actions .btn { min-height: 46px; font-size: 15px; }
+  .actions .btn.primary { flex: 1 1 auto; }
+  .actions .keys { display: none; }
+  .actions .hint { flex-basis: 100%; text-align: center; }
+  .toasts { left: 16px; right: 16px; bottom: 90px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- ------------------------------------------------------------------ the rail -->
+  <nav class="rail" aria-label="Sessions">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="48" fill="var(--mark-disc)"/><path d="M48 16a32 32 0 0 1 0 64" fill="none" stroke="var(--mark-arc-a)" stroke-width="10" stroke-linecap="round"/><path d="M48 80a32 32 0 0 1 0-64" fill="none" stroke="var(--mark-arc-b)" stroke-width="10" stroke-linecap="round"/><circle cx="48" cy="48" r="7" fill="var(--mark-dot)"/></svg>
+      Henosis
+    </div>
+    <button class="new" type="button">New session</button>
+    <div class="section">Agents <span class="n">3</span></div>
+    <div class="crew"><span class="serif">Payments</span></div>
+    <a class="agent active" href="#">
+      <div class="head"><span class="dot awaiting"></span><span class="t">Bo's agent</span><span class="count">1</span></div>
+      <div class="doing">Release gate on <i>invoice PDF · tax lines</i></div>
+      <div class="foot"><span class="pill team">Team</span><span>with Ana, Cy</span><span class="mono" style="margin-left:auto;font-size:11.5px">38.2k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot running"></span><span class="t">Cy's agent</span></div>
+      <div class="doing">Proration on <i>Checkout</i> · step 3 of 5</div>
+      <div class="foot"><span class="pill solo">Solo</span><span class="mono" style="margin-left:auto;font-size:11.5px">12.9k</span></div>
+    </a>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot idle"></span><span class="t">Dee's agent</span></div>
+      <div class="doing">Idle since 14:02</div>
+      <div class="foot"><span class="pill solo">Solo</span><span class="mono" style="margin-left:auto;font-size:11.5px">4.1k</span></div>
+    </a>
+    <div class="section">Groups <span class="n">2</span></div>
+    <a class="item" href="#"># billing</a>
+    <a class="item" href="#"># releases</a>
+    <div class="me"><span class="avatar">A</span><span>Ana</span><span class="faint" style="margin-left:auto;font-size:12px">maintainer</span></div>
+  </nav>
+
+  <!-- ------------------------------------------------------------------ the session -->
+  <div class="main">
+    <header class="topbar">
+      <div class="title"><span>invoice PDF · tax lines</span><span class="pill gate">Release gate</span></div>
+      <span class="status awaiting">awaiting approval</span>
+      <div class="right">
+        <span class="stack" aria-label="In the circle: Ana, Bo, Cy, Dee and Bo's agent"><span class="avatar sm">A</span><span class="avatar sm">B</span><span class="avatar sm">C</span><span class="avatar sm">D</span><span class="avatar sm agent">·</span></span>
+        <div class="seg" role="group" aria-label="Exploration controls"><button type="button" id="themeBtn">Dark</button><button type="button" id="calmBtn">Calm</button></div>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="column">
+        <div class="divider">today · turn 14</div>
+
+        <article class="msg">
+          <span class="gutter"><span class="avatar agent" aria-hidden="true">·</span></span>
+          <div class="meta"><span class="who">Bo's agent</span><span>to the team</span><span class="mono faint" style="font-size:12px">14:21</span></div>
+          <div class="text">
+            <p>The tax lines render on the invoice PDF now: VAT per line, a proration row when a plan changes mid-cycle, totals that foot to the cent. The fixture for September reconciles with Finance's export.</p>
+            <p>Ready to unite <span class="mono">tax-lines</span> into <span class="mono">main</span>.</p>
+          </div>
+          <div class="steps">
+            <div class="step">pnpm test · 42 passed<span class="t">1.9s</span></div>
+            <div class="step">rendered invoice-2026-09.pdf · 2 pages<span class="t">0.4s</span></div>
+            <div class="step">diff · +184 −31 · 6 files<span class="t"></span></div>
+          </div>
+        </article>
+
+        <!-- -------------------------------------------------------------- the gate -->
+        <section class="notice" id="notice" aria-label="Release gate">
+          <div class="kind">Release gate · step 5 of 5 · <span class="serif i">unite into main</span></div>
+          <div class="ask"><span class="lead">The release gate.</span> Bo's agent wants to unite <span class="command">tax-lines → main</span>; needs <span class="rule">2 maintainers at 3.5+</span>. Turn the dial to your rating; the notch is the bar, the needle is where the team's average sits.</div>
+
+          <div class="gate">
+            <!-- the dial: one slider, five stops, a detent at each -->
+            <div class="dial rest" id="dial" role="slider" tabindex="0" aria-label="Your rating" aria-valuemin="1" aria-valuemax="5" aria-valuenow="4" aria-valuetext="No pick yet; 4 if you leave it" aria-describedby="means" style="--deg: 60deg; --len: 180; --plen: 0; --avg-deg: 0deg;">
+              <svg viewBox="0 0 360 250" aria-hidden="true" id="face">
+                <!-- the band at and above the bar: a pick in here clears it -->
+                <path class="zone" id="zone" d=""/>
+                <!-- the rim, five stops over 240° -->
+                <path class="rim" id="rim" pathLength="240" d=""/>
+                <path class="pre" id="prearc" pathLength="240" d=""/>
+                <path class="fill" id="fillarc" pathLength="240" d=""/>
+                <!-- the notch: the rule's bar cut into the rim -->
+                <line class="cut" id="cut"/>
+                <polyline class="notch" id="notch" points=""/>
+                <text class="bar-label" id="barLabel" text-anchor="middle"></text>
+                <!-- stops -->
+                <g id="stops"></g>
+                <!-- the team's average: a thin needle -->
+                <line class="needle" id="needle" x1="180" y1="78" x2="180" y2="14"/>
+                <circle class="needle-cap" cx="180" cy="14" r="1.6"/>
+                <!-- the hand: the knob and its pointer, rotated to the pick -->
+                <g class="hand" id="hand">
+                  <line class="pointer" x1="180" y1="86" x2="180" y2="46"/>
+                  <circle class="knob" cx="180" cy="128" r="34"/>
+                  <circle class="knob-edge" cx="180" cy="128" r="33.5"/>
+                  <line class="slot" x1="180" y1="112" x2="180" y2="100"/>
+                  <path class="check" d="M170 129l7 7 13-14" />
+                </g>
+                <text class="bottom" x="180" y="243" text-anchor="middle" id="bottomLine">turn · ← → · 1–5 · 0 clears</text>
+              </svg>
+            </div>
+
+            <!-- the word, the number and what the pick does -->
+            <div class="say" id="say">
+              <div class="you">Your rating</div>
+              <div class="word rest" id="word"><span id="wordText">4 if you leave it</span><span class="n" id="wordN"></span></div>
+              <div class="means" id="means">The gate needs two maintainers at 3.5 or better. Cy's 3 is in; yours is the second and decides the average.</div>
+              <div class="nudge" id="nudge">Say what worries you. A note travels with a low rating.</div>
+              <input class="note" id="note" type="text" aria-label="A note with your rating (optional)" placeholder="A note with your rating (optional)">
+            </div>
+
+            <!-- the ballots: the votes as rows (SYSTEM §10) -->
+            <div class="ballots" id="ballots" aria-label="Ballots"></div>
+
+            <div class="tally" id="tally" aria-live="polite"></div>
+
+            <div class="actions" id="actions">
+              <button class="btn primary" type="button" id="approve">Approve with <span class="n" id="approveN">4</span></button>
+              <button class="btn ghost danger" type="button" id="deny">Deny</button>
+              <span class="hint" id="hint">4 if you leave it</span>
+              <span class="keys" aria-hidden="true"><kbd>a</kbd> approve <kbd>d</kbd> deny <kbd>1–5</kbd> rate</span>
+            </div>
+          </div>
+          <span class="sr-only" id="live" aria-live="polite"></span>
+        </section>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="input">Say something · reaches Bo's agent at its next step</div>
+        <div class="bar">
+          <div class="seg" role="group" aria-label="Agent or Team"><button type="button">Agent</button><button type="button" class="on">Team</button></div>
+          <div class="right"><span class="mono faint" style="font-size:12px">38.2k · 61% of budget</span><button class="send" type="button" aria-label="Send to the team"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------------------ the drawer -->
+  <aside class="drawer" aria-label="Details">
+    <section>
+      <h3>The gate</h3>
+      <div class="row"><span>Rule</span><span class="k">2 maintainers · 3.5+</span></div>
+      <div class="row"><span>Raters</span><span class="k">Ana, Bo</span></div>
+      <div class="row"><span>Unites</span><span class="k">tax-lines → main</span></div>
+      <div class="row"><span>Opened</span><span class="k">14:21 · turn 14</span></div>
+    </section>
+    <section>
+      <h3>Reading the dial</h3>
+      <div class="legend">
+        <svg viewBox="0 0 28 20"><line x1="14" y1="16" x2="14" y2="4" stroke="var(--dial-hand)" stroke-width="3" stroke-linecap="round"/><circle cx="14" cy="17" r="3" fill="var(--dial-hand)"/></svg><span><b>The hand</b> is your pick. Turn it, or press 1 to 5.</span>
+        <svg viewBox="0 0 28 20"><path d="M2 10h9l3 6 3-6h9" fill="none" stroke="var(--dial-notch)" stroke-width="1.5" stroke-linejoin="round"/></svg><span><b>The notch</b> is the bar: 3.5. The band past it clears the gate.</span>
+        <svg viewBox="0 0 28 20"><line x1="14" y1="18" x2="14" y2="2" stroke="var(--dial-needle)" stroke-width="1"/><circle cx="14" cy="2" r="1.5" fill="var(--dial-needle)"/></svg><span><b>The needle</b> is the team's average so far.</span>
+        <svg viewBox="0 0 28 20"><path d="M4 17a12 12 0 0 1 20 0" fill="none" stroke="var(--dial-rim)" stroke-width="2"/><path d="M4 17a12 12 0 0 1 12-11" fill="none" stroke="var(--dial-fill)" stroke-width="2.5" stroke-linecap="round"/></svg><span><b>The stops</b> are the five words. Each has a detent.</span>
+      </div>
+    </section>
+    <section>
+      <h3>Keys</h3>
+      <div class="row"><span>Turn the dial</span><span class="k">← →</span></div>
+      <div class="row"><span>Jump to a stop</span><span class="k">1 – 5</span></div>
+      <div class="row"><span>Clear the pick</span><span class="k">0</span></div>
+      <div class="row"><span>Go to Approve</span><span class="k">Enter</span></div>
+      <div class="row"><span>Approve · deny</span><span class="k">a · d</span></div>
+    </section>
+    <section>
+      <h3>In the circle</h3>
+      <div class="person"><span class="avatar sm">A</span><span class="name">Ana</span><span class="role">maintainer · you</span></div>
+      <div class="person"><span class="avatar sm">B</span><span class="name">Bo</span><span class="role">maintainer</span></div>
+      <div class="person"><span class="avatar sm">C</span><span class="name">Cy</span><span class="role">contributor</span></div>
+      <div class="person"><span class="avatar sm">D</span><span class="name">Dee</span><span class="role">observer</span></div>
+      <div class="person"><span class="avatar sm agent">·</span><span class="name">Bo's agent</span><span class="role">holds the baton</span></div>
+    </section>
+    <section>
+      <h3>Why a dial</h3>
+      <p>A rating is one continuous judgement with five names, not five buttons. The rim is the scale, the notch is what the rule asks, the needle is what the team has said so far; your hand lands between them and the sentence beside it says what that does.</p>
+    </section>
+  </aside>
+</div>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  // ---- the cast and the rule --------------------------------------------------------------
+  const WORDS = ["Not yet", "Risky", "Fine", "Good", "Ship it"];
+  const LEVEL = (n) => n <= 1 ? "low" : n === 2 ? "risky" : n === 3 ? "mid" : "high";
+  const DEFAULT_RATING = 4;                       // the product's default (SYSTEM §10)
+  const RULE = { min: 2, bar: 3.5 };              // "2 maintainers at 3.5+"
+  const ballots = [
+    { id: "cy",  name: "Cy",  role: "contributor", vote: "approve", rating: 3,    note: "Proration rounding still worries me on the last line.", counts: false },
+    { id: "ana", name: "Ana", role: "maintainer",  vote: null,      rating: null, note: "", you: true, counts: true },
+    { id: "bo",  name: "Bo",  role: "maintainer",  vote: null,      rating: null, note: "", counts: true },
+    { id: "dee", name: "Dee", role: "observer",    vote: "approve", rating: 4,    note: "Looks right to me.", counts: false, voice: true },
+  ];
+  // Cy is a contributor: under this rule his rating is a voice; the raters are the maintainers.
+  // The ask says "Cy's 3 is in" because the team can see it; the tally counts maintainers only.
+  // To keep the needle honest the average is over every approve rating in (the app's Tally sums
+  // the ballots); the count is over the rule's rank.
+  const inRatings = () => ballots.filter(b => b.vote === "approve" && b.rating !== null && !b.voice).map(b => b.rating);
+  const countIn   = () => ballots.filter(b => b.vote === "approve" && b.rating !== null && b.counts).length;
+  const avg = (arr) => arr.length ? arr.reduce((n, v) => n + v, 0) / arr.length : 0;
+  const fmt = (n) => String(Math.round(n * 10) / 10);
+
+  // ---- geometry: 0° at twelve, clockwise; the rim runs −120° … 120° over five stops -------------
+  const CX = 180, CY = 128, R = 100, SWEEP = 240, A0 = -120;
+  const rad = (a) => a * Math.PI / 180;
+  const pt = (a, r) => [CX + r * Math.sin(rad(a)), CY - r * Math.cos(rad(a))];
+  const angleOf = (v) => A0 + (v - 1) * 60;
+  const arc = (a1, a2, r) => { const [x1, y1] = pt(a1, r), [x2, y2] = pt(a2, r); return `M${x1.toFixed(2)} ${y1.toFixed(2)}A${r} ${r} 0 ${a2 - a1 > 180 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`; };
+
+  const dial = document.getElementById("dial");
+  const face = document.getElementById("face");
+  const say = document.getElementById("say");
+  const wordEl = document.getElementById("word"), wordText = document.getElementById("wordText"), wordN = document.getElementById("wordN");
+  const means = document.getElementById("means"), live = document.getElementById("live");
+  const approve = document.getElementById("approve"), approveN = document.getElementById("approveN"), hint = document.getElementById("hint");
+  const notice = document.getElementById("notice"), tally = document.getElementById("tally"), ballotsEl = document.getElementById("ballots");
+
+  document.getElementById("rim").setAttribute("d", arc(A0, A0 + SWEEP, R));
+  document.getElementById("prearc").setAttribute("d", arc(A0, A0 + SWEEP, R));
+  document.getElementById("fillarc").setAttribute("d", arc(A0, A0 + SWEEP, R));
+  // the clear band: from the bar to the end of the rim
+  const barA = angleOf(RULE.bar);
+  document.getElementById("zone").setAttribute("d", arc(barA, A0 + SWEEP, R));
+  // the notch: a cut through the rim, then a V dented inward at the bar
+  const cut = document.getElementById("cut"); { const [x1, y1] = pt(barA, R - 9), [x2, y2] = pt(barA, R + 9); cut.setAttribute("x1", x1); cut.setAttribute("y1", y1); cut.setAttribute("x2", x2); cut.setAttribute("y2", y2); }
+  document.getElementById("notch").setAttribute("points", [pt(barA - 3.2, R + 1), pt(barA, R - 7), pt(barA + 3.2, R + 1)].map(p => p.map(n => n.toFixed(2)).join(",")).join(" "));
+  { const [x, y] = pt(barA, R + 17); const t = document.getElementById("barLabel"); t.setAttribute("x", x); t.setAttribute("y", y + 4); t.textContent = `bar ${fmt(RULE.bar)}`; }
+
+  // the five stops: a hit area, a tick, the word outside, the number inside
+  const stops = document.getElementById("stops");
+  const NS = "http://www.w3.org/2000/svg";
+  const stopEls = WORDS.map((w, i) => {
+    const n = i + 1, a = angleOf(n);
+    const g = document.createElementNS(NS, "g"); g.setAttribute("class", "stop"); g.dataset.n = n;
+    const hit = document.createElementNS(NS, "circle"); hit.setAttribute("class", "hit"); const [hx, hy] = pt(a, R + 14); hit.setAttribute("cx", hx); hit.setAttribute("cy", hy); hit.setAttribute("r", 24);
+    const tick = document.createElementNS(NS, "line"); tick.setAttribute("class", "tick"); const [tx1, ty1] = pt(a, R - 7), [tx2, ty2] = pt(a, R + 7); tick.setAttribute("x1", tx1); tick.setAttribute("y1", ty1); tick.setAttribute("x2", tx2); tick.setAttribute("y2", ty2);
+    const label = document.createElementNS(NS, "text"); label.setAttribute("class", "label"); const [lx, ly] = pt(a, R + 26);
+    const c = Math.cos(rad(a)), s = Math.sin(rad(a));
+    label.setAttribute("text-anchor", Math.abs(s) < .2 ? "middle" : s < 0 ? "end" : "start");
+    label.setAttribute("x", lx); label.setAttribute("y", ly + (c > .8 ? -2 : c < -.3 ? 10 : 5)); label.textContent = w;
+    const num = document.createElementNS(NS, "text"); num.setAttribute("class", "num"); const [nx, ny] = pt(a, R - 17); num.setAttribute("text-anchor", "middle"); num.setAttribute("x", nx); num.setAttribute("y", ny + 3.5); num.textContent = n;
+    g.append(hit, tick, label, num); stops.appendChild(g);
+    return g;
+  });
+
+  // ---- state ---------------------------------------------------------------------------------
+  let pick = null;           // null: resting at the default, nothing sent yet
+  let shown = DEFAULT_RATING;// where the hand points (continuous while dragging)
+  let preview = null;
+  let locked = false;
+  const motion = () => getComputedStyle(document.documentElement).getPropertyValue("--motion").trim() === "1";
+  const you = ballots.find(b => b.you);
+
+  function consequence(n) {
+    // what the gate does once your n is in (Bo's rating would be the third voice, past the rule's two)
+    const others = inRatings();
+    const all = [...others, n];
+    const a = avg(all);
+    const count = countIn() + 1;
+    if (count >= RULE.min) {
+      return a >= RULE.bar
+        ? `With your <b>${n}</b> the average is <b>${fmt(a)}</b> and the gate opens: Bo's agent unites tax-lines into main.`
+        : `With your <b>${n}</b> the average is <b>${fmt(a)}</b>, under the bar. The release waits for a revision or for Bo.`;
+    }
+    const lift = Math.ceil(RULE.bar * (count + 1) - all.reduce((s, v) => s + v, 0));
+    return lift > 5 ? `With your <b>${n}</b> no second rating can lift the average to ${fmt(RULE.bar)}.` : `With your <b>${n}</b> one more at <b>${Math.max(1, lift)}</b> opens the gate.`;
+  }
+
+  function render(fromKeys) {
+    const n = pick ?? DEFAULT_RATING;
+    dial.classList.toggle("rest", pick === null);
+    dial.style.setProperty("--deg", `${angleOf(shown)}deg`);
+    dial.style.setProperty("--len", String((shown - 1) * 60));
+    dial.setAttribute("aria-valuenow", String(n));
+    dial.setAttribute("aria-valuetext", pick === null ? `No pick yet; ${DEFAULT_RATING} if you leave it` : `${n} of 5, ${WORDS[n - 1]}`);
+    stopEls.forEach((g, i) => { g.classList.toggle("cur", pick !== null && i + 1 === Math.round(shown)); g.classList.toggle("pre", preview === i + 1); });
+    // the word
+    const w = preview ?? pick;
+    wordEl.className = "word " + (w === null ? "rest" : LEVEL(w));
+    const txt = w === null ? `${DEFAULT_RATING} if you leave it` : WORDS[w - 1];
+    if (wordText.textContent !== txt) { wordText.textContent = txt; wordEl.classList.remove("in"); void wordEl.offsetWidth; wordEl.classList.add("in"); }
+    wordN.textContent = w === null ? "" : `${w} of 5${preview !== null && preview !== pick ? " · preview" : ""}`;
+    say.classList.toggle("lowpick", pick !== null && pick <= 2);
+    means.innerHTML = consequence(w ?? DEFAULT_RATING);
+    approveN.textContent = String(n);
+    hint.textContent = pick === null ? `${DEFAULT_RATING} if you leave it` : `${n} of 5 · ${WORDS[n - 1]}`;
+    // your row mirrors the dial
+    you.rating = pick; renderBallots(); renderTally();
+    if (fromKeys) live.textContent = pick === null ? "No pick" : `${n} of 5, ${WORDS[n - 1]}. ${means.textContent}`;
+  }
+
+  function renderBallots() {
+    ballotsEl.innerHTML = "";
+    for (const b of ballots) {
+      const row = document.createElement("div");
+      row.className = "ballot" + (b.you ? " you" : "") + (b.voice ? " voice" : "") + (b.vote === null && !b.you ? " waiting" : "") + (b.you && pick === null && !locked ? " rest" : "");
+      const r = b.you ? (pick ?? DEFAULT_RATING) : b.rating;
+      const said = b.you
+        ? (locked ? (b.note ? `<q>${esc(b.note)}</q>` : `<span class="wait">your vote is in</span>`) : `<span class="wait live">rating now</span>`)
+        : b.vote === null ? `<span class="wait">waiting</span>` : `<q>${esc(b.note)}</q>`;
+      const mark = b.voice
+        ? `<span class="voice">a voice, not a vote · ${b.rating}</span>`
+        : `<svg class="mini" viewBox="0 0 36 28" aria-hidden="true" style="--deg:${r === null ? 0 : angleOf(r)}deg; --len:${r === null ? 0 : (r - 1) * 60}"><path class="r" pathLength="240" d="${miniArc()}"/><path class="f" pathLength="240" d="${miniArc()}"/><line class="p" x1="18" y1="14" x2="18" y2="3"/><circle class="k" cx="18" cy="14" r="2.6"/></svg><span class="n">${r === null ? "–" : r}</span><span class="w">${r === null ? "" : WORDS[r - 1]}</span>`;
+      row.innerHTML = `<span class="avatar sm">${b.name[0]}</span><span class="who"><span class="name">${b.name}</span><span class="role">${b.role}</span></span><span class="said">${said}</span><span class="mark">${mark}</span>`;
+      ballotsEl.appendChild(row);
+    }
+  }
+  function miniArc() { const r = 11, cx = 18, cy = 14; const p = (a) => [cx + r * Math.sin(rad(a)), cy - r * Math.cos(rad(a))]; const [x1, y1] = p(-120), [x2, y2] = p(120); return `M${x1.toFixed(1)} ${y1.toFixed(1)}A${r} ${r} 0 1 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`; }
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function renderTally() {
+    const rs = inRatings(); const count = countIn(); const a = avg(rs);
+    const low = count > 0 && a < RULE.bar;
+    const segs = Array.from({ length: RULE.min }, (_, i) => `<i class="${i < count ? "on" : i === count ? "next" : ""}"></i>`).join("");
+    let verdict;
+    if (locked) verdict = a >= RULE.bar && count >= RULE.min ? "The gate opens." : count < RULE.min ? "The gate waits for Bo." : "Under the bar: the release waits.";
+    else verdict = count === 0 ? "The gate waits for you and Bo." : "One more rating decides.";
+    tally.className = "tally" + (low && locked ? " low" : "");
+    tally.innerHTML = `<span class="segs" aria-hidden="true">${segs}</span><span><b>${count}</b> of ${RULE.min} raters</span><span>${rs.length ? `<b>${fmt(a)}</b> average` : "no rating yet"}</span><span class="verdict">${verdict}</span>`;
+    // the needle
+    const needleAvg = avg(rs);
+    dial.classList.toggle("noavg", rs.length === 0);
+    if (rs.length) dial.style.setProperty("--avg-deg", `${angleOf(needleAvg)}deg`);
+  }
+
+  // ---- the detent -------------------------------------------------------------------------------
+  // The hand follows the finger, but each stop pulls: within half a step of a stop the offset is
+  // 4·d³, so the hand lingers at the word and jumps between words. Crossing into a new stop clicks.
+  let lastStop = null;
+  function detent(v) { const s = Math.round(v); const d = v - s; return s + 4 * d * d * d; }
+  function click(s) {
+    const g = stopEls[s - 1]; g.classList.remove("click"); void g.getBBox(); g.classList.add("click");
+    setTimeout(() => g.classList.remove("click"), 200);           // never wait on animationend: under Calm it never fires
+    if (dragPointer === "touch" && navigator.vibrate) navigator.vibrate(6);
+  }
+  function valueAt(clientX, clientY) {
+    const rect = face.getBoundingClientRect();
+    const sx = rect.width / 360, sy = rect.height / 250;
+    const x = (clientX - rect.left) / sx - CX, y = (clientY - rect.top) / sy - CY;
+    let a = Math.atan2(x, -y) * 180 / Math.PI;                      // 0 at twelve, clockwise
+    if (a > 120) a = a < 180 ? 120 : -120;                          // the bottom gap goes to the nearer end
+    if (a < -120) a = a > -180 ? -120 : 120;
+    return 1 + (a - A0) / 60;
+  }
+  let dragging = false, dragPointer = "mouse";
+  dial.addEventListener("pointerdown", (e) => {
+    if (locked || e.button > 0) return;
+    const stop = e.target.closest?.(".stop");
+    if (stop) return;                                               // a stop is a tap, handled on click
+    dragging = true; dragPointer = e.pointerType; dial.setPointerCapture(e.pointerId);
+    dial.classList.add("dragging", "pressing"); preview = null; dial.classList.remove("previewing");
+    lastStop = Math.round(shown);
+    move(e); e.preventDefault();
+  });
+  function move(e) {
+    if (!dragging) return;
+    const v = Math.min(5, Math.max(1, valueAt(e.clientX, e.clientY)));
+    shown = detent(v);
+    const s = Math.round(v);
+    if (s !== lastStop) { lastStop = s; pick = s; click(s); render(false); }
+    else { dial.style.setProperty("--deg", `${angleOf(shown)}deg`); dial.style.setProperty("--len", String((shown - 1) * 60)); }
+  }
+  dial.addEventListener("pointermove", move);
+  const release = (e) => {
+    if (!dragging) return;
+    dragging = false; dial.classList.remove("dragging", "pressing");
+    try { dial.releasePointerCapture(e.pointerId); } catch {}
+    pick = Math.round(shown); shown = pick; render(true);
+  };
+  dial.addEventListener("pointerup", release); dial.addEventListener("pointercancel", release);
+
+  // a stop: hover previews (lighter than the pick), a click picks, a second click on the pick clears
+  stops.addEventListener("pointerover", (e) => { if (locked || dragging) return; const g = e.target.closest(".stop"); if (!g) return; preview = Number(g.dataset.n); dial.classList.add("previewing"); dial.style.setProperty("--plen", String((preview - 1) * 60)); render(false); });
+  stops.addEventListener("pointerout", (e) => { if (locked) return; const g = e.target.closest(".stop"); if (!g || g.contains(e.relatedTarget)) return; preview = null; dial.classList.remove("previewing"); render(false); });
+  stops.addEventListener("click", (e) => {
+    if (locked) return; const g = e.target.closest(".stop"); if (!g) return;
+    const n = Number(g.dataset.n);
+    if (pick === n) { pick = null; shown = DEFAULT_RATING; }
+    else { pick = n; shown = n; click(n); }
+    preview = null; dial.classList.remove("previewing"); render(true); dial.focus({ preventScroll: true });
+  });
+
+  // keys: arrows turn, 1–5 jump, 0 clears, Home/End, Enter goes to the button, Esc drops a preview
+  dial.addEventListener("keydown", (e) => {
+    if (locked) return;
+    const cur = pick ?? DEFAULT_RATING; let next = null;
+    switch (e.key) {
+      case "ArrowRight": case "ArrowUp": next = Math.min(5, cur + 1); break;
+      case "ArrowLeft": case "ArrowDown": next = Math.max(1, cur - 1); break;
+      case "Home": next = 1; break; case "End": next = 5; break;
+      case "0": pick = null; shown = DEFAULT_RATING; render(true); e.preventDefault(); return;
+      case "Enter": case " ": approve.focus(); e.preventDefault(); return;
+      case "Escape": preview = null; dial.classList.remove("previewing"); render(false); return;
+      default: if (/^[1-5]$/.test(e.key)) next = Number(e.key); else return;
+    }
+    e.preventDefault();
+    if (next !== pick) { pick = next; shown = next; click(next); render(true); }
+  });
+  // the notice's own keys: a approves, d denies, 1–5 rate, while nobody types
+  notice.addEventListener("keydown", (e) => {
+    if (locked || e.target.matches("input, textarea") || e.metaKey || e.ctrlKey || e.altKey || e.target === dial) return;
+    if (e.key === "a") { approve.click(); e.preventDefault(); }
+    else if (e.key === "d") { document.getElementById("deny").click(); e.preventDefault(); }
+    else if (/^[1-5]$/.test(e.key)) { pick = Number(e.key); shown = pick; click(pick); render(true); e.preventDefault(); }
+  });
+
+  // approve: the dial locks, the check draws, your row takes the number, the tally settles
+  function toast(html) { const t = document.createElement("div"); t.className = "toast"; t.innerHTML = html; document.getElementById("toasts").appendChild(t); setTimeout(() => t.remove(), 6000); }
+  approve.addEventListener("click", () => {
+    if (locked) return;
+    const n = pick ?? DEFAULT_RATING; pick = n; shown = n;
+    you.vote = "approve"; you.rating = n; you.note = document.getElementById("note").value.trim();
+    locked = true; dial.classList.add("locked"); dial.setAttribute("aria-disabled", "true"); dial.classList.remove("rest"); notice.classList.add("decided");
+    const rs = inRatings(); const a = avg(rs); const count = countIn();
+    const from = dial.style.getPropertyValue("--avg-deg");
+    dial.style.setProperty("--avg-from", from);
+    render(false);
+    wordN.textContent = `${n} of 5 · sent`;
+    means.innerHTML = count >= RULE.min && a >= RULE.bar
+      ? `Your <b>${n}</b> is in. The average is <b>${fmt(a)}</b>: the gate opens and Bo's agent unites tax-lines into main.`
+      : count >= RULE.min ? `Your <b>${n}</b> is in. The average is <b>${fmt(a)}</b>, under the bar: the release waits for a revision.`
+      : `Your <b>${n}</b> is in. The gate waits for Bo.`;
+    live.textContent = means.textContent;
+    toast(`<span class="serif">Ana</span> approved with ${n} · ${count >= RULE.min && a >= RULE.bar ? "the gate opens" : "the gate waits"}`);
+  });
+  document.getElementById("deny").addEventListener("click", () => {
+    if (locked) return; locked = true; dial.classList.add("locked"); notice.classList.add("decided"); dial.classList.remove("rest");
+    you.vote = "deny"; you.rating = null; render(false); wordEl.className = "word low"; wordText.textContent = "Denied"; wordN.textContent = "";
+    means.innerHTML = "Your no is in. Bo's agent holds; the release waits for a revision."; live.textContent = means.textContent; toast(`<span class="serif">Ana</span> denied the release`);
+  });
+
+  // exploration controls: Dark and Calm set the attributes theme.ts sets; the app does not ship these
+  const root = document.documentElement;
+  document.getElementById("themeBtn").addEventListener("click", (e) => { const dark = root.dataset.theme !== "dark"; root.dataset.theme = dark ? "dark" : "light"; e.currentTarget.classList.toggle("on", dark); });
+  document.getElementById("calmBtn").addEventListener("click", (e) => { const calm = root.dataset.motion !== "calm"; if (calm) root.dataset.motion = "calm"; else delete root.dataset.motion; e.currentTarget.classList.toggle("on", calm); });
+  document.getElementById("themeBtn").classList.toggle("on", root.dataset.theme === "dark");
+
+  // ?pick=4 opens the page with a pick already turned to (the screenshots); ?calm, ?locked
+  const q = new URLSearchParams(location.search);
+  if (q.has("calm")) { root.dataset.motion = "calm"; document.getElementById("calmBtn").classList.add("on"); }
+  const p = Number(q.get("pick")); if (p >= 1 && p <= 5) { pick = p; shown = p; }
+  render(false);
+  if (q.has("locked")) approve.click();
+})();
+</script>
+</body>
+</html>
