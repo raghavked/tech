@@ -549,8 +549,12 @@ export const copy = {
     sendTeam: "Send to the team",
     keysLive: "Keys live",
     typing: "Typing",
-    hint: (name: string, role: string, driving: boolean) =>
-      `Enter to send · Shift+Enter for a new line · ? for shortcuts · as ${name}, ${role}${driving ? ", driving" : ""}`,
+    /** desktop-compact: the hint names the platform's keys (⌘K / Ctrl K) and, in the shell, what closing does. */
+    hint: (name: string, role: string, driving: boolean, keys = "? for shortcuts", closing = "") =>
+      `Enter to send · Shift+Enter for a new line · ${keys} · as ${name}, ${role}${driving ? ", driving" : ""}${closing}`,
+    keys: (palette: string, help: string) => `${palette} for commands · ${help} for shortcuts`,
+    closesToTray: (apple: boolean) =>
+      apple ? " · the window closes into the tray" : " · closing hides to the tray",
     hintTeam: (name: string) =>
       `Enter to say it · kept in the session log, never sent to the agent · as ${name}`,
     hintPlan: (name: string, role: string, driving: boolean) =>

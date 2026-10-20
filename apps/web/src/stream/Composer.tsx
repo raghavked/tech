@@ -12,7 +12,10 @@ import { useCallback, useRef, useState } from "react";
 import type { HenosisClient } from "../client.js";
 import { copy } from "../copy.js";
 import { describeQueued, type QueuedMessage } from "../offlineQueue.js";
+import { hotkeyLabel } from "../palette.js";
 import { composingLine, PRESENCE_COMPOSING_TEAM, useComposing } from "../presence.js";
+import { closeHint } from "../shell.js";
+import { helpChordLabel } from "../shortcuts.js";
 import { Avatar, ICONS, Icon } from "../ui.js";
 
 const MODES: DirectiveMode[] = ["steer", "constrain", "pause", "resume", "cancel"];
@@ -104,7 +107,13 @@ export function Composer({
         ? copy.composer.hintPlan(me.name, role, driving)
         : liveStep
           ? copy.composer.hintLive(liveStep)
-          : copy.composer.hint(me.name, role, driving);
+          : copy.composer.hint(
+              me.name,
+              role,
+              driving,
+              copy.composer.keys(hotkeyLabel(), helpChordLabel()),
+              closeHint(),
+            );
   return (
     <div className="composer-wrap">
       {planWaits && !past && (

@@ -20,7 +20,7 @@ export function UpdateRow() {
         restartToUpdate().finally(() => setBusy(false));
       }}
     >
-      {busy ? "Updating" : "Restart to update"}
+      <span className="lbl">{busy ? "Updating" : "Restart to update"}</span>
       <span className="faint">{update.version}</span>
     </button>
   );

@@ -20,6 +20,8 @@ export type ShortcutId =
   | "details"
   | "next"
   | "previous"
+  | "foldRail"
+  | "expandRail"
   | "help";
 
 export interface Shortcut {
@@ -41,6 +43,9 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: "details", key: "i", label: "Show or hide details", scope: "session" },
   { id: "next", key: "j", label: "Next session", scope: "anywhere" },
   { id: "previous", key: "k", label: "Previous session", scope: "anywhere" },
+  // desktop-compact: [ and ] pin the rail folded or open; the width decides until they are pressed.
+  { id: "foldRail", key: "[", label: "Fold the rail", scope: "anywhere" },
+  { id: "expandRail", key: "]", label: "Expand the rail", scope: "anywhere" },
   { id: "help", key: "?", label: "Keyboard shortcuts", scope: "anywhere" },
 ];
 
@@ -99,6 +104,11 @@ export function isApple(platform?: string): boolean {
 /** The OS modifier as the help sheet prints it. */
 export function modLabel(apple = isApple()): string {
   return apple ? "⌘" : "Ctrl";
+}
+
+/** The Mod+/ chord as the composer hint prints it. */
+export function helpChordLabel(apple = isApple()): string {
+  return apple ? "⌘/" : "Ctrl /";
 }
 
 /** True when the OS modifier (and only that one) is held. */

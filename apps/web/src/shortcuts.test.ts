@@ -14,7 +14,7 @@ describe("shortcut map", () => {
   it("names every key once", () => {
     const keys = SHORTCUTS.map((s) => s.key);
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toEqual(["/", "a", "d", "h", "f", "i", "j", "k", "?"]);
+    expect(keys).toEqual(["/", "a", "d", "h", "f", "i", "j", "k", "[", "]", "?"]);
   });
 
   it("matches a bare letter outside a text field", () => {

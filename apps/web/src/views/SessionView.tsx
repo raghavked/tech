@@ -362,14 +362,17 @@ export function SessionView({
             <Icon d={ICONS.link} size={14} />
             <span className="lbl">{copy.session.share}</span>
           </button>
+          {/* desktop-compact: below 960 the words go and the icons stay (styles.css .lbl) */}
           <button
             type="button"
             className={`btn sm${panel === "team" ? " on" : ""}${mine && teamOf(mine).team ? " team" : ""}`}
             aria-pressed={panel === "team"}
+            aria-label={copy.session.team}
             title={copy.session.teamTitle(online.length)}
             onClick={() => toggle("team")}
           >
-            {copy.session.team}
+            <Icon d={ICONS.group} size={14} />
+            <span className="lbl">{copy.session.team}</span>
             <span className="n mono" aria-hidden="true">
               {online.length}
             </span>
@@ -378,9 +381,12 @@ export function SessionView({
             type="button"
             className={`btn sm${details ? " on" : ""}`}
             aria-pressed={details}
+            aria-label={copy.session.details}
+            title={copy.session.details}
             onClick={() => toggle("details")}
           >
-            {copy.session.details}
+            <Icon d={ICONS.brief} size={14} />
+            <span className="lbl">{copy.session.details}</span>
             <span className="kbd key" aria-hidden="true">
               i
             </span>

@@ -13,7 +13,7 @@ import { type Identity, useIdentity } from "./identity.js";
 import { TypedToasts } from "./notify.js";
 import { CommandPalette } from "./palette.js";
 // The rail is drawn once, in Rail.tsx; the Shell only places it.
-import { Rail, teamOfRoute } from "./Rail.js";
+import { pinRail, Rail, teamOfRoute } from "./Rail.js";
 import { navigate, type Route, useRoute } from "./router.js";
 import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
 import { useTeamTheme } from "./theme.js";
@@ -222,6 +222,9 @@ export function Shell({
     ...shortcuts,
     next: () => stepTo(1),
     previous: () => stepTo(-1),
+    // [ and ] pin the rail folded or open (Rail.tsx); the width decides until they are pressed.
+    foldRail: () => pinRail("collapsed"),
+    expandRail: () => pinRail("expanded"),
     help: () => setHelp((v) => !v),
   });
   // The account menu (and any surface without a keyboard) asks for the sheet by this event.

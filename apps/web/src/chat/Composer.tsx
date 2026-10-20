@@ -17,6 +17,7 @@ import {
 } from "react";
 import type { ChatDirectoryListing } from "../api.js";
 import { copy } from "../copy.js";
+import { closeHint } from "../shell.js";
 import { Avatar, ICONS, Icon } from "../ui.js";
 import { AgentTile, type Live, Match, nameOfIn, statusWord } from "./shared.js";
 
@@ -267,6 +268,7 @@ export function Composer({
       <p className="hint small faint keys">
         <kbd>Enter</kbd> {copy.chat.hintEnter} · <kbd>Shift</kbd>+<kbd>Enter</kbd>{" "}
         {copy.chat.hintShift} · <kbd>@</kbd> {copy.chat.hintAt}
+        {closeHint()}
       </p>
     </div>
   );

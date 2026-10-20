@@ -17,6 +17,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import type { ShellContext } from "./App.js";
 import { api, type Me, type SessionRow } from "./api.js";
@@ -74,36 +75,50 @@ function readRailPref(): RailPref {
   }
 }
 
+// One store, shared by the rail and the Shell's `[` and `]` (shortcuts.ts), so the choice is
+// made in one place and outlives the tab.
+let railPref: RailPref = readRailPref();
+const railListeners = new Set<() => void>();
+function subscribeRailPref(fn: () => void): () => void {
+  railListeners.add(fn);
+  return () => {
+    railListeners.delete(fn);
+  };
+}
+function readPref(): RailPref {
+  return railPref;
+}
+
+/** Pins the rail folded or open; the width decides until this is called. */
+export function pinRail(pref: "collapsed" | "expanded"): void {
+  railPref = pref;
+  try {
+    localStorage.setItem(RAIL_KEY, pref);
+  } catch {
+    // private mode: the choice lasts for this page
+  }
+  for (const fn of railListeners) fn();
+}
+
 function useRailCollapsed(): [boolean, () => void] {
   const narrow = useMediaQuery("(min-width: 641px) and (max-width: 1180px)");
   const phone = useMediaQuery("(max-width: 640px)");
-  const [pref, setPref] = useState<RailPref>(readRailPref);
+  const pref = useSyncExternalStore(subscribeRailPref, readPref, () => null);
   const collapsed = !phone && (pref ? pref === "collapsed" : narrow);
-  const toggle = useCallback(() => {
-    const next: RailPref = collapsed ? "expanded" : "collapsed";
-    setPref(next);
-    try {
-      localStorage.setItem(RAIL_KEY, next);
-    } catch {
-      // private mode: the choice lasts for this page
-    }
-  }, [collapsed]);
+  const toggle = useCallback(() => pinRail(collapsed ? "expanded" : "collapsed"), [collapsed]);
   return [collapsed, toggle];
 }
 
-/** `[` folds, `]` unfolds, `n` opens a new session; only when nobody is typing. */
-function useRailKeys(collapsed: boolean, toggle: () => void, newHref: string): void {
-  const ref = useRef({ collapsed, toggle, newHref });
-  ref.current = { collapsed, toggle, newHref };
+/** `n` opens a new session when nobody is typing; `[` and `]` are the Shell's (shortcuts.ts). */
+function useRailKeys(newHref: string): void {
+  const ref = useRef(newHref);
+  ref.current = newHref;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
       if (isTyping(e.target as TargetLike | null)) return;
-      const r = ref.current;
-      if (e.key === "[" && !r.collapsed) r.toggle();
-      else if (e.key === "]" && r.collapsed) r.toggle();
-      else if (e.key === "n") navigate(r.newHref);
-      else return;
+      if (e.key !== "n") return;
+      navigate(ref.current);
       e.preventDefault();
     };
     addEventListener("keydown", onKey);
@@ -185,7 +200,7 @@ export const Rail = memo(function Rail({
   const waiting = allRows.reduce((n, r) => n + pendingOf(r), 0);
   const newHref = paths.fleet(firstProject) + (identity ? "?new=1" : "");
   const [collapsed, toggleCollapsed] = useRailCollapsed();
-  useRailKeys(collapsed, toggleCollapsed, newHref);
+  useRailKeys(newHref);
   const nameOf = (s: SessionRow) => (id: string) =>
     me?.user?.id === id ? copy.roles.you : (nameOfMember(s, id) ?? id);
   // the me row: what I am driving, and my role on the project I am in

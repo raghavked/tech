@@ -8,9 +8,11 @@
  * imports `@tauri-apps/*`; a shell built without the bridge still works through the global
  * Tauri object (`withGlobalTauri`).
  */
+import { copy } from "./copy.js";
 import { getIdentity, onIdentityChange } from "./identity.js";
 import { LINK_EVENT } from "./links.js";
 import { parseHash } from "./router.js";
+import { isApple } from "./shortcuts.js";
 
 export interface DesktopInfo {
   version: string;
@@ -184,6 +186,14 @@ export function desktop(): HenosisDesktop | undefined {
 
 export function isDesktop(): boolean {
   return desktop() !== undefined;
+}
+
+/**
+ * desktop-compact: what closing the window does, for the composer hint. The shell hides to the
+ * tray on close (apps/desktop main.rs); a browser says nothing.
+ */
+export function closeHint(): string {
+  return isDesktop() ? copy.composer.closesToTray(isApple()) : "";
 }
 
 const SERVER_KEY = "henosis.server";
