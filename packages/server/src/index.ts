@@ -1,3 +1,4 @@
+export * from "./agentsApi.js";
 export * from "./auth.js";
 export * from "./chatHost.js";
 export * from "./councilHost.js";
@@ -5,6 +6,7 @@ export * from "./export.js";
 export * from "./glance.js";
 export * from "./host.js";
 export * from "./memoryQuery.js";
+export * from "./models.js";
 export * from "./notify.js";
 export * from "./orgs.js";
 export * from "./projectHost.js";

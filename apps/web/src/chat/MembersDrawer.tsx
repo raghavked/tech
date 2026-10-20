@@ -18,7 +18,7 @@ import {
 } from "@henosis/chat";
 import { compactTokens } from "@henosis/kernel";
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useState } from "react";
-import type { ChatDirectoryListing } from "../api.js";
+import type { AgentRow, ChatDirectoryListing } from "../api.js";
 import { copy } from "../copy.js";
 import { paths } from "../router.js";
 import { Avatar, ICONS, Icon, Mark, useJustJoined } from "../ui.js";
@@ -34,7 +34,7 @@ import {
 } from "./shared.js";
 
 type Candidate =
-  | { kind: "human"; id: string; name: string }
+  | { kind: "human"; id: string; name: string; agent?: AgentRow }
   | { kind: "agent"; id: string; name: string; row: DirAgent };
 
 export function MembersDrawer({
@@ -76,7 +76,8 @@ export function MembersDrawer({
   const candidates: Candidate[] = [];
   if (host)
     for (const p of directory?.people ?? [])
-      if (!inGroup.has(`human:${p.id}`)) candidates.push({ kind: "human", id: p.id, name: p.name });
+      if (!inGroup.has(`human:${p.id}`))
+        candidates.push({ kind: "human", id: p.id, name: p.name, agent: p.agent });
   for (const a of directory?.agents ?? [])
     if (!inGroup.has(`agent:${a.projectId}/${a.sessionId}`) && (host || a.ownerId === meId))
       candidates.push({ kind: "agent", id: a.sessionId, name: a.title, row: a });
@@ -210,7 +211,15 @@ export function MembersDrawer({
                       </span>
                       <span className="s">
                         {c.kind === "human" ? (
-                          copy.chat.inOrg(orgName)
+                          <>
+                            {copy.chat.inOrg(orgName)}
+                            {c.agent && (
+                              <span className="agentline">
+                                {" · "}
+                                {copy.chat.brings(c.agent.name, c.agent.modelName)}
+                              </span>
+                            )}
+                          </>
                         ) : (
                           <>
                             <span className={`status ${statusCls(c.row.live)}`}>
@@ -253,6 +262,8 @@ export function MembersDrawer({
             const canChange = creator && !me;
             const canRemove = host && !me;
             const owned = agentsOwnedBy(p.userId);
+            // The member model the person brings to a council, with the model it runs on.
+            const brings = directory?.people.find((d) => d.id === p.userId)?.agent;
             return (
               <div key={p.userId} className="mrow-wrap">
                 <div
@@ -266,6 +277,11 @@ export function MembersDrawer({
                     </span>
                     {fresh.has(memberKey(p)) && (
                       <span className="s new">{copy.chat.justJoined}</span>
+                    )}
+                    {brings && !fresh.has(memberKey(p)) && (
+                      <span className="s agentline">
+                        {copy.chat.brings(brings.name, brings.modelName)}
+                      </span>
                     )}
                   </span>
                   <span className="side">

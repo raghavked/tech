@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   AgentProfile,
+  AgentProfileInput,
   AgentsFile,
   CHAIR_PERSONA,
+  canManageAgents,
   councilMemberOf,
   listAgentProfiles,
+  mergeSsoUser,
+  type OrgsFile,
   personalAgentId,
   personalAgentProfile,
   resolveAgentProfile,
+  SharedAgentInput,
   User,
   UsersFile,
 } from "../src/identity.js";
@@ -100,5 +105,88 @@ describe("member model profiles", () => {
       profileId: "team:pay",
       name: "Payments agent",
     });
+  });
+
+  it("takes what a person or a lead may set: no id or owner on their own, an id on a shared one", () => {
+    expect(AgentProfileInput.parse({})).toEqual({});
+    expect(
+      AgentProfileInput.parse({ id: "x", ownerId: "y", name: "N", provider: "claude", budget: 10 }),
+    ).toEqual({ name: "N", provider: "claude", budget: 10 });
+    expect(AgentProfileInput.safeParse({ provider: "gemini" }).success).toBe(false);
+    expect(AgentProfileInput.safeParse({ budget: 0 }).success).toBe(false);
+    expect(AgentProfileInput.safeParse({ tools: [""] }).success).toBe(false);
+    expect(SharedAgentInput.parse({ id: "team:pay", name: "P" })).toEqual({
+      id: "team:pay",
+      name: "P",
+      provider: "scripted",
+      model: "",
+      persona: "",
+      tools: [],
+      budget: null,
+    });
+    expect(SharedAgentInput.safeParse({ name: "no id" }).success).toBe(false);
+  });
+
+  it("keeps the agent a verified person saved when their token is merged with users.json", () => {
+    const known = User.parse({
+      id: "ana",
+      name: "Ana",
+      teams: [{ teamId: "pay", role: "manager" }],
+      agent: { name: "Ana's chair", provider: "claude", budget: 9000 },
+    });
+    const merged = mergeSsoUser(
+      known,
+      { userId: "ana", name: "Ana B" },
+      { orgs: [], teams: [{ teamId: "growth", role: "member" }], projects: [] },
+    );
+    expect(merged.agent).toEqual(known.agent);
+    expect(personalAgentProfile(merged)).toMatchObject({
+      id: "agent:ana",
+      name: "Ana's chair",
+      provider: "claude",
+      budget: 9000,
+      persona: CHAIR_PERSONA,
+    });
+    // A person users.json does not know has no agent field to carry.
+    expect(
+      "agent" in mergeSsoUser(null, { userId: "new" }, { orgs: [], teams: [], projects: [] }),
+    ).toBe(false);
+  });
+
+  it("lets a lead or manager of a team in the org, or an org admin, manage its shared agents", () => {
+    const orgs: OrgsFile = {
+      orgs: [
+        {
+          id: "nw",
+          name: "Northwind",
+          teams: [
+            { id: "pay", name: "Payments", projects: [] },
+            { id: "growth", name: "Growth", projects: [] },
+          ],
+        },
+        { id: "other", name: "Other", teams: [{ id: "ops", name: "Ops", projects: [] }] },
+      ],
+    };
+    const u = (over: Partial<User>): User => User.parse({ id: "u", name: "U", ...over });
+    expect(canManageAgents(null, orgs, "nw")).toBe(false);
+    expect(canManageAgents(u({ teams: [{ teamId: "pay", role: "member" }] }), orgs, "nw")).toBe(
+      false,
+    );
+    expect(canManageAgents(u({ teams: [{ teamId: "pay", role: "lead" }] }), orgs, "nw")).toBe(true);
+    expect(canManageAgents(u({ teams: [{ teamId: "growth", role: "manager" }] }), orgs, "nw")).toBe(
+      true,
+    );
+    // A lead elsewhere, an admin elsewhere, an unknown org.
+    expect(canManageAgents(u({ teams: [{ teamId: "ops", role: "lead" }] }), orgs, "nw")).toBe(
+      false,
+    );
+    expect(canManageAgents(u({ orgs: [{ orgId: "other", role: "admin" }] }), orgs, "nw")).toBe(
+      false,
+    );
+    expect(canManageAgents(u({ orgs: [{ orgId: "nw", role: "admin" }] }), orgs, "nw")).toBe(true);
+    expect(canManageAgents(u({ orgs: [{ orgId: "nw", role: "member" }] }), orgs, "nw")).toBe(false);
+    expect(canManageAgents(u({ orgs: [{ orgId: "nw", role: "admin" }] }), orgs, "nope")).toBe(
+      false,
+    );
   });
 });

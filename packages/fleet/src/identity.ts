@@ -33,6 +33,18 @@ export const AgentProfile = z.object({
 });
 export type AgentProfile = z.infer<typeof AgentProfile>;
 
+/**
+ * What a person sets on their own agent in Settings → My agent, and what a lead sets on a
+ * shared one: everything but the id and the owner, which the store decides. Every field is
+ * optional; what is absent keeps its default (a manager's persona stays the chair's).
+ */
+export const AgentProfileInput = AgentProfile.omit({ id: true, ownerId: true }).partial();
+export type AgentProfileInput = z.infer<typeof AgentProfileInput>;
+
+/** A shared team agent as a lead writes it: a profile with its id and no owner. */
+export const SharedAgentInput = AgentProfile.omit({ ownerId: true });
+export type SharedAgentInput = z.infer<typeof SharedAgentInput>;
+
 export const User = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -118,6 +130,20 @@ export function councilMemberOf(p: AgentProfile): {
   name: string;
 } {
   return { kind: "agent", userId: p.ownerId, profileId: p.id, name: p.name };
+}
+
+/**
+ * Whether a user may edit the org's shared team agents (Settings → Team agents): a lead or
+ * manager of one of its teams in users.json, or an admin of the org.
+ */
+export function canManageAgents(user: User | null, orgs: OrgsFile, orgId: string): boolean {
+  if (!user) return false;
+  const org = orgs.orgs.find((o) => o.id === orgId);
+  if (!org) return false;
+  if (user.orgs.some((o) => o.orgId === orgId && o.role === "admin")) return true;
+  return user.teams.some(
+    (t) => t.role !== "member" && org.teams.some((team) => team.id === t.teamId),
+  );
 }
 
 /** A six-digit hex colour, `#RRGGBB`. */
@@ -308,6 +334,7 @@ export function membershipsOfGroups(
  * or project, users.json wins, so a lead can still raise someone by hand. A person neither
  * file nor directory places anywhere has no memberships and is an observer everywhere until a
  * lead adds them. users.json keeps the name it knows; the token's name fills in for others.
+ * The agent the person set in Settings → My agent rides along, so a verified person keeps it.
  */
 export function mergeSsoUser(
   known: User | null,
@@ -325,6 +352,7 @@ export function mergeSsoUser(
     name: known?.name ?? principal.name ?? principal.email ?? principal.userId,
     ...(email ? { email } : {}),
     ...(known?.slackId ? { slackId: known.slackId } : {}),
+    ...(known?.agent ? { agent: known.agent } : {}),
     orgs: union(known?.orgs ?? [], granted.orgs, (m) => m.orgId),
     teams: union(known?.teams ?? [], granted.teams, (m) => m.teamId),
     projects: union(known?.projects ?? [], granted.projects, (m) => m.projectId),

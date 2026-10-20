@@ -40,6 +40,7 @@ import {
 } from "@henosis/protocol";
 import { ClaudeModel, claudeAvailable, type Model, type ToolRegistry } from "@henosis/runner";
 import { type RawData, type WebSocket, WebSocketServer } from "ws";
+import { agentRow, handleAgentsApi } from "./agentsApi.js";
 import { Auth, type AuthConfig, AuthError, type Principal } from "./auth.js";
 import { handleBranchApi } from "./branchApi.js";
 import { ChatHost, type ChatSubscriber } from "./chatHost.js";
@@ -48,6 +49,7 @@ import { EXPORT_PATH, exportHeaders, exportSessionMarkdown } from "./export.js";
 import { computeGlance, GLANCE_PATH, type GlanceSource, UsageDays } from "./glance.js";
 import type { ClientLink, SessionHost } from "./host.js";
 import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
+import { ModelFactory } from "./models.js";
 import { Notifier, type PushSubscription } from "./notify.js";
 import { OrgRegistry } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
@@ -129,6 +131,8 @@ export class HenosisServer {
   readonly searches: SavedSearches;
   /** Live adapter status; mutable so an adapter started after `listen` can report itself. */
   readonly integrations: Integrations;
+  /** Member models (docs/19_council.md): the `Model` a profile runs on, by provider and model id. */
+  readonly models: ModelFactory;
   /** Display names learned from sessions and chat subscriptions for people users.json does not know. */
   private readonly names = new Map<string, string>();
   private readonly pendingReplies = new Map<string, PendingReply[]>();
@@ -145,6 +149,7 @@ export class HenosisServer {
     // Every push payload carries the needs-you figure, so the badge and the tab agree.
     this.notifier.badge = (userId) => this.glance(userId).needsYou;
     this.integrations = { slack: false, ...opts.integrations };
+    this.models = new ModelFactory({ log: opts.log });
     for (const o of this.orgs.orgs.orgs) this.chat(o.id);
   }
 
@@ -610,7 +615,10 @@ export class HenosisServer {
       model: p.model,
     }));
     return {
-      people: [...people.values()].sort((a, b) => a.name.localeCompare(b.name)),
+      // Each person with the member model they bring to a council and the model id it runs on.
+      people: [...people.values()]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((p) => ({ ...p, agent: agentRow(this.orgs.personalAgent(p.id, p.name)) })),
       agents,
       models,
     };
@@ -825,6 +833,22 @@ export class HenosisServer {
         return json(200, { teamId, name: found.team.name, theme: found.team.theme ?? null });
       }
       if (url.pathname === "/api/orgs") return json(200, this.orgs.orgs);
+      // Member models (agentsApi.ts): a person's own agent and the org's shared team agents.
+      if (
+        handleAgentsApi(
+          req,
+          url,
+          {
+            orgs: this.orgs,
+            auth: this.auth,
+            tools: this.opts.tools,
+            models: this.models,
+            nameOf: (id) => this.names.get(id) ?? null,
+          },
+          json,
+        )
+      )
+        return true;
       // token-usage: totals and breakdowns from the logs and ledgers on disk (usageApi.ts).
       if (url.pathname === USAGE_PATH)
         return json(

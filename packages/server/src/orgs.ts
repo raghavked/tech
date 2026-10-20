@@ -3,8 +3,10 @@
  * store, with sane defaults when absent.
  */
 import {
-  type AgentProfile,
+  AgentProfile,
+  type AgentProfileInput,
   AgentsFile,
+  canManageAgents,
   canStyleTeam,
   DEFAULT_ORGS,
   deriveSessionRole,
@@ -15,7 +17,10 @@ import {
   mergeSsoUser,
   OrgsFile,
   type ProjectRef,
+  personalAgentId,
+  personalAgentProfile,
   resolveAgentProfile,
+  type SharedAgentInput,
   type SsoMapping,
   type TeamTheme,
   type User,
@@ -62,6 +67,113 @@ export class OrgRegistry {
   /** Every member model the org can convene. */
   agentProfiles(): AgentProfile[] {
     return listAgentProfiles(this.users.values(), this.agents);
+  }
+
+  // ---- member models (docs/19_council.md): Settings → My agent, Settings → Team agents ----
+
+  /**
+   * A person's own member model, with the defaults filled in. A person users.json knows has
+   * it in their row's `agent` field. A person it does not know (phase-0 identity) keeps it as
+   * a row of the agents doc that names them as owner, so nothing is written to users.json on
+   * their behalf and the trust model of the store does not change under them; until they
+   * save one, it is the default agent named after them.
+   */
+  personalAgent(userId: string, nameHint?: string | null): AgentProfile {
+    const u = this.user(userId);
+    if (u) return personalAgentProfile(u);
+    const own = this.agents.agents.find((a) => a.ownerId === userId);
+    if (own) return AgentProfile.parse(own);
+    return AgentProfile.parse({
+      id: personalAgentId(userId),
+      ownerId: userId,
+      name: `${nameHint ?? userId}'s agent`,
+    });
+  }
+
+  /**
+   * Set a person's own agent: what they gave (the fields of `AgentProfileInput`; what is absent
+   * keeps its default) replaces their `agent` field and users.json is written; the profile id
+   * their row already names is kept. A person users.json does not know gets a row of the
+   * agents doc in their name instead. Returns the profile as it now resolves.
+   */
+  setPersonalAgent(
+    userId: string,
+    input: AgentProfileInput,
+    nameHint?: string | null,
+  ): AgentProfile {
+    const given = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined));
+    const known = this.users.get(userId);
+    const resolved = this.resolved.get(userId);
+    if (known || resolved) {
+      const row: User = known ?? {
+        id: userId,
+        name: resolved?.name ?? nameHint ?? userId,
+        ...(resolved?.email ? { email: resolved.email } : {}),
+        orgs: [],
+        teams: [],
+        projects: [],
+      };
+      const id = row.agent?.id;
+      row.agent = { ...(id ? { id } : {}), ...given };
+      this.users.set(userId, row);
+      if (resolved) resolved.agent = row.agent;
+      this.store.writeDoc("users", { users: [...this.users.values()] });
+      return this.personalAgent(userId, nameHint);
+    }
+    const current = this.personalAgent(userId, nameHint);
+    const next = AgentProfile.parse({
+      ...given,
+      id: current.id,
+      ownerId: userId,
+      name: given.name ?? current.name,
+    });
+    const at = this.agents.agents.findIndex((a) => a.ownerId === userId);
+    if (at >= 0) this.agents.agents[at] = next;
+    else this.agents.agents.push(next);
+    this.store.writeDoc("agents", this.agents);
+    return next;
+  }
+
+  /** The org's shared team agents: the agents doc rows that no person owns. */
+  sharedAgents(): AgentProfile[] {
+    return this.agents.agents.filter((a) => a.ownerId === null).map((a) => AgentProfile.parse(a));
+  }
+
+  /**
+   * Replace the shared team agents and write the agents doc; the rows people own (phase-0
+   * personal agents) are kept. Throws when two rows share an id or an id is a person's agent.
+   */
+  setSharedAgents(list: SharedAgentInput[]): AgentProfile[] {
+    const seen = new Set<string>();
+    const shared: AgentProfile[] = [];
+    for (const raw of list) {
+      const p = AgentProfile.parse({ ...raw, ownerId: null });
+      if (seen.has(p.id)) throw new Error(`two shared agents are called ${p.id}`);
+      seen.add(p.id);
+      for (const u of this.users.values()) {
+        const own = personalAgentProfile(u);
+        if (own.id === p.id || personalAgentId(u.id) === p.id)
+          throw new Error(`${p.id} is ${u.name}'s own agent`);
+      }
+      if (this.agents.agents.some((a) => a.ownerId !== null && a.id === p.id))
+        throw new Error(`${p.id} is a person's own agent`);
+      shared.push(p);
+    }
+    this.agents.agents = [...shared, ...this.agents.agents.filter((a) => a.ownerId !== null)];
+    this.store.writeDoc("agents", this.agents);
+    return shared;
+  }
+
+  /** Whether this user may edit the org's shared team agents (a lead, manager or admin in it). */
+  canManageAgents(userId: string | null | undefined, orgId: string): boolean {
+    return canManageAgents(this.user(userId), this.orgs, orgId);
+  }
+
+  /** The ids of every org whose shared agents this user may edit; Settings shows "Team agents" for them. */
+  agentLeadsFor(userId: string | null | undefined): string[] {
+    const u = this.user(userId);
+    if (!u) return [];
+    return this.orgs.orgs.filter((o) => canManageAgents(u, this.orgs, o.id)).map((o) => o.id);
   }
 
   team(teamId: string) {

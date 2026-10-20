@@ -1,6 +1,13 @@
 /** The read-only HTTP API of the Henosis server, plus a small fetch hook. */
 import type { ChatScope, ChatState, Council, CouncilStatus } from "@henosis/chat";
-import type { ProjectState, SessionSummary, TeamTheme } from "@henosis/fleet";
+import type {
+  AgentProfile,
+  AgentProfileInput,
+  ProjectState,
+  SessionSummary,
+  SharedAgentInput,
+  TeamTheme,
+} from "@henosis/fleet";
 import type { SessionStatus } from "@henosis/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@henosis/memory";
 import type { SessionPolicy, UsageQuery, UsageReport } from "@henosis/protocol";
@@ -153,9 +160,37 @@ export interface ModelRow {
   model: string;
 }
 
+/**
+ * A member model (docs/19_council.md) as the server answers it: the profile from users.json
+ * or agents.json with its defaults filled in, plus the model id it runs on.
+ */
+export type AgentRow = AgentProfile & { modelName: string };
+
+/** GET /api/agents?user=U: the person's own agent and what the server offers around it. */
+export interface AgentsResponse {
+  /** Null when no person was named. */
+  mine: AgentRow | null;
+  /** The person manages a team, so their persona defaults to the chair's. */
+  manager: boolean;
+  chairPersona: string;
+  shared: AgentRow[];
+  /** The orgs whose shared agents the person may edit (Settings, "Team agents"). */
+  leads: string[];
+  providers: { scripted: boolean; claude: boolean };
+  tools: { name: string; risk: string }[];
+}
+
+/** GET /api/agents/:org: the org's shared team agents and whether this person may edit them. */
+export interface OrgAgentsResponse {
+  orgId: string;
+  agents: AgentRow[];
+  canEdit: boolean;
+}
+
 /** GET /api/chat/:org/directory: who and which agents a group can be made of. */
 export interface ChatDirectoryListing {
-  people: { id: string; name: string }[];
+  /** Each person with the member model they bring to a council and the model it runs on. */
+  people: { id: string; name: string; agent?: AgentRow }[];
   agents: {
     projectId: string;
     projectName: string;
@@ -184,7 +219,31 @@ export interface CouncilLookup {
   session?: { projectId: string; sessionId: string } | null;
 }
 
-export type { CuratorReport, EntryRecord, MemoryConflict, ProjectState, UsageQuery, UsageReport };
+export type {
+  AgentProfile,
+  AgentProfileInput,
+  CuratorReport,
+  EntryRecord,
+  MemoryConflict,
+  ProjectState,
+  SharedAgentInput,
+  UsageQuery,
+  UsageReport,
+};
+
+/** A write with the person's bearer token (dev: the shared token; oidc: the ID token). */
+async function putJson<T>(url: string, body: unknown, token?: string): Promise<T> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    accept: "application/json",
+    ...authHeaders(),
+  };
+  if (token) headers.authorization = `Bearer ${token}`;
+  const res = await fetch(apiUrl(url), { method: "PUT", headers, body: JSON.stringify(body) });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(data.error ?? `${res.status} ${res.statusText}`);
+  return data;
+}
 
 export async function getJson<T>(url: string): Promise<T> {
   // `apiUrl` is a no-op in a browser; the desktop shell's bundled client prefixes its server.
@@ -280,6 +339,24 @@ export const api = {
     if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
     return body;
   },
+  /** Member models (docs/19_council.md): the person's own agent and what the server offers around it. */
+  agents: (userId: string) =>
+    getJson<AgentsResponse>(`/api/agents?user=${encodeURIComponent(userId)}`),
+  /** Settings, "My agent": set the person's own agent; the server fills the defaults back in. */
+  putMyAgent: (userId: string, agent: AgentProfileInput, token?: string) =>
+    putJson<AgentsResponse>(`/api/agents?user=${encodeURIComponent(userId)}`, { agent }, token),
+  /** The org's shared team agents, and whether this person may edit them. */
+  orgAgents: (orgId: string, userId: string) =>
+    getJson<OrgAgentsResponse>(
+      `/api/agents/${encodeURIComponent(orgId)}?user=${encodeURIComponent(userId)}`,
+    ),
+  /** Settings, "Team agents": a lead replaces the org's shared agents; the server checks the role. */
+  putOrgAgents: (orgId: string, userId: string, agents: SharedAgentInput[], token?: string) =>
+    putJson<OrgAgentsResponse>(
+      `/api/agents/${encodeURIComponent(orgId)}?user=${encodeURIComponent(userId)}`,
+      { agents },
+      token,
+    ),
   /** The session rendered as markdown (export-session); opens in a tab, `download` saves a file. */
   exportUrl: (sessionId: string, download = false) =>
     `/api/sessions/${encodeURIComponent(sessionId)}/export.md${download ? "?download=1" : ""}`,

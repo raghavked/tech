@@ -1,6 +1,7 @@
 /**
- * settings-page: #/settings. One column of quiet sections: Profile, Notifications, Appearance,
- * Keyboard, Team policy (read-only, from the current project) and Integrations.
+ * settings-page: #/settings. One column of quiet sections: Profile, My agent (the member model
+ * the person brings to a council), Notifications, Appearance, Team look and Team agents (for
+ * leads), Keyboard, Team policy (read-only, from the current project) and Integrations.
  */
 import { describeRule, ruleFor } from "@henosis/kernel";
 import type { ContentionPolicy, RiskClass, SessionPolicy } from "@henosis/protocol";
@@ -16,6 +17,7 @@ import { paths } from "../router.js";
 import { SHORTCUTS } from "../shortcuts.js";
 import { type Theme, useTheme } from "../theme.js";
 import { Avatar, ICONS, Icon } from "../ui.js";
+import { MyAgent, TeamAgents } from "./AgentSettings.js";
 import { TeamLook } from "./TeamLook.js";
 
 const RISKS: { risk: RiskClass; detail: string }[] = [
@@ -46,9 +48,11 @@ export function Settings({
       <div className="column page settings">
         <h1>Settings</h1>
         <Profile identity={identity} />
+        <MyAgent identity={identity} />
         <Notifications />
         <Appearance />
         <TeamLook identity={identity} me={me} />
+        <TeamAgents identity={identity} me={me} />
         <Keyboard />
         <TeamPolicy me={me} />
         <Integrations />
