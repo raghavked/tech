@@ -308,6 +308,8 @@ export const copy = {
     stepOf: (k: number, m: number) => `step ${k} of ${m}`,
     youAreHere: "you are here",
     joinsTheCircle: "joins the circle",
+    /** The result line that took a notice's buttons: one message, edited in place. */
+    edited: "(edited)",
     asRole: (role: string) => `as ${role}`,
     asAgent: "an agent",
     contention: "Two directions",
@@ -1613,6 +1615,8 @@ export const copy = {
     keyRate: "pick a rating first",
     keyOpen: "open the session",
     neverWhileTyping: "never while you type",
+    /** The foot line's note: an irreversible call takes two presses, so one keystroke never pushes to main unseen. */
+    twiceIrreversible: "twice for an irreversible call",
   },
 
   /** The inbox (views/Inbox.tsx): one row shape, ordered by consequence. */

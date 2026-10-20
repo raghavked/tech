@@ -3,8 +3,9 @@
  * hairline. At rest it is 36 px of dots; pinned from Details or while viewing it grows to the
  * 64 px track with the plan steps as spans above the line and the times beneath. The viewed dot
  * is ringed in apricot, now pulses with "NOW" in ink and an apricot dot beside it, a release
- * gate is a hollow diamond. The hovered turn previews in the left label and snaps back; the only
- * action on the row is a chocolate "Return to now". Dragging folds the session up to that turn
+ * gate is a hollow diamond. The hovered turn previews in the left label (its time takes the
+ * viewed time's place in the times row) and snaps back; the only action on the row is a
+ * chocolate "Return to now". Dragging folds the session up to that turn
  * in the client; arrow keys and End move the view.
  */
 import type { SessionState } from "@henosis/kernel";
@@ -159,14 +160,17 @@ export function ReplayScrubber({
           {on && spans.length > 0 && (
             <div className="steps" aria-hidden="true">
               {spans.map((sp) => {
-                const left = n > 1 ? (sp.from / (n - 1)) * 100 : 0;
-                const right = n > 1 ? (sp.to / (n - 1)) * 100 : 100;
+                const from = n > 1 ? (sp.from / (n - 1)) * 100 : 0;
+                const to = n > 1 ? (sp.to / (n - 1)) * 100 : 100;
+                // A span stays inside the track: one near the right edge ends at its last turn.
+                const width = Math.max(to - from, 8);
+                const left = Math.min(from, 100 - width);
                 const state = at > sp.to ? "done" : at >= sp.from ? "live" : "later";
                 return (
                   <span
                     key={sp.index}
                     className={`pstep ${state}`}
-                    style={{ left: `${left}%`, width: `${Math.max(right - left, 6)}%` }}
+                    style={{ left: `${left}%`, width: `${width}%` }}
                   >
                     <span className="n">{sp.index + 1}</span>
                     <span className="lbl">{sp.title}</span>
@@ -194,9 +198,14 @@ export function ReplayScrubber({
               {first && n > 1 && (
                 <span style={{ left: 0 }}>{when(first) ?? copy.stream.turn(first.turn)}</span>
               )}
-              {viewing && viewed && at > 0 && at < n - 1 && (
+              {viewing && viewed && !hovered && at > 0 && at < n - 1 && (
                 <span className="here" style={{ left: pos(at) }}>
                   {when(viewed) ?? copy.stream.turn(viewed.turn)}
+                </span>
+              )}
+              {hovered && hover !== null && hover > 0 && hover < n - 1 && (
+                <span className="hov" style={{ left: pos(hover) }}>
+                  {when(hovered) ?? copy.stream.turn(hovered.turn)}
                 </span>
               )}
               <span className="now" style={{ left: "100%" }}>

@@ -409,7 +409,8 @@ export function Approvals({
               <p className="foot">
                 <kbd>j</kbd>
                 <kbd>k</kbd> move · <kbd>a</kbd> approves ({DEFAULT_RATING} of 5 under a release
-                gate) · <kbd>d</kbd> denies · <kbd>↵</kbd> opens · {copy.queue.neverWhileTyping}
+                gate; {copy.queue.twiceIrreversible}) · <kbd>d</kbd> denies · <kbd>↵</kbd> opens ·{" "}
+                {copy.queue.neverWhileTyping}
               </p>
             )}
           </div>

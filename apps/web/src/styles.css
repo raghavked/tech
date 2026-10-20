@@ -1082,6 +1082,14 @@ button.chip {
 .divider.decided .ic {
   color: var(--ok);
 }
+/* the result line that took the buttons' place (and a ledger row's): one message, edited in place */
+.edited {
+  font-style: italic;
+  color: var(--ink-3);
+}
+.divider.decided .edited {
+  flex: none;
+}
 .divider.danger {
   color: var(--danger-ink);
 }
@@ -1539,7 +1547,7 @@ button.chip {
   border-right: 1.5px solid var(--fg-3);
   border-bottom: 1.5px solid var(--fg-3);
   transform: rotate(-45deg);
-  transition: transform 0.15s;
+  transition: transform var(--t-fast) var(--ease-mark);
 }
 .fold[open] > summary::after {
   transform: rotate(45deg);
@@ -1623,6 +1631,13 @@ button.chip {
     --count-bg: var(--apricot);
     --count-fg: #2a3244;
     --ok: #9bc88f;
+    --warn: #e2b06a;
+    --danger: #e2847a;
+    --info: #aeb4c2;
+    --ok-ink: #9bc88f;
+    --warn-ink: #e2b06a;
+    --danger-ink: #e2847a;
+    --info-ink: #aeb4c2;
     --dot-idle: var(--rail-muted);
     --avatar-edge: var(--rail);
     min-height: 56px;
@@ -2222,6 +2237,21 @@ fieldset.seg {
   background: var(--surface);
   flex: none;
 }
+.scrubber .track .pstep .lbl {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* a span too narrow for a word keeps its number alone instead of a clipped letter */
+.scrubber .track .pstep {
+  container-type: inline-size;
+}
+@container (max-width: 64px) {
+  .scrubber .track .pstep .lbl {
+    display: none;
+  }
+}
 .track .pstep.done::before {
   background: var(--ok);
   opacity: 0.55;
@@ -2262,6 +2292,9 @@ fieldset.seg {
 .track .times .here {
   color: var(--ink);
   font-weight: 500;
+}
+.track .times .hov {
+  color: var(--ink-2);
 }
 .track .times .now {
   color: var(--ink);
@@ -2380,7 +2413,7 @@ fieldset.seg {
   height: 14px;
   border-radius: 50%;
   background: var(--bg);
-  transition: transform 0.15s;
+  transition: transform var(--t) var(--ease-mark);
 }
 .settings .switch:checked {
   background: var(--apricot-deep);
@@ -2401,7 +2434,7 @@ fieldset.seg {
   background: var(--bg-3);
 }
 .settings .seg button.on {
-  background: var(--bg);
+  background: var(--seg-on);
   color: var(--fg);
 }
 .status.on::before {
@@ -2590,12 +2623,14 @@ fieldset.seg {
   display: inline-flex;
   gap: 0;
 }
-.plan .rater .mini .ic {
+.plan .rater .mini .ic,
+.vote .mini .ic {
   width: 11px;
   height: 11px;
   stroke: var(--ink-3);
 }
-.plan .rater .mini .ic.fill {
+.plan .rater .mini .ic.fill,
+.vote .mini .ic.fill {
   fill: var(--star-on);
   stroke: var(--star-on);
 }
@@ -2840,7 +2875,7 @@ a.btn:hover {
   top: -1px;
   bottom: -1px;
   width: 1px;
-  background: var(--ink-3);
+  background: repeating-linear-gradient(180deg, var(--ink-3) 0 2px, transparent 2px 3px);
   opacity: 0.6;
 }
 .meter.open {
@@ -2953,13 +2988,28 @@ a.btn:hover {
 .agent .foot .tokens.over {
   color: var(--danger-ink);
 }
-/* the pulses: the chip's dot while spending, the live step, now on the scrubber, the typing dots */
+/* the pulses: the chip's dot while spending, the live step, now on the scrubber, the typing dots.
+   A dot pulses by its halo, as the rail's running dot does, so it never fades to grey on cream
+   mid-pulse; the halo keyframes live in tokens.css */
+@keyframes halo-warn {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-motion="calm"]) .meter .spend,
   :root:not([data-motion="calm"]) .step .livedot,
-  :root:not([data-motion="calm"]) .track .tick.now,
+  :root:not([data-motion="calm"]) .track .tick.now {
+    animation: halo 1.8s var(--ease-move) 1s infinite;
+  }
   :root:not([data-motion="calm"]) .plan-waits .dot {
-    animation: pulse 1.8s var(--ease-move) 1s infinite;
+    animation: halo-warn 1.8s var(--ease-move) 1s infinite;
   }
   :root:not([data-motion="calm"]) .drawer .chat .typing i {
     animation: pulse 1.2s ease-in-out infinite;
@@ -5372,7 +5422,8 @@ a.btn:hover {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--field-line);
+  /* a ring the swatch cannot vanish into: a surface-coloured swatch on the dark canvas stays a disc */
+  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
@@ -7430,7 +7481,7 @@ a.btn:hover {
   height: 100%;
   min-width: 2px;
   background: var(--chart-in);
-  transition: width 0.3s ease;
+  transition: width var(--t-slow) var(--ease-mark);
   position: relative;
   forced-color-adjust: none;
 }

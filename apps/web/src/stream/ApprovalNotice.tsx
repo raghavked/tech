@@ -3,7 +3,8 @@
  * with one press, the rule in plain words, the votes as rows, and under a release gate the tally
  * with its two segments, the stars with the default baked into "Approve with 4", and the plan
  * step the gate waits at ("step 3 of 3 · Deploy to production") so the plan's row and the notice
- * are one object. Decided, it thins to a divider with the check drawing itself.
+ * are one object. Decided, it thins to a divider with the check drawing itself: the result line
+ * takes the buttons' place and says "(edited)", one message edited in place.
  */
 import {
   type ApprovalRecord,
@@ -23,6 +24,7 @@ import { isTyping } from "../shortcuts.js";
 import { Avatar, ICONS, Icon, Stars } from "../ui.js";
 import { describeCall } from "./blocks.js";
 import { isFresh } from "./clock.js";
+import { MiniStars } from "./PlanCard.js";
 
 /** What an approval row shows, as one string: the state is cloned on every event, so compare by value. */
 function approvalSig(s: SessionState, id: string, meId: string): string {
@@ -271,6 +273,7 @@ function VoteRow({
         <Avatar id={id} name={who} driver={driver} />
       )}
       <span className="who">{who}</span>{" "}
+      {kind === "rated" && rating !== null && <MiniStars n={rating} />}
       <span className="st">
         {kind === "waiting"
           ? me
@@ -383,6 +386,7 @@ function Decided({
           ? copy.approval.gateSummary(rated.length, average(avg))
           : ""}
       </span>
+      <span className="edited">{copy.stream.edited}</span>
     </div>
   );
 }

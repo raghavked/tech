@@ -285,7 +285,8 @@ export function Project({
                         ? ` · ${copy.project.forWinner(ownerOf(c.winnerSessionId))}`
                         : c.note
                           ? ` · ${c.note}`
-                          : ""}
+                          : ""}{" "}
+                      <span className="edited">{copy.stream.edited}</span>
                     </span>
                     {c.winnerSessionId && (
                       <a

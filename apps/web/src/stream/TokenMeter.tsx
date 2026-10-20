@@ -61,7 +61,15 @@ export function TokenMeter({
         {pct !== null && <span className="pct">{pct}%</span>}
       </button>
       {b.budget !== null && (
-        <span className={`hair${live ? " live" : ""}${tone}`} aria-hidden="true">
+        // biome-ignore lint/a11y/useSemanticElements: the hairline is drawn; the meter role names it beside the chip's colour
+        <span
+          className={`hair${live ? " live" : ""}${tone}`}
+          role="meter"
+          aria-label={copy.usage.budget}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.min(100, Math.round(b.fraction * 100))}
+        >
           <i style={{ "--spent": `${Math.min(100, Math.round(b.fraction * 100))}%` } as never} />
         </span>
       )}

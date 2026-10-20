@@ -168,6 +168,7 @@
   --sidebar: var(--rail-w);                  /* app alias */
   --bezel: #1C2230;                          /* phone and window frames in mockups */
   --bar-agent: var(--rail);                  /* the agent series in a chart; stepped from the frame */
+  --seg-on: var(--surface);                  /* the chosen segment: lighter than its track by day and by night */
 
   /* ---- clocks and curves ---- */
   --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
@@ -213,7 +214,7 @@
   --scrim: rgba(0, 0, 0, 0.55); --dim: rgba(0, 0, 0, 0.62);
   --focus-ring: var(--ink);
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.35); --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.5);
-  --bezel: #0F131B; --bar-agent: #3A4660;
+  --bezel: #0F131B; --bar-agent: #3A4660; --seg-on: #4A5367;   /* one notch above the --surface-3 track, so .seg .on stays the lighter tab at night */
   --mark-disc: #2A3244;   /* the disc keeps Dress Blues at night: chocolate on #0F131B fell to 1.7 : 1 */
   color-scheme: dark;
 } }
@@ -247,7 +248,7 @@
   --scrim: rgba(0, 0, 0, 0.55); --dim: rgba(0, 0, 0, 0.62);
   --focus-ring: var(--ink);
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.35); --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.5);
-  --bezel: #0F131B; --bar-agent: #3A4660;
+  --bezel: #0F131B; --bar-agent: #3A4660; --seg-on: #4A5367;   /* one notch above the --surface-3 track, so .seg .on stays the lighter tab at night */
   --mark-disc: #2A3244;
   color-scheme: dark;
 }
@@ -335,7 +336,7 @@ input[type="checkbox"]:not(.switch), input[type="radio"] { accent-color: var(--a
   --count-bg: var(--apricot); --count-fg: #2A3244;
   --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --info: #AEB4C2;
   --ok-ink: #9BC88F; --warn-ink: #E2B06A; --danger-ink: #E2847A; --info-ink: #AEB4C2;
-  --dot-idle: var(--rail-muted);
+  --dot-idle: var(--rail-muted); --seg-on: var(--surface);
   width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 6px; border-right: 1px solid var(--crease);
 }
 .sidebar .brand, .rail .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font-family: var(--serif); font-size: 24px; letter-spacing: 0; color: var(--rail-fg); }
@@ -535,7 +536,7 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
 .budget, .meter .bar { height: 6px; border-radius: var(--radius-full); background: var(--surface-3); overflow: hidden; position: relative; }
 .budget > i, .meter .bar .fill { display: block; height: 100%; background: var(--gradient-live); background-size: 200% 100%; border-radius: inherit; }
 .budget.warn > i, .meter.warn .bar .fill { background: var(--warn); } .budget.over > i, .meter.danger .bar .fill { background: var(--danger); }
-.budget::after { content: ""; position: absolute; left: 80%; top: -2px; bottom: -2px; width: 1px; background: var(--ink-3); opacity: .6; }   /* the 80 % tick */
+.budget::after { content: ""; position: absolute; left: 80%; top: -2px; bottom: -2px; width: 1px; background: repeating-linear-gradient(180deg, var(--ink-3) 0 2px, transparent 2px 4px); opacity: .6; }   /* the 80 % tick, dashed */
 .hair { height: 3px; border-radius: 2px; background: var(--surface-3); position: relative; overflow: hidden; }   /* the title-row token chip's hairline */
 .hair > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--apricot); width: var(--spent, 0%); }
 .hair.live > i { background: var(--gradient-live); background-size: 200% 100%; }
@@ -553,7 +554,7 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
 .composer .hint { font-size: 12.5px; color: var(--ink-3); }
 .seg { display: inline-flex; background: var(--surface-3); border-radius: var(--radius-full); padding: 3px; }
 .seg button, .seg label { border: 0; background: transparent; font: 500 12.5px var(--font); color: var(--ink-2); padding: 4px 12px; border-radius: var(--radius-full); cursor: pointer; transition: background var(--t) var(--ease-move), color var(--t) var(--ease-move); }
-.seg .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft), var(--edge); }
+.seg .on { background: var(--seg-on); color: var(--ink); box-shadow: var(--shadow-soft), var(--edge); }
 .seg .on .dot { display: inline-block; margin-right: 6px; width: 6px; height: 6px; }
 .mode { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--radius-full); background: var(--apricot-soft); font: 500 12.5px var(--font); color: var(--ink); }   /* Keys live · Typing */
 .mode::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); }
@@ -677,8 +678,8 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
 .theme-toggle { position: fixed; right: 16px; bottom: 16px; z-index: 9; display: inline-flex; gap: 2px; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; font-size: 12px; }
 .theme-toggle label { padding: 4px 10px; border-radius: var(--radius-full); cursor: pointer; }
 /* pinned panes for both-themes proof on a board (dark-mode): the pane carries its own token set */
-.t-light { --canvas: #FBF7F1; --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6; --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --rail: #2A3244; --rail-2: #333C50; --accent: #56352D; --accent-ink: #56352D; --accent-fg: #FFF8F1; --edge: none; --ok: #4F7D4A; --warn: #B9792E; --danger: #A8463A; color-scheme: light; background: var(--canvas); color: var(--ink); }
-.t-dark { --canvas: #1A202C; --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A; --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --rail: #10141C; --rail-2: #1A2030; --accent: #7A4B3E; --accent-ink: #CAA49B; --accent-fg: #FFF8F1; --edge: inset 0 1px 0 rgba(255,255,255,.055); --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --ok-ink: #9BC88F; --warn-ink: #E2B06A; --danger-ink: #E2847A; --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --gradient-brand: linear-gradient(135deg, #3A4661, #7A4B3E); --gate-stripe: linear-gradient(180deg, #E2C4A6, #7A4B3E); --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5); color-scheme: dark; background: var(--canvas); color: var(--ink); }
+.t-light { --canvas: #FBF7F1; --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6; --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --rail: #2A3244; --rail-2: #333C50; --accent: #56352D; --accent-ink: #56352D; --accent-fg: #FFF8F1; --edge: none; --ok: #4F7D4A; --warn: #B9792E; --danger: #A8463A; --seg-on: var(--surface); color-scheme: light; background: var(--canvas); color: var(--ink); }
+.t-dark { --canvas: #1A202C; --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A; --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --rail: #10141C; --rail-2: #1A2030; --accent: #7A4B3E; --accent-ink: #CAA49B; --accent-fg: #FFF8F1; --edge: inset 0 1px 0 rgba(255,255,255,.055); --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --ok-ink: #9BC88F; --warn-ink: #E2B06A; --danger-ink: #E2847A; --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --gradient-brand: linear-gradient(135deg, #3A4661, #7A4B3E); --gate-stripe: linear-gradient(180deg, #E2C4A6, #7A4B3E); --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5); --seg-on: #4A5367; color-scheme: dark; background: var(--canvas); color: var(--ink); }
 
 /* ============================ MOTION ============================ */
 /* Rest is the end state: every keyframe set ends at the element's natural styles, so Calm and reduced
