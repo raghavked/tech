@@ -10,6 +10,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -104,17 +105,25 @@ export function Composer({
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset the cursor when the list changes
   useEffect(() => setSel(0), [options.length, query?.q]);
 
+  // The caret after a pick lands right after the name, placed as the new text commits (a frame
+  // callback would run late on a busy page and jump the caret back under what was typed since).
+  const caretAfter = useRef<number | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once the picked text has committed
+  useLayoutEffect(() => {
+    const at = caretAfter.current;
+    if (at === null) return;
+    caretAfter.current = null;
+    const el = ta.current;
+    el?.focus();
+    el?.setSelectionRange(at, at);
+  }, [text]);
   const pick = (m: ChatMember) => {
     if (!query) return;
     const el = ta.current;
     const caret = el ? el.selectionStart : text.length;
     const next = `${text.slice(0, query.start)}@${memberName(m)} ${text.slice(caret)}`;
+    caretAfter.current = query.start + memberName(m).length + 2;
     setText(next);
-    requestAnimationFrame(() => {
-      const at = query.start + memberName(m).length + 2;
-      el?.focus();
-      el?.setSelectionRange(at, at);
-    });
   };
   const submit = () => {
     const t = text.trim();

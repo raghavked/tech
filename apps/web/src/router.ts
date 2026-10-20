@@ -1,4 +1,4 @@
-/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId]`, `#/inbox`, `#/approvals`, `#/memory/:orgId`, `#/settings`, `#/auth/callback`, `#/search`. */
+/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId[/council/:councilId[/instruct/:profileId]]]`, `#/inbox`, `#/approvals`, `#/memory/:orgId`, `#/settings`, `#/auth/callback`. */
 import { useSyncExternalStore } from "react";
 
 export type Route =
@@ -8,8 +8,21 @@ export type Route =
   | { name: "fleet"; projectId: string }
   | { name: "session"; projectId: string; sessionId: string; title: string | null }
   | { name: "management"; teamId: string }
-  /** Groups and chats: one group, or the org's list with the new-group sheet (`?new=1`). */
-  | { name: "chat"; orgId: string; groupId: string | null; newGroup: boolean }
+  /**
+   * Groups and chats: one group, or the org's list with the new-group sheet (`?new=1`). The
+   * council (docs/19_council.md): `convene` opens the sheet on a group (`?convene=1`);
+   * `councilId` is a council room inside the group; `instruct` is the one-to-one room with
+   * that member model (by profile id).
+   */
+  | {
+      name: "chat";
+      orgId: string;
+      groupId: string | null;
+      newGroup: boolean;
+      convene: boolean;
+      councilId: string | null;
+      instruct: string | null;
+    }
   | { name: "inbox" }
   | { name: "approvals" }
   /** Search over everything the team keeps; `q` is the query, `org` the scope. */
@@ -39,6 +52,12 @@ export function parseHash(hash: string): Route {
       orgId: parts[1],
       groupId: parts[2] ?? null,
       newGroup: params.get("new") === "1",
+      convene: params.get("convene") === "1",
+      councilId: parts[2] && parts[3] === "council" && parts[4] ? parts[4] : null,
+      instruct:
+        parts[2] && parts[3] === "council" && parts[4] && parts[5] === "instruct" && parts[6]
+          ? parts[6]
+          : null,
     };
   if (parts[0] === "inbox") return { name: "inbox" };
   if (parts[0] === "memory" && parts[1])
@@ -67,6 +86,13 @@ export const paths = {
   chat: (orgId: string, groupId?: string | null) =>
     `#/c/${encodeURIComponent(orgId)}${groupId ? `/${encodeURIComponent(groupId)}` : ""}`,
   newGroup: (orgId: string) => `#/c/${encodeURIComponent(orgId)}?new=1`,
+  /** The council: the convene sheet on a group, a council room, the instruct room with one model. */
+  convene: (orgId: string, groupId: string) =>
+    `#/c/${encodeURIComponent(orgId)}/${encodeURIComponent(groupId)}?convene=1`,
+  council: (orgId: string, groupId: string, councilId: string) =>
+    `#/c/${encodeURIComponent(orgId)}/${encodeURIComponent(groupId)}/council/${encodeURIComponent(councilId)}`,
+  instruct: (orgId: string, groupId: string, councilId: string, profileId: string) =>
+    `${paths.council(orgId, groupId, councilId)}/instruct/${encodeURIComponent(profileId)}`,
   inbox: () => "#/inbox",
   memory: (orgId: string, scope: { team?: string; project?: string } = {}) => {
     const p = new URLSearchParams();

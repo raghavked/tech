@@ -5,7 +5,13 @@
  * stream and the composer with its @ completion, the members drawer, and the New group sheet,
  * over one websocket to the organisation's chat.
  */
-import { type ChatEvent, type ChatMember, isMember, memberName } from "@henosis/chat";
+import {
+  type ChatEvent,
+  type ChatMember,
+  type CouncilMember,
+  isMember,
+  memberName,
+} from "@henosis/chat";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, useFetch } from "../api.js";
@@ -18,11 +24,19 @@ import { Hash, liveOf, MemberStack } from "../chat/shared.js";
 import { ChatClient } from "../chatClient.js";
 import { wsUrl } from "../client.js";
 import { copy } from "../copy.js";
+import { memberOf } from "../council.js";
 import type { Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
 import { ReconnectLine } from "../reconnect.js";
 import { navigate, paths } from "../router.js";
 import { ErrorLine, ICONS, Icon, Loader, Mark, toast, useConnectionToasts } from "../ui.js";
+import {
+  ConveneSheet,
+  CouncilMembersPanel,
+  CouncilRoom,
+  CouncilStrip,
+  InstructRoom,
+} from "./Council.js";
 
 export type { NewGroupInput } from "../chat/NewGroupSheet.js";
 
@@ -30,6 +44,9 @@ export function ChatView({
   orgId,
   groupId,
   newGroup,
+  convene = false,
+  councilId = null,
+  instruct = null,
   identity,
   me,
   ctx,
@@ -37,6 +54,10 @@ export function ChatView({
   orgId: string;
   groupId: string | null;
   newGroup: boolean;
+  /** The council (docs/19_council.md): the convene sheet, a council room, an instruct room. */
+  convene?: boolean;
+  councilId?: string | null;
+  instruct?: string | null;
   identity: Identity;
   me: Me | null;
   ctx: ShellContext;
@@ -65,6 +86,11 @@ export function ChatView({
   const [creating, setCreating] = useState(newGroup);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the route decides whether the sheet is open
   useEffect(() => setCreating(newGroup), [newGroup, groupId]);
+  const [convening, setConvening] = useState(convene);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the route decides whether the sheet is open
+  useEffect(() => setConvening(convene), [convene, groupId]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the drawer closes when the room changes
+  useEffect(() => setMembers(false), [councilId, instruct]);
   // The join toast: the member this person just added, with Undo while it shows.
   const [joined, setJoined] = useState<{ groupId: string; member: ChatMember } | null>(null);
   useEffect(() => {
@@ -74,9 +100,11 @@ export function ChatView({
   }, [joined]);
 
   // A group this person just created opens as soon as the server says so; a mention of them
-  // elsewhere becomes a browser notification while the tab is hidden; and every event tells
-  // the rail's Chats count to look again, so it is one number across the pages.
+  // elsewhere becomes a browser notification while the tab is hidden; a council they convened
+  // opens the same way; and every event tells the rail's Chats count to look again, so it is
+  // one number across the pages.
   const pendingName = useRef<string | null>(null);
+  const pendingTask = useRef<string | null>(null);
   const poke = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () =>
@@ -90,6 +118,17 @@ export function ChatView({
           toast(copy.chat.created(e.payload.name));
           navigate(paths.chat(orgId, e.payload.groupId));
         }
+        if (
+          e.kind === "council.convened" &&
+          e.actor === meId &&
+          e.payload.task === pendingTask.current
+        ) {
+          pendingTask.current = null;
+          toast(copy.council.convened(e.payload.members.length));
+          navigate(paths.council(orgId, e.payload.groupId, e.payload.councilId));
+          dispatchEvent(new Event("henosis:chat"));
+        }
+        if (e.kind === "council.instructed" && e.actor === meId) toast(copy.council.instructSent);
         if (e.kind === "message.posted" && e.actor !== meId) {
           const g = client.snapshot.state?.groups[e.payload.groupId];
           const mine = e.payload.mentions.some((m) => m.kind === "human" && m.id === meId);
@@ -203,6 +242,122 @@ export function ChatView({
   }
 
   const mine = isMember(group, meId);
+  const instructModel = (member: CouncilMember, text: string) => {
+    if (!councilId) return;
+    client.send({ type: "chat.council.instruct", councilId, profileId: member.profileId, text });
+  };
+  const conveneSheet = convening && (
+    <ConveneSheet
+      group={group}
+      meId={meId}
+      directory={directory.data}
+      onClose={() => {
+        setConvening(false);
+        if (convene) navigate(paths.chat(orgId, group.id));
+      }}
+      onConvene={(input) => {
+        pendingTask.current = input.task;
+        client.send({ type: "chat.council.convene", ...input });
+      }}
+    />
+  );
+
+  // The council room and the instruct room (docs/19_council.md) live inside the group.
+  const council = councilId ? (s.councils?.[councilId] ?? null) : null;
+  if (councilId && (!council || council.groupId !== group.id)) {
+    return (
+      <Shell
+        ctx={ctx}
+        title={
+          <span className="ellipsis serif">
+            <Hash />
+            {group.name}
+          </span>
+        }
+      >
+        <div className="column page">
+          <p className="muted">{copy.council.unknown}</p>
+          <a className="small" href={paths.chat(orgId, group.id)}>
+            {copy.council.backToGroup}
+          </a>
+        </div>
+      </Shell>
+    );
+  }
+  if (council) {
+    const target = instruct ? memberOf(council, instruct) : null;
+    return (
+      <Shell
+        ctx={ctx}
+        title={
+          <>
+            <span className="ellipsis serif">
+              <Hash />
+              {group.name}
+            </span>
+            <span className="purpose ellipsis">
+              {target ? copy.council.instructRoom(target.name) : copy.council.title}
+            </span>
+          </>
+        }
+        right={
+          <button
+            type="button"
+            className={`btn sm${members ? " on" : ""}`}
+            aria-pressed={members}
+            onClick={() => setMembers((v) => !v)}
+          >
+            <Icon d={ICONS.columns} size={14} />
+            {copy.council.panel}
+          </button>
+        }
+        below={
+          <ReconnectLine
+            reconnecting={snap.reconnecting}
+            retry={snap.retry}
+            onTryNow={() => client.reconnectNow()}
+          />
+        }
+        drawer={
+          members ? (
+            <CouncilMembersPanel
+              orgId={orgId}
+              group={group}
+              council={council}
+              meId={meId}
+              directory={directory.data}
+              onInstruct={instructModel}
+              onClose={() => setMembers(false)}
+            />
+          ) : null
+        }
+      >
+        <ErrorLine errors={snap.errors} />
+        {target ? (
+          <InstructRoom
+            orgId={orgId}
+            group={group}
+            council={council}
+            member={target}
+            meId={meId}
+            directory={directory.data}
+            onInstruct={instructModel}
+          />
+        ) : (
+          <CouncilRoom
+            orgId={orgId}
+            group={group}
+            council={council}
+            identity={identity}
+            me={me}
+            directory={directory.data}
+            onEnd={() => client.send({ type: "chat.council.end", councilId: council.id })}
+          />
+        )}
+      </Shell>
+    );
+  }
+
   return (
     <Shell
       ctx={ctx}
@@ -218,6 +373,16 @@ export function ChatView({
       right={
         <>
           <MemberStack members={group.members} live={live} />
+          {mine && (
+            <button
+              type="button"
+              className="btn sm"
+              aria-label={copy.council.convene}
+              onClick={() => setConvening(true)}
+            >
+              {copy.council.conveneShort}
+            </button>
+          )}
           <button
             type="button"
             className={`btn sm${members ? " on" : ""}`}
@@ -257,6 +422,8 @@ export function ChatView({
       }
     >
       {sheet}
+      {conveneSheet}
+      <CouncilStrip orgId={orgId} group={group} councils={s.councils ?? {}} />
       {joined && joined.groupId === group.id && (
         <div className="join-toast" role="status">
           <Mark size={26} joining className="once" />

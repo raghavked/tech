@@ -131,6 +131,9 @@ function View({
           orgId={route.orgId}
           groupId={route.groupId}
           newGroup={route.newGroup}
+          convene={route.convene}
+          councilId={route.councilId}
+          instruct={route.instruct}
           identity={identity}
           me={me}
           ctx={ctx}

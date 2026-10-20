@@ -23,6 +23,7 @@ import { api, type Me, type SessionRow } from "./api.js";
 import { pendingOf } from "./approvalsQueue.js";
 import { useChatUnread } from "./chat.js";
 import { copy } from "./copy.js";
+import { railCard } from "./council.js";
 import { clearIdentity, type Identity } from "./identity.js";
 import { useInbox } from "./inbox.js";
 import { notifyPermission, requestNotifications } from "./notify.js";
@@ -145,6 +146,7 @@ export const Rail = memo(function Rail({
   const activeTeam = route.name === "management" ? route.teamId : null;
   const activeMemory = route.name === "memory" ? route.orgId : null;
   const activeGroup = route.name === "chat" ? route.groupId : null;
+  const activeCouncil = route.name === "chat" ? route.councilId : null;
   const activeGroups = route.name === "chat" && !route.groupId && !route.newGroup;
   // team-theme: the mark wears the current team's style and emblem.
   const look = useTeamThemeValue(identity ? teamOfRoute(route, me) : null);
@@ -427,18 +429,41 @@ export const Rail = memo(function Rail({
               (chats.byOrg[id]?.groups ?? [])
                 .filter((g) => hit(g.name, g.purpose))
                 .map((g) => (
-                  <a
-                    key={`${id}/${g.groupId}`}
-                    className={`item chatrow${activeGroup === g.groupId ? " active" : ""}`}
-                    href={paths.chat(id, g.groupId)}
-                    title={orgs.length > 1 ? copy.shell.orgChats(name) : g.purpose}
-                  >
-                    <span className="lbl ellipsis">
-                      <span className="hash">#</span>
-                      {g.name}
-                    </span>
-                    {g.unread > 0 && <span className="count">{cap(g.unread)}</span>}
-                  </a>
+                  <div key={`${id}/${g.groupId}`}>
+                    <a
+                      className={`item chatrow${activeGroup === g.groupId && !activeCouncil ? " active" : ""}`}
+                      href={paths.chat(id, g.groupId)}
+                      title={orgs.length > 1 ? copy.shell.orgChats(name) : g.purpose}
+                    >
+                      <span className="lbl ellipsis">
+                        <span className="hash">#</span>
+                        {g.name}
+                      </span>
+                      {g.unread > 0 && <span className="count">{cap(g.unread)}</span>}
+                    </a>
+                    {/* the council (docs/19_council.md): a live card under its group, the concluded ones only while open */}
+                    {(g.councils ?? [])
+                      .filter((c) => c.status !== "concluded" || c.councilId === activeCouncil)
+                      .slice(0, 3)
+                      .map((c) => (
+                        <a
+                          key={c.councilId}
+                          className={`agent enter council${activeCouncil === c.councilId ? " active" : ""}${collapsed ? " compact" : ""}`}
+                          href={paths.council(id, g.groupId, c.councilId)}
+                          title={c.task}
+                          aria-current={activeCouncil === c.councilId ? "page" : undefined}
+                          style={{ "--i": cardIndex++ } as CSSProperties}
+                        >
+                          <span className="head">
+                            <span
+                              className={`dot ${c.status === "concluded" ? "closed" : "running"}`}
+                            />
+                            <span className="t">{c.task}</span>
+                          </span>
+                          <span className="doing">{railCard(c)}</span>
+                        </a>
+                      ))}
+                  </div>
                 )),
             )}
           {identity && (

@@ -53,6 +53,7 @@ export const PlanCard = memo(
     prev.planId === next.planId &&
     prev.client === next.client &&
     prev.me.id === next.me.id &&
+    ownersSig(prev.owners) === ownersSig(next.owners) &&
     planSig(prev.s, prev.planId, prev.me.id) === planSig(next.s, next.planId, next.me.id),
 );
 
@@ -66,16 +67,26 @@ function momentOf(p: { status: string; supersededBy: string | null }): Moment {
   return "proposed";
 }
 
+const ownersSig = (o: Record<string, string> | undefined) =>
+  o
+    ? Object.entries(o)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("|")
+    : "";
+
 function PlanCardRow({
   s,
   planId,
   me,
   client,
+  owners,
 }: {
   s: SessionState;
   planId: string;
   me: Actor;
   client: HenosisClient;
+  /** The council (docs/19_council.md): the member model that owns each step, by step id. */
+  owners?: Record<string, string>;
 }) {
   const p = s.plans[planId];
   const [note, setNote] = useState("");
@@ -167,6 +178,9 @@ function PlanCardRow({
               <span className="t">
                 <span className="title">{st.title}</span>
                 {detail && <span className="d">{detail}</span>}
+                {owners?.[st.id] && (
+                  <span className="owner">{copy.council.owner(owners[st.id] ?? "")}</span>
+                )}
                 <span className="sr-only"> · {copy.plan.stepStatus[st.status]}</span>
               </span>
               <span className={`pill risk sm ${st.risk}`}>{st.risk}</span>

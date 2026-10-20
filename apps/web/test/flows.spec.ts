@@ -360,3 +360,134 @@ test("a group of Ana, Bo and her agent: Bo's mention steers the agent and its re
   await expect(conversation(ana)).toContainText(`Bo in #${groupName}: @${session} ${ask}`);
   await expect(conversation(ana)).toContainText("chat");
 });
+
+test("a council: Ana convenes four models, they answer and discuss, she rates the plan, the work is assigned and the council concludes", async ({
+  browser,
+}) => {
+  test.setTimeout(120_000);
+  const groupName = `Council ${token()}`;
+  const task = `Ship the invoice rollout ${token()}`;
+
+  // Bo shows up first so the server learns his name; his agent is in agents.json.
+  const bo = await browser.newPage();
+  await signIn(bo, "Bo", "bo");
+  await bo.goto("/#/c/default");
+  await expect(bo.getByRole("heading", { level: 1 })).toContainText("chats");
+
+  // Ana starts a group in the Chat project with Bo.
+  const ana = await browser.newPage();
+  await signIn(ana, "Ana", "ana");
+  await ana.goto("/#/c/default?new=1");
+  const sheet = ana.getByRole("form", { name: "New group" });
+  await expect(sheet).toBeVisible();
+  await sheet.getByLabel("Name").fill(groupName);
+  await sheet.getByRole("radio", { name: "Project Chat" }).check();
+  await sheet.getByRole("checkbox", { name: "Bo", exact: true }).check();
+  await sheet.getByRole("button", { name: `Create #${groupName}` }).click();
+  await expect(ana).toHaveURL(/#\/c\/default\/grp_/);
+
+  // Convene: the task, four member models from the org's agent profiles, Ana's agent in the chair.
+  await ana.getByRole("button", { name: "Convene a council" }).click();
+  const convene = ana.getByRole("form", { name: "Convene a council" });
+  await expect(convene).toBeVisible();
+  await convene.getByLabel("Task").fill(task);
+  await expect(convene.getByRole("checkbox", { name: "Ana's agent" })).toBeChecked();
+  await convene.getByRole("checkbox", { name: "Bo's agent" }).check();
+  await convene.getByRole("checkbox", { name: "Cy's agent" }).check();
+  await convene.getByRole("checkbox", { name: "Chat team agent" }).check();
+  await expect(convene.getByLabel("Chair", { exact: true })).toHaveValue("agent:ana");
+  await convene.getByLabel("Token budget").fill("500000");
+  await convene.getByRole("button", { name: "Convene", exact: true }).click();
+
+  // The council room opens inside the group: the task on top, who convened it, the chair.
+  await expect(ana).toHaveURL(/\/council\/cnc_/, { timeout: 15_000 });
+  const room = ana.getByRole("region", { name: "Council room" });
+  await expect(room).toContainText(task);
+  await expect(room).toContainText("convened by Ana with 4 models");
+  await expect(room).toContainText("chair Ana's agent");
+
+  // The individual round: one answer card per model, with its owner and model named.
+  const alone = room.getByRole("region", { name: "Each answers alone" });
+  await expect(alone.getByRole("article")).toHaveCount(4, { timeout: 30_000 });
+  await expect(alone).toContainText("Bo's model · scripted");
+  await expect(alone).toContainText("shared agent");
+  await expect(alone).toContainText("Main risk:");
+
+  // The discussion: every reply opens with its stance as a word.
+  const discussion = room.getByRole("region", { name: "Discussion" });
+  await expect(discussion.locator(".stance")).toHaveCount(4, { timeout: 30_000 });
+  await expect(discussion.locator(".stance").first()).toHaveText(/agrees|differs|adds/);
+
+  // The rail shows the council as a card under its group.
+  const rail = ana.getByRole("navigation", { name: "Sidebar" });
+  await expect(rail).toContainText(/Council · 4 models · /, { timeout: 15_000 });
+
+  // The synthesis: the chair's plan as the plan card with an owner per step; Ana rates it 5.
+  const synthesis = room.getByRole("region", { name: "Synthesis" });
+  const plan = synthesis.getByRole("region", { name: "Plan" });
+  await expect(plan).toBeVisible({ timeout: 30_000 });
+  await expect(plan).toContainText("Plan · 5 steps");
+  await expect(plan).toContainText("owner Ana's agent");
+  await expect(plan).toContainText("owner Chat team agent");
+  const five = plan.getByRole("radio", { name: "5 of 5, Ship it" });
+  await expect(five).toBeVisible({ timeout: 30_000 });
+  await five.click();
+  await expect(plan).toContainText("Ana rated it 5");
+  await expect(plan).toContainText("approved");
+
+  // The assignments: one agent card per step, owned by the model that proposed it, with its status.
+  const assignments = room.getByRole("region", { name: "Assignments" });
+  await expect(assignments).toBeVisible({ timeout: 30_000 });
+  await expect(assignments).toContainText("assigned to Bo's agent");
+  await expect(assignments.locator(".agent")).toHaveCount(5, { timeout: 30_000 });
+
+  // The member sessions work under the project's policy: a test run is an exec, which waits for
+  // the owner's word and reaches Ana as a decision toast. She approves her agent's runs (and only
+  // those: the other flows' approvals stay waiting) until every step has reported back.
+  const conclusion = room.getByRole("region", { name: "Conclusion" });
+  await expect
+    .poll(
+      async () => {
+        const mine = ana.getByRole("alert").filter({ hasText: task });
+        const approveRun = mine.getByRole("button", { name: /^Approve/ }).first();
+        if (await approveRun.isVisible().catch(() => false))
+          await approveRun.click().catch(() => {});
+        return (await conclusion.count()) > 0 ? ((await conclusion.textContent()) ?? "") : "";
+      },
+      { timeout: 90_000, intervals: [1_000] },
+    )
+    .toContain("Concluded · done");
+  await expect(conclusion).toContainText(/dissents|No dissent recorded/);
+  await expect(rail).toContainText("Council · 4 models · concluded: done");
+
+  // The members panel lists every model with its owner, the chair marked, and an Instruct room each.
+  // The corner first: the member sessions' path collisions reached Ana as decision toasts, which
+  // sit over the top row until she dismisses them (dismissing is local to the page).
+  await expect
+    .poll(
+      async () => {
+        const x = ana.getByRole("alert").getByRole("button", { name: "Dismiss" }).first();
+        if (await x.isVisible().catch(() => false)) await x.click().catch(() => {});
+        return await ana.getByRole("alert").count();
+      },
+      { timeout: 30_000, intervals: [250] },
+    )
+    .toBe(0);
+  await ana.getByRole("button", { name: "Members" }).click();
+  const panel = ana.getByRole("complementary", { name: "Members" });
+  await expect(panel).toContainText("Ana's agent");
+  await expect(panel).toContainText("Chair");
+  await panel.getByRole("link", { name: "Instruct Bo's agent" }).click();
+  await expect(ana).toHaveURL(/\/instruct\/agent(:|%3A)bo$/);
+  await expect(ana.getByRole("region", { name: "Instruct Bo's agent" })).toContainText(
+    "Only Bo and the chair see it",
+  );
+
+  // Bo sees the same council from his side of the group.
+  await bo
+    .getByRole("navigation", { name: "Sidebar" })
+    .getByRole("link", { name: `#${groupName}`, exact: true })
+    .click();
+  await bo.getByRole("region", { name: "Councils" }).getByRole("link", { name: task }).click();
+  await expect(bo.getByRole("region", { name: "Council room" })).toContainText("Concluded · done");
+});

@@ -1,5 +1,5 @@
 /** The read-only HTTP API of the Henosis server, plus a small fetch hook. */
-import type { ChatScope, ChatState } from "@henosis/chat";
+import type { ChatScope, ChatState, Council, CouncilStatus } from "@henosis/chat";
 import type { ProjectState, SessionSummary, TeamTheme } from "@henosis/fleet";
 import type { SessionStatus } from "@henosis/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@henosis/memory";
@@ -115,6 +115,19 @@ export interface Notification {
   read: boolean;
 }
 
+/**
+ * A council as the rail shows it (docs/19_council.md): one row per council in a group of
+ * GET /api/chat/:org/unread, with the models' count and the label of where it stands.
+ */
+export interface CouncilRailRow {
+  councilId: string;
+  task: string;
+  models: number;
+  status: CouncilStatus;
+  label: string;
+  lastSeq: number;
+}
+
 /** One row of GET /api/chat/:org/unread: a group the person belongs to and what is new in it. */
 export interface ChatGroupRow {
   groupId: string;
@@ -124,6 +137,20 @@ export interface ChatGroupRow {
   members: number;
   lastSeq: number;
   unread: number;
+  /** The councils convened in the group, most recently active first (absent on older servers). */
+  councils?: CouncilRailRow[];
+}
+
+/**
+ * A member model as the convene sheet lists it: a person's agent or a shared team agent
+ * (packages/fleet `AgentProfile`, trimmed to what the picker shows).
+ */
+export interface ModelRow {
+  profileId: string;
+  name: string;
+  ownerId: string | null;
+  provider: string;
+  model: string;
 }
 
 /** GET /api/chat/:org/directory: who and which agents a group can be made of. */
@@ -142,6 +169,19 @@ export interface ChatDirectoryListing {
     tokens?: number;
     crew?: string | null;
   }[];
+  /** The member models a council can convene (absent on a server without profiles). */
+  models?: ModelRow[];
+}
+
+/**
+ * GET /api/chat/:org/councils/:id: the council as the log folds it, plus where the chair's
+ * plan lives (the council session the host opened, under `plan` with the plan's id and
+ * status), null until the plan is proposed.
+ */
+export interface CouncilLookup {
+  council?: Council;
+  plan?: { projectId: string; sessionId: string; planId: string; status: string } | null;
+  session?: { projectId: string; sessionId: string } | null;
 }
 
 export type { CuratorReport, EntryRecord, MemoryConflict, ProjectState, UsageQuery, UsageReport };
@@ -255,6 +295,11 @@ export const api = {
     ),
   chatDirectory: (org: string) =>
     getJson<ChatDirectoryListing>(`/api/chat/${encodeURIComponent(org)}/directory`),
+  /** The council (docs/19_council.md): where the chair's plan is, for the ratings. */
+  council: (org: string, councilId: string) =>
+    getJson<CouncilLookup>(
+      `/api/chat/${encodeURIComponent(org)}/councils/${encodeURIComponent(councilId)}`,
+    ),
   markRead: async (user: string, ids: string[]): Promise<void> => {
     const res = await fetch(`/api/notifications?user=${encodeURIComponent(user)}`, {
       method: "POST",

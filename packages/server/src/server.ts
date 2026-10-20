@@ -12,6 +12,8 @@ import {
   type ChatEvent,
   type ChatScope,
   type ChatServerMessage,
+  councilLabel,
+  councilsOf,
   type Group,
   memberName,
   memberOfMention,
@@ -598,9 +600,19 @@ export class HenosisServer {
           });
         }
       }
+    // The council (docs/19_council.md): the member models a group can convene, each person's
+    // agent and the org's shared ones, as the convene sheet lists them.
+    const models = this.orgs.agentProfiles().map((p) => ({
+      profileId: p.id,
+      name: p.name,
+      ownerId: p.ownerId,
+      provider: p.provider,
+      model: p.model,
+    }));
     return {
       people: [...people.values()].sort((a, b) => a.name.localeCompare(b.name)),
       agents,
+      models,
     };
   }
 
@@ -1038,6 +1050,17 @@ export class HenosisServer {
               members: g.members.length,
               lastSeq: g.lastSeq,
               unread: unreadIn(st, user, g.id),
+              // The council (docs/19_council.md): the rail's card under the group.
+              councils: councilsOf(st.councils ?? {}, g.id).map((c) => ({
+                councilId: c.id,
+                task: c.task,
+                models: c.members.some((m) => m.profileId === c.chair.profileId)
+                  ? c.members.length
+                  : c.members.length + 1,
+                status: c.status,
+                label: councilLabel(c),
+                lastSeq: c.lastSeq,
+              })),
             }));
           return json(200, { total: groups.reduce((n, g) => n + g.unread, 0), groups });
         }
