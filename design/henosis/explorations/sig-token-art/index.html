@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en" data-motion="full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · Token art</title>
+<meta name="description" content="Token usage drawn as something worth looking at: a one-hue ring per agent that fills with spend, a stacked waveform over turns for the manager, and a budget tide line for the month. Every chart has a table twin.">
+<style>
+/* ======================================================================
+   Henosis · signature element · token art
+   Self-contained. Token values from design/henosis/SYSTEM.md v5 / tokens.v5.css (light in :root; dark
+   twice, byte-identical: the system media query and [data-theme="dark"]). No external assets. Fraunces
+   and Inter when the OS has them, then Instrument Serif / Instrument Sans, then the system faces.
+   Spend is ONE hue: chocolate stepped in lightness only (OKLCH h 34°, C .06), validated as an ordinal ramp
+   on #FFFFFF and on #242C3C with the dataviz six checks. The living thing is apricot. Status colour appears
+   only where a budget turns (80 %, 100 %), never as a series.
+   ====================================================================== */
+:root {
+  --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
+  --canvas: #FBF7F1; --wash: rgba(226,196,166,.35);
+  --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
+  --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --edge: none;
+  --rail: #2A3244; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2;
+  --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30);
+  --ok: #4F7D4A; --ok-ink: #3E6639; --warn: #B9792E; --warn-ink: #7F5320; --warn-soft: rgba(185,121,46,.14);
+  --danger: #A8463A; --danger-ink: #8E3A30; --danger-soft: rgba(168,70,58,.14);
+  --overlay: #FFFFFF; --overlay-edge: rgba(42,50,68,.12);
+  --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%);
+  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
+  /* spend: one hue, four lightness steps (validated, light on #FFFFFF: 12.5 / 8.4 / 5.4 / 3.6 : 1) */
+  --spend-1: #502920; --spend-2: #6D433A; --spend-3: #8B5F55; --spend-4: #AA7C71;
+  --spend-out: var(--spend-2); --spend-in: var(--spend-4);           /* the ring: output darker, input lighter */
+  --spend-line: var(--spend-2); --spend-wash: rgba(109,67,58,.10);  /* the tide: the water */
+  --spend-track: #EFE6E2;                                            /* the unfilled ring: a lighter step of the same ramp */
+  --ember: #CFA782; --ember-soft: rgba(207,167,130,.45); --ember-blend: normal; --glow-alpha: .28;   /* the living edge */
+  --grain: .06;
+  --font: Inter, "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --serif: Fraunces, "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px;
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms; --t-fill: 300ms;
+  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
+  --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #10141C; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --ok: #9BC88F; --ok-ink: #9BC88F; --warn: #E2B06A; --warn-ink: #E2B06A; --warn-soft: rgba(226,176,106,.18);
+  --danger: #E2847A; --danger-ink: #E2847A; --danger-soft: rgba(226,132,122,.18);
+  --overlay: #242C3C; --overlay-edge: rgba(255,255,255,.06);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --gradient-brand: linear-gradient(135deg, #3A4661, #7A4B3E);
+  --spend-1: #F9C7BA; --spend-2: #DBAA9E; --spend-3: #BD8E83; --spend-4: #A17468;   /* restepped on #242C3C: 9.3 / 6.8 / 4.9 / 3.5 : 1 */
+  --spend-out: var(--spend-2); --spend-in: var(--spend-4);
+  --spend-line: var(--spend-2); --spend-wash: rgba(219,170,158,.12);
+  --spend-track: #33303A;
+  --ember: #E2C4A6; --ember-soft: rgba(226,196,166,.40); --ember-blend: screen; --glow-alpha: .72;
+  --grain: .05;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #10141C; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --ok: #9BC88F; --ok-ink: #9BC88F; --warn: #E2B06A; --warn-ink: #E2B06A; --warn-soft: rgba(226,176,106,.18);
+  --danger: #E2847A; --danger-ink: #E2847A; --danger-soft: rgba(226,132,122,.18);
+  --overlay: #242C3C; --overlay-edge: rgba(255,255,255,.06);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --gradient-brand: linear-gradient(135deg, #3A4661, #7A4B3E);
+  --spend-1: #F9C7BA; --spend-2: #DBAA9E; --spend-3: #BD8E83; --spend-4: #A17468;
+  --spend-out: var(--spend-2); --spend-in: var(--spend-4);
+  --spend-line: var(--spend-2); --spend-wash: rgba(219,170,158,.12);
+  --spend-track: #33303A;
+  --ember: #E2C4A6; --ember-soft: rgba(226,196,166,.40); --ember-blend: screen; --glow-alpha: .72;
+  --grain: .05;
+  color-scheme: dark;
+}
+
+/* ---------- the one guard (MOTION §3): animation plays only inside it; clocks go to zero outside it ---------- */
+:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-fill: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-fill: 0ms; } }
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--canvas); background-image: radial-gradient(1200px 600px at 20% -10%, var(--wash), transparent 60%); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; }
+/* paper grain: one 240 px feTurbulence tile, rendered once, repeated; never a live filter (generative-visuals §3) */
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: var(--grain); mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+h1, h2, h3, p, figure { margin: 0; }
+.serif { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.01em; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums slashed-zero; font-size: 12.5px; }
+.muted { color: var(--ink-2); } .faint { color: var(--ink-3); }
+.name { color: var(--accent-ink); font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 50, "WONK" 0; }
+button { font-family: inherit; }
+:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; border-radius: var(--radius-sm); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- topbar: brand, the page's name, the inspector (not part of the design) ---------- */
+.topbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 14px; height: 56px; padding: 0 28px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 84%, transparent); backdrop-filter: blur(8px); }
+.topbar .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 21px; font-variation-settings: "SOFT" 50, "WONK" 0; }
+.topbar .crumb { color: var(--ink-3); } .topbar .where { font-size: 14px; color: var(--ink-2); }
+.topbar .right { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 11px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 13px var(--font); cursor: pointer; transition: box-shadow var(--t-fast) ease, background var(--t-fast) ease; }
+.btn:hover { box-shadow: var(--shadow-soft), var(--edge); }
+.btn[aria-pressed="true"] { background: var(--apricot-soft); border-color: transparent; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.sm { min-height: 26px; padding: 0 9px; font-size: 12.5px; }
+kbd { font: 500 11px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; line-height: 16px; }
+@media (hover: none) and (pointer: coarse) { kbd { display: none; } }
+
+/* ---------- the page ---------- */
+.page { position: relative; z-index: 1; max-width: 1384px; margin: 0 auto; padding: 18px 28px 32px; display: grid; gap: 16px; }
+.lede { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; padding: 4px 4px 2px; }
+.lede h1 { font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.12; letter-spacing: -0.015em; font-variation-settings: "SOFT" 50, "WONK" 0; text-wrap: balance; }
+.lede p { max-width: 86ch; color: var(--ink-2); margin-top: 4px; font-size: 14.5px; line-height: 22px; }
+.lede .legend { justify-self: end; }
+.legend { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-2); align-items: center; }
+.legend .k { display: inline-flex; align-items: center; gap: 7px; }
+.legend .sw { width: 10px; height: 10px; border-radius: 3px; background: var(--c); flex: none; }
+.legend .sw.dot { border-radius: 50%; background: var(--ember); box-shadow: 0 0 0 3px var(--ember-soft); width: 8px; height: 8px; }
+.legend .sw.line { width: 14px; height: 0; border-top: 2px dashed var(--ink-3); border-radius: 0; }
+.legend .sw.warn { width: 14px; height: 0; border-top: 1px solid var(--warn); border-radius: 0; }
+
+.card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 20px 12px; box-shadow: var(--shadow-soft), var(--edge); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card .head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.card .head h2 { font-family: var(--serif); font-weight: 400; font-size: 20px; line-height: 1.2; font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.01em; }
+.card .head .says { font-size: 13px; color: var(--ink-2); }
+.card .head .right { margin-left: auto; display: inline-flex; gap: 12px; align-items: center; }
+.row2 { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); gap: 18px; }
+figure.chart { position: relative; min-width: 0; }
+figure.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { font-family: var(--mono); font-size: 11px; fill: var(--ink-3); font-variant-numeric: tabular-nums; }
+svg text.ink { fill: var(--ink); } svg text.ink2 { fill: var(--ink-2); }
+svg text.note { font-family: var(--font); font-size: 12px; fill: var(--ink-2); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+svg text.note.serif { font-family: var(--serif); font-size: 13.5px; fill: var(--ink); }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .base { stroke: var(--ink-3); stroke-width: 1; opacity: .5; }
+
+/* ---------- the table twin: a disclosure, never a colour ---------- */
+details.twin { border-top: 1px solid var(--line); padding-top: 6px; }
+details.twin summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; font: 500 12.5px var(--font); color: var(--ink-2); padding: 2px 0; border-radius: var(--radius-sm); }
+details.twin summary::-webkit-details-marker { display: none; }
+details.twin summary::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); margin: 0 4px 0 2px; transition: transform var(--t) var(--ease-move); }
+details.twin[open] summary::before { transform: rotate(45deg); }
+table.tw { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12.5px; }
+table.tw th, table.tw td { text-align: left; padding: 5px 8px 5px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.tw th { font-weight: 500; color: var(--ink-3); font-size: 11.5px; }
+table.tw td.num, table.tw th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums slashed-zero; }
+table.tw td.who { font-family: var(--serif); font-size: 14px; font-variation-settings: "SOFT" 50, "WONK" 0; }
+table.tw tr.live td { color: var(--ink); } table.tw .state { color: var(--ink-2); }
+table.tw .state.warn { color: var(--warn-ink); } table.tw .state.over { color: var(--danger-ink); }
+.scrollx { overflow: auto; max-height: 220px; }
+
+/* ---------- tooltip grammar: value first in mono, name second, the context line last ---------- */
+.tip { position: absolute; z-index: 6; pointer-events: none; opacity: 0; transform: translateY(2px); transition: opacity var(--t-fast) ease, transform var(--t-fast) ease; min-width: 150px; max-width: 240px; padding: 9px 11px; border-radius: 10px; background: var(--overlay); border: 1px solid var(--overlay-edge); box-shadow: var(--shadow-pop), var(--edge); font-size: 12.5px; color: var(--ink-2); display: flex; flex-direction: column; gap: 3px; }
+.tip.on { opacity: 1; transform: none; }
+.tip .t { color: var(--ink); font-weight: 500; display: flex; gap: 8px; justify-content: space-between; }
+.tip .r { display: flex; align-items: center; gap: 7px; } .tip .r .v { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); margin-left: auto; }
+.tip .sw { width: 9px; height: 9px; border-radius: 3px; background: var(--c); flex: none; }
+.tip .ctx { color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 4px; margin-top: 2px; }
+
+/* ======================================================================
+   THE RING · one hue per agent, filled with spend, 12 → clockwise, the plan is the top seam
+   track · input (lighter step) · output (darker step), 2 px surface gaps · the share past 80 % in amber ·
+   the overflow past the plan as a thin outer lap in red · cache as a dotted arc inside, never in the budget ·
+   the ember: an apricot point at the leading edge that breathes while this agent spends
+   ====================================================================== */
+.rings { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 10px; }
+.ring { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 6px 6px; border-radius: var(--radius); text-align: center; min-width: 0; cursor: default; transition: background var(--t-fast) ease; }
+.ring:hover, .ring:focus-visible { background: var(--surface-2); }
+.ring svg { width: 118px; height: 118px; overflow: visible; }
+.ring .track { fill: none; stroke: var(--spend-track); stroke-width: 9; }
+.ring .seg { fill: none; stroke-width: 9; stroke-linecap: butt; transition: stroke-dasharray var(--t-fill) ease, stroke-dashoffset var(--t-fill) ease; }
+.ring .seg.in { stroke: var(--spend-in); } .ring .seg.out { stroke: var(--spend-out); }
+.ring .seg.amber { stroke: var(--warn); } .ring .lap { fill: none; stroke: var(--danger); stroke-width: 2.5; stroke-linecap: round; transition: stroke-dasharray var(--t-fill) ease; }
+.ring .cache { fill: none; stroke: var(--ink-3); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 0 3.6; opacity: .7; }
+.ring .tick { stroke: var(--ink-3); stroke-width: 1; opacity: .8; } .ring.warn .tick, .ring.over .tick { stroke: var(--warn); opacity: 1; }
+.ring .seam { stroke: var(--ink); stroke-width: 1.2; }
+.ring .n { font-family: var(--mono); font-size: 12.5px; fill: var(--ink); font-variant-numeric: tabular-nums slashed-zero; }
+.ring .pct { font-family: var(--mono); font-size: 9.5px; fill: var(--ink-3); }
+.ring.warn .pct { fill: var(--warn-ink); } .ring.over .pct { fill: var(--danger-ink); }
+.ring .ember { opacity: 0; } .ring.live .ember { opacity: 1; }
+.ember .halo { fill: var(--ember); opacity: .35; mix-blend-mode: var(--ember-blend); transform-box: fill-box; transform-origin: center; }
+.ember .dot { fill: var(--ember); stroke: var(--surface); stroke-width: 2; }
+.ring .who { font-family: var(--serif); font-size: 16px; line-height: 1.2; color: var(--ink); font-variation-settings: "SOFT" 50, "WONK" 0; }
+.ring .doing { font-size: 12.5px; line-height: 1.35; color: var(--ink-2); max-width: 150px; }
+.ring .doing i { font-family: var(--serif); font-style: italic; color: var(--accent-ink); font-variation-settings: "SOFT" 50, "WONK" 1; }
+.ring .state { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+.ring .state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.ring .state.running::before { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent); }
+.ring .state.awaiting::before { background: var(--warn); } .ring .state.done::before { background: var(--ink-3); opacity: .6; }
+
+/* ======================================================================
+   THE WAVEFORM · the manager's week, turn by turn, stacked by agent and mirrored on a centre line
+   one bar per turn ≤ 16 px, segments from the centre outward in a fixed order, 2 px surface gaps, rounded
+   outer ends only; the live turn carries the ember and breathes; days are hairlines; one direct label
+   ====================================================================== */
+.wave svg { height: auto; }
+.wave .seg { fill: var(--c); transition: opacity var(--t-fast) ease; }
+.wave .col.dim .seg { opacity: .45; }
+.wave .col.live .seg { }
+.wave .centre { stroke: var(--ink-3); stroke-width: 1; opacity: .55; }
+.wave .day { stroke: var(--line); stroke-width: 1; }
+.wave .cross { stroke: var(--ink-3); stroke-width: 1; opacity: 0; } .wave .cross.on { opacity: .8; }
+.wave .glow { opacity: var(--glow-alpha); transform-box: fill-box; transform-origin: center; }
+
+/* ======================================================================
+   THE TIDE · October as water rising against the soft budget
+   the water (spend wash + 2 px line), the tide line (today's level, a hairline across the plot), the shore
+   (the budget, dotted, "soft"), the high-water mark (80 %, one amber hairline), the pace (dashed, with its
+   ±8 % band) and one dated dot where it crosses; the ember at today
+   ====================================================================== */
+.tide .water { fill: var(--spend-wash); } .tide .shore-line { fill: none; stroke: var(--spend-line); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.tide .tideline { stroke: var(--spend-line); stroke-width: 1; stroke-dasharray: 1 3; stroke-linecap: round; opacity: .9; }
+.tide .budget { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 2 4; stroke-linecap: round; }
+.tide .hw { stroke: var(--warn); stroke-width: 1; }
+.tide .pace { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 4 3; stroke-linecap: round; }
+.tide .band { fill: var(--ink-3); opacity: .08; }
+.tide .cross-dot { fill: var(--warn); stroke: var(--surface); stroke-width: 2; }
+.tide .cross { stroke: var(--ink-3); stroke-width: 1; opacity: 0; } .tide .cross.on { opacity: .8; }
+.tide .hdot { fill: var(--spend-line); stroke: var(--surface); stroke-width: 2; opacity: 0; } .tide .hdot.on { opacity: 1; }
+
+/* ---------- keyframes: the tokens' vocabulary plus this element's two ---------- */
+@keyframes ember-halo { 0% { transform: scale(1); opacity: .38 } 100% { transform: scale(2.4); opacity: 0 } }   /* mark-halo's shape, on the ember */
+@keyframes breath { 0%, 100% { opacity: .72 } 50% { opacity: 1 } }                                               /* the live turn breathes */
+@keyframes glow-breath { 0%, 100% { transform: scale(1); opacity: calc(var(--glow-alpha) * .65) } 50% { transform: scale(1.06); opacity: calc(var(--glow-alpha) * 1.2) } }
+@keyframes card-in { from { opacity: 0; transform: translateY(6px) } }
+@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+@keyframes grow { from { transform: scaleY(0) } }
+@media (prefers-reduced-motion: no-preference) { :root:not([data-motion="calm"]) {
+  --motion: 1;
+}
+  :root:not([data-motion="calm"]) .ember .halo { animation: ember-halo 1.8s var(--ease-leave) infinite; }
+  :root:not([data-motion="calm"]) .wave .col.live .seg { animation: breath 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .wave .glow { animation: glow-breath 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .ring .state.running::before { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .card.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(var(--i, 0) * 60ms); }
+  :root:not([data-motion="calm"]) .wave .col.new { transform-box: fill-box; transform-origin: center; animation: grow var(--t-slow) var(--ease-arrive) both; }
+}
+
+/* ---------- phone ---------- */
+@media (max-width: 760px) {
+  .topbar { padding: 0 16px; gap: 10px; } .topbar .where, .topbar .crumb { display: none; } .topbar .right .btn kbd { display: none; } .topbar .right .btn.sm { padding: 0 9px; }
+  .page { padding: 16px 16px 32px; gap: 14px; }
+  .lede { grid-template-columns: 1fr; gap: 10px; } .lede h1 { font-size: 27px; } .lede .legend { justify-self: start; }
+  .row2 { grid-template-columns: 1fr; gap: 14px; }
+  .card { padding: 14px 14px 12px; border-radius: 18px; }
+  .rings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ring svg { width: 108px; height: 108px; }
+  .card .head .right { margin-left: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/><path d="M48 20 A28 28 0 0 1 48 76" fill="none" stroke="var(--mark-arc-a)" stroke-width="10" stroke-linecap="round"/><path d="M48 76 A28 28 0 0 1 48 20" fill="none" stroke="var(--mark-arc-b)" stroke-width="10" stroke-linecap="round"/><circle cx="48" cy="48" r="7" fill="var(--mark-dot)"/></symbol>
+</svg>
+
+<header class="topbar">
+  <span class="brand"><svg width="24" height="24" aria-hidden="true"><use href="#mark"/></svg>Henosis</span>
+  <span class="crumb" aria-hidden="true">/</span>
+  <span class="where"><span class="name">Billing</span> · usage</span>
+  <span class="right" aria-label="Exploration controls">
+    <button class="btn sm primary" id="turn" type="button" title="Bo's agent finishes a turn"><span class="w">Turn</span> <kbd>t</kbd></button>
+    <button class="btn sm" id="tables" type="button" aria-pressed="false" title="Open every table twin"><span class="w">Tables</span> <kbd>b</kbd></button>
+    <button class="btn sm" id="calm" type="button" aria-pressed="false"><span class="w">Calm</span> <kbd>c</kbd></button>
+    <button class="btn sm" id="dark" type="button" aria-pressed="false"><span class="w">Dark</span> <kbd>d</kbd></button>
+  </span>
+</header>
+
+<main class="page">
+  <section class="lede">
+    <div>
+      <h1 id="lede-h">Billing has spent <span class="mono" style="font-size:.9em">612k</span> of its 1.0M this month.</h1>
+      <p id="lede-p"><span class="name">Bo's agent</span> is spending now on Checkout. <span class="name">Cy's agent</span> is past 80 % of its plan; <span class="name">Dee's agent</span> is over, and nothing stops. At this pace the month turns amber on Saturday 24 October and passes the soft budget on the 29th.</p>
+    </div>
+    <div class="legend" aria-label="How to read these">
+      <span class="k"><i class="sw" style="--c: var(--spend-out)"></i>output</span>
+      <span class="k"><i class="sw" style="--c: var(--spend-in)"></i>input</span>
+      <span class="k"><i class="sw dot"></i>spending now</span>
+      <span class="k"><i class="sw warn"></i>80 % of a budget</span>
+    </div>
+  </section>
+
+  <!-- ====================== the waveform ====================== -->
+  <section class="card wave enter" style="--i: 0" aria-labelledby="wave-h">
+    <div class="head">
+      <h2 id="wave-h">The week, turn by turn</h2>
+      <span class="says" id="wave-says">48 turns since Wednesday · the heaviest was Cy's agent's 4.1k on Friday · Bo's agent is on turn 49 now.</span>
+      <span class="right">
+        <span class="legend" id="wave-legend" aria-label="Agents, from the centre outward"></span>
+      </span>
+    </div>
+    <figure class="chart" id="wave-fig">
+      <svg id="wave-svg" role="img" aria-labelledby="wave-h wave-desc"><desc id="wave-desc"></desc></svg>
+      <div class="tip" id="wave-tip" role="status" aria-live="polite"></div>
+    </figure>
+    <details class="twin" id="wave-twin">
+      <summary>As a table · 48 turns × 4 agents</summary>
+      <div class="scrollx"><table class="tw" id="wave-table"></table></div>
+    </details>
+  </section>
+
+  <div class="row2">
+    <!-- ====================== the rings ====================== -->
+    <section class="card enter" style="--i: 1" aria-labelledby="rings-h">
+      <div class="head">
+        <h2 id="rings-h">Each agent against its plan</h2>
+        <span class="says">The ring fills from the top; the plan is the seam. Cache never fills it.</span>
+      </div>
+      <div class="rings" id="rings"></div>
+      <details class="twin" id="rings-twin">
+        <summary>As a table · four agents</summary>
+        <table class="tw" id="rings-table"></table>
+      </details>
+    </section>
+
+    <!-- ====================== the tide ====================== -->
+    <section class="card tide enter" style="--i: 2" aria-labelledby="tide-h">
+      <div class="head">
+        <h2 id="tide-h">October against the soft budget</h2>
+        <span class="says" id="tide-says">612k so far · amber on Sat 24 at this pace · nothing stops at 1.0M.</span>
+      </div>
+      <figure class="chart" id="tide-fig">
+        <svg id="tide-svg" role="img" aria-labelledby="tide-h tide-desc"><desc id="tide-desc"></desc></svg>
+        <div class="tip" id="tide-tip" role="status" aria-live="polite"></div>
+      </figure>
+      <details class="twin" id="tide-twin">
+        <summary>As a table · 19 days, then the pace</summary>
+        <div class="scrollx"><table class="tw" id="tide-table"></table></div>
+      </details>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+const el = (n, a = {}, parent) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (parent) parent.appendChild(e); return e; };
+const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M" : n >= 1000 ? (n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, "") + "k" : String(Math.round(n));
+const full = n => Math.round(n).toLocaleString("en-GB");
+const motion = () => getComputedStyle(document.documentElement).getPropertyValue("--motion").trim() === "1";
+
+/* ---------------------------------------------------------------- data: Billing, four agents, one week, one month */
+// a seeded generator so the composition is the same on every open
+let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+const AGENTS = [
+  { id: "ana", who: "Ana's agent", c: "var(--spend-1)", lead: "Billing page", doing: "writing the proration copy", state: "awaiting", word: "awaiting a rating", plan: 48000, in: 11200, out: 5100, cache: 9800 },
+  { id: "bo",  who: "Bo's agent",  c: "var(--spend-2)", lead: "Checkout",     doing: "running the tax-line tests", state: "running",  word: "running · spending now", plan: 60000, in: 24600, out: 10500, cache: 18000, live: true },
+  { id: "cy",  who: "Cy's agent",  c: "var(--spend-3)", lead: "Invoice PDF",  doing: "laying out the tax lines",  state: "awaiting", word: "awaiting approval", plan: 40000, in: 23900, out: 10500, cache: 14200 },
+  { id: "dee", who: "Dee's agent", c: "var(--spend-4)", lead: "Tax lines",    doing: "united into main; writing up", state: "done", word: "done", plan: 32000, in: 25600, out: 10200, cache: 7700 },
+];
+// the week: 48 turns in four working days (the weekend has no turns)
+const DAYS = [["Wed 14", 0, 10], ["Thu 15", 10, 21], ["Fri 16", 21, 33], ["Mon 19", 33, 48]];
+const TURNS = [];
+for (let t = 0; t < 48; t++) {
+  const lead = AGENTS[Math.floor(rnd() * 4)];
+  const total = 700 + rnd() * rnd() * 3400 + (t === 23 ? 1300 : 0);
+  const share = { ana: 0, bo: 0, cy: 0, dee: 0 };
+  const rest = 1 - (0.62 + rnd() * 0.3);
+  for (const a of AGENTS) share[a.id] = a === lead ? 1 - rest : (rest / 3) * (0.4 + rnd() * 1.2);
+  const s = Object.values(share).reduce((x, y) => x + y, 0);
+  const v = {}; for (const a of AGENTS) v[a.id] = Math.round(total * share[a.id] / s);
+  const steer = rnd() < 0.3 ? ["Ana", "Bo", "Cy", "Dee"][Math.floor(rnd() * 4)] : null;
+  TURNS.push({ n: t + 1, v, lead: lead.who, steer, time: `${String(9 + Math.floor((t % 12) * 0.75)).padStart(2, "0")}:${String(Math.floor(rnd() * 60)).padStart(2, "0")}` });
+}
+// make Friday's heaviest turn Cy's at 4.1k, as the sentence says
+TURNS[23].v = { ana: 210, bo: 180, cy: 3420, dee: 290 }; TURNS[23].lead = "Cy's agent";
+// the month: Oct 1 = Thu; today = Mon 19
+const BUDGET = 1000000;
+const DOW = d => (3 + d) % 7; // 0 Sun … 6 Sat for Oct d (d=1 → Thu=4)
+const DAYSPEND = [];
+{ let s2 = 11; const r2 = () => { s2 = (s2 * 48271) % 2147483647; return (s2 - 1) / 2147483646; };
+  for (let d = 1; d <= 19; d++) { const wk = DOW(d) === 0 || DOW(d) === 6; DAYSPEND.push(wk ? 5200 + r2() * 3400 : 37000 + r2() * 15000); }
+  const sum = DAYSPEND.reduce((a, b) => a + b, 0); for (let i = 0; i < DAYSPEND.length; i++) DAYSPEND[i] = Math.round(DAYSPEND[i] * 612000 / sum); }
+const DAYNAME = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/* ---------------------------------------------------------------- the ring */
+const RINGS = $("#rings");
+const polar = (r, p) => { const a = (p / 100) * Math.PI * 2 - Math.PI / 2; return [48 + r * Math.cos(a), 48 + r * Math.sin(a)]; };
+function ring(a) {
+  const used = a.in + a.out, pct = used / a.plan * 100;
+  const tone = pct > 100 ? "over" : pct >= 80 ? "warn" : "";
+  const box = document.createElement("div");
+  box.className = `ring${tone ? " " + tone : ""}${a.live ? " live" : ""}`; box.tabIndex = 0; box.dataset.id = a.id;
+  box.setAttribute("role", "meter"); box.setAttribute("aria-valuemin", "0"); box.setAttribute("aria-valuemax", "100"); box.setAttribute("aria-valuenow", String(Math.round(pct)));
+  box.setAttribute("aria-label", `${a.who}, tokens against plan`);
+  box.setAttribute("aria-valuetext", `${full(used)} of ${full(a.plan)} tokens, ${Math.round(pct)} percent${tone === "over" ? ", over the plan" : tone === "warn" ? ", past 80 percent" : ""}; ${full(a.in)} in, ${full(a.out)} out, ${full(a.cache)} from cache, not counted`);
+  const svg = el("svg", { viewBox: "0 0 96 96", "aria-hidden": "true" }, box);
+  const g = el("g", { transform: "rotate(-90 48 48)" }, svg);
+  el("circle", { class: "track", cx: 48, cy: 48, r: 36 }, g);
+  const G = 1.2;                                   // the 2 px surface gap, in hundredths of the ring
+  const inP = Math.min(100, a.in / a.plan * 100), outP = Math.min(100 - inP, a.out / a.plan * 100);
+  el("circle", { class: "seg in", cx: 48, cy: 48, r: 36, pathLength: 100, "stroke-dasharray": `${Math.max(0, inP - G)} 100`, "stroke-dashoffset": 0 }, g);
+  el("circle", { class: "seg out", cx: 48, cy: 48, r: 36, pathLength: 100, "stroke-dasharray": `${Math.max(0, outP - G)} 100`, "stroke-dashoffset": -inP }, g);
+  if (pct > 80) el("circle", { class: "seg amber", cx: 48, cy: 48, r: 36, pathLength: 100, "stroke-dasharray": `${Math.min(100, pct) - 80 - (pct >= 100 ? 0 : G)} 100`, "stroke-dashoffset": -80 }, g);
+  if (pct > 100) el("circle", { class: "lap", cx: 48, cy: 48, r: 43.5, pathLength: 100, "stroke-dasharray": `${pct - 100} 100` }, g);
+  // cache: a dotted arc inside the track, never in the budget (token-meter, data-craft §4)
+  { const cp = Math.min(100, a.cache / a.plan * 100), [x1, y1] = polar(28.5, 0), [x2, y2] = polar(28.5, cp);
+    el("path", { class: "cache", d: `M${x1} ${y1} A28.5 28.5 0 ${cp > 50 ? 1 : 0} 1 ${x2} ${y2}`, transform: "rotate(90 48 48)" }, g); }
+  // the 80 % tick and the seam (the plan)
+  { const [x1, y1] = polar(29.5, 80), [x2, y2] = polar(42.5, 80); el("line", { class: "tick", x1, y1, x2, y2, transform: "rotate(90 48 48)" }, g); }
+  el("line", { class: "seam", x1: 48, y1: 4.5, x2: 48, y2: 10, transform: "rotate(90 48 48)" }, g);
+  // the ember at the leading edge
+  { const [x, y] = polar(36, Math.min(100, pct)); const e = el("g", { class: "ember", transform: `translate(${x} ${y})` }, svg); el("circle", { class: "halo", r: 7 }, e); el("circle", { class: "dot", r: 4 }, e); }
+  el("text", { class: "n", x: 48, y: 46.5, "text-anchor": "middle" }, svg).textContent = fmt(used);
+  el("text", { class: "pct", x: 48, y: 58, "text-anchor": "middle" }, svg).textContent = `${Math.round(pct)}%`;
+  const who = document.createElement("span"); who.className = "who"; who.textContent = a.who; box.appendChild(who);
+  const doing = document.createElement("span"); doing.className = "doing"; doing.innerHTML = `<i>${a.lead}</i> · ${a.doing}`; box.appendChild(doing);
+  const st = document.createElement("span"); st.className = `state ${a.state}`; st.innerHTML = `<span class="sr">status: </span>${a.word}`; box.appendChild(st);
+  return box;
+}
+function drawRings() {
+  RINGS.replaceChildren(...AGENTS.map(ring));
+  const T = $("#rings-table");
+  T.innerHTML = `<thead><tr><th>Agent</th><th>On</th><th class="num">Input</th><th class="num">Output</th><th class="num">Cache</th><th class="num">Plan</th><th class="num">Spent</th><th>State</th></tr></thead><tbody>` +
+    AGENTS.map(a => { const used = a.in + a.out, p = Math.round(used / a.plan * 100), tone = p > 100 ? "over" : p >= 80 ? "warn" : "";
+      return `<tr class="${a.live ? "live" : ""}"><td class="who">${a.who}</td><td>${a.lead}</td><td class="num">${full(a.in)}</td><td class="num">${full(a.out)}</td><td class="num">${full(a.cache)}</td><td class="num">${full(a.plan)}</td><td class="num">${p}%</td><td class="state ${tone}">${tone === "over" ? "over the plan" : tone === "warn" ? "past 80 %" : "within plan"}${a.live ? " · spending now" : ""}</td></tr>`; }).join("") + `</tbody>`;
+}
+
+/* ---------------------------------------------------------------- the waveform */
+const WSVG = $("#wave-svg"), WTIP = $("#wave-tip"), WFIG = $("#wave-fig");
+let waveState = { turns: TURNS, at: null };
+function drawWave(opts = {}) {
+  const phone = matchMedia("(max-width: 760px)").matches;
+  const turns = phone ? waveState.turns.slice(-24) : waveState.turns;
+  const n = turns.length, BW = phone ? 10 : 16, GAP = phone ? 3 : 4, PL = phone ? 30 : 40, PR = phone ? 70 : 76, PT = 24, PB = 22, HALF = phone ? 70 : 60;
+  const W = PL + n * (BW + GAP) - GAP + PR, H = PT + HALF * 2 + PB, CY = PT + HALF;
+  WSVG.setAttribute("viewBox", `0 0 ${W} ${H}`); WSVG.innerHTML = "";
+  el("desc", { id: "wave-desc" }, WSVG).textContent = `Tokens per turn, stacked by agent and mirrored on a centre line, ${turns[0].n} to ${turns[n - 1].n}. The last turn is live. The table below carries every value.`;
+  const max = Math.max(...turns.map(t => Object.values(t.v).reduce((a, b) => a + b, 0)));
+  const sy = v => v / max * HALF;
+  const x0 = i => PL + i * (BW + GAP);
+  // day hairlines and labels
+  const first = turns[0].n - 1;
+  for (const [name, s, e] of DAYS) { const si = Math.max(s, first) - first, ei = e - first; if (ei <= 0) continue;
+    if (s > first) el("line", { class: "day", x1: x0(si) - GAP / 2, x2: x0(si) - GAP / 2, y1: PT - 6, y2: H - PB + 6 }, WSVG);
+    el("text", { x: x0(si) + 1, y: H - 6 }, WSVG).textContent = name; }
+  el("line", { class: "centre", x1: PL, x2: W - PR + 8, y1: CY, y2: CY }, WSVG);
+  // the glow under the live turn, then the columns
+  const li = n - 1;
+  { const defs = el("defs", {}, WSVG); const rg = el("radialGradient", { id: "glow-g" }, defs); el("stop", { offset: "0", "stop-color": "var(--ember)", "stop-opacity": "1" }, rg); el("stop", { offset: "1", "stop-color": "var(--ember)", "stop-opacity": "0" }, rg);
+    el("ellipse", { class: "glow", cx: x0(li) + BW / 2, cy: CY, rx: BW * 1.5, ry: HALF * 0.95, fill: "url(#glow-g)" }, WSVG); }
+  turns.forEach((t, i) => {
+    const total = Object.values(t.v).reduce((a, b) => a + b, 0);
+    const g = el("g", { class: `col${i === li ? " live" : ""}${opts.newLast && i === li ? " new" : ""}`, "data-i": i }, WSVG);
+    let up = 0; const x = x0(i);
+    AGENTS.forEach((a, k) => {
+      const h = sy(t.v[a.id]); if (h < 1.6) return;
+      const outer = k === AGENTS.length - 1 || AGENTS.slice(k + 1).every(b => sy(t.v[b.id]) < 1.6);
+      const g2 = up === 0 ? 0 : 2, hh = Math.max(1, h - g2), y1 = CY - up - h, y2 = CY + up + g2;
+      if (outer) { const r = Math.min(4, BW / 2, hh);
+        el("path", { class: "seg", style: `--c:${a.c}`, d: `M${x} ${y1 + hh} V${y1 + r} Q${x} ${y1} ${x + r} ${y1} H${x + BW - r} Q${x + BW} ${y1} ${x + BW} ${y1 + r} V${y1 + hh} Z` }, g);
+        el("path", { class: "seg", style: `--c:${a.c}`, d: `M${x} ${y2} V${y2 + hh - r} Q${x} ${y2 + hh} ${x + r} ${y2 + hh} H${x + BW - r} Q${x + BW} ${y2 + hh} ${x + BW} ${y2 + hh - r} V${y2} Z` }, g); }
+      else { el("rect", { class: "seg", style: `--c:${a.c}`, x, y: y1, width: BW, height: hh }, g); el("rect", { class: "seg", style: `--c:${a.c}`, x, y: y2, width: BW, height: hh }, g); }
+      up += h;
+    });
+    if (i === li) { const e = el("g", { class: "ember", transform: `translate(${x + BW / 2} ${CY - up - 9})` }, WSVG); el("circle", { class: "halo", r: 7 }, e); el("circle", { class: "dot", r: 4 }, e);
+      el("text", { class: "note", x: x + BW + 10, y: CY - up - 5 }, WSVG).textContent = phone ? `turn ${t.n}` : `turn ${t.n} · ${fmt(total)} so far`;
+      el("text", { class: "note serif", x: x + BW + 10, y: CY - up + 12 }, WSVG).textContent = phone ? `${fmt(total)}, now` : `Bo's agent, now`; }
+  });
+  // the heaviest turn, labelled once
+  { let hi = 0, hv = 0; turns.forEach((t, i) => { const s = Object.values(t.v).reduce((a, b) => a + b, 0); if (s > hv) { hv = s; hi = i; } });
+    if (hi !== li) el("text", { class: "note", x: x0(hi) + BW / 2, y: CY - sy(hv) - 8, "text-anchor": "middle" }, WSVG).textContent = fmt(hv); }
+  el("line", { class: "cross", id: "wave-cross", x1: 0, x2: 0, y1: PT - 4, y2: H - PB + 4 }, WSVG);
+  WSVG._geo = { turns, x0, BW, GAP, PL, PR, W, H, CY, HALF, sy };
+  // legend, from the centre outward
+  $("#wave-legend").innerHTML = AGENTS.map(a => `<span class="k"><i class="sw" style="--c:${a.c}"></i>${a.who}</span>`).join("");
+  // table
+  const T = $("#wave-table");
+  T.innerHTML = `<thead><tr><th>Turn</th><th>Day</th>${AGENTS.map(a => `<th class="num">${a.who}</th>`).join("")}<th class="num">Total</th><th>Led by</th></tr></thead><tbody>` +
+    waveState.turns.map(t => { const total = Object.values(t.v).reduce((a, b) => a + b, 0); const day = DAYS.find(d => t.n - 1 >= d[1] && t.n - 1 < d[2]) || DAYS[3];
+      return `<tr${t.live ? ' class="live"' : ""}><td class="num">${t.n}</td><td>${day[0]} ${t.time}</td>${AGENTS.map(a => `<td class="num">${full(t.v[a.id])}</td>`).join("")}<td class="num">${full(total)}</td><td>${t.lead}${t.steer ? ` · ${t.steer} steered` : ""}${t.live ? " · live" : ""}</td></tr>`; }).join("") + `</tbody>`;
+  $("#wave-twin summary").textContent = `As a table · ${waveState.turns.length} turns × 4 agents`;
+}
+function waveHover(ev) {
+  const G = WSVG._geo; if (!G) return;
+  const rect = WSVG.getBoundingClientRect(), px = (ev.clientX - rect.left) / rect.width * G.W;
+  let i = Math.round((px - G.PL - G.BW / 2) / (G.BW + G.GAP)); i = Math.max(0, Math.min(G.turns.length - 1, i));
+  const t = G.turns[i], total = Object.values(t.v).reduce((a, b) => a + b, 0);
+  const cross = $("#wave-cross"); const cx = G.x0(i) + G.BW / 2; cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.classList.add("on");
+  WSVG.querySelectorAll(".col").forEach(c => c.classList.toggle("dim", Number(c.dataset.i) !== i));
+  const day = DAYS.find(d => t.n - 1 >= d[1] && t.n - 1 < d[2]) || DAYS[3];
+  WTIP.innerHTML = `<div class="t"><span>Turn ${t.n}</span><span class="mono">${day[0]} ${t.time}</span></div>` +
+    [...AGENTS].reverse().map(a => `<div class="r"><i class="sw" style="--c:${a.c}"></i>${a.who}<span class="v">${full(t.v[a.id])}</span></div>`).join("") +
+    `<div class="r"><span style="width:9px"></span>total<span class="v">${full(total)}</span></div><div class="ctx">${t.lead} led${t.steer ? ` · ${t.steer} steered` : ""}${i === G.turns.length - 1 ? " · spending now" : ""}</div>`;
+  const left = (cx / G.W) * rect.width; const w = WFIG.clientWidth;
+  WTIP.style.left = `${Math.max(0, Math.min(w - 240, left + (left > w * 0.6 ? -255 : 14)))}px`; WTIP.style.top = `0px`; WTIP.classList.add("on");
+}
+function waveLeave() { WTIP.classList.remove("on"); $("#wave-cross")?.classList.remove("on"); WSVG.querySelectorAll(".col").forEach(c => c.classList.remove("dim")); }
+WSVG.addEventListener("pointermove", waveHover); WSVG.addEventListener("pointerleave", waveLeave);
+
+/* ---------------------------------------------------------------- the tide */
+const TSVG = $("#tide-svg"), TTIP = $("#tide-tip"), TFIG = $("#tide-fig");
+function tideSeries() {
+  const cum = []; let s = 0; DAYSPEND.forEach((v, i) => { s += v; cum.push({ d: i + 1, v, cum: s }); });
+  // the pace: the last five weekdays and the last two weekend days, carried forward
+  const wd = DAYSPEND.filter((v, i) => { const w = DOW(i + 1); return w !== 0 && w !== 6; }).slice(-5), we = DAYSPEND.filter((v, i) => { const w = DOW(i + 1); return w === 0 || w === 6; }).slice(-2);
+  const avgWd = wd.reduce((a, b) => a + b, 0) / wd.length, avgWe = we.reduce((a, b) => a + b, 0) / we.length;
+  const pace = [{ d: 19, cum: s }]; let p = s; let amberDay = null, overDay = null;
+  for (let d = 20; d <= 31; d++) { const w = DOW(d); const inc = w === 0 || w === 6 ? avgWe : avgWd; const prev = p; p += inc; pace.push({ d, cum: p, inc });
+    if (amberDay === null && p >= BUDGET * 0.8) amberDay = { d, frac: (BUDGET * 0.8 - prev) / inc };
+    if (overDay === null && p >= BUDGET) overDay = { d, frac: (BUDGET - prev) / inc }; }
+  return { cum, pace, amberDay, overDay, avgWd, avgWe };
+}
+function drawTide() {
+  const phone = matchMedia("(max-width: 760px)").matches;
+  const S = tideSeries(); const W = 560, H = phone ? 240 : 212, PL = 46, PR = 16, PT = 16, PB = 24;
+  const plotW = W - PL - PR, plotH = H - PT - PB; const MAX = 1150000;
+  const x = d => PL + (d - 1) / 30 * plotW, y = v => PT + plotH - v / MAX * plotH;
+  TSVG.setAttribute("viewBox", `0 0 ${W} ${H}`); TSVG.innerHTML = "";
+  const today = S.cum[S.cum.length - 1];
+  el("desc", { id: "tide-desc" }, TSVG).textContent = `Cumulative tokens in October against a soft budget of one million: ${full(today.cum)} by the 19th; at the current pace, 80 percent on the ${S.amberDay?.d}th and the budget on the ${S.overDay?.d}th.`;
+  for (const v of [250000, 500000, 750000]) { el("line", { class: "grid", x1: PL, x2: W - PR, y1: y(v), y2: y(v) }, TSVG); el("text", { x: PL - 8, y: y(v) + 4, "text-anchor": "end" }, TSVG).textContent = fmt(v); }
+  el("line", { class: "base", x1: PL, x2: W - PR, y1: y(0), y2: y(0) }, TSVG);
+  for (const d of [1, 8, 15, 22, 29]) el("text", { x: x(d), y: H - 8, "text-anchor": d === 1 ? "start" : "middle" }, TSVG).textContent = d === 1 ? "1 Oct" : String(d);
+  // the shore and the high-water mark
+  el("line", { class: "budget", x1: PL, x2: W - PR, y1: y(BUDGET), y2: y(BUDGET) }, TSVG);
+  el("text", { class: "note", x: W - PR, y: y(BUDGET) - 6, "text-anchor": "end" }, TSVG).textContent = "soft budget · 1.0M";
+  el("line", { class: "hw", x1: PL, x2: W - PR, y1: y(BUDGET * 0.8), y2: y(BUDGET * 0.8) }, TSVG);
+  el("text", { class: "note", x: W - PR, y: y(BUDGET * 0.8) - 6, "text-anchor": "end" }, TSVG).textContent = "80 % · 800k";
+  // the pace band, then the pace
+  { const up = S.pace.map(p => `${x(p.d).toFixed(1)} ${y(p.cum * 1.08).toFixed(1)}`), dn = [...S.pace].reverse().map(p => `${x(p.d).toFixed(1)} ${y(p.cum * 0.92).toFixed(1)}`);
+    el("path", { class: "band", d: `M${up.join(" L")} L${dn.join(" L")} Z` }, TSVG);
+    el("path", { class: "pace", d: "M" + S.pace.map(p => `${x(p.d).toFixed(1)} ${y(p.cum).toFixed(1)}`).join(" L") }, TSVG); }
+  // the water
+  { const pts = S.cum.map(p => `${x(p.d).toFixed(1)} ${y(p.cum).toFixed(1)}`);
+    el("path", { class: "water", d: `M${x(1)} ${y(0)} L${pts.join(" L")} L${x(today.d)} ${y(0)} Z` }, TSVG);
+    el("path", { class: "shore-line", d: `M${x(1)} ${y(0)} L${pts.join(" L")}` }, TSVG); }
+  // the tide line: today's level, across the plot
+  el("line", { class: "tideline", x1: PL, x2: x(today.d), y1: y(today.cum), y2: y(today.cum) }, TSVG);
+  el("text", { class: "note", x: PL + 4, y: y(today.cum) - 6 }, TSVG).textContent = `today · ${fmt(today.cum)}`;
+  // where the pace crosses 80 %: one dated dot
+  if (S.amberDay) { const xd = x(S.amberDay.d - 1 + S.amberDay.frac), yd = y(BUDGET * 0.8);
+    el("circle", { class: "cross-dot", cx: xd, cy: yd, r: 4.5 }, TSVG);
+    el("text", { class: "note", x: xd + (phone ? -6 : 8), y: yd + (phone ? 18 : 15), "text-anchor": phone ? "end" : "start" }, TSVG).textContent = `${DAYNAME[DOW(S.amberDay.d)]} ${S.amberDay.d} Oct`; }
+  // the ember at today
+  { const e = el("g", { class: "ember", transform: `translate(${x(today.d)} ${y(today.cum)})` }, TSVG); el("circle", { class: "halo", r: 7 }, e); el("circle", { class: "dot", r: 4 }, e); }
+  el("line", { class: "cross", id: "tide-cross", x1: 0, x2: 0, y1: PT, y2: PT + plotH }, TSVG);
+  el("circle", { class: "hdot", id: "tide-hdot", r: 4 }, TSVG);
+  TSVG._geo = { S, W, H, PL, PR, x, y, plotW };
+  $("#tide-says").textContent = `${fmt(today.cum)} so far · amber on ${DAYNAME[DOW(S.amberDay.d)]} ${S.amberDay.d} at this pace · nothing stops at 1.0M.`;
+  const T = $("#tide-table");
+  T.innerHTML = `<thead><tr><th>Day</th><th class="num">Spent</th><th class="num">Cumulative</th><th class="num">Of budget</th><th>Note</th></tr></thead><tbody>` +
+    S.cum.map(p => `<tr><td>${DAYNAME[DOW(p.d)]} ${p.d} Oct</td><td class="num">${full(p.v)}</td><td class="num">${full(p.cum)}</td><td class="num">${Math.round(p.cum / BUDGET * 100)}%</td><td class="state">${p.d === 19 ? "today · spending now" : ""}</td></tr>`).join("") +
+    S.pace.slice(1).map(p => `<tr><td>${DAYNAME[DOW(p.d)]} ${p.d} Oct</td><td class="num faint">~${full(p.inc)}</td><td class="num faint">~${full(p.cum)}</td><td class="num faint">${Math.round(p.cum / BUDGET * 100)}%</td><td class="state ${p.cum >= BUDGET ? "over" : p.cum >= BUDGET * 0.8 ? "warn" : ""}">at this pace${p.d === S.amberDay?.d ? " · 80 %" : ""}${p.d === S.overDay?.d ? " · past the soft budget" : ""}</td></tr>`).join("") + `</tbody>`;
+}
+function tideHover(ev) {
+  const G = TSVG._geo; if (!G) return;
+  const rect = TSVG.getBoundingClientRect(), px = (ev.clientX - rect.left) / rect.width * G.W;
+  let d = Math.round((px - G.PL) / G.plotW * 30 + 1); d = Math.max(1, Math.min(31, d));
+  const p = d <= 19 ? G.S.cum[d - 1] : G.S.pace.find(q => q.d === d); if (!p) return;
+  const cx = G.x(d), cy = G.y(p.cum); const cross = $("#tide-cross"); cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.classList.add("on");
+  const hd = $("#tide-hdot"); hd.setAttribute("cx", cx); hd.setAttribute("cy", cy); hd.classList.add("on");
+  const pace = d > 19;
+  TTIP.innerHTML = `<div class="t"><span>${DAYNAME[DOW(d)]} ${d} Oct</span><span class="mono">${Math.round(p.cum / BUDGET * 100)}%</span></div>` +
+    `<div class="r"><i class="sw" style="--c:${pace ? "var(--ink-3)" : "var(--spend-line)"}"></i>${pace ? "at this pace" : "that day"}<span class="v">${pace ? "~" : ""}${full(pace ? p.inc : p.v)}</span></div>` +
+    `<div class="r"><span style="width:9px"></span>cumulative<span class="v">${pace ? "~" : ""}${full(p.cum)}</span></div>` +
+    `<div class="ctx">${pace ? (p.cum >= BUDGET ? "past the soft budget; nothing stops" : p.cum >= BUDGET * 0.8 ? "past 80 %" : "within budget") : d === 19 ? "today · Bo's agent is spending now" : `${full(BUDGET - p.cum)} left`}</div>`;
+  const left = (cx / G.W) * rect.width, w = TFIG.clientWidth;
+  TTIP.style.left = `${Math.max(0, Math.min(w - 200, left + (left > w * 0.55 ? -215 : 14)))}px`; TTIP.style.top = `0px`; TTIP.classList.add("on");
+}
+function tideLeave() { TTIP.classList.remove("on"); $("#tide-cross")?.classList.remove("on"); $("#tide-hdot")?.classList.remove("on"); }
+TSVG.addEventListener("pointermove", tideHover); TSVG.addEventListener("pointerleave", tideLeave);
+
+/* ---------------------------------------------------------------- the ring's readout on hover and focus */
+RINGS.addEventListener("pointerover", e => { const r = e.target.closest(".ring"); if (r) ringSay(r); });
+RINGS.addEventListener("focusin", e => { const r = e.target.closest(".ring"); if (r) ringSay(r); });
+function ringSay(r) { const a = AGENTS.find(x => x.id === r.dataset.id); r.title = `${a.who} · ${full(a.in + a.out)} of ${full(a.plan)} · ${full(a.in)} in · ${full(a.out)} out · ${full(a.cache)} cache (not counted)`; }
+
+/* ---------------------------------------------------------------- living: Bo's agent finishes a turn */
+function addTurn() {
+  const bo = AGENTS[1]; const inc = { in: 1100 + Math.round(rnd() * 1800), out: 500 + Math.round(rnd() * 900) }; bo.in += inc.in; bo.out += inc.out;
+  const last = waveState.turns[waveState.turns.length - 1]; const n = last.n + 1;
+  waveState.turns.push({ n, v: { ana: Math.round(rnd() * 160), bo: inc.in + inc.out, cy: Math.round(rnd() * 240), dee: Math.round(rnd() * 90) }, lead: "Bo's agent", steer: null, time: `${String(10 + Math.floor(n / 6) % 8).padStart(2, "0")}:${String(Math.floor(rnd() * 60)).padStart(2, "0")}`, live: false });
+  DAYS[3][2] = n; DAYSPEND[18] += inc.in + inc.out;
+  drawRings(); drawWave({ newLast: true }); drawTide();
+  const total = DAYSPEND.reduce((a, b) => a + b, 0);
+  $("#lede-h").innerHTML = `Billing has spent <span class="mono" style="font-size:.9em">${fmt(total)}</span> of its 1.0M this month.`;
+  $("#wave-says").textContent = `${waveState.turns.length} turns since Wednesday · the heaviest was Cy's agent's 4.1k on Friday · Bo's agent is on turn ${n + 1} now.`;
+  $("#wave-twin summary").textContent = `As a table · ${waveState.turns.length} turns × 4 agents`;
+}
+$("#turn").addEventListener("click", addTurn);
+
+/* ---------------------------------------------------------------- inspector: calm, dark, tables; keys */
+const root = document.documentElement;
+const setPressed = (id, on) => $(id).setAttribute("aria-pressed", String(on));
+$("#calm").addEventListener("click", () => { const on = root.dataset.motion !== "calm"; root.dataset.motion = on ? "calm" : "full"; setPressed("#calm", on); });
+$("#dark").addEventListener("click", () => { const on = root.dataset.theme !== "dark"; root.dataset.theme = on ? "dark" : "light"; setPressed("#dark", on); });
+$("#tables").addEventListener("click", () => { const on = !document.querySelector("details.twin[open]"); document.querySelectorAll("details.twin").forEach(d => d.open = on); setPressed("#tables", on); });
+addEventListener("keydown", e => { if (e.metaKey || e.ctrlKey || e.altKey || /input|textarea|select/i.test(document.activeElement?.tagName || "")) return;
+  if (e.key === "t") $("#turn").click(); if (e.key === "c") $("#calm").click(); if (e.key === "d") $("#dark").click(); if (e.key === "b") $("#tables").click(); });
+new MutationObserver(() => { setPressed("#dark", root.dataset.theme === "dark"); setPressed("#calm", root.dataset.motion === "calm"); }).observe(root, { attributes: true, attributeFilter: ["data-theme", "data-motion"] });
+if (!("theme" in root.dataset) && matchMedia("(prefers-color-scheme: dark)").matches) setPressed("#dark", true);
+if (matchMedia("(prefers-reduced-motion: reduce)").matches) setPressed("#calm", true);
+
+/* ---------------------------------------------------------------- draw, and redraw across the phone breakpoint */
+drawRings(); drawWave(); drawTide();
+let lastPhone = matchMedia("(max-width: 760px)").matches;
+addEventListener("resize", () => { const p = matchMedia("(max-width: 760px)").matches; if (p !== lastPhone) { lastPhone = p; drawWave(); drawTide(); } });
+})();
+</script>
+</body>
+</html>
