@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en" data-motion="full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · The welcome brief</title>
+<meta name="description" content="The first ninety seconds for a new team member: one scene, six beats. Your arc waits, your agent's arc swings in, the camera pulls back to the team's sky, your agent speaks in the ledger, the session card is the one paper on the lacquer, and the lacquer becomes the rail as the first session opens.">
+<style>
+/* ======================================================================
+   Henosis · signature element · the welcome brief (sig-welcome-cinematic)
+   Self-contained. Token values from design/henosis/tokens.css: light in :root, dark twice (the system
+   media query and [data-theme="dark"]). No external assets; nothing fetched. Fraunces and Inter when the
+   OS has them, then Instrument Serif / Instrument Sans, then the system faces.
+   The stage is navy lacquer in both themes, the way the mark's disc is held at Dress Blues in dark
+   (SYSTEM §5, §16): the brief is the one glossy object; the page around it is what changes.
+   Every animation sits under the one guard (MOTION §3); clocks go to zero under Calm and reduce; rest
+   states are written outside it.
+   ====================================================================== */
+:root {
+  --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
+  --canvas: #FBF7F1; --wash: rgba(226,196,166,.35);
+  --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
+  --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --edge: none;
+  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2; --rail-line: rgba(243,237,228,.10); --rail-active: rgba(226,196,166,.18);
+  --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30);
+  --ok: #4F7D4A; --warn: #B9792E; --danger: #A8463A;
+  --ok-ink: #3E6A3A; --warn-ink: #8A5A20;
+  --focus-ring: #56352D; --focus-halo: rgba(226,196,166,.30);
+  --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%);
+  /* the mark: brand constants, never --accent */
+  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
+  /* the stage: navy lacquer, a brand constant like the disc */
+  --stage: #2A3244; --stage-2: #333C50; --stage-fg: #F3EDE4; --stage-muted: #B9BFCC; --stage-faint: #8E95A5; --stage-line: rgba(243,237,228,.12);
+  --stage-hand: #E2C4A6; --stage-hand-fg: #2A3244;         /* on navy the hand is the highlight and its text flips (SYSTEM §15) */
+  --sky-person: #56352D; --sky-person-lift: #A8826F;        /* the person's arc: chocolate at hero size; lifted 62 % toward apricot as a hairline on navy (SYSTEM §5) */
+  --sky-agent: #E2C4A6; --sky-centre: #E2C4A6; --sky-guide: rgba(226,196,166,.42); --sky-name: #F3EDE4; --sky-thread: rgba(226,196,166,.5);
+  --sky-live: #9BC88F; --sky-baton: #CFA782;
+  --font: Inter, "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --serif: Fraunces, "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px;
+  --rail-w: 296px; --col: 560px;
+  /* clocks and curves: the system's three, plus the four this element adds */
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
+  --t-draw: 450ms; --t-cam: 900ms; --t-stagger: 120ms; --t-paper: 800ms;
+  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
+  --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --canvas: #1C2230; --wash: rgba(226,196,166,.10);
+  --surface: #232B3B; --surface-2: #2A3344; --surface-3: #343E52;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.12); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #161B26; --rail-2: #1E2432; --rail-fg: #F0EAE0; --rail-muted: #8E95A5; --rail-line: rgba(240,234,224,.08); --rail-active: rgba(226,196,166,.16);
+  --accent: #7A4B3E; --accent-hover: #8B5A4C; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --ok-ink: #9BC88F; --warn-ink: #E2B06A;
+  --focus-ring: #F0EAE0; --focus-halo: rgba(226,196,166,.22);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --canvas: #1C2230; --wash: rgba(226,196,166,.10);
+  --surface: #232B3B; --surface-2: #2A3344; --surface-3: #343E52;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.12); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #161B26; --rail-2: #1E2432; --rail-fg: #F0EAE0; --rail-muted: #8E95A5; --rail-line: rgba(240,234,224,.08); --rail-active: rgba(226,196,166,.16);
+  --accent: #7A4B3E; --accent-hover: #8B5A4C; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --ok-ink: #9BC88F; --warn-ink: #E2B06A;
+  --focus-ring: #F0EAE0; --focus-halo: rgba(226,196,166,.22);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  color-scheme: dark;
+}
+
+/* ---------- the one guard's other half: clocks to zero under Calm and reduce (MOTION §3) ---------- */
+:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-paper: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-paper: 0ms; } }
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--canvas); background-image: radial-gradient(1200px 600px at 20% -10%, var(--wash), transparent 60%); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; display: flex; flex-direction: column; min-height: 100%; }
+h1, h2, h3, p { margin: 0; }
+.serif { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.01em; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums slashed-zero; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: 0 0 0 6px var(--focus-halo); border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* paper grain: one 240 px tile rendered once and repeated, never a live filter (generative-visuals §3) */
+.grain::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .07; mix-blend-mode: soft-light; border-radius: inherit;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+/* ---------- the mark (inline so .arc and .dot rules reach it, MOTION §4.3) ---------- */
+.mark { display: inline-block; vertical-align: middle; flex: none; }
+.mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; }
+.mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); } .mark .disc { fill: var(--mark-disc); }
+.mark.small .arc { stroke-width: 13; }
+.mark .arc, .mark .dot { transform-origin: 48px 48px; transform-box: view-box; }
+
+/* ---------- topbar (the exploration's inspector: not part of the design) ---------- */
+.top { display: flex; align-items: center; gap: 14px; padding: 0 20px; height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); flex: none; }
+.top .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 22px; }
+.top .title { font-size: 14px; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: baseline; }
+.top .title b { font-weight: 500; color: var(--ink); }
+.top .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; font: 500 12.5px/20px var(--font); color: var(--ink-2); padding: 2px 10px; border-radius: var(--radius-full); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.seg button[aria-pressed="true"], .seg button[aria-current="step"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.seg .k { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 0 13px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 13px/20px var(--font); cursor: pointer; }
+.btn[aria-pressed="true"] { background: var(--apricot-soft); border-color: transparent; }
+
+/* ---------- the stage ---------- */
+.stage { position: relative; flex: none; height: 596px; background: var(--stage); color: var(--stage-fg); overflow: hidden; isolation: isolate;
+  background-image: linear-gradient(170deg, rgba(255,255,255,.07), transparent 46%); box-shadow: inset 0 1px 0 rgba(255,255,255,.10); }
+.stage .sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage .cam { transform-origin: 0 0; }
+
+/* the sky: hairline rings (data-craft §1: no fills, no frame); person = lifted chocolate, agent = apricot */
+.ring .arc { fill: none; stroke-linecap: round; stroke-width: 1.8; }
+.ring .arc.a { stroke: var(--sky-person-lift); }
+.ring .arc.b { stroke: var(--sky-agent); opacity: .9; }
+.ring .aura { fill: none; stroke: var(--sky-agent); stroke-width: 14; stroke-linecap: round; opacity: 0; mix-blend-mode: screen; }
+.ring .guide { fill: none; stroke: var(--sky-guide); stroke-width: 1; stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.ring .centre { fill: var(--sky-centre); transform-box: fill-box; transform-origin: center; }
+.ring .ghost { fill: none; stroke: var(--sky-centre); stroke-width: 1.2; stroke-dasharray: 2.2 2.2; opacity: .85; }
+.ring .pt.person { fill: var(--stage-fg); }
+.ring .pt.agent { fill: var(--sky-agent); }
+.ring .status { fill: var(--sky-live); stroke: var(--stage); stroke-width: 1.5; }
+.ring .baton { fill: none; stroke: var(--sky-baton); stroke-width: 2; }
+.ring .halo { fill: none; stroke: var(--sky-baton); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.ring text { fill: var(--sky-name); font-family: var(--serif); font-size: 15px; paint-order: stroke; stroke: var(--stage); stroke-width: 4px; stroke-linejoin: round; }
+.ring text.session { font-style: italic; font-size: 16px; fill: var(--sky-agent); }
+.ring text.note { font-family: var(--font); font-style: normal; font-size: 12px; fill: var(--stage-muted); }
+.thread { fill: none; stroke: var(--sky-thread); stroke-width: 1; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+.thread-name { fill: var(--sky-agent); font-family: var(--serif); font-style: italic; font-size: 13px; paint-order: stroke; stroke: var(--stage); stroke-width: 4px; }
+
+/* per-beat rest states (outside the guard; transitions read the clocks, which Calm zeroes) */
+.scene .ring, .scene .thread, .scene .thread-name { transition: opacity var(--t-slow) var(--ease-move); }
+.scene .ring .arc { transition: stroke-dashoffset var(--t-draw) var(--ease-arrive), stroke-width var(--t-cam) var(--ease-mark), stroke var(--t-cam) var(--ease-move), opacity var(--t-slow) var(--ease-move), transform var(--t-paper) var(--ease-arrive); transition-delay: calc(var(--i, 0) * var(--t-stagger)), 0s, 0s, 0s, 0s; }
+.scene .ring text, .scene .ring .pt, .scene .ring .status, .scene .ring .baton, .scene .ring .ghost, .scene .ring .guide { transition: opacity var(--t-slow) var(--ease-move); transition-delay: calc(var(--i, 0) * var(--t-stagger) + var(--t-draw)); }
+.scene .ring .centre { transition: transform var(--t-slow) var(--ease-arrive); transition-delay: calc(var(--i, 0) * var(--t-stagger) + var(--t-draw)); }
+.scene .cam { transition: transform var(--t-cam) var(--ease-mark); }
+/* beats 1 and 2: only Dee's ring, at hero weight; the others are not drawn yet */
+.scene:is([data-frame="1"],[data-frame="2"]) .ring:not(.me) .arc { stroke-dashoffset: 1; }
+.scene:is([data-frame="1"],[data-frame="2"]) .ring:not(.me) :is(text, .pt, .status, .baton, .ghost, .guide) { opacity: 0; transition-delay: 0s; }
+.scene:is([data-frame="1"],[data-frame="2"]) .ring .centre { transform: scale(0); transition-delay: 0s; }
+.scene:is([data-frame="1"],[data-frame="2"]) .thread, .scene:is([data-frame="1"],[data-frame="2"]) .thread-name { opacity: 0; }
+.scene:is([data-frame="1"],[data-frame="2"]) .ring.me .arc { stroke-width: 4.4; }
+.scene:is([data-frame="1"],[data-frame="2"]) .ring.me .arc.a { stroke: var(--sky-person); }
+.scene:is([data-frame="1"],[data-frame="2"]) .ring.me :is(text, .pt, .status) { opacity: 0; transition-delay: 0s; }
+.scene[data-frame="1"] .ring.me .arc.a { transform: rotate(60deg); opacity: .85; }   /* held apart, waiting (MOTION §4.1: the hold) */
+.scene[data-frame="1"] .ring.me .arc.b { transform: rotate(-60deg); opacity: 0; }
+.scene[data-frame="1"] .ring.me .ghost { opacity: 0; transition-delay: 0s; }
+.scene[data-frame="1"] .ring.me .guide { opacity: 1; }
+.scene[data-frame="2"] .ring.me .guide { opacity: 0; transition-delay: 0s; }
+.scene[data-frame="2"] .ring.me .ghost { transition-delay: var(--t-paper); }
+.scene:not([data-frame="1"]) .ring.me .arc { transform: none; }
+/* beats 3 to 5: the sky is drawn; Tax lines keeps its ghost centre until you enter */
+.scene .ring.me .centre { transform: scale(0); }
+.scene .ring.me .guide { opacity: 0; }
+.scene:is([data-frame="3"],[data-frame="4"],[data-frame="5"],[data-frame="6"]) .ring.me .ghost { opacity: .85; }
+.scene[data-frame="4"] .ring:not(.me), .scene[data-frame="4"] .thread, .scene[data-frame="4"] .thread-name { opacity: .26; }
+.scene[data-frame="5"] .ring:not(.me), .scene[data-frame="5"] .thread, .scene[data-frame="5"] .thread-name { opacity: .14; }
+.scene[data-frame="5"] .ring.me .arc { stroke-width: 2.6; }
+.scene[data-frame="6"] .sky { opacity: 0; transition: opacity var(--t-slow) var(--ease-leave); }
+.scene .sky { transition: opacity var(--t-slow) var(--ease-move); }
+
+/* ---------- the column of words (the ledger column, ai-interfaces-avoid §1) ---------- */
+.words { position: absolute; left: 72px; top: 0; bottom: 64px; width: var(--col); max-width: calc(100% - 96px); display: grid; align-items: center; pointer-events: none; }
+.beat { grid-area: 1 / 1; display: flex; flex-direction: column; gap: 14px; opacity: 0; transform: translateY(8px); transition: opacity var(--t-slow) var(--ease-leave), transform var(--t-slow) var(--ease-leave); pointer-events: none; }
+.beat.on { opacity: 1; transform: none; transition-timing-function: var(--ease-arrive); pointer-events: auto; transition-delay: var(--t-slow); }
+.beat .l { opacity: 0; transform: translateY(6px); transition: opacity var(--t-slow) var(--ease-arrive), transform var(--t-slow) var(--ease-arrive); }
+.beat.on .l { opacity: 1; transform: none; transition-delay: calc(var(--t-slow) + var(--i, 0) * var(--t-stagger)); }
+.kicker { font: 500 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--stage-faint); display: flex; gap: 10px; align-items: center; }
+.kicker .mono { letter-spacing: 0; text-transform: none; font-size: 12px; }
+.beat h1 { font-family: var(--serif); font-weight: 400; font-size: 44px; line-height: 48px; letter-spacing: -0.02em; font-variation-settings: "SOFT" 50, "WONK" 0; color: var(--stage-fg); text-wrap: balance; }
+.beat h1 i { font-style: italic; color: var(--sky-agent); }
+.beat p { font-size: 17px; line-height: 27px; color: var(--stage-muted); max-width: 54ch; }
+.beat p b { font-family: var(--serif); font-weight: 400; font-size: 18px; color: var(--stage-fg); }
+.beat p i { font-family: var(--serif); font-size: 18px; color: var(--sky-agent); }
+.beat .reading { display: flex; flex-direction: column; gap: 6px; }
+.beat .reading .r { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: baseline; font-size: 15px; color: var(--stage-muted); }
+.beat .reading .r .d { width: 8px; height: 8px; border-radius: 50%; background: var(--sky-live); margin-top: 7px; box-shadow: 0 0 0 3px rgba(155,200,143,.22); }
+.beat .reading .r .d.wait { background: transparent; border: 1.5px dashed var(--sky-centre); box-shadow: none; }
+.beat .reading .r b { font-family: var(--serif); font-weight: 400; font-size: 16px; color: var(--stage-fg); }
+.beat .reading .r i { font-family: var(--serif); color: var(--sky-agent); }
+
+/* beat 4: the agent speaks in the ledger, its square in the gutter, the same byline as everyone (presence-and-agents §10) */
+.ledger { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 14px; }
+.ledger .who { grid-column: 2; font-family: var(--serif); font-size: 18px; color: var(--stage-fg); display: flex; align-items: baseline; gap: 10px; }
+.ledger .who .role { font: 400 13px/20px var(--font); color: var(--stage-faint); }
+.ledger .sq { grid-column: 1; grid-row: 1 / span 2; width: 36px; height: 36px; border-radius: 11px 11px 11px 4px; background: var(--sky-agent); color: var(--stage); display: grid; place-items: center; font: 600 12px var(--font); position: relative; margin-top: 2px; }
+.ledger .sq::after { content: ""; position: absolute; right: -3px; top: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--sky-live); border: 2px solid var(--stage); }
+.ledger .say { grid-column: 2; display: flex; flex-direction: column; gap: 10px; font-size: 16.5px; line-height: 26px; color: var(--stage-fg); max-width: 56ch; }
+.ledger .say i { font-family: var(--serif); font-style: italic; color: var(--sky-agent); font-size: 17.5px; }
+.ledger .say code { font-family: var(--mono); font-size: 13.5px; color: var(--stage-muted); background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 5px; }
+.ledger .byline { grid-column: 2; font: 400 13px/20px var(--font); font-variant-numeric: tabular-nums; color: var(--stage-faint); display: flex; gap: 8px; flex-wrap: wrap; }
+.ledger .byline b { font-family: var(--serif); font-weight: 400; font-size: 14px; color: var(--stage-muted); }
+
+/* beat 5: the session card is the one paper on the lacquer; its hand is chocolate because it sits on cream */
+.paper-card { background: var(--canvas); color: var(--ink); border-radius: var(--radius-lg); padding: 22px 24px 20px; box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
+.paper-card .k { font: 500 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; gap: 10px; }
+.paper-card h2 { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 32px; letter-spacing: -0.015em; color: var(--ink); }
+.paper-card .rows { display: flex; flex-direction: column; }
+.paper-card .row { display: grid; grid-template-columns: 112px 1fr; gap: 14px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink); align-items: baseline; }
+.paper-card .row .h { font: 500 12px/18px var(--font); color: var(--ink-3); }
+.paper-card .row b { font-family: var(--serif); font-weight: 400; font-size: 15.5px; }
+.paper-card .row .mono { font-size: 12.5px; color: var(--ink-2); }
+.paper-card .row .tick { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; }
+.paper-card .row .tick svg { width: 14px; height: 14px; stroke: var(--ok-ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.paper-card .act { display: flex; align-items: center; gap: 14px; padding-top: 4px; }
+.paper-card .enter { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 18px; border-radius: var(--radius-full); border: 0; background: var(--accent); color: var(--accent-fg); font: 500 14.5px/20px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
+.paper-card .enter:hover { background: var(--accent-hover); }
+.paper-card .act .cap { font-size: 13px; color: var(--ink-2); }
+.paper-card .act .cap i { font-family: var(--serif); font-style: italic; color: var(--accent-ink); font-size: 14px; }
+.paper-card .later { font: 400 13px/20px var(--font); color: var(--ink-3); }
+.paper-card .later a { color: var(--accent-ink); text-decoration: none; }
+
+/* ---------- beat 6: the lacquer becomes the rail; the page slides in from the right ---------- */
+.app { position: absolute; inset: 0 0 64px 0; pointer-events: none; }
+.railc { position: absolute; left: 0; top: 0; bottom: 0; width: var(--rail-w); padding: 14px; display: flex; flex-direction: column; gap: 6px; color: var(--rail-fg); opacity: 0; transition: opacity var(--t-slow) var(--ease-move); }
+.railc .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font-family: var(--serif); font-size: 24px; }
+.railc .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: #fff; border: 0; font: 500 14px/20px var(--font); box-shadow: var(--shadow-soft); }
+.railc .section { padding: 16px 10px 6px; font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--stage-faint); display: flex; gap: 8px; }
+.railc .section .n { margin-left: auto; letter-spacing: 0; font-family: var(--mono); font-weight: 400; }
+.railc .agent { display: flex; flex-direction: column; gap: 4px; padding: 9px 12px; border-radius: var(--radius); font-size: 14px; opacity: 0; transform: translateY(6px); transition: opacity var(--t-slow) var(--ease-arrive), transform var(--t-slow) var(--ease-arrive); }
+.railc .agent.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px rgba(226,196,166,.35); }
+.railc .agent .head { display: flex; align-items: center; gap: 9px; font-weight: 500; }
+.railc .agent .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
+.railc .agent .head .dot.running { background: var(--sky-live); box-shadow: 0 0 0 3px rgba(155,200,143,.25); }
+.railc .agent .head .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); }
+.railc .agent .head .pill { margin-left: auto; height: 20px; padding: 0 8px; border-radius: var(--radius-full); font: 600 11px/20px var(--font); background: var(--apricot); color: #56352D; }
+.railc .agent .doing { font-size: 13px; color: var(--rail-muted); line-height: 18px; }
+.railc .agent .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+.railc .crew { padding: 10px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.railc .crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
+.railc .crew .serif { font-size: 15px; color: var(--apricot); }
+.railc .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 14px; }
+.railc .me .av { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: #1F2634; display: grid; place-items: center; font: 600 11px var(--font); }
+.railc .me .s { font-size: 12px; color: var(--rail-muted); }
+.railc .me .s i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+.scene[data-frame="6"] .railc { opacity: 1; transition-delay: calc(var(--t-paper) * .5); }
+.scene[data-frame="6"] .railc .agent { opacity: 1; transform: none; transition-delay: calc(var(--t-paper) * .6 + var(--i, 0) * 36ms); }
+:root[data-motion="calm"] .scene[data-frame="6"] .railc .agent { transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) { .scene[data-frame="6"] .railc .agent { transition-delay: 0s; } }
+
+.paper { position: absolute; left: var(--rail-w); top: 0; right: 0; bottom: 0; background: var(--canvas); background-image: radial-gradient(900px 420px at 20% -10%, var(--wash), transparent 60%); color: var(--ink); transform: translateX(104%); transition: transform var(--t-paper) var(--ease-mark); display: flex; flex-direction: column; box-shadow: -18px 0 50px rgba(0,0,0,.18); }
+.scene[data-frame="6"] .paper { transform: none; }
+.scene[data-frame="6"] .app { pointer-events: auto; }
+.paper .topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); }
+.paper .topbar .t { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: center; gap: 12px; }
+.paper .topbar .pill { height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/22px var(--font); background: var(--apricot); color: #56352D; }
+.paper .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); }
+.stack { display: inline-flex; }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 600 11px var(--font); border: 2px solid var(--canvas); }
+.stack .av + .av { margin-left: -6px; }
+.av.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); color: #fff; }
+.av.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
+.av.joined { position: relative; }
+.paper .stream { flex: 1; overflow: hidden; padding: 18px 24px 0; display: flex; flex-direction: column; gap: 22px; width: min(780px, 100%); margin: 0 auto; }
+.paper .line { display: flex; flex-direction: column; gap: 6px; opacity: 0; transform: translateY(8px); transition: opacity var(--t-slow) var(--ease-arrive), transform var(--t-slow) var(--ease-arrive); }
+.scene[data-frame="6"] .paper .line { opacity: 1; transform: none; transition-delay: calc(var(--t-paper) + var(--i, 0) * 220ms); }
+:root[data-motion="calm"] .scene[data-frame="6"] .paper .line { transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) { .scene[data-frame="6"] .paper .line { transition-delay: 0s; } }
+.join { display: flex; align-items: center; gap: 14px; }
+.join .txt { display: flex; flex-direction: column; gap: 2px; }
+.join .s1 { font-family: var(--serif); font-size: 20px; line-height: 26px; color: var(--ink); }
+.join .s1 b { font-weight: 400; color: var(--accent-ink); }
+.join .s2 { font-size: 13px; color: var(--ink-3); }
+.join .stack { margin-left: auto; }
+.msg .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.msg .meta .who { font-family: var(--serif); font-size: 16px; color: var(--ink); }
+.msg .meta .to { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
+.msg .text { font-size: 15.5px; line-height: 24px; }
+.msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 12px 16px; max-width: 85%; align-self: flex-start; }
+.msg .text i { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
+.msg .plan { display: inline-flex; align-items: center; gap: 10px; margin-top: 4px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); font-size: 13.5px; }
+.msg .plan .serif { font-size: 15px; }
+.msg .plan .mono { font-size: 12px; color: var(--ink-3); }
+.msg .plan .w { color: var(--warn-ink); font-weight: 500; }
+.msg .step { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); padding: 2px 0; }
+.msg .step::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; }
+.composer { margin-top: auto; border-top: 1px solid var(--line); padding: 14px 0 16px; display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 15px; }
+.composer .seg2 { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; font: 500 12.5px/20px var(--font); color: var(--ink-2); }
+.composer .seg2 span { padding: 2px 10px; border-radius: var(--radius-full); }
+.composer .seg2 .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.composer .send { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; }
+.composer .send svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- the score: ninety seconds as one hairline with six ticks (the kinetic mark's score, reused) ---------- */
+.score { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; padding: 0 72px; display: flex; align-items: flex-end; z-index: 3; }
+.score .rail-line { position: absolute; left: 72px; right: 72px; bottom: 30px; height: 1px; background: var(--stage-line); }
+.score .done { position: absolute; left: 72px; bottom: 30px; height: 1px; background: var(--sky-agent); width: 0; }
+.score .head { position: absolute; bottom: 24px; width: 1px; height: 13px; background: var(--sky-agent); margin-left: -0.5px; }
+.score .head::after { content: ""; position: absolute; top: -4px; left: -3.5px; width: 8px; height: 8px; border-radius: 50%; background: var(--sky-agent); }
+.score .tick { position: absolute; bottom: 30px; transform: translateX(-1px); background: transparent; border: 0; padding: 0 0 8px; cursor: pointer; color: var(--stage-faint); text-align: left; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border-radius: 6px; }
+.score .tick::after { content: ""; position: absolute; left: 0; bottom: 0; width: 2px; height: 8px; background: var(--stage-faint); }
+.score .tick .n { font-family: var(--serif); font-size: 14px; color: var(--stage-muted); white-space: nowrap; }
+.score .tick .t { font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+.score .tick[aria-current="step"] .n { color: var(--stage-fg); } .score .tick[aria-current="step"]::after { background: var(--sky-agent); }
+.score .end { position: absolute; right: 72px; bottom: 10px; font-family: var(--mono); font-size: 11px; color: var(--stage-faint); }
+.skip { position: absolute; right: 72px; top: 22px; z-index: 3; border: 1px solid var(--stage-line); background: transparent; color: var(--stage-muted); font: 500 13px/20px var(--font); padding: 5px 12px; border-radius: var(--radius-full); cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+.skip kbd { font-family: var(--mono); font-size: 11px; color: var(--stage-faint); border: 1px solid var(--stage-line); border-radius: 4px; padding: 0 5px; }
+.skip:hover { background: var(--stage-2); color: var(--stage-fg); }
+.scene[data-frame="6"] .skip { opacity: 0; pointer-events: none; }
+.skip { transition: opacity var(--t) var(--ease-move); }
+
+/* ---------- the storyboard strip ---------- */
+.board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; padding: 0 24px; flex: 1; min-height: 0; }
+.cell { padding: 16px 14px 14px; border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; cursor: pointer; background: transparent; border-top: 0; border-right: 0; border-bottom: 0; text-align: left; min-width: 0; }
+.cell:first-child { border-left: 0; }
+.cell[aria-current="step"] { background: var(--apricot-soft); }
+.thumb { aspect-ratio: 16 / 9; border-radius: 10px; background: var(--stage); overflow: hidden; position: relative; box-shadow: inset 0 1px 0 rgba(255,255,255,.10); }
+.thumb svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.thumb .ring .arc { stroke-width: 1.4; } .thumb .ring text { display: none; } .thumb .ring .pt.agent { display: none; }
+.thumb:is([data-frame="1"],[data-frame="2"]) .ring.me .arc { stroke-width: 2.6; }
+.thumb .mini { position: absolute; inset: 0; display: flex; }
+.thumb .mini .r { width: 22%; background: var(--rail); }
+.thumb .mini .p { flex: 1; background: var(--canvas); display: flex; flex-direction: column; gap: 5px; padding: 10px 10px; }
+.thumb .mini .p i { display: block; height: 3px; border-radius: 2px; background: var(--surface-3); }
+.thumb .mini .p i:first-child { width: 60%; background: var(--apricot); height: 4px; }
+.thumb .mini .p i:nth-child(2) { width: 85%; } .thumb .mini .p i:nth-child(3) { width: 40%; }
+.cell .meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cell .meta .t { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.cell .meta .n { font-family: var(--serif); font-size: 18px; line-height: 24px; color: var(--ink); }
+.cell .meta .c { font-size: 12.5px; line-height: 18px; color: var(--ink-2); }
+
+/* ---------- the guard: animation plays only here (MOTION §3) ---------- */
+@keyframes arc-a-once { 0% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 100% { transform: rotate(0) } }
+@keyframes arc-b-once { 0% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 100% { transform: rotate(0) } }
+@keyframes dot-once { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
+@keyframes ghost-in { 0% { opacity: 0; transform: scale(.4) } 100% { opacity: .85; transform: scale(1) } }
+@keyframes breath-aura { 0%, 100% { opacity: 0 } 50% { opacity: .32 } }
+@keyframes breath-arc { 0%, 100% { opacity: .72 } 50% { opacity: 1 } }
+@keyframes halo-breathe { 0% { transform: scale(1); opacity: .55 } 100% { transform: scale(2.1); opacity: 0 } }
+@keyframes ripple { from { box-shadow: 0 0 0 0 rgba(226,196,166,.7) } to { box-shadow: 0 0 0 14px rgba(226,196,166,0) } }
+@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) { --motion: 1; }
+  /* beat 2: the two arcs swing in and close (the founder's gesture, once: MOTION §4.2); the ghost centre lands where the real one will */
+  :root:not([data-motion="calm"]) .stage[data-frame="2"] .ring.me .arc.a { animation: arc-a-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .stage[data-frame="2"] .ring.me .arc.b { animation: arc-b-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .stage[data-frame="2"] .ring.me .ghost { animation: ghost-in .5s var(--ease-arrive) .8s both; transform-box: fill-box; transform-origin: center; }
+  /* beat 3: each whole ring's centre lands only after its arcs have drawn (MOTION §8) */
+  :root:not([data-motion="calm"]) .stage[data-frame="3"] .ring.whole .centre { animation: dot-once 1s var(--ease-arrive) both; animation-delay: calc(var(--i, 0) * var(--t-stagger) + 200ms); }
+  /* beats 3 to 5: the baton holders' halos breathe; running agents' dots breathe (dot-live, 1.8 s) */
+  :root:not([data-motion="calm"]) .stage:is([data-frame="3"],[data-frame="4"],[data-frame="5"]) .ring .halo { animation: halo-breathe 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .stage:is([data-frame="3"],[data-frame="4"],[data-frame="5"]) .ring .status { animation: dot-live 1.8s var(--ease-move) infinite; }
+  /* beat 4: the agent's half breathes while it speaks; the person's half is still (the kinetic mark's "thinking") */
+  :root:not([data-motion="calm"]) .stage[data-frame="4"] .ring.me .aura { animation: breath-aura 1.8s ease-in-out infinite; }
+  :root:not([data-motion="calm"]) .stage[data-frame="4"] .ring.me .arc.b { animation: breath-arc 1.8s ease-in-out infinite; }
+  /* beat 6: the join line's 40 px mark settles once; the newcomer's avatar ripples as the centre lands (MOTION §7.2) */
+  :root:not([data-motion="calm"]) .stage[data-frame="6"] .join .mark .arc.a { animation: arc-a-once .8s var(--ease-arrive) var(--t-paper) both; }
+  :root:not([data-motion="calm"]) .stage[data-frame="6"] .join .mark .arc.b { animation: arc-b-once .8s var(--ease-arrive) var(--t-paper) both; }
+  :root:not([data-motion="calm"]) .stage[data-frame="6"] .join .mark .dot { animation: dot-once 1s var(--ease-arrive) var(--t-paper) both; }
+  :root:not([data-motion="calm"]) .stage[data-frame="6"] .av.joined { animation: ripple .9s var(--ease-leave) calc(var(--t-paper) + 900ms) 1; }
+  :root:not([data-motion="calm"]) .stage[data-frame="6"] .railc .dot.running { animation: dot-live 1.8s var(--ease-move) infinite; }
+}
+
+/* ---------- the phone: the brief takes the screen whole; the storyboard follows beneath ---------- */
+@media (max-width: 480px) {
+  :root { --rail-w: 0px; --col: 100%; }
+  .top { display: none; }
+  .stage { height: 100vh; height: 100dvh; min-height: 640px; }
+  .words { left: 20px; right: 20px; width: auto; max-width: none; top: 56px; bottom: auto; height: 46%; align-items: start; }
+  .beat h1 { font-size: 32px; line-height: 36px; }
+  .beat p { font-size: 16px; line-height: 24px; }
+  .beat .reading .r { font-size: 14px; }
+  .ledger { grid-template-columns: 36px 1fr; gap: 0 10px; } .ledger .sq { width: 30px; height: 30px; border-radius: 9px 9px 9px 3px; }
+  .ledger .say { font-size: 15px; line-height: 23px; gap: 8px; }
+  .words .beat[data-f="5"] { align-self: center; }
+  .paper-card { padding: 18px 18px 16px; gap: 12px; } .paper-card h2 { font-size: 23px; line-height: 28px; }
+  .paper-card .row { grid-template-columns: 1fr; gap: 2px; padding: 8px 0; }
+  .paper-card .act { flex-direction: column; align-items: flex-start; gap: 8px; } .paper-card .enter { width: 100%; justify-content: center; }
+  .railc { display: none; }
+  .paper .topbar { background: var(--rail); color: var(--rail-fg); min-height: 60px; padding-top: 18px; }
+  .paper .topbar .t { font-size: 22px; } .paper .topbar .right { display: none; }
+  .paper .stream { padding: 16px 16px 0; gap: 18px; }
+  .join .stack { display: none; }
+  .msg.team .text { max-width: 100%; }
+  .score { padding: 0 20px; height: 72px; } .score .rail-line, .score .done { left: 20px; right: 20px; } .score .end { right: 20px; }
+  .score .tick .n { display: none; }
+  .score .tick[aria-current="step"] .n { display: block; }
+  .skip { right: 16px; top: 14px; }
+  .board { grid-template-columns: 1fr 1fr; padding: 8px 16px 24px; }
+  .cell { border-left: 0; padding: 12px 8px; } .cell .meta .n { font-size: 16px; }
+}
+@media (max-width: 1100px) and (min-width: 481px) {
+  .board { grid-template-columns: repeat(3, 1fr); }
+  .cell:nth-child(4) { border-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="brand">
+    <svg class="mark small" width="24" height="24" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="48"/><path class="arc a" d="M48 19 A29 29 0 0 1 48 77"/><path class="arc b" d="M48 77 A29 29 0 0 1 48 19"/><circle class="dot" cx="48" cy="48" r="8.5"/></svg>
+    Henosis
+  </span>
+  <span class="title"><b>The welcome brief</b> · the first ninety seconds · one scene, six beats</span>
+  <div class="right" role="group" aria-label="Inspector (the exploration's own controls)">
+    <div class="seg" id="picker" role="tablist" aria-label="Beat"></div>
+    <button class="btn" id="play" aria-pressed="false">Play <span class="seg k mono" style="background:transparent;padding:0">␣</span></button>
+    <button class="btn" id="speed" aria-pressed="false" title="Rehearse at six times speed">6×</button>
+    <button class="btn" id="calm" aria-pressed="false">Calm</button>
+    <button class="btn" id="dark" aria-pressed="false">Dark</button>
+  </div>
+</header>
+
+<section class="stage scene grain" id="stage" data-frame="3" aria-label="The welcome brief for Dee" aria-roledescription="brief">
+  <svg class="sky" id="sky" aria-hidden="true"><g class="cam" id="cam"></g></svg>
+
+  <div class="words" id="words">
+    <div class="beat" data-f="1">
+      <div class="kicker l" style="--i:0">Payments <span class="mono">· Tue 09:40</span></div>
+      <h1 class="l" style="--i:1">Dee, this is Payments.</h1>
+      <p class="l" style="--i:2">Three people and three agents are in. You are the fourth person. This takes ninety seconds, and it ends in your first session. The arc on the right is yours; it has been waiting since the invite.</p>
+    </div>
+    <div class="beat" data-f="2">
+      <div class="kicker l" style="--i:0">Your agent</div>
+      <h1 class="l" style="--i:1">Your agent is already here.</h1>
+      <p class="l" style="--i:2">It was made with you this morning and read what Payments keeps: <b>fourteen memory entries</b>, three of them Cy's, about proration. Two arcs, yours and its, one ring. The centre lands when you enter.</p>
+    </div>
+    <div class="beat" data-f="3">
+      <div class="kicker l" style="--i:0">The circle, right now</div>
+      <h1 class="l" style="--i:1">Who is in, and where.</h1>
+      <div class="reading">
+        <div class="r l" style="--i:2"><span class="d"></span><span><b>Ana</b> has the baton in <i>Billing page</i>; her agent is running.</span></div>
+        <div class="r l" style="--i:3"><span class="d"></span><span><b>Bo</b> has the baton in <i>Checkout</i>, Team with Ana.</span></div>
+        <div class="r l" style="--i:4"><span class="d"></span><span><b>Cy</b> has the baton in <i>Invoice PDF</i>; a plan waits for a rating.</span></div>
+        <div class="r l" style="--i:5"><span class="d wait"></span><span><i>Tax lines</i> is yours and your agent's. It waits for you.</span></div>
+      </div>
+    </div>
+    <div class="beat" data-f="4">
+      <div class="ledger">
+        <div class="sq l" style="--i:0" aria-hidden="true">D</div>
+        <div class="who l" style="--i:0">Dee's agent <span class="role">· to you</span></div>
+        <div class="say">
+          <div class="l" style="--i:1">I plan before I run, and my plans wait for <i>two ratings</i>. Bo and Cy hold the gate on anything that touches Stripe; I do not release, they do.</div>
+          <div class="l" style="--i:2">I hear what mentions me, and I answer as <i>your agent</i>, never as you.</div>
+          <div class="l" style="--i:3">This morning I claimed <code>invoice/tax.ts</code> and drafted a plan for the proration lines: three steps, about 4.2k tokens. It is waiting for you.</div>
+        </div>
+        <div class="byline l" style="--i:4"><b>Dee's agent</b> · read 14 memory entries · 1 plan drafted · 0 tokens spent on you yet</div>
+      </div>
+    </div>
+    <div class="beat" data-f="5">
+      <div class="paper-card grain l" style="--i:0">
+        <div class="k">Your first session <span class="mono" style="letter-spacing:0;text-transform:none">· Tax lines</span></div>
+        <h2>Tax lines: proration on the invoice PDF</h2>
+        <div class="rows">
+          <div class="row"><span class="h">Who sits with you</span><span><b>Dee's agent</b> · <span class="muted">Cy's agent is one ring over, in</span> <b><i>Invoice PDF</i></b></span></div>
+          <div class="row"><span class="h">Manners</span><span><span class="tick"><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Plan first</span><span class="tick"><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Two ratings</span><span class="tick"><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Bo and Cy hold the gate</span></span></div>
+          <div class="row"><span class="h">Budget</span><span><span class="mono">40k tokens</span> today, Payments' default · <span class="mono">4.2k</span> planned</span></div>
+        </div>
+        <div class="act">
+          <button class="enter" id="enter">Enter the circle</button>
+          <span class="cap">The stream will say <i>Dee joins the circle.</i></span>
+        </div>
+        <div class="later">Not yet? <a href="#">Open the demo session</a> · the brief stays in Inbox.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app" aria-hidden="true">
+    <div class="railc">
+      <div class="brand"><svg class="mark small" width="24" height="24" viewBox="0 0 96 96"><circle class="disc" cx="48" cy="48" r="48"/><path class="arc a" d="M48 19 A29 29 0 0 1 48 77"/><path class="arc b" d="M48 77 A29 29 0 0 1 48 19"/><circle class="dot" cx="48" cy="48" r="8.5"/></svg>Henosis</div>
+      <div class="new">New session</div>
+      <div class="section">Agents <span class="n">4</span></div>
+      <div class="crew"><span class="serif">Invoice rollout</span> · Cy and Dee</div>
+      <div class="agent" style="--i:0"><div class="head"><span class="dot awaiting"></span><span>Invoice PDF</span></div><div class="doing">Cy · a plan waits for <i>one rating</i></div></div>
+      <div class="agent active" style="--i:1"><div class="head"><span class="dot running"></span><span>Tax lines</span></div><div class="doing">Dee · just joined · <i>plan ready</i> · 0</div></div>
+      <div class="agent" style="--i:2"><div class="head"><span class="dot running"></span><span>Billing page</span></div><div class="doing">Ana · <i>reading invoice.ts</i> · 3.6k</div></div>
+      <div class="agent" style="--i:3"><div class="head"><span class="dot running"></span><span>Checkout</span><span class="pill">Team</span></div><div class="doing">Bo with Ana · <i>stripe prorations apply</i> · 4.6k</div></div>
+      <div class="me"><span class="av">D</span><span>Dee<br><span class="s">member · in <i>Tax lines</i></span></span></div>
+    </div>
+    <div class="paper">
+      <div class="topbar"><span class="t">Tax lines <span class="pill">Team</span></span><div class="right"><span>2 here · Dee's agent has the plan</span><span class="stack"><span class="av driver">D</span><span class="av agent">D</span></span></div></div>
+      <div class="stream">
+        <div class="line join" style="--i:0">
+          <svg class="mark" width="40" height="40" viewBox="0 0 96 96"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+          <div class="txt"><div class="s1"><b>Dee</b> joins the circle.</div><div class="s2">From the welcome brief · 2 here · Dee has the baton</div></div>
+          <span class="stack"><span class="av agent">D</span><span class="av joined driver">D</span></span>
+        </div>
+        <div class="line msg team" style="--i:1"><div class="meta"><span class="who">Ana</span><span class="to">to the team</span><span class="mono" style="font-size:12px;color:var(--ink-3)">09:41</span></div><div class="text">Welcome, Dee. Your agent claimed <i>invoice/tax.ts</i> this morning; Cy's is on the PDF layout next door. Rate the plan when you have read it, and I will take the second rating.</div></div>
+        <div class="line msg" style="--i:2"><div class="meta"><span class="who">Dee's agent</span><span class="mono" style="font-size:12px;color:var(--ink-3)">09:41</span></div><div class="text">Ready when you are. The plan is three steps; the first only reads.</div><div class="step">read invoice/tax.ts · 212 lines</div><div class="plan"><span class="serif">Proration on tax lines</span><span class="mono">3 steps · ~4.2k</span><span class="w">waits for 2 ratings</span></div></div>
+      </div>
+      <div class="composer" style="width:min(780px,100%);margin:auto auto 0;padding-left:24px;padding-right:24px"><span class="seg2"><span class="on">Agent</span><span>Team</span></span><span>Say something · reaches Dee's agent at its next step</span><span class="send"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </div>
+  </div>
+
+  <button class="skip" id="skip">Skip to the session <kbd>Esc</kbd></button>
+
+  <div class="score" id="score" aria-label="Ninety seconds, six beats">
+    <div class="rail-line"></div><div class="done" id="done"></div><div class="head" id="head"></div>
+    <span class="end mono">1:30</span>
+  </div>
+  <p class="sr" id="live" aria-live="polite"></p>
+</section>
+
+<section class="board" id="board" aria-label="Storyboard"></section>
+
+<script>
+/* ======================================================================
+   The brief is one scene. The sky is laid out once per size; beats are data-frame on the stage; CSS
+   carries every state; JS only moves the camera, the clock and the frame number.
+   ====================================================================== */
+const BEATS = [
+  { t: 0,  n: "The arc",     c: "Your arc alone, held apart. The ninety seconds are a hairline." },
+  { t: 6,  n: "The ring",    c: "Your agent's arc swings in; the ring closes; the centre stays a ghost." },
+  { t: 18, n: "The sky",     c: "The camera pulls back: every session is a ring, the people and agents on it." },
+  { t: 40, n: "Your agent",  c: "It speaks in the ledger column, with the byline everyone gets." },
+  { t: 62, n: "The session", c: "One paper on the lacquer: who sits with you, the manners, the budget, the hand." },
+  { t: 80, n: "You join",    c: "The lacquer becomes the rail; the page slides in; the join line plays once." },
+];
+const END = 90;
+/* the cast: one ring per session; the person at 0°, the agent at 180°, the mark's own pose */
+const SESSIONS = [
+  { id: "billing",  name: "Billing page", person: "Ana", agent: "Ana's agent", whole: true,  baton: true,  status: "running",  pos: [0.18, 0.30], i: 1 },
+  { id: "checkout", name: "Checkout",     person: "Bo",  agent: "Bo's agent",  whole: true,  baton: true,  status: "running",  pos: [0.56, 0.16], i: 2 },
+  { id: "invoice",  name: "Invoice PDF",  person: "Cy",  agent: "Cy's agent",  whole: true,  baton: true,  status: "awaiting", pos: [0.86, 0.58], i: 3 },
+  { id: "tax",      name: "Tax lines",    person: "Dee", agent: "Dee's agent", whole: false, baton: false, status: "running",  pos: [0.46, 0.70], i: 0, me: true, note: "waits for you" },
+];
+const CREW = ["invoice", "tax", "Invoice rollout"];
+
+const P = (cx, cy, r, deg) => [cx + r * Math.cos(deg * Math.PI / 180), cy + r * Math.sin(deg * Math.PI / 180)];
+const arc = (cx, cy, r, a0, a1) => { const [x0, y0] = P(cx, cy, r, a0), [x1, y1] = P(cx, cy, r, a1); return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`; };
+
+function layout(W, H) {
+  const phone = W <= 480;
+  const box = phone ? { x: 0.06 * W, y: 0.50 * H, w: 0.88 * W, h: 0.42 * H } : { x: 0.47 * W, y: 0.10 * H, w: 0.48 * W, h: 0.78 * H };
+  const r = phone ? Math.max(30, Math.min(44, box.w * 0.14)) : Math.max(40, Math.min(66, box.h * 0.15));
+  const rings = SESSIONS.map(s => ({ ...s, cx: box.x + s.pos[0] * box.w, cy: box.y + s.pos[1] * box.h, r }));
+  const me = rings.find(s => s.me);
+  const anchor = phone ? [0.5 * W, 0.70 * H] : [0.72 * W, 0.47 * H];
+  const cam = (s, ax, ay) => `translate(${(ax - s * me.cx).toFixed(1)}px, ${(ay - s * me.cy).toFixed(1)}px) scale(${s})`;
+  const hero = phone ? Math.min(2.2, (0.36 * W) / r) : Math.min(2.4, (0.26 * H) / r);
+  return { rings, r, phone, cams: { 1: cam(hero, ...anchor), 2: cam(hero, ...anchor), 3: "none", 4: "none", 5: cam(phone ? 1.25 : 1.45, ...anchor), 6: "none" } };
+}
+
+function ringMarkup(s, seam) {
+  const { cx, cy, r } = s;
+  const [px, py] = P(cx, cy, r, 0), [ax, ay] = P(cx, cy, r, 180);
+  const cls = ["ring", s.me ? "me" : "", s.whole ? "whole" : ""].join(" ");
+  const origin = `transform-box: view-box; transform-origin: ${cx.toFixed(1)}px ${cy.toFixed(1)}px`;
+  const nameY = cy - r - 12;
+  return `<g class="${cls}" id="r-${s.id}" style="--i:${s.i}">
+    <circle class="guide" cx="${cx}" cy="${cy}" r="${r}"/>
+    <path class="aura" d="${arc(cx, cy, r, 90 + seam, 270 - seam)}"/>
+    <path class="arc a" pathLength="1" d="${arc(cx, cy, r, -90 + seam, 90 - seam)}" style="${origin}"/>
+    <path class="arc b" pathLength="1" d="${arc(cx, cy, r, 90 + seam, 270 - seam)}" style="${origin}"/>
+    ${s.whole ? `<circle class="centre" cx="${cx}" cy="${cy}" r="4"/>` : `<circle class="ghost" cx="${cx}" cy="${cy}" r="4.5"/>`}
+    ${s.baton ? `<circle class="halo" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7"/><circle class="baton" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7"/>` : ""}
+    <circle class="pt person" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4.6"/>
+    <rect class="pt agent" x="${(ax - 5.5).toFixed(1)}" y="${(ay - 5.5).toFixed(1)}" width="11" height="11" rx="3"/>
+    <circle class="status" cx="${(ax + 4.5).toFixed(1)}" cy="${(ay - 4.5).toFixed(1)}" r="3"/>
+    <text class="session" x="${cx}" y="${nameY.toFixed(1)}" text-anchor="middle">${s.name}</text>
+    ${s.note ? `<text class="note" x="${cx}" y="${(cy + r + 20).toFixed(1)}" text-anchor="middle">${s.note}</text>` : ""}
+    <text class="person" x="${(px + 13).toFixed(1)}" y="${(py + 5).toFixed(1)}">${s.person}</text>
+    <text class="agent" x="${(ax - 15).toFixed(1)}" y="${(ay + 5).toFixed(1)}" text-anchor="end">${s.agent}</text>
+  </g>`;
+}
+
+function skyMarkup(L) {
+  const a = L.rings.find(s => s.id === CREW[0]), b = L.rings.find(s => s.id === CREW[1]);
+  const [x0, y0] = P(a.cx, a.cy, a.r, 180), [x1, y1] = P(b.cx, b.cy, b.r, 180);
+  const mx = (x0 + x1) / 2, my = Math.max(y0, y1) + L.r * 0.9;
+  const thread = `<path class="thread" d="M${x0.toFixed(1)} ${y0.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${x1.toFixed(1)} ${y1.toFixed(1)}"/><text class="thread-name" x="${mx.toFixed(1)}" y="${(my - L.r * 0.28).toFixed(1)}" text-anchor="middle">${CREW[2]}</text>`;
+  return thread + L.rings.map(s => ringMarkup(s, 4)).join("");
+}
+
+/* ---------- the stage ---------- */
+const stage = document.getElementById("stage"), sky = document.getElementById("sky"), cam = document.getElementById("cam");
+let L = null;
+function render() {
+  const W = stage.clientWidth, H = stage.clientHeight - 64;
+  if (L && L.W === W && L.H === H) return;
+  L = { ...layout(W, H), W, H };
+  sky.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  cam.innerHTML = skyMarkup(L);
+  cam.style.transform = L.cams[frame()];
+}
+function frame() { return Number(stage.dataset.frame) || 1; }
+const motionNow = () => document.documentElement.dataset.motion !== "calm" && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const live = document.getElementById("live"), picker = document.getElementById("picker"), score = document.getElementById("score"), head = document.getElementById("head"), done = document.getElementById("done"), words = document.getElementById("words");
+const SPOKEN = ["Dee, this is Payments.", "Your agent is already here.", "Who is in, and where.", "Dee's agent, to you.", "Your first session: Tax lines.", "Dee joins the circle."];
+
+function setFrame(n, opts = {}) {
+  n = Math.max(1, Math.min(6, n));
+  stage.dataset.frame = String(n);
+  cam.style.transform = L ? L.cams[n] : "none";
+  words.querySelectorAll(".beat").forEach(b => b.classList.toggle("on", Number(b.dataset.f) === n));
+  picker.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-current", i + 1 === n ? "step" : "false"));
+  score.querySelectorAll(".tick").forEach((b, i) => b.setAttribute("aria-current", i + 1 === n ? "step" : "false"));
+  document.querySelectorAll(".cell").forEach((c, i) => c.setAttribute("aria-current", i + 1 === n ? "step" : "false"));
+  if (!opts.keepClock) { clock = BEATS[n - 1].t; paint(); }
+  live.textContent = SPOKEN[n - 1];
+}
+/* the clock: ninety seconds, six beats; JS only ticks while playing */
+let clock = BEATS[2].t, playing = false, speed = 1, last = 0, raf = 0;
+function paint() {
+  const pct = Math.min(1, clock / END) * 100;
+  head.style.left = `calc(72px + (100% - 144px) * ${(pct / 100).toFixed(4)})`;
+  done.style.width = `calc((100% - 144px) * ${(pct / 100).toFixed(4)})`;
+  if (L && L.phone) { head.style.left = `calc(20px + (100% - 40px) * ${(pct / 100).toFixed(4)})`; done.style.width = `calc((100% - 40px) * ${(pct / 100).toFixed(4)})`; }
+}
+function tick(now) {
+  if (!playing) return;
+  const dt = (now - last) / 1000; last = now;
+  clock += dt * speed;
+  if (clock >= END) { clock = END; paint(); stop(); return; }
+  const n = BEATS.reduce((acc, b, i) => (clock >= b.t ? i + 1 : acc), 1);
+  if (n !== frame()) setFrame(n, { keepClock: true });
+  paint();
+  raf = requestAnimationFrame(tick);
+}
+function play(from) {
+  if (from != null) { clock = from; }
+  if (clock >= END) clock = 0;
+  playing = true; last = performance.now();
+  document.getElementById("play").setAttribute("aria-pressed", "true"); document.getElementById("play").firstChild.textContent = "Pause ";
+  if (!motionNow()) {
+    /* Calm: no clock runs; the beats advance on a plain timer and every state is instant (MOTION §3: never wait on animationend) */
+    cancelAnimationFrame(raf);
+    const n = BEATS.reduce((acc, b, i) => (clock >= b.t ? i + 1 : acc), 1);
+    setFrame(n, { keepClock: true }); paint();
+    calmTimer = setTimeout(() => { if (!playing) return; if (frame() === 6) { stop(); return; } clock = BEATS[frame()].t; play(clock); }, (BEATS[frame()] ? (BEATS[frame()].t - clock) : (END - clock)) * 1000 / speed);
+    return;
+  }
+  raf = requestAnimationFrame(tick);
+}
+let calmTimer = 0;
+function stop() { playing = false; cancelAnimationFrame(raf); clearTimeout(calmTimer); document.getElementById("play").setAttribute("aria-pressed", "false"); document.getElementById("play").firstChild.textContent = "Play "; }
+
+/* ---------- controls ---------- */
+BEATS.forEach((b, i) => {
+  const btn = document.createElement("button"); btn.type = "button"; btn.setAttribute("role", "tab"); btn.innerHTML = `${i + 1} <span class="k">${b.n}</span>`; btn.title = `${b.n} · key ${i + 1}`;
+  btn.addEventListener("click", () => { stop(); setFrame(i + 1); }); picker.appendChild(btn);
+  const tk = document.createElement("button"); tk.type = "button"; tk.className = "tick"; tk.style.left = `calc(72px + (100% - 144px) * ${(b.t / END).toFixed(4)})`; tk.dataset.pct = (b.t / END).toFixed(4);
+  tk.innerHTML = `<span class="n">${b.n}</span><span class="t">${fmt(b.t)}</span>`; tk.setAttribute("aria-label", `${b.n}, ${fmt(b.t)}`);
+  tk.addEventListener("click", () => { stop(); setFrame(i + 1); }); score.appendChild(tk);
+});
+function fmt(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function placeTicks() { score.querySelectorAll(".tick").forEach(tk => { tk.style.left = L && L.phone ? `calc(20px + (100% - 40px) * ${tk.dataset.pct})` : `calc(72px + (100% - 144px) * ${tk.dataset.pct})`; }); }
+document.getElementById("play").addEventListener("click", () => playing ? stop() : play(frame() === 6 && clock >= END ? 0 : clock));
+document.getElementById("speed").addEventListener("click", e => { speed = speed === 1 ? 6 : 1; e.currentTarget.setAttribute("aria-pressed", String(speed === 6)); });
+document.getElementById("calm").addEventListener("click", e => { const on = document.documentElement.dataset.motion !== "calm"; document.documentElement.dataset.motion = on ? "calm" : "full"; e.currentTarget.setAttribute("aria-pressed", String(on)); });
+document.getElementById("dark").addEventListener("click", e => { const on = document.documentElement.dataset.theme !== "dark"; document.documentElement.dataset.theme = on ? "dark" : "light"; e.currentTarget.setAttribute("aria-pressed", String(on)); });
+document.getElementById("skip").addEventListener("click", () => { stop(); setFrame(6); });
+document.getElementById("enter").addEventListener("click", () => { stop(); setFrame(6); });
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input, textarea")) return;
+  if (e.key >= "1" && e.key <= "6") { stop(); setFrame(Number(e.key)); }
+  else if (e.key === " ") { e.preventDefault(); playing ? stop() : play(clock); }
+  else if (e.key === "Escape") { stop(); setFrame(6); }
+  else if (e.key === "ArrowRight") { stop(); setFrame(frame() + 1); }
+  else if (e.key === "ArrowLeft") { stop(); setFrame(frame() - 1); }
+});
+
+/* ---------- the storyboard: six thumbnails from the same layout, each parked at its beat's rest state ---------- */
+const board = document.getElementById("board");
+BEATS.forEach((b, i) => {
+  const cell = document.createElement("button"); cell.type = "button"; cell.className = "cell";
+  const next = BEATS[i + 1] ? BEATS[i + 1].t : END;
+  cell.innerHTML = `<div class="thumb scene" data-frame="${i + 1}">${i === 5 ? `<div class="mini"><div class="r"></div><div class="p"><i></i><i></i><i></i></div></div>` : `<svg aria-hidden="true"><g class="cam"></g></svg>`}</div>
+    <div class="meta"><span class="t">0${i + 1} · ${fmt(b.t)}–${fmt(next)}</span><span class="n">${b.n}</span><span class="c">${b.c}</span></div>`;
+  cell.setAttribute("aria-label", `Beat ${i + 1}, ${b.n}: ${b.c}`);
+  cell.addEventListener("click", () => { stop(); setFrame(i + 1); });
+  board.appendChild(cell);
+});
+function renderThumbs() {
+  board.querySelectorAll(".thumb svg").forEach(svg => {
+    const W = 320, H = 180; const TL = layout(W, H); const n = Number(svg.parentElement.dataset.frame);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); const g = svg.querySelector(".cam"); g.innerHTML = skyMarkup(TL); g.style.transform = TL.cams[n];
+  });
+}
+
+/* ---------- boot ---------- */
+const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
+const start = Number(hash.get("f")) || 3;
+if (hash.get("calm")) document.documentElement.dataset.motion = "calm";
+render(); renderThumbs(); placeTicks(); setFrame(start);
+new ResizeObserver(() => { render(); placeTicks(); setFrame(frame(), { keepClock: true }); paint(); }).observe(stage);
+if (hash.get("play")) play(0);
+</script>
+</body>
+</html>
