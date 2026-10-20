@@ -66,21 +66,28 @@ export const PALETTE = {
   night: "#1C2130",
 } as const;
 
-/** Three looks made only of the palette: which colour leads. */
-export const TEAM_PRESETS: { id: string; label: string; theme: TeamTheme }[] = [
+/**
+ * Three looks made only of the palette: which colour leads. The Team look editor draws each as
+ * a tile that is the look in miniature (a rail strip in the surface with the highlight crease,
+ * a cream page, one button in the accent), so `theme` is the whole tile.
+ */
+export const TEAM_PRESETS: { id: string; label: string; detail: string; theme: TeamTheme }[] = [
   {
     id: "fondant",
     label: "Fondant",
+    detail: "the palette",
     theme: { accent: "#56352D", highlight: "#E2C4A6", surface: "#2A3244", glow: "#E2C4A6" },
   },
   {
     id: "apricot",
     label: "Apricot",
+    detail: "chocolate rail",
     theme: { accent: "#2A3244", highlight: "#E2C4A6", surface: "#56352D", glow: "#E2C4A6" },
   },
   {
     id: "blues",
     label: "Blues",
+    detail: "deep rail",
     theme: { accent: "#2A3244", highlight: "#E2C4A6", surface: "#1B2130", glow: "#F0DCC4" },
   },
 ];

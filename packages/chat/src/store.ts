@@ -8,6 +8,11 @@
  * - an agent is added by anyone who owns that session, or by a lead.
  * - any member of the group convenes a council in it and instructs its models in private; the
  *   convener or a lead ends one early; the host records what the models say.
+ * - a lead or admin of the group's scope, the person who created the group, or a host the
+ *   creator named, adds and removes members and renames the group; a person may always leave;
+ * - an agent is added by anyone who owns that session, or by a lead;
+ * - a group's name is free in the organisation or the group is not created; `nameFree`
+ *   answers before the fact so a sheet can say so while the name is typed.
  *
  * Who is a lead, who owns a session and who is in the organisation come from a `ChatDirectory`
  * the host supplies, so the log itself stays pure.
@@ -33,6 +38,7 @@ import {
   type CouncilStance,
   type CouncilStep,
   DEFAULT_COUNCIL_ROUNDS,
+  type GroupRole,
   type Mention,
   memberName,
   sameCouncilMember,
@@ -44,8 +50,10 @@ import {
   foldChat,
   type Group,
   hasAgent,
+  isHost,
   isMember,
   type Message,
+  nameTaken,
   reduceChat,
 } from "./state.js";
 
@@ -161,11 +169,18 @@ export class Chat {
 
   // ---- groups ------------------------------------------------------------------------
 
+  /** Is this name free for a new group? The sheet asks as the name is typed. */
+  nameFree(name: string): boolean {
+    return name.trim().length > 0 && !nameTaken(this.current, name);
+  }
+
   createGroup(by: string, input: CreateGroupInput): Group {
     const who = this.directory.person(by);
     if (!who) throw new KernelError("unauthorized", `${by} is not in this organisation`);
     const name = input.name.trim();
     if (!name) throw new KernelError("invalid", "a group needs a name");
+    if (nameTaken(this.current, name))
+      throw new KernelError("conflict", `#${name} is taken; pick another name`);
     const scope = ChatScopeSchema.parse(input.scope ?? {});
     const groupId = shortId("grp", this.current.orgId, name, by, this.current.seq + 1);
     this.emit(by, {
@@ -195,9 +210,9 @@ export class Chat {
     });
   }
 
-  /** Can this person add or remove this member? Leads and the creator manage; a session's owner adds their own agent; anyone leaves. */
+  /** Can this person add or remove this member? Leads, the creator and the hosts manage; a session's owner adds their own agent; anyone leaves. */
   canManage(by: string, g: Group, member: ChatMember): boolean {
-    if (this.directory.isLead(by, g.scope) || g.createdBy === by) return true;
+    if (this.directory.isLead(by, g.scope) || isHost(g, by)) return true;
     if (member.kind === "human" && member.userId === by) return true;
     if (member.kind === "agent") {
       const a = this.directory.agent(member.projectId, member.sessionId);
@@ -234,8 +249,8 @@ export class Chat {
       throw new KernelError(
         "unauthorized",
         member.kind === "agent"
-          ? "only the session's owner, the group's creator or a lead adds an agent"
-          : "only the group's creator or a lead adds a person",
+          ? "only the session's owner, the group's creator, a host or a lead adds an agent"
+          : "only the group's creator, a host or a lead adds a person",
       );
     if (g.members.some((m) => sameMember(m, member))) return null;
     return this.emit(by, { kind: "group.member.added", payload: { groupId, member } });
@@ -247,8 +262,27 @@ export class Chat {
     const existing = g.members.find((m) => sameMember(m, member));
     if (!existing) throw new KernelError("not_found", `${memberName(member)} is not a member`);
     if (!this.canManage(by, g, member))
-      throw new KernelError("unauthorized", "only the group's creator or a lead removes members");
+      throw new KernelError(
+        "unauthorized",
+        "only the group's creator, a host or a lead removes members",
+      );
     return this.emit(by, { kind: "group.member.removed", payload: { groupId, member: existing } });
+  }
+
+  /**
+   * Hand the keys on: the creator or a lead makes a member a host, or a host a member again.
+   * The creator's own role is fixed (they hand the group on by leaving it, not here).
+   */
+  setRole(by: string, groupId: string, userId: string, role: GroupRole): ChatEvent | null {
+    const g = this.group(groupId);
+    if (!(this.directory.isLead(by, g.scope) || g.createdBy === by))
+      throw new KernelError("unauthorized", "only the group's creator or a lead names a host");
+    if (!isMember(g, userId))
+      throw new KernelError("not_found", `${userId} is not a member of ${g.name}`);
+    if (userId === g.createdBy) throw new KernelError("invalid", "the creator's role is fixed");
+    const now: GroupRole = g.hosts.includes(userId) ? "host" : "member";
+    if (now === role) return null;
+    return this.emit(by, { kind: "group.role.set", payload: { groupId, userId, role } });
   }
 
   // ---- messages ----------------------------------------------------------------------
@@ -544,8 +578,8 @@ export class Chat {
   }
 
   private requireManager(by: string, g: Group): void {
-    if (this.directory.isLead(by, g.scope) || g.createdBy === by) return;
-    throw new KernelError("unauthorized", "only the group's creator or a lead changes it");
+    if (this.directory.isLead(by, g.scope) || isHost(g, by)) return;
+    throw new KernelError("unauthorized", "only the group's creator, a host or a lead changes it");
   }
 
   private emit(actor: string, body: ChatEventBody): ChatEvent {

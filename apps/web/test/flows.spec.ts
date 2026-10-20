@@ -324,10 +324,10 @@ test("a group of Ana, Bo and her agent: Bo's mention steers the agent and its re
   await expect(sheet).toBeVisible();
   await sheet.getByLabel("Name").fill(groupName);
   await sheet.getByLabel("Purpose").fill("Greeter rollout");
-  await sheet.getByLabel("Scope").selectOption({ label: "Project Chat" });
+  await sheet.getByRole("radio", { name: "Project Chat" }).check();
   await sheet.getByRole("checkbox", { name: "Bo", exact: true }).check();
   await sheet.getByRole("checkbox", { name: session, exact: true }).check();
-  await sheet.getByRole("button", { name: "Create group" }).click();
+  await sheet.getByRole("button", { name: `Create #${groupName}` }).click();
   await expect(ana).toHaveURL(/#\/c\/default\/grp_/);
   await ana.getByRole("button", { name: "Members" }).click();
   const members = ana.getByRole("complementary", { name: "Members" });
@@ -335,8 +335,9 @@ test("a group of Ana, Bo and her agent: Bo's mention steers the agent and its re
   await expect(members).toContainText("Bo");
   await expect(members).toContainText(session);
 
-  // Bo opens it from his list and mentions the agent, picking it from the @ list.
-  await bo.getByRole("link", { name: new RegExp(groupName) }).click();
+  // Bo opens it from his list (the rail names it too: the list row carries the purpose) and
+  // mentions the agent, picking it from the @ list.
+  await bo.getByRole("link", { name: new RegExp(`#${groupName} ·`) }).click();
   await expect(bo).toHaveURL(/#\/c\/default\/grp_/);
   const box = bo.getByLabel("Message", { exact: true });
   await box.fill(`@${session.slice(0, 9)}`);

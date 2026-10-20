@@ -7,6 +7,7 @@ import {
   CouncilMember,
   CouncilRound,
   DEFAULT_COUNCIL_ROUNDS,
+  GroupRole,
 } from "./events.js";
 
 export const ChatClientMessage = z.discriminatedUnion("type", [
@@ -68,6 +69,15 @@ export const ChatClientMessage = z.discriminatedUnion("type", [
     councilId: z.string().min(1),
     summary: z.string().max(12_000).optional(),
   }),
+  /** Hand the keys on: a member becomes a host, or a host a member again. */
+  z.object({
+    type: z.literal("chat.role"),
+    groupId: z.string(),
+    userId: z.string().min(1),
+    role: GroupRole,
+  }),
+  /** Is this name free for a new group? Answered with `chat.name` as the name is typed. */
+  z.object({ type: z.literal("chat.check"), name: z.string().max(80) }),
 ]);
 export type ChatClientMessage = z.infer<typeof ChatClientMessage>;
 
@@ -86,9 +96,33 @@ const ChatEvent = z
  * What the server sends: the snapshot and every event, council events included (they are
  * `chat.event`s like any other, so one reducer folds them on both sides).
  */
+/** An agent member that was mentioned and has not answered yet: what the typing line shows. */
+export const Answering = z.object({
+  groupId: z.string(),
+  projectId: z.string(),
+  sessionId: z.string(),
+  /** The message that mentioned it. */
+  messageId: z.string(),
+  /** Who wrote that message. */
+  askedBy: z.string(),
+  /** Wall clock when the mention reached the session. */
+  since: z.number().int().min(0),
+});
+export type Answering = z.infer<typeof Answering>;
+
 export const ChatServerMessage = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("chat.snapshot"), orgId: z.string(), events: z.array(ChatEvent) }),
+  z.object({
+    type: z.literal("chat.snapshot"),
+    orgId: z.string(),
+    events: z.array(ChatEvent),
+    /** Mentions still waiting on an agent, across the organisation, at the time of the snapshot. */
+    answering: z.array(Answering).default([]),
+  }),
   z.object({ type: z.literal("chat.event"), event: ChatEvent }),
+  /** An agent member is (or is no longer) answering a mention in a group; live state, not log. */
+  z.object({ type: z.literal("chat.answering"), on: z.boolean(), answering: Answering }),
+  /** The answer to `chat.check`. */
+  z.object({ type: z.literal("chat.name"), name: z.string(), free: z.boolean() }),
 ]);
 export type ChatServerMessage = z.infer<typeof ChatServerMessage>;
 

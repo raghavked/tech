@@ -1,7 +1,13 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type ChatEvent, type ChatState, foldChat } from "@henosis/chat";
+import {
+  type Answering,
+  applyAnswering,
+  type ChatEvent,
+  type ChatState,
+  foldChat,
+} from "@henosis/chat";
 import { defaultTools, ScriptedModel } from "@henosis/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
@@ -20,8 +26,10 @@ const sessionPolicy = {
 };
 
 type Incoming =
-  | { type: "chat.snapshot"; orgId: string; events: ChatEvent[] }
+  | { type: "chat.snapshot"; orgId: string; events: ChatEvent[]; answering: Answering[] }
   | { type: "chat.event"; event: ChatEvent }
+  | { type: "chat.answering"; on: boolean; answering: Answering }
+  | { type: "chat.name"; name: string; free: boolean }
   | { type: "error"; message: string };
 
 /** A chat subscriber over the websocket front door, folding what it receives. */
@@ -30,6 +38,10 @@ class ChatClient {
   state: ChatState | null = null;
   events: ChatEvent[] = [];
   errors: string[] = [];
+  answering: Answering[] = [];
+  /** Every answering message in the order it came, for the "on then off" assertion. */
+  answeringLog: { on: boolean; sessionId: string }[] = [];
+  names: Record<string, boolean> = {};
   constructor(url: string) {
     this.ws = new WebSocket(url);
     this.ws.on("message", (raw) => {
@@ -37,10 +49,15 @@ class ChatClient {
       if (m.type === "chat.snapshot") {
         this.events = m.events;
         this.state = foldChat(m.events);
+        this.answering = m.answering;
       } else if (m.type === "chat.event") {
         this.events.push(m.event);
         this.state = this.state ? foldChat([m.event], this.state) : null;
-      } else if (m.type === "error") this.errors.push(m.message);
+      } else if (m.type === "chat.answering") {
+        this.answering = applyAnswering(this.answering, m.on, m.answering);
+        this.answeringLog.push({ on: m.on, sessionId: m.answering.sessionId });
+      } else if (m.type === "chat.name") this.names[m.name] = m.free;
+      else if (m.type === "error") this.errors.push(m.message);
     });
   }
   open(): Promise<void> {
@@ -150,8 +167,31 @@ describe("groups and chats", () => {
     bo.send({ type: "chat.add", groupId: group.id, member: { kind: "human", userId: "dee" } });
     ana.send({ type: "chat.add", groupId: group.id, member: { kind: "human", userId: "zed" } });
     await new Promise((r) => setTimeout(r, 200));
-    expect(bo.errors.some((e) => /creator or a lead/.test(e))).toBe(true);
+    expect(bo.errors.some((e) => /creator, a host or a lead/.test(e))).toBe(true);
     expect(ana.errors.some((e) => /not in this organisation/.test(e))).toBe(true);
+
+    // The name check answers while a name is typed; a taken name is refused on create.
+    bo.send({ type: "chat.check", name: "rollout" });
+    bo.send({ type: "chat.check", name: "proration" });
+    await new Promise((r) => setTimeout(r, 150));
+    expect(bo.names).toEqual({ rollout: false, proration: true });
+    bo.send({ type: "chat.create", name: "ROLLOUT" });
+    await new Promise((r) => setTimeout(r, 150));
+    expect(bo.errors.some((e) => /taken/.test(e))).toBe(true);
+    expect(
+      Object.values(bo.state?.groups ?? {}).filter((g) => /rollout/i.test(g.name)),
+    ).toHaveLength(1);
+
+    // Ana makes Bo a host: he may now add Dee himself, and the role is in the fold.
+    bo.send({ type: "chat.role", groupId: group.id, userId: "bo", role: "host" });
+    await new Promise((r) => setTimeout(r, 150));
+    expect(bo.errors.some((e) => /creator or a lead names a host/.test(e))).toBe(true);
+    ana.send({ type: "chat.role", groupId: group.id, userId: "bo", role: "host" });
+    await bo.until((s) => s.groups[group.id]?.hosts.includes("bo") ?? false);
+    bo.send({ type: "chat.add", groupId: group.id, member: { kind: "human", userId: "dee" } });
+    await bo.until((s) => (s.groups[group.id]?.members.length ?? 0) === 4);
+    bo.send({ type: "chat.remove", groupId: group.id, member: { kind: "human", userId: "dee" } });
+    await bo.until((s) => (s.groups[group.id]?.members.length ?? 0) === 3);
 
     // Bo mentions the agent: the session gets a steer in the scope "chat", authored by Bo.
     bo.send({ type: "chat.say", groupId: group.id, text: "@Ana's agent what is left to do?" });
@@ -164,6 +204,7 @@ describe("groups and chats", () => {
     expect(steer?.input.mode).toBe("steer");
     expect(steer?.input.text).toBe("Bo in #Rollout: @Ana's agent what is left to do?");
     // Bo joined as a contributor by the identity rules (a member of billing), and is not present.
+    // Decision 5: being a host of the group did not lift him above contributor.
     expect(st.participants.bo?.role).toBe("contributor");
     expect(st.participants.bo?.present).toBe(false);
 
@@ -171,6 +212,31 @@ describe("groups and chats", () => {
     const replied = await bo.until((s) =>
       (s.messages[group.id] ?? []).some((m) => m.author.kind === "agent"),
     );
+    // Everyone saw the agent "answering" from the mention until the reply, and not after.
+    expect(ana.answeringLog).toEqual([
+      { on: true, sessionId: "s-ana" },
+      { on: false, sessionId: "s-ana" },
+    ]);
+    expect(ana.answering).toEqual([]);
+    expect(server.chat("nw").answering(group.id)).toEqual([]);
+    // A subscriber arriving mid-answer gets the board with the snapshot.
+    server.chat("nw").startAnswering({
+      groupId: group.id,
+      projectId: "billing",
+      sessionId: "s-ana",
+      messageId: first?.id ?? "",
+      askedBy: "bo",
+      since: 1,
+    });
+    const late = new ChatClient(url);
+    await late.open();
+    late.send({ type: "chat.subscribe", orgId: "nw", userId: "ana" });
+    await late.until((s) => s.orgId === "nw");
+    expect(late.answering.map((a) => a.askedBy)).toEqual(["bo"]);
+    server.chat("nw").stopAnswering(group.id, "s-ana");
+    await new Promise((r) => setTimeout(r, 100));
+    expect(late.answering).toEqual([]);
+    late.close();
     const reply = (replied.messages[group.id] ?? []).find((m) => m.author.kind === "agent");
     expect(reply?.author).toEqual({ kind: "agent", projectId: "billing", sessionId: "s-ana" });
     expect(reply?.replyTo).toBe(first?.id);

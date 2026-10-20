@@ -136,6 +136,11 @@ export interface ChatDirectoryListing {
     title: string;
     ownerId: string;
     live: SessionStatus | null;
+    /** What it is on (its goal or last summary), for the pickers; absent on older servers. */
+    doing?: string | null;
+    /** Tokens spent so far, for the pickers' spend figure; absent on older servers. */
+    tokens?: number;
+    crew?: string | null;
   }[];
 }
 

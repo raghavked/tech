@@ -32,6 +32,7 @@ import {
   type ServerMessage,
   type SessionEvent,
   type SessionPolicy,
+  usageTotal,
 } from "@henosis/protocol";
 import type { Model, ToolRegistry } from "@henosis/runner";
 import { type RawData, type WebSocket, WebSocketServer } from "ws";
@@ -390,6 +391,8 @@ export class HenosisServer {
         const ref = this.orgs.project(member.projectId);
         const joined = !st.participants[author];
         if (joined) {
+          // Decision 5: the rank is the identity rules' or contributor; a group role (creator,
+          // host) never lifts a mention above what the session itself would grant.
           const derived = ref ? this.orgs.sessionRole(author, ref, st.ownerId) : null;
           if (derived === "observer") {
             this.opts.log?.(`chat: ${author} observes ${member.sessionId}; mention not relayed`);
@@ -417,8 +420,23 @@ export class HenosisServer {
           afterSeq: directive.seq,
         });
         this.pendingReplies.set(member.sessionId, list);
-        void sh.drive();
+        // The list and the open group both show the agent answering until its words land.
+        host.startAnswering({
+          groupId: group.id,
+          projectId: member.projectId,
+          sessionId: member.sessionId,
+          messageId: e.payload.messageId,
+          askedBy: author,
+          since: e.payload.at || Date.now(),
+        });
+        void sh.drive().catch((err: unknown) => {
+          host.stopAnswering(group.id, member.sessionId);
+          this.opts.log?.(
+            `chat: ${member.sessionId} stopped before answering: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        });
       } catch (err) {
+        host.stopAnswering(group.id, member.sessionId);
         this.opts.log?.(
           `chat: could not reach ${member.sessionId}: ${err instanceof Error ? err.message : String(err)}`,
         );
@@ -456,6 +474,8 @@ export class HenosisServer {
           turn,
         );
       } catch (err) {
+        // The agent left the group before answering, or the words did not fold: nothing waits.
+        this.chats.get(p.orgId)?.stopAnswering(p.groupId, p.sessionId);
         this.opts.log?.(
           `chat: reply from ${sessionId} dropped: ${err instanceof Error ? err.message : String(err)}`,
         );
@@ -486,6 +506,11 @@ export class HenosisServer {
       title: string;
       ownerId: string;
       live: string | null;
+      /** What it is on: the goal, else the last summary; for the pickers' "what it is on" line. */
+      doing: string | null;
+      /** Tokens spent so far, for the pickers' spend figure. */
+      tokens: number;
+      crew: string | null;
     }[] = [];
     for (const t of org.teams)
       for (const pr of t.projects) {
@@ -496,13 +521,17 @@ export class HenosisServer {
         }
         for (const s of Object.values(ph.state().sessions)) {
           if (!s.open) continue;
+          const live = ph.hosts.get(s.sessionId)?.session.state() ?? null;
           agents.push({
             projectId: pr.id,
             projectName: pr.name,
             sessionId: s.sessionId,
             title: s.title,
             ownerId: s.ownerId,
-            live: ph.hosts.get(s.sessionId)?.session.state().status ?? null,
+            live: live?.status ?? null,
+            doing: goalText(live?.intent.goal) ?? s.report?.goal ?? s.report?.summary ?? null,
+            tokens: usageTotal(live?.usage ?? s.report?.usage),
+            crew: s.crew,
           });
         }
       }
@@ -1137,6 +1166,12 @@ export class HenosisServer {
             case "chat.council.end":
               chat.endCouncil(me, msg.councilId, msg.summary);
               break;
+            case "chat.role":
+              chat.setRole(me, msg.groupId, msg.userId, msg.role);
+              break;
+            case "chat.check":
+              send({ type: "chat.name", name: msg.name, free: chat.nameFree(msg.name) });
+              break;
           }
           return;
         }
@@ -1201,6 +1236,14 @@ export class HenosisServer {
       if (chatSub && chatHost) chatHost.unsubscribe(chatSub);
     });
   }
+}
+
+/** The goal as one line, whatever shape the intent keeps it in. */
+function goalText(goal: unknown): string | null {
+  if (!goal) return null;
+  if (typeof goal === "string") return goal;
+  if (typeof goal === "object" && "text" in goal && typeof goal.text === "string") return goal.text;
+  return null;
 }
 
 function isChatMessage(m: AnyClientMessage): m is ChatClientMessage {

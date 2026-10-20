@@ -17,6 +17,8 @@ export interface Group {
   members: ChatMember[];
   /** User id of the person who created it; they manage members beside the leads. */
   createdBy: string;
+  /** People the creator (or a lead) handed the keys to: they add, remove and rename as well. */
+  hosts: string[];
   createdSeq: number;
   /** Seq of the last event that touched this group (a message, a member, a rename). */
   lastSeq: number;
@@ -82,6 +84,7 @@ export function reduceChat(prev: ChatState, e: ChatEvent): ChatState {
         purpose: e.payload.purpose,
         members: [],
         createdBy: e.actor,
+        hosts: [],
         createdSeq: e.seq,
         lastSeq: e.seq,
         lastMessageSeq: -1,
@@ -100,7 +103,17 @@ export function reduceChat(prev: ChatState, e: ChatEvent): ChatState {
     case "group.member.removed": {
       const g = s.groups[e.payload.groupId];
       if (!g) break;
-      g.members = g.members.filter((m) => !sameMember(m, e.payload.member));
+      const gone = e.payload.member;
+      g.members = g.members.filter((m) => !sameMember(m, gone));
+      if (gone.kind === "human") g.hosts = g.hosts.filter((h) => h !== gone.userId);
+      g.lastSeq = e.seq;
+      break;
+    }
+    case "group.role.set": {
+      const g = s.groups[e.payload.groupId];
+      if (!g) break;
+      g.hosts = g.hosts.filter((h) => h !== e.payload.userId);
+      if (e.payload.role === "host") g.hosts.push(e.payload.userId);
       g.lastSeq = e.seq;
       break;
     }
@@ -179,6 +192,25 @@ export function foldChat(events: readonly ChatEvent[], from?: ChatState): ChatSt
 /** Is this person a member of the group? */
 export function isMember(g: Group, userId: string): boolean {
   return g.members.some((m) => m.kind === "human" && m.userId === userId);
+}
+
+/** Creator, host or member: the word the drawer's role chip shows; null for someone outside. */
+export function roleOf(g: Group, userId: string): "creator" | "host" | "member" | null {
+  if (g.createdBy === userId) return "creator";
+  if (g.hosts.includes(userId)) return "host";
+  return isMember(g, userId) ? "member" : null;
+}
+
+/** The creator and the hosts: who may add, remove and rename inside the group itself. */
+export function isHost(g: Group, userId: string): boolean {
+  return g.createdBy === userId || g.hosts.includes(userId);
+}
+
+/** Is this name already a group's name in the organisation? Case and surrounding space do not count. */
+export function nameTaken(s: ChatState, name: string): boolean {
+  const n = name.trim().toLowerCase();
+  if (!n) return false;
+  return Object.values(s.groups).some((g) => g.name.trim().toLowerCase() === n);
 }
 
 /** Is this session a member of the group? */

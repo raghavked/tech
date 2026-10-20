@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
+import { AnsweringBoard, applyAnswering } from "../src/answering.js";
 import { memberKey, memberName } from "../src/events.js";
 import { mentionsIn, splitMentions } from "../src/mentions.js";
-import { foldChat, groupsOf, unreadByGroup, unreadCount, unreadIn } from "../src/state.js";
+import {
+  foldChat,
+  groupsOf,
+  isHost,
+  nameTaken,
+  roleOf,
+  unreadByGroup,
+  unreadCount,
+  unreadIn,
+} from "../src/state.js";
 import { Chat, type ChatDirectory } from "../src/store.js";
 
 const people: Record<string, string> = { ana: "Ana", bo: "Bo", dee: "Dee", cy: "Cy" };
@@ -42,7 +52,7 @@ describe("groups", () => {
     const chat = Chat.create("northwind", { directory, now });
     const g = chat.createGroup("ana", { name: "Rollout", scope: { projectId: "billing" } });
     expect(() => chat.addMember("bo", g.id, { kind: "human", userId: "cy" })).toThrow(
-      /unauthorized|creator or a lead/,
+      /unauthorized|creator, a host or a lead/,
     );
     chat.addMember("ana", g.id, { kind: "human", userId: "bo" });
     chat.addMember("dee", g.id, { kind: "human", userId: "cy" }); // lead of billing
@@ -59,7 +69,7 @@ describe("groups", () => {
     // Cy leaves on his own; Bo cannot remove Cy.
     chat.removeMember("cy", g.id, { kind: "human", userId: "cy" });
     expect(() => chat.removeMember("bo", g.id, { kind: "human", userId: "ana" })).toThrow(
-      /unauthorized|creator or a lead/,
+      /unauthorized|creator, a host or a lead/,
     );
     chat.removeMember("dee", g.id, { kind: "agent", projectId: "billing", sessionId: "s-bo" });
     expect(chat.state().groups[g.id]?.members.map(memberKey)).toEqual([
@@ -68,9 +78,103 @@ describe("groups", () => {
       "agent:billing/s-ana",
     ]);
     chat.rename("dee", g.id, "Invoice rollout", "PDF invoices by Friday");
-    expect(() => chat.rename("bo", g.id, "Mine")).toThrow(/unauthorized|creator or a lead/);
+    expect(() => chat.rename("bo", g.id, "Mine")).toThrow(/unauthorized|creator, a host or a lead/);
     const after = chat.state().groups[g.id];
     expect([after?.name, after?.purpose]).toEqual(["Invoice rollout", "PDF invoices by Friday"]);
+  });
+
+  it("a host adds, removes and renames like the creator; only the creator or a lead names one", () => {
+    const chat = Chat.create("northwind", { directory, now });
+    const g = chat.createGroup("ana", {
+      name: "Rollout",
+      scope: { projectId: "billing" },
+      members: [{ kind: "human", userId: "bo" }],
+    });
+    expect(roleOf(chat.state().groups[g.id] as typeof g, "ana")).toBe("creator");
+    expect(roleOf(chat.state().groups[g.id] as typeof g, "bo")).toBe("member");
+    expect(roleOf(chat.state().groups[g.id] as typeof g, "cy")).toBeNull();
+    // Bo cannot name himself; a member outside cannot be a host; the creator stays the creator.
+    expect(() => chat.setRole("bo", g.id, "bo", "host")).toThrow(/creator or a lead/);
+    expect(() => chat.setRole("ana", g.id, "cy", "host")).toThrow(/not a member/);
+    expect(() => chat.setRole("ana", g.id, "ana", "member")).toThrow(/fixed/);
+    const ev = chat.setRole("ana", g.id, "bo", "host");
+    expect(ev?.kind).toBe("group.role.set");
+    expect(chat.setRole("ana", g.id, "bo", "host")).toBeNull(); // already a host
+    const asHost = chat.state().groups[g.id] as typeof g;
+    expect(asHost.hosts).toEqual(["bo"]);
+    expect(roleOf(asHost, "bo")).toBe("host");
+    expect(isHost(asHost, "bo")).toBe(true);
+    // Bo now manages: adds Cy, renames, removes Cy.
+    chat.addMember("bo", g.id, { kind: "human", userId: "cy" });
+    chat.rename("bo", g.id, "Invoice rollout");
+    chat.removeMember("bo", g.id, { kind: "human", userId: "cy" });
+    expect(chat.state().groups[g.id]?.name).toBe("Invoice rollout");
+    // A lead (Dee) may hand the keys back; a host who leaves is no host any more.
+    chat.setRole("dee", g.id, "bo", "member");
+    expect(chat.state().groups[g.id]?.hosts).toEqual([]);
+    chat.setRole("ana", g.id, "bo", "host");
+    chat.removeMember("bo", g.id, { kind: "human", userId: "bo" });
+    expect(chat.state().groups[g.id]?.hosts).toEqual([]);
+    expect(() => chat.addMember("bo", g.id, { kind: "human", userId: "cy" })).toThrow(
+      /unauthorized|creator, a host or a lead/,
+    );
+    expect(chat.log.verify()).toEqual({ ok: true });
+    expect(foldChat(chat.events())).toEqual(chat.state());
+  });
+
+  it("a group's name is free or the group is not created; the check ignores case and space", () => {
+    const chat = Chat.create("northwind", { directory, now });
+    expect(chat.nameFree("billing")).toBe(true);
+    expect(chat.nameFree("   ")).toBe(false);
+    chat.createGroup("ana", { name: "billing" });
+    expect(chat.nameFree("billing")).toBe(false);
+    expect(chat.nameFree(" Billing ")).toBe(false);
+    expect(chat.nameFree("billing-page")).toBe(true);
+    expect(nameTaken(chat.state(), "BILLING")).toBe(true);
+    expect(() => chat.createGroup("bo", { name: "Billing" })).toThrow(/taken/);
+    // A rename frees the old name.
+    const g = Object.values(chat.state().groups)[0];
+    if (!g) throw new Error("no group");
+    chat.rename("ana", g.id, "payments");
+    expect(chat.nameFree("billing")).toBe(true);
+  });
+});
+
+describe("answering", () => {
+  it("an agent is answering from the mention until its reply lands, per group", () => {
+    const board = new AnsweringBoard();
+    const a = board.start({
+      groupId: "g1",
+      projectId: "billing",
+      sessionId: "s-ana",
+      messageId: "m1",
+      askedBy: "bo",
+      since: 1,
+    });
+    board.start({ ...a, groupId: "g2", messageId: "m2", askedBy: "cy" });
+    expect(board.inGroup("g1")).toEqual([a]);
+    expect(board.all()).toHaveLength(2);
+    // A second mention in the same group replaces the first: one line per agent per group.
+    board.start({ ...a, messageId: "m3", askedBy: "dee" });
+    expect(board.inGroup("g1").map((x) => x.messageId)).toEqual(["m3"]);
+    // The reply in the log clears exactly that group's entry.
+    const chat = Chat.create("northwind", { directory, now });
+    const g = chat.createGroup("ana", { name: "Rollout", members: [anaAgent] });
+    const m = chat.post("ana", g.id, "@s-ana go");
+    const reply = chat.agentReply("billing", "s-ana", g.id, m.message.id, "Done.", 1);
+    expect(board.clearedBy(m.event)).toBeNull();
+    board.start({ ...a, groupId: g.id });
+    expect(board.clearedBy(reply)?.groupId).toBe(g.id);
+    expect(board.inGroup(g.id)).toEqual([]);
+    expect(board.inGroup("g2")).toHaveLength(1);
+    expect(board.stop("g2", "s-ana")?.askedBy).toBe("cy");
+    expect(board.stop("g2", "s-ana")).toBeNull();
+    // The client fold: on replaces, off removes.
+    const list = applyAnswering([], true, a);
+    expect(applyAnswering(list, true, { ...a, messageId: "m9" }).map((x) => x.messageId)).toEqual([
+      "m9",
+    ]);
+    expect(applyAnswering(list, false, a)).toEqual([]);
   });
 });
 

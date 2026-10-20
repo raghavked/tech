@@ -1,9 +1,12 @@
 /**
  * Websocket client for one organisation's groups and chats: folds the chat log with the same
- * reducer the server uses. When the socket drops it re-dials with backoff and resubscribes;
- * the fresh snapshot replaces what it held.
+ * reducer the server uses, and keeps the live state beside it (which agent is answering whom,
+ * which names are free). When the socket drops it re-dials with backoff and resubscribes; the
+ * fresh snapshot replaces what it held.
  */
 import {
+  type Answering,
+  applyAnswering,
   type ChatClientMessage,
   type ChatEvent,
   type ChatServerMessage,
@@ -23,6 +26,10 @@ export interface ChatSnapshot {
   reconnecting: boolean;
   /** The re-dial scheduled while reconnecting: its attempt number and when it fires. */
   retry: Retry | null;
+  /** Agent members mentioned and not yet answered, across the organisation (chat.answering). */
+  answering: Answering[];
+  /** Names the server has been asked about: true when free for a new group. */
+  names: Record<string, boolean>;
 }
 
 type Incoming = ChatServerMessage | { type: "error"; message: string };
@@ -34,6 +41,8 @@ const EMPTY: ChatSnapshot = {
   connected: false,
   reconnecting: false,
   retry: null,
+  answering: [],
+  names: {},
 };
 
 export class ChatClient {
@@ -104,14 +113,27 @@ export class ChatClient {
             events: msg.events,
             reconnecting: false,
             retry: null,
+            answering: msg.answering ?? [],
+            names: {},
           });
           break;
         case "chat.event": {
           const state = this.snapshot.state ? reduceChat(this.snapshot.state, msg.event) : null;
-          this.emit({ state, events: [...this.snapshot.events, msg.event] });
+          // A new group takes or frees a name: what the sheet knew about names is stale.
+          const names =
+            msg.event.kind === "group.created" || msg.event.kind === "group.renamed"
+              ? {}
+              : this.snapshot.names;
+          this.emit({ state, events: [...this.snapshot.events, msg.event], names });
           for (const fn of this.liveListeners) fn(msg.event);
           break;
         }
+        case "chat.answering":
+          this.emit({ answering: applyAnswering(this.snapshot.answering, msg.on, msg.answering) });
+          break;
+        case "chat.name":
+          this.emit({ names: { ...this.snapshot.names, [msg.name]: msg.free } });
+          break;
         case "error":
           this.emit({ errors: [...this.snapshot.errors.slice(-4), msg.message] });
           break;

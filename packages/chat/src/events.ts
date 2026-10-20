@@ -90,6 +90,10 @@ export type CouncilReportStatus = z.infer<typeof CouncilReportStatus>;
 export const CouncilOutcome = z.enum(["done", "abandoned", "revised"]);
 export type CouncilOutcome = z.infer<typeof CouncilOutcome>;
 
+/** What a person may do in a group: the creator manages it, a host manages it too, a member reads and writes. */
+export const GroupRole = z.enum(["host", "member"]);
+export type GroupRole = z.infer<typeof GroupRole>;
+
 const base = <K extends string, P extends z.ZodTypeAny>(kind: K, payload: P) =>
   z.object({ kind: z.literal(kind), payload });
 
@@ -106,6 +110,15 @@ export const ChatEventBody = z.discriminatedUnion("kind", [
   ),
   base("group.member.added", z.object({ groupId: z.string(), member: ChatMember })),
   base("group.member.removed", z.object({ groupId: z.string(), member: ChatMember })),
+  /**
+   * A person's role in the group. The creator is the group's first host and is never demoted
+   * here; a host adds, removes and renames like the creator. A group role never lifts a mention
+   * above contributor rank in an agent's session (Decision 5).
+   */
+  base(
+    "group.role.set",
+    z.object({ groupId: z.string(), userId: z.string().min(1), role: GroupRole }),
+  ),
   base(
     "group.renamed",
     z.object({
