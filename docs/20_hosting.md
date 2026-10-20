@@ -17,7 +17,7 @@ on files, the dev token, the scripted model); the deployment only wires it diffe
 
 `api/server.ts` at the repo root is the function: a module whose default export is a
 `node:http` Server with a `ws` WebSocketServer attached (Vercel keeps the upgraded
-connections pinned to the instance), with `export const config = { maxDuration: 800 }` so a
+connections pinned to the instance), with `export const config = { maxDuration: 300 }` so a
 session's socket can stay open. It builds one `HenosisServer` per function instance, lazily
 on the first request, and mounts it with `HenosisServer.attach(http, { wsPath: null,
 apiPrefix: "/api/server" })`: the websocket is accepted on whatever path the rewrite

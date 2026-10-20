@@ -32,7 +32,7 @@ import {
 import { authConfigFromEnv, HenosisServer, openLiveStore, storeKindOf } from "@henosis/server";
 
 /** Fluid compute: a session's websocket may stay open this long (seconds). */
-export const config = { maxDuration: 800 };
+export const config = { maxDuration: 300 };
 
 /** Where the rewrites land; the server strips it from every route it is asked for. */
 const API_PREFIX = "/api/server";
