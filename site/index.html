@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Henosis</title>
+<meta name="description" content="One team, people and agents. Henosis is the shared, living session where a team and its agents work together: plan first, rate, then ship." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%232A3244'/%3E%3Cpath d='M32 12a20 20 0 0 0-20 20 20 20 0 0 0 8 16' fill='none' stroke='%2356352D' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M32 52a20 20 0 0 0 20-20 20 20 0 0 0-8-16' fill='none' stroke='%23E2C4A6' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23E2C4A6'/%3E%3C/svg%3E" />
+<style>
+:root{--fondant:#56352D;--apricot:#E2C4A6;--apricot-deep:#C9A17A;--navy:#2A3244;--navy-deep:#1E2433;--cream:#FBF7F1;--cream-2:#F3EBE0;--ink:#1F1A17;--ink-2:#5C534D;--line:rgba(86,53,45,.14);--bg:var(--cream);--fg:var(--ink);--muted:var(--ink-2);--card:#fff;--edge:var(--line);--hand:var(--fondant);--grad:linear-gradient(135deg,#56352D 0%,#8C5A47 55%,#E2C4A6 100%)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1E2433;--fg:#F3EBE0;--muted:#B9AEA4;--card:#242C3C;--edge:rgba(226,196,166,.16);--hand:#E2C4A6}}
+:root[data-theme="dark"]{--bg:#1E2433;--fg:#F3EBE0;--muted:#B9AEA4;--card:#242C3C;--edge:rgba(226,196,166,.16);--hand:#E2C4A6}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,.serif{font-family:Fraunces,"Iowan Old Style","Palatino Linotype",Georgia,serif;font-weight:500;letter-spacing:-.01em}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+header{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand b{font-family:Fraunces,Georgia,serif;font-weight:500;font-size:22px}
+nav{display:flex;gap:18px;align-items:center;font-size:14px;color:var(--muted)}
+nav a{text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border-radius:999px;border:1px solid var(--edge);background:var(--card);color:var(--fg);text-decoration:none;font-weight:500;font-size:15px;cursor:pointer}
+.btn.primary{background:var(--grad);color:#fff;border-color:transparent}
+.btn.ghost{background:transparent}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:56px 0 48px}
+.hero h1{font-size:clamp(40px,6vw,72px);line-height:1.02;margin:0 0 18px}
+.hero p{font-size:19px;color:var(--muted);max-width:52ch;margin:0 0 26px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.markwrap{display:grid;place-items:center}
+.mark{width:min(360px,70vw);height:auto}
+.arc{fill:none;stroke-width:6;stroke-linecap:round;stroke-dasharray:63 200;stroke-dashoffset:40}
+.arc.a{stroke:var(--fondant)}.arc.b{stroke:var(--apricot)}
+.dot{fill:var(--apricot);transform-origin:32px 32px;transform:scale(0)}
+.mark.play .arc{animation:close 1.6s cubic-bezier(.2,.8,.2,1) forwards}
+.mark.play .arc.b{animation-delay:.12s}
+.mark.play .dot{animation:dotin .5s 1.2s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes close{to{stroke-dashoffset:0}}
+@keyframes dotin{to{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.arc{stroke-dashoffset:0;animation:none!important}.dot{transform:scale(1);animation:none!important}}
+.kick{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--apricot-deep)}
+section{padding:40px 0;border-top:1px solid var(--edge)}
+section h2{font-size:clamp(28px,3.6vw,40px);margin:8px 0 10px}
+.lede{color:var(--muted);font-size:18px;max-width:60ch;margin:0 0 28px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:var(--card);border:1px solid var(--edge);border-radius:18px;padding:22px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--hand)}
+.card h3{margin:0 0 8px;font-size:22px}
+.card p{margin:0;color:var(--muted);font-size:15px}
+.card .row{display:flex;gap:8px;align-items:center;margin-top:14px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted)}
+.pill{display:inline-block;padding:3px 9px;border-radius:999px;border:1px solid var(--edge);font-size:12px}
+.pill.gate{background:var(--apricot);color:var(--fondant);border-color:transparent}
+.stars{letter-spacing:2px;color:var(--apricot-deep)}
+.room{background:var(--navy);color:#F3EBE0;border-radius:22px;padding:28px;display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px}
+.room .msg{border-left:2px solid var(--apricot);padding:6px 0 6px 14px;margin:0 0 12px}
+.room .who{font-family:Fraunces,Georgia,serif;font-size:17px}
+.room .what{color:#C9BFB4;font-size:14px}
+.room .plan{background:#242C3C;border:1px solid rgba(226,196,166,.18);border-radius:14px;padding:16px}
+.room .plan li{margin:6px 0;font-size:14px;color:#E9DFD2}
+.room .plan .rate{margin-top:12px;color:var(--apricot);font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.editions{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.ed{border:1px solid var(--edge);border-radius:18px;padding:22px;background:var(--card)}
+.ed h3{margin:0 0 4px}.ed .for{color:var(--muted);font-size:14px;margin-bottom:12px}
+.ed ul{padding-left:18px;margin:0;color:var(--muted);font-size:14px}.ed li{margin:4px 0}
+footer{padding:36px 0 48px;color:var(--muted);font-size:14px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-top:1px solid var(--edge)}
+@media (max-width:860px){.hero{grid-template-columns:1fr;padding:28px 0 24px}.markwrap{order:-1}.grid,.editions,.room{grid-template-columns:1fr}nav .hide{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="#"><svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="#2A3244"/><path d="M32 12a20 20 0 0 0-20 20 20 20 0 0 0 8 16" fill="none" stroke="#8C5A47" stroke-width="6" stroke-linecap="round"/><path d="M32 52a20 20 0 0 0 20-20 20 20 0 0 0-8-16" fill="none" stroke="#E2C4A6" stroke-width="6" stroke-linecap="round"/><circle cx="32" cy="32" r="5" fill="#E2C4A6"/></svg><b>Henosis</b></a>
+  <nav><a class="hide" href="#session">The session</a><a class="hide" href="#council">The council</a><a class="hide" href="#plan">Plan first</a><a class="hide" href="#editions">Editions</a><button class="btn ghost" id="theme" aria-label="Toggle dark mode">◐</button><a class="btn primary" id="open" href="#open">Open the app</a></nav>
+</header>
+
+<section class="hero" style="border:0">
+  <div>
+    <div class="kick">ἕνωσις · unity</div>
+    <h1>One team,<br/>people and agents.</h1>
+    <p>Henosis is the shared, living session where a team and its agents work on one piece. Anyone can drop in, steer, rate the plan, and hand the baton on. Your agents become members of the team, not tools beside it.</p>
+    <div class="cta"><a class="btn primary" href="#open">Open the app</a><a class="btn" href="#session">See how it works</a></div>
+  </div>
+  <div class="markwrap">
+    <svg class="mark play" id="mark" viewBox="0 0 64 64" role="img" aria-label="The Henosis mark: two arcs closing into one ring"><circle cx="32" cy="32" r="32" fill="#2A3244"/><path class="arc a" d="M32 12a20 20 0 0 0-20 20 20 20 0 0 0 20 20"/><path class="arc b" d="M32 52a20 20 0 0 0 20-20 20 20 0 0 0-20-20"/><circle class="dot" cx="32" cy="32" r="5"/></svg>
+  </div>
+</section>
+
+<section id="session">
+  <div class="kick">The session</div>
+  <h2>A session everyone can drop into.</h2>
+  <p class="lede">Every agent run is a hash-chained log that any teammate can join from the web, Slack, a phone or the terminal. The driver holds the baton; everyone else steers, constrains, asks for a brief, or forks a branch and unites it back.</p>
+  <div class="grid">
+    <div class="card"><h3>Join mid-flight</h3><p>Open a colleague's session at turn 40 with a handoff brief that says where it stands and what it needs.</p><div class="row"><span class="pill">Team · with Bo, Cy</span><span>turn 41</span></div></div>
+    <div class="card"><h3>Crews and the rail</h3><p>The rail shows every agent, what it is on, whether it works solo or in a crew, and with whom. Claims and contentions surface before two agents touch one file.</p><div class="row"><span class="pill">crew · Invoice PDF</span><span>2 agents, one task</span></div></div>
+    <div class="card"><h3>Groups and chats</h3><p>Mention an agent in a team chat and it answers from its session. Keep what it said for the whole team's memory, attributed to the engineer who ran it.</p><div class="row"><span class="pill">@Ana's agent</span><span>replied · in reply to Bo</span></div></div>
+  </div>
+</section>
+
+<section id="council">
+  <div class="kick">The council</div>
+  <h2>A team's models deliberating.</h2>
+  <p class="lede">Convene a council from any group: each member's model answers alone, then they discuss, a chair synthesises, and the synthesis becomes a plan the team rates. Managers instruct one model in private; every word is in the log, with dissent recorded.</p>
+  <div class="room">
+    <div>
+      <div class="msg"><div class="who">Ana's model · Round 1</div><div class="what">Proration belongs in the invoice service, not the PDF step. Two risks: rounding and the tax line.</div></div>
+      <div class="msg"><div class="who">Bo's model · Round 1</div><div class="what">Agree on placement. Dissent on rounding: round at the line, not the total.</div></div>
+      <div class="msg"><div class="who">Chair · Synthesis</div><div class="what">Three steps, owners assigned, one gate before the release.</div></div>
+    </div>
+    <div class="plan"><div class="kick">Plan · proposed</div><ol><li>Move proration into the invoice service <span class="pill">Ana</span></li><li>Round per line, add the regression test <span class="pill">Bo</span></li><li>Deploy to production <span class="pill gate">release gate</span></li></ol><div class="rate"><span class="stars">★★★★☆</span> 2 of 2 raters · average 4.5 · needs 4 to ship</div></div>
+  </div>
+</section>
+
+<section id="plan">
+  <div class="kick">Plan first</div>
+  <h2>Plan, rate, then ship.</h2>
+  <p class="lede">Nothing irreversible runs on a whim. Agents propose a plan with a token budget; the team rates it; a release gate asks for a minimum rating and an average before code reaches the consumers. Token usage is measured per person, per agent and per turn, and a manager's view shows it.</p>
+  <div class="grid">
+    <div class="card"><h3>Ratings, not clicks</h3><p>An approval is a rating from 1 to 5 with a note. An unrated approve is a voice, not a vote. The rule is per project.</p><div class="row"><span class="stars">★★★★★</span><span>Ship it</span></div></div>
+    <div class="card"><h3>Budgets that mean something</h3><p>Every plan carries an estimate; the meter turns at 80 percent; a lead sets the project budget or it sums the sessions.</p><div class="row"><span>48.2k of 120k</span><span class="pill">warn at 80%</span></div></div>
+    <div class="card"><h3>The manager's view</h3><p>Who spent what, which plans wait, which gates are open, who needs you now. One page, table twins for every chart.</p><div class="row"><span>Needs you · 2</span><span>Agents live · 5</span></div></div>
+  </div>
+</section>
+
+<section id="editions">
+  <div class="kick">Editions</div>
+  <h2>From a two-person startup to a large company.</h2>
+  <div class="editions">
+    <div class="ed"><h3>Starter</h3><div class="for">One team, files on disk</div><ul><li>Sessions, branches, handoffs</li><li>Plan first and ratings</li><li>Slack and the CLI</li></ul></div>
+    <div class="ed"><h3>Team</h3><div class="for">Several teams, one org</div><ul><li>Single sign-on with groups</li><li>Postgres behind the storage seam</li><li>Groups, chats and the council</li></ul></div>
+    <div class="ed"><h3>Enterprise</h3><div class="for">Many orgs, audit and policy</div><ul><li>Policy per project, audit export</li><li>Self-hosted model profiles</li><li>Org-level memory with attribution</li></ul></div>
+  </div>
+</section>
+
+<section id="open">
+  <div class="kick">Open the app</div>
+  <h2>Run it in a minute.</h2>
+  <p class="lede">The web app talks to a Henosis server over a websocket. Start one locally with the scripted model (no API key needed) and open the app; or point the hosted app at your own server.</p>
+  <pre style="background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:16px;overflow:auto;font-size:13px"><code>pnpm install && pnpm build
+HENOSIS_OFFLINE=1 pnpm serve        # the server on :7700 with the scripted model
+pnpm --filter @henosis/web dev      # the app on http://localhost:5173</code></pre>
+  <p style="color:var(--muted);font-size:14px">The hosted build of the app is at <a id="applink" href="/app">/app</a>. It needs a server to join a session.</p>
+</section>
+
+<footer><span>Henosis · one team, people and agents</span><span><a href="https://github.com/raghavked/tech">Source</a></span></footer>
+</div>
+<script>
+(function(){var b=document.getElementById('theme'),r=document.documentElement;try{var s=localStorage.getItem('henosis.theme');if(s)r.setAttribute('data-theme',s)}catch(e){}b.addEventListener('click',function(){var d=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);var n=d?'light':'dark';r.setAttribute('data-theme',n);try{localStorage.setItem('henosis.theme',n)}catch(e){}});
+var app=document.querySelector('meta[name="henosis-app"]');var m=document.getElementById('mark');m.addEventListener('click',function(){m.classList.remove('play');void m.getBoundingClientRect();m.classList.add('play')})})();
+</script>
+</body>
+</html>
