@@ -114,7 +114,7 @@ keeps what the file says.
 - **Blobs are ephemeral.** Blobs, the usage days file and saved searches live under
   `HENOSIS_DIR` (`/tmp`), which does not survive an instance; the logs and documents are in
   Postgres. A `blobs` table is the next step (docs/04, "Storage").
-- **Function duration.** A session's socket closes when the function's `maxDuration` (800 s)
+- **Function duration.** A session's socket closes when the function's `maxDuration` (300 s)
   runs out; the client re-dials and rejoins from the last event it holds (`sinceSeq`), as it
   does on any drop. Long agent turns keep running only while something keeps the instance
   alive.
