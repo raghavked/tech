@@ -34,7 +34,7 @@
   /* the stage: navy lacquer, a brand constant like the disc */
   --stage: #2A3244; --stage-2: #333C50; --stage-fg: #F3EDE4; --stage-muted: #B9BFCC; --stage-faint: #8E95A5; --stage-line: rgba(243,237,228,.12);
   --stage-hand: #E2C4A6; --stage-hand-fg: #2A3244;         /* on navy the hand is the highlight and its text flips (SYSTEM §15) */
-  --sky-person: #56352D; --sky-person-lift: #A8826F;        /* the person's arc: chocolate at hero size; lifted 62 % toward apricot as a hairline on navy (SYSTEM §5) */
+  --sky-person: #56352D; --sky-person-lift: #B48F7B;        /* the person's arc: chocolate at hero size; lifted 62 % toward apricot as a hairline on navy (SYSTEM §5) */
   --sky-agent: #E2C4A6; --sky-centre: #E2C4A6; --sky-guide: rgba(226,196,166,.42); --sky-name: #F3EDE4; --sky-thread: rgba(226,196,166,.5);
   --sky-live: #9BC88F; --sky-baton: #CFA782;
   --font: Inter, "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
@@ -79,6 +79,10 @@
 /* ---------- the one guard's other half: clocks to zero under Calm and reduce (MOTION §3) ---------- */
 :root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-paper: 0ms; }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-paper: 0ms; } }
+/* first paint: a deep-linked beat lands finished (never on navigation, MOTION §4.4). .boot zeroes the clocks for one frame;
+   [data-parked] holds the once-runs until the first interaction, so a still opened at #f=3 is the rest state, not a frame from the middle. */
+:root.boot { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-paper: 0ms; }
+:root[data-parked] .stage :is(.ring .arc, .ring .ghost, .ring .centre, .mark .arc, .mark .dot, .av.joined) { animation: none !important; }
 
 /* ---------- base ---------- */
 * { box-sizing: border-box; }
@@ -121,7 +125,7 @@ button { font: inherit; color: inherit; }
 .stage .cam { transform-origin: 0 0; }
 
 /* the sky: hairline rings (data-craft §1: no fills, no frame); person = lifted chocolate, agent = apricot */
-.ring .arc { fill: none; stroke-linecap: round; stroke-width: 1.8; }
+.ring .arc { fill: none; stroke-linecap: round; stroke-width: 2; stroke-dasharray: 1 1.1; stroke-dashoffset: 0; }   /* pathLength 1: the draw is one number; the gap outlasts the path so a drawn-out arc leaves no cap */
 .ring .arc.a { stroke: var(--sky-person-lift); }
 .ring .arc.b { stroke: var(--sky-agent); opacity: .9; }
 .ring .aura { fill: none; stroke: var(--sky-agent); stroke-width: 14; stroke-linecap: round; opacity: 0; mix-blend-mode: screen; }
@@ -146,7 +150,7 @@ button { font: inherit; color: inherit; }
 .scene .ring .centre { transition: transform var(--t-slow) var(--ease-arrive); transition-delay: calc(var(--i, 0) * var(--t-stagger) + var(--t-draw)); }
 .scene .cam { transition: transform var(--t-cam) var(--ease-mark); }
 /* beats 1 and 2: only Dee's ring, at hero weight; the others are not drawn yet */
-.scene:is([data-frame="1"],[data-frame="2"]) .ring:not(.me) .arc { stroke-dashoffset: 1; }
+.scene:is([data-frame="1"],[data-frame="2"]) .ring:not(.me) .arc { stroke-dashoffset: 1.03; }   /* past 1, or the round cap of a zero-length dash still paints a dot */
 .scene:is([data-frame="1"],[data-frame="2"]) .ring:not(.me) :is(text, .pt, .status, .baton, .ghost, .guide) { opacity: 0; transition-delay: 0s; }
 .scene:is([data-frame="1"],[data-frame="2"]) .ring .centre { transform: scale(0); transition-delay: 0s; }
 .scene:is([data-frame="1"],[data-frame="2"]) .thread, .scene:is([data-frame="1"],[data-frame="2"]) .thread-name { opacity: 0; }
@@ -167,6 +171,7 @@ button { font: inherit; color: inherit; }
 .scene[data-frame="4"] .ring:not(.me), .scene[data-frame="4"] .thread, .scene[data-frame="4"] .thread-name { opacity: .26; }
 .scene[data-frame="5"] .ring:not(.me), .scene[data-frame="5"] .thread, .scene[data-frame="5"] .thread-name { opacity: .14; }
 .scene[data-frame="5"] .ring.me .arc { stroke-width: 2.6; }
+.scene[data-frame="5"] .ring:not(.me) text, .scene[data-frame="5"] .thread-name { opacity: 0; transition-delay: 0s; }
 .scene[data-frame="6"] .sky { opacity: 0; transition: opacity var(--t-slow) var(--ease-leave); }
 .scene .sky { transition: opacity var(--t-slow) var(--ease-move); }
 
@@ -267,7 +272,7 @@ button { font: inherit; color: inherit; }
 .scene[data-frame="6"] .paper .line { opacity: 1; transform: none; transition-delay: calc(var(--t-paper) + var(--i, 0) * 220ms); }
 :root[data-motion="calm"] .scene[data-frame="6"] .paper .line { transition-delay: 0s; }
 @media (prefers-reduced-motion: reduce) { .scene[data-frame="6"] .paper .line { transition-delay: 0s; } }
-.join { display: flex; align-items: center; gap: 14px; }
+.paper .line.join { flex-direction: row; align-items: center; gap: 14px; }
 .join .txt { display: flex; flex-direction: column; gap: 2px; }
 .join .s1 { font-family: var(--serif); font-size: 20px; line-height: 26px; color: var(--ink); }
 .join .s1 b { font-weight: 400; color: var(--accent-ink); }
@@ -279,7 +284,7 @@ button { font: inherit; color: inherit; }
 .msg .text { font-size: 15.5px; line-height: 24px; }
 .msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 12px 16px; max-width: 85%; align-self: flex-start; }
 .msg .text i { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
-.msg .plan { display: inline-flex; align-items: center; gap: 10px; margin-top: 4px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); font-size: 13.5px; }
+.msg .plan { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); font-size: 13.5px; }
 .msg .plan .serif { font-size: 15px; }
 .msg .plan .mono { font-size: 12px; color: var(--ink-3); }
 .msg .plan .w { color: var(--warn-ink); font-weight: 500; }
@@ -308,6 +313,9 @@ button { font: inherit; color: inherit; }
 .skip kbd { font-family: var(--mono); font-size: 11px; color: var(--stage-faint); border: 1px solid var(--stage-line); border-radius: 4px; padding: 0 5px; }
 .skip:hover { background: var(--stage-2); color: var(--stage-fg); }
 .scene[data-frame="6"] .skip { opacity: 0; pointer-events: none; }
+/* beat 6: the brief is over; the score folds to its hairline so the rail's me row and the composer sit clear of it */
+.score .tick :is(.n, .t) { transition: opacity var(--t) var(--ease-move); }
+.scene[data-frame="6"] .score .tick :is(.n, .t) { opacity: 0; }
 .skip { transition: opacity var(--t) var(--ease-move); }
 
 /* ---------- the storyboard strip ---------- */
@@ -384,8 +392,10 @@ button { font: inherit; color: inherit; }
   .join .stack { display: none; }
   .msg.team .text { max-width: 100%; }
   .score { padding: 0 20px; height: 72px; } .score .rail-line, .score .done { left: 20px; right: 20px; } .score .end { right: 20px; }
-  .score .tick .n { display: none; }
-  .score .tick[aria-current="step"] .n { display: block; }
+  .ring text.agent, .ring text.person, .thread-name { display: none; }   /* the sentence names them; the sky keeps the sessions */
+  .score .tick .n, .score .tick .t { display: none; }
+  .score .tick[aria-current="step"] .n, .score .tick[aria-current="step"] .t { display: block; }
+  .score .end { bottom: 36px; }
   .skip { right: 16px; top: 14px; }
   .board { grid-template-columns: 1fr 1fr; padding: 8px 16px 24px; }
   .cell { border-left: 0; padding: 12px 8px; } .cell .meta .n { font-size: 16px; }
@@ -521,10 +531,10 @@ const BEATS = [
 const END = 90;
 /* the cast: one ring per session; the person at 0°, the agent at 180°, the mark's own pose */
 const SESSIONS = [
-  { id: "billing",  name: "Billing page", person: "Ana", agent: "Ana's agent", whole: true,  baton: true,  status: "running",  pos: [0.18, 0.30], i: 1 },
-  { id: "checkout", name: "Checkout",     person: "Bo",  agent: "Bo's agent",  whole: true,  baton: true,  status: "running",  pos: [0.56, 0.16], i: 2 },
-  { id: "invoice",  name: "Invoice PDF",  person: "Cy",  agent: "Cy's agent",  whole: true,  baton: true,  status: "awaiting", pos: [0.86, 0.58], i: 3 },
-  { id: "tax",      name: "Tax lines",    person: "Dee", agent: "Dee's agent", whole: false, baton: false, status: "running",  pos: [0.46, 0.70], i: 0, me: true, note: "waits for you" },
+  { id: "billing",  name: "Billing page", person: "Ana", agent: "Ana's agent", whole: true,  baton: true,  status: "running",  pos: [0.18, 0.30], phonePos: [0.24, 0.32], i: 1 },
+  { id: "checkout", name: "Checkout",     person: "Bo",  agent: "Bo's agent",  whole: true,  baton: true,  status: "running",  pos: [0.56, 0.16], phonePos: [0.70, 0.12], i: 2 },
+  { id: "invoice",  name: "Invoice PDF",  person: "Cy",  agent: "Cy's agent",  whole: true,  baton: true,  status: "awaiting", pos: [0.86, 0.58], phonePos: [0.78, 0.66], i: 3 },
+  { id: "tax",      name: "Tax lines",    person: "Dee", agent: "Dee's agent", whole: false, baton: false, status: "running",  pos: [0.46, 0.70], phonePos: [0.34, 0.76], i: 0, me: true, note: "waits for you" },
 ];
 const CREW = ["invoice", "tax", "Invoice rollout"];
 
@@ -533,9 +543,9 @@ const arc = (cx, cy, r, a0, a1) => { const [x0, y0] = P(cx, cy, r, a0), [x1, y1]
 
 function layout(W, H) {
   const phone = W <= 480;
-  const box = phone ? { x: 0.06 * W, y: 0.50 * H, w: 0.88 * W, h: 0.42 * H } : { x: 0.47 * W, y: 0.10 * H, w: 0.48 * W, h: 0.78 * H };
+  const box = phone ? { x: 0.08 * W, y: 0.50 * H, w: 0.84 * W, h: 0.40 * H } : { x: 0.47 * W, y: 0.10 * H, w: 0.48 * W, h: 0.78 * H };
   const r = phone ? Math.max(30, Math.min(44, box.w * 0.14)) : Math.max(40, Math.min(66, box.h * 0.15));
-  const rings = SESSIONS.map(s => ({ ...s, cx: box.x + s.pos[0] * box.w, cy: box.y + s.pos[1] * box.h, r }));
+  const rings = SESSIONS.map(s => { const pos = phone && s.phonePos ? s.phonePos : s.pos; return { ...s, cx: box.x + pos[0] * box.w, cy: box.y + pos[1] * box.h, r }; });
   const me = rings.find(s => s.me);
   const anchor = phone ? [0.5 * W, 0.70 * H] : [0.72 * W, 0.47 * H];
   const cam = (s, ax, ay) => `translate(${(ax - s * me.cx).toFixed(1)}px, ${(ay - s * me.cy).toFixed(1)}px) scale(${s})`;
@@ -571,7 +581,7 @@ function skyMarkup(L) {
   const [x0, y0] = P(a.cx, a.cy, a.r, 180), [x1, y1] = P(b.cx, b.cy, b.r, 180);
   const mx = (x0 + x1) / 2, my = Math.max(y0, y1) + L.r * 0.9;
   const thread = `<path class="thread" d="M${x0.toFixed(1)} ${y0.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${x1.toFixed(1)} ${y1.toFixed(1)}"/><text class="thread-name" x="${mx.toFixed(1)}" y="${(my - L.r * 0.28).toFixed(1)}" text-anchor="middle">${CREW[2]}</text>`;
-  return thread + L.rings.map(s => ringMarkup(s, 4)).join("");
+  return thread + L.rings.map(s => ringMarkup(s, 3)).join("");
 }
 
 /* ---------- the stage ---------- */
@@ -593,6 +603,7 @@ const SPOKEN = ["Dee, this is Payments.", "Your agent is already here.", "Who is
 
 function setFrame(n, opts = {}) {
   n = Math.max(1, Math.min(6, n));
+  if (!opts.parked) delete document.documentElement.dataset.parked;
   stage.dataset.frame = String(n);
   cam.style.transform = L ? L.cams[n] : "none";
   words.querySelectorAll(".beat").forEach(b => b.classList.toggle("on", Number(b.dataset.f) === n));
@@ -621,6 +632,7 @@ function tick(now) {
   raf = requestAnimationFrame(tick);
 }
 function play(from) {
+  delete document.documentElement.dataset.parked;
   if (from != null) { clock = from; }
   if (clock >= END) clock = 0;
   playing = true; last = performance.now();
@@ -685,8 +697,10 @@ function renderThumbs() {
 const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
 const start = Number(hash.get("f")) || 3;
 if (hash.get("calm")) document.documentElement.dataset.motion = "calm";
-render(); renderThumbs(); placeTicks(); setFrame(start);
-new ResizeObserver(() => { render(); placeTicks(); setFrame(frame(), { keepClock: true }); paint(); }).observe(stage);
+document.documentElement.classList.add("boot"); document.documentElement.dataset.parked = "1";
+render(); renderThumbs(); placeTicks(); setFrame(start, { parked: true });
+requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove("boot")));
+new ResizeObserver(() => { render(); placeTicks(); setFrame(frame(), { keepClock: true, parked: true }); paint(); }).observe(stage);
 if (hash.get("play")) play(0);
 </script>
 </body>
