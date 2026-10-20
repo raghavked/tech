@@ -160,6 +160,7 @@ apps/desktop        Tauri 2 shell around the web client: tray, native notificati
                     links (henosis://), auto-update (docs/16_desktop_release.md)
 apps/mobile         Capacitor shell around the web client with native push
 design/             brand tokens, logo, static mockups of every surface
+site/               the public landing page: one self-contained index.html, served static
 scripts/            e2e.sh and the scripted websocket clients it drives
 docs/               thesis, market, landscape, product spec, architecture, kernel design,
                     roadmap, security, business model, threat model, sources, open questions,
