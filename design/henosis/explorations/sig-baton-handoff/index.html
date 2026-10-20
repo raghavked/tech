@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Henosis · The baton</title>
+<meta name="description" content="The signature element: the driver's ring is the baton. On a handoff it leaves one avatar, rolls along the composer's lane with weight, waits open beside the next person, and closes around them on Accept; a refusal stops it short and it rolls home.">
+<style>
+/* -------------------------------------------------------------------------------------------
+   Tokens, inlined from design/henosis/tokens.v5.css (SYSTEM §2, §16). Self-contained: no @import,
+   no web font, no external asset. Fraunces and Inter are asked for first; the Instrument faces and
+   the system faces follow.
+   ------------------------------------------------------------------------------------------- */
+:root {
+  --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
+  --canvas: #FBF7F1; --wash: rgba(226,196,166,.35);
+  --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
+  --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --edge: none;
+  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2;
+  --rail-active: rgba(226,196,166,.18); --rail-line: rgba(243,237,228,.10); --crease: #E2C4A6;
+  --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30); --select-wash: rgba(226,196,166,.16); --select-line: rgba(207,167,130,.5);
+  --glow: 0 0 0 4px rgba(226,196,166,.35);
+  --count-bg: #CFA782; --count-fg: #2A3244; --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --grad-fg: #F8F2EA;
+  --ok: #4F7D4A; --ok-soft: rgba(79,125,74,.14); --ok-ink: #3E6639;
+  --warn: #B9792E; --warn-soft: rgba(185,121,46,.14); --warn-ink: #7F5320;
+  --danger: #A8463A; --danger-soft: rgba(168,70,58,.14); --danger-ink: #8E3A30;
+  --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
+  --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --radius-agent: 9px 9px 9px 3px;
+  --col: 780px; --rail-w: 296px; --spec-w: 384px;
+  --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --serif: "Fraunces", "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
+  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
+  --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
+  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
+  --focus-ring: var(--accent); --focus-halo: var(--apricot-soft);
+  --motion: 0;                               /* 1 only inside the one guard (MOTION §3) */
+
+  /* ---- the baton: four springs, sampled once into CSS linear() so every device lands on the same
+     frame (MOTION §2's reason for keyed overshoot, with the memo's spring physics).
+     x(t) = 1 − e^(−ζω₀t)·(cos ω_d t + (ζω₀/ω_d)·sin ω_d t), from rest, 36 samples, cut where it stays
+     within 0.4 % of the target. Units: mass in kg-ish, stiffness N/m, damping N·s/m. ---- */
+  --d-travel: 830ms;  /* m 1.4 · k 170 · c 20 → ζ .65 · ω₀ 11.0 rad/s · overshoot 6.9 % */
+  --spring-travel: linear(0, 0.029, 0.103, 0.205, 0.322, 0.443, 0.561, 0.67, 0.766, 0.848, 0.915, 0.968, 1.008, 1.037, 1.055, 1.065, 1.069, 1.068, 1.063, 1.057, 1.049, 1.04, 1.032, 1.025, 1.018, 1.012, 1.007, 1.003, 1, 0.998, 0.996, 0.996, 0.995, 0.995, 0.996, 0.996, 1);
+  --d-return: 640ms;  /* m 1.4 · k 140 · c 26 → ζ .93 · ω₀ 10.0 · no overshoot: it comes home tired */
+  --spring-return: linear(0, 0.014, 0.051, 0.103, 0.164, 0.231, 0.299, 0.367, 0.433, 0.496, 0.554, 0.608, 0.658, 0.702, 0.742, 0.778, 0.81, 0.838, 0.862, 0.883, 0.902, 0.917, 0.931, 0.943, 0.953, 0.961, 0.968, 0.974, 0.979, 0.983, 0.987, 0.989, 0.992, 0.994, 0.995, 0.996, 1);
+  --d-close: 380ms;   /* m 1 · k 420 · c 34 → ζ .83 · ω₀ 20.5 · overshoot 0.9 %: the ring closes and holds */
+  --spring-close: linear(0, 0.021, 0.074, 0.147, 0.231, 0.32, 0.409, 0.495, 0.574, 0.646, 0.71, 0.766, 0.815, 0.856, 0.89, 0.918, 0.941, 0.96, 0.974, 0.985, 0.993, 1, 1.004, 1.007, 1.008, 1.009, 1.009, 1.009, 1.009, 1.008, 1.007, 1.006, 1.006, 1.005, 1.004, 1.003, 1);
+  --d-lift: 250ms;    /* m 1 · k 600 · c 44 → ζ .90 · ω₀ 24.5 · the pick-up */
+  --spring-lift: linear(0, 0.013, 0.047, 0.096, 0.155, 0.219, 0.285, 0.352, 0.418, 0.48, 0.539, 0.594, 0.645, 0.691, 0.733, 0.77, 0.803, 0.833, 0.858, 0.881, 0.901, 0.917, 0.932, 0.944, 0.955, 0.964, 0.971, 0.977, 0.982, 0.987, 0.99, 0.993, 0.995, 0.997, 0.998, 0.999, 1);
+  --d-stop: 200ms; --d-bump: 160ms;
+
+  /* colour by ground (SYSTEM §5): the baton is the driver ring, apricot-deep on cream, apricot at night */
+  --baton: var(--apricot-deep);
+  --baton-halo: rgba(207,167,130,.45);
+  --baton-shadow: 0 6px 10px rgba(42,50,68,.18);
+  --track: var(--line);
+  --stop: var(--danger);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --rail-active: rgba(226,196,166,.12); --rail-line: rgba(240,234,224,.08); --crease: rgba(226,196,166,.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6;
+  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
+  --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
+  --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A;
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --focus-ring: var(--ink);
+  --baton-halo: rgba(226,196,166,.4); --baton-shadow: 0 6px 10px rgba(0,0,0,.45);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
+  --rail-active: rgba(226,196,166,.12); --rail-line: rgba(240,234,224,.08); --crease: rgba(226,196,166,.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6;
+  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
+  --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
+  --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A;
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --focus-ring: var(--ink);
+  --baton-halo: rgba(226,196,166,.4); --baton-shadow: 0 6px 10px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+
+/* ---- the one guard (MOTION §3): every transition and animation lives inside it; calm and reduce
+   zero the clocks and the baton simply sits where the state puts it ---- */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) { --motion: 1; }
+  /* the carrier travels on the travel spring; on the way home it takes the return spring */
+  :root:not([data-motion="calm"]) .carrier { transition: translate var(--d-travel) var(--spring-travel); }
+  :root:not([data-motion="calm"]) .lane[data-state="return"] .carrier,
+  :root:not([data-motion="calm"]) .lane[data-state="recall"] .carrier { transition-duration: var(--d-return); transition-timing-function: var(--spring-return); }
+  /* it rolls: the rotation rides the same spring as the position, so the overshoot rolls back too */
+  :root:not([data-motion="calm"]) .baton { transition: rotate var(--d-travel) var(--spring-travel), filter var(--t) var(--ease-move); }
+  :root:not([data-motion="calm"]) .lane[data-state="return"] .baton,
+  :root:not([data-motion="calm"]) .lane[data-state="recall"] .baton { transition-duration: var(--d-return), var(--t); transition-timing-function: var(--spring-return), var(--ease-move); }
+  /* the pick-up and the put-down */
+  :root:not([data-motion="calm"]) .lift { transition: translate var(--d-lift) var(--spring-lift); }
+  /* weight: while it rolls, the carrier sags into the lane and the lane dips under it */
+  :root:not([data-motion="calm"]) .lane[data-state="travel"] .lift { animation: sag var(--d-travel) var(--ease-move) both; }
+  :root:not([data-motion="calm"]) .lane[data-state="return"] .lift,
+  :root:not([data-motion="calm"]) .lane[data-state="recall"] .lift { animation: sag var(--d-return) var(--ease-move) both; }
+  :root:not([data-motion="calm"]) .dip { transition: opacity var(--t) var(--ease-move); }
+  /* the ring opens as it is picked up and closes on Accept, on the close spring */
+  :root:not([data-motion="calm"]) .ring { transition: stroke-dasharray var(--d-close) var(--spring-close), stroke-width var(--t) var(--ease-move); }
+  :root:not([data-motion="calm"]) .lane[data-state="lift"] .ring { transition-duration: var(--d-lift), var(--t); transition-timing-function: var(--spring-lift), var(--ease-move); }
+  /* waiting is the halo pulse (MOTION §5.5), never a ring that re-opens */
+  :root:not([data-motion="calm"]) .lane[data-state="offered"] .halo { animation: baton-halo 1.8s var(--ease-move) infinite; }
+  /* the refusal: a stop rises, the baton bumps against it */
+  :root:not([data-motion="calm"]) .stop { transition: scale var(--d-stop) var(--ease-arrive), opacity var(--t) var(--ease-move); }
+  :root:not([data-motion="calm"]) .lane[data-state="blocked"] .baton { animation: bump var(--d-bump) var(--ease-move) .06s both; }
+  :root:not([data-motion="calm"]) .seat.pop .avatar { animation: pop var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .seat.pop .avatar::after { content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; animation: ripple .9s var(--ease-leave) both; }
+  :root:not([data-motion="calm"]) .say.enter, :root:not([data-motion="calm"]) .divider.enter, :root:not([data-motion="calm"]) .actions.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .status.running::before, :root:not([data-motion="calm"]) .avatar.agent .pr, :root:not([data-motion="calm"]) .step.live .ic { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .avatar { transition: box-shadow var(--t-slow) var(--ease-move); }
+  :root:not([data-motion="calm"]) .btn, :root:not([data-motion="calm"]) .chip { transition: background var(--t-fast) var(--ease-move), box-shadow var(--t-fast) var(--ease-move), transform var(--t) var(--ease-move), opacity var(--t) var(--ease-move); }
+  :root:not([data-motion="calm"]) .composer { transition: box-shadow var(--t-fast) var(--ease-move); }
+}
+:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
+
+@keyframes sag { 0% { translate: 0 -5px } 42% { translate: 0 3px } 100% { translate: 0 0 } }
+@keyframes baton-halo { 0% { stroke-width: 2; opacity: .9 } 70% { stroke-width: 13; opacity: 0 } 100% { stroke-width: 13; opacity: 0 } }
+@keyframes bump { 0% { scale: 1 1 } 50% { scale: .78 1.14 } 100% { scale: 1 1 } }
+@keyframes pop { 0% { transform: scale(.9) } 60% { transform: scale(1.08) } 100% { transform: none } }
+@keyframes ripple { 0% { box-shadow: 0 0 0 0 var(--apricot); opacity: 1 } 100% { box-shadow: 0 0 0 14px var(--apricot); opacity: 0 } }
+@keyframes card-in { 0% { opacity: 0; transform: translateY(6px) } 100% { opacity: 1; transform: none } }
+@keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--dot-halo, var(--apricot-soft)) } 70% { box-shadow: 0 0 0 5px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
+
+/* ---- base ---- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; overflow: hidden; }
+h1, h2, h3 { margin: 0; letter-spacing: -.01em; text-wrap: balance; font-weight: 400; }
+p { margin: 0; }
+.serif { font-family: var(--serif); font-weight: 400; } .serif.i { font-style: italic; }
+.mono { font-family: var(--mono); font-size: 12.5px; line-height: 16px; font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-2); } .faint { color: var(--ink-3); } .small { font-size: 13px; line-height: 20px; }
+.kicker { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+button { font: 500 14px/20px var(--font); color: inherit; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; box-shadow: 0 0 0 5px var(--focus-halo); }
+kbd { font: 500 11px/18px var(--mono); padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--surface); color: var(--ink-2); }
+
+/* ---- shell ---- */
+.shell { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--spec-w); height: 100%; }
+.rail { background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 4px; border-right: 1px solid var(--crease); min-height: 0; }
+.rail .brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 14px; font-family: var(--serif); font-size: 24px; line-height: 28px; }
+.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: #fff; border: 0; font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
+.rail .section { padding: 16px 10px 6px; font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.rail .item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: var(--radius); color: var(--rail-fg); font: 500 14px/20px var(--font); text-decoration: none; }
+.rail .item:hover { background: var(--rail-2); }
+.rail .item .count { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--count-bg); color: var(--count-fg); font: 600 11.5px/20px var(--mono); text-align: center; }
+.rail .crew { padding: 10px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.rail .crew .serif { font-size: 15px; color: var(--apricot); }
+.rail .crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
+.rail .agentcard { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-radius: var(--radius); color: var(--rail-fg); }
+.rail .agentcard.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line); }
+.rail .agentcard .head { display: flex; align-items: center; gap: 9px; font-family: var(--serif); font-size: 15.5px; line-height: 20px; }
+.rail .agentcard .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
+.rail .agentcard .head .dot.running { background: #9BC88F; --dot-halo: rgba(155,200,143,.25); }
+.rail .agentcard .head .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); }
+.rail .agentcard .head .dot.idle { background: transparent; border: 1.5px solid var(--rail-muted); }
+.rail .agentcard .head .pill { margin-left: auto; }
+.rail .agentcard .doing { font-size: 13px; line-height: 18px; color: var(--rail-muted); }
+.rail .agentcard .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+.rail .agentcard .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); }
+.rail .agentcard .foot .mono { margin-left: auto; font-size: 12px; }
+.rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 14px; }
+.rail .me .who { display: flex; flex-direction: column; line-height: 18px; }
+.rail .me .who .name { font-family: var(--serif); font-size: 16px; }
+.rail .me .who .role { font-size: 12px; color: var(--rail-muted); }
+.rail .avatar { --avatar-edge: var(--rail); }
+
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
+.main::before { content: ""; position: absolute; left: 10%; top: -220px; width: 720px; height: 420px; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); position: relative; }
+.topbar .title { font-family: var(--serif); font-size: 20px; line-height: 24px; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; flex: none; }
+.topbar .status, .topbar .pill { flex: none; }
+.topbar .title .crumb { color: var(--ink-3); font-family: var(--font); font-size: 13.5px; }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+.status.running::before { background: var(--ok); --dot-halo: var(--ok-soft); }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/22px var(--font); letter-spacing: .02em; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
+.pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
+.tokchip { display: inline-flex; flex-direction: column; gap: 3px; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; line-height: 16px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tokchip .hair { height: 3px; border-radius: 2px; background: var(--surface-3); position: relative; overflow: hidden; }
+.tokchip .hair i { position: absolute; left: 0; top: 0; bottom: 0; width: 31%; background: var(--apricot-deep); border-radius: 2px; }
+.tokchip .hair::after { content: ""; position: absolute; left: 80%; top: 0; bottom: 0; width: 1px; background: var(--ink-3); }
+
+/* avatars (SYSTEM §12): a person is a circle; an agent is the tight-cornered tile on the gradient */
+.avatar { --size: 28px; width: var(--size); height: var(--size); border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 600 11px/1 var(--font); border: 2px solid var(--avatar-edge, var(--canvas)); position: relative; flex: none; }
+.avatar.a { background: #DCC8B8; } .avatar.b { background: #C9CFDB; } .avatar.c { background: #D6D9C9; }
+:root[data-theme="dark"] .avatar.a, :root[data-theme="dark"] .avatar.b, :root[data-theme="dark"] .avatar.c { color: var(--blues); }
+.avatar.sm { --size: 22px; font-size: 9px; } .avatar.xs { --size: 18px; font-size: 8px; border-width: 1.5px; }
+.avatar.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
+.avatar.agent { border-radius: var(--radius-agent); background: var(--gradient-brand); color: var(--grad-fg); }
+.avatar.agent.sm, .avatar.agent.xs { border-radius: 7px 7px 7px 2px; }
+.avatar.agent::before { content: ""; width: 28%; height: 28%; border-radius: 50%; background: var(--apricot); }
+.avatar.agent .pr { position: absolute; right: -3px; bottom: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); border: 2px solid var(--avatar-edge, var(--canvas)); --dot-halo: var(--ok-soft); }
+.stack { display: inline-flex; align-items: center; isolation: isolate; }
+.stack .avatar { z-index: 1; } .stack .avatar.driver { z-index: 2; }
+.stack .avatar + .avatar { margin-left: -8px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 14px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px/20px var(--font); cursor: pointer; white-space: nowrap; }
+.btn:hover { box-shadow: var(--shadow-soft); } .btn:active { transform: translateY(1px) scale(.99); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; } .btn.primary:hover { background: var(--accent-hover); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn.ghost.no { color: var(--danger-ink); }
+.btn.sm { min-height: 30px; padding: 0 12px; font-size: 13px; }
+.btn.on { background: var(--apricot-soft); border-color: transparent; }
+.btn.icon { width: 34px; padding: 0; }
+
+/* ---- the stream (SYSTEM §7) ---- */
+.scroll { flex: 1; overflow: auto; min-height: 0; }
+.column { width: min(var(--col), 100%); margin: 0 auto; padding: 18px 24px 8px; display: flex; flex-direction: column; gap: 22px; }
+.msg { display: flex; flex-direction: column; gap: 6px; }
+.msg .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.msg .meta .who { font-family: var(--serif); font-size: 16px; color: var(--ink); display: inline-flex; align-items: center; gap: 8px; }
+.msg .meta .when { margin-left: auto; font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.msg .meta .to { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
+.msg.human .text { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 18px; align-self: flex-start; max-width: 85%; box-shadow: var(--shadow-soft), var(--edge); }
+.msg.human .text .goal { font-family: var(--serif); font-style: italic; color: var(--accent-ink); margin-right: 6px; }
+.msg.human .text code, .step code { font-family: var(--mono); font-size: 13px; }
+.msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 12px 18px; align-self: flex-start; max-width: 85%; }
+.msg.agent .text { font-size: 15.5px; max-width: 600px; }
+.steps { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+.step { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; font: 400 13px/20px var(--mono); color: var(--ink-2); padding: 3px 8px; border-radius: 8px; font-variant-numeric: tabular-nums; }
+.step .ic { width: 14px; height: 14px; border-radius: 50%; display: grid; place-items: center; }
+.step.done .ic { background: var(--ok); } .step.done .ic::after { content: ""; width: 6px; height: 3px; border-left: 1.5px solid #fff; border-bottom: 1.5px solid #fff; transform: translateY(-1px) rotate(-45deg); }
+.step.live { background: var(--apricot-soft); color: var(--ink); } .step.live .ic { background: var(--apricot-deep); --dot-halo: var(--apricot-soft); width: 8px; height: 8px; margin: 0 3px; }
+.step.wait .ic { border: 1.5px solid var(--line); }
+.step .r { color: var(--ink-3); }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.divider .serif { color: var(--ink-2); font-size: 14px; }
+.divider .mono { font-size: 12px; }
+.divider .no { color: var(--danger-ink); }
+
+/* ---- the composer with the lane ---- */
+.composer-wrap { flex: none; padding: 10px 24px 14px; background: linear-gradient(to top, var(--canvas) 70%, transparent); position: relative; }
+.composer { width: min(var(--col), 100%); margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px 12px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-pop), var(--edge); --avatar-edge: var(--surface); }
+.composer:focus-within { box-shadow: var(--shadow-pop), var(--glow), var(--edge); }
+
+/* the lane: the people stand on one hairline; the agent at its end; the baton is the only thing that moves */
+.lane { position: relative; height: 66px; margin: 0 2px; }
+.lane .track { position: absolute; left: 14px; right: 14px; top: 17px; height: 1px; background: var(--track); }
+.lane .seats { position: absolute; inset: 0; display: flex; align-items: flex-start; }
+.lane .seat { position: absolute; top: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 72px; margin-left: -36px; }
+.lane .seat .avatar { --size: 32px; font-size: 12px; cursor: default; }
+.lane .seat .name { font-family: var(--serif); font-size: 13px; line-height: 16px; color: var(--ink-2); white-space: nowrap; }
+.lane .seat .name b { font-weight: 400; color: var(--ink-3); font-family: var(--font); font-size: 11.5px; }
+.lane .seat.agentseat .name { color: var(--ink-2); }
+.lane .seat.agentseat .avatar { --size: 32px; }
+.lane .seat[data-who="ana"] { left: 52px; } .lane .seat[data-who="bo"] { left: 160px; } .lane .seat[data-who="cy"] { left: 268px; }
+.lane .seat.agentseat { left: auto; right: 14px; margin-left: 0; margin-right: -36px; }
+/* the baton: the driver's ring. r 18 on a 44 box at stroke 2 is exactly the 2 px ring outside the 2 px edge */
+.carrier { position: absolute; left: 0; top: 17px; width: 44px; height: 44px; margin: -22px 0 0 -22px; translate: var(--bx, 0px) 0; pointer-events: none; z-index: 3; }
+.lift { position: absolute; inset: 0; translate: 0 0; }
+.lane[data-state="lift"] .lift, .lane[data-state="travel"] .lift, .lane[data-state="offered"] .lift, .lane[data-state="blocked"] .lift, .lane[data-state="return"] .lift, .lane[data-state="recall"] .lift { translate: 0 -5px; }
+.lane[data-state="offered"] .lift { translate: 0 -2px; }
+.baton { position: absolute; inset: 0; width: 44px; height: 44px; overflow: visible; rotate: var(--rot, 0deg); transform-origin: 50% 50%; }
+.baton .ring { fill: none; stroke: var(--baton); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 1 0; }
+.baton .halo { fill: none; stroke: var(--baton-halo); stroke-width: 2; opacity: 0; }
+.lane[data-state="lift"] .ring, .lane[data-state="travel"] .ring, .lane[data-state="blocked"] .ring, .lane[data-state="return"] .ring, .lane[data-state="recall"] .ring { stroke-dasharray: .34 .66; stroke-width: 3.4; }
+.lane[data-state="offered"] .ring { stroke-dasharray: .42 .58; stroke-width: 3; }
+.lane[data-state="offered"] .halo { opacity: .9; }
+.lane[data-state="lift"] .baton, .lane[data-state="travel"] .baton, .lane[data-state="blocked"] .baton, .lane[data-state="return"] .baton, .lane[data-state="recall"] .baton { filter: drop-shadow(var(--baton-shadow)); }
+.lane[data-state="offered"] .baton { filter: drop-shadow(0 3px 6px rgba(42,50,68,.14)); }
+/* the dip: the lane sags under the rolling weight. A canvas stroke erases the track, the curve redraws it */
+.dip { position: absolute; left: -16px; right: -16px; top: 20px; height: 14px; opacity: 0; }
+.dip .erase { stroke: var(--surface); stroke-width: 3; fill: none; }
+.dip .curve { stroke: var(--track); stroke-width: 1; fill: none; }
+.lane[data-state="travel"] .dip, .lane[data-state="return"] .dip, .lane[data-state="recall"] .dip { opacity: 1; }
+/* the stop: a refusal is a human no, the one place the lane goes red (SYSTEM §2.7) */
+.stop { position: absolute; top: 5px; width: 2px; height: 24px; margin-left: -1px; border-radius: 1px; background: var(--stop); translate: var(--sx, 0px) 0; scale: 1 0; transform-origin: 50% 100%; opacity: 0; z-index: 2; }
+.lane[data-state="blocked"] .stop, .lane[data-state="return"] .stop { scale: 1 1; opacity: 1; }
+/* the sentence under the lane: who has it, who is offered it, and the one or two things you can do */
+.laneline { display: flex; align-items: center; gap: 10px; min-height: 32px; border-top: 1px solid var(--line); padding-top: 8px; }
+.laneline .say { font-size: 14px; line-height: 20px; color: var(--ink-2); min-width: 0; }
+.laneline .say .serif { color: var(--ink); font-size: 15.5px; }
+.laneline .say .no { color: var(--danger-ink); }
+.laneline .say .mono { color: var(--ink-3); margin-left: 6px; }
+.laneline .actions { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: none; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: var(--radius-full); background: var(--surface-2); border: 0; font: 500 13px/28px var(--font); color: var(--ink-2); cursor: pointer; }
+.chip.on { background: var(--select-wash); box-shadow: inset 0 0 0 1px var(--select-line); color: var(--ink); }
+.chip .ic { width: 14px; height: 14px; }
+.field { position: relative; }
+.field textarea { width: 100%; border: 0; background: transparent; color: var(--ink); font: 400 15px/24px var(--font); resize: none; outline: none; min-height: 28px; padding: 2px 0; }
+.field textarea::placeholder { color: var(--ink-3); }
+.field .key { position: absolute; right: 2px; top: 5px; }
+.bar { display: flex; align-items: center; gap: 8px; }
+.bar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.bar .mode { font-size: 12.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
+.bar .mode::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; }
+.seg label { font: 500 12.5px/20px var(--font); color: var(--ink-2); padding: 2px 12px; border-radius: var(--radius-full); cursor: pointer; }
+.seg label.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.send { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-soft); }
+.send:disabled { opacity: .45; cursor: default; }
+.composer-wrap .hint { width: min(var(--col), 100%); margin: 6px auto 0; text-align: center; font-size: 12.5px; line-height: 18px; color: var(--ink-3); min-height: 18px; }
+.composer-wrap .hint .serif { color: var(--ink-2); font-size: 13.5px; }
+
+/* ---- the spec column: the element explained beside itself ---- */
+.spec { border-left: 1px solid var(--line); background: var(--surface); padding: 22px 22px 26px; display: flex; flex-direction: column; gap: 20px; overflow: auto; min-height: 0; font-size: 14px; line-height: 20px; box-shadow: var(--edge); }
+.spec h2 { font-family: var(--serif); font-size: 26px; line-height: 32px; font-variation-settings: "opsz" 32, "SOFT" 40; }
+.spec h3 { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+.spec h3 .sum { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 400; font-family: var(--mono); font-size: 12px; }
+.spec .lede { color: var(--ink-2); }
+.spec .lede .serif { color: var(--ink); }
+.frames { display: flex; flex-direction: column; gap: 2px; }
+.frame { display: grid; grid-template-columns: 100px 1fr; gap: 12px; align-items: center; padding: 4px 6px; border-radius: 10px; cursor: pointer; border: 0; background: transparent; text-align: left; color: inherit; }
+.frame:hover { background: var(--surface-2); }
+.frame.cur { background: var(--select-wash); box-shadow: inset 0 0 0 1px var(--select-line); }
+.frame svg { width: 100px; height: 40px; display: block; overflow: visible; }
+.frame .t { font-family: var(--serif); font-size: 15.5px; line-height: 20px; }
+.frame .m { font-family: var(--mono); font-size: 11px; line-height: 15px; color: var(--ink-3); display: block; }
+.frame .m b { font-weight: 500; color: var(--ink-2); }
+.springs { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; font-family: var(--mono); font-size: 11.5px; line-height: 16px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.springs .k { color: var(--ink); font-weight: 500; padding-top: 5px; } .springs .v { color: var(--ink-3); text-align: right; padding-top: 5px; }
+.springs .p { grid-column: 1 / -1; color: var(--ink-3); border-bottom: 1px solid var(--line); padding-bottom: 5px; }
+.springs .p:last-child { border-bottom: 0; }
+.demo { display: flex; flex-wrap: wrap; gap: 6px; }
+.demo .btn { gap: 8px; }
+.demo .btn kbd { margin-right: -4px; }
+.spec .fine { font-size: 12.5px; line-height: 18px; color: var(--ink-3); }
+
+/* ---- phone (≤ 480): the navy top block, the lane across the composer at the thumb ---- */
+@media (max-width: 480px) {
+  :root { --col: 100%; }
+  .shell { grid-template-columns: 1fr; }
+  .rail, .spec { display: none; }
+  .main::before { display: none; }
+  .topbar { background: var(--rail); color: var(--rail-fg); padding: 52px 16px 10px; border-bottom: 0; flex-wrap: wrap; gap: 8px 10px; --avatar-edge: var(--rail); }
+  .topbar .title { font-size: 21px; line-height: 26px; }
+  .topbar .title .crumb { display: none; }
+  .topbar .status { color: var(--rail-muted); }
+  .topbar .tokchip, .topbar .btn { display: none; }
+  .topbar .right { margin-left: auto; }
+  .column { padding: 14px 16px 8px; gap: 18px; }
+  .msg.human .text, .msg.team .text { max-width: 100%; font-size: 16px; }
+  .msg .meta .who { font-size: 18px; }
+  .composer-wrap { padding: 8px 12px 18px; }
+  .composer { padding: 10px 12px 10px 14px; }
+  .lane { height: 62px; }
+  .lane .seat { width: 60px; margin-left: -30px; }
+  .lane .seat .avatar { --size: 30px; }
+  .lane .seat[data-who="ana"] { left: 40px; } .lane .seat[data-who="bo"] { left: 124px; } .lane .seat[data-who="cy"] { left: 208px; }
+  .lane .seat.agentseat { right: 12px; margin-right: -30px; }
+  .laneline .say { font-size: 15px; }
+  .laneline .say .mono { display: none; }
+  .field textarea { font-size: 16px; }
+  .field .key, .bar .mode { display: none; }
+  .composer-wrap .hint { font-size: 12px; }
+  .step .r { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- the rail: the team's roster -->
+  <aside class="rail" aria-label="Henosis">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="48" fill="#2A3244"/><path d="M48 19a29 29 0 0 1 0 58" fill="none" stroke="#A98074" stroke-width="13" stroke-linecap="round"/><path d="M48 77a29 29 0 0 1 0-58" fill="none" stroke="#E2C4A6" stroke-width="13" stroke-linecap="round"/><circle cx="48" cy="48" r="8.5" fill="#E2C4A6"/></svg>
+      Henosis
+    </div>
+    <button class="new" type="button">New session</button>
+    <a class="item" href="#">Search <span class="mono" style="margin-left:auto;color:var(--rail-muted);font-size:12px">⌘K</span></a>
+    <a class="item" href="#">Inbox <span class="count">2</span></a>
+    <a class="item" href="#">Approvals <span class="count">1</span></a>
+    <div class="section">Agents</div>
+    <div class="crew"><span class="serif">Ana and Bo</span></div>
+    <div class="agentcard active">
+      <div class="head"><i class="dot running"></i><span>Billing page · Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing"><i>Writing proration.ts</i> · step 3 of 4</div>
+      <div class="foot"><span class="stack"><span class="avatar xs a driver" data-who="ana">A</span><span class="avatar xs b" data-who="bo">B</span></span><span class="withline">with Bo</span><span class="mono">12.4k</span></div>
+    </div>
+    <div class="agentcard">
+      <div class="head"><i class="dot awaiting"></i><span>Invoice PDF</span><span class="pill">Solo</span></div>
+      <div class="doing"><i>Waiting for a rating</i> · the plan</div>
+      <div class="foot"><span class="stack"><span class="avatar xs c">C</span></span><span>Cy</span><span class="mono">8.1k</span></div>
+    </div>
+    <div class="agentcard">
+      <div class="head"><i class="dot idle"></i><span>Tax lines</span><span class="pill">Solo</span></div>
+      <div class="doing">Idle since 15:50</div>
+      <div class="foot"><span class="stack"><span class="avatar xs">D</span></span><span>Dee</span><span class="mono">3.0k</span></div>
+    </div>
+    <div class="section">Payments</div>
+    <a class="item" href="#">Overview</a>
+    <a class="item" href="#">Usage</a>
+    <a class="item" href="#">Groups</a>
+    <a class="item" href="#">Memory</a>
+    <div class="me"><span class="avatar b">B</span><span class="who"><span class="name">Bo Lindqvist</span><span class="role" id="merole">contributor</span></span></div>
+  </aside>
+
+  <!-- the session -->
+  <main class="main">
+    <header class="topbar">
+      <span class="title"><span>Billing page · Checkout</span></span>
+      <span class="status running">running · turn 14</span>
+      <span class="pill team" id="teampill">Team · with Ana</span>
+      <div class="right">
+        <span class="tokchip"><span>12.4k tokens <span class="faint">31 %</span></span><span class="hair"><i></i></span></span>
+        <span class="stack" id="topstack" aria-label="Ana, Bo and Cy are here. Ana is driving.">
+          <span class="avatar sm a driver" data-who="ana" title="Ana Moreau · driving">A</span>
+          <span class="avatar sm b" data-who="bo" title="Bo Lindqvist · you">B</span>
+          <span class="avatar sm c" data-who="cy" title="Cy Okafor · observer">C</span>
+          <span class="avatar sm agent" title="Checkout · running"></span>
+        </span>
+        <button class="btn sm on" type="button">Details</button>
+      </div>
+    </header>
+
+    <div class="scroll">
+      <div class="column stream" id="stream" aria-label="Session stream">
+        <div class="msg human">
+          <div class="meta"><span class="who"><span class="avatar sm a">A</span>Ana</span><span class="mono faint">goal</span><span class="when">16:12</span></div>
+          <div class="text"><span class="goal">Goal</span>Proration on Checkout must match the invoice PDF to the cent. Start from <code>proration.ts</code>; the tax lines are the reference.</div>
+        </div>
+        <div class="msg agent">
+          <div class="meta"><span class="who"><span class="avatar sm agent"></span>Checkout</span><span class="when">turn 14 · step 3 of 4</span></div>
+          <div class="text">The PDF rounds each tax line before it sums; Checkout rounds the total once. I am moving the rounding into <code>prorate()</code> so both paths agree, then running the fixtures.</div>
+          <div class="steps">
+            <div class="step done"><i class="ic"></i><span>read <code>src/billing/invoice-pdf.ts</code></span><span class="r">2.1k</span></div>
+            <div class="step done"><i class="ic"></i><span>read <code>src/checkout/proration.ts</code></span><span class="r">1.4k</span></div>
+            <div class="step live"><i class="ic"></i><span>write <code>src/checkout/proration.ts</code></span><span class="r">3 of 7 hunks</span></div>
+            <div class="step wait"><i class="ic"></i><span>test <code>checkout/proration.test.ts</code></span><span class="r">waits at the gate</span></div>
+          </div>
+        </div>
+        <div class="msg team">
+          <div class="meta"><span class="who"><span class="avatar sm a">A</span>Ana</span><span class="to">to the team</span><span class="when">16:40</span></div>
+          <div class="text">I'm off at five. Bo, can you take Checkout through the tests? The plan is approved; step 4 waits at the gate for two ratings.</div>
+        </div>
+        <div class="divider" id="div-offer"><span><span class="serif">Ana</span> offers the baton to <span class="serif">Bo</span></span><span class="mono">16:41</span></div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <form class="composer" onsubmit="return false" aria-label="Say something to Checkout">
+        <div class="lane" id="lane" data-state="offered">
+          <div class="track" aria-hidden="true"></div>
+          <div class="seats" role="group" aria-label="The baton">
+            <div class="seat" data-who="ana"><span class="avatar a" title="Ana Moreau">A</span><span class="name">Ana</span></div>
+            <div class="seat" data-who="bo"><span class="avatar b" title="Bo Lindqvist · you">B</span><span class="name">Bo <b>· you</b></span></div>
+            <div class="seat" data-who="cy"><span class="avatar c" title="Cy Okafor">C</span><span class="name">Cy</span></div>
+            <div class="seat agentseat" data-who="agent"><span class="avatar agent" title="Checkout · running"><i class="pr"></i></span><span class="name">Checkout</span></div>
+          </div>
+          <div class="stop" id="stop" aria-hidden="true"></div>
+          <div class="carrier" id="carrier" aria-hidden="true">
+            <div class="lift">
+              <svg class="baton" id="baton" viewBox="0 0 44 44">
+                <circle class="halo" cx="22" cy="22" r="18" pathLength="1"/>
+                <circle class="ring" cx="22" cy="22" r="18" pathLength="1"/>
+              </svg>
+              <svg class="dip" viewBox="0 0 76 14" preserveAspectRatio="none" aria-hidden="true">
+                <path class="erase" d="M0 1H76"/>
+                <path class="curve" d="M0 1Q38 11 76 1"/>
+              </svg>
+            </div>
+          </div>
+          <p class="sr-only" id="lanesr" aria-live="polite"></p>
+        </div>
+        <div class="laneline">
+          <p class="say" id="say"></p>
+          <div class="actions" id="actions"></div>
+        </div>
+        <div class="field">
+          <textarea rows="1" placeholder="Say something · reaches Checkout at its next step" aria-label="Directive"></textarea>
+          <kbd class="key" aria-hidden="true">/</kbd>
+        </div>
+        <div class="bar">
+          <div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div>
+          <button class="chip" type="button" aria-label="Mode and scope"><span class="mono">steer · <b>goal</b></span></button>
+          <div class="right">
+            <span class="mode" aria-hidden="true">Keys live</span>
+            <button class="send" type="button" aria-label="Send to Checkout" disabled><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button>
+          </div>
+        </div>
+      </form>
+      <p class="hint" id="hint"></p>
+    </div>
+  </main>
+
+  <!-- the spec: the element explained beside itself -->
+  <aside class="spec" aria-label="The baton, explained">
+    <div>
+      <p class="kicker">Signature element</p>
+      <h2>The baton</h2>
+    </div>
+    <p class="lede">The driver's ring <span class="serif">is</span> the baton. When <span class="serif">Ana</span> hands off, the ring leaves her avatar, rolls along the composer's lane with weight, waits open beside <span class="serif">Bo</span>, and closes around him when he accepts. A refusal stops it short, and it rolls home.</p>
+    <div>
+      <h3>Seven frames <span class="sum" id="framesum">4 of 7 · offered</span></h3>
+      <div class="frames" id="frames"></div>
+    </div>
+    <div>
+      <h3>The springs <span class="sum">x(t) → css linear()</span></h3>
+      <div class="springs">
+        <span class="k">travel</span><span class="v">830 ms</span><span class="p">m 1.4 · k 170 · c 20 → ζ .65 · ω₀ 11.0 · overshoot 6.9 %</span>
+        <span class="k">return</span><span class="v">640 ms</span><span class="p">m 1.4 · k 140 · c 26 → ζ .93 · no overshoot</span>
+        <span class="k">close</span><span class="v">380 ms</span><span class="p">m 1 · k 420 · c 34 → ζ .83 · overshoot 0.9 %</span>
+        <span class="k">lift</span><span class="v">250 ms</span><span class="p">m 1 · k 600 · c 44 → ζ .90</span>
+        <span class="k">stop · bump</span><span class="v">200 · 160 ms</span><span class="p">ease-arrive · scale .78 1.14 · then the return spring</span>
+        <span class="k">waiting</span><span class="v">1.8 s</span><span class="p">halo stroke 2 → 13 · the status pulse's clock</span>
+      </div>
+    </div>
+    <div>
+      <h3>Try it <span class="sum">keys 1 – 5</span></h3>
+      <div class="demo">
+        <button class="btn sm" type="button" data-act="offer-ana-bo"><kbd>1</kbd>Ana offers Bo</button>
+        <button class="btn sm" type="button" data-act="accept"><kbd>2</kbd>Bo accepts</button>
+        <button class="btn sm" type="button" data-act="decline"><kbd>3</kbd>Bo declines</button>
+        <button class="btn sm" type="button" data-act="offer-bo-cy"><kbd>4</kbd>Bo offers Cy</button>
+        <button class="btn sm" type="button" data-act="reset"><kbd>5</kbd>Ana drives again</button>
+      </div>
+      <p class="fine" style="margin-top:10px">Keys never fire while the field has focus. <code class="mono">?at=rest|offered|accepted|declined</code> opens a frame; <code class="mono">?calm</code> sets <code class="mono">data-motion="calm"</code>. Under Calm or reduced motion the baton appears where the state puts it; the sentence carries the news.</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const q = new URLSearchParams(location.search);
+  if (q.has('calm')) root.dataset.motion = 'calm';
+  const motionOn = () => matchMedia('(prefers-reduced-motion: no-preference)').matches && root.dataset.motion !== 'calm';
+  const wait = (ms) => new Promise((r) => setTimeout(r, motionOn() ? ms : 0));
+  const ms = (name) => parseFloat(getComputedStyle(root).getPropertyValue(name)) || 0;
+
+  const names = { ana: 'Ana', bo: 'Bo', cy: 'Cy' };
+  const me = 'bo';
+  const R = 18;                                    // the ring's radius: it rolls, so angle = distance / R
+  const lane = document.getElementById('lane');
+  const carrier = document.getElementById('carrier');
+  const baton = document.getElementById('baton');
+  const stop = document.getElementById('stop');
+  const say = document.getElementById('say');
+  const actions = document.getElementById('actions');
+  const hint = document.getElementById('hint');
+  const sr = document.getElementById('lanesr');
+  const stream = document.getElementById('stream');
+  const framesum = document.getElementById('framesum');
+
+  let driver = 'ana', at = 'ana', state = 'offered', offer = { from: 'ana', to: 'bo', since: Date.now() - 32000 };
+  let rot = 0, busy = false, declinedLine = null;
+  const xs = {};
+  const measure = () => {
+    const L = lane.getBoundingClientRect().left;
+    lane.querySelectorAll('.seat').forEach((s) => { const r = s.querySelector('.avatar').getBoundingClientRect(); xs[s.dataset.who] = r.left + r.width / 2 - L; });
+  };
+  const place = (who) => { carrier.style.setProperty('--bx', `${xs[who]}px`); at = who; };
+  const roll = (from, to) => { rot += ((xs[to] - xs[from]) / R) * 180 / Math.PI; baton.style.setProperty('--rot', `${rot}deg`); };
+  const setState = (s) => { state = s; lane.dataset.state = s; paintFrames(); };
+  const clockText = () => offer ? `${Math.max(0, Math.round((Date.now() - offer.since) / 1000))} s` : '';
+
+  // the driver ring everywhere else (topbar stack, rail card) follows the baton
+  const paintDriver = () => {
+    document.querySelectorAll('[data-who]').forEach((el) => { if (el.classList.contains('avatar')) el.classList.toggle('driver', el.dataset.who === driver); });
+    document.getElementById('merole').textContent = driver === me ? 'driver' : 'contributor';
+    document.getElementById('teampill').textContent = driver === me ? 'Team · with Ana' : `Team · with ${names[driver] === 'Ana' ? 'Ana' : names[driver]}`;
+  };
+  const btn = (label, cls, act) => { const b = document.createElement('button'); b.type = 'button'; b.className = `btn sm ${cls}`; b.textContent = label; b.dataset.act = act; return b; };
+  const serif = (t) => `<span class="serif">${t}</span>`;
+  const paintLine = (enter = true) => {
+    actions.replaceChildren();
+    let html = '', h = '';
+    if (state === 'offered' && offer) {
+      if (offer.to === me) {
+        html = `${serif(names[offer.from])} offers you the baton.<span class="mono" id="clock">${clockText()}</span>`;
+        actions.append(btn('Accept', 'primary', 'accept'), btn('Decline', 'ghost no', 'decline'));
+        h = `Accept and you drive this session; <span class="serif">Checkout</span> keeps its plan and its claims. Decline and nothing changes.`;
+      } else {
+        html = `You offered the baton to ${serif(names[offer.to])}.<span class="mono" id="clock">${clockText()}</span>`;
+        actions.append(btn('Take it back', 'ghost', 'recall'));
+        h = `${serif(names[offer.to])} sees it in the composer and in the inbox · you still drive until it is accepted`;
+      }
+    } else if (state === 'blocked' || state === 'return' || state === 'recall') {
+      if (state === 'recall') { html = `You took the baton back.`; h = `${serif(names[driver])} still drives · ${serif('Checkout')} keeps its plan`; }
+      else { html = `${serif(names[offer.to])} <span class="no">declined the baton</span> · ${serif(names[offer.from])} still drives.`; h = `A no is a no: nothing changes, and the offer leaves the inbox.`; }
+    } else if (state === 'lift' || state === 'travel' || state === 'close') {
+      html = state === 'close' ? `${serif(names[at])} has the baton.` : `${serif(names[offer.from])} hands the baton to ${serif(names[offer.to])}…`;
+      h = '';
+    } else {
+      if (driver === me) { html = `You have the baton · steering ${serif('Checkout')}.`; actions.append(btn('Hand off to Ana', 'ghost', 'offer-bo-ana'), btn('Hand off to Cy', 'ghost', 'offer-bo-cy')); h = `Bo · driver · Enter sends · ⇧ Enter newline · <span class="serif">/</span> for keys`; }
+      else { html = `${serif(names[driver])} has the baton · steering ${serif('Checkout')}.`; h = `Bo · contributor · what you send is a steer that ${names[driver]} can see · Enter sends`; }
+      if (declinedLine) { html += ` <span class="faint">${declinedLine}</span>`; }
+    }
+    say.innerHTML = html; hint.innerHTML = h;
+    if (enter && motionOn()) { say.classList.remove('enter'); void say.offsetWidth; say.classList.add('enter'); actions.classList.remove('enter'); void actions.offsetWidth; actions.classList.add('enter'); }
+    sr.textContent = say.textContent;
+  };
+  const divider = (html, no = false) => {
+    const d = document.createElement('div'); d.className = 'divider enter';
+    const t = new Date(); const hh = `16:${String(41 + Math.min(18, Math.floor((t - start) / 60000) + 1)).padStart(2, '0')}`;
+    d.innerHTML = `<span>${html}</span><span class="mono">${hh}</span>`; stream.append(d); stream.parentElement.scrollTop = 1e6;
+  };
+  const start = Date.now();
+
+  // ---- the moves ----
+  const offerTo = async (from, to) => {
+    if (busy) return; busy = true; declinedLine = null;
+    offer = { from, to, since: Date.now() };
+    divider(`${serif(names[from])} offers the baton to ${serif(names[to])}`);
+    setState('lift'); paintLine();                          // the ring opens and lifts
+    await wait(ms('--d-lift'));
+    setState('travel'); place(to); roll(from, to);          // it rolls, sags, the lane dips
+    await wait(ms('--d-travel'));
+    setState('offered'); paintLine();                       // it waits, open, breathing
+    busy = false;
+  };
+  const accept = async () => {
+    if (busy || state !== 'offered' || offer.to !== me) return; busy = true;
+    setState('close'); paintLine();                         // the ring closes around the new driver
+    const seat = lane.querySelector(`.seat[data-who="${offer.to}"]`); seat.classList.remove('pop'); void seat.offsetWidth; seat.classList.add('pop');
+    await wait(ms('--d-close'));
+    driver = offer.to; paintDriver();
+    divider(`${serif(names[driver])} has the baton`);
+    await wait(900);
+    offer = null; setState('rest'); paintLine(); busy = false;
+  };
+  const decline = async () => {
+    if (busy || state !== 'offered' || offer.to !== me) return; busy = true;
+    stop.style.setProperty('--sx', `${xs[offer.to] - 22}px`);
+    setState('blocked'); paintLine();                       // the stop rises, the baton bumps against it
+    divider(`${serif(names[offer.to])} <span class="no">declined the baton</span>`);
+    await wait(ms('--d-stop') + ms('--d-bump') + 120);
+    setState('return'); place(offer.from); roll(offer.to, offer.from);   // it rolls home, tired
+    await wait(ms('--d-return'));
+    setState('close');
+    await wait(ms('--d-close'));
+    declinedLine = `${names[offer.to]} declined · 16:42`;
+    offer = null; setState('rest'); paintLine(); busy = false;
+  };
+  const recall = async () => {
+    if (busy || state !== 'offered' || offer.from !== me) return; busy = true;
+    setState('recall'); paintLine(); place(offer.from); roll(offer.to, offer.from);
+    await wait(ms('--d-return'));
+    setState('close'); await wait(ms('--d-close'));
+    offer = null; setState('rest'); paintLine(); busy = false;
+  };
+  const reset = () => { if (busy) return; driver = 'ana'; offer = null; declinedLine = null; paintDriver(); place('ana'); setState('rest'); paintLine(); };
+  const act = (a) => {
+    if (a === 'accept') accept(); else if (a === 'decline') decline(); else if (a === 'recall') recall(); else if (a === 'reset') reset();
+    else if (a.startsWith('offer-')) { const [, from, to] = a.split('-'); if (busy || state !== 'rest') return; if (from !== driver) { paintRefused(from); return; } offerTo(from, to); }
+  };
+  // the policy refusal (kernel: only the driver or an owner can hand off): the baton does not lift
+  const paintRefused = (from) => { hint.innerHTML = `Only ${serif(names[driver])} or an owner can hand off. The baton stays where it is.`; };
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act); });
+  document.addEventListener('keydown', (e) => {
+    if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    const k = { '1': 'offer-ana-bo', '2': 'accept', '3': 'decline', '4': 'offer-bo-cy', '5': 'reset' }[e.key]; if (k) act(k);
+  });
+
+  // ---- the seven frames, drawn small: the same lane, the baton in each pose ----
+  const FR = [
+    ['rest', 'At rest', 'the driver ring · stroke <b>2</b> · apricot-deep'],
+    ['lift', 'Lift', '<b>250 ms</b> · the ring opens to an arc and rises 5 px'],
+    ['travel', 'Roll', '<b>830 ms</b> · rolls on the hairline · the lane dips · 6.9 % over'],
+    ['offered', 'Offered', 'the apart pose · breathes <b>1.8 s</b> · Accept or Decline'],
+    ['close', 'Accepted', '<b>380 ms</b> · the arc closes into the ring · the avatar pops'],
+    ['blocked', 'Declined', 'a stop rises <b>200</b> · bump <b>160</b> · home in <b>640 ms</b>'],
+    ['calm', 'Calm', 'no travel · the ring appears at the new driver · words carry it'],
+  ];
+  const frameSvg = (k) => {
+    const A = 20, B = 92, y = 22, r = 12, Rr = 15;
+    const av = (x, t, cls) => `<circle cx="${x}" cy="${y}" r="${r}" fill="var(--surface-3)" stroke="var(--surface)" stroke-width="2"/><text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-family="var(--font)" font-size="9" font-weight="600" fill="var(--ink)">${t}</text>`;
+    const ring = (x, dy, dash, w, extra = '') => `<circle cx="${x}" cy="${y + dy}" r="${Rr}" pathLength="1" fill="none" stroke="var(--baton)" stroke-width="${w}" stroke-linecap="round" stroke-dasharray="${dash}" ${extra}/>`;
+    let track = `<path d="M6 ${y}H106" stroke="var(--track)" fill="none"/>`;
+    let b = '';
+    if (k === 'rest') b = ring(A, 0, '1 0', 2);
+    if (k === 'lift') b = ring(A, -5, '.34 .66', 3.2, 'transform="rotate(-30 20 17)"') + `<ellipse cx="${A}" cy="${y + 13}" rx="12" ry="2.5" fill="rgba(42,50,68,.12)"/>`;
+    if (k === 'travel') { const x = 56; track = `<path d="M6 ${y}H${x - 20}Q${x} ${y + 7} ${x + 20} ${y}H106" stroke="var(--track)" fill="none"/>`; b = ring(x, -2, '.34 .66', 3.2, `transform="rotate(140 ${x} ${y - 2})"`) + `<ellipse cx="${x}" cy="${y + 12}" rx="12" ry="2.5" fill="rgba(42,50,68,.12)"/>`; }
+    if (k === 'offered') b = ring(B, -2, '.42 .58', 3, `transform="rotate(-150 ${B} ${y - 2})"`) + `<circle cx="${B}" cy="${y - 2}" r="20" fill="none" stroke="var(--baton-halo)" stroke-width="4"/><circle cx="${B}" cy="${y - 2}" r="25" fill="none" stroke="var(--baton-halo)" stroke-width="2" opacity=".4"/>`;
+    if (k === 'close') b = ring(B, 0, '.82 .18', 2.4, `transform="rotate(-100 ${B} ${y})"`);
+    if (k === 'blocked') b = `<rect x="${B - 21}" y="${y - 14}" width="2" height="20" rx="1" fill="var(--stop)"/>` + `<g transform="translate(${B - 10} ${y - 4}) scale(.78 1.14) translate(${-(B - 10)} ${-(y - 4)})">${ring(B - 10, -4, '.34 .66', 3.2, `transform="rotate(30 ${B - 10} ${y - 4})"`)}</g>`;
+    if (k === 'calm') b = ring(B, 0, '1 0', 2);
+    return `<svg viewBox="0 0 112 44" aria-hidden="true">${track}${av(A, 'A')}${av(B, 'B')}${b}</svg>`;
+  };
+  const frames = document.getElementById('frames');
+  FR.forEach(([k, t, m], i) => { const f = document.createElement('button'); f.type = 'button'; f.className = 'frame'; f.dataset.frame = k; f.innerHTML = `${frameSvg(k)}<span><span class="t">${t}</span><br><span class="m">${m}</span></span>`; frames.append(f); });
+  const paintFrames = () => {
+    const key = !motionOn() && state !== 'rest' && state !== 'offered' ? 'calm' : (state === 'return' || state === 'recall') ? 'blocked' : state;
+    let idx = 0; frames.querySelectorAll('.frame').forEach((f, i) => { const cur = f.dataset.frame === key; f.classList.toggle('cur', cur); if (cur) idx = i; });
+    framesum.textContent = `${idx + 1} of 7 · ${FR[idx][1].toLowerCase()}`;
+  };
+  frames.addEventListener('click', (e) => {
+    const f = e.target.closest('.frame'); if (!f || busy) return;
+    const k = f.dataset.frame;
+    if (k === 'rest' || k === 'calm') reset();
+    else if (k === 'offered') jump('offered');
+    else if (k === 'close') jump('accepted');
+    else if (k === 'blocked') { jump('offered'); decline(); }
+    else if (k === 'lift' || k === 'travel') { reset(); offerTo('ana', 'bo'); }
+  });
+
+  // ---- open at a frame, with no travel: the page is a finished drawing at any state ----
+  const jump = (s) => {
+    const was = root.dataset.motion; root.dataset.motion = 'calm';    // one frame under calm: nothing plays
+    declinedLine = null;
+    if (s === 'accepted') { driver = 'bo'; offer = null; place('bo'); setState('rest'); }
+    else if (s === 'declined') { driver = 'ana'; offer = null; declinedLine = 'Bo declined · 16:42'; place('ana'); setState('rest'); divider(`${serif('Bo')} <span class="no">declined the baton</span>`); }
+    else if (s === 'rest') { driver = 'ana'; offer = null; place('ana'); setState('rest'); }
+    else { driver = 'ana'; offer = { from: 'ana', to: 'bo', since: Date.now() - 32000 }; place('bo'); rot = -150; baton.style.setProperty('--rot', `${rot}deg`); setState('offered'); }
+    paintDriver(); paintLine(false);
+    void carrier.offsetWidth;
+    if (was) root.dataset.motion = was; else delete root.dataset.motion;
+    paintFrames();
+  };
+  measure();
+  stream.parentElement.scrollTop = 1e6;
+  const open = q.get('at') || 'offered';
+  if (open !== 'offered') document.getElementById('div-offer').remove();
+  jump(open);
+  addEventListener('resize', () => { measure(); place(at); if (state === 'blocked' || state === 'return') stop.style.setProperty('--sx', `${xs[offer.to] - 22}px`); });
+  setInterval(() => { const c = document.getElementById('clock'); if (c && offer) c.textContent = clockText(); }, 1000);
+  if (q.has('play')) { setTimeout(async () => { reset(); await wait(600); await offerTo('ana', 'bo'); await wait(1600); await accept(); }, 800); }
+})();
+</script>
+</body>
+</html>
