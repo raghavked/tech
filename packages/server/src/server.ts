@@ -12,11 +12,13 @@ import {
   type ChatEvent,
   type ChatScope,
   type ChatServerMessage,
+  type Group,
   memberName,
   memberOfMention,
   unreadIn,
 } from "@henosis/chat";
 import {
+  type AgentProfile,
   deriveProjectRole,
   PROJECT_RANK,
   ProjectClientMessage,
@@ -34,11 +36,12 @@ import {
   type SessionPolicy,
   usageTotal,
 } from "@henosis/protocol";
-import type { Model, ToolRegistry } from "@henosis/runner";
+import { ClaudeModel, claudeAvailable, type Model, type ToolRegistry } from "@henosis/runner";
 import { type RawData, type WebSocket, WebSocketServer } from "ws";
 import { Auth, type AuthConfig, AuthError, type Principal } from "./auth.js";
 import { handleBranchApi } from "./branchApi.js";
 import { ChatHost, type ChatSubscriber } from "./chatHost.js";
+import { CouncilHost } from "./councilHost.js";
 import { EXPORT_PATH, exportHeaders, exportSessionMarkdown } from "./export.js";
 import { computeGlance, GLANCE_PATH, type GlanceSource, UsageDays } from "./glance.js";
 import type { ClientLink, SessionHost } from "./host.js";
@@ -56,6 +59,12 @@ export interface ServerOptions {
   /** The store every log and document is read from and flushed to; a `FileStore` on `root` when absent. */
   store?: LiveStore | undefined;
   model: Model;
+  /**
+   * The model a council member speaks through, from its profile (docs/19_council.md). By
+   * default a `claude` profile gets the Claude model it names when a key is available, and
+   * everything else speaks through `model`.
+   */
+  modelFor?: ((profile: AgentProfile) => Model) | undefined;
   tools: ToolRegistry;
   token?: string | undefined;
   /**
@@ -105,6 +114,10 @@ export class HenosisServer {
   readonly memories = new Map<string, MemoryStore>();
   /** One chat host per organisation, loaded on start and persisted on every event. */
   readonly chats = new Map<string, ChatHost>();
+  /** One council host per organisation: it runs the councils its chat log convenes. */
+  readonly councils = new Map<string, CouncilHost>();
+  /** Claude models by model id, one per distinct id a member profile names. */
+  private readonly claudeModels = new Map<string, Model>();
   readonly notifier: Notifier;
   /** Who is asking: dev-mode assertions or verified ID tokens (auth.ts). */
   readonly auth: Auth;
@@ -228,7 +241,57 @@ export class HenosisServer {
     this.chats.set(orgId, c);
     const host = c;
     host.chat.onEvent((e) => this.onChatEvent(host, e));
+    // The council host (docs/19_council.md) runs what the chat log convenes, now and after a restart.
+    const council = new CouncilHost({
+      orgId,
+      chat: host.chat,
+      projectFor: (group) => this.projectForGroup(orgId, group),
+      profile: (profileId) => this.orgs.agentProfile(profileId),
+      modelFor: (profile) => this.memberModel(profile),
+      personName: (userId) => this.orgs.user(userId)?.name ?? this.names.get(userId) ?? userId,
+      onUsage: (userId, usage) => this.usageDays.record(userId, usage),
+      log: this.opts.log,
+    });
+    this.councils.set(orgId, council);
+    council.resume();
     return c;
+  }
+
+  /** The council host for an organisation (created with its chat host). */
+  council(orgId: string): CouncilHost {
+    this.chat(orgId);
+    const c = this.councils.get(orgId);
+    if (!c) throw new KernelError("not_found", `unknown organisation ${orgId}`);
+    return c;
+  }
+
+  /**
+   * The project a group's councils run their sessions in: the group's project, else the
+   * first project of the group's team, else the org's first project.
+   */
+  private projectForGroup(orgId: string, group: Group): ProjectHost | null {
+    const org = this.orgs.orgs.orgs.find((o) => o.id === orgId);
+    if (!org) return null;
+    const team = group.scope.teamId ? org.teams.find((t) => t.id === group.scope.teamId) : null;
+    const projectId =
+      group.scope.projectId ?? team?.projects[0]?.id ?? org.teams.flatMap((t) => t.projects)[0]?.id;
+    return projectId ? this.project(projectId) : null;
+  }
+
+  /** The model a member profile speaks through; the scripted server model is the offline fallback. */
+  private memberModel(profile: AgentProfile | null): Model {
+    if (!profile) return this.opts.model;
+    if (this.opts.modelFor) return this.opts.modelFor(profile);
+    if (profile.provider === "claude" && claudeAvailable()) {
+      const key = profile.model || "default";
+      let m = this.claudeModels.get(key);
+      if (!m) {
+        m = profile.model ? new ClaudeModel(profile.model) : new ClaudeModel();
+        this.claudeModels.set(key, m);
+      }
+      return m;
+    }
+    return this.opts.model;
   }
 
   /** Who is in the organisation, which sessions it runs and who leads, as the chat needs them. */
@@ -640,6 +703,7 @@ export class HenosisServer {
     this.closed = true;
     for (const t of this.memoryTimers.values()) clearTimeout(t);
     this.memoryTimers.clear();
+    for (const c of this.councils.values()) c.close();
     for (const p of this.projects.values()) p.close();
     for (const c of this.chats.values()) c.close();
     this.usageDays.flush();
@@ -754,7 +818,13 @@ export class HenosisServer {
         return json(
           200,
           computeUsage(
-            { root: this.opts.root, store: this.store, projects: this.projects, orgs: this.orgs },
+            {
+              root: this.opts.root,
+              store: this.store,
+              projects: this.projects,
+              chats: this.chats,
+              orgs: this.orgs,
+            },
             usageQueryOf(url.searchParams),
           ),
         );
@@ -935,6 +1005,18 @@ export class HenosisServer {
         }
         // memory-browser: optional ?level|team|project|status|q filters (memoryQuery.ts).
         return json(200, memoryFeed(store.state(), memoryQueryOf(url.searchParams)));
+      }
+      // The council (docs/19_council.md): one council with what its session says of the vote.
+      const cc = url.pathname.match(/^\/api\/chat\/([^/]+)\/councils(?:\/([^/]+))?$/);
+      if (cc) {
+        const orgId = decodeURIComponent(cc[1] as string);
+        const council = this.council(orgId);
+        if (cc[2]) return json(200, council.view(decodeURIComponent(cc[2])));
+        return json(200, {
+          councils: Object.values(council.chat.state().councils)
+            .sort((a, b) => b.lastSeq - a.lastSeq)
+            .map((c) => council.view(c.id)),
+        });
       }
       // Groups and chats: the folded state, a person's unread counts, and who can be a member.
       const cm = url.pathname.match(/^\/api\/chat\/([^/]+)(?:\/(unread|directory))?$/);

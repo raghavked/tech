@@ -65,8 +65,27 @@ has no answers.
 
 Member models run through the same `Model` interface as sessions (`packages/runner`): the
 scripted model answers deterministically offline (a stance from a hash of task and member);
-the Claude model uses the member's profile. Usage from every call is `council.said.usage`
-and rolls into the usage API as a `council` row per person.
+the Claude model uses the member's profile (`ServerOptions.modelFor` picks the model for a
+profile; by default a `claude` profile gets the Claude model it names when a key is set,
+everything else the server's model). Usage from every call is `council.said.usage` and rolls
+into the usage API as `byCouncil`: one row per person, the words of the models they own plus
+those of a shared agent in a council they convened, counted in `totals` and in their `byUser`
+row and in "tokens today"; the assigned work is counted with its sessions as before.
+
+The host is one loop per council that asks `councilNext` what to do and sleeps until an
+event touches the council (a chat event, a plan event in the council session, a turn ending
+in a member session), so a restart resumes every council that has not concluded from the
+log alone. An instruction that lands while a member's model is already thinking is carried
+into that member's next round and cited there. Sessions live in the group's project (else
+the first project of the group's team, else the org's first): the council session is
+`council_<hash>` with the chair's owner as owner and `planFirst`, each owner's member
+session `member_<hash>`, all in the crew `Council: <task>`. A member whose model fails
+answers "No answer: <reason>" with no usage; a round in which nobody answered ends the
+council.
+
+`GET /api/chat/:org/councils/:id` returns the council's fold with its label, what the chair's
+session says of the vote (`vote`, `plan` with its ratings), what the protocol does next and
+the member sessions by profile; `GET /api/chat/:org/councils` lists them, latest first.
 
 ## Rooms (apps/web)
 

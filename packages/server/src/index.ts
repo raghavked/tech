@@ -1,5 +1,6 @@
 export * from "./auth.js";
 export * from "./chatHost.js";
+export * from "./councilHost.js";
 export * from "./export.js";
 export * from "./glance.js";
 export * from "./host.js";

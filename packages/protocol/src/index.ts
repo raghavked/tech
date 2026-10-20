@@ -266,6 +266,19 @@ export interface UsageCache {
   shareOfInput: number;
 }
 
+/**
+ * What a person's member models spent speaking in councils (docs/19_council.md): every
+ * `council.said` of a model they own, and of a shared team agent in a council they convened.
+ * The work a council assigns runs in ordinary sessions and is counted in `bySession`.
+ */
+export interface UsageCouncilRow {
+  userId: string;
+  name: string;
+  /** Councils the person's models spoke in. */
+  councils: number;
+  usage: Usage;
+}
+
 /** Usage spent in agent turns `from`..`to` (inclusive) across the sessions in the report. */
 export interface UsageTurnBucket {
   from: number;
@@ -278,8 +291,12 @@ export interface UsageTurnBucket {
 export interface UsageReport {
   totals: Usage;
   bySession: UsageSessionRow[];
+  /** Per person: their sessions' spend plus what their models said in councils. */
   byUser: UsageUserRow[];
+  /** Per project: the sessions' spend; council deliberation is in `byCouncil`. */
   byProject: UsageProjectRow[];
+  /** Per person, the council deliberation spend alone; a row only for those whose models spoke. */
+  byCouncil: UsageCouncilRow[];
   /**
    * The time series. The store keeps a logical clock only (no wall-clock time on any event),
    * so usage is grouped by the agent turn it was spent in rather than by day.

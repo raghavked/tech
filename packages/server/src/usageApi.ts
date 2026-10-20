@@ -21,12 +21,20 @@
  * `cache` reports what never counts against a budget, each project row carries its budget
  * (Decision 8: the ledger policy's number, else the sum of its sessions' budgets) and
  * `forecast` reads the pace against the budget in scope, in turns rather than days.
+ *
+ * Councils (docs/19_council.md): what the member models said in a council is in the chat
+ * log as `council.said` with usage, outside any session. It is reported per person in
+ * `byCouncil` (a model's owner; the convener for a shared team agent), counted in `totals`
+ * and in the person's `byUser` row, and sliced by the group's scope for the org, team and
+ * project filters. The work a council assigns runs in ordinary sessions and is counted there.
  */
+import { Chat, type ChatEvent, type ChatState, type SerializedChat } from "@henosis/chat";
 import { Project, type ProjectState, projectBudget, type SerializedLedger } from "@henosis/fleet";
 import { type SerializedLog, Session } from "@henosis/kernel";
 import {
   addUsage,
   type Usage,
+  type UsageCouncilRow,
   type UsageForecast,
   type UsageProjectRow,
   type UsageQuery,
@@ -37,6 +45,7 @@ import {
   usageTotal,
   ZERO_USAGE,
 } from "@henosis/protocol";
+import type { ChatHost } from "./chatHost.js";
 import type { OrgRegistry } from "./orgs.js";
 import type { ProjectHost } from "./projectHost.js";
 import { FileStore, type LiveStore } from "./store/index.js";
@@ -52,6 +61,8 @@ export interface UsageSource {
   store?: LiveStore | undefined;
   /** Live project hosts; their sessions and ledgers are read in memory. */
   projects: Map<string, ProjectHost>;
+  /** Live chat hosts by org; their council events are read in memory, other orgs' from the store. */
+  chats?: Map<string, ChatHost> | undefined;
   orgs: Pick<OrgRegistry, "project" | "user">;
 }
 
@@ -144,7 +155,7 @@ export function computeUsage(src: UsageSource, q: UsageQuery = {}): UsageReport 
   }
 
   rows.sort((a, b) => usageTotal(b.usage) - usageTotal(a.usage) || cmp(a.sessionId, b.sessionId));
-  const totals = rows.reduce((t, r) => addUsage(t, r.usage), { ...ZERO_USAGE } as Usage);
+  let totals = rows.reduce((t, r) => addUsage(t, r.usage), { ...ZERO_USAGE } as Usage);
 
   const users = new Map<string, UsageUserRow>();
   const projects = new Map<string, UsageProjectRow>();
@@ -183,6 +194,14 @@ export function computeUsage(src: UsageSource, q: UsageQuery = {}): UsageReport 
       p.budgetSource = sum > 0 ? "sessions" : null;
     }
   }
+  // Councils: what each person's models said, from the chat logs.
+  const councils = councilRows(src, q, since, ledgers);
+  for (const c of councils) {
+    totals = addUsage(totals, c.usage);
+    const u = users.get(c.userId) ?? { userId: c.userId, name: c.name, usage: { ...ZERO_USAGE } };
+    u.usage = addUsage(u.usage, c.usage);
+    users.set(c.userId, u);
+  }
   const byTotal = <T extends { usage: Usage }>(xs: T[], key: (x: T) => string) =>
     xs.sort((a, b) => usageTotal(b.usage) - usageTotal(a.usage) || cmp(key(a), key(b)));
   const byProject = byTotal([...projects.values()], (p) => p.projectId);
@@ -194,6 +213,7 @@ export function computeUsage(src: UsageSource, q: UsageQuery = {}): UsageReport 
     bySession: rows,
     byUser: byTotal([...users.values()], (u) => u.userId),
     byProject,
+    byCouncil: byTotal(councils, (c) => c.userId),
     byTurnBucket: [...buckets.values()].sort((a, b) => a.from - b.from),
     cache: {
       read: totals.cacheRead,
@@ -294,6 +314,69 @@ function loadLedgers(src: UsageSource): Map<string, ProjectState> {
     }
   }
   return out;
+}
+
+/** Every organisation's chat log: live hosts first, then the ones only in the store. */
+function loadChats(src: UsageSource): Map<string, { events: ChatEvent[]; state: ChatState }> {
+  const out = new Map<string, { events: ChatEvent[]; state: ChatState }>();
+  for (const [orgId, host] of src.chats ?? [])
+    out.set(orgId, { events: host.chat.events(), state: host.state() });
+  const store = src.store ?? new FileStore(src.root);
+  for (const orgId of store.listLogs("chat")) {
+    if (out.has(orgId)) continue;
+    try {
+      const data = store.readLog("chat", orgId) as SerializedChat | null;
+      if (!data) continue;
+      const chat = Chat.fromSerialized(data);
+      out.set(orgId, { events: chat.events(), state: chat.state() });
+    } catch {
+      // an unreadable chat log contributes nothing
+    }
+  }
+  return out;
+}
+
+/**
+ * One row per person whose models spoke in a council: every `council.said` after `since`,
+ * attributed to the member's owner or, for a shared agent, the convener; filtered by the
+ * group's scope (its project, or its team) and the chat's organisation.
+ */
+function councilRows(
+  src: UsageSource,
+  q: UsageQuery,
+  since: number | null,
+  ledgers: Map<string, ProjectState>,
+): UsageCouncilRow[] {
+  const rows = new Map<string, UsageCouncilRow & { ids: Set<string> }>();
+  for (const [orgId, { events, state }] of loadChats(src)) {
+    if (q.org && q.org !== orgId) continue;
+    for (const e of events) {
+      if (e.kind !== "council.said") continue;
+      if (since !== null && e.seq <= since) continue;
+      const council = state.councils[e.payload.councilId];
+      if (!council) continue;
+      const scope = state.groups[council.groupId]?.scope ?? {};
+      const projectId = scope.projectId ?? null;
+      const teamId =
+        scope.teamId ?? (projectId ? (src.orgs.project(projectId)?.teamId ?? null) : null);
+      if (q.project && q.project !== projectId) continue;
+      if (q.team && q.team !== teamId) continue;
+      const userId = e.payload.member.userId ?? council.by;
+      if (q.user && q.user !== userId) continue;
+      const row = rows.get(userId) ?? {
+        userId,
+        name: nameOfUser(src, ledgers, projectId ?? "", userId),
+        councils: 0,
+        usage: { ...ZERO_USAGE },
+        ids: new Set<string>(),
+      };
+      row.usage = addUsage(row.usage, e.payload.usage);
+      row.ids.add(council.id);
+      row.councils = row.ids.size;
+      rows.set(userId, row);
+    }
+  }
+  return [...rows.values()].map(({ ids: _ids, ...row }) => row);
 }
 
 function loadSessions(src: UsageSource): Map<string, Session> {
