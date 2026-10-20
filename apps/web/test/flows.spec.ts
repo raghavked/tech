@@ -491,3 +491,58 @@ test("a council: Ana convenes four models, they answer and discuss, she rates th
   await bo.getByRole("region", { name: "Councils" }).getByRole("link", { name: task }).click();
   await expect(bo.getByRole("region", { name: "Council room" })).toContainText("Concluded · done");
 });
+
+test("welcome an agent: the arrival card, what it was told, and the tour from Settings", async ({
+  page,
+}) => {
+  const session = `e2e-tour-${token()}`;
+  await enter(page, "Ana", "ana", "e2e-tour", session);
+
+  // A young session opens on its arrival card: the joining line, who it is, the facts, the rule.
+  const arrival = page.getByRole("region", { name: `${session} has joined` });
+  await expect(arrival).toBeVisible();
+  await expect(arrival).toContainText("Ana's agent, joins the circle.");
+  await expect(arrival).toContainText("Mentioned by");
+  await expect(arrival).toContainText("hears only what mentions it");
+  await expect(arrival).toContainText("Who it joined");
+  await expect(arrival).toContainText("Ana");
+
+  // "What it was told" opens the welcome brief: the paragraph, the ledger sections and the
+  // mono fold with the text the ledger recorded for the agent.
+  await arrival.getByRole("button", { name: "What it was told" }).click();
+  const told = page.getByRole("complementary", { name: `What ${session} was told` });
+  await expect(told).toBeVisible();
+  await expect(told).toContainText(`You are Ana's agent on ${session}.`);
+  await expect(told).toContainText("Written by the system from the ledger");
+  await expect(told.getByRole("region", { name: "The circle" })).toContainText("Ana is your owner");
+  await expect(told.getByRole("region", { name: "Manners" })).toContainText("Ask for risky calls.");
+  await told.getByText("As the model reads it").click();
+  await expect(told).toContainText("## Henosis · you have joined");
+
+  // "Say hello" puts the person in the composer.
+  await arrival.getByRole("button", { name: "Say hello" }).click();
+  await expect(page.getByLabel("Directive", { exact: true })).toBeFocused();
+
+  // Settings · Help · Take the tour replays it on the most recent session: five coach marks in
+  // order, Back and Next, then "Close the ring" and the toast.
+  await page.goto("/#/settings");
+  await page.getByRole("button", { name: "Take the tour" }).click();
+  await expect(page).toHaveURL(new RegExp(`#/p/e2e-tour/s/${session}$`));
+  const dialog = (n: number) => page.getByRole("dialog", { name: `Tour, step ${n} of 5` });
+  await expect(dialog(1)).toBeVisible();
+  await expect(dialog(1)).toContainText("The rail is the team.");
+  await dialog(1).getByRole("button", { name: "Next · the stream" }).click();
+  await expect(dialog(2)).toContainText("Everything is attributed.");
+  await dialog(2).getByRole("button", { name: "Back" }).click();
+  await expect(dialog(1)).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await dialog(2).getByRole("button", { name: "Next · the plan" }).click();
+  await expect(dialog(3)).toContainText("Plans come first.");
+  await dialog(3).getByRole("button", { name: "Next · the release gate" }).click();
+  await expect(dialog(4)).toContainText("held by the people who consume the code");
+  await dialog(4).getByRole("button", { name: "Next · the composer" }).click();
+  await expect(dialog(5)).toContainText("Agent, or Team.");
+  await dialog(5).getByRole("button", { name: "Close the ring" }).click();
+  await expect(page.getByRole("dialog", { name: /^Tour/ })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "Ana is in the circle." })).toBeVisible();
+});

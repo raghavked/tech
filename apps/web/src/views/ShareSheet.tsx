@@ -9,9 +9,10 @@ import type { ProjectState } from "@henosis/fleet";
 import type { SessionState } from "@henosis/kernel";
 import type { Actor, Role } from "@henosis/protocol";
 import { useState } from "react";
-import type { HenosisClient } from "../client.js";
+import { type HenosisClient, wsUrl } from "../client.js";
+import { copy } from "../copy.js";
 import { paths } from "../router.js";
-import { Avatar, copyText, ErrorLine, ICONS, Icon } from "../ui.js";
+import { Avatar, copyText, ErrorLine, ICONS, Icon, Mark } from "../ui.js";
 
 const ROLES: Role[] = ["observer", "contributor", "driver", "owner"];
 
@@ -146,15 +147,75 @@ export function ShareSheet({
             <p className="small faint">You own this session, so you can change a role.</p>
           )}
         </section>
-        <section className="group">
-          <h3>Invite</h3>
-          <p className="small muted">
-            Someone not on the project yet is added on the{" "}
-            <a href={paths.fleet(projectId)}>project page</a> under Invite.
-          </p>
-        </section>
+        <InviteSection me={me} projectId={projectId} sessionId={s.sessionId} link={link} />
       </aside>
     </>
+  );
+}
+
+/** The `henosis join` line a runner or a harness uses to bring an agent into this session. */
+export function joinCommand(sessionId: string, name: string, ws: string): string {
+  return `henosis join ${sessionId} --as "${name}" --url ${ws}`;
+}
+
+/**
+ * The invite as the digest's hero (share-invite, email-digest): "Cy, Bo invites you to the
+ * circle." on navy, then a person and an agent in two matching boxes, because they join the
+ * same way; the agent's box carries its `henosis join` line and the closing rule.
+ */
+function InviteSection({
+  me,
+  projectId,
+  sessionId,
+  link,
+}: {
+  me: Actor;
+  projectId: string;
+  sessionId: string;
+  link: string;
+}) {
+  const [who, setWho] = useState("");
+  const command = joinCommand(sessionId, who.trim() || "Invoice PDF", wsUrl());
+  return (
+    <section className="group invite" aria-label={copy.invite.title}>
+      <h3>{copy.invite.title}</h3>
+      <div className="invite-hero">
+        <Mark size={40} />
+        <p className="serif">
+          {copy.invite.heroBefore(who)}
+          <i>{me.name}</i>
+          {copy.invite.heroAfter}
+        </p>
+        <input
+          className="input sm"
+          aria-label={copy.invite.who}
+          placeholder={copy.invite.whoHint}
+          value={who}
+          onChange={(e) => setWho(e.target.value)}
+        />
+      </div>
+      <div className="invite-boxes">
+        <div className="box">
+          <h4>{copy.invite.person}</h4>
+          <p className="small muted">
+            {copy.invite.personLine}
+            {ROLE_RULE}
+          </p>
+          <CopyButton text={link} />
+          <p className="small faint">
+            {copy.invite.personFoot.replace("project page", "")}
+            <a href={paths.fleet(projectId)}>project page</a>.
+          </p>
+        </div>
+        <div className="box">
+          <h4>{copy.invite.agent}</h4>
+          <p className="small muted">{copy.invite.agentLine}</p>
+          <pre className="brief code">{command}</pre>
+          <CopyButton text={command} label={copy.invite.copyCommand} />
+          <p className="small faint">{copy.invite.agentRule}</p>
+        </div>
+      </div>
+    </section>
   );
 }
 

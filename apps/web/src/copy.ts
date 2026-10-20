@@ -116,6 +116,9 @@ export const copy = {
     offlineCause: "Offline. Open the last brief?",
     openBrief: "Open the last brief",
     tryNow: "Try now",
+    /** The toast once a dropped socket is back: "Back after 3 tries · the stream caught up". */
+    backAfter: (tries: number, caughtUp: boolean) =>
+      `Back after ${plural(tries, "try", "tries")}${caughtUp ? " · the stream caught up" : ""}`,
     project: (name: string, inCount: number | null, of: number | null) =>
       inCount !== null && of !== null
         ? `Opening ${name}. ${inCount} of ${of} sessions in`
@@ -548,8 +551,6 @@ export const copy = {
     toSteer: " to steer the agent",
     nothingSent: "Nothing is sent while you look back",
     reconnecting: "Reconnecting · ",
-    /** The offline queue's chip: the app holds what was typed and sends it, in order, when the socket is back. */
-    held: (n: number) => `${plural(n, "message")} held until the socket is back`,
     planWaits: "The plan waits for ratings",
     sendTeam: "Send to the team",
     keysLive: "Keys live",
@@ -566,6 +567,20 @@ export const copy = {
       `Every tool call above read is refused until the plan is approved · as ${name}, ${role}${driving ? ", driving" : ""}`,
     hintLive: (doing: string) =>
       `The agent is ${doing.charAt(0).toLowerCase()}${doing.slice(1)} · what you send now reaches it when the step ends`,
+    /**
+     * The composer's promise under a dead socket (error-states, Decision 4): the chip says
+     * exactly what the queue does. Nothing is sent by itself; what was typed is kept here, in
+     * order, and goes out when the person presses Resend once they are back.
+     */
+    held: "Not sent · kept here until you are back",
+    heldCount: (n: number) => `${n} not sent · kept here`,
+    resend: "Resend",
+    resendWhenBack: "Resend once you are back",
+    showHeld: "Show what is kept",
+    heldHere: "Kept here",
+    heldEmpty: "Nothing kept.",
+    heldRemove: "Remove from what is kept",
+    heldFoot: "Sent in order when you press Resend; nothing is sent twice.",
   },
 
   // The desktop shell (design/henosis SCREENS.md §20 and §19 first run; BACKLOG.md L1).
@@ -714,6 +729,7 @@ export const copy = {
     catchUp: "Catch-up",
     briefHint: "A brief of what happened since you were last here.",
     askBrief: "Ask for brief",
+    whatItWasTold: "What it was told",
     memoryEmpty: "Nothing remembered for this project yet.",
     memoryEmptyHint: "Nothing remembered here yet; ask the agent to remember something.",
     writeToAgent: "Write to the agent",
@@ -1840,5 +1856,163 @@ export const copy = {
     contentionBody: (kind: string, resource: string) => `${kind} on ${resource}`,
     planTitle: "A plan waits for your rating",
     planBody: (steps: number, where: string) => `${plural(steps, "step")} in ${where}`,
+  },
+
+  /**
+   * Welcome an agent (SCREENS.md §19): the joining line and the arrival card at the top of a
+   * young session, the hearing rule, and the drawer that shows what the system told it.
+   */
+  arrival: {
+    label: (title: string) => `${title} has joined`,
+    /** "<Checkout>, Ana's agent, joins the circle." (the title is rendered in italic by the view). */
+    line: (owner: string) => `, ${owner}'s agent, joins the circle.`,
+    agentOf: (owner: string) => `${owner}'s agent`,
+    project: (p: string) => `project ${p}`,
+    crew: (c: string) => `crew ${c}`,
+    freshWorkspace: "fresh workspace",
+    carriedWorkspace: (n: number) => `${plural(n, "file")} carried over`,
+    on: "On ",
+    noGoal: "Waiting for a goal.",
+    status: "Status",
+    mentionedBy: "Mentioned by",
+    anyoneOn: (p: string) => `anyone on ${p}`,
+    gate: "Gate",
+    budget: "Budget",
+    budgetLine: (used: string, budget: string | null) =>
+      budget ? `${used} of ${budget}` : `${used} · no budget`,
+    soft: "soft",
+    /** The hearing rule with the ear: the same sentence the new-group sheet and the members drawer use. */
+    hearsBefore: "In a group it hears only what ",
+    hearsMentions: "mentions it",
+    hearsMiddle: "; a mention steers this session, and its next words come back there as ",
+    hearsAfter: (owner: string) => `, never as ${owner}.`,
+    sayHello: "Say hello",
+    openSession: "Open session",
+    told: "What it was told",
+    whoItJoined: "Who it joined",
+    holdsGate: "holds the gate",
+    crewmate: (owner: string) => `crewmate · ${owner}`,
+    foot: (owner: string, project: string, when: string | null) =>
+      `${owner} opened it on ${project}${when ? ` at ${when}` : ""}. The log keeps the join.`,
+    /** The owner's toast on navy: "Checkout is in. Bo and Cy hold its gate." */
+    isIn: (title: string, gate: readonly string[]) =>
+      gate.length
+        ? `${title} is in. ${list(gate)} hold${gate.length === 1 ? "s" : ""} its gate.`
+        : `${title} is in.`,
+  },
+
+  /** The drawer "What <Checkout> was told": the welcome brief as a person reads it. */
+  told: {
+    title: (title: string) => `What ${title} was told`,
+    close: "Close what it was told",
+    heading: "The welcome brief",
+    when: (when: string | null) => `${when ? `${when} · ` : ""}turn 0`,
+    foot: "Written by the system from the ledger · kept in the log · replayable",
+    asModel: "As the model reads it",
+    tokens: (n: number) => `${n.toLocaleString("en-US")} tokens`,
+    notRecorded:
+      "The ledger has no record of this brief: the session was registered before briefs were kept.",
+    dfoot: (owner: string) =>
+      `${owner} wrote none of this; the system did, from the ledger, the way the handoff brief is written. The log keeps every version.`,
+  },
+
+  /**
+   * The tour (tour, MOTION.md §10): five coach marks on the real session, in the product's
+   * voice. Bodies read the policy so they say what this session does, not a fixture.
+   */
+  tour: {
+    dialog: (n: number, of: number) => `Tour, step ${n} of ${of}`,
+    step: (n: number, of: number) => `Step ${n} of ${of}`,
+    skip: "Skip the tour",
+    back: "Back",
+    next: (what: string) => `Next · ${what}`,
+    close: "Close the ring",
+    /** "<Dee> is in the circle." */
+    inCircle: (name: string) => `${name} is in the circle.`,
+    reopen: "The tour lives in Settings whenever you want it back.",
+    /** An arriving approval ends the tour: the ring closes and the card takes the halo. */
+    endedByApproval: "An approval waits for you; the tour ends here. It lives in Settings.",
+    keys: "→ ← esc",
+    rail: {
+      title: "The rail is the team.",
+      body: "Every live agent is a card: what it is on, Solo or Team, who it is with, and what it has spent. Yours is here as soon as it starts.",
+      next: "the stream",
+    },
+    stream: {
+      title: "Everything is attributed.",
+      body: "A person sets the goal. The agent answers with its tool steps underneath, each with what it cost. A note to the team goes to the people here and never to the agent. All of it replays, in order, for whoever comes next.",
+      next: "the plan",
+    },
+    plan: {
+      title: "Plans come first.",
+      body: (min: number, average: number) =>
+        `Before it writes a line the agent proposes steps with token estimates. The people here rate the plan; ${plural(min, "rating")} at ${average} or above open${min === 1 ? "s" : ""} it. Each step records what it took beside its estimate.`,
+      bodyOff:
+        "When a session is plan first, the agent proposes steps with token estimates before it writes a line, and the people here rate them. This session goes straight to work; a plan card appears when one is asked for.",
+      tip: "Your rating counts once. A note helps the next person.",
+      missing: "No plan yet: the card appears here when the agent proposes one.",
+      next: "the release gate",
+    },
+    gate: {
+      title: "The gate is held by the people who consume the code.",
+      body: (rule: string, rating: number) =>
+        `What cannot be undone waits at a release gate: ${rule}. An approve without a pick sends ${rating}.`,
+      tip: "Approve stays live under the dim: a tour never blocks a vote.",
+      missing:
+        "Nothing waits at a gate right now: the notice appears in the stream when the agent asks.",
+      next: "the composer",
+    },
+    composer: {
+      title: "Agent, or Team.",
+      body: "Agent steers this agent with a scope: goal, api, tests. It is weighed against everyone else's and applied at the next safe point. Team talks to the people here; it is kept in the log and never sent to the agent.",
+    },
+    settingsTitle: "Help",
+    take: "Take the tour",
+    takeDetail:
+      "Five coach marks on a real session: the rail, the stream, the plan, the gate, the composer.",
+    takeNext: "Opens on the next session you open.",
+  },
+
+  /** The bad moments (error-states, SYSTEM.md §8): what happened with a time, what still works, what Henosis is doing, one action. */
+  bad: {
+    asOf: (when: string) => `as of ${when}`,
+    serverGone: "Henosis cannot reach its server right now.",
+    youAreOffline: "You are offline.",
+    serverLine: (host: string) =>
+      `Your network is fine; the server at ${host} is not answering. Every session is logged there, so nothing anyone did is lost.`,
+    offlineLine: "Henosis dials again the moment the browser says it is back.",
+    again: (seconds: number) => `Trying again in ${seconds}s.`,
+    lastSaw: (when: string) => `What it last saw · ${when}`,
+    lastSawLine: (status: string, turn: number) => `${status}, turn ${turn}.`,
+    nothingSeen: "This browser has not seen this session yet.",
+    retry: "Retry",
+    cli: (sessionId: string) => `henosis join ${sessionId} · the CLI sees the same thing`,
+    /** A denied approval keeps both votes on the card: one voice does not carry a gate. */
+    denied: "Denied",
+    deniedAsk: (ask: string) => `The agent wanted to ${ask}.`,
+    deniedSo: "The agent reads the denial and works around it.",
+    oneVoice: "one voice does not carry a gate",
+    /** A rejected plan: struck steps, the note as a quote, the one action. */
+    rejectedSo:
+      "The agent has stopped. It starts again when someone steers it; a revised plan will replace this card.",
+    steerNew: "Steer towards a new plan",
+  },
+
+  /** Share and invite: the invite as the digest's hero, a person and an agent side by side. */
+  invite: {
+    title: "Invite",
+    /** "Cy, Bo invites you to the circle." (the host's name is rendered in italic by the view). */
+    heroBefore: (who: string) => (who.trim() ? `${who.trim()}, ` : ""),
+    heroAfter: " invites you to the circle.",
+    who: "Who to invite",
+    whoHint: "Their name",
+    person: "A person",
+    personLine: "Opens the link and is in. ",
+    personFoot: "Someone not on the project yet is added on the project page under Invite.",
+    agent: "An agent",
+    agentLine: "A runner or a harness joins the same session with one command.",
+    copyCommand: "Copy command",
+    agentRule:
+      "Same manners, same gate. It plans first and waits for ratings; irreversible steps wait at the release gate. Its owner answers for it; it never votes.",
   },
 } as const;

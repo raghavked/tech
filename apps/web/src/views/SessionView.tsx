@@ -21,15 +21,25 @@ import { notifyIfHidden } from "../notify.js";
 import { usePaletteActions } from "../palette.js";
 import { isComposing, presenceSummary } from "../presence.js";
 import { rememberRecent } from "../recents.js";
-import { clockOf, ReconnectLine } from "../reconnect.js";
+import {
+  AsOf,
+  clockOf,
+  hostOf,
+  ReconnectLine,
+  readLastSeen,
+  rememberLastSeen,
+  ServerGone,
+} from "../reconnect.js";
 import { reportPendingApprovals } from "../shell.js";
 import type { ShortcutHandlers } from "../shortcuts.js";
+import { ArrivalCard, ToldDrawer } from "../stream/Arrival.js";
 import { describeCall } from "../stream/blocks.js";
 import { Composer } from "../stream/Composer.js";
 import { rememberArrival } from "../stream/clock.js";
 import { Drawer, type Face } from "../stream/Drawer.js";
 import { Stream } from "../stream/Message.js";
 import { TokenMeter } from "../stream/TokenMeter.js";
+import { finishTour, Tour, tourPending, tourStepsFor } from "../tour.js";
 import {
   Avatar,
   ErrorLine,
@@ -38,11 +48,13 @@ import {
   Loader,
   Status,
   teamOf,
+  toast,
   useConnectionToasts,
   useJustJoined,
   useMediaQuery,
 } from "../ui.js";
 import { focusSoon, useShortcutContextPublisher } from "../useShortcuts.js";
+import { isArriving } from "../welcome.js";
 import { BranchCompare } from "./BranchCompare.js";
 import { ReplayScrubber, useReplay } from "./ReplayScrubber.js";
 import { ShareSheet } from "./ShareSheet.js";
@@ -64,7 +76,7 @@ const FLEET_KINDS = new Set<string>([
   "session.closed",
 ]);
 
-type Panel = Face | "share" | null;
+type Panel = Face | "share" | "told" | null;
 
 export function SessionView({
   projectId,
@@ -109,6 +121,32 @@ export function SessionView({
   const offline = useOffline(snap.connected);
   const netOnline = useOnline();
 
+  // The tour (tour.tsx): once, on the first session opened after the first run, or from
+  // Settings; never on the demo session. It starts 600 ms after the fold so its targets exist.
+  const [touring, setTouring] = useState(false);
+  // An approval that arrived during the tour: it ended the tour and wears the halo for a while.
+  const [lit, setLit] = useState<string | null>(null);
+  const folded = snap.state !== null;
+  useEffect(() => {
+    if (!folded || sessionId.startsWith("demo-") || !tourPending()) return;
+    const t = setTimeout(() => setTouring(true), 600);
+    return () => clearTimeout(t);
+  }, [folded, sessionId]);
+  const endTour = useCallback(
+    (how: "closed" | "skipped" | "approval") => {
+      setTouring(false);
+      finishTour();
+      if (how === "closed") toast(copy.tour.inCircle(identity.name));
+      else if (how === "approval") toast(copy.tour.endedByApproval);
+    },
+    [identity.name],
+  );
+  useEffect(() => {
+    if (!lit) return;
+    const t = setTimeout(() => setLit(null), 6000);
+    return () => clearTimeout(t);
+  }, [lit]);
+
   // The log has no wall clock: remember when each live event reached us (stream/clock.ts).
   useEffect(() => client.onLiveEvent((e) => rememberArrival(e.id)), [client]);
 
@@ -119,6 +157,11 @@ export function SessionView({
         const st = client.snapshot.state;
         const who = (id: string) => st?.participants[id]?.actor.name ?? id;
         const where = st?.title || sessionId;
+        // An arriving approval ends the tour: the dim lifts and the card takes the halo.
+        if (e.kind === "approval.requested" && touring) {
+          endTour("approval");
+          setLit(e.payload.approvalId);
+        }
         if (e.kind === "approval.requested")
           notifyIfHidden(
             copy.notify.approvalTitle,
@@ -150,8 +193,18 @@ export function SessionView({
             "contention",
           );
       }),
-    [client, identity.userId, sessionId],
+    [client, identity.userId, sessionId, touring, endTour],
   );
+
+  // What this browser last saw of the session (only the time, the status and the turn), for
+  // the server-down page's "What it last saw · 14:02".
+  const seenStatus = snap.state?.status ?? null;
+  const seenTurn = snap.state?.turn ?? 0;
+  const seenAt = snap.events.at(-1)?.ts ?? null;
+  useEffect(() => {
+    if (!seenStatus || !seenAt) return;
+    rememberLastSeen(projectId, sessionId, { at: seenAt, status: seenStatus, turn: seenTurn });
+  }, [projectId, sessionId, seenStatus, seenTurn, seenAt]);
 
   // The sidebar's agents rail reads the project listing: tell it when who is here or what the
   // agent is doing changed, instead of leaving it to the next poll.
@@ -215,7 +268,18 @@ export function SessionView({
         <div className="column">
           <ErrorLine errors={snap.errors} />
           {offline ? (
-            <OfflineState online={netOnline} onRetry={join} />
+            // Server down takes the page: the only state that takes the mark's centre away.
+            <ServerGone
+              online={netOnline}
+              host={hostOf(wsUrl())}
+              retry={snap.retry}
+              lastSeen={readLastSeen(projectId, sessionId)}
+              sessionId={sessionId}
+              onRetry={() => {
+                if (snap.reconnecting) client.reconnectNow();
+                else join();
+              }}
+            />
           ) : (
             <div className="centre-wait">
               {snap.connected ? (
@@ -330,6 +394,8 @@ export function SessionView({
       }
       right={
         <>
+          {/* presence dims to 45 % with "as of HH:MM" while the socket is down: we no longer know who is here */}
+          {!snap.connected && <AsOf ts={snap.events.at(-1)?.ts} />}
           <fieldset
             className={`stack${snap.connected ? "" : " stale"}`}
             aria-label={copy.session.presentSummary(presenceSummary(snap.presence, s.driver))}
@@ -429,6 +495,19 @@ export function SessionView({
             errors={snap.errors}
             onClose={() => setPanel(null)}
           />
+        ) : panel === "told" ? (
+          <ToldDrawer
+            s={s}
+            rows={rows.data ?? []}
+            mine={mine}
+            projectName={ref.name}
+            orgId={ref.orgId}
+            teamId={ref.teamId}
+            projectId={projectId}
+            at={snap.events[0]?.ts ?? null}
+            me={actor}
+            onClose={() => setPanel(null)}
+          />
         ) : panel ? (
           <Drawer
             face={panel}
@@ -450,6 +529,7 @@ export function SessionView({
               if (phone) setPanel(null);
             }}
             onShare={() => setPanel("share")}
+            onTold={() => setPanel("told")}
             replay={{
               marks: view.marks,
               viewSeq,
@@ -483,8 +563,23 @@ export function SessionView({
               agentName={agentName}
               showHandoff={panel !== "team" && !past}
               past={past ? { marks: view.marks, at: marksAt } : null}
+              lit={lit}
+              arrival={
+                !past && isArriving(s) ? (
+                  <ArrivalCard
+                    s={s}
+                    rows={rows.data ?? []}
+                    mine={mine}
+                    projectId={projectId}
+                    at={snap.events[0]?.ts ?? null}
+                    me={actor}
+                    onTold={() => setPanel("told")}
+                  />
+                ) : null
+              }
             />
           </div>
+          {touring && <Tour steps={tourStepsFor(s)} onEnd={endTour} />}
           <Composer
             s={s}
             me={actor}

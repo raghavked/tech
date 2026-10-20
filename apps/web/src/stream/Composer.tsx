@@ -298,10 +298,23 @@ export function Composer({
           </div>
         )}
       </form>
-      {queued.length > 0 && (
-        <p className="queue-note small" role="status">
-          <Icon d={ICONS.clock} size={13} />
-          {copy.composer.held(queued.length)}
+      {/* Decision 4 (error-states), the honest copy: what was typed under a dead socket is not
+          sent; it is kept here, in order, until the person is back and presses Resend. */}
+      {(!connected || queued.length > 0) && !readonly && (
+        <p className="queue-note held small" role="status">
+          <span className="chip warn">
+            <Icon d={ICONS.clock} size={13} />
+            {connected ? copy.composer.heldCount(queued.length) : copy.composer.held}
+          </span>
+          <button
+            type="button"
+            className="btn sm"
+            disabled={!connected || queued.length === 0}
+            title={connected ? undefined : copy.composer.resendWhenBack}
+            onClick={() => client.resend()}
+          >
+            {copy.composer.resend}
+          </button>
         </p>
       )}
       {showQueue && <QueueList queued={queued} s={s} client={client} />}

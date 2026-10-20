@@ -24,6 +24,7 @@ import { createSession } from "../projectClient.js";
 import { recentRoutes, useRecentRooms, useRecents } from "../recents.js";
 import { navigate, paths } from "../router.js";
 import { useShellInbox, useShellPlatform } from "../shell.js";
+import { requestTourIfNew } from "../tour.js";
 import { type TrayItem, trayMenuOf } from "../tray.js";
 import { Avatar, ICONS, Icon, Mark, type MarkState } from "../ui.js";
 
@@ -322,6 +323,8 @@ function OpenSession({ identity, team }: { identity: Identity; team: Team | null
             policy: policyOf(planFirst, budget),
           }).finally(() => {
             setOpening(false);
+            // The tour shows once, on the first session a new member opens from here.
+            requestTourIfNew();
             navigate(paths.session(pid, id));
           });
         }}

@@ -8,4 +8,5 @@ export * from "./project.js";
 export * from "./propagate.js";
 export * from "./render.js";
 export * from "./state.js";
+export * from "./welcome.js";
 export * from "./wire.js";

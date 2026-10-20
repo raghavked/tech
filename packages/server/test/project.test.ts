@@ -1,9 +1,10 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { isWelcomeBrief } from "@henosis/fleet";
 import { defaultTools, ScriptedModel } from "@henosis/runner";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ProjectHost } from "../src/projectHost.js";
+import { AGENT_READER, ProjectHost } from "../src/projectHost.js";
 import { HenosisServer } from "../src/server.js";
 
 const sessionPolicy = {
@@ -281,5 +282,49 @@ describe("project host", () => {
     dee.ws.close();
     await server.close();
     rmSync(root3, { recursive: true, force: true });
+  });
+
+  it("records the welcome brief at registration and reads it back to the agent on turn 0 only", async () => {
+    const root4 = mkdtempSync(join(tmpdir(), "henosis-proj-welcome-"));
+    const host = new ProjectHost({
+      root: root4,
+      projectId: "payments",
+      orgId: "nw",
+      teamId: "pay",
+      name: "Payments",
+      model: new ScriptedModel(),
+      tools: defaultTools(),
+      sessionPolicy,
+    });
+    host.project.join("ana", "Ana", "lead");
+    host.project.join("bo", "Bo", "member");
+    const a = host.session("s-ana", { title: "Checkout", ownerId: "ana", ownerName: "Ana" });
+    a.session.join("main", { id: "ana", kind: "human", name: "Ana" }, "owner");
+
+    // session.briefed, kind `fleet`, at registration: the circle and the manners, in one voice.
+    const told = host.state().sessions["s-ana"]?.briefs.find((b) => b.kind === "fleet");
+    expect(told?.reader).toBe(AGENT_READER);
+    expect(told?.atSeq).toBe(0);
+    expect(isWelcomeBrief(told?.brief ?? "")).toBe(true);
+    expect(told?.brief).toContain(
+      "You join Payments: Ana and Bo. You are Ana's agent on Checkout.",
+    );
+    expect(told?.brief).toContain("Ana is your owner and the lead.");
+    expect(told?.brief).toContain("## Other agents\nno other agents in this project");
+
+    // The runner's context on the agent's first turn is that same text; afterwards the live
+    // fleet context, so a second session registered later is seen.
+    const guard = (host as unknown as { guardFor(id: string): { context(): string } }).guardFor(
+      "s-ana",
+    );
+    expect(guard.context()).toBe(told?.brief);
+    a.session.directive("main", "ana", { text: "Build a doubling helper" });
+    await a.drive("main");
+    expect(a.session.state().turns.length).toBeGreaterThan(0);
+    host.session("s-bo", { title: "Billing page", ownerId: "bo", ownerName: "Bo" });
+    expect(isWelcomeBrief(guard.context())).toBe(false);
+    expect(guard.context()).toContain("Billing page");
+    host.close();
+    rmSync(root4, { recursive: true, force: true });
   });
 });

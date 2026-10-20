@@ -12,10 +12,12 @@ import type {
   ServerMessage,
   SessionEvent,
 } from "@henosis/protocol";
+import { copy } from "./copy.js";
 import { getIdentity } from "./identity.js";
 import { isQueueable, OfflineQueue, type QueuedMessage, queueKey } from "./offlineQueue.js";
 import { Reconnector, type Retry } from "./reconnect.js";
 import { wsBase } from "./shell.js";
+import { toast } from "./toast.js";
 
 export interface ClientSnapshot {
   state: SessionState | null;
@@ -128,12 +130,15 @@ export class HenosisClient {
     const ws = new WebSocket(url);
     this.ws = ws;
     this.askedFull = false;
+    const attempt = this.reconnector.attempt;
     ws.onopen = () => {
       if (this.ws !== ws) return;
       this.emit({ connected: true });
-      ws.send(JSON.stringify(this.joinMessage(opts, this.resumePoint())));
-      // Offline queue (hook point): everything typed while away goes out now, in order.
-      this.queue.flush((m) => ws.send(JSON.stringify(m)));
+      // The dial count rides along, so the snapshot's `reconnect` can say "back after 3 tries".
+      const join = this.joinMessage(opts, this.resumePoint());
+      ws.send(JSON.stringify(attempt > 0 ? { ...join, attempt } : join));
+      // Offline queue (Decision 4, the honest copy): what was typed while away stays kept, in
+      // order, until the person presses Resend; nothing goes out by itself.
       this.emit({ queued: this.queue.items });
     };
     ws.onclose = () => {
@@ -154,6 +159,12 @@ export class HenosisClient {
           this.reconnector.reset();
           this.emit({ reconnecting: false, retry: null });
           this.applySnapshot(msg.events, opts);
+          if (msg.reconnect) {
+            // The server's delay for the next dial should this socket drop: one policy for a fleet.
+            this.reconnector.hint(msg.reconnect.delayMs);
+            if (msg.reconnect.attempt > 0)
+              toast(copy.wait.backAfter(msg.reconnect.attempt, msg.reconnect.resumed));
+          }
           break;
         case "event": {
           const state = this.snapshot.state ? fold([msg.event], this.snapshot.state) : null;
@@ -238,6 +249,18 @@ export class HenosisClient {
   unqueue(id: string): void {
     this.queue.remove(id);
     this.emit({ queued: this.queue.items });
+  }
+
+  /**
+   * "Resend": send what was kept while the socket was down, in order, over the live socket.
+   * Returns how many went; nothing goes when the socket is still closed, and nothing twice.
+   */
+  resend(): number {
+    const ws = this.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return 0;
+    const sent = this.queue.flush((m) => ws.send(JSON.stringify(m)));
+    this.emit({ queued: this.queue.items });
+    return sent;
   }
   /** Project-level messages ride the same socket once joined (the server knows the project). */
   sendProject(msg: ProjectClientMessage): void {

@@ -59,6 +59,7 @@ export function Drawer({
   errors,
   onCompare,
   onShare,
+  onTold,
   replay,
 }: {
   face: Face;
@@ -79,6 +80,8 @@ export function Drawer({
   onCompare: (branch: string) => void;
   /** Invite: the share sheet. */
   onShare: () => void;
+  /** Open "What it was told": the welcome brief, the same text the handoff brief is written like. */
+  onTold: () => void;
   replay: ReplayControls;
 }) {
   const here = presence.filter((p) => p.online).length;
@@ -148,6 +151,7 @@ export function Drawer({
             brief={brief}
             onCompare={onCompare}
             replay={replay}
+            onTold={onTold}
           />
         )}
       </aside>
@@ -493,6 +497,7 @@ function DetailsFace({
   projectId,
   brief,
   onCompare,
+  onTold,
   replay,
 }: {
   s: SessionState;
@@ -503,6 +508,8 @@ function DetailsFace({
   projectId: string;
   brief: string | null;
   onCompare: (branch: string) => void;
+  /** Open "What it was told" (stream/Arrival.tsx ToldDrawer). */
+  onTold: () => void;
   replay: ReplayControls;
 }) {
   const name = (id: string) => s.participants[id]?.actor.name ?? id;
@@ -791,9 +798,14 @@ function DetailsFace({
         ) : (
           <p className="muted small">{copy.details.briefHint}</p>
         )}
-        <button type="button" className="btn sm" onClick={() => client.send({ type: "brief" })}>
-          {copy.details.askBrief}
-        </button>
+        <p className="row">
+          <button type="button" className="btn sm" onClick={() => client.send({ type: "brief" })}>
+            {copy.details.askBrief}
+          </button>
+          <button type="button" className="btn ghost sm" onClick={onTold}>
+            {copy.details.whatItWasTold}
+          </button>
+        </p>
       </Fold>
       <ReplayToggle
         pinned={replay.pinned}

@@ -8,15 +8,17 @@ import type { ContentionPolicy, RiskClass, SessionPolicy } from "@henosis/protoc
 import { type ReactNode, useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, useFetch } from "../api.js";
+import { copy } from "../copy.js";
 import { clearIdentity, type Identity } from "../identity.js";
 import { notifyPermission, requestNotifications } from "../notify.js";
 import { hotkeyLabel } from "../palette.js";
 import { NOTIFY_KINDS, useNotifyPrefs } from "../prefs.js";
 import { useRecents } from "../recents.js";
-import { paths } from "../router.js";
+import { navigate, paths } from "../router.js";
 import { SHORTCUTS } from "../shortcuts.js";
 import { type Theme, useTheme } from "../theme.js";
-import { Avatar, ICONS, Icon } from "../ui.js";
+import { requestTour } from "../tour.js";
+import { Avatar, ICONS, Icon, toast } from "../ui.js";
 import { MyAgent, TeamAgents } from "./AgentSettings.js";
 import { TeamLook } from "./TeamLook.js";
 
@@ -54,10 +56,36 @@ export function Settings({
         <TeamLook identity={identity} me={me} />
         <TeamAgents identity={identity} me={me} />
         <Keyboard />
+        <Help />
         <TeamPolicy me={me} />
         <Integrations />
       </div>
     </Shell>
+  );
+}
+
+/** Help: the tour, reopened from here (tour): it replays from step 1 on the most recent session. */
+function Help() {
+  const recents = useRecents();
+  const recent = recents[0] ?? null;
+  return (
+    <Section title={copy.tour.settingsTitle}>
+      <div className="list">
+        <Row title={copy.tour.take} detail={copy.tour.takeDetail}>
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => {
+              requestTour();
+              if (recent) navigate(paths.session(recent.projectId, recent.sessionId));
+              else toast(copy.tour.takeNext);
+            }}
+          >
+            {copy.tour.take}
+          </button>
+        </Row>
+      </div>
+    </Section>
   );
 }
 

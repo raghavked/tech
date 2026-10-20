@@ -8,7 +8,7 @@
  */
 import { isRatingsRule, ruleFor, type SessionState } from "@henosis/kernel";
 import type { Actor, SessionEvent } from "@henosis/protocol";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, type ReactNode, useCallback, useEffect, useState } from "react";
 import type { HenosisClient } from "../client.js";
 import { copy } from "../copy.js";
 import type { TurnMark } from "../replay.js";
@@ -45,6 +45,8 @@ export function Stream({
   agentName,
   showHandoff,
   past = null,
+  lit = null,
+  arrival = null,
 }: {
   events: SessionEvent[];
   s: SessionState;
@@ -55,6 +57,10 @@ export function Stream({
   showHandoff: boolean;
   /** replay-scrubber: the marks ahead of the viewed turn, for the edge of the past. */
   past?: { marks: TurnMark[]; at: number } | null;
+  /** The approval that ended the tour: it wears the halo for a while. */
+  lit?: string | null;
+  /** The arrival card at the top of a young session (welcome-agent). */
+  arrival?: ReactNode;
 }) {
   const { blocks, version } = useBlocks(events, s, me.id);
   // Which tool steps are expanded lives here, so a row keeps it when it is unmounted off-screen.
@@ -92,14 +98,22 @@ export function Stream({
         case "divider":
           return <div className={`divider${b.danger ? " danger" : ""}`}>{b.text}</div>;
         case "approval":
-          return <ApprovalNotice s={s} id={b.approvalId} client={client} me={me} />;
+          return (
+            <ApprovalNotice
+              s={s}
+              id={b.approvalId}
+              client={client}
+              me={me}
+              lit={lit === b.approvalId}
+            />
+          );
         case "plan":
           return <PlanCard s={s} planId={b.planId} me={me} client={client} />;
         default:
           return null;
       }
     },
-    [s, me, client, openSteps, toggleStep, agentName, lastAgent, past],
+    [s, me, client, openSteps, toggleStep, agentName, lastAgent, past, lit],
   );
   const name = (id: string) => s.participants[id]?.actor.name ?? id;
   const contentions = Object.values(s.contentions).filter((c) => !c.resolved);
@@ -109,7 +123,8 @@ export function Stream({
   const canPick = s.driver === me.id || s.participants[me.id]?.role === "owner";
   return (
     <section className="column stream" aria-label={copy.stream.label}>
-      {blocks.length === 0 && <p className="muted stream-empty">{copy.stream.empty}</p>}
+      {arrival}
+      {blocks.length === 0 && !arrival && <p className="muted stream-empty">{copy.stream.empty}</p>}
       <VirtualList
         items={blocks}
         version={version}

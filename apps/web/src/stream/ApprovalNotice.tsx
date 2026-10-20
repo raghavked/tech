@@ -53,6 +53,7 @@ export const ApprovalNotice = memo(ApprovalNoticeRow, (prev, next) => {
     prev.id === next.id &&
     prev.client === next.client &&
     prev.me.id === next.me.id &&
+    prev.lit === next.lit &&
     approvalSig(prev.s, prev.id, prev.me.id) === approvalSig(next.s, next.id, next.me.id)
   );
 });
@@ -62,11 +63,14 @@ function ApprovalNoticeRow({
   id,
   client,
   me,
+  lit = false,
 }: {
   s: SessionState;
   id: string;
   client: HenosisClient;
   me: Actor;
+  /** The approval that ended the tour: it wears the halo for a while. */
+  lit?: boolean;
 }) {
   const a = s.approvals[id];
   // A release gate: the person picks a rating (and may add a note) before approving.
@@ -108,7 +112,7 @@ function ApprovalNoticeRow({
   const pick = rating ?? DEFAULT_RATING;
   return (
     <section
-      className={`notice ${gate ? "gate" : a.call.risk}${isFresh(a.id) ? " enter" : ""}`}
+      className={`notice ${gate ? "gate" : a.call.risk}${isFresh(a.id) ? " enter" : ""}${lit ? " lit" : ""}`}
       aria-label={copy.approval.label}
       data-approval={a.id}
       onKeyDown={onKeyDown}

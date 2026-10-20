@@ -1263,6 +1263,7 @@ export class HenosisServer {
           host = projectHost.session(msg.sessionId, {
             title: msg.title ?? msg.sessionId,
             ownerId: ownerForNew,
+            ownerName: this.orgs.user(userId)?.name ?? actor.name,
           });
           const sessionOwner = host.session.state().ownerId;
           const derived = ref ? this.orgs.sessionRole(userId, ref, sessionOwner) : null;
@@ -1395,6 +1396,7 @@ export class HenosisServer {
               projectHost.session(msg.sessionId, {
                 title: msg.title,
                 ownerId: me,
+                ownerName: this.orgs.user(me)?.name ?? this.names.get(me),
                 policy: msg.policy,
               });
               break;

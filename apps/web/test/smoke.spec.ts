@@ -9,6 +9,9 @@ async function enter(page: Page, name: string, userId: string, session: string) 
   await page.getByLabel("Session id").fill(session);
   await page.getByRole("button", { name: "Open session" }).click();
   await expect(page).toHaveURL(new RegExp(`#/p/default/s/${session}$`));
+  // The first session opened from the first run starts the tour; this flow skips it.
+  await page.getByRole("button", { name: "Skip the tour" }).click();
+  await expect(page.getByRole("dialog", { name: /^Tour/ })).toHaveCount(0);
 }
 
 const conversation = (page: Page) => page.getByLabel("Conversation");

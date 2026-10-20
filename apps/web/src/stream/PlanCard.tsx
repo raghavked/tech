@@ -105,6 +105,7 @@ function PlanCardRow({
     rank >= ROLE_RANK.driver &&
     (p.status === "proposed" || p.status === "approved");
   const mine = p.ratings[me.id] ?? null;
+  const rejected = p.status === "rejected";
   const r = ratingSummary(p);
   const used = planActualTokens(p);
   const raters = Object.entries(p.ratings).sort((a, b) => a[1].seq - b[1].seq);
@@ -171,7 +172,11 @@ function PlanCardRow({
               ? copy.plan.waitsAtGate
               : st.detail;
           return (
-            <div className={`pstep ${state}`} key={st.id}>
+            // A rejected plan (error-states): the steps it never reached are struck, not hidden.
+            <div
+              className={`pstep ${state}${rejected && st.status === "pending" ? " struck" : ""}`}
+              key={st.id}
+            >
               <span className="n" aria-hidden="true">
                 {st.status === "done" ? <Icon d={ICONS.check} size={12} /> : i + 1}
               </span>
@@ -264,8 +269,28 @@ function PlanCardRow({
           )}
         </div>
       )}
-      {live && p.note && p.decidedBy && p.decidedBy !== "policy" && (
-        <p className="small muted">{p.note}</p>
+      {live && rejected ? (
+        // The person who said no, their note as a quote, what the agent does now, one action.
+        <div className="decision">
+          {p.note && <q className="serif">{p.note}</q>}
+          <p className="small muted so">{copy.bad.rejectedSo}</p>
+          {human && (
+            <button
+              type="button"
+              className="btn primary sm"
+              onClick={() =>
+                document.querySelector<HTMLTextAreaElement>(".composer textarea")?.focus()
+              }
+            >
+              {copy.bad.steerNew}
+            </button>
+          )}
+        </div>
+      ) : (
+        live &&
+        p.note &&
+        p.decidedBy &&
+        p.decidedBy !== "policy" && <p className="small muted">{p.note}</p>
       )}
       {canDecide && (
         <div className="actions">

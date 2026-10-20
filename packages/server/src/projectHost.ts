@@ -20,6 +20,8 @@ import {
   renderFleetContext,
   type SerializedLedger,
   syncDirectives,
+  welcomeBrief,
+  welcomeInputOf,
   withdrawPropagated,
 } from "@henosis/fleet";
 import {
@@ -128,7 +130,13 @@ export class ProjectHost {
   /** Get or create a session host in this project; `policy` lays the creator's choices over the default. */
   session(
     sessionId: string,
-    create?: { title: string; ownerId: string | null; policy?: SessionPolicyPatch | undefined },
+    create?: {
+      title: string;
+      ownerId: string | null;
+      /** The owner's name for the welcome brief when the ledger does not know them yet. */
+      ownerName?: string | undefined;
+      policy?: SessionPolicyPatch | undefined;
+    },
   ): SessionHost {
     let h = this.hosts.get(sessionId);
     if (h) return h;
@@ -167,20 +175,46 @@ export class ProjectHost {
     const st = h.session.state();
     if (!this.project.state().sessions[sessionId]) {
       this.project.registerSession(sessionId, st.ownerId ?? create?.ownerId ?? "unknown", st.title);
-      // The standing brief the agent joins with: what the other agents hold and do. Recorded
-      // once, at registration, so "What it was told" is in the ledger and replays.
+      // The standing brief the agent joins with (welcome-agent): the circle, its crew, the
+      // manners, what is in its context, and what the other agents hold and do. Written by the
+      // system from the ledger, recorded once at registration, so "What it was told" is in the
+      // ledger and replays; the runner reads it on the agent's first turn (`context()` below).
       this.project.briefed(
         sessionId,
         AGENT_READER,
         "fleet",
         st.seq,
-        renderFleetContext(this.project.state(), sessionId) || NO_OTHER_AGENTS,
+        this.welcomeFor(sessionId, create?.ownerName),
       );
     }
     syncDirectives(this.project.state(), sessionId, h.session);
     h.session.onEvent((e) => this.onSessionEvent(sessionId, e));
     for (const fn of this.attachListeners) fn(sessionId, h);
     return h;
+  }
+
+  /**
+   * The welcome brief for a session, as the model reads it: the ledger's facts plus the
+   * fleet context of the moment, then the team memory in its scope.
+   */
+  welcomeFor(sessionId: string, ownerName?: string): string {
+    const h = this.hosts.get(sessionId);
+    const st = h?.session.state();
+    const policy = st?.policy ?? this.opts.sessionPolicy;
+    const input = welcomeInputOf(this.project.state(), sessionId, {
+      policy,
+      branch: st?.branch ?? MAIN_BRANCH,
+      freshWorkspace: !st || Object.keys(st.workspace).length === 0,
+      memoryContext: this.memoryFor(sessionId)?.context() ?? "",
+    });
+    if (ownerName && input.agent.ownerName === (st?.ownerId ?? "")) {
+      input.agent.ownerName = ownerName;
+      const owner = input.people.find((p) => p.owner);
+      if (owner) owner.name = ownerName;
+    }
+    const brief = welcomeBrief(input);
+    const fleet = renderFleetContext(this.project.state(), sessionId) || NO_OTHER_AGENTS;
+    return `${brief.markdown}\n## Other agents\n${fleet}\n`;
   }
 
   closeSession(sessionId: string): void {
@@ -297,6 +331,17 @@ export class ProjectHost {
         return `released ${claimId}`;
       },
       context() {
+        // Turn 0 reads the welcome brief the ledger recorded, so what the agent was told and
+        // what "What it was told" shows are one text; after that, the live fleet context.
+        const st = host.hosts.get(sessionId)?.session.state();
+        if (st && st.turns.length === 0) {
+          const told = project
+            .state()
+            .sessions[sessionId]?.briefs.find(
+              (b) => b.kind === "fleet" && b.reader === AGENT_READER,
+            );
+          if (told) return told.brief;
+        }
         return renderFleetContext(project.state(), sessionId);
       },
       reportStatus() {

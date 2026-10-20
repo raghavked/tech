@@ -6,7 +6,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fleetBrief } from "@henosis/fleet";
+import { fleetBrief, isWelcomeBrief } from "@henosis/fleet";
 import {
   type Actor,
   type ClientMessage,
@@ -98,7 +98,7 @@ describe("glance, reconnect info and briefed events", () => {
 
   it("counts the approvals a person can still vote on and the handoffs offered to them, never mentions", async () => {
     const host = server.project("billing");
-    const sh = host.session("s1", { title: "Helper", ownerId: "ana" });
+    const sh = host.session("s1", { title: "Helper", ownerId: "ana", ownerName: "Ana" });
     sh.session.join("main", { id: "ana", kind: "human", name: "Ana" }, "owner");
     sh.session.join("main", { id: "bo", kind: "human", name: "Bo" }, "contributor");
     sh.session.directive("main", "ana", { text: "Build a doubling helper and deploy it" });
@@ -245,7 +245,11 @@ describe("glance, reconnect info and briefed events", () => {
     await wait(20);
     const reads = server.project("billing").state().sessions.s1?.briefs ?? [];
     expect(reads[0]).toMatchObject({ reader: AGENT_READER, kind: "fleet", atSeq: 0 });
-    expect(reads[0]?.brief).toBe("no other agents in this project");
+    // The welcome brief: the circle, the manners, then the fleet context of the moment.
+    expect(isWelcomeBrief(reads[0]?.brief ?? "")).toBe(true);
+    expect(reads[0]?.brief).toContain("You are Ana's agent on Helper.");
+    expect(reads[0]?.brief).toContain("## Manners");
+    expect(reads[0]?.brief).toContain("## Other agents\nno other agents in this project");
     const mine = reads.find((r) => r.kind === "handoff");
     expect(mine?.reader).toBe("ana");
     expect(mine?.brief).toContain("# Handoff brief: Helper");
