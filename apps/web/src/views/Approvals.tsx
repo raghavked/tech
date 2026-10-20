@@ -28,12 +28,14 @@ import {
 import { HenosisClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import { EmptyState } from "../empty.js";
+import { approvalsSubtitle, refreshGlance } from "../glance.js";
 import { actorOf, type Identity, initials } from "../identity.js";
 import { markRead, useInbox } from "../inbox.js";
 import { navigate, paths } from "../router.js";
 import { pressTwoStep, type TargetLike } from "../shortcuts.js";
-import { ErrorLine, ICONS, Icon, Stars } from "../ui.js";
+import { ErrorLine, ICONS, Icon, PHONE_QUERY, Stars, useMediaQuery } from "../ui.js";
 import { useShortcutContextPublisher } from "../useShortcuts.js";
+import { GateSheet, Meter, QueueCard, ThumbFilters } from "./ApprovalsPhone.js";
 
 interface Target {
   ref: ProjectRef;
@@ -210,16 +212,28 @@ export function Approvals({
     v: "approve" | "deny",
     rating: number | null = null,
     override = false,
-  ) =>
+    note = "",
+  ) => {
     hub.joined.get(`${r.projectId}/${r.sessionId}`)?.client.send({
       type: "vote",
       approvalId: r.approvalId,
       vote: v,
-      note: "",
+      note,
       ...(r.ratings && v === "approve" ? { rating: rating ?? picks[r.key] ?? DEFAULT_RATING } : {}),
       ...(override ? { override: true } : {}),
     });
+    // The tab's needs-you count is the glance's: ask for it again once the vote has landed.
+    setTimeout(refreshGlance, 400);
+  };
   const nudge = (r: QueueRow) => navigate(paths.session(r.projectId, r.sessionId));
+  // The phone (ApprovalsPhone.tsx): cards, the filter bar at the thumb, the gate sheet.
+  const phone = useMediaQuery(PHONE_QUERY);
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const openRow = openKey ? (pending.find((r) => r.key === openKey) ?? null) : null;
+  useEffect(() => {
+    if (openKey && !openRow) setOpenKey(null);
+  }, [openKey, openRow]);
+  const projectNames = [...new Set(pending.map((r) => r.projectName))];
 
   // j/k move, a/d decide, 1–5 pick a rating, Enter opens the session. Never while typing.
   const latest = useRef({ keys, cursor, shown, vote, armed });
@@ -299,6 +313,71 @@ export function Approvals({
           : null;
   const oldest = shown[0];
   const firstGate = gates[0]?.quorum ?? null;
+
+  if (phone)
+    return (
+      <Shell
+        ctx={ctx}
+        title={copy.queue.title}
+        subtitle={
+          loaded
+            ? approvalsSubtitle(counts["needs-you"], pending.length, projectNames)
+            : copy.queue.looking
+        }
+      >
+        <div className="column page queuepage onphone">
+          {error && <p className="small danger">{error}</p>}
+          <ErrorLine errors={errors} />
+          {shown.length > 0 ? (
+            <div className="grows">
+              {shown.map((r) => (
+                <QueueCard
+                  key={r.key}
+                  r={r}
+                  pick={picks[r.key] ?? null}
+                  open={openKey === r.key}
+                  onOpen={() => setOpenKey(r.key)}
+                  onVote={(v, rating, override, note) => vote(r, v, rating, override, note)}
+                  onNudge={() => nudge(r)}
+                />
+              ))}
+            </div>
+          ) : loaded && pending.length === 0 && targets.length === 0 && projects.length > 0 ? (
+            <EmptyState
+              spot="gate"
+              title={copy.approvalsPage.emptyTitle}
+              text={copy.approvalsPage.emptyLine}
+              action={{ label: copy.approvalsPage.reviewRules, href: paths.settings() }}
+            />
+          ) : (
+            <p className="muted quietline">{summary ?? copy.queue.nothing}</p>
+          )}
+          {done.length > 0 && (
+            <div className="group">
+              <div className="gh">
+                <span className="serif">{copy.queue.done}</span>
+                <span className="n mono">{done.length}</span>
+              </div>
+              <div className="qlist quiet">
+                {done.map((r) => (
+                  <DoneRow key={r.key} r={r} />
+                ))}
+              </div>
+            </div>
+          )}
+          <ThumbFilters filters={FILTERS} active={effective} counts={counts} onPick={setFilter} />
+        </div>
+        {openRow && (
+          <GateSheet
+            r={openRow}
+            pick={picks[openRow.key] ?? null}
+            onPick={(n) => setPicks((p) => ({ ...p, [openRow.key]: n }))}
+            onVote={(v, rating, override, note) => vote(openRow, v, rating, override, note)}
+            onClose={() => setOpenKey(null)}
+          />
+        )}
+      </Shell>
+    );
 
   return (
     <Shell
@@ -508,24 +587,6 @@ export function Approvals({
         </aside>
       </div>
     </Shell>
-  );
-}
-
-/** The two-segment quorum meter: apricot where a vote counts, amber under the bar. One width everywhere. */
-function Meter({ quorum }: { quorum: QueueRow["quorum"] }) {
-  if (!quorum) return null;
-  return (
-    <span className={`quorum${quorum.low ? " low" : ""}`} aria-hidden="true">
-      {Array.from({ length: quorum.min }, (_, i) => (
-        <i
-          // biome-ignore lint/suspicious/noArrayIndexKey: the segments are identical
-          key={i}
-          className={
-            i < quorum.count ? (quorum.low ? "low" : "on") : i === quorum.count ? "next" : ""
-          }
-        />
-      ))}
-    </span>
   );
 }
 

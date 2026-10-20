@@ -11,6 +11,7 @@ import {
   type CouncilMember,
   isMember,
   memberName,
+  unreadIn,
 } from "@henosis/chat";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Shell, type ShellContext } from "../App.js";
@@ -194,10 +195,13 @@ export function ChatView({
 
   if (!groupId || !s || !group) {
     const groups = s ? Object.values(s.groups).filter((g) => isMember(g, meId)) : [];
+    // The phone subtitle (mobile-chat): "3 groups · 2 unread".
+    const totalUnread = s ? groups.reduce((n, g) => n + unreadIn(s, meId, g.id), 0) : 0;
     return (
       <Shell
         ctx={ctx}
         title={copy.chat.title}
+        subtitle={s ? copy.chat.groupsLine(groups.length, totalUnread) : copy.chat.joining}
         below={
           <ReconnectLine
             reconnecting={snap.reconnecting}

@@ -3,23 +3,26 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 import { api, type Me, useFetch } from "./api.js";
-import { useFrame } from "./breakpoints.js";
+import { PHONE_QUERY, useFrame } from "./breakpoints.js";
 import { copy } from "./copy.js";
 import { ErrorBoundary, Recover } from "./ErrorBoundary.js";
+import { needsYouOf, type Tab, tabOf, useGlance } from "./glance.js";
 import { type Identity, useIdentity } from "./identity.js";
+import { useInbox } from "./inbox.js";
 import { TypedToasts } from "./notify.js";
 import { CommandPalette } from "./palette.js";
 // The rail is drawn once, in Rail.tsx; the Shell only places it.
 import { pinRail, Rail, teamOfRoute } from "./Rail.js";
-import { navigate, type Route, useRoute } from "./router.js";
+import { navigate, paths, type Route, useRoute } from "./router.js";
 import { desktop, useShellPlatform } from "./shell.js";
 import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
-import { useTeamTheme } from "./theme.js";
-import { ICONS, Icon, Loader, Mark, Toasts } from "./ui.js";
+import { useTeamTheme, useTeamThemeValue } from "./theme.js";
+import { Count, ICONS, Icon, Loader, Mark, markLook, Toasts, useMediaQuery } from "./ui.js";
 import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
 import { Home } from "./views/Home.js";
 // Perf: the other views are separate chunks, loaded on first use and warmed once idle (views/lazy.ts).
@@ -241,11 +244,17 @@ export interface ShellContext {
 /**
  * The chrome every page shares: the rail (Rail.tsx: brand, New session, search, Inbox and
  * Approvals, the agents by project, the project section, chats, you) and a main column with a
- * 56px top row. On a phone the rail is a drawer behind the menu icon.
+ * 56px top row. On a phone (SCREENS.md §21) the top row is the navy block with the serif title,
+ * the 12 px subtitle and the mark, the rail is the 332 px drawer behind the menu icon, and the
+ * four-tab bar Sessions · Chats · Approvals · Me is the frame; the Approvals tab carries the one
+ * needs-you number from the glance.
  */
 export function Shell({
   ctx,
   title,
+  subtitle,
+  sentence,
+  foldedSubtitle,
   right,
   below,
   busy = false,
@@ -256,6 +265,12 @@ export function Shell({
 }: {
   ctx: ShellContext;
   title: ReactNode;
+  /** The phone's 12 px line under the title ("Running · turn 7 · Ana drives"); its status word in `<b>`. */
+  subtitle?: ReactNode;
+  /** The manager's sentence as the phone's titlebar; it folds to `foldedSubtitle` on scroll. */
+  sentence?: ReactNode;
+  /** The subtitle once the sentence has folded ("4 open · 3 need you · 212k this week"). */
+  foldedSubtitle?: ReactNode;
   right?: ReactNode;
   /** One quiet line under the top row, e.g. the reconnect notice. */
   below?: ReactNode;
@@ -299,6 +314,21 @@ export function Shell({
   }, []);
   // A stable handler keeps the memoised sidebar out of the stream's re-renders.
   const closeNav = useCallback(() => setNavOpen(false), []);
+  const phone = useMediaQuery(PHONE_QUERY);
+  // The manager's sentence folds to the subtitle once the column has scrolled (mobile-manager).
+  const scroller = useRef<HTMLDivElement>(null);
+  const [folded, setFolded] = useState(false);
+  const sentenced = sentence !== undefined;
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || !sentenced) return;
+    const on = () => setFolded(el.scrollTop > 24);
+    on();
+    el.addEventListener("scroll", on, { passive: true });
+    return () => el.removeEventListener("scroll", on);
+  }, [sentenced]);
+  // The mark wears the team's look on every phone page, as the rail's brand does.
+  const look = useTeamThemeValue(ctx.identity ? teamOfRoute(ctx.route, ctx.me) : null);
   return (
     <div className="shell" data-frame={frame}>
       {help && <ShortcutSheet onClose={() => setHelp(false)} />}
@@ -306,7 +336,10 @@ export function Shell({
       {/* hook point (command-palette): ⌘K / Ctrl+K opens the palette on every page */}
       <CommandPalette ctx={ctx} />
       <div className="main">
-        <div className="topbar" {...drag}>
+        <div
+          className={`topbar${subtitle !== undefined ? " subtitled" : ""}${sentenced ? " sentenced" : ""}${folded ? " folded" : ""}`}
+          {...drag}
+        >
           <button
             type="button"
             className="btn ghost icon menu"
@@ -317,17 +350,34 @@ export function Shell({
           </button>
           <span className="title" {...drag}>
             {title}
+            {subtitle !== undefined && (
+              <span className="subtitle">
+                {folded && foldedSubtitle !== undefined ? foldedSubtitle : subtitle}
+              </span>
+            )}
           </span>
           <div className="right" {...drag}>
             {right}
           </div>
+          {phone && (
+            <a className="topmark" href={paths.home()} aria-label={copy.product}>
+              <Mark size={32} settle {...markLook(look?.mark)} emblem={look?.emblem} />
+            </a>
+          )}
         </div>
+        {sentenced && phone && (
+          <div className={`sentence-bar${folded ? " folded" : ""}`} aria-hidden={folded}>
+            {sentence}
+          </div>
+        )}
         <div className={`busybar${busy ? " on" : ""}`} aria-hidden={!busy}>
           {busy && <Loader kind="weave" label={typeof busy === "string" ? busy : copy.wait.rows} />}
         </div>
         {below}
         <div className="body">
-          <div className="scroll">{children}</div>
+          <div className="scroll" ref={scroller}>
+            {children}
+          </div>
           {drawer && frame === "overlay" && onCloseDrawer && (
             <button
               type="button"
@@ -338,8 +388,74 @@ export function Shell({
           )}
           {drawer}
         </div>
+        {phone && ctx.identity && (
+          <TabBar ctx={ctx} active={tabOf(ctx.route)} onSessions={() => setNavOpen(true)} />
+        )}
       </div>
     </div>
+  );
+}
+
+/**
+ * The phone's frame (mobile-rail, mobile-chat): four tabs, Sessions · Chats · Approvals · Me.
+ * Sessions opens the rail drawer; the needs-you count sits on Approvals and the unread mentions
+ * on Chats; the menu button carries nothing. The count is the glance's figure, the same one the
+ * manager's sentence and the push badge show.
+ */
+export function TabBar({
+  ctx,
+  active,
+  onSessions,
+}: {
+  ctx: ShellContext;
+  active: Tab;
+  onSessions: () => void;
+}) {
+  const userId = ctx.identity?.userId ?? null;
+  const glance = useGlance(userId);
+  const inbox = useInbox(userId);
+  const needsYou = needsYouOf(glance) ?? 0;
+  const mentions = inbox.items.filter((n) => n.kind === "mention" && !n.read).length;
+  const firstOrg = ctx.me?.projects[0]?.orgId ?? "default";
+  const cls = (tab: Tab) => `tab${active === tab ? " on" : ""}`;
+  return (
+    <nav className="tabbar" aria-label={copy.shell.tabs}>
+      <button
+        type="button"
+        className={cls("sessions")}
+        aria-current={active === "sessions" ? "page" : undefined}
+        onClick={onSessions}
+      >
+        <Icon d={ICONS.session} size={22} />
+        <span className="lbl">{copy.shell.tabSessions}</span>
+      </button>
+      <a
+        className={cls("chats")}
+        href={paths.chat(firstOrg)}
+        aria-current={active === "chats" ? "page" : undefined}
+      >
+        <Icon d={ICONS.chat} size={22} />
+        <span className="lbl">{copy.shell.tabChats}</span>
+        <Count n={mentions} title={copy.shell.mentionsWaiting(mentions)} />
+      </a>
+      <a
+        className={cls("approvals")}
+        href={paths.approvals()}
+        aria-current={active === "approvals" ? "page" : undefined}
+      >
+        <Icon d={ICONS.approve} size={22} />
+        <span className="lbl">{copy.shell.tabApprovals}</span>
+        <Count n={needsYou} title={copy.shell.needsYou(needsYou)} />
+      </a>
+      <a
+        className={cls("me")}
+        href={paths.settings()}
+        aria-current={active === "me" ? "page" : undefined}
+      >
+        <Icon d={ICONS.person} size={22} />
+        <span className="lbl">{copy.shell.tabMe}</span>
+      </a>
+    </nav>
   );
 }
 

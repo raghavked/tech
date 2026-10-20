@@ -21,6 +21,7 @@ import {
 } from "../api.js";
 import { copy } from "../copy.js";
 import { EmptyState, openDemoSession } from "../empty.js";
+import { foldedSentence, needsYouOf, useGlance } from "../glance.js";
 import { type Identity, initials } from "../identity.js";
 import { notifyPermission, requestNotifications } from "../notify.js";
 import { paths } from "../router.js";
@@ -189,7 +190,11 @@ export function Team({
     .sort((a, b) => b.at - a.at)
     .slice(0, 8);
   const orgs = [...new Set(projects.map((p) => p.orgId))];
-  const needs = approvals.length + contentions.length + plans.length;
+  // The sentence's figure is the glance's needs-you number (approvals I can still vote on plus
+  // handoffs offered to me), the same one the phone's Approvals tab and the push badge show;
+  // the local sum stands in until the server has answered once.
+  const glance = useGlance(identity.userId);
+  const needs = needsYouOf(glance) ?? approvals.length + contentions.length + plans.length;
 
   // The manager's view: people and agents as one roster, crews, and where the tokens went.
   const people = new Map<
@@ -294,9 +299,36 @@ export function Team({
   const budgetSource = budgeted.some((p) => p.budgetSource === "project") ? "project" : "sessions";
   const loading = projects.length > 0 && data.length === 0;
   const turnsCounted = usage?.forecast.turns ?? 0;
+  // The phone's titlebar (mobile-manager): the sentence in 23 px serif on navy, counts in white,
+  // the needs clause in apricot with a pulsing dot, green when quiet; it folds to the subtitle.
+  const sentence =
+    projects.length === 0 ? null : (
+      <p className={`sentence${needs === 0 ? " quiet" : ""}`}>
+        <span className="n">{copy.team.openSessions(openSessions)}</span>
+        {copy.team.across}
+        <span className="n">{copy.team.projectsN(projects.length)}</span>.{" "}
+        <b>
+          {copy.team.needsN(needs)}
+          <i className="dot" aria-hidden="true" />
+        </b>
+      </p>
+    );
+  const folded = foldedSentence(
+    openSessions,
+    needs,
+    totalTokens,
+    turns === null ? copy.team.thisWeek : copy.team.inRange(turns),
+  );
 
   return (
-    <Shell ctx={ctx} title={teamName} busy={housekeeping || loading}>
+    <Shell
+      ctx={ctx}
+      title={teamName}
+      subtitle={copy.team.phoneLine(people.size, projects.length)}
+      foldedSubtitle={folded}
+      sentence={sentence}
+      busy={housekeeping || loading}
+    >
       <div className="column page">
         <div className="lede">
           <div className="lede-head">

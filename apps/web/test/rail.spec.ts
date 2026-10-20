@@ -23,6 +23,8 @@ async function shape(page: Page): Promise<string> {
     for (const el of clone.querySelectorAll("[aria-current]")) el.removeAttribute("aria-current");
     for (const el of clone.querySelectorAll(".active")) el.classList.remove("active");
     for (const el of clone.querySelectorAll(".count")) el.remove();
+    // the me row's role line follows the person's sessions, which another spec may open meanwhile
+    for (const el of clone.querySelectorAll(".me .role")) el.remove();
     // the roster itself is live data (other specs open and close sessions meanwhile)
     for (const el of clone.querySelectorAll(
       ".agent, .crew, .crew-block, .solo-block, .rail-empty, .hint, .n, .chatrow:not(.new-group), .item.recent, .item.mem",
@@ -87,7 +89,8 @@ test("the rail is the same on every route apart from the active row", async ({ p
 test.describe("folded", () => {
   test.use({ viewport: { width: 960, height: 760 } });
   test("below 1180 the rail folds to 72 px and the card opens on a rest", async ({ page }) => {
-    await signIn(page, "Lee", "lee");
+    // its own person: this block runs in its own worker, beside the shape test above
+    await signIn(page, "Rae", "rae");
     const session = `rail-${Date.now()}`;
     await page.goto(`/#/p/default/s/${session}`);
     await expect(page.getByLabel("Directive", { exact: true })).toBeVisible();
@@ -95,7 +98,7 @@ test.describe("folded", () => {
     await expect(nav).toHaveClass(/collapsed/);
     const box = await nav.boundingBox();
     expect(box?.width).toBe(72);
-    const me = nav.locator(".sq.av", { hasText: "LE" });
+    const me = nav.getByRole("link", { name: new RegExp(`^${session} · `) });
     await expect(me).toHaveAttribute("aria-current", "page", { timeout: 15_000 });
     await me.hover();
     await expect(page.getByRole("tooltip")).toContainText(session);

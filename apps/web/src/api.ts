@@ -10,7 +10,7 @@ import type {
 } from "@henosis/fleet";
 import type { SessionStatus } from "@henosis/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@henosis/memory";
-import type { SessionPolicy, UsageQuery, UsageReport } from "@henosis/protocol";
+import type { GlanceReport, SessionPolicy, UsageQuery, UsageReport } from "@henosis/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { authHeaders } from "./identity.js";
 import { apiUrl } from "./shell.js";
@@ -224,6 +224,7 @@ export type {
   AgentProfileInput,
   CuratorReport,
   EntryRecord,
+  GlanceReport,
   MemoryConflict,
   ProjectState,
   SharedAgentInput,
@@ -364,6 +365,12 @@ export const api = {
     getJson<{ notifications: Notification[] }>(
       `/api/notifications?user=${encodeURIComponent(user)}`,
     ),
+  /**
+   * The glance (mobile-rail, widgets): the one needs-you number, the top gate, the agents running
+   * and the tokens today (packages/server/src/glance.ts). The phone's Approvals tab, the manager's
+   * sentence and the push badge read this figure and no other.
+   */
+  glance: (user: string) => getJson<GlanceReport>(`/api/glance?user=${encodeURIComponent(user)}`),
   /** Groups and chats: the folded state of an org's chat, a person's unread rows, the pickers. */
   chat: (org: string) => getJson<ChatState>(`/api/chat/${encodeURIComponent(org)}`),
   chatUnread: (org: string, user: string) =>

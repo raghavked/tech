@@ -3,6 +3,7 @@ import { DEFAULT_SESSION_POLICY, type RiskClass, type Role } from "@henosis/prot
 import { describe, expect, it } from "vitest";
 import {
   askParts,
+  consequenceOf,
   countsOf,
   filterRows,
   glanceOf,
@@ -178,6 +179,53 @@ describe("approvals queue rows", () => {
     expect(lede.emphasis).toBe("Two are release gates;");
     expect(lede.rest).toBe("one waits for the driver.");
     expect(ledeOf([]).sentence).toBe("Nothing is waiting for approval.");
+  });
+
+  it("says what the pick does on a phone card: grants it, a voice, waits for names, the baton", () => {
+    const s = session(
+      people,
+      [
+        // nobody has rated: Bo's 4 alone is one of two
+        approval("a1", "irreversible", { name: "deploy", args: { env: "production" } }),
+        // Cy gave a 4: Bo's pick decides it
+        approval(
+          "a2",
+          "irreversible",
+          { name: "deploy", args: { env: "staging" } },
+          { cy: { vote: "approve", rating: 4 } },
+        ),
+        // Bo's vote is in: the row waits for the others who may still rate
+        approval(
+          "a3",
+          "irreversible",
+          { name: "deploy", args: { env: "eu" } },
+          { bo: { vote: "approve", rating: 4 } },
+        ),
+        // a driver's call: Cy has the baton
+        approval("a4", "external", { name: "http", args: {} }),
+        // a plain exec row needs no phrase
+        approval("a5", "exec", { name: "shell.run", args: { command: "ls" } }),
+      ],
+      "cy",
+    );
+    const row = (id: string, who = "bo") => {
+      const r = rowsOf(s, meta, who).find((x) => x.approvalId === id);
+      if (!r) throw new Error(id);
+      return r;
+    };
+    expect(row("a1").waitingFor).toEqual(["Ana", "Cy"]);
+    expect(consequenceOf(row("a1"), 4)).toBe("waits for Ana or Cy");
+    expect(consequenceOf(row("a2"), null)).toBe("your 4 grants it");
+    expect(consequenceOf(row("a2"), 5)).toBe("your 5 grants it");
+    expect(consequenceOf(row("a2"), 3)).toBe("a 3 is a voice, not a vote");
+    expect(row("a3").waitingFor).toEqual(["Ana", "Cy"]);
+    expect(consequenceOf(row("a3"), null)).toBe("waits for Ana or Cy");
+    expect(consequenceOf(row("a4"), null)).toBe("Cy has the baton; this one is Cy's call");
+    expect(consequenceOf(row("a5"), null)).toBeNull();
+    // one name left: "waits for Cy"; nobody left: "waits for one more"
+    expect(row("a1", "ana").waitingFor).toEqual(["Bo", "Cy"]);
+    expect(consequenceOf({ ...row("a3"), waitingFor: ["Cy"] }, null)).toBe("waits for Cy");
+    expect(consequenceOf({ ...row("a3"), waitingFor: [] }, null)).toBe("waits for one more");
   });
 
   it("names the rating and moves the cursor", () => {

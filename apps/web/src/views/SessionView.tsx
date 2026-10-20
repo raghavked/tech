@@ -7,8 +7,22 @@
  * The stream's parts live in src/stream: Message (the shapes, steps, the join line, the edge
  * of the past), ApprovalNotice, PlanCard, Composer, Drawer and TokenMeter.
  */
-import { isRatingsRule, planWaiting, ruleFor, type SessionState } from "@henosis/kernel";
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  compactTokens,
+  isRatingsRule,
+  planWaiting,
+  ruleFor,
+  type SessionState,
+} from "@henosis/kernel";
+import { usageTotal } from "@henosis/protocol";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, refOf, useFetch } from "../api.js";
 import { DEFAULT_RATING } from "../approvalsQueue.js";
@@ -47,6 +61,7 @@ import {
   Icon,
   Loader,
   Status,
+  statusOf,
   teamOf,
   toast,
   useConnectionToasts,
@@ -367,6 +382,11 @@ export function SessionView({
   const plan = s.activePlanId ? s.plans[s.activePlanId] : undefined;
   const liveStep = liveStepOf(s);
   const marksAt = view.marks.findIndex((m) => viewSeq !== null && viewSeq <= m.endSeq);
+  // The phone's top block (mobile-session): the subtitle's status word, the Team button carrying
+  // the "with Bo" pill, and the strip with the tokens, the crew and the gate's survival chip.
+  const spent = usageTotal(s.usage);
+  const budget = s.policy.tokenBudget;
+  const spentPct = budget ? Math.min(100, Math.round((spent / budget) * 100)) : 0;
 
   return (
     <Shell
@@ -390,6 +410,15 @@ export function SessionView({
             turn={s.turn}
           />
           {planWaits && <span className="pill planning">{copy.plan.planning}</span>}
+        </>
+      }
+      subtitle={
+        <>
+          <b className={`st-${statusOf(s.status).cls}`}>{statusOf(s.status).label}</b>
+          {" · "}
+          {copy.stream.turn(s.turn)}
+          {" · "}
+          {copy.session.drives(s.driver ? name(s.driver) : null)}
         </>
       }
       right={
@@ -425,7 +454,7 @@ export function SessionView({
           </fieldset>
           <button
             type="button"
-            className={`btn ghost sm${panel === "share" ? " on" : ""}`}
+            className={`btn ghost sm share${panel === "share" ? " on" : ""}`}
             aria-pressed={panel === "share"}
             onClick={() => toggle("share")}
           >
@@ -435,14 +464,17 @@ export function SessionView({
           {/* desktop-compact: below 960 the words go and the icons stay (styles.css .lbl) */}
           <button
             type="button"
-            className={`btn sm${panel === "team" ? " on" : ""}${mine && teamOf(mine).team ? " team" : ""}`}
+            className={`btn sm${panel === "team" ? " on" : ""}${team?.team ? " team" : ""}`}
             aria-pressed={panel === "team"}
             aria-label={copy.session.team}
             title={copy.session.teamTitle(online.length)}
             onClick={() => toggle("team")}
           >
             <Icon d={ICONS.group} size={14} />
-            <span className="lbl">{copy.session.team}</span>
+            {/* the phone folds the title's Team pill into this button: "Team · with Bo" */}
+            <span className="lbl">
+              {phone && team?.team ? copy.session.teamWith(withNames) : copy.session.team}
+            </span>
             <span className="n mono" aria-hidden="true">
               {online.length}
             </span>
@@ -465,7 +497,24 @@ export function SessionView({
       }
       below={
         <>
-          <GateChip count={pendingApprovals.length} id={waiting?.id} />
+          <div className="strip">
+            {phone && (
+              <>
+                <span
+                  className={`tok${spentPct >= 100 ? " over" : spentPct >= 80 ? " warn" : ""}`}
+                  title={copy.session.tokensTitle}
+                >
+                  <span className="mono">
+                    {compactTokens(spent)}
+                    {budget ? ` / ${compactTokens(budget)}` : ""}
+                  </span>
+                  <i className="hair" style={{ "--spent": `${spentPct}%` } as CSSProperties} />
+                </span>
+                {mine?.crew && <span className="crew serif">{mine.crew}</span>}
+              </>
+            )}
+            <GateChip count={pendingApprovals.length} id={waiting?.id} />
+          </div>
           <ReconnectLine
             reconnecting={snap.reconnecting}
             retry={snap.retry}
@@ -663,10 +712,8 @@ function GateChip({ count, id }: { count: number; id: string | undefined }) {
     }
   };
   return (
-    <div className="strip">
-      <button type="button" className="chip gatechip" onClick={back}>
-        <span className="mono">{count}</span> {copy.approval.waitsForYou(count)}
-      </button>
-    </div>
+    <button type="button" className="chip gatechip" onClick={back}>
+      <span className="mono">{count}</span> {copy.approval.waitsForYou(count)}
+    </button>
   );
 }

@@ -198,6 +198,15 @@ export const copy = {
     driving: "driving",
     member: "member",
     missingVoice: "one more voice",
+    // the phone's frame (SCREENS.md §21): four tabs; the needs-you count on Approvals
+    tabs: "Sections",
+    tabSessions: "Sessions",
+    tabChats: "Chats",
+    tabApprovals: "Approvals",
+    tabMe: "Me",
+    needsYou: (n: number) => `${n} need${n === 1 ? "s" : ""} you`,
+    mentionsWaiting: (n: number) =>
+      `${n} mention${n === 1 ? "" : "s"} wait${n === 1 ? "s" : ""} for you`,
   },
 
   account: {
@@ -294,6 +303,9 @@ export const copy = {
     /** The title row's pill: "Team · with Bo", "Solo". */
     teamWith: (names: string[]) => (names.length ? `Team · with ${names.join(", ")}` : "Team"),
     solo: "Solo",
+    /** The phone subtitle's tail: who drives. */
+    drives: (who: string | null) => (who ? `${who} drives` : "nobody drives"),
+    tokensTitle: "Tokens spent of the budget",
     theAgent: "The agent",
     copyLink: "Copy this link",
     linkCopied: "Link copied",
@@ -1065,6 +1077,11 @@ export const copy = {
       n === 0
         ? "Nothing needs you right now."
         : `${plural(n, "thing")} need${n === 1 ? "s" : ""} you.`,
+    /** The phone subtitle under the team's name: "Overview · 8 members · 2 projects". */
+    phoneLine: (members: number, projects: number) =>
+      `Overview · ${plural(members, "member")} · ${plural(projects, "project")}`,
+    thisWeek: "this week",
+    inRange: (turns: number) => `in ${turns} turns`,
     spentLead: " The team spent ",
     spentTail: (plans: number, turns: number) =>
       ` tokens over ${plural(turns, "turn")}${plans ? ` and rated ${plural(plans, "plan")}` : ""}.`,
@@ -1298,6 +1315,19 @@ export const copy = {
     hearsOnly: "An agent here hears only what ",
     hearsOnlyB: "mentions it",
     hearsOnlyC: "; the rest of the chat stays with the people.",
+    // the groups list's chips (mobile-chat): one filter, mono counts
+    chips: {
+      all: "All",
+      unread: "Unread",
+      mentions: "Mentions",
+      replied: "Agents replied",
+    } as Record<string, string>,
+    filterLabel: "Show",
+    agentsReplied: "agents replied",
+    nothingUnder: (chip: string) => `Nothing under ${chip}.`,
+    /** The phone subtitle on the groups page: "3 groups · 2 unread". */
+    groupsLine: (groups: number, unread: number) =>
+      `${plural(groups, "group")}${unread ? ` · ${unread} unread` : ""}`,
   },
   /** The council (docs/19_council.md): a team's models deliberate on one task inside a group. */
   council: {
@@ -1673,6 +1703,34 @@ export const copy = {
     neverWhileTyping: "never while you type",
     /** The foot line's note: an irreversible call takes two presses, so one keystroke never pushes to main unseen. */
     twiceIrreversible: "twice for an irreversible call",
+    // the phone (mobile-approvals): the card, its consequence phrase, the thumb bar and the sheet
+    phoneFilters: {
+      "needs-you": "Needs you",
+      gates: "Gates",
+      others: "Others",
+      all: "All",
+    } as Record<string, string>,
+    filterLabel: "Filter",
+    /** The chocolate phrase on a gate card: what your pick does next. */
+    yourPickGrants: (n: number) => `your ${n} grants it`,
+    waitsForNames: (names: string[]) =>
+      names.length === 0
+        ? "waits for one more"
+        : `waits for ${names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`}`,
+    hasTheBaton: (who: string | null, role: string) =>
+      who
+        ? `${who} has the baton; this one is ${who}'s call`
+        : `the ${role} has the baton; this one is theirs`,
+    yourVoteInShort: "Your vote is in",
+    openGate: "Open the gate",
+    gateSheet: "The release gate.",
+    held: "held",
+    heldCall: "The call it holds",
+    rule: "The rule",
+    voices: "Voices",
+    yourRating: "Your rating",
+    later: "Later",
+    fine: (def: number) => `Approve without a pick sends ${def} · a 3 is a voice, not a vote`,
   },
 
   /** The inbox (views/Inbox.tsx): one row shape, ordered by consequence. */

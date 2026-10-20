@@ -978,6 +978,9 @@ export function fmtResource(r: Resource): string {
   }
 }
 
+/** The phone breakpoint, written once: below it the rail is a drawer and the tab bar is the frame. */
+export { PHONE_QUERY } from "./breakpoints.js";
+
 export function useMediaQuery(query: string): boolean {
   const [match, setMatch] = useState(() => {
     try {

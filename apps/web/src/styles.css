@@ -1738,20 +1738,12 @@ button.chip {
     max-height: 72dvh;
     border-left: 0;
     border-top: 1px solid var(--line);
-    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
     background: var(--surface);
-    box-shadow: var(--shadow-pop);
     padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
   }
-  /* the sheet's handle: 40 × 5 on --surface-3, as the one bottom sheet draws it */
+  /* the corners, the handle and the shadow are the one bottom sheet's (the L3 block at the end) */
   .drawer::before {
-    content: "";
-    flex: none;
-    width: 40px;
-    height: 5px;
-    border-radius: 3px;
-    background: var(--surface-3);
-    margin: 0 auto -10px;
+    margin-bottom: -10px;
   }
   .drawer .drawer-head {
     display: flex;
@@ -1937,18 +1929,7 @@ fieldset.seg {
   .sheet.newgroup {
     width: 100%;
     max-height: 88dvh;
-    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
     padding: 10px 16px calc(24px + env(safe-area-inset-bottom));
-    box-shadow: var(--shadow-pop);
-  }
-  .sheet::before {
-    content: "";
-    flex: none;
-    width: 40px;
-    height: 5px;
-    border-radius: 3px;
-    background: var(--surface-3);
-    margin: 0 auto 6px;
   }
 }
 /* memory browser (views/Memory.tsx): a quiet toolbar, rows that wrap, retracted rows greyed */
@@ -9726,15 +9707,11 @@ a.btn:hover {
     transform: none;
     width: 100%;
     max-height: 86vh;
-    border-radius: 22px 22px 0 0;
   }
+  /* the corners, the handle and the shadow are the one bottom sheet's (the L3 block at the end) */
   .palette .handle {
     display: block;
-    width: 40px;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--line);
-    margin: 8px auto 0;
+    margin-top: 8px;
   }
   .palette .q .scope,
   .palette .row .lab .sub,
@@ -9968,16 +9945,9 @@ a.btn:hover {
   .sheet.keys {
     width: 100%;
     max-height: calc(100dvh - 64px);
-    border-radius: 22px 22px 0 0;
   }
   .sheet.keys::before {
-    content: "";
-    width: 40px;
-    height: 5px;
-    border-radius: 3px;
-    background: var(--surface-3);
-    margin: 10px auto -4px;
-    flex: none;
+    margin-bottom: -4px;
   }
   .sheet.keys .foot .note {
     display: none;
@@ -11950,4 +11920,1404 @@ a.btn:hover {
   background: var(--rail);
   color: var(--apricot);
   box-sizing: border-box;
+}
+
+/* ============================================================================================
+   L3 · the phone (design/henosis SCREENS.md §21, BACKLOG.md L3): one frame, one sheet, one
+   needs-you number. The strip under the top row, the top block, the sentence as a titlebar, the
+   tab bar, the one bottom sheet (Sheet.tsx; .drawer and .palette take its rule), the gate cards
+   and the filter bar at the thumb, the gate sheet, the star tiles and the chat chips.
+   ============================================================================================ */
+
+/* the strip: tokens with a 3 px hairline, the crew in serif apricot, the gate's survival chip at
+   the right; an empty strip takes no room */
+.strip:empty {
+  display: none;
+}
+.strip .tok {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  font: var(--t-mono-sm);
+  color: var(--ink-2);
+}
+.strip .tok .hair {
+  display: block;
+  width: 64px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+  position: relative;
+  overflow: hidden;
+}
+.strip .tok .hair::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: var(--spent, 0%);
+  background: var(--apricot-deep);
+}
+.strip .tok.warn .hair::after {
+  background: var(--warn);
+}
+.strip .tok.over .hair::after {
+  background: var(--danger);
+}
+.strip .crew {
+  font-size: 14px;
+  color: var(--accent-ink);
+}
+.strip .gatechip {
+  margin-left: auto;
+}
+
+/* the phone-only pieces are hidden above the breakpoint */
+.tabbar,
+.topbar .subtitle,
+.topbar .topmark,
+.sentence-bar,
+.thumb {
+  display: none;
+}
+
+/* ---- the one bottom sheet's parts, on every width (centred on a desktop, a sheet on a phone) ---- */
+.sheet.bsheet {
+  overflow: hidden;
+  padding-top: 8px;
+}
+.sheet .handle {
+  display: block;
+  flex: none;
+  width: 40px;
+  height: 5px;
+  box-sizing: content-box;
+  padding: 10px 40px 6px;
+  margin: -8px auto 0;
+  background: var(--surface-3);
+  background-clip: content-box;
+  border-radius: 3px;
+  touch-action: none;
+  cursor: grab;
+}
+.sheet .sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -20px;
+  padding: 4px 14px 10px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.sheet .sheet-head .close {
+  margin-left: auto;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+.sheet .sheet-head .close .ic {
+  width: 16px;
+  height: 16px;
+}
+.sheet .sheet-head .ttl {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.2;
+}
+.sheet .sheet-head .ttl .serif {
+  font-size: 21px;
+}
+.sheet .sheet-head .ttl .sub {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet .sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0;
+}
+.sheet .sheet-foot {
+  flex: none;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sheet .sheet-foot .acts {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.sheet .sheet-foot .acts > .btn:only-child {
+  grid-column: 1 / -1;
+}
+.sheet .sheet-foot .acts .btn {
+  min-height: 50px;
+  font-size: 16px;
+}
+.sheet .sheet-foot .acts .btn.ghost {
+  padding: 0 18px;
+  border-radius: var(--radius-full);
+}
+.sheet .sheet-foot .fine {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+/* ---- the gate sheet (ApprovalsPhone.tsx); the rating sheet is this sheet ---- */
+.gatesheet .ask {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.gatesheet .ask .serif,
+.grow .say .serif {
+  font-size: 17px;
+}
+.gatesheet .ask code,
+.grow .say code {
+  font: var(--t-mono-sm);
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.gatesheet .held {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--rail);
+  color: var(--rail-fg);
+  font: var(--t-mono-sm);
+}
+.gatesheet .held code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+}
+.gatesheet .held .ic {
+  color: var(--apricot);
+  flex: none;
+}
+.gatesheet .held .tag {
+  font: 600 10.5px var(--font);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--apricot);
+}
+.gatesheet .rule {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.gatesheet .voices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gatesheet .vote.waiting .ring {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--apricot-deep);
+  flex: none;
+}
+.gatesheet .rate {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.gatesheet .rate .lbl {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.gatesheet .tline {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.gatesheet .tline b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.gatesheet .tline .cons,
+.grow .cons {
+  color: var(--accent-ink);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ---- the star tiles (stream/StarTiles.tsx): five-up, 12 px corners, the pick solid apricot ---- */
+.star-tiles-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.star-tiles {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.star-tile {
+  position: relative;
+  height: 50px;
+  min-width: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  opacity: 0.55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink-3);
+  transition:
+    background var(--t-fast) var(--ease-move),
+    opacity var(--t-fast) var(--ease-move),
+    box-shadow var(--t-fast) var(--ease-move);
+}
+.star-tile svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+.star-tile .w {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.star-tile.upto {
+  background: var(--apricot-soft);
+  opacity: 1;
+  color: var(--apricot-deep);
+}
+.star-tile.upto svg {
+  fill: var(--apricot-deep);
+  stroke: var(--apricot-deep);
+}
+.star-tile.pick {
+  background: var(--apricot);
+  opacity: 1;
+  color: #56352d;
+  box-shadow: var(--glow);
+}
+.star-tile.pick svg {
+  fill: #56352d;
+  stroke: #56352d;
+}
+.star-tiles-wrap.locked .star-tile {
+  cursor: default;
+}
+.tile-word {
+  font-style: italic;
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+.tile-word.none {
+  color: var(--ink-3);
+}
+.tile-word.high {
+  color: var(--ok-ink);
+}
+.tile-word.mid {
+  color: var(--warn-ink);
+}
+.tile-word.low {
+  color: var(--danger-ink);
+}
+.notice .rating.tiles {
+  flex-direction: column;
+  align-items: stretch;
+}
+.notice .rating.tiles .note {
+  min-width: 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) .star-tile.pick svg {
+    animation: pop var(--t-slow) var(--ease-arrive) both;
+  }
+}
+
+/* ---- the chat chips (mobile-chat): one filter over the groups list ---- */
+.filters .chip.k-all i {
+  background: var(--ink-3);
+}
+.filters .chip.k-unread i {
+  background: var(--apricot-deep);
+}
+.filters .chip.k-replied i {
+  background: var(--ok);
+}
+
+@media (max-width: 480px) {
+  /* ---- the top block: the safe area, the 44 px bar on --rail, the serif title, the 12 px
+     subtitle with its status word, a 40 px right control on --rail-active, the mark at 32 ---- */
+  .topbar {
+    padding-top: calc(6px + env(safe-area-inset-top));
+    min-height: calc(56px + env(safe-area-inset-top));
+    flex-wrap: nowrap;
+    --ok: #9bc88f;
+  }
+  .topbar .title {
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    line-height: 1.15;
+    font-size: 22px;
+  }
+  .topbar .title > .serif {
+    font-size: 19px;
+    max-width: 100%;
+  }
+  .topbar .title .meter,
+  .topbar .title .count {
+    display: none;
+  }
+  .topbar .subtitle {
+    display: block;
+    max-width: 100%;
+    font: 400 12px / 1.2 var(--font);
+    color: var(--rail-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar .subtitle b {
+    font-weight: 500;
+    color: var(--ok);
+  }
+  .topbar .right {
+    gap: 6px;
+    flex: none;
+  }
+  .topbar .right .btn:not(.icon) {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 10px;
+    border-radius: var(--radius);
+    background: var(--rail-active);
+    border-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--rail-line);
+    white-space: nowrap;
+  }
+  .topbar .right .btn.share,
+  .topbar .right .btn .key,
+  .topbar .right .keyhints {
+    display: none;
+  }
+  .topbar .topmark {
+    display: inline-flex;
+    flex: none;
+    margin-left: 2px;
+  }
+
+  /* ---- the sentence as a titlebar (mobile-manager): 23 px serif on navy, the counts in the
+     rail's ink, the needs clause in apricot with a pulsing dot, green when quiet; folds on scroll ---- */
+  .sentence-bar {
+    display: block;
+    background: var(--rail);
+    color: var(--rail-fg);
+    padding: 0 16px 14px;
+    border-bottom: 1px solid var(--rail-line);
+    max-height: 200px;
+    overflow: hidden;
+    --ok: #9bc88f;
+    transition:
+      max-height var(--t-slow) var(--ease-mark),
+      padding var(--t-slow) var(--ease-mark),
+      opacity var(--t) var(--ease-move);
+  }
+  .sentence-bar.folded {
+    max-height: 0;
+    padding-bottom: 0;
+    opacity: 0;
+  }
+  .sentence-bar .sentence {
+    margin: 0;
+    font: 400 23px / 1.22 var(--serif);
+    padding: 4px 4px 2px;
+  }
+  .sentence-bar .sentence .n {
+    color: var(--rail-fg);
+  }
+  .sentence-bar .sentence b {
+    font-weight: 400;
+    color: var(--apricot);
+  }
+  .sentence-bar .sentence b .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--apricot);
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+  .sentence-bar .sentence.quiet b {
+    color: var(--ok);
+  }
+  .sentence-bar .sentence.quiet b .dot {
+    background: var(--ok);
+  }
+  .topbar.sentenced .title {
+    font-size: 19px;
+  }
+
+  /* ---- the tab bar: the phone's frame; the needs-you count on Approvals, mentions on Chats ---- */
+  .tabbar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    flex: none;
+    border-top: 1px solid var(--line);
+    background: var(--canvas);
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+  }
+  .tabbar .tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 48px;
+    padding: 4px 0;
+    font: var(--t-micro);
+    color: var(--ink-3);
+    background: none;
+    border: 0;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .tabbar .tab.on {
+    color: var(--ink);
+  }
+  .tabbar .tab .count {
+    position: absolute;
+    top: 0;
+    left: calc(50% + 6px);
+    background: var(--apricot);
+    color: #56352d;
+  }
+
+  /* ---- the one bottom sheet: --surface, 26 px corners, a 40 × 5 handle, 16 px gutters, the
+     scrim; half and full detents. .drawer (Team | Details, share, members) and .palette share it ---- */
+  .sheet,
+  .drawer,
+  .palette {
+    border-radius: 26px 26px 0 0;
+    background: var(--surface);
+    box-shadow: var(--shadow-pop), var(--edge);
+  }
+  .sheet:not(.bsheet)::before,
+  .drawer::before,
+  .palette .handle {
+    content: "";
+    display: block;
+    flex: none;
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface-3);
+    margin: 0 auto 6px;
+  }
+  .sheet.half {
+    max-height: 56dvh;
+  }
+  .sheet.full {
+    height: calc(100dvh - 96px);
+    max-height: calc(100dvh - 96px);
+  }
+  .sheet.bsheet {
+    transition:
+      transform var(--t-slow) var(--ease-mark),
+      height var(--t-slow) var(--ease-mark),
+      max-height var(--t-slow) var(--ease-mark);
+  }
+  .sheet .sheet-head {
+    margin: 0 -16px;
+    padding-left: 16px;
+  }
+
+  /* ---- the approvals queue: one stack of cards, the filter bar at the thumb ---- */
+  .queuepage.onphone {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    min-height: 100%;
+    padding: 14px 16px 0;
+  }
+  .queuepage.onphone .thumb {
+    margin-top: auto;
+  }
+  .queuepage.onphone .grows {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .grow {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 13px 14px 13px 18px;
+    box-shadow: var(--shadow-soft), var(--edge);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    overflow: hidden;
+  }
+  .grow::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--surface-3);
+  }
+  .grow.gate::before {
+    background: var(--gate-stripe);
+  }
+  .grow.open {
+    box-shadow:
+      var(--shadow-pop),
+      0 0 0 2px var(--apricot);
+    z-index: 4;
+  }
+  .grow .say {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14.5px;
+    line-height: 1.45;
+  }
+  .grow .say .txt {
+    flex: 1;
+    min-width: 0;
+  }
+  .grow .say .openg {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    margin: -4px -6px 0 0;
+  }
+  .grow .tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .grow .tags .ago {
+    margin-left: auto;
+    color: var(--ink-3);
+    font-size: 12px;
+  }
+  .grow .qm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+  }
+  .grow .qm .n {
+    color: var(--ink-2);
+  }
+  .grow .qm .cons {
+    margin-left: auto;
+  }
+  .grow .act {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .grow .act .btn {
+    min-height: 44px;
+  }
+  .grow .act .btn.ghost {
+    padding: 0 16px;
+    border-radius: var(--radius-full);
+  }
+  .grow .act .in {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ok-ink);
+    font-size: 13.5px;
+  }
+  .grow .act .in .ic.ok {
+    color: var(--ok-ink);
+  }
+  .grow .act.theirs .cons {
+    white-space: normal;
+  }
+  .thumb {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    margin: 8px -16px 0;
+    padding: 8px 12px 10px;
+    background: color-mix(in srgb, var(--canvas) 90%, transparent);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--line);
+  }
+  .thumb .seg {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 0;
+    margin: 0;
+  }
+  .thumb .seg button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 36px;
+    padding: 4px 6px;
+    white-space: nowrap;
+  }
+  .thumb .seg button .n {
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--surface-2);
+    font: 600 11px / 18px var(--mono);
+    padding: 0 5px;
+    color: var(--ink-2);
+  }
+  .thumb .seg button.on .n {
+    background: var(--apricot);
+    color: #56352d;
+  }
+}
+
+/* ============================================================================================
+   L3 · the phone (design/henosis SCREENS.md §21, BACKLOG.md L3): one frame, one sheet, one
+   needs-you number. The strip under the top row, the top block, the sentence as a titlebar, the
+   tab bar, the one bottom sheet (Sheet.tsx; .drawer and .palette take its rule), the gate cards
+   and the filter bar at the thumb, the gate sheet, the star tiles and the chat chips.
+   ============================================================================================ */
+
+/* the strip: tokens with a 3 px hairline, the crew in serif apricot, the gate's survival chip at
+   the right; an empty strip takes no room */
+.strip:empty {
+  display: none;
+}
+.strip .tok {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  font: var(--t-mono-sm);
+  color: var(--ink-2);
+}
+.strip .tok .hair {
+  display: block;
+  width: 64px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+  position: relative;
+  overflow: hidden;
+}
+.strip .tok .hair::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: var(--spent, 0%);
+  background: var(--apricot-deep);
+}
+.strip .tok.warn .hair::after {
+  background: var(--warn);
+}
+.strip .tok.over .hair::after {
+  background: var(--danger);
+}
+.strip .crew {
+  font-size: 14px;
+  color: var(--accent-ink);
+}
+.strip .gatechip {
+  margin-left: auto;
+}
+
+/* the phone-only pieces are hidden above the breakpoint */
+.tabbar,
+.topbar .subtitle,
+.topbar .topmark,
+.sentence-bar,
+.thumb {
+  display: none;
+}
+
+/* ---- the one bottom sheet's parts, on every width (centred on a desktop, a sheet on a phone) ---- */
+.sheet.bsheet {
+  overflow: hidden;
+  padding-top: 8px;
+}
+.sheet .handle {
+  display: block;
+  flex: none;
+  width: 40px;
+  height: 5px;
+  box-sizing: content-box;
+  padding: 10px 40px 6px;
+  margin: -8px auto 0;
+  background: var(--surface-3);
+  background-clip: content-box;
+  border-radius: 3px;
+  touch-action: none;
+  cursor: grab;
+}
+.sheet .sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -20px;
+  padding: 4px 14px 10px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.sheet .sheet-head .close {
+  margin-left: auto;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+.sheet .sheet-head .close .ic {
+  width: 16px;
+  height: 16px;
+}
+.sheet .sheet-head .ttl {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.2;
+}
+.sheet .sheet-head .ttl .serif {
+  font-size: 21px;
+}
+.sheet .sheet-head .ttl .sub {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet .sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0;
+}
+.sheet .sheet-foot {
+  flex: none;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sheet .sheet-foot .acts {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.sheet .sheet-foot .acts > .btn:only-child {
+  grid-column: 1 / -1;
+}
+.sheet .sheet-foot .acts .btn {
+  min-height: 50px;
+  font-size: 16px;
+}
+.sheet .sheet-foot .acts .btn.ghost {
+  padding: 0 18px;
+  border-radius: var(--radius-full);
+}
+.sheet .sheet-foot .fine {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+/* ---- the gate sheet (ApprovalsPhone.tsx); the rating sheet is this sheet ---- */
+.gatesheet .ask {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.gatesheet .ask .serif,
+.grow .say .serif {
+  font-size: 17px;
+}
+.gatesheet .ask code,
+.grow .say code {
+  font: var(--t-mono-sm);
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.gatesheet .held {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--rail);
+  color: var(--rail-fg);
+  font: var(--t-mono-sm);
+}
+.gatesheet .held code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+}
+.gatesheet .held .ic {
+  color: var(--apricot);
+  flex: none;
+}
+.gatesheet .held .tag {
+  font: 600 10.5px var(--font);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--apricot);
+}
+.gatesheet .rule {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.gatesheet .voices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gatesheet .vote.waiting .ring {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--apricot-deep);
+  flex: none;
+}
+.gatesheet .rate {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.gatesheet .rate .lbl {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.gatesheet .tline {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.gatesheet .tline b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.gatesheet .tline .cons,
+.grow .cons {
+  color: var(--accent-ink);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ---- the star tiles (stream/StarTiles.tsx): five-up, 12 px corners, the pick solid apricot ---- */
+.star-tiles-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.star-tiles {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.star-tile {
+  position: relative;
+  height: 50px;
+  min-width: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  opacity: 0.55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink-3);
+  transition:
+    background var(--t-fast) var(--ease-move),
+    opacity var(--t-fast) var(--ease-move),
+    box-shadow var(--t-fast) var(--ease-move);
+}
+.star-tile svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+.star-tile .w {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.star-tile.upto {
+  background: var(--apricot-soft);
+  opacity: 1;
+  color: var(--apricot-deep);
+}
+.star-tile.upto svg {
+  fill: var(--apricot-deep);
+  stroke: var(--apricot-deep);
+}
+.star-tile.pick {
+  background: var(--apricot);
+  opacity: 1;
+  color: #56352d;
+  box-shadow: var(--glow);
+}
+.star-tile.pick svg {
+  fill: #56352d;
+  stroke: #56352d;
+}
+.star-tiles-wrap.locked .star-tile {
+  cursor: default;
+}
+.tile-word {
+  font-style: italic;
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+.tile-word.none {
+  color: var(--ink-3);
+}
+.tile-word.high {
+  color: var(--ok-ink);
+}
+.tile-word.mid {
+  color: var(--warn-ink);
+}
+.tile-word.low {
+  color: var(--danger-ink);
+}
+.notice .rating.tiles {
+  flex-direction: column;
+  align-items: stretch;
+}
+.notice .rating.tiles .note {
+  min-width: 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) .star-tile.pick svg {
+    animation: pop var(--t-slow) var(--ease-arrive) both;
+  }
+}
+
+/* ---- the chat chips (mobile-chat): one filter over the groups list ---- */
+.filters .chip.k-all i {
+  background: var(--ink-3);
+}
+.filters .chip.k-unread i {
+  background: var(--apricot-deep);
+}
+.filters .chip.k-replied i {
+  background: var(--ok);
+}
+
+@media (max-width: 480px) {
+  /* ---- the top block: the safe area, the 44 px bar on --rail, the serif title, the 12 px
+     subtitle with its status word, a 40 px right control on --rail-active, the mark at 32 ---- */
+  .topbar {
+    padding-top: calc(6px + env(safe-area-inset-top));
+    min-height: calc(56px + env(safe-area-inset-top));
+    flex-wrap: nowrap;
+    --ok: #9bc88f;
+  }
+  .topbar .title {
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    line-height: 1.15;
+    font-size: 22px;
+  }
+  .topbar .title > .serif {
+    font-size: 19px;
+    max-width: 100%;
+  }
+  .topbar .title .meter,
+  .topbar .title .count {
+    display: none;
+  }
+  .topbar .subtitle {
+    display: block;
+    max-width: 100%;
+    font: 400 12px / 1.2 var(--font);
+    color: var(--rail-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar .subtitle b {
+    font-weight: 500;
+    color: var(--ok);
+  }
+  .topbar .right {
+    gap: 6px;
+    flex: none;
+  }
+  .topbar .right .btn:not(.icon) {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 10px;
+    border-radius: var(--radius);
+    background: var(--rail-active);
+    border-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--rail-line);
+    white-space: nowrap;
+  }
+  .topbar .right .btn.share,
+  .topbar .right .btn .key,
+  .topbar .right .keyhints {
+    display: none;
+  }
+  .topbar .topmark {
+    display: inline-flex;
+    flex: none;
+    margin-left: 2px;
+  }
+
+  /* ---- the sentence as a titlebar (mobile-manager): 23 px serif on navy, the counts in the
+     rail's ink, the needs clause in apricot with a pulsing dot, green when quiet; folds on scroll ---- */
+  .sentence-bar {
+    display: block;
+    background: var(--rail);
+    color: var(--rail-fg);
+    padding: 0 16px 14px;
+    border-bottom: 1px solid var(--rail-line);
+    max-height: 200px;
+    overflow: hidden;
+    --ok: #9bc88f;
+    transition:
+      max-height var(--t-slow) var(--ease-mark),
+      padding var(--t-slow) var(--ease-mark),
+      opacity var(--t) var(--ease-move);
+  }
+  .sentence-bar.folded {
+    max-height: 0;
+    padding-bottom: 0;
+    opacity: 0;
+  }
+  .sentence-bar .sentence {
+    margin: 0;
+    font: 400 23px / 1.22 var(--serif);
+    padding: 4px 4px 2px;
+  }
+  .sentence-bar .sentence .n {
+    color: var(--rail-fg);
+  }
+  .sentence-bar .sentence b {
+    font-weight: 400;
+    color: var(--apricot);
+  }
+  .sentence-bar .sentence b .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--apricot);
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+  .sentence-bar .sentence.quiet b {
+    color: var(--ok);
+  }
+  .sentence-bar .sentence.quiet b .dot {
+    background: var(--ok);
+  }
+  .topbar.sentenced .title {
+    font-size: 19px;
+  }
+
+  /* ---- the tab bar: the phone's frame; the needs-you count on Approvals, mentions on Chats ---- */
+  .tabbar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    flex: none;
+    border-top: 1px solid var(--line);
+    background: var(--canvas);
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+  }
+  .tabbar .tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 48px;
+    padding: 4px 0;
+    font: var(--t-micro);
+    color: var(--ink-3);
+    background: none;
+    border: 0;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .tabbar .tab.on {
+    color: var(--ink);
+  }
+  .tabbar .tab .count {
+    position: absolute;
+    top: 0;
+    left: calc(50% + 6px);
+    background: var(--apricot);
+    color: #56352d;
+  }
+
+  /* ---- the one bottom sheet: --surface, 26 px corners, a 40 × 5 handle, 16 px gutters, the
+     scrim; half and full detents. .drawer (Team | Details, share, members) and .palette share it ---- */
+  .sheet,
+  .drawer,
+  .palette {
+    border-radius: 26px 26px 0 0;
+    background: var(--surface);
+    box-shadow: var(--shadow-pop), var(--edge);
+  }
+  .sheet:not(.bsheet)::before,
+  .drawer::before,
+  .palette .handle {
+    content: "";
+    display: block;
+    flex: none;
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface-3);
+    margin: 0 auto 6px;
+  }
+  .sheet.half {
+    max-height: 56dvh;
+  }
+  .sheet.full {
+    height: calc(100dvh - 96px);
+    max-height: calc(100dvh - 96px);
+  }
+  .sheet.bsheet {
+    transition:
+      transform var(--t-slow) var(--ease-mark),
+      height var(--t-slow) var(--ease-mark),
+      max-height var(--t-slow) var(--ease-mark);
+  }
+  .sheet .sheet-head {
+    margin: 0 -16px;
+    padding-left: 16px;
+  }
+
+  /* ---- the approvals queue: one stack of cards, the filter bar at the thumb ---- */
+  .queuepage.onphone {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    min-height: 100%;
+    padding: 14px 16px 0;
+  }
+  .queuepage.onphone .thumb {
+    margin-top: auto;
+  }
+  .queuepage.onphone .grows {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .grow {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 13px 14px 13px 18px;
+    box-shadow: var(--shadow-soft), var(--edge);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    overflow: hidden;
+  }
+  .grow::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--surface-3);
+  }
+  .grow.gate::before {
+    background: var(--gate-stripe);
+  }
+  .grow.open {
+    box-shadow:
+      var(--shadow-pop),
+      0 0 0 2px var(--apricot);
+    z-index: 4;
+  }
+  .grow .say {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14.5px;
+    line-height: 1.45;
+  }
+  .grow .say .txt {
+    flex: 1;
+    min-width: 0;
+  }
+  .grow .say .openg {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    margin: -4px -6px 0 0;
+  }
+  .grow .tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .grow .tags .ago {
+    margin-left: auto;
+    color: var(--ink-3);
+    font-size: 12px;
+  }
+  .grow .qm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+  }
+  .grow .qm .n {
+    color: var(--ink-2);
+  }
+  .grow .qm .cons {
+    margin-left: auto;
+  }
+  .grow .act {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .grow .act .btn {
+    min-height: 44px;
+  }
+  .grow .act .btn.ghost {
+    padding: 0 16px;
+    border-radius: var(--radius-full);
+  }
+  .grow .act .in {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ok-ink);
+    font-size: 13.5px;
+  }
+  .grow .act .in .ic.ok {
+    color: var(--ok-ink);
+  }
+  .grow .act.theirs .cons {
+    white-space: normal;
+  }
+  .thumb {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    margin: 8px -16px 0;
+    padding: 8px 12px 10px;
+    background: color-mix(in srgb, var(--canvas) 90%, transparent);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--line);
+  }
+  .thumb .seg {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 0;
+    margin: 0;
+  }
+  .thumb .seg button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 36px;
+    padding: 4px 6px;
+    white-space: nowrap;
+  }
+  .thumb .seg button .n {
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--surface-2);
+    font: 600 11px / 18px var(--mono);
+    padding: 0 5px;
+    color: var(--ink-2);
+  }
+  .thumb .seg button.on .n {
+    background: var(--apricot);
+    color: #56352d;
+  }
 }

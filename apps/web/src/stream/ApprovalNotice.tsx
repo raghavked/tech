@@ -21,10 +21,11 @@ import { DEFAULT_RATING, ratingProgress } from "../approvalsQueue.js";
 import type { HenosisClient } from "../client.js";
 import { average, copy } from "../copy.js";
 import { isTyping } from "../shortcuts.js";
-import { Avatar, ICONS, Icon, Stars } from "../ui.js";
+import { Avatar, ICONS, Icon, PHONE_QUERY, Stars, useMediaQuery } from "../ui.js";
 import { describeCall } from "./blocks.js";
 import { isFresh } from "./clock.js";
 import { MiniStars } from "./PlanCard.js";
+import { StarTiles } from "./StarTiles.js";
 
 /** What an approval row shows, as one string: the state is cloned on every event, so compare by value. */
 function approvalSig(s: SessionState, id: string, meId: string): string {
@@ -76,6 +77,8 @@ function ApprovalNoticeRow({
   // A release gate: the person picks a rating (and may add a note) before approving.
   const [rating, setRating] = useState<number | null>(null);
   const [note, setNote] = useState("");
+  // The phone's rating control is the five star tiles (mobile-session); a second tap clears.
+  const phone = useMediaQuery(PHONE_QUERY);
   if (!a) return null;
   const name = (k: string) => s.participants[k]?.actor.name ?? k;
   const d = describeCall(a.call);
@@ -177,10 +180,16 @@ function ApprovalNoticeRow({
         {gate && <Tally gate={gate} ballots={a.ballots} />}
       </div>
       {gate && !mine && canVote && (
-        <div className="rating">
+        <div className={`rating${phone ? " tiles" : ""}`}>
           <span className="lbl">{copy.plan.yourRating}</span>
-          <Stars value={rating} onChange={setRating} />
-          <span className="mono picked">{rating ? copy.approval.picked(rating) : ""}</span>
+          {phone ? (
+            <StarTiles value={rating} onChange={(n) => setRating(n || null)} />
+          ) : (
+            <Stars value={rating} onChange={setRating} />
+          )}
+          {!phone && (
+            <span className="mono picked">{rating ? copy.approval.picked(rating) : ""}</span>
+          )}
           <input
             className="input sm note"
             aria-label={copy.approval.noteHint}

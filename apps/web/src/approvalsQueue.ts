@@ -17,15 +17,14 @@ import {
   ruleFor,
   type SessionState,
 } from "@henosis/kernel";
-import type { RiskClass } from "@henosis/protocol";
+import { DEFAULT_RATING, type RiskClass } from "@henosis/protocol";
 import type { SessionRow } from "./api.js";
 import { describeCall } from "./calls.js";
 import { average, copy, numberWords } from "./copy.js";
 import { isTyping } from "./shortcuts.js";
 
 /** The rating a plain Approve carries under a release gate when the person picked none: one value for the app and Slack. */
-export { DEFAULT_RATING } from "@henosis/protocol";
-export { isTyping };
+export { DEFAULT_RATING, isTyping };
 
 /**
  * A release gate's progress: rated approvals from eligible voters against the rule's minimum,
@@ -94,6 +93,8 @@ export interface QueueRow {
   canDecide: boolean;
   /** The role word the rule waits for ("driver") and who holds it, for "waits for the driver · Cy". */
   waitsFor: { role: string; who: string | null };
+  /** The people whose vote would still count and who have not voted, me excluded: "waits for Ana or Bo". */
+  waitingFor: string[];
   /** Decision 3: present only when the policy returns an override for this risk class and I may use it. */
   override: OwnerOverride | null;
   /** A release gate: Approve carries a rating; `quorum` is the meter's state. */
@@ -176,6 +177,15 @@ export function rowsOf(
     const canDecide = pending && myRank >= minRank && rule !== "none";
     const ov =
       pending && canOverride(myRank) ? ownerOverride(s.policy.approvals, a.call.risk) : null;
+    const waitingFor = Object.values(s.participants)
+      .filter(
+        (p) =>
+          p.actor.kind === "human" &&
+          p.actor.id !== meId &&
+          rankOf(s, p.actor.id) >= minRank &&
+          !a.ballots[p.actor.id],
+      )
+      .map((p) => p.actor.name);
     return {
       key: `${meta.projectId}/${s.sessionId}/${a.id}`,
       projectId: meta.projectId,
@@ -210,6 +220,7 @@ export function rowsOf(
                 : null
               : null,
       },
+      waitingFor,
       override: ov && mine?.vote !== "approve" ? ov : null,
       ratings: gate !== null,
       quorum: gate ? { ...gate, low: gate.count > 0 && gate.average < gate.bar } : null,
@@ -282,6 +293,26 @@ export function glanceOf(pending: QueueRow[]): { needYou: number; voteIn: number
     voteIn: pending.filter((r) => r.myVote !== null).length,
     theirs: pending.filter((r) => !r.myVote && !r.canDecide && r.override === null).length,
   };
+}
+
+/**
+ * The chocolate consequence phrase on a phone gate card (mobile-approvals), from the row and
+ * the rating the person would send: "your 4 grants it", "waits for Ana or Bo", "Bo has the
+ * baton; this one is his call". Null on a plain exec row, which needs no phrase.
+ */
+export function consequenceOf(r: QueueRow, pick: number | null): string | null {
+  const state = rowState(r);
+  if (state === "driver-only") return copy.queue.hasTheBaton(r.waitsFor.who, r.waitsFor.role);
+  if (state === "voted") return copy.queue.waitsForNames(r.waitingFor);
+  if (!r.quorum) return null;
+  const n = pick ?? DEFAULT_RATING;
+  const need = Math.max(0, r.quorum.min - r.quorum.count);
+  if (need <= 1) {
+    const sum = r.quorum.average * r.quorum.count + n;
+    const clears = sum / (r.quorum.count + 1) >= r.quorum.bar;
+    return clears ? copy.queue.yourPickGrants(n) : copy.queue.voiceNotVote;
+  }
+  return copy.queue.waitsForNames(r.waitingFor);
 }
 
 /** The serif word beside the compact stars: a 3 is a voice, not a vote. */
