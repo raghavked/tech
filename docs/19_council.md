@@ -105,9 +105,23 @@ the member sessions by profile; `GET /api/chat/:org/councils` lists them, latest
 
 ## Slack and CLI
 
-`/henosis council <group> <task>` convenes; the council's rounds post into the group's
-thread; the synthesis posts with rating buttons. `henosis council` in the CLI prints a
-council's rounds and conclusion from the log.
+`/henosis council <group> <task>` convenes a council of the group's people's agents (the
+group by id or by name, dashes for spaces; the convener must be a member; their agent chairs).
+The council's root message lands in the group's channel (the project's, else the team's,
+else management) and every round posts into its thread: the round's opening line, then each
+word as that model, with the member and its model named ("*Ana's agent* (scripted)") and the
+stance a word in a discussion. The synthesis posts the chair's plan with an owner per step,
+the dissent beside it, and five rating buttons; a star rates the plan in the chair's council
+session exactly as the app's plan card does, and the message edits in place as the ratings
+land and when the policy decides. Assignments and reports are lines in the thread; the
+conclusion posts with the dissent on the record. A private instruction never reaches Slack.
+A council convened from the app posts the same way, since the adapter follows the chat log.
+
+`henosis council <org> <id> [--dir ./store]` prints a council's members, rounds, plan with
+dissent, work and conclusion from the organisation's chat log; without an id it lists the
+org's councils. `henosis report` gains a Council section: a chat log (`store/chat/<org>.json`)
+reports its groups and every council; a session log with `--chat <chat.json>` carries the
+councils whose work ran in that session.
 
 ## Why it is new
 
@@ -116,3 +130,19 @@ council is a team's own models, each with an owner who can instruct it in privat
 plan rated by people, the work assigned to the models that proposed it, their reports in the
 same room, and every word and token in a replayable log. The council is the unit of
 cooperation between a team's people and its agents, not a feature of a chat box.
+
+## Status
+
+- **Core (packages/chat, packages/fleet, packages/runner)**: the eight events, the reducer and
+  the protocol (`councilNext`), the convene / instruct / end wire messages, member profiles in
+  `users.json` and `agents.json`, the council prompts and the scripted model's deterministic
+  stances. Tested offline.
+- **Slack (packages/slack)**: `/henosis council <group> <task>`, the rounds in the group's
+  thread with the member and model named, the synthesis with rating buttons that rate the
+  chair's plan in its session, assignments and reports as lines, the conclusion with dissent.
+  Tested against the in-memory `FakeSlackClient`.
+- **CLI (packages/cli)**: `henosis council <org> [<id>]` and the Council section of
+  `henosis report`, both rendered from the folded chat log.
+- **Host and rooms**: the council host (packages/server) that runs the rounds and opens the
+  chair's session, and the council rooms in the web app, ship in their own changes; until the
+  host runs, the Slack and CLI surfaces render whatever the log holds.

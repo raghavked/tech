@@ -21,6 +21,15 @@ import {
   renderMigrateTable,
   storeKindOf,
 } from "@henosis/server";
+import {
+  councilSection,
+  isChatLog,
+  loadChat,
+  loadChatFile,
+  renderChatReport,
+  renderCouncil,
+  renderCouncilList,
+} from "./council.js";
 import { runDemo } from "./demo.js";
 import { joinSession } from "./join.js";
 import { renderReport } from "./report.js";
@@ -34,7 +43,9 @@ const USAGE = `henosis <command> [options]
   join     <session> --as <name> [--url ws://127.0.0.1:7700/ws] [--token T] [--branch main]
   replay   <log.json> [--branch main]                                           fold the log, print the brief
   verify   <log.json>                                                           check hashes and replay determinism
-  report   <log.json>                                                           markdown report of every branch, with a Tokens section
+  report   <log.json> [--chat <chat.json>]                                      markdown report of every branch, with a Tokens section;
+                                                                                a chat log reports its groups and councils (Council section)
+  council  <org> [<id>] [--dir ./store]                                         a council's rounds and conclusion from the org's chat log; no id lists them
   fleet    <ledger.json>                                                        fleet brief from a project ledger
   slack    --config slack.json [--port 7700] [--dir ./store] [--model ...]     serve plus the Slack adapter (socket mode)
 
@@ -78,6 +89,15 @@ function loadLog(path: string): Session {
 
 /** A store that cannot be opened as asked is a usage error: one line, exit 2. */
 class StoreUsageError extends Error {}
+
+/** A chat log that is not where it was said to be is a usage error too. */
+function chatOrUsage<T>(load: () => T): T {
+  try {
+    return load();
+  } catch (err) {
+    throw new StoreUsageError(err instanceof Error ? err.message : String(err));
+  }
+}
 
 /** The store `serve` and `slack` run on: a folder (the default) or postgres (`--store postgres`). */
 async function pickStore(flags: Record<string, string | true>, root: string) {
@@ -275,7 +295,39 @@ async function main(): Promise<number> {
     }
     case "report": {
       if (!positional[0]) return usage();
-      process.stdout.write(renderReport(loadLog(positional[0])));
+      const raw = JSON.parse(readFileSync(resolve(positional[0]), "utf8")) as unknown;
+      if (isChatLog(raw)) {
+        process.stdout.write(renderChatReport(loadChatFile(positional[0])));
+        return 0;
+      }
+      const s = Session.fromSerialized(raw as SerializedLog);
+      let report = renderReport(s);
+      const chatPath = flag(flags, "chat", "");
+      if (chatPath) {
+        const council = councilSection(
+          chatOrUsage(() => loadChatFile(chatPath)).state(),
+          s.state().sessionId,
+        );
+        if (council) report += `\n${council}`;
+      }
+      process.stdout.write(report);
+      return 0;
+    }
+    case "council": {
+      const org = positional[0];
+      if (!org) return usage();
+      const chat = chatOrUsage(() => loadChat(flag(flags, "dir", "./store"), org));
+      const id = positional[1];
+      if (!id) {
+        process.stdout.write(renderCouncilList(chat.state()));
+        return 0;
+      }
+      const c = chat.state().councils[id];
+      if (!c) {
+        process.stderr.write(`no council ${id} in ${org}; \`henosis council ${org}\` lists them\n`);
+        return 2;
+      }
+      process.stdout.write(renderCouncil(chat.state(), c));
       return 0;
     }
     case "fleet": {

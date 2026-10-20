@@ -28,6 +28,7 @@ import {
 import type { HenosisServer, ProjectHost } from "@henosis/server";
 import { z } from "zod";
 import type { SlackClient } from "./client.js";
+import { SlackCouncil } from "./council.js";
 import { appUrlOf, linkOf } from "./links.js";
 import {
   answeredLine,
@@ -100,6 +101,8 @@ export interface SlackAdapterOptions {
 }
 
 export class SlackAdapter {
+  /** The council in Slack (docs/19_council.md): `/henosis council`, the rounds, the plan's stars. */
+  readonly council: SlackCouncil;
   private readonly threads = new Map<string, ThreadRef>();
   private readonly approvalMessages = new Map<string, ThreadRef>();
   private readonly planMessages = new Map<string, ThreadRef>();
@@ -121,6 +124,14 @@ export class SlackAdapter {
     client.onAction((e) => this.onAction(e));
     client.onMessage((e) => this.onMessage(e));
     client.onSlash("/henosis", (e) => this.onSlash(e));
+    this.council = new SlackCouncil({
+      server: opts.server,
+      client,
+      map: opts.map,
+      appBaseUrl: opts.appBaseUrl,
+      join: (host, sh, user) => this.joinIfNeeded(host, sh, user),
+      log: opts.log,
+    });
   }
 
   /** Attach to a project host: existing sessions get threads; new ones are picked up as they register. */
@@ -136,6 +147,7 @@ export class SlackAdapter {
       const store = this.opts.server.memory(org);
       store.onEvent((e) => void this.onMemoryEvent(store, e));
     }
+    this.council.watchOrg(org);
   }
 
   async start(): Promise<void> {
@@ -144,6 +156,7 @@ export class SlackAdapter {
 
   async stop(): Promise<void> {
     for (const t of this.timers.values()) clearTimeout(t);
+    await this.council.settle();
     await this.opts.client.stop();
   }
 
@@ -413,6 +426,8 @@ export class SlackAdapter {
       }
       case "plan.rated": {
         const plan = st?.plans[e.payload.planId];
+        // A council's plan lives in the chair's session: its synthesis message follows the ratings.
+        if (plan) this.council.onPlanChanged(plan.id);
         const ref = this.planMessages.get(e.payload.planId);
         if (!ref || !plan || !st) break;
         // The fold approves the plan the moment the ratings meet the policy (no separate
@@ -444,8 +459,12 @@ export class SlackAdapter {
       }
       case "plan.decided": {
         const plan = st?.plans[e.payload.planId];
-        const ref = this.planMessages.get(e.payload.planId);
         if (!plan) break;
+        this.council.onPlanChanged(
+          plan.id,
+          e.payload.by === "policy" ? "policy" : name(e.payload.by),
+        );
+        const ref = this.planMessages.get(e.payload.planId);
         const r = planDecided({
           status: e.payload.status,
           by: e.payload.by === "policy" ? "policy" : name(e.payload.by),
@@ -717,6 +736,10 @@ export class SlackAdapter {
         if (!picked.success) throw new Error("a plan rating is a whole number from 1 to 5");
         sh.session.ratePlan("main", user, c, picked.data, "from Slack");
         void sh.drive("main");
+      } else if (kind === "council.rate" && a && b && c) {
+        const picked = Rating.safeParse(Number(e.value));
+        if (!picked.success) throw new Error("a plan rating is a whole number from 1 to 5");
+        this.council.rate(user, a, b, c, picked.data);
       } else if (kind === "resolve" && a && b && c) {
         this.opts.server.project(a).project.resolveContention(user, b, c, "resolved from Slack");
       } else if (kind === "memory" && a && b && c) {
@@ -940,11 +963,20 @@ export class SlackAdapter {
   private async onSlash(e: {
     text: string;
     userId: string;
+    channel: string;
     respond(t: string): Promise<void>;
   }): Promise<void> {
-    const [cmd, arg] = e.text.trim().split(/\s+/);
+    const [cmd, arg, ...rest] = e.text.trim().split(/\s+/);
     try {
-      if (cmd === "brief" && arg) {
+      if (cmd === "council" && arg && rest.length) {
+        const r = this.council.convene(this.userFor(e.userId), e.channel, arg, rest.join(" "));
+        const where = r.channel
+          ? `It runs in <#${r.channel}>.`
+          : "No Slack channel maps to this group; follow it in Henosis.";
+        await e.respond(
+          `Convened a council in _${r.group.name}_: ${r.members.length === 1 ? "one model" : `${r.members.length} models`}, *${r.chair.name}* chairs. ${where}`,
+        );
+      } else if (cmd === "brief" && arg) {
         const now = briefNow(this.briefInput(arg));
         await e.respond(`${now}\n\n${this.opts.server.project(arg).brief()}`);
       } else if (cmd === "sessions" && arg) {
@@ -964,7 +996,9 @@ export class SlackAdapter {
             "team memory is empty",
         );
       } else {
-        await e.respond("usage: /henosis brief <project> | sessions <project> | memory <org>");
+        await e.respond(
+          "usage: /henosis brief <project> | sessions <project> | memory <org> | council <group> <task>",
+        );
       }
     } catch (err) {
       await e.respond(`error: ${err instanceof Error ? err.message : String(err)}`);

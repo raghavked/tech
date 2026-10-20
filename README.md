@@ -32,6 +32,11 @@ Three layers, all event-sourced, all replayable:
   [`docs/13_fleet_collaboration.md`](docs/13_fleet_collaboration.md)
 - **Organisation memory**: what the fleet knows and who said so. Attributed, scoped, compacting,
   with explicit conflicts and a curator. [`docs/14_organisation_memory.md`](docs/14_organisation_memory.md)
+- **Council**: a team's own models deliberate on one task in a group: each answers alone, they
+  discuss, a chair writes the plan with an owner per step, people rate it, the work is
+  assigned to the members' agents and their reports and the dissent land in the same room.
+  Every word and token in the group's replayable log; in Slack as a thread, in the CLI from
+  the log. [`docs/19_council.md`](docs/19_council.md)
 
 One web app is the product; the desktop and mobile shells wrap the same client, in the way
 Claude on the web, Claude Desktop and Claude mobile are one product. Brand and mockups in
@@ -128,7 +133,8 @@ groups to teams and projects through `sso` in `orgs.json`; `docs/07_security_and
 | `henosis join <session> --as <name> [--url] [--token] [--branch]` | terminal participant |
 | `henosis replay <log.json> [--branch]` | fold a log and print the brief |
 | `henosis verify <log.json>` | hash chain and replay determinism for every branch |
-| `henosis report <log.json>` | markdown report of every branch |
+| `henosis report <log.json> [--chat <chat.json>]` | markdown report of every branch; a chat log reports its groups and councils, and `--chat` gives a session report its Council section |
+| `henosis council <org> [<id>] [--dir]` | a council's rounds, plan with dissent, work and conclusion from the org's chat log; no id lists them |
 | `henosis fleet <ledger.json>` | fleet brief from a project ledger |
 | `henosis slack --config slack.json` | serve plus the Slack adapter in socket mode |
 
@@ -141,9 +147,10 @@ packages/runner     agent loop, tool registry, scripted model, Claude adapter
 packages/fleet      project ledger: claims, lead directives, contentions, fleet brief, identity
 packages/memory     organisation memory: attributed entries, conflicts, compaction, curator
 packages/chat       groups and chats: a chained log per org where people and agents are members,
-                    mentions, agent replies, read markers
+                    mentions, agent replies, read markers; the council's events, reducer and protocol
 packages/server     websocket and HTTP server, project, session and chat hosts, notifications, persistence
-packages/slack      Slack adapter on an interface with an in-memory fake; Bolt socket mode
+packages/slack      Slack adapter on an interface with an in-memory fake; Bolt socket mode;
+                    the council as a thread with rating buttons
 packages/cli        the fold binary
 apps/web            the product: React client that folds the same events as the server (PWA);
                     agents rail, team panel, groups and chats, command palette (⌘K), inbox,
