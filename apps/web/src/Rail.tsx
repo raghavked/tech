@@ -3,8 +3,9 @@
  * SYSTEM.md §6). Order: brand · New session on the one gradient · Search (⌘K) · Inbox and
  * Approvals with counts · AGENTS by project, crews first, every card titled by its session ·
  * the project section (Overview, Groups, Memory) · Chats with unread · the me row last.
- * Below 1180 px it folds to 72 px of icons and avatars with a hover card beside the stream;
- * on a phone it is the drawer behind the menu button. `[` and `]` fold and unfold it.
+ * Below 1180 px it folds to 72 px of icons and avatars with a hover card beside the stream
+ * (breakpoints.ts, with 40 px of hysteresis so a resize never flaps it); on a phone it is the
+ * drawer behind the menu button. `[` and `]` fold and unfold it, and that choice is kept.
  */
 import { compactTokens, formatTokens } from "@henosis/kernel";
 import { usageTotal } from "@henosis/protocol";
@@ -22,6 +23,7 @@ import {
 import type { ShellContext } from "./App.js";
 import { api, type Me, type SessionRow } from "./api.js";
 import { pendingOf } from "./approvalsQueue.js";
+import { useFrame } from "./breakpoints.js";
 import { useChatUnread } from "./chat.js";
 import { copy } from "./copy.js";
 import { railCard } from "./council.js";
@@ -46,7 +48,6 @@ import {
   Stack,
   TeamPill,
   teamOf,
-  useMediaQuery,
 } from "./ui.js";
 import { UpdateRow } from "./update.js";
 
@@ -61,7 +62,7 @@ export function teamOfRoute(route: Route, me: Me | null): string | null {
   return null;
 }
 
-// ---- collapsed or not: the window decides below 1180, the person's choice wins ---------------
+// ---- collapsed or not: the frame decides below 1180 (with hysteresis), the person's choice wins ----
 
 const RAIL_KEY = "henosis.rail";
 type RailPref = "collapsed" | "expanded" | null;
@@ -101,8 +102,9 @@ export function pinRail(pref: "collapsed" | "expanded"): void {
 }
 
 function useRailCollapsed(): [boolean, () => void] {
-  const narrow = useMediaQuery("(min-width: 641px) and (max-width: 1180px)");
-  const phone = useMediaQuery("(max-width: 640px)");
+  const frame = useFrame();
+  const phone = frame === "phone";
+  const narrow = frame !== "full";
   const pref = useSyncExternalStore(subscribeRailPref, readPref, () => null);
   const collapsed = !phone && (pref ? pref === "collapsed" : narrow);
   const toggle = useCallback(() => pinRail(collapsed ? "expanded" : "collapsed"), [collapsed]);
@@ -700,7 +702,15 @@ function AgentSquare({
     if (!r) return;
     // beside the rail at the avatar's height, clamped to the window so it never leaves the screen
     const h = 96;
-    const top = Math.max(8, Math.min(innerHeight - h - 8, r.top + r.height / 2 - h / 2));
+    const clamp = (y: number) => Math.max(8, Math.min(innerHeight - h - 8, y));
+    let top = clamp(r.top + r.height / 2 - h / 2);
+    // never over the live message (desktop-compact's one fix): when the card would sit on the
+    // stream's last message, it drops below it, or rises above it when there is no room below
+    const live = liveMessageRect();
+    if (live && top < live.bottom + 6 && top + h > live.top - 6) {
+      const below = clamp(live.bottom + 8);
+      top = below + h <= innerHeight - 8 && below > live.bottom ? below : clamp(live.top - h - 8);
+    }
     setCard({ top });
   };
   const clear = () => {
@@ -765,6 +775,19 @@ function AgentSquare({
       )}
     </a>
   );
+}
+
+/** The stream's last message or notice on screen: the live one the hover card must not cover. */
+function liveMessageRect(): DOMRect | null {
+  try {
+    const rows = document.querySelectorAll(".main .msg, .main .notice");
+    const last = rows[rows.length - 1];
+    if (!last) return null;
+    const r = last.getBoundingClientRect();
+    return r.height > 0 && r.bottom > 0 && r.top < innerHeight ? r : null;
+  } catch {
+    return null;
+  }
 }
 
 // ---- the me row and the account menu ------------------------------------------------------

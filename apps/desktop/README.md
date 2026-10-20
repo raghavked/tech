@@ -48,16 +48,29 @@ listener resolves to an unlisten function.
 
 | Method | Purpose |
 |---|---|
-| `info()` | `{ version, platform, serverUrl, launchRoute, pollSeconds }` |
-| `notify({ title, body, tag })` | native notification; `tag` makes it idempotent |
-| `setIdentity(serverUrl, userId)` | whom to poll the inbox for; `null` clears tray and badge |
+| `info()` | `{ version, platform, serverUrl, launchRoute, pollSeconds }`; the client sets `:root[data-shell]` from `platform` |
+| `notify({ title, body, tag })` | native notification in the one grammar; the same `tag` replaces, never doubles |
+| `setIdentity(serverUrl, userId, name)` | whom to poll the inbox for (`null` clears tray and badge); `name` for "Nothing awaits you, Ana." |
 | `setRoute(projectId, sessionId)` | the session on screen; its items read while focused |
 | `setPending(count)` | the open session's live count changed: poll now |
 | `refreshInbox()` | poll now |
 | `openExternal(url)` | open in the system browser |
-| `onDeepLink(cb)` | `"#/p/<project>/s/<session>"` from a `henosis://` link or the tray |
-| `onTray(cb)` | `"pending"` or `"open"` |
-| `onInbox(cb)` | `{ approvals, handoffs }` after every poll |
+| `setRecents(items)` | the last sessions and rooms by name (`{ kind, title, route, at }`) for Quick open |
+| `minimize()`, `toggleMaximize()`, `closeToTray()` | the Windows titlebar's caption buttons; close hides to the tray |
+| `onDeepLink(cb)` | `"#/p/<project>/s/<session>"` from a `henosis://` link, a tray row or Quick open |
+| `onTray(cb)` | `"open"`, `"pending"`, `"inbox"`, `"approvals"` or `"new"` |
+| `onInbox(cb)` | `{ approvals, handoffs, mentions, items, paused }` after every poll |
+| `onAction(cb)` | `{ tag, route }` when a notification is acted on; reserved until the notification plugin draws buttons on the desktop (today the click brings Henosis forward and the shell emits nothing) |
+
+### The window
+
+1280 × 840 by default (`tauri.conf.json`). The platform's chrome is set in `main.rs` because the
+config cannot differ per platform: on macOS the titlebar is an overlay with the traffic lights
+hiddenInset in the navy rail (the client drops its brand row 32 px and makes the session's title
+row the drag region, `data-tauri-drag-region`, with its buttons left out of it); on Windows the
+window is undecorated and the client draws a 36 px `--rail` titlebar with the mark, "Henosis"
+and 46 × 36 caption buttons (`WinTitlebar` in `apps/web/src/App.tsx`). Closing hides to the
+tray on both; Quit is in the tray menu. Linux keeps the window manager's decorations.
 
 ## Tray, badge and notifications
 
@@ -66,14 +79,25 @@ Every 15 seconds, on focus, and whenever the client reports a change, the shell 
 writes that inbox from session events). Unread `approval` and `handoff` items are what
 await you:
 
-- The tray menu reads **Pending approvals · N**, with **Handoffs offered · N** beneath it when
-  there are any, then **Open Henosis** and **Quit Henosis**. The first two open the first item's
-  session. The tray icon gains a dot when N is above zero, and the Dock or launcher badge shows
-  the total (macOS and Linux; Tauri has no badge count on Windows, where the tray carries it).
-- A new item becomes one native notification, unless its session is on screen: the client
-  shows those itself from live events, so nothing is shown twice. The first poll after
-  sign-in shows one summary line instead of a toast per item. More than three at once
-  collapse into a summary.
+- The tray menu lists items, not counts: section headers as disabled rows with the count at
+  the right (**Pending approvals · 2**, **Handoffs offered · 1**, **Mentions · 2** only when
+  there are any), one line per item (who · verb · what · age, from the server's grammar), five
+  per section then "and N more… in the queue"; **Quick open** with the last five sessions and
+  rooms by name (the client mirrors its recents through `setRecents`) plus Inbox, Approvals
+  queue and New session…; **Pause notifications** for an hour, until tomorrow or until you say
+  (the icon dims with a moon; approvals still badge); **Open Henosis** (⌥⇧H / Ctrl+Shift+H,
+  a global shortcut) and **Quit Henosis**. "Nothing awaits you, Ana." when nothing does. Every
+  row is a route into the client. The tray icon gains a dot when something awaits you, and the
+  Dock or launcher badge counts approvals plus handoffs, never mentions (macOS and Linux; Tauri
+  has no badge count on Windows, where the tray carries it). The OS keeps its own colours: menu
+  highlights, notification buttons and the badge are the system's.
+- A new item becomes one native notification (title who · verb · what, body where and what it
+  means for you; the same tag replaces), unless its session is on screen: the client shows
+  those itself from live events, so nothing is shown twice. Under a ratings rule the body says
+  the notice opens to rate and approve; nothing approves blind from a banner. The first poll
+  after sign-in shows one summary line instead of a toast per item. More than three at once
+  collapse into a summary. The notification plugin draws no buttons on the desktop, so the
+  one action is the click.
 - Items of the session on screen are marked read (`POST /api/notifications`) while the
   window is focused, so the badge drops as you look.
 - Notifications are one button: clicking brings Henosis forward where the OS does that for

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Me, refOf, useFetch } from "../api.js";
 import { DEFAULT_RATING } from "../approvalsQueue.js";
+import { PHONE_QUERY } from "../breakpoints.js";
 import { HenosisClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import { OfflineState, useOffline, useOnline } from "../empty.js";
@@ -182,7 +183,7 @@ export function SessionView({
   const toggle = (face: Panel) => setPanel((v) => (v === face ? null : face));
   // Branch compare (views/BranchCompare.tsx): the other branch shown beside this one, or null.
   const [compare, setCompare] = useState<string | null>(null);
-  const phone = useMediaQuery("(max-width: 640px)");
+  const phone = useMediaQuery(PHONE_QUERY);
   const rows = useFetch(() => api.sessions(projectId), `${projectId}:${s?.seq ?? -1}`);
   const mine = rows.data?.find((r) => r.sessionId === sessionId) ?? null;
   // hook point (command-palette): this page's actions, refreshed as the session changes
@@ -417,6 +418,7 @@ export function SessionView({
         </>
       }
       shortcuts={shortcuts}
+      onCloseDrawer={() => setPanel(null)}
       drawer={
         panel === "share" ? (
           <ShareSheet

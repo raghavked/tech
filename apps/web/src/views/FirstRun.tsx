@@ -1,9 +1,13 @@
 /**
- * The first run on #/: three steps in one column. Who you are, which team, then a session to
- * open or create. Steps already done collapse to a line; the demo session is one row away.
+ * The first run on #/: three steps in one column (four in the desktop shell). Who you are,
+ * which team, then a session to open or create; on the desktop a fourth step teaches the tray
+ * by showing the menu as it is (design/henosis SCREENS.md §19, first-run-desktop). The step
+ * marks are the four stages of the mark: a faint ring, one arc, two arcs apart, the closed
+ * ring with its centre. Steps already done fold to a line with a check; the demo session is
+ * one row away.
  */
 import { type ReactNode, useMemo, useState } from "react";
-import type { Me, ProjectRef } from "../api.js";
+import type { Me, Notification, ProjectRef } from "../api.js";
 import { wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import {
@@ -15,9 +19,13 @@ import {
   useOnline,
 } from "../empty.js";
 import { type Identity, slugify } from "../identity.js";
+import { useInbox } from "../inbox.js";
 import { createSession } from "../projectClient.js";
+import { recentRoutes, useRecentRooms, useRecents } from "../recents.js";
 import { navigate, paths } from "../router.js";
-import { ICONS, Icon } from "../ui.js";
+import { useShellInbox, useShellPlatform } from "../shell.js";
+import { type TrayItem, trayMenuOf } from "../tray.js";
+import { Avatar, ICONS, Icon, Mark, type MarkState } from "../ui.js";
 
 /** The policy fields a new session starts with: plan first (on) and an optional token budget. */
 export function PolicyFields({
@@ -107,6 +115,9 @@ export function groupByTeam(projects: ProjectRef[]): Team[] {
   return [...teams.values()];
 }
 
+/** The four stages of the mark, as step marks: faint ring, one arc, two arcs apart, closed. */
+const STAGES: MarkState[] = ["faint", "one-arc", "apart", "closed"];
+
 export function FirstRun({
   identity,
   me,
@@ -130,12 +141,22 @@ export function FirstRun({
     setPicked(id);
     rememberTeam(id);
   };
+  // The desktop shell adds the one step the web client has no need of: where Henosis waits.
+  const platform = useShellPlatform();
+  const done = [Boolean(identity), Boolean(identity) && loaded && teams.length > 0, false, false];
+  const now = done.indexOf(false);
+  const step = (n: number) => ({
+    n,
+    stage: STAGES[n - 1] ?? "closed",
+    done: done[n - 1] ?? false,
+    now: now === n - 1,
+  });
   return (
     <ol className="firstrun">
-      <Step n={1} title="Who you are" done={Boolean(identity)}>
+      <Step {...step(1)} title="Who you are">
         {identityStep}
       </Step>
-      <Step n={2} title="Your team" done={Boolean(identity) && loaded && teams.length > 0}>
+      <Step {...step(2)} title="Your team">
         {!identity ? (
           <p className="small faint">Your teams appear once you have a name.</p>
         ) : meError || !online ? (
@@ -154,35 +175,53 @@ export function FirstRun({
           <TeamPick teams={teams} picked={team?.id ?? null} onPick={pick} />
         )}
       </Step>
-      <Step n={3} title="A session" done={false}>
+      <Step {...step(3)} title="A session">
         {!identity ? (
           <p className="small faint">Open one by id, start a new one, or try the demo.</p>
         ) : (
           <OpenSession identity={identity} team={team} />
         )}
       </Step>
+      {platform && (
+        <Step {...step(4)} title={copy.desktop.trayStep} sub={copy.desktop.trayStepSub}>
+          <TrayStep platform={platform} identity={identity} team={team} />
+        </Step>
+      )}
     </ol>
   );
 }
 
 function Step({
   n,
+  stage,
   title,
+  sub,
   done,
+  now,
   children,
 }: {
   n: number;
+  stage: MarkState;
   title: string;
+  sub?: string;
   done: boolean;
+  now: boolean;
   children: ReactNode;
 }) {
   return (
-    <li className={`fr-step${done ? " done" : ""}`}>
-      <span className="num" aria-hidden="true">
-        {done ? <Icon d={ICONS.check} size={12} /> : n}
+    <li
+      className={`fr-step${done ? " done" : ""}${now ? " now" : ""}`}
+      aria-current={now ? "step" : undefined}
+    >
+      <span className="num" aria-hidden="true" data-step={n}>
+        <Mark size={24} state={stage} />
       </span>
       <div className="body">
-        <h2>{title}</h2>
+        <h2>
+          {title}
+          {done && <Icon d={ICONS.check} size={14} className="ok" />}
+        </h2>
+        {sub && <p className="small muted sub">{sub}</p>}
         {children}
       </div>
     </li>
@@ -320,5 +359,199 @@ function OpenSession({ identity, team }: { identity: Identity; team: Team | null
         idPrefix="home"
       />
     </>
+  );
+}
+
+// ---- the desktop's fourth step: the tray, taught by showing it ----------------------------------
+
+/** An inbox row as the tray lists it; older servers send no grammar, so the title stands in. */
+function trayItemOf(n: Notification): TrayItem {
+  return {
+    id: n.id,
+    kind: n.kind,
+    who: n.who ?? n.title,
+    verb: n.verb ?? "",
+    what: n.what ?? n.body,
+    age: n.age ?? Math.max(0, Math.round((Date.now() - n.at) / 1000)),
+    route: n.route ?? "#/inbox",
+    ...(n.ratings ? { ratings: true } : {}),
+  };
+}
+
+/** The tray glyph as the tiles draw it: the ring and its centre; a corner dot when something waits. */
+function TrayGlyph({ dot = false, moon = false }: { dot?: boolean; moon?: boolean }) {
+  return (
+    <svg className={`trayglyph${moon ? " paused" : ""}`} viewBox="0 0 96 96" aria-hidden="true">
+      <path d="M48 20 A28 28 0 0 1 48 76" />
+      <path d="M48 76 A28 28 0 0 1 48 20" />
+      <circle className="c" cx="48" cy="48" r="8" />
+      {dot && <circle className="pend" cx="80" cy="18" r="13" />}
+    </svg>
+  );
+}
+
+function TrayStep({
+  platform,
+  identity,
+  team,
+}: {
+  platform: string;
+  identity: Identity | null;
+  team: Team | null;
+}) {
+  const shell = useShellInbox();
+  const inbox = useInbox(identity?.userId ?? null);
+  // what the shell lists (its poll) or, until it has polled, what the client's own poll has
+  const items = shell.items.length
+    ? shell.items
+    : inbox.items.filter((n) => !n.read).map(trayItemOf);
+  useRecents();
+  useRecentRooms();
+  const menu = trayMenuOf({
+    items,
+    recents: recentRoutes(),
+    name: identity?.name ?? null,
+    platform,
+    paused: shell.paused,
+  });
+  const waits = items.filter((i) => i.kind === "approval" || i.kind === "handoff");
+  const first = identity?.name.trim().split(/\s+/)[0] ?? "";
+  const firstRoute =
+    waits[0]?.route ?? (team?.projects[0] ? paths.fleet(team.projects[0].projectId) : null);
+  return (
+    <div className="traystep">
+      <h3 className="serif">{copy.desktop.trayHead(platform)}</h3>
+      <p className="muted">{copy.desktop.trayLede}</p>
+      <div className="tiles">
+        <div className="tile">
+          <div className="pic">
+            <span className="mini">
+              <TrayGlyph /> 14:32
+            </span>
+          </div>
+          <div>
+            <b>{copy.desktop.tileQuiet}</b> {copy.desktop.tileQuietText}
+          </div>
+        </div>
+        <div className="tile">
+          <div className="pic">
+            <span className="mini on">
+              <TrayGlyph dot /> 14:32
+            </span>
+            <span className="dockmini" aria-hidden="true">
+              <Mark size={22} cut="bare" ground="navy" />
+              <span className="badge">{Math.max(1, waits.length)}</span>
+            </span>
+          </div>
+          <div>
+            <b>{copy.desktop.tileDot}</b> {copy.desktop.tileDotText(platform)}
+          </div>
+        </div>
+        <div className="tile">
+          <div className="pic">
+            <div className="bubble">
+              <Mark size={20} />
+              <div className="txt">
+                <span>
+                  <b>
+                    {waits[0]
+                      ? `${waits[0].who} ${waits[0].verb}`
+                      : "Approval · write · medium risk"}
+                  </b>
+                </span>
+                <span className="faint">
+                  {waits[0]?.what ?? "Bo's agent · Invoice PDF: tax lines"}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <b>{copy.desktop.tileNotice}</b> {copy.desktop.tileNoticeText}
+          </div>
+        </div>
+      </div>
+
+      {/* the tray taught by dropping it open: the menu exactly as the shell has it now */}
+      <section className="traymenu" aria-label={copy.desktop.menuAsItIs}>
+        <div className="status">{copy.desktop.menuAsItIs}</div>
+        {menu.empty && <div className="row disabled">{menu.empty}</div>}
+        {menu.sections.map((s) => (
+          <div key={s.id} className="section">
+            <div className="row head">{s.header}</div>
+            {s.rows.map((r) => (
+              <a key={r.id} className="row item" href={r.route ?? "#/inbox"}>
+                <span className="serif">{r.who}</span> {r.verb}{" "}
+                <span className="muted">{r.what}</span>
+                <span className="age">{r.age}</span>
+              </a>
+            ))}
+            {s.more && (
+              <a className="row more" href={s.more.route ?? "#/inbox"}>
+                {s.more.text}
+              </a>
+            )}
+          </div>
+        ))}
+        <div className="sep" />
+        <div className="row sub">
+          <span>{copy.desktop.quickOpen}</span>
+          <span className="kbd">›</span>
+        </div>
+        <div className="row sub">
+          <span>{menu.pause.label}</span>
+          <span className="kbd">›</span>
+        </div>
+        <div className="sep" />
+        <div className="row">
+          <span>{menu.open.label}</span>
+          <span className="kbd">{menu.open.key}</span>
+        </div>
+        <div className="row">
+          <span>{menu.quit}</span>
+        </div>
+      </section>
+
+      {/* "Already waits for you": the first click after first run has somewhere to go */}
+      <div className="waits">
+        <div>
+          <div className="h">{copy.desktop.waitsHead(waits.length, first)}</div>
+          {waits.length === 0 ? (
+            <p className="small muted">{copy.desktop.waitsNone}</p>
+          ) : (
+            <ul>
+              {waits.slice(0, 3).map((w) => {
+                const agent = w.kind === "approval";
+                const tool = agent ? (w.what.split(" · ")[0] ?? w.what) : null;
+                return (
+                  <li key={w.id}>
+                    <Avatar id={w.who} name={w.who} size={20} kind={agent ? "agent" : "person"} />
+                    <span>
+                      <span className="serifname">{w.who}</span> {w.verb}{" "}
+                      {tool ? <code>{tool}</code> : w.what}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+        <div className="cta">
+          <button
+            type="button"
+            className="btn brand"
+            disabled={!firstRoute}
+            onClick={() => firstRoute && navigate(firstRoute)}
+          >
+            {copy.desktop.enter}
+            <Icon d={ICONS.chevron} size={14} />
+          </button>
+          {first && (
+            <span className="cap">
+              <i>{copy.desktop.enterCap(first)}</i>
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

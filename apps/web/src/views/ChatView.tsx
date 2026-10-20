@@ -27,6 +27,7 @@ import { copy } from "../copy.js";
 import { memberOf } from "../council.js";
 import type { Identity } from "../identity.js";
 import { notifyIfHidden } from "../notify.js";
+import { rememberRoom } from "../recents.js";
 import { ReconnectLine } from "../reconnect.js";
 import { navigate, paths } from "../router.js";
 import { ErrorLine, ICONS, Icon, Loader, Mark, toast, useConnectionToasts } from "../ui.js";
@@ -165,6 +166,11 @@ export function ChatView({
     opened.current = { groupId: group.id, read: s?.reads[meId]?.[group.id] ?? -1 };
   const readAtOpen = opened.current?.read ?? -1;
 
+  // Quick open (desktop-tray): the last rooms by name sit beside the last sessions.
+  const groupName = group?.name ?? null;
+  useEffect(() => {
+    if (groupId && groupName) rememberRoom({ orgId, groupId, title: groupName });
+  }, [orgId, groupId, groupName]);
   const sheet = creating && (
     <NewGroupSheet
       orgId={orgId}

@@ -568,6 +568,46 @@ export const copy = {
       `The agent is ${doing.charAt(0).toLowerCase()}${doing.slice(1)} · what you send now reaches it when the step ends`,
   },
 
+  // The desktop shell (design/henosis SCREENS.md §20 and §19 first run; BACKLOG.md L1).
+  desktop: {
+    /** The Windows titlebar: the mark and the product's name only; the session lives in the title row. */
+    minimise: "Minimise",
+    maximise: "Maximise",
+    restore: "Restore",
+    /** Close hides to the tray on Windows; the label says so for a reader. */
+    close: "Close to the tray",
+    trayStep: "The tray",
+    trayStepSub: "Where Henosis waits for you when the window is closed",
+    trayHead: (platform: string) =>
+      platform === "macos" ? "Henosis lives in your menu bar." : "Henosis lives in your tray.",
+    trayLede:
+      "Close the window whenever you like. The tray keeps counting what waits for you and opens the right session in one click.",
+    tileQuiet: "Quiet.",
+    tileQuietText: "Nothing waits. The ring sits with the clock and stays out of your way.",
+    tileDot: "A dot.",
+    tileDotText: (platform: string) =>
+      platform === "macos"
+        ? "An approval or a handoff waits. The Dock badge carries the count; the menu names each one."
+        : "An approval or a handoff waits. The taskbar carries the count; the menu names each one.",
+    tileNotice: "A notification.",
+    tileNoticeText:
+      "Names the tool and its risk class, never the arguments. Click to land in the session.",
+    menuAsItIs: "Your tray menu, as it is now",
+    waitsHead: (n: number, name: string) => {
+      const you = name ? `, ${name}.` : ".";
+      if (n === 0) return `Nothing waits for you yet${you}`;
+      const count =
+        n === 1 ? "One thing" : n === 2 ? "Two things" : n === 3 ? "Three things" : `${n} things`;
+      return `${count} already ${n === 1 ? "waits" : "wait"} for you${you}`;
+    },
+    waitsNone: "The first approval or handoff will land here, and in the tray.",
+    enter: "Enter the circle",
+    enterCap: (name: string) => `The stream will say ${name} joins the circle.`,
+    openHenosis: "Open Henosis",
+    quitHenosis: "Quit Henosis",
+    quickOpen: "Quick open",
+  },
+
   /** The Team face of the drawer (team-panel). */
   panel: {
     title: "Team",

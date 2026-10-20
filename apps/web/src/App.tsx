@@ -7,6 +7,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { api, type Me, useFetch } from "./api.js";
+import { useFrame } from "./breakpoints.js";
 import { copy } from "./copy.js";
 import { ErrorBoundary, Recover } from "./ErrorBoundary.js";
 import { type Identity, useIdentity } from "./identity.js";
@@ -15,9 +16,10 @@ import { CommandPalette } from "./palette.js";
 // The rail is drawn once, in Rail.tsx; the Shell only places it.
 import { pinRail, Rail, teamOfRoute } from "./Rail.js";
 import { navigate, type Route, useRoute } from "./router.js";
+import { desktop, useShellPlatform } from "./shell.js";
 import { type ShortcutHandlers, stepSession } from "./shortcuts.js";
 import { useTeamTheme } from "./theme.js";
-import { ICONS, Icon, Loader, Toasts } from "./ui.js";
+import { ICONS, Icon, Loader, Mark, Toasts } from "./ui.js";
 import { focusSoon, ShortcutSheet, sidebarSessionHrefs, useShortcuts } from "./useShortcuts.js";
 import { Home } from "./views/Home.js";
 // Perf: the other views are separate chunks, loaded on first use and warmed once idle (views/lazy.ts).
@@ -42,8 +44,11 @@ import { AuthCallback } from "./views/SignIn.js";
 export function App() {
   const route = useRoute();
   const routeKey = JSON.stringify(route);
+  // desktop-window: Windows runs undecorated, so the client draws the 36 px titlebar itself.
+  const platform = useShellPlatform();
   return (
     <>
+      {platform === "windows" && <WinTitlebar />}
       <ErrorBoundary
         resetKey={routeKey}
         fallback={(error, reset) => <BrokenView error={error} onRetry={reset} />}
@@ -54,6 +59,58 @@ export function App() {
       {/* notifications: one sentence at three distances; the typed stack above the composer */}
       <TypedToasts />
     </>
+  );
+}
+
+/**
+ * The Windows titlebar (desktop-window): 36 px of `--rail` with the mark and "Henosis" only
+ * (the session name lives in the title row beneath), 46 × 36 caption buttons with 10 px glyphs
+ * and the close hover in Windows red. The bar is the drag region; closing hides to the tray.
+ */
+function WinTitlebar() {
+  const d = desktop();
+  return (
+    <div className="w11bar" data-tauri-drag-region>
+      <div className="app" data-tauri-drag-region>
+        <Mark size={16} />
+        <span className="name" data-tauri-drag-region>
+          {copy.product}
+        </span>
+      </div>
+      <div className="caps">
+        <button
+          type="button"
+          aria-label={copy.desktop.minimise}
+          title={copy.desktop.minimise}
+          onClick={() => d?.minimize?.().catch(() => undefined)}
+        >
+          <svg viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M0 5h10" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          aria-label={copy.desktop.maximise}
+          title={copy.desktop.maximise}
+          onClick={() => d?.toggleMaximize?.().catch(() => undefined)}
+        >
+          <svg viewBox="0 0 10 10" aria-hidden="true">
+            <rect x=".5" y=".5" width="9" height="9" rx="1.5" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="close"
+          aria-label={copy.desktop.close}
+          title={copy.desktop.close}
+          onClick={() => d?.closeToTray?.().catch(() => undefined)}
+        >
+          <svg viewBox="0 0 10 10" aria-hidden="true">
+            <path d="m0 0 10 10M10 0 0 10" />
+          </svg>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -193,6 +250,7 @@ export function Shell({
   below,
   busy = false,
   drawer,
+  onCloseDrawer,
   shortcuts,
   children,
 }: {
@@ -204,10 +262,16 @@ export function Shell({
   /** A long operation is under way: the weave loader runs under the top row; a string names it. */
   busy?: boolean | string;
   drawer?: ReactNode;
+  /** Below 720 the drawer overlays the stream behind a scrim; the scrim closes it with this. */
+  onCloseDrawer?: () => void;
   /** Page-specific keys (shortcuts.ts); j, k and ? are handled here for every page. */
   shortcuts?: ShortcutHandlers;
   children: ReactNode;
 }) {
+  // breakpoints.ts: full · folded · overlay · phone, with hysteresis at the two moving edges.
+  const frame = useFrame();
+  // desktop-window: in the shell the title row is the drag region, its buttons are not.
+  const drag = useShellPlatform() ? { "data-tauri-drag-region": true } : {};
   // The phone drawer's state is shared by every Shell (navStore), so it survives the swap from a
   // lazy view's loading shell to the view itself; it closes when the route changes.
   const navOpen = useSyncExternalStore(subscribeNav, readNav, () => false);
@@ -236,13 +300,13 @@ export function Shell({
   // A stable handler keeps the memoised sidebar out of the stream's re-renders.
   const closeNav = useCallback(() => setNavOpen(false), []);
   return (
-    <div className="shell">
+    <div className="shell" data-frame={frame}>
       {help && <ShortcutSheet onClose={() => setHelp(false)} />}
       <Rail ctx={ctx} open={navOpen} onClose={closeNav} />
       {/* hook point (command-palette): ⌘K / Ctrl+K opens the palette on every page */}
       <CommandPalette ctx={ctx} />
       <div className="main">
-        <div className="topbar">
+        <div className="topbar" {...drag}>
           <button
             type="button"
             className="btn ghost icon menu"
@@ -251,8 +315,12 @@ export function Shell({
           >
             <Icon d={ICONS.menu} />
           </button>
-          <span className="title">{title}</span>
-          <div className="right">{right}</div>
+          <span className="title" {...drag}>
+            {title}
+          </span>
+          <div className="right" {...drag}>
+            {right}
+          </div>
         </div>
         <div className={`busybar${busy ? " on" : ""}`} aria-hidden={!busy}>
           {busy && <Loader kind="weave" label={typeof busy === "string" ? busy : copy.wait.rows} />}
@@ -260,6 +328,14 @@ export function Shell({
         {below}
         <div className="body">
           <div className="scroll">{children}</div>
+          {drawer && frame === "overlay" && onCloseDrawer && (
+            <button
+              type="button"
+              className="scrim drawer-scrim"
+              aria-label={copy.details.close}
+              onClick={onCloseDrawer}
+            />
+          )}
           {drawer}
         </div>
       </div>

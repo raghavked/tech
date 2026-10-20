@@ -18,21 +18,30 @@
   window.__HENOSIS_DESKTOP__ = {
     /** Shell version, platform ("macos" | "windows" | "linux"), server URL and a launch route. */
     info: () => invoke("shell_info"),
-    /** Native notification. One button: clicking brings Henosis forward where the OS does that. */
+    /** Native notification in the one grammar; `tag` makes it idempotent (a repeat replaces, never doubles). */
     notify: (n) => invoke("notify", { title: n.title, body: n.body, tag: n.tag || null }),
-    /** Whom to poll /api/notifications for; null clears the tray and badge. */
-    setIdentity: (serverUrl, userId) => invoke("set_identity", { serverUrl, userId }),
+    /** Whom to poll /api/notifications for; null clears the tray and badge. `name` is for "Nothing awaits you, Ana." */
+    setIdentity: (serverUrl, userId, name) =>
+      invoke("set_identity", { serverUrl, userId, name: name || null }),
     /** The session on screen; its inbox items count as read while the window is focused. */
     setRoute: (projectId, sessionId) => invoke("set_route", { projectId, sessionId }),
     /** The open session's live pending count; the shell re-polls so the tray catches up. */
     setPending: (count) => invoke("set_pending", { count }),
     refreshInbox: () => invoke("refresh_inbox"),
     openExternal: (url) => invoke("plugin:opener|open_url", { url }),
-    /** "#/p/<project>/s/<session>" from a henosis:// link. */
+    /** The last sessions and rooms by name ({ kind, title, route, at }) for the tray's Quick open. */
+    setRecents: (items) => invoke("set_recents", { items }),
+    /** The Windows titlebar's caption buttons (the window is undecorated there); close hides to the tray. */
+    minimize: () => invoke("win_minimize"),
+    toggleMaximize: () => invoke("win_toggle_maximize"),
+    closeToTray: () => invoke("win_close"),
+    /** "#/p/<project>/s/<session>" from a henosis:// link, a tray row or a Quick open entry. */
     onDeepLink: (cb) => listen("deep-link", cb),
-    /** "pending" or "open" from the tray menu. */
+    /** "open", "pending", "inbox", "approvals" or "new" from the tray menu. */
     onTray: (cb) => listen("tray", cb),
-    /** { approvals, handoffs, items } after every poll. */
+    /** { approvals, handoffs, mentions, items, paused } after every poll. */
     onInbox: (cb) => listen("inbox", cb),
+    /** { tag, route } when a notification is acted on. */
+    onAction: (cb) => listen("action", cb),
   };
 })();

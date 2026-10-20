@@ -7,12 +7,22 @@
  * receives `#/p/<project>/s/<session>` routes from henosis:// links and tray clicks. Nothing here
  * imports `@tauri-apps/*`; a shell built without the bridge still works through the global
  * Tauri object (`withGlobalTauri`).
+ *
+ * L1 (design/henosis BACKLOG.md): the shell also reports its platform, which the frame reads
+ * (`:root[data-shell]`: the macOS brand row drops 32 px under the traffic lights, Windows
+ * draws its own 36 px titlebar), keeps the inbox items the tray lists (`useShellInbox`), takes
+ * the last five sessions and rooms for Quick open (`setRecents`), and routes every tray row,
+ * Quick open entry and notification click back as a hash route.
  */
+
+import { useSyncExternalStore } from "react";
 import { copy } from "./copy.js";
 import { getIdentity, onIdentityChange } from "./identity.js";
 import { LINK_EVENT } from "./links.js";
+import { onRecentsChange, recentRoutes } from "./recents.js";
 import { parseHash } from "./router.js";
 import { isApple } from "./shortcuts.js";
+import type { TrayItem, TrayRecent } from "./tray.js";
 
 export interface DesktopInfo {
   version: string;
@@ -34,14 +44,140 @@ export interface DesktopNotification {
 export interface HenosisDesktop {
   info: () => Promise<DesktopInfo>;
   notify: (n: DesktopNotification) => Promise<unknown>;
-  setIdentity: (serverUrl: string | null, userId: string | null) => Promise<unknown>;
+  /** `name` is for the tray's "Nothing awaits you, Ana."; an older bridge ignores it. */
+  setIdentity: (
+    serverUrl: string | null,
+    userId: string | null,
+    name?: string | null,
+  ) => Promise<unknown>;
   setRoute: (projectId: string | null, sessionId: string | null) => Promise<unknown>;
   setPending: (count: number) => Promise<unknown>;
   refreshInbox: () => Promise<unknown>;
   openExternal: (url: string) => Promise<unknown>;
+  /** The last sessions and rooms by name, for the tray's Quick open (an older bridge lacks it). */
+  setRecents?: (items: TrayRecent[]) => Promise<unknown>;
+  /** The Windows titlebar's caption buttons; close hides to the tray. */
+  minimize?: () => Promise<unknown>;
+  toggleMaximize?: () => Promise<unknown>;
+  closeToTray?: () => Promise<unknown>;
   onDeepLink: (cb: (route: unknown) => void) => Promise<() => void>;
+  /** "open", "pending", "inbox", "approvals", "new", or a "#/" route from a tray row. */
   onTray: (cb: (item: unknown) => void) => Promise<() => void>;
+  /** `{ approvals, handoffs, mentions, items, paused }` after every poll. */
   onInbox: (cb: (counts: unknown) => void) => Promise<() => void>;
+  /** A notification's click or button: `{ tag, route }`. */
+  onAction?: (cb: (action: unknown) => void) => Promise<() => void>;
+}
+
+// ---- what the shell tells the client: platform, the tray's items ------------------------------
+
+/** The inbox as the shell lists it in the tray; `items` carry the one grammar (tray.ts). */
+export interface ShellInbox {
+  approvals: number;
+  handoffs: number;
+  mentions: number;
+  items: TrayItem[];
+  /** Notifications paused from the tray (the icon shows a moon); approvals still badge. */
+  paused: boolean;
+}
+
+const EMPTY_INBOX: ShellInbox = {
+  approvals: 0,
+  handoffs: 0,
+  mentions: 0,
+  items: [],
+  paused: false,
+};
+let inbox: ShellInbox = EMPTY_INBOX;
+let platform: string | null = null;
+const shellListeners = new Set<() => void>();
+
+function announce(): void {
+  for (const fn of shellListeners) fn();
+}
+
+function subscribeShell(fn: () => void): () => void {
+  shellListeners.add(fn);
+  return () => {
+    shellListeners.delete(fn);
+  };
+}
+
+/** "macos" | "windows" | "linux" once the shell has answered `info()`; null in a browser. */
+export function shellPlatform(): string | null {
+  return platform;
+}
+
+export function useShellPlatform(): string | null {
+  return useSyncExternalStore(subscribeShell, shellPlatform, () => null);
+}
+
+/** The tray's items and counts, as of the shell's last poll. */
+export function useShellInbox(): ShellInbox {
+  return useSyncExternalStore(
+    subscribeShell,
+    () => inbox,
+    () => EMPTY_INBOX,
+  );
+}
+
+function setPlatform(p: string | null): void {
+  platform = p;
+  try {
+    if (p) document.documentElement.dataset.shell = p;
+    else delete document.documentElement.dataset.shell;
+  } catch {
+    // no document
+  }
+  announce();
+}
+
+const str = (v: unknown, fallback = ""): string => (typeof v === "string" ? v : fallback);
+const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
+/** The `inbox` event's payload, every field guarded: an older shell sends counts only. */
+export function inboxOf(payload: unknown): ShellInbox {
+  const p = (payload ?? {}) as Record<string, unknown>;
+  const raw = Array.isArray(p.items) ? (p.items as unknown[]) : [];
+  const items: TrayItem[] = raw
+    .map((x) => (x ?? {}) as Record<string, unknown>)
+    .filter((x) => typeof x.id === "string")
+    .map((x) => ({
+      id: str(x.id),
+      kind: str(x.kind),
+      who: str(x.who),
+      verb: str(x.verb),
+      what: str(x.what, str(x.title)),
+      age: num(x.age),
+      route: str(x.route, "#/inbox"),
+      ...(x.ratings === true ? { ratings: true } : {}),
+    }));
+  return {
+    approvals: num(p.approvals),
+    handoffs: num(p.handoffs),
+    mentions: num(p.mentions),
+    items,
+    paused: p.paused === true,
+  };
+}
+
+/** The route a tray payload means, or null for "open" (the window comes forward, nothing moves). */
+export function trayRoute(item: unknown, onSession: boolean): string | null {
+  if (typeof item !== "string") return null;
+  if (item.startsWith("#/")) return item;
+  switch (item) {
+    case "pending":
+      // The session view lists approvals in its inspector; elsewhere the inbox has them.
+      return onSession ? null : "henosis://inbox";
+    case "inbox":
+      return "henosis://inbox";
+    case "approvals":
+      return "#/approvals";
+    case "new":
+      return "#/?new=1";
+    default:
+      return null;
+  }
 }
 
 /** Hand a henosis:// link or a hash route to the client's link handler (`connectLinks`). */
@@ -169,14 +305,20 @@ export function desktop(): HenosisDesktop | undefined {
     g.__HENOSIS_DESKTOP__ = {
       info: () => invoke("shell_info") as Promise<DesktopInfo>,
       notify: (n) => invoke("notify", { title: n.title, body: n.body, tag: n.tag ?? null }),
-      setIdentity: (serverUrl, userId) => invoke("set_identity", { serverUrl, userId }),
+      setIdentity: (serverUrl, userId, name) =>
+        invoke("set_identity", { serverUrl, userId, name: name ?? null }),
       setRoute: (projectId, sessionId) => invoke("set_route", { projectId, sessionId }),
       setPending: (count) => invoke("set_pending", { count }),
       refreshInbox: () => invoke("refresh_inbox"),
       openExternal: (url) => invoke("plugin:opener|open_url", { url }),
+      setRecents: (items) => invoke("set_recents", { items }),
+      minimize: () => invoke("win_minimize"),
+      toggleMaximize: () => invoke("win_toggle_maximize"),
+      closeToTray: () => invoke("win_close"),
       onDeepLink: (cb) => listen("deep-link", cb),
       onTray: (cb) => listen("tray", cb),
       onInbox: (cb) => listen("inbox", cb),
+      onAction: (cb) => listen("action", cb),
     };
     return g.__HENOSIS_DESKTOP__;
   } catch {
@@ -193,7 +335,9 @@ export function isDesktop(): boolean {
  * tray on close (apps/desktop main.rs); a browser says nothing.
  */
 export function closeHint(): string {
-  return isDesktop() ? copy.composer.closesToTray(isApple()) : "";
+  if (!isDesktop()) return "";
+  // The shell names its platform (desktop-window); until it has answered, the browser's UA stands in.
+  return copy.composer.closesToTray(platform ? platform === "macos" : isApple());
 }
 
 const SERVER_KEY = "henosis.server";
@@ -268,8 +412,15 @@ export function connectShell(): Promise<void> {
   try {
     const sendIdentity = () => {
       const id = getIdentity();
-      d.setIdentity(apiBase() || location.origin, id?.userId ?? null).catch(() => undefined);
+      d.setIdentity(apiBase() || location.origin, id?.userId ?? null, id?.name ?? null).catch(
+        () => undefined,
+      );
     };
+    // Quick open: the last five sessions and rooms by name, mirrored as they change.
+    const sendRecents = () => {
+      d.setRecents?.(recentRoutes().slice(0, 5)).catch(() => undefined);
+    };
+    onRecentsChange(sendRecents);
     const sendRoute = () => {
       const r = parseHash(location.hash);
       const [p, s] = r.name === "session" ? [r.projectId, r.sessionId] : [null, null];
@@ -282,19 +433,30 @@ export function connectShell(): Promise<void> {
       if (typeof route === "string") dispatchLink(route);
     }).catch(() => undefined);
     d.onTray((item) => {
-      // The session view lists approvals in its inspector; elsewhere the inbox has them.
-      if (item === "pending" && !location.hash.includes("/s/")) dispatchLink("henosis://inbox");
+      const route = trayRoute(item, location.hash.includes("/s/"));
+      if (route) dispatchLink(route);
+    }).catch(() => undefined);
+    // A notification's click or button lands on the notice it named.
+    d.onAction?.((action) => {
+      const a = (action ?? {}) as { route?: unknown };
+      if (typeof a.route === "string") dispatchLink(a.route);
+    }).catch(() => undefined);
+    d.onInbox((payload) => {
+      inbox = inboxOf(payload);
+      announce();
     }).catch(() => undefined);
     const ready = d
       .info()
       .then((info) => {
         if (info.serverUrl) rememberServer(info.serverUrl);
         if (isRoute(info.launchRoute)) location.hash = info.launchRoute;
+        setPlatform(typeof info.platform === "string" ? info.platform : null);
       })
       .catch(() => undefined)
       .then(() => {
         sendIdentity();
         sendRoute();
+        sendRecents();
       });
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, 1500));
     return Promise.race([ready, timeout]);

@@ -49,6 +49,24 @@ least a minor bump; a fix is a patch. The pipeline itself is in `docs/16_desktop
   sidebar; it never relaunches on its own.
 - [desktop] A release workflow that builds, signs and notarizes macOS, Windows and Linux
   bundles on a `desktop-v*` tag and attaches them to a draft GitHub release.
+- [desktop] The window and the tray from the design wave: 1280 × 840, the navy rail from the
+  very top edge with the traffic lights set into it on macOS and a 36 px titlebar with the
+  mark, "Henosis" and the caption buttons on Windows; the session's title row drags the
+  window and its buttons do not. The tray lists what awaits you by name (who · verb · what ·
+  age, five per section then "and N more… in the queue", Mentions only when there are any),
+  Quick open with the last five sessions and rooms, Pause notifications with a moon on the
+  icon, Open Henosis from anywhere (⌥⇧H / Ctrl+Shift+H) and Quit; the badge counts approvals
+  and handoffs only. Closing hides to the tray, and the composer's hint says so in the
+  platform's keys.
+- [desktop] The first run's fourth step teaches the tray by showing the menu as it is, with
+  the three tray states as tiles and "Already waits for you" naming the first click's target.
+- [web] Breakpoints written once (1180 the rail folds, 960 the topbar drops words not facts,
+  720 the drawer overlays behind a scrim, 480 the phone) with 40 px of hysteresis at the
+  moving edges, so a resize never flaps the rail; `[` and `]` pin the choice. The collapsed
+  rail's hover card never covers the live message.
+- [server] Every notification carries the one grammar (`who`, `verb`, `what`), a `tag` that
+  replaces an earlier notice, the client's `route` and its `age` in seconds; mentions ride in
+  the same inbox for the tray and never badge.
 
 ## 0.1.0 — 2026-10-02
 
