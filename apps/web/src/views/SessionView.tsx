@@ -71,6 +71,7 @@ import {
 import { focusSoon, useShortcutContextPublisher } from "../useShortcuts.js";
 import { isArriving } from "../welcome.js";
 import { BranchCompare } from "./BranchCompare.js";
+import { ExportSheet, PaperView, useExportState, usePaper } from "./Export.js";
 import { ReplayScrubber, useReplay } from "./ReplayScrubber.js";
 import { ShareSheet } from "./ShareSheet.js";
 import { sessionCommands, shortcutContextOf } from "./sessionCommands.js";
@@ -91,7 +92,7 @@ const FLEET_KINDS = new Set<string>([
   "session.closed",
 ]);
 
-type Panel = Face | "share" | "told" | null;
+type Panel = Face | "share" | "told" | "export" | null;
 
 export function SessionView({
   projectId,
@@ -255,12 +256,25 @@ export function SessionView({
   const rows = useFetch(() => api.sessions(projectId), `${projectId}:${s?.seq ?? -1}`);
   const mine = rows.data?.find((r) => r.sessionId === sessionId) ?? null;
   // hook point (command-palette): this page's actions, refreshed as the session changes
+  const openExport = useCallback(() => setPanel("export"), []);
   usePaletteActions(
     "session",
     useMemo(
-      () => sessionCommands({ s, me: actor, client, details, setDetails }),
-      [s, actor, client, details, setDetails],
+      () => sessionCommands({ s, me: actor, client, details, setDetails, onExport: openExport }),
+      [s, actor, client, details, setDetails, openExport],
     ),
+  );
+  // print-export: the chosen door and include list, and both documents folded from the log
+  // while the panel is open (views/Export.tsx).
+  const exp = useExportState();
+  const paper = usePaper(
+    panel === "export",
+    s,
+    snap.events,
+    exp.door,
+    exp.include,
+    actor,
+    s ? agentNameOf(s, (id) => s.participants[id]?.actor.name ?? id) : "",
   );
   // replay-scrubber: `viewSeq` is the seq being looked at, null for now; a pure client-side fold.
   const [viewSeq, setViewSeq] = useState<number | null>(null);
@@ -543,6 +557,20 @@ export function SessionView({
             projectId={projectId}
             errors={snap.errors}
             onClose={() => setPanel(null)}
+            onExport={openExport}
+          />
+        ) : panel === "export" && paper ? (
+          <ExportSheet
+            s={s}
+            me={actor}
+            client={client}
+            connected={snap.connected}
+            model={paper}
+            door={exp.door}
+            onDoor={exp.setDoor}
+            include={exp.include}
+            onInclude={exp.setInclude}
+            onClose={() => setPanel(null)}
           />
         ) : panel === "told" ? (
           <ToldDrawer
@@ -557,7 +585,7 @@ export function SessionView({
             me={actor}
             onClose={() => setPanel(null)}
           />
-        ) : panel ? (
+        ) : panel === "team" || panel === "details" ? (
           <Drawer
             face={panel}
             onFace={setPanel}
@@ -601,6 +629,8 @@ export function SessionView({
           onClose={() => setCompare(null)}
           errors={snap.errors}
         />
+      ) : panel === "export" && paper ? (
+        <PaperView model={paper} door={exp.door} s={s} />
       ) : (
         <>
           <div className={past ? "past" : undefined}>

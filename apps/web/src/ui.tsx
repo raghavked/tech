@@ -182,7 +182,9 @@ export function Mark({
             fill="none"
             strokeLinecap="round"
             opacity={mono ? 0.55 : undefined}
-            style={mono ? { strokeDasharray: "var(--mark-dash, 0)" } : undefined}
+            // `--mark-dash` is 0 at :root (solid); one ink (`.mark-ink`, a monochrome printer
+            // via print.css) sets "4 6" so the agent's arc reads as the other arc when both are ink.
+            style={{ strokeDasharray: "var(--mark-dash, 0)" }}
           />
         </>
       ) : null}

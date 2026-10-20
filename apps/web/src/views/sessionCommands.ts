@@ -58,12 +58,15 @@ export function sessionCommands({
   client,
   details,
   setDetails,
+  onExport,
 }: {
   s: SessionState | null;
   me: Actor;
   client: HenosisClient;
   details: boolean;
   setDetails: (v: boolean) => void;
+  /** Paper (print-export): opens the Export panel. */
+  onExport?: (() => void) | undefined;
 }): PaletteAction[] {
   if (!s) return [];
   const name = (id: string) => s.participants[id]?.actor.name ?? id;
@@ -154,5 +157,12 @@ export function sessionCommands({
     icon: ICONS.dots,
     run: () => setDetails(!details),
   });
+  if (onExport)
+    out.push({
+      id: "export",
+      label: copy.export.open,
+      icon: ICONS.export,
+      run: () => onExport(),
+    });
   return out;
 }

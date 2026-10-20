@@ -1,0 +1,674 @@
+/* Paper (print-export, L4 · SYSTEM.md §2.10): one theme for the two documents the Export panel
+   previews and prints. White, ink, cream only under a quoted human and a gate; the kernel's
+   decisions in one green, masked secrets in one amber; nothing apricot, no gradient, no shadow,
+   nothing to press. The sheet reads its colours from the `--paper-*` tokens (tokens.css) and sets
+   `color-scheme: light`, so it stays white on the dark canvas. The mark on paper is the cream
+   variant (`.on-paper`, tokens.css) or one ink with a dotted agent arc; this file colours it only
+   through the custom properties a mark reads (`--mark-disc / -arc-a / -arc-b / -dot / -dash`),
+   never by reaching for `.disc`, `.arc` or `.dot`. */
+
+.paper {
+  --paper-ink-3: color-mix(in srgb, var(--paper-ink-2) 70%, var(--paper-bg));
+  color-scheme: light;
+  background: var(--paper-bg);
+  color: var(--paper-ink);
+  width: min(100%, 794px); /* A4 at 96 dpi; the column scales it down, print sets it in mm */
+  margin: 0 auto;
+  padding: 44px 48px 40px;
+  border-radius: 3px;
+  box-shadow:
+    0 1px 0 rgba(42, 50, 68, 0.06),
+    var(--shadow-pop); /* screen only; print drops it */
+  font: 13px / 1.55 var(--font);
+  display: flex;
+  flex-direction: column;
+  min-height: 1000px;
+}
+.paper a {
+  color: var(--paper-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--paper-line);
+  text-underline-offset: 2px;
+}
+.paper .mono {
+  font-family: var(--mono);
+  font-size: 11.5px; /* ids, hashes, counts: one size smaller than the sentence they sit in */
+  color: inherit;
+}
+.paper .muted {
+  color: var(--paper-ink-2);
+}
+.paper .faint {
+  color: var(--paper-ink-3);
+}
+.paper .serif {
+  font-family: var(--serif);
+  font-weight: 400;
+}
+.paper .p-stars {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  color: var(--paper-ink);
+}
+.paper .p-stars .off {
+  color: var(--paper-ink-3);
+}
+.paper q {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--paper-ink-2);
+  quotes: "“" "”";
+}
+.paper .green {
+  color: var(--paper-green);
+}
+.paper .amber {
+  color: var(--paper-amber);
+}
+
+/* the running head: mark · wordmark · team · project · kind | who exported it and when, id, branch */
+.paper .run-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--paper-line);
+  font-size: 11.5px;
+  color: var(--paper-ink-2);
+}
+.paper .run-head .wm {
+  font-family: var(--serif);
+  font-size: 17px;
+  color: var(--paper-ink);
+  line-height: 1;
+}
+.paper .run-head .wm small {
+  display: block;
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--paper-ink-2);
+  margin-top: 3px;
+}
+.paper .run-head .right {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.paper h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.12;
+  margin: 22px 0 4px;
+  color: var(--paper-ink);
+}
+.paper h1 i {
+  font-style: italic;
+}
+.paper .sub {
+  font-size: 12.5px;
+  color: var(--paper-ink-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.paper .sub b {
+  font-weight: 400;
+  color: var(--paper-ink);
+  font-family: var(--serif);
+  font-size: 14px;
+}
+
+/* the facts strip (session) and the six counts (audit): one-point ink rule above, hairline below */
+.paper .facts,
+.paper .counts {
+  display: grid;
+  gap: 0;
+  margin: 18px 0 20px;
+  border-top: 1px solid var(--paper-ink);
+  border-bottom: 1px solid var(--paper-line);
+}
+.paper .facts {
+  grid-template-columns: repeat(4, 1fr);
+}
+.paper .counts {
+  grid-template-columns: repeat(6, 1fr);
+}
+.paper .facts > div,
+.paper .counts > div {
+  padding: 9px 12px 9px 0;
+  border-right: 1px solid var(--paper-line);
+  min-width: 0;
+}
+.paper .facts > div + div,
+.paper .counts > div + div {
+  padding-left: 12px;
+}
+.paper .facts > div:last-child,
+.paper .counts > div:last-child {
+  border-right: 0;
+}
+.paper .facts .k,
+.paper .counts .k {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper-ink-3);
+  white-space: nowrap;
+}
+.paper .facts .v,
+.paper .counts .v {
+  font-family: var(--mono);
+  font-size: 14px;
+  margin-top: 2px;
+}
+.paper .facts .v small {
+  font-family: var(--font);
+  font-size: 11.5px;
+  color: var(--paper-ink-2);
+}
+
+/* the stream on paper */
+.paper .p-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.paper .p-msg {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
+  align-items: start;
+  break-inside: avoid;
+}
+.paper .p-msg .t {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--paper-ink-3);
+  padding-top: 3px;
+}
+.paper .p-msg .who {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.3;
+}
+.paper .p-msg .who .role {
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--paper-ink-3);
+  margin-left: 6px;
+}
+.paper .p-msg .p-body {
+  margin-top: 3px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.paper .p-msg.human .p-body {
+  padding: 8px 12px;
+  border-left: 2px solid var(--paper-ink);
+  background: var(--paper-cream);
+  border-radius: 0 6px 6px 0;
+}
+.paper .p-msg .scope {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--paper-ink-3);
+}
+.paper .p-line {
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--paper-ink-2);
+  text-align: center;
+  padding: 2px 0;
+}
+.paper .p-omit {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--paper-ink-3);
+  text-align: center;
+  padding: 4px 0;
+}
+
+/* a tool step folds to one line and its exit; the full text is in the log */
+.paper .p-steps {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.paper .p-step {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper-ink-2);
+  align-items: baseline;
+}
+.paper .p-step .r {
+  color: var(--paper-ink-3);
+  white-space: nowrap;
+}
+.paper .p-step .r.amber {
+  color: var(--paper-amber);
+}
+
+/* a plan card never splits: it moves whole with its ratings */
+.paper .p-plan {
+  margin-top: 8px;
+  border: 1px solid var(--paper-ink);
+  border-radius: 8px;
+  padding: 10px 12px;
+  break-inside: avoid;
+}
+.paper .p-plan .ph {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-family: var(--serif);
+  font-size: 14.5px;
+}
+.paper .p-plan .ph .st {
+  margin-left: auto;
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--paper-green);
+  font-weight: 600;
+}
+.paper .p-plan .p-row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px solid var(--paper-line);
+  font-size: 12.5px;
+  align-items: baseline;
+}
+.paper .p-plan .p-row:first-of-type {
+  border-top: 1px solid var(--paper-ink);
+  margin-top: 8px;
+}
+.paper .p-plan .p-row .n,
+.paper .p-plan .p-row .est {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper-ink-3);
+}
+.paper .p-plan .p-row .est .act {
+  color: var(--paper-ink);
+}
+.paper .p-plan .rate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12px;
+  color: var(--paper-ink-2);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--paper-line);
+}
+.paper .p-plan .rate .who,
+.paper .p-gate .p-votes .who {
+  font-family: var(--serif);
+  font-size: 13.5px;
+  color: var(--paper-ink);
+}
+
+/* a release gate keeps its votes and its grant together; the ink stripe at the left */
+.paper .p-gate {
+  margin-top: 8px;
+  border-left: 3px solid var(--paper-ink);
+  padding: 8px 12px;
+  background: var(--paper-cream);
+  border-radius: 0 6px 6px 0;
+  break-inside: avoid;
+}
+.paper .p-gate.plain {
+  background: transparent;
+  border-left-color: var(--paper-line);
+}
+.paper .p-gate .p-gh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-family: var(--serif);
+  font-size: 14px;
+}
+.paper .p-gate .p-gh .rl {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--paper-ink-2);
+}
+.paper .p-gate .p-votes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.paper .p-gate .granted {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--paper-green);
+}
+.paper .p-gate .granted.waiting {
+  color: var(--paper-ink-2);
+  font-weight: 400;
+}
+
+/* the audit ledger: a table, so the header row repeats on every printed page; a row never splits */
+.paper .p-ledger {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  font-size: 12.5px;
+}
+.paper .p-ledger th {
+  text-align: left;
+  font-weight: 400;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper-ink-3);
+  padding: 0 10px 6px 0;
+  border-bottom: 1px solid var(--paper-ink);
+}
+.paper .p-ledger th.e,
+.paper .p-ledger td.e {
+  text-align: right;
+  padding-right: 0;
+}
+.paper .p-ledger td {
+  padding: 7px 10px 7px 0;
+  border-bottom: 1px solid var(--paper-line);
+  vertical-align: baseline;
+}
+.paper .p-ledger tr {
+  break-inside: avoid;
+}
+.paper .p-ledger td.t {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--paper-ink-2);
+  white-space: nowrap;
+}
+.paper .p-ledger td.w {
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.paper .p-ledger td.w small {
+  display: block;
+  font-family: var(--font);
+  font-size: 10.5px;
+  color: var(--paper-ink-3);
+}
+.paper .p-ledger td.a .rl {
+  color: var(--paper-ink-3);
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+.paper .p-ledger td.e {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--paper-ink-2);
+  white-space: nowrap;
+}
+.paper .p-ledger tr.kernel td.w,
+.paper .p-ledger tr.kernel td.a,
+.paper .p-ledger tr.kernel td.e .ok {
+  color: var(--paper-green);
+}
+.paper .p-ledger tr.kernel td.e .ok {
+  font-weight: 500;
+}
+.paper .p-ledger tr.gate td:first-child {
+  box-shadow: inset 3px 0 0 var(--paper-ink);
+  padding-left: 8px;
+}
+.paper .p-ledger tr.exp td {
+  background: var(--paper-cream);
+}
+.paper .p-ledger tr.exp td:first-child {
+  padding-left: 8px;
+}
+
+/* the verify line and the signature row: the same on both documents */
+.paper .verify {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  font-size: 11.5px;
+  color: var(--paper-green);
+  font-weight: 500;
+  margin-top: 16px;
+}
+.paper .verify .mono {
+  color: var(--paper-ink-2);
+  font-weight: 400;
+}
+.paper .sig {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--paper-ink);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--paper-ink-2);
+}
+.paper .sig .mono {
+  font-size: 10.5px;
+}
+.paper .run-foot {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--paper-line);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--paper-ink-3);
+  align-items: center;
+}
+.paper .run-foot .c {
+  text-align: center;
+  color: var(--paper-ink-2);
+  font-family: var(--font);
+  font-size: 11px;
+}
+.paper .run-foot .r {
+  text-align: right;
+}
+.paper .p-seal {
+  margin-top: 18px;
+}
+
+/* the column that previews a sheet, on the canvas */
+.paper-view {
+  padding: 24px var(--gutter) 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+.paper-view .sheet-cap {
+  width: min(100%, 794px);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.paper-view .sheet-cap .file {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--ink);
+  background: var(--surface-2);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.paper-view .sheet-cap .sz {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.paper-view pre.md {
+  font: 12px / 1.5 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 18px 0 0;
+  color: var(--paper-ink);
+}
+
+@media (max-width: 720px) {
+  .paper {
+    padding: 22px 20px 18px;
+    min-height: 0;
+    font-size: 12.5px;
+  }
+  .paper h1 {
+    font-size: 24px;
+  }
+  .paper .facts {
+    grid-template-columns: 1fr 1fr;
+  }
+  .paper .counts {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .paper .facts > div:nth-child(2),
+  .paper .counts > div:nth-child(3) {
+    border-right: 0;
+  }
+  .paper .facts > div:nth-child(n + 3),
+  .paper .counts > div:nth-child(n + 4) {
+    border-top: 1px solid var(--paper-line);
+  }
+  .paper .facts > div:nth-child(3),
+  .paper .counts > div:nth-child(4) {
+    padding-left: 0;
+  }
+  .paper .p-msg {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .paper .run-head {
+    grid-template-columns: auto 1fr;
+  }
+  .paper .run-head .right {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+  .paper .p-ledger td.w {
+    white-space: normal;
+  }
+}
+
+/* ---- print: the sheet and nothing else; A4 with 16 mm margins ---- */
+@page {
+  size: A4;
+  margin: 16mm 14mm;
+}
+@media print {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  /* the app's frame gives way: the boxes between the body and the sheet stop clipping it */
+  .shell,
+  .shell > .main,
+  .shell > .main > .body,
+  .shell > .main > .body > .scroll,
+  .paper-view {
+    display: contents !important;
+  }
+  .shell > :not(.main),
+  .shell > .main > :not(.body),
+  .shell > .main > .body > :not(.scroll),
+  .shell > .main > .body > .scroll > :not(.paper-view),
+  .paper-view > :not(.paper),
+  .toasts,
+  .scrim,
+  .drawer {
+    display: none !important;
+  }
+  .paper {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    width: auto;
+    min-height: 0;
+    font-size: 11pt;
+  }
+  .paper h1 {
+    font-size: 24pt;
+  }
+  .paper .mono {
+    font-size: 9.5pt;
+  }
+  .paper .p-plan,
+  .paper .p-gate,
+  .paper .p-msg,
+  .paper .p-ledger tr,
+  .paper .sig,
+  .paper .verify {
+    break-inside: avoid;
+  }
+  .paper .p-ledger thead {
+    display: table-header-group;
+  }
+  .paper .p-msg.human .p-body,
+  .paper .p-gate,
+  .paper .p-ledger tr.exp td {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* the running foot on every page: hash and masked count, the title, the kind */
+  .paper .run-foot {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    background: #fff;
+  }
+  .paper .p-seal {
+    margin-bottom: 36pt;
+  }
+  .paper a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-family: var(--mono);
+    font-size: 9pt;
+    color: var(--paper-ink-2);
+  }
+  /* one ink: on a monochrome printer the agent's arc goes dotted so the two arcs still read as two */
+  @media (monochrome) {
+    .paper .mark {
+      --mark-disc: var(--paper-bg);
+      --mark-arc-a: var(--paper-ink);
+      --mark-arc-b: var(--paper-ink);
+      --mark-dot: var(--paper-ink);
+      --mark-dash: 4 6;
+    }
+  }
+}

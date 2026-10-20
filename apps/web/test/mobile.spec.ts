@@ -93,7 +93,9 @@ test("the tab bar is the frame and the Approvals tab carries the one needs-you n
   const box = await card.getByRole("button", { name: "Approve", exact: true }).boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
   await card.getByRole("button", { name: "Approve", exact: true }).click();
-  await expect(page.locator(".drow")).toContainText("Approved", { timeout: 15_000 });
+  await expect(page.locator(`.drow[data-key*="/${session}/"]`)).toContainText("Approved", {
+    timeout: 15_000,
+  });
   await expect(count).toHaveCount(0, { timeout: 15_000 });
 });
 

@@ -65,6 +65,7 @@ export function ShareSheet({
   projectId,
   errors,
   onClose,
+  onExport,
 }: {
   s: SessionState;
   me: Actor;
@@ -72,6 +73,8 @@ export function ShareSheet({
   projectId: string;
   errors: string[];
   onClose: () => void;
+  /** Paper (print-export): opens the Export panel in place of this sheet. */
+  onExport?: (() => void) | undefined;
 }) {
   const link = sessionLink(projectId, s.sessionId);
   const humans = Object.values(s.participants).filter((p) => p.actor.kind === "human");
@@ -148,6 +151,16 @@ export function ShareSheet({
           )}
         </section>
         <InviteSection me={me} projectId={projectId} sessionId={s.sessionId} link={link} />
+        {onExport && (
+          <section className="group">
+            <h3>{copy.export.title}</h3>
+            <p className="small muted">{copy.export.openHint}</p>
+            <button type="button" className="btn sm" onClick={onExport}>
+              <Icon d={ICONS.export} size={14} />
+              {copy.export.open}
+            </button>
+          </section>
+        )}
       </aside>
     </>
   );

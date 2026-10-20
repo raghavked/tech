@@ -546,3 +546,85 @@ test("welcome an agent: the arrival card, what it was told, and the tour from Se
   await expect(page.getByRole("dialog", { name: /^Tour/ })).toHaveCount(0);
   await expect(page.getByRole("status").filter({ hasText: "Ana is in the circle." })).toBeVisible();
 });
+
+test("print and export: the session on paper with the cream mark, the audit trail, the recorded act", async ({
+  page,
+}) => {
+  const t = token();
+  const session = `e2e-export-${t}`;
+  // The print dialog cannot open headless: the flow stands in for it and counts the calls.
+  await page.addInitScript(() => {
+    (window as unknown as { printed: number }).printed = 0;
+    window.print = () => {
+      (window as unknown as { printed: number }).printed += 1;
+    };
+  });
+  await enter(page, "Ana", "ana", "e2e-export", session);
+  await steer(page, `Build a greeter ${t}`);
+  await expect(approve(page)).toBeVisible({ timeout: 15_000 });
+  await approve(page).click();
+  await expect(conversation(page)).toContainText("Done:", { timeout: 15_000 });
+
+  // Export opens from the Share sheet; the column becomes the session as a document.
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await page.getByRole("button", { name: "Export or print…" }).click();
+  const sheet = page.getByRole("complementary", { name: "Export" });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole("radio", { name: /Session as PDF/ })).toBeChecked();
+  const paper = page.getByRole("article", { name: "Session export" });
+  await expect(paper).toBeVisible();
+  await expect(paper).toContainText(`Build a greeter ${t}`);
+  await expect(paper).toContainText("Ana");
+  await expect(paper).toContainText("owner");
+  await expect(paper).toContainText("Approval granted");
+  await expect(paper).toContainText("Replays to the same hash.");
+  await expect(paper).toContainText(`henosis verify sessions/${session}/log.json`);
+  await expect(paper).toContainText("Sealed by the log");
+  await expect(paper).toContainText("tool steps folded to one line each");
+
+  // Every mark on paper is the cream variant, coloured through custom properties: a cream disc,
+  // a chocolate and a navy arc, an apricot centre. Never the navy coin with a black dot.
+  const marks = await paper.locator("svg.mark").evaluateAll((els) =>
+    els.map((el) => {
+      const fill = (q: string) => getComputedStyle(el.querySelector(q) as Element).fill;
+      const stroke = (q: string) => getComputedStyle(el.querySelector(q) as Element).stroke;
+      return { disc: fill(".disc"), a: stroke(".arc.a"), b: stroke(".arc.b"), dot: fill(".dot") };
+    }),
+  );
+  expect(marks.length).toBeGreaterThanOrEqual(2);
+  for (const m of marks)
+    expect(m).toEqual({
+      disc: "rgb(251, 247, 241)",
+      a: "rgb(86, 53, 45)",
+      b: "rgb(42, 50, 68)",
+      dot: "rgb(226, 196, 166)",
+    });
+
+  // The audit trail: one row per act, the kernel's decision in green with the rule inline.
+  await sheet.getByRole("radio", { name: /Audit trail/ }).check();
+  const audit = page.getByRole("article", { name: "Audit trail" });
+  await expect(audit).toBeVisible();
+  await expect(audit).toContainText("Who planned, rated and approved what");
+  const kernel = audit.locator("tr.kernel").first();
+  await expect(kernel).toContainText("Approval granted");
+  await expect(kernel).toContainText("one contributor or above");
+  await expect(kernel).toContainText("✓ fold");
+  await expect(kernel.locator("td.a")).toHaveCSS("color", "rgb(62, 102, 57)");
+  await expect(audit.locator("tr.exp")).toContainText("Printed the audit trail, this page");
+  await expect(audit.locator("tr.exp")).toContainText("Ana");
+  await expect(audit).toContainText("Replays to the same hash.");
+
+  // In print the chrome leaves and the sheet stays: the composer is gone, the paper is white.
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByLabel("Directive", { exact: true })).toBeHidden();
+  await expect(audit).toBeVisible();
+  await expect(audit).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await page.emulateMedia({ media: null });
+
+  // Printing is itself an act: a row in the log, in the exporter's voice.
+  await expect(sheet).toContainText('Recorded as an act: "Ana exported the audit trail."');
+  await sheet.getByRole("button", { name: "Print or save as PDF" }).click();
+  expect(await page.evaluate(() => (window as unknown as { printed: number }).printed)).toBe(1);
+  await sheet.getByRole("button", { name: "Close export" }).click();
+  await expect(conversation(page)).toContainText("Ana exported the audit trail.");
+});
