@@ -17,6 +17,7 @@ import {
   mergeSsoUser,
   OrgsFile,
   type ProjectRef,
+  type ProjectRole,
   personalAgentId,
   personalAgentProfile,
   resolveAgentProfile,
@@ -30,6 +31,54 @@ import type { Role } from "@henosis/protocol";
 import type { Principal } from "./auth.js";
 import { FileStore, type LiveStore } from "./store/index.js";
 
+/**
+ * Where a verified person nobody has placed yet lands (supabase mode, docs/20_hosting.md):
+ * a project membership with this role, the org, team and project created in the `orgs`
+ * document when they do not exist. `HENOSIS_AUTO_JOIN` is `org:team:project:role`, several
+ * rules separated by commas; the role is a project role (`member`, `lead`, `admin`) or its
+ * session word (`contributor` is `member`, `owner` is `lead`).
+ */
+export interface AutoJoinRule {
+  orgId: string;
+  teamId: string;
+  projectId: string;
+  role: ProjectRole;
+}
+
+export const DEFAULT_AUTO_JOIN: readonly AutoJoinRule[] = [
+  { orgId: "default", teamId: "default", projectId: "default", role: "member" },
+];
+
+const ROLE_WORDS: Record<string, ProjectRole> = {
+  member: "member",
+  contributor: "member",
+  lead: "lead",
+  owner: "lead",
+  admin: "admin",
+};
+
+/** Parse `HENOSIS_AUTO_JOIN`; empty or absent is the default rule, a bad rule throws. */
+export function parseAutoJoin(spec: string | undefined): AutoJoinRule[] {
+  const text = spec?.trim();
+  if (!text) return DEFAULT_AUTO_JOIN.map((r) => ({ ...r }));
+  return text.split(",").map((part) => {
+    const [orgId, teamId, projectId, roleWord = "member"] = part.trim().split(":");
+    const role = ROLE_WORDS[roleWord.trim().toLowerCase()];
+    if (!orgId || !teamId || !projectId || !role)
+      throw new Error(
+        `HENOSIS_AUTO_JOIN rule "${part.trim()}" is not org:team:project:role (role: member, contributor, lead, owner or admin)`,
+      );
+    return { orgId, teamId, projectId, role };
+  });
+}
+
+/** A display name for an org, team or project made from its id: "Default org", "Growth". */
+function titleOf(id: string, kind: "org" | "team" | "project"): string {
+  if (id === "default") return `Default ${kind}`;
+  const words = id.replace(/[-_.]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export class OrgRegistry {
   readonly orgs: OrgsFile;
   readonly users: Map<string, User>;
@@ -41,7 +90,11 @@ export class OrgRegistry {
   readonly resolved = new Map<string, User>();
   /** The org's shared team agents (docs/19_council.md), empty when the `agents` doc is absent. */
   readonly agents: AgentsFile;
+  /** Where a verified stranger is placed (see `AutoJoinRule`); empty outside supabase mode. */
+  autoJoin: readonly AutoJoinRule[] = [];
   private readonly store: LiveStore;
+  /** Whether the `orgs` document exists in the store (the defaults are not written until needed). */
+  private orgsPersisted: boolean;
 
   /** A store root (orgs.json, users.json and agents.json in it) or the store itself. */
   constructor(rootOrStore: string | LiveStore) {
@@ -50,6 +103,7 @@ export class OrgRegistry {
     const usersDoc = this.store.readDoc("users");
     const agentsDoc = this.store.readDoc("agents");
     this.orgs = orgsDoc ? OrgsFile.parse(orgsDoc) : structuredClone(DEFAULT_ORGS);
+    this.orgsPersisted = Boolean(orgsDoc);
     const users = usersDoc ? UsersFile.parse(usersDoc) : { users: [] };
     this.users = new Map(users.users.map((u) => [u.id, u]));
     this.agents = agentsDoc ? AgentsFile.parse(agentsDoc) : { agents: [] };
@@ -201,7 +255,39 @@ export class OrgRegistry {
     if (!found) throw new Error(`unknown team ${teamId}`);
     if (theme && Object.keys(theme).length > 0) found.team.theme = theme;
     else delete found.team.theme;
+    this.persistOrgs();
+  }
+
+  private persistOrgs(): void {
     this.store.writeDoc("orgs", this.orgs);
+    this.orgsPersisted = true;
+  }
+
+  /**
+   * Make sure the org, team and project a rule names exist, creating what is missing in the
+   * `orgs` document (and writing the document the first time it is needed). Returns true when
+   * something was created.
+   */
+  ensurePlace(rule: Pick<AutoJoinRule, "orgId" | "teamId" | "projectId">): boolean {
+    let changed = false;
+    let org = this.orgs.orgs.find((o) => o.id === rule.orgId);
+    if (!org) {
+      org = { id: rule.orgId, name: titleOf(rule.orgId, "org"), teams: [] };
+      this.orgs.orgs.push(org);
+      changed = true;
+    }
+    let team = org.teams.find((t) => t.id === rule.teamId);
+    if (!team) {
+      team = { id: rule.teamId, name: titleOf(rule.teamId, "team"), projects: [] };
+      org.teams.push(team);
+      changed = true;
+    }
+    if (!team.projects.some((p) => p.id === rule.projectId)) {
+      team.projects.push({ id: rule.projectId, name: titleOf(rule.projectId, "project") });
+      changed = true;
+    }
+    if (changed || !this.orgsPersisted) this.persistOrgs();
+    return changed;
   }
 
   user(id: string | null | undefined): User | null {
@@ -214,16 +300,25 @@ export class OrgRegistry {
   }
 
   /**
-   * Identity (oidc): remember the person a verified token names. The user is their users.json
-   * entry (if any) plus the memberships their groups grant; someone placed nowhere is a User
-   * with no memberships, an observer everywhere until a lead adds them. Dev-mode assertions
-   * are not remembered: `user()` keeps answering from users.json for those.
+   * Identity (oidc, supabase): remember the person a verified token names. The user is their
+   * users.json entry (if any) plus the memberships their groups grant; someone placed nowhere
+   * is a User with no memberships, an observer everywhere until a lead adds them, unless the
+   * auto-join rules place them (supabase mode: a new sign-up lands in the default project as
+   * a member, the org, team and project created on first use). Dev-mode assertions are not
+   * remembered: `user()` keeps answering from users.json for those.
    */
   resolve(principal: Principal): User {
     const known = this.users.get(principal.userId) ?? null;
     if (!principal.verified)
       return known ?? mergeSsoUser(null, principal, membershipsOfGroups(null, []));
-    const u = mergeSsoUser(known, principal, membershipsOfGroups(this.sso, principal.groups));
+    const granted = membershipsOfGroups(this.sso, principal.groups);
+    if (!known)
+      for (const rule of this.autoJoin) {
+        this.ensurePlace(rule);
+        if (!granted.projects.some((p) => p.projectId === rule.projectId))
+          granted.projects.push({ projectId: rule.projectId, role: rule.role });
+      }
+    const u = mergeSsoUser(known, principal, granted);
     this.resolved.set(u.id, u);
     return u;
   }

@@ -39,6 +39,17 @@ tells a client which mode it is in and, under single sign-on, where to send the 
   and expiry. The token is kept in memory and sessionStorage, never localStorage; a minute
   before it expires the app refreshes it through the provider when a refresh token was
   issued, otherwise the person signs in again and lands where they were.
+- `supabase` (the hosted deployment, `20_hosting.md`): `HENOSIS_AUTH=supabase` with
+  `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Supabase Auth signs the person in with an emailed
+  one-time code (or the magic link in the same mail) through supabase-js in the browser; the
+  access token it issues rides on every `join` and request as the ID token does under oidc,
+  and the server verifies it with `jose` against the project's JWKS (`<url>/auth/v1/
+  .well-known/jwks.json`, ES256; issuer `<url>/auth/v1`, audience `authenticated`), or
+  against `SUPABASE_JWT_SECRET` for a project still signing HS256. The user id is `sub`, the
+  name `user_metadata.full_name`, then `name`, then the email. A person `users.json` does
+  not know is placed by `HENOSIS_AUTO_JOIN` (`org:team:project:role`, default
+  `default:default:default:contributor`; the org, team and project are created on first
+  use), so a new sign-up lands in a working team.
 
 **Claims.** The user id is the token's `sub` (stable, opaque) or, when `orgs.json` sets
 `sso.userIdClaim: "email"`, its `email` (readable, but a provider may let it change). The

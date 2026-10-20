@@ -3,7 +3,9 @@
  * types all three (the token is the server's optional shared token) and they live in
  * localStorage. In oidc mode (auth.ts) the token is the provider's ID token: the name and
  * id stay in localStorage, the token itself only in memory and sessionStorage, so it goes
- * when the browser closes and never outlives its expiry here.
+ * when the browser closes and never outlives its expiry here. In supabase mode
+ * (supabase.ts) the token is the project's access token, kept the same way; supabase-js
+ * holds the session itself and hands a fresh token over whenever it refreshes one.
  */
 import type { Actor } from "@henosis/protocol";
 import { useSyncExternalStore } from "react";
@@ -12,9 +14,9 @@ export interface Identity {
   name: string;
   userId: string;
   token: string;
-  /** Where the identity came from: the dev form (default) or the provider's ID token. */
-  provider?: "dev" | "oidc";
-  /** oidc: when the ID token expires, in ms since the epoch. */
+  /** Where the identity came from: the dev form (default), the provider's ID token, or Supabase Auth. */
+  provider?: "dev" | "oidc" | "supabase";
+  /** oidc, supabase: when the token expires, in ms since the epoch. */
   expiresAt?: number;
 }
 
@@ -30,16 +32,16 @@ function readStored(): Identity | null {
     if (!raw) return null;
     const v = JSON.parse(raw) as Partial<Identity>;
     if (!v.name || !v.userId) return null;
-    if (v.provider === "oidc") {
+    if (v.provider === "oidc" || v.provider === "supabase") {
       // The token lives in this tab's session only; without it, or past its expiry, the
-      // person signs in again.
+      // person signs in again (supabase-js restores its own session and hands a token back).
       const token = sessionStorage.getItem(TOKEN_KEY) ?? "";
       if (!token || (v.expiresAt && v.expiresAt <= Date.now())) return null;
       return {
         name: v.name,
         userId: v.userId,
         token,
-        provider: "oidc",
+        provider: v.provider,
         ...(v.expiresAt ? { expiresAt: v.expiresAt } : {}),
       };
     }
@@ -59,7 +61,7 @@ export function slugify(s: string): string {
 export function saveIdentity(id: Identity): void {
   current = id;
   try {
-    if (id.provider === "oidc") {
+    if (id.provider === "oidc" || id.provider === "supabase") {
       localStorage.setItem(KEY, JSON.stringify({ ...id, token: "" }));
       sessionStorage.setItem(TOKEN_KEY, id.token);
     } else {
@@ -88,7 +90,7 @@ export function getIdentity(): Identity | null {
   return current;
 }
 
-/** The bearer token to send with a request, when there is one (dev: the shared token; oidc: the ID token). */
+/** The bearer token to send with a request, when there is one (dev: the shared token; oidc, supabase: the person's token). */
 export function authHeaders(): Record<string, string> {
   const token = current?.token;
   return token ? { authorization: `Bearer ${token}` } : {};

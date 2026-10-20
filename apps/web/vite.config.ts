@@ -12,6 +12,10 @@ const proxyFor = (ws: string) => {
 };
 
 export default defineConfig({
+  // Where the app is served from: `/` here and in every test; `/app/` on the hosted
+  // deployment (scripts/vercel-build.sh sets HENOSIS_BASE). The hash router does not care;
+  // the service worker, the manifest and the icon links follow it.
+  base: process.env.HENOSIS_BASE ?? "/",
   plugins: [react()],
   server: { port: 5173, proxy: proxyFor(process.env.HENOSIS_WS ?? "ws://127.0.0.1:7700") },
   preview: {
@@ -33,6 +37,9 @@ export default defineConfig({
 
 function vendorChunk(id: string): string | undefined {
   if (!id.includes("/node_modules/")) return undefined;
+  // supabase-js is imported lazily (src/supabase.ts) and only under a server that signs people
+  // in through Supabase Auth; it and what only it pulls in stay out of the eager vendor chunk.
+  if (/\/node_modules\/(@supabase|iceberg-js|tslib)\//.test(id)) return "supabase";
   if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
   if (id.includes("/node_modules/zod/")) return "zod";
   return "vendor";

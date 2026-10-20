@@ -38,8 +38,10 @@ Claude on the web, Claude Desktop and Claude mobile are one product. Brand and m
 [`design/`](design/) and [`docs/12_brand.md`](docs/12_brand.md). Business docs start at the
 [one-pager](docs/00_thesis_one_pager.md).
 
-> Phase 0. Dev-server authentication only, scripted model by default, nothing here is
-> hosted. See `docs/07_security_and_compliance.md` before pointing it at anything real.
+> Phase 0. Dev-server authentication only, scripted model by default. The one hosted
+> deployment (landing page, app at `/app/`, server as a Vercel Function on Supabase) is
+> described in `docs/20_hosting.md`; see `docs/07_security_and_compliance.md` before pointing
+> it at anything real.
 
 ## What is new here
 
@@ -108,6 +110,8 @@ Environment the server reads:
 | `HENOSIS_OIDC_ISSUER` | switches identity to single sign-on: the provider's issuer URL (Team edition) |
 | `HENOSIS_OIDC_CLIENT_ID` | the public client the web app signs in as; required with the issuer |
 | `HENOSIS_OIDC_AUDIENCE` | what ID tokens' `aud` must carry when it is not the client id (optional) |
+| `HENOSIS_AUTH=supabase` | sign-in through Supabase Auth, with `SUPABASE_URL` and `SUPABASE_ANON_KEY` (optional `SUPABASE_JWT_SECRET`); `HENOSIS_AUTO_JOIN` (`org:team:project:role`) places a new sign-up (`docs/20_hosting.md`) |
+| `HENOSIS_DATABASE_URL` | the postgres store's connection string (`--store postgres`, or `HENOSIS_STORE=postgres` in the hosted function) |
 | `HENOSIS_APP_URL` | where the web app is served, for links in Slack messages |
 
 In oidc mode the server verifies every ID token against the provider and maps the token's

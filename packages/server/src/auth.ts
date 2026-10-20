@@ -1,5 +1,5 @@
 /**
- * Who is asking. Two modes, picked by configuration (docs/07_security_and_compliance.md,
+ * Who is asking. Three modes, picked by configuration (docs/07_security_and_compliance.md,
  * "Identity"):
  *
  * - `dev` (Starter, the default): an optional shared token and a client-asserted user id that
@@ -9,13 +9,27 @@
  *   and the user id is the token's subject (or email, when orgs.json says so). A user id a
  *   client asserts beside the token must match it. The token's groups claim becomes
  *   memberships through the `sso` mapping in orgs.json (packages/fleet/src/identity.ts).
+ * - `supabase` (the hosted deployment, docs/20_hosting.md): Supabase Auth signs the person in
+ *   with an emailed code or link and the web app sends the access token it was given. The
+ *   server verifies it against the project's JWKS (`<url>/auth/v1/.well-known/jwks.json`;
+ *   ES256 on current projects) or, for a project still signing with a shared secret, the
+ *   HS256 secret. The user id is the token's `sub`, the name comes from `user_metadata`
+ *   (`full_name`, `name`) or the email. A person users.json does not know is placed by the
+ *   auto-join rules (orgs.ts) so a new sign-up lands in a working team.
  *
  * Verification is `jose`; the discovery document and the key set are fetched once and the
  * key set re-fetched on an unknown key id, as jose does on its own.
  */
-import { createRemoteJWKSet, type JWTPayload, errors as joseErrors, jwtVerify } from "jose";
+import {
+  createRemoteJWKSet,
+  decodeProtectedHeader,
+  type JWTPayload,
+  errors as joseErrors,
+  jwtVerify,
+} from "jose";
+import { type AutoJoinRule, parseAutoJoin } from "./orgs.js";
 
-export type AuthMode = "dev" | "oidc";
+export type AuthMode = "dev" | "oidc" | "supabase";
 
 export interface OidcConfig {
   /** `HENOSIS_OIDC_ISSUER`: the provider's issuer URL; `/.well-known/openid-configuration` hangs off it. */
@@ -34,9 +48,27 @@ export interface OidcConfig {
   name?: string | undefined;
 }
 
+export interface SupabaseConfig {
+  /** `SUPABASE_URL`: the project URL, e.g. https://eeriyaokbknxduztnawr.supabase.co. */
+  url: string;
+  /** `SUPABASE_ANON_KEY`: the public key the web app creates its client with. */
+  anonKey: string;
+  /** Where the signing keys are; `<url>/auth/v1/.well-known/jwks.json` by default. */
+  jwksUri?: string | undefined;
+  /** What the token's `iss` must be; `<url>/auth/v1` by default. */
+  issuer?: string | undefined;
+  /** What the token's `aud` must carry; `authenticated` by default. */
+  audience?: string | undefined;
+  /** `SUPABASE_JWT_SECRET`: for a project whose Auth still signs HS256 tokens with a shared secret. */
+  jwtSecret?: string | undefined;
+  /** `HENOSIS_AUTO_JOIN`: where a verified person users.json does not know is placed (orgs.ts). */
+  autoJoin?: AutoJoinRule[] | undefined;
+}
+
 export type AuthConfig =
   | { mode: "dev"; token?: string | undefined }
-  | ({ mode: "oidc" } & OidcConfig);
+  | ({ mode: "oidc" } & OidcConfig)
+  | ({ mode: "supabase" } & SupabaseConfig);
 
 /** The person behind a request, as far as the server can tell. */
 export interface Principal {
@@ -64,6 +96,9 @@ export interface AuthDescription {
   scopes?: string[];
   /** oidc: why the provider's endpoints are missing (discovery failed); the client shows it. */
   error?: string;
+  /** supabase: the project the web app creates its client against. */
+  url?: string;
+  anonKey?: string;
 }
 
 /** A refusal: the message is what the client sees, always starting with `unauthorized`. */
@@ -84,9 +119,12 @@ interface Discovery {
 }
 
 const DEFAULT_SCOPES = ["openid", "profile", "email"];
+const SUPABASE_AUDIENCE = "authenticated";
 
 /**
- * The mode the environment asks for: `HENOSIS_OIDC_ISSUER` turns oidc on (and then
+ * The mode the environment asks for: `HENOSIS_AUTH=supabase` turns Supabase Auth on (then
+ * `SUPABASE_URL` and `SUPABASE_ANON_KEY` are required, `SUPABASE_JWT_SECRET` and
+ * `HENOSIS_AUTO_JOIN` optional); else `HENOSIS_OIDC_ISSUER` turns oidc on (and then
  * `HENOSIS_OIDC_CLIENT_ID` is required, `HENOSIS_OIDC_AUDIENCE` optional); otherwise dev with
  * the shared token given (`--token` or `HENOSIS_TOKEN`).
  */
@@ -94,7 +132,24 @@ export function authConfigFromEnv(
   env: Record<string, string | undefined>,
   devToken?: string | undefined,
 ): AuthConfig {
-  const issuer = env.HENOSIS_OIDC_ISSUER?.trim();
+  const asked = env.HENOSIS_AUTH?.trim().toLowerCase();
+  if (asked === "supabase") {
+    const url = env.SUPABASE_URL?.trim().replace(/\/+$/, "");
+    const anonKey = env.SUPABASE_ANON_KEY?.trim();
+    if (!url || !anonKey)
+      throw new Error("HENOSIS_AUTH=supabase needs SUPABASE_URL and SUPABASE_ANON_KEY");
+    const jwtSecret = env.SUPABASE_JWT_SECRET?.trim();
+    return {
+      mode: "supabase",
+      url,
+      anonKey,
+      ...(jwtSecret ? { jwtSecret } : {}),
+      autoJoin: parseAutoJoin(env.HENOSIS_AUTO_JOIN),
+    };
+  }
+  if (asked && asked !== "dev" && asked !== "oidc")
+    throw new Error(`HENOSIS_AUTH=${asked} is not a mode; use dev, oidc or supabase`);
+  const issuer = asked === "dev" ? undefined : env.HENOSIS_OIDC_ISSUER?.trim();
   if (!issuer) return { mode: "dev", token: devToken };
   const clientId = env.HENOSIS_OIDC_CLIENT_ID?.trim();
   if (!clientId) throw new Error("HENOSIS_OIDC_ISSUER is set but HENOSIS_OIDC_CLIENT_ID is not");
@@ -102,28 +157,52 @@ export function authConfigFromEnv(
   return { mode: "oidc", issuer, clientId, ...(audience ? { audience } : {}) };
 }
 
+/** The supabase settings with every default filled in. */
+interface SupabaseResolved {
+  url: string;
+  anonKey: string;
+  jwksUri: string;
+  issuer: string;
+  audience: string;
+  jwtSecret: string | null;
+}
+
 export class Auth {
   readonly mode: AuthMode;
   /** dev: the shared token, when the server wants one. */
   readonly sharedToken: string | null;
   private readonly oidc: OidcConfig | null;
+  private readonly supabase: SupabaseResolved | null;
   private discovery: Promise<Discovery> | null = null;
   private jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 
   constructor(cfg: AuthConfig = { mode: "dev" }) {
     this.mode = cfg.mode;
+    this.oidc = null;
+    this.supabase = null;
     if (cfg.mode === "dev") {
       this.sharedToken = cfg.token || null;
-      this.oidc = null;
-    } else {
+    } else if (cfg.mode === "oidc") {
       this.sharedToken = null;
       const { mode: _mode, ...rest } = cfg;
       this.oidc = { ...rest, issuer: rest.issuer.replace(/\/+$/, "") };
+    } else {
+      this.sharedToken = null;
+      const url = cfg.url.replace(/\/+$/, "");
+      this.supabase = {
+        url,
+        anonKey: cfg.anonKey,
+        jwksUri: cfg.jwksUri ?? `${url}/auth/v1/.well-known/jwks.json`,
+        issuer: (cfg.issuer ?? `${url}/auth/v1`).replace(/\/+$/, ""),
+        audience: cfg.audience ?? SUPABASE_AUDIENCE,
+        jwtSecret: cfg.jwtSecret || null,
+      };
     }
   }
 
   /** The provider's name for the sign-in button. */
   get providerName(): string | null {
+    if (this.supabase) return "your email";
     if (!this.oidc) return null;
     if (this.oidc.name) return this.oidc.name;
     try {
@@ -135,7 +214,7 @@ export class Auth {
 
   /**
    * dev: whether a write carrying this token may go ahead (no shared token, or the right one).
-   * oidc: always true here; the ID token was checked by `authenticate` first.
+   * oidc, supabase: always true here; the token was checked by `authenticate` first.
    */
   acceptsSharedToken(token: string | null | undefined): boolean {
     if (this.mode !== "dev" || !this.sharedToken) return true;
@@ -145,9 +224,12 @@ export class Auth {
   /**
    * What the client needs to sign in. In oidc mode this reads the discovery document once;
    * when the provider cannot be reached the mode is still oidc (the client must not fall
-   * back to the dev form), with `error` saying why and no endpoints.
+   * back to the dev form), with `error` saying why and no endpoints. In supabase mode the
+   * project URL and the public key, which is all the web app's client needs.
    */
   async describe(): Promise<AuthDescription> {
+    if (this.supabase)
+      return { mode: "supabase", url: this.supabase.url, anonKey: this.supabase.anonKey };
     if (!this.oidc) return { mode: "dev", tokenRequired: Boolean(this.sharedToken) };
     const base: AuthDescription = {
       mode: "oidc",
@@ -174,9 +256,9 @@ export class Auth {
    *
    * dev: `enforceShared` makes a wrong or missing shared token a refusal (a `join` does this;
    * reads do not); the asserted user id is taken at its word.
-   * oidc: a token is verified and names the person; an asserted user id that differs from it
-   * is refused, and an asserted user id without a token is refused too. No token and no
-   * assertion is nobody.
+   * oidc, supabase: a token is verified and names the person; an asserted user id that
+   * differs from it is refused, and an asserted user id without a token is refused too. No
+   * token and no assertion is nobody.
    */
   async authenticate(input: {
     token?: string | null | undefined;
@@ -186,7 +268,7 @@ export class Auth {
   }): Promise<Principal | null> {
     const token = input.token || null;
     const asserted = input.userId || null;
-    if (!this.oidc) {
+    if (this.mode === "dev") {
       if (input.enforceShared && this.sharedToken && token !== this.sharedToken)
         throw new AuthError();
       if (!asserted) return null;
@@ -208,8 +290,9 @@ export class Auth {
     return who;
   }
 
-  /** Verify an ID token against the provider and read the person out of it. */
+  /** Verify an ID token (oidc) or an access token (supabase) and read the person out of it. */
   async verify(token: string): Promise<Principal> {
+    if (this.supabase) return this.verifySupabase(token, this.supabase);
     const cfg = this.oidc;
     if (!cfg) throw new AuthError("the server runs in dev mode");
     const doc = await this.discover();
@@ -240,6 +323,40 @@ export class Auth {
     };
   }
 
+  /**
+   * A Supabase access token: signed by the project's current key (the JWKS; ES256 today) or,
+   * when the token says HS256 and a secret was given, by that shared secret. Issuer and
+   * audience are the project's Auth and `authenticated`.
+   */
+  private async verifySupabase(token: string, cfg: SupabaseResolved): Promise<Principal> {
+    let payload: JWTPayload;
+    try {
+      const header = decodeProtectedHeader(token);
+      if (!this.jwks) this.jwks = createRemoteJWKSet(new URL(cfg.jwksUri));
+      const key =
+        header.alg === "HS256" && cfg.jwtSecret
+          ? new TextEncoder().encode(cfg.jwtSecret)
+          : this.jwks;
+      ({ payload } = await jwtVerify(token, key, {
+        issuer: cfg.issuer,
+        audience: cfg.audience,
+      }));
+    } catch (err) {
+      throw new AuthError(describeJoseError(err));
+    }
+    const userId = stringClaim(payload, "sub");
+    if (!userId) throw new AuthError("the token has no sub claim");
+    const email = stringClaim(payload, "email");
+    const meta = objectClaim(payload, "user_metadata");
+    const app = objectClaim(payload, "app_metadata");
+    const name =
+      stringClaim(meta, "full_name") ??
+      stringClaim(meta, "name") ??
+      stringClaim(meta, "user_name") ??
+      email;
+    return { userId, name, email, groups: groupsOf(app.groups), verified: true };
+  }
+
   /** The provider's discovery document, fetched once; a failure is retried on the next call. */
   private discover(): Promise<Discovery> {
     const cfg = this.oidc;
@@ -265,9 +382,15 @@ export class Auth {
   }
 }
 
-function stringClaim(payload: JWTPayload, name: string): string | null {
+function stringClaim(payload: Record<string, unknown>, name: string): string | null {
   const v = payload[name];
   return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+/** A nested object claim (`user_metadata`, `app_metadata`), or an empty one. */
+function objectClaim(payload: JWTPayload, name: string): Record<string, unknown> {
+  const v = payload[name];
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
 
 /** Groups arrive as an array of strings, or as one space-separated string from some providers. */

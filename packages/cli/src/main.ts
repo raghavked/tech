@@ -44,6 +44,8 @@ slack.json: { "botToken": "xoxb-...", "appToken": "xapp-...", "map": { "teams": 
 Environment: HENOSIS_OFFLINE=1 blocks the Claude adapter; ANTHROPIC_API_KEY enables it.
              HENOSIS_TOKEN is the dev-mode shared token; HENOSIS_OIDC_ISSUER, HENOSIS_OIDC_CLIENT_ID
              and (optional) HENOSIS_OIDC_AUDIENCE switch serve to single sign-on (docs/07, "Identity").
+             HENOSIS_AUTH=supabase with SUPABASE_URL and SUPABASE_ANON_KEY (optional SUPABASE_JWT_SECRET,
+             HENOSIS_AUTO_JOIN=org:team:project:role) signs people in through Supabase Auth (docs/20).
              HENOSIS_DATABASE_URL is the postgres store's connection string (or --database-url).
 Exit codes: 0 ok, 2 usage, 3 verification failed, 4 network.`;
 
@@ -129,7 +131,13 @@ async function main(): Promise<number> {
       });
       const bound = await server.listen(port, flag(flags, "host", "127.0.0.1"));
       const identity =
-        auth.mode === "oidc" ? `, sign-in via ${auth.issuer}` : token ? ", token required" : "";
+        auth.mode === "oidc"
+          ? `, sign-in via ${auth.issuer}`
+          : auth.mode === "supabase"
+            ? `, sign-in via Supabase Auth at ${auth.url}`
+            : token
+              ? ", token required"
+              : "";
       process.stdout.write(
         `henosis server on ws://127.0.0.1:${bound}/ws (model ${model.name}, store ${kind === "file" ? root : `postgres, blobs under ${root}`}${identity})\n`,
       );

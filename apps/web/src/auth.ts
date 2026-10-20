@@ -17,7 +17,7 @@ import { clearIdentity, getIdentity, type Identity, saveIdentity } from "./ident
 
 /** What GET /api/auth answers (packages/server/src/auth.ts, `AuthDescription`). */
 export interface AuthInfo {
-  mode: "dev" | "oidc";
+  mode: "dev" | "oidc" | "supabase";
   tokenRequired?: boolean;
   provider?: string;
   issuer?: string;
@@ -28,6 +28,9 @@ export interface AuthInfo {
   scopes?: string[];
   /** oidc: the provider could not be reached for its endpoints; shown in place of the button. */
   error?: string;
+  /** supabase (supabase.ts): the project the browser creates its client against. */
+  url?: string;
+  anonKey?: string;
 }
 
 export const DEV_AUTH: AuthInfo = { mode: "dev" };
@@ -128,7 +131,9 @@ export function loadAuthInfo(): Promise<AuthInfo> {
   if (info) return Promise.resolve(info);
   if (!loading) {
     loading = getJson<AuthInfo>("/api/auth")
-      .then((d) => (d && (d.mode === "oidc" || d.mode === "dev") ? d : DEV_AUTH))
+      .then((d) =>
+        d && (d.mode === "oidc" || d.mode === "dev" || d.mode === "supabase") ? d : DEV_AUTH,
+      )
       .catch(() => DEV_AUTH)
       .then((d) => {
         info = d;

@@ -1,6 +1,8 @@
 /* Henosis service worker: caches the app shell, passes the websocket and the API through. */
-const SHELL = "fold-shell-v1";
-const SHELL_URLS = ["/", "/manifest.webmanifest", "/favicon.svg", "/logo.svg"];
+const SHELL = "fold-shell-v2";
+/* The app's base: "/" when served at the root, "/app/" on the hosted deployment (vite `base`). */
+const BASE = new URL("./", self.location.href).pathname;
+const SHELL_URLS = [BASE, `${BASE}manifest.webmanifest`, `${BASE}favicon.svg`, `${BASE}logo.svg`];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -28,6 +30,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   // Live traffic goes straight through: the websocket upgrade and the JSON API are never cached.
   if (url.pathname.startsWith("/ws") || url.pathname.startsWith("/api/")) return;
+  if (!url.pathname.startsWith(BASE)) return;
   if (req.mode === "navigate") {
     // Network first for the shell so a new build is picked up; fall back to the cached shell offline.
     event.respondWith(
@@ -36,11 +39,11 @@ self.addEventListener("fetch", (event) => {
           const copy = res.clone();
           caches
             .open(SHELL)
-            .then((c) => c.put("/", copy))
+            .then((c) => c.put(BASE, copy))
             .catch(() => undefined);
           return res;
         })
-        .catch(() => caches.match("/").then((hit) => hit ?? Response.error())),
+        .catch(() => caches.match(BASE).then((hit) => hit ?? Response.error())),
     );
     return;
   }
@@ -50,7 +53,10 @@ self.addEventListener("fetch", (event) => {
       (hit) =>
         hit ??
         fetch(req).then((res) => {
-          if (res.ok && (url.pathname.startsWith("/assets/") || url.pathname.endsWith(".svg"))) {
+          if (
+            res.ok &&
+            (url.pathname.startsWith(`${BASE}assets/`) || url.pathname.endsWith(".svg"))
+          ) {
             const copy = res.clone();
             caches
               .open(SHELL)

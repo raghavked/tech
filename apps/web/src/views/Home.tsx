@@ -6,6 +6,7 @@ import { type Identity, saveIdentity, slugify } from "../identity.js";
 import { Mark } from "../ui.js";
 import { FirstRun } from "./FirstRun.js";
 import { SignInPending, SsoSignIn, useAuthInfo } from "./SignIn.js";
+import { SupabaseSignIn } from "./SupabaseSignIn.js";
 
 export function Home({
   me,
@@ -52,9 +53,11 @@ function IdentityForm({ identity, me }: { identity: Identity | null; me: Me | nu
   const [userTouched, setUserTouched] = useState(Boolean(identity));
   const [token, setToken] = useState(identity?.token ?? "");
   const [editing, setEditing] = useState(!identity);
-  // Identity (auth.ts): under single sign-on the step is one button, not a form.
+  // Identity (auth.ts): under single sign-on the step is one button, not a form; under
+  // Supabase Auth (supabase.ts) it is an email and the code it receives.
   const auth = useAuthInfo();
   if (auth?.mode === "oidc") return <SsoSignIn identity={identity} me={me} auth={auth} />;
+  if (auth?.mode === "supabase") return <SupabaseSignIn identity={identity} me={me} auth={auth} />;
   if (!auth && !identity) return <SignInPending />;
   if (identity && !editing)
     return (

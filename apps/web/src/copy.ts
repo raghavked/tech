@@ -259,6 +259,16 @@ export const copy = {
     signedOut: "Your sign-in ended; continue to pick up where you were.",
     tryAgain: "Try again",
     signOut: "Sign out",
+    // Supabase Auth (supabase.ts): an email, then the code it receives.
+    email: "Email",
+    emailLine: "Sign in with your email; we send a one-time code.",
+    sendCode: "Send a code",
+    codeSent: (email: string) =>
+      `We sent a six-digit code to ${email}. Enter it here, or open the link in the same mail.`,
+    code: "Code",
+    codeHint: "six digits",
+    signIn: "Sign in",
+    otherEmail: "Use another email",
   },
 
   session: {

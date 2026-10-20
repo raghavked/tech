@@ -41,7 +41,7 @@ import {
 import { ClaudeModel, claudeAvailable, type Model, type ToolRegistry } from "@henosis/runner";
 import { type RawData, type WebSocket, WebSocketServer } from "ws";
 import { agentRow, handleAgentsApi } from "./agentsApi.js";
-import { Auth, type AuthConfig, AuthError, type Principal } from "./auth.js";
+import { Auth, type AuthConfig, AuthError, type AuthMode, type Principal } from "./auth.js";
 import { handleBranchApi } from "./branchApi.js";
 import { ChatHost, type ChatSubscriber } from "./chatHost.js";
 import { CouncilHost } from "./councilHost.js";
@@ -51,10 +51,10 @@ import type { ClientLink, SessionHost } from "./host.js";
 import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
 import { ModelFactory } from "./models.js";
 import { Notifier, type PushSubscription } from "./notify.js";
-import { OrgRegistry } from "./orgs.js";
+import { DEFAULT_AUTO_JOIN, OrgRegistry } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
 import { SAVED_SEARCH_PATH, SavedSearches, SEARCH_PATH, search, searchQueryOf } from "./search.js";
-import { FileStore, type LiveStore, LogWriter } from "./store/index.js";
+import { FileStore, type LiveStore, LogWriter, MirrorStore } from "./store/index.js";
 import { computeUsage, USAGE_PATH, usageQueryOf } from "./usageApi.js";
 
 export interface ServerOptions {
@@ -80,6 +80,20 @@ export interface ServerOptions {
   log?: (line: string) => void;
   /** Which adapters run beside this server; reported by GET /api/integrations. */
   integrations?: Partial<Integrations>;
+}
+
+/** How `attach` mounts the server on an http server it did not create (docs/20_hosting.md). */
+export interface AttachOptions {
+  /**
+   * The path websocket upgrades are accepted on; `/ws` by default. Null accepts an upgrade on
+   * any path, for a platform that rewrote `/ws` to the function's own path.
+   */
+  wsPath?: string | null | undefined;
+  /**
+   * A prefix the platform puts before every route (`/api/server` on Vercel, where the
+   * function is reached as `/api/server` plus the rewritten path); stripped before routing.
+   */
+  apiPrefix?: string | undefined;
 }
 
 /** settings-page hook point: adapters flip their flag here (the CLI's `slack` command does). */
@@ -150,7 +164,19 @@ export class HenosisServer {
     this.notifier.badge = (userId) => this.glance(userId).needsYou;
     this.integrations = { slack: false, ...opts.integrations };
     this.models = new ModelFactory({ log: opts.log });
+    // supabase mode: a verified stranger is placed by the auto-join rules (orgs.ts).
+    this.orgs.autoJoin =
+      opts.auth?.mode === "supabase" ? (opts.auth.autoJoin ?? DEFAULT_AUTO_JOIN) : [];
     for (const o of this.orgs.orgs.orgs) this.chat(o.id);
+  }
+
+  /** What `/health` reports beside the sessions: the model, the store and the identity mode in use. */
+  describe(): { model: "scripted" | "claude"; store: "file" | "postgres"; auth: AuthMode } {
+    return {
+      model: this.opts.model.name.startsWith("scripted") ? "scripted" : "claude",
+      store: this.store instanceof MirrorStore ? "postgres" : "file",
+      auth: this.auth.mode,
+    };
   }
 
   /**
@@ -705,12 +731,31 @@ export class HenosisServer {
     return [...ids].sort();
   }
 
-  listen(port: number, hostname = "127.0.0.1"): Promise<number> {
-    const http = createServer((req, res) => this.handleHttp(req, res));
-    const wss = new WebSocketServer({ server: http, path: "/ws" });
+  /**
+   * Mount the JSON routes and the websocket on an http server: `listen` makes one of its
+   * own; a platform that owns the server (a Vercel Function, api/server.ts at the repo root)
+   * hands its server in. The server is closed with `close()` either way.
+   */
+  attach(http: Server, opts: AttachOptions = {}): WebSocketServer {
+    const prefix = (opts.apiPrefix ?? "").replace(/\/+$/, "");
+    http.on("request", (req, res) => this.handleHttp(req, res, prefix));
+    const wsPath = opts.wsPath === undefined ? "/ws" : opts.wsPath;
+    const wss = new WebSocketServer({ server: http, ...(wsPath ? { path: wsPath } : {}) });
     wss.on("connection", (ws, req) => this.connection(ws, req));
     this.http = http;
     this.wss = wss;
+    return wss;
+  }
+
+  /** A new http server with everything attached, not yet listening. */
+  createHttpServer(opts: AttachOptions = {}): Server {
+    const http = createServer();
+    this.attach(http, opts);
+    return http;
+  }
+
+  listen(port: number, hostname = "127.0.0.1"): Promise<number> {
+    const http = this.createHttpServer();
     return new Promise((resolve) => {
       http.listen(port, hostname, () => {
         const addr = http.address();
@@ -740,10 +785,15 @@ export class HenosisServer {
    * bearer token (or `?token=`) has been read. In oidc mode a verified token names the person
    * and a `?user=` that disagrees with it is refused; a `?user=` without a token is refused;
    * a verified person who sent no `?user=` gets it filled in, so the routes below read one
-   * field either way. Dev mode takes `?user=` at its word, as before.
+   * field either way. Dev mode takes `?user=` at its word, as before. `prefix` is the path the
+   * platform put before the route (`attach`), taken off first.
    */
-  private handleHttp(req: IncomingMessage, res: ServerResponse): void {
+  private handleHttp(req: IncomingMessage, res: ServerResponse, prefix = ""): void {
     const url = new URL(req.url ?? "/", "http://localhost");
+    if (prefix && (url.pathname === prefix || url.pathname.startsWith(`${prefix}/`))) {
+      const rest = url.pathname.slice(prefix.length);
+      url.pathname = rest.startsWith("/") ? rest : `/${rest}`;
+    }
     const json = jsonOn(res);
     if (req.method === "OPTIONS") {
       res.writeHead(204, {
@@ -778,9 +828,10 @@ export class HenosisServer {
   private route(req: IncomingMessage, res: ServerResponse, url: URL): boolean {
     const json = jsonOn(res);
     try {
-      if (url.pathname === "/health")
+      if (url.pathname === "/health" || url.pathname === "/api/health")
         return json(200, {
           ok: true,
+          ...this.describe(),
           sessions: this.sessions(),
           projects: [...this.projects.keys()],
         });
