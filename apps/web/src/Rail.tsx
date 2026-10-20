@@ -297,18 +297,6 @@ export const Rail = memo(function Rail({
           })
         }
       >
-        {/* the phone drawer's "who · where" line and its close button */}
-        {identity && (
-          <div className="sys">
-            <span className="who">
-              <span className="serif">{identity.name}</span>
-              {whereName && <span className="where"> · {whereName}</span>}
-            </span>
-            <button type="button" className="x" aria-label={copy.shell.closeRail} onClick={onClose}>
-              <Icon d={ICONS.close} size={15} />
-            </button>
-          </div>
-        )}
         <div className="brand-row">
           <a className="brand" href={paths.home()}>
             <Mark size={24} settle {...markLook(look?.mark)} emblem={look?.emblem} />
@@ -329,7 +317,20 @@ export const Rail = memo(function Rail({
           >
             <Icon d={collapsed ? ICONS.expand : ICONS.collapse} size={15} />
           </button>
+          {/* the phone drawer's close sits in the one header, beside the brand */}
+          <button type="button" className="x" aria-label={copy.shell.closeRail} onClick={onClose}>
+            <Icon d={ICONS.close} size={15} />
+          </button>
         </div>
+        {/* the phone drawer's "who · where" line, under the header */}
+        {identity && (
+          <div className="sys">
+            <span className="who">
+              <span className="serif">{identity.name}</span>
+              {whereName && <span className="where"> · {whereName}</span>}
+            </span>
+          </div>
+        )}
         <a className="new" href={newHref} title={copy.shell.newSessionKey}>
           <Icon d={ICONS.plus} />
           <span className="lbl">{copy.shell.newSession}</span>
