@@ -316,6 +316,23 @@ describe("member model API", () => {
     expect(byId.get("max")?.agent).toMatchObject({ id: "agent:max", persona: CHAIR_PERSONA });
     expect(byId.get("cy")?.agent).toMatchObject({ id: "cy-bot", provider: "scripted" });
   });
+
+  it("says which teams each person is in and which a model's owner manages, for the chair default", async () => {
+    const dir = (await get("/api/chat/northwind/directory")) as {
+      people: { id: string; teams: string[] }[];
+      models: { profileId: string; ownerId: string | null; manages: string[] }[];
+    };
+    const teams = new Map(dir.people.map((p) => [p.id, p.teams]));
+    expect(teams.get("bo")).toEqual(["payments"]);
+    expect(teams.get("max")).toEqual(["growth"]);
+    // An org admin with no team row is in no team by their row; a person users.json does not
+    // know is in every team of the org, on trust.
+    expect(teams.get("ada")).toEqual([]);
+    const manages = new Map(dir.models.map((m) => [m.profileId, m.manages]));
+    expect(manages.get("agent:max")).toEqual(["growth"]);
+    expect(manages.get("agent:lee")).toEqual([]);
+    expect(manages.get("agent:bo")).toEqual([]);
+  });
 });
 
 describe("member model API with a shared token", () => {

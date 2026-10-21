@@ -166,6 +166,8 @@ export interface ModelRow {
   ownerId: string | null;
   provider: string;
   model: string;
+  /** The teams the owner manages: a manager's agent, which chairs by default (absent on older servers). */
+  manages?: string[];
 }
 
 /**
@@ -197,8 +199,11 @@ export interface OrgAgentsResponse {
 
 /** GET /api/chat/:org/directory: who and which agents a group can be made of. */
 export interface ChatDirectoryListing {
-  /** Each person with the member model they bring to a council and the model it runs on. */
-  people: { id: string; name: string; agent?: AgentRow }[];
+  /**
+   * Each person with the member model they bring to a council and the model it runs on, and
+   * the teams they are in (absent on older servers), which say whose manager's agent chairs.
+   */
+  people: { id: string; name: string; teams?: string[]; agent?: AgentRow }[];
   agents: {
     projectId: string;
     projectName: string;

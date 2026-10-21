@@ -670,19 +670,44 @@ export class HenosisServer {
         }
       }
     // The council (docs/19_council.md): the member models a group can convene, each person's
-    // agent and the org's shared ones, as the convene sheet lists them.
+    // agent and the org's shared ones, as the convene sheet lists them. The teams a person is
+    // in and the teams a model's owner manages let the sheet default the chair to the
+    // convener's manager's agent. A person users.json knows is in the teams their row names
+    // and the teams whose projects it names; one it does not know is in every team of the
+    // org, on trust, as `chatDirectory` has them in the org.
+    const teamIds = org.teams.map((t) => t.id);
+    const teamsOf = (userId: string): string[] => {
+      const u = this.orgs.user(userId);
+      if (!u) return teamIds;
+      return org.teams
+        .filter(
+          (t) =>
+            u.teams.some((m) => m.teamId === t.id) ||
+            t.projects.some((pr) => u.projects.some((m) => m.projectId === pr.id)),
+        )
+        .map((t) => t.id);
+    };
+    const managesOf = (userId: string | null): string[] =>
+      (userId ? (this.orgs.user(userId)?.teams ?? []) : [])
+        .filter((m) => m.role === "manager" && teamIds.includes(m.teamId))
+        .map((m) => m.teamId);
     const models = this.orgs.agentProfiles().map((p) => ({
       profileId: p.id,
       name: p.name,
       ownerId: p.ownerId,
       provider: p.provider,
       model: p.model,
+      manages: managesOf(p.ownerId),
     }));
     return {
       // Each person with the member model they bring to a council and the model id it runs on.
       people: [...people.values()]
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map((p) => ({ ...p, agent: agentRow(this.orgs.personalAgent(p.id, p.name)) })),
+        .map((p) => ({
+          ...p,
+          teams: teamsOf(p.id),
+          agent: agentRow(this.orgs.personalAgent(p.id, p.name)),
+        })),
       agents,
       models,
     };

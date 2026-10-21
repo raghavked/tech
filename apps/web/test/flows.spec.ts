@@ -386,7 +386,9 @@ test("a council: Ana convenes four models, they answer and discuss, she rates th
   await sheet.getByRole("button", { name: `Create #${groupName}` }).click();
   await expect(ana).toHaveURL(/#\/c\/default\/grp_/);
 
-  // Convene: the task, four member models from the org's agent profiles, Ana's agent in the chair.
+  // Convene: the task, four member models from the org's agent profiles. The chair defaults to
+  // the convener's manager's agent (Mo manages the team in users.json, and Ana, whom users.json
+  // does not know, is in the team on trust); Ana puts her own agent in the chair instead.
   await ana.getByRole("button", { name: "Convene a council" }).click();
   const convene = ana.getByRole("form", { name: "Convene a council" });
   await expect(convene).toBeVisible();
@@ -395,7 +397,11 @@ test("a council: Ana convenes four models, they answer and discuss, she rates th
   await convene.getByRole("checkbox", { name: "Bo's agent" }).check();
   await convene.getByRole("checkbox", { name: "Cy's agent" }).check();
   await convene.getByRole("checkbox", { name: "Chat team agent" }).check();
-  await expect(convene.getByLabel("Chair", { exact: true })).toHaveValue("agent:ana");
+  await expect(convene.getByText("Mo's model · manager")).toBeVisible();
+  const chair = convene.getByLabel("Chair", { exact: true });
+  await expect(chair).toHaveValue("agent:mo");
+  await chair.selectOption("agent:ana");
+  await expect(chair).toHaveValue("agent:ana");
   await convene.getByLabel("Token budget").fill("500000");
   await convene.getByRole("button", { name: "Convene", exact: true }).click();
 

@@ -17,9 +17,10 @@ This document is the design. What is built: the eight council events and their f
 wire commands `chat.council.convene`, `chat.council.instruct` and `chat.council.end` that
 the server records into the group's log, the member profiles (`agent` on a `users.json`
 row, shared agents in `agents.json`), and the prompts, the synthesis tool and the parsers in
-`packages/runner/src/council.ts`, with the scripted model answering every round offline.
-What is owed: the host that runs the rounds, the rooms in the web app, the Slack and CLI
-commands, and "My agent" in Settings. The sections below describe those as they will work.
+`packages/runner/src/council.ts`, with the scripted model answering every round offline; the
+host that runs the rounds (packages/server); the rooms in the web app; the Slack and CLI
+commands; and "My agent" in Settings. The sections below describe each as it works, and
+"Status" at the end says where every part is tested.
 
 ## Vocabulary
 
@@ -100,11 +101,16 @@ council.
 session says of the vote (`vote`, `plan` with its ratings), what the protocol does next and
 the member sessions by profile; `GET /api/chat/:org/councils` lists them, latest first.
 
-## Rooms (apps/web; owed)
+## Rooms (apps/web)
 
-- **Convene** from any group: task, members (people's and managers' agents, shared agents),
-  chair (defaults to the convener's manager's agent, else the convener's agent), rounds,
-  budget. The council appears as a threaded room inside the group.
+- **Convene** from any group: task, members (people's and managers' agents, shared agents,
+  from the org's profiles; a manager's agent says so), chair (defaults to the convener's
+  manager's agent, a model whose owner manages a team the convener is in, else the convener's
+  agent; any model may chair, and a chair outside the members only writes the plan), rounds,
+  budget. The council appears as a threaded room inside the group. The directory
+  (`GET /api/chat/:org/directory`) carries each person's teams and the teams each model's
+  owner manages, so the sheet can propose the chair; a person users.json does not know is
+  in every team of the org, on trust.
 - **Council view**: the task at the top; rounds as sections; in the individual round each
   model's answer is a column card with its owner's name and model; in discussion, replies in
   the stream with stances as words; the synthesis as a plan card with owners; the vote as
@@ -156,6 +162,11 @@ cooperation between a team's people and its agents, not a feature of a chat box.
   Tested against the in-memory `FakeSlackClient`.
 - **CLI (packages/cli)**: `henosis council <org> [<id>]` and the Council section of
   `henosis report`, both rendered from the folded chat log.
-- **Host and rooms**: the council host (packages/server) that runs the rounds and opens the
-  chair's session, and the council rooms in the web app, ship in their own changes; until the
-  host runs, the Slack and CLI surfaces render whatever the log holds.
+- **Host (packages/server)**: the council host that runs the rounds, opens the chair's
+  session, assigns the steps and concludes; `GET /api/chat/:org/councils[/:id]`.
+- **Rooms (apps/web)**: the convene sheet from a group (members from the org's profiles, the
+  chair proposed as above), the council room with the rounds as sections, the plan card with
+  owners and ratings, the assignments as live agent cards and the conclusion with dissent,
+  the members panel with an Instruct box per model, the one-to-one Instruct room, and the
+  rail card "Council · 4 models · discussion 1 of 1". Walked end to end by
+  `apps/web/test/flows.spec.ts` against the scripted model.

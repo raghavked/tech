@@ -1485,7 +1485,9 @@ export const copy = {
       "No member models yet. Each person's agent appears here once they are in the organisation.",
     chair: "Chair",
     chairHint:
-      "Writes the plan from every answer. Defaults to your manager's agent, else your own.",
+      "Writes the plan from every answer. Defaults to your manager's agent, else your own; a chair outside the members only writes the plan.",
+    /** The word beside a manager's agent in the pickers: its owner manages a team. */
+    manager: "manager",
     rounds: "Rounds",
     roundIndividual: "Each answers alone",
     roundDiscussion: "Discussion",

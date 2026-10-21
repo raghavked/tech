@@ -23,14 +23,23 @@ import {
 } from "@henosis/chat";
 import { usageTotal } from "@henosis/protocol";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { api, type ChatDirectoryListing, type Me, type SessionRow, useFetch } from "../api.js";
+import {
+  api,
+  type ChatDirectoryListing,
+  type Me,
+  type ModelRow,
+  type SessionRow,
+  useFetch,
+} from "../api.js";
 import { HenosisClient, wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import {
   councilCard,
   councilSessionOf,
   councilWord,
+  defaultChair,
   instructionsFor,
+  isManagerModel,
   memberModels,
   modelsOf,
   modelWord,
@@ -80,9 +89,11 @@ export function ConveneSheet({
 }) {
   const models = useMemo(() => memberModels(directory), [directory]);
   const mine = models.find((m) => m.ownerId === meId);
+  // The chair the sheet proposes: the convener's manager's agent, else the convener's own.
+  const proposed = useMemo(() => defaultChair(directory, meId), [directory, meId]);
   const [task, setTask] = useState("");
   const [picked, setPicked] = useState<Set<string>>(() => new Set(mine ? [mine.profileId] : []));
-  const [chair, setChair] = useState<string>(mine?.profileId ?? "");
+  const [chair, setChair] = useState<string>(proposed?.profileId ?? "");
   const [individual, setIndividual] = useState(true);
   const [discussion, setDiscussion] = useState(true);
   const [discussionRounds, setDiscussionRounds] = useState("1");
@@ -90,13 +101,13 @@ export function ConveneSheet({
   const [vote, setVote] = useState(true);
   const [budget, setBudget] = useState("");
   const [error, setError] = useState<string | null>(null);
-  // The profiles arrive a moment after the sheet opens: the convener's own model is in by default.
+  // The profiles arrive a moment after the sheet opens: the convener's own model is in by
+  // default, and the chair is proposed once, unless the person already chose one.
   // biome-ignore lint/correctness/useExhaustiveDependencies: only when the list first lands
   useEffect(() => {
-    if (!mine) return;
-    setPicked((prev) => (prev.size ? prev : new Set([mine.profileId])));
-    setChair((prev) => prev || mine.profileId);
-  }, [mine?.profileId]);
+    if (mine) setPicked((prev) => (prev.size ? prev : new Set([mine.profileId])));
+    if (proposed) setChair((prev) => prev || proposed.profileId);
+  }, [mine?.profileId, proposed?.profileId]);
   const toggle = (id: string) =>
     setPicked((prev) => {
       const next = new Set(prev);
@@ -106,7 +117,14 @@ export function ConveneSheet({
     });
   const nameOf = (id: string) => directory?.people.find((p) => p.id === id)?.name ?? id;
   const chosen = models.filter((m) => picked.has(m.profileId));
-  const chairRow = models.find((m) => m.profileId === chair) ?? chosen[0];
+  // Any model may chair, picked or not: a chair outside the members only writes the plan.
+  const chairRow = models.find((m) => m.profileId === chair) ?? proposed ?? chosen[0];
+  const modelLine = (m: ModelRow) =>
+    [
+      m.ownerId ? copy.council.modelOf(nameOf(m.ownerId)) : copy.council.shared,
+      ...(isManagerModel(m) ? [copy.council.manager] : []),
+      ...(modelWord(m) ? [modelWord(m)] : []),
+    ].join(" · ");
   const submit = () => {
     const t = task.trim();
     if (!t) return setError(copy.council.needsTask);
@@ -182,10 +200,7 @@ export function ConveneSheet({
               />
               <Avatar id={m.profileId} name={m.name} agent />
               <span className="serif">{m.name}</span>
-              <span className="small faint ellipsis">
-                {m.ownerId ? copy.council.modelOf(nameOf(m.ownerId)) : copy.council.shared}
-                {modelWord(m) ? ` · ${modelWord(m)}` : ""}
-              </span>
+              <span className="small faint ellipsis">{modelLine(m)}</span>
             </label>
           ))}
           {directory && models.length === 0 && (
@@ -200,9 +215,10 @@ export function ConveneSheet({
             value={chairRow?.profileId ?? ""}
             onChange={(e) => setChair(e.target.value)}
           >
-            {chosen.map((m) => (
+            {models.map((m) => (
               <option key={m.profileId} value={m.profileId}>
                 {m.name}
+                {isManagerModel(m) ? ` · ${copy.council.manager}` : ""}
               </option>
             ))}
           </select>
@@ -804,6 +820,7 @@ export function CouncilMembersPanel({
                     <span className="small faint">
                       {" "}
                       · {ownerWord(m, nameOf)}
+                      {row && isManagerModel(row) ? ` · ${copy.council.manager}` : ""}
                       {modelWord(row) ? ` · ${modelWord(row)}` : ""}
                     </span>
                   </span>

@@ -156,3 +156,30 @@ export function memberOf(c: Council, profileId: string): CouncilMember | null {
 export function sitsIn(c: Council, meId: string): boolean {
   return c.by === meId || modelsOf(c).some((m) => m.userId === meId);
 }
+
+/** A manager's agent: its owner manages a team (users.json), so it chairs by default. */
+export function isManagerModel(m: Pick<ModelRow, "manages">): boolean {
+  return (m.manages?.length ?? 0) > 0;
+}
+
+/**
+ * The chair the convene sheet proposes (docs/19_council.md): the convener's manager's agent,
+ * a model whose owner manages a team the convener is in (the first in the directory's order
+ * when several do, never the convener's own); else the convener's own agent; else the first
+ * model; null while the directory has not landed or lists no models.
+ */
+export function defaultChair(
+  directory: ChatDirectoryListing | null,
+  meId: string,
+): ModelRow | null {
+  const models = memberModels(directory);
+  if (models.length === 0) return null;
+  const teams = directory?.people.find((p) => p.id === meId)?.teams ?? [];
+  const manager = models.find(
+    (m) =>
+      m.ownerId !== null &&
+      m.ownerId !== meId &&
+      (m.manages ?? []).some((teamId) => teams.includes(teamId)),
+  );
+  return manager ?? models.find((m) => m.ownerId === meId) ?? models[0] ?? null;
+}
