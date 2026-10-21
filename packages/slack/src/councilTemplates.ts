@@ -57,7 +57,7 @@ export function roundsLine(rounds: string[], discussionRounds: number): string {
 
 /** The council's root message in the group's channel; every round posts in its thread. */
 export function councilConvened(i: CouncilConvenedInput): Rendered {
-  const sentence = `:classical_building: ${bold(i.by)} convened a council in ${italic(i.group)}: ${i.task} ${plural(i.members.length, "model")} deliberate; ${bold(i.chair.name)} chairs.`;
+  const sentence = `:classical_building: ${bold(i.by)} convened a council in ${italic(i.group)} on ${italic(i.task)}: ${plural(i.members.length, "model")} deliberate; ${bold(i.chair.name)} chairs.`;
   const roster = i.members.map((m) => `• ${modelLabel(m)}`).join("\n");
   const ctx = [
     `rounds: ${roundsLine(i.rounds, i.discussionRounds)}`,

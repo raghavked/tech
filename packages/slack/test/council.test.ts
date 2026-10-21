@@ -141,7 +141,7 @@ describe("the council in Slack", () => {
     // The root message in the group's channel: who convened what, the roster with models.
     const rootPost = slack.posts.find((p) => p.channel === "C_PROJ" && !p.threadTs);
     expect(rootPost?.text).toContain(
-      "*Dee* convened a council in _Invoice rollout_: Ship PDF invoices by Friday 3 models deliberate; *Dee's agent* chairs.",
+      "*Dee* convened a council in _Invoice rollout_ on _Ship PDF invoices by Friday_: 3 models deliberate; *Dee's agent* chairs.",
     );
     expect(sectionTexts(rootPost)[1]).toBe(
       "• *Dee's agent* (scripted)\n• *Ana's agent* (scripted)\n• *Bo's reviewer* (scripted)",
