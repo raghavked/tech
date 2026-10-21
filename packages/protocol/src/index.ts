@@ -361,6 +361,36 @@ export interface GlanceReport {
   day: string;
 }
 
+/**
+ * `POST /api/glance/vote?user=<id>`: Approve or Deny from a widget, the App Intent's server
+ * half. It is the same vote as in the session: a plain approve under a release gate sends
+ * `DEFAULT_RATING`; under any other rule it carries no rating, as the app's does not. A deny
+ * never carries one.
+ */
+export const GlanceVote = z.object({
+  projectId: z.string().min(1),
+  sessionId: z.string().min(1),
+  approvalId: z.string().min(1),
+  vote: z.enum(["approve", "deny"]),
+  rating: Rating.optional(),
+  note: z.string().max(2000).default(""),
+});
+export type GlanceVote = z.infer<typeof GlanceVote>;
+/** The body a widget sends: `note` may be left out. */
+export type GlanceVoteInput = z.input<typeof GlanceVote>;
+
+export interface GlanceVoteResult {
+  /** What the ballot did: the gate granted or denied on this vote, or it still waits. */
+  outcome: "granted" | "denied" | "pending";
+  /** The rating the ballot carried (`DEFAULT_RATING` for a plain approve under a release gate), or null. */
+  rating: Rating | null;
+  /** The gate after the vote: approving ballots that count, and how many the rule needs. */
+  votes: number;
+  needed: number;
+  /** The glance after the vote, so a widget redraws from one answer. */
+  glance: GlanceReport;
+}
+
 /** One step of a plan the agent proposes before it acts. */
 export const PlanStep = z.object({
   id: z.string(),

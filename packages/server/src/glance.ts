@@ -1,8 +1,9 @@
 /**
  * The glance: one needs-you number for the signed-in person, the top gate with its quorum,
- * the agents running and the tokens spent today.
+ * the agents running and the tokens spent today; and the widget's vote.
  *
- *   GET /api/glance?user=<id>  -> GlanceReport
+ *   GET  /api/glance?user=<id>       -> GlanceReport
+ *   POST /api/glance/vote?user=<id>  GlanceVote -> GlanceVoteResult
  *
  * The phone's Approvals tab, the manager's sentence, the widgets, the menu-bar panel and the
  * push badge all read this one figure (mobile-rail, widgets): approvals the person can still
@@ -13,6 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  type ApprovalRecord,
   describeRule,
   isRatingsRule,
   minimumRank,
@@ -23,18 +25,25 @@ import {
 } from "@henosis/kernel";
 import {
   addUsage,
+  DEFAULT_RATING,
   type GlanceGate,
   type GlanceReport,
+  type GlanceVote,
+  type GlanceVoteResult,
+  type Rating,
   type RiskClass,
   ROLE_RANK,
   type Role,
   type Usage,
   ZERO_USAGE,
 } from "@henosis/protocol";
+import type { SessionHost } from "./host.js";
 import type { ProjectHost } from "./projectHost.js";
 import { atomicWrite } from "./storage.js";
 
 export const GLANCE_PATH = "/api/glance";
+/** Approve or Deny from a widget: the App Intent's server half (`castGlanceVote`). */
+export const GLANCE_VOTE_PATH = "/api/glance/vote";
 
 /** How many calendar days of per-user totals `UsageDays` keeps. */
 export const USAGE_DAYS_KEPT = 14;
@@ -148,10 +157,7 @@ export function computeGlance(src: GlanceSource, userId: string): GlanceReport {
         if (rule === "none" || myRank < minimumRank(rule)) continue;
         approvals += 1;
         const ratings = isRatingsRule(rule);
-        const eligible = Object.entries(a.ballots).filter(
-          ([id, b]) => b.vote === "approve" && rankOf(st, id) >= minimumRank(rule),
-        );
-        const rated = eligible.map(([, b]) => b.rating).filter((r): r is number => r !== null);
+        const tally = tallyOf(st, a);
         gates.push({
           rank: RISK_ORDER.indexOf(a.call.risk),
           seq: a.requestedSeq,
@@ -164,14 +170,9 @@ export function computeGlance(src: GlanceSource, userId: string): GlanceReport {
             call: { name: a.call.name, risk: a.call.risk },
             rule: describeRule(rule),
             ratings,
-            votes: ratings ? rated.length : eligible.length,
-            needed: requiredVotes(rule),
-            average:
-              ratings && rated.length
-                ? Math.round((rated.reduce((n, r) => n + r, 0) / rated.length) * 10) / 10
-                : ratings
-                  ? 0
-                  : null,
+            votes: tally.votes,
+            needed: tally.needed,
+            average: tally.average,
             bar: ratings ? rule.ratings.average : null,
           },
         });
@@ -197,4 +198,106 @@ export function computeGlance(src: GlanceSource, userId: string): GlanceReport {
 function rankIn(st: SessionState, userId: string, derived: Role | null): number {
   if (st.participants[userId]) return rankOf(st, userId);
   return derived ? ROLE_RANK[derived] : -1;
+}
+
+/**
+ * A pending gate's count as the quorum meter shows it: approving ballots from voters the rule
+ * counts (rated ones under a release gate), how many the rule needs, and the average rating
+ * so far (0 with no rater yet under a release gate; null under any other rule).
+ */
+export function tallyOf(
+  st: SessionState,
+  a: ApprovalRecord,
+): { votes: number; needed: number; average: number | null } {
+  const rule = ruleFor(st.policy.approvals, a.call.risk);
+  const ratings = isRatingsRule(rule);
+  const eligible = Object.entries(a.ballots).filter(
+    ([id, b]) => b.vote === "approve" && rankOf(st, id) >= minimumRank(rule),
+  );
+  const rated = eligible.map(([, b]) => b.rating).filter((r): r is number => r !== null);
+  return {
+    votes: ratings ? rated.length : eligible.length,
+    needed: requiredVotes(rule),
+    average:
+      ratings && rated.length
+        ? Math.round((rated.reduce((n, r) => n + r, 0) / rated.length) * 10) / 10
+        : ratings
+          ? 0
+          : null,
+  };
+}
+
+/** A vote the server refuses, with the HTTP status the route answers. */
+export class GlanceVoteError extends Error {
+  constructor(
+    readonly status: 403 | 404 | 409,
+    message: string,
+  ) {
+    super(message);
+    this.name = "GlanceVoteError";
+  }
+}
+
+export interface GlanceVoteSource extends GlanceSource {
+  /** The live session the vote names, or null when the server has no such project or session. */
+  find: (projectId: string, sessionId: string) => SessionHost | null;
+  /** A display name for a person the session has not seated yet. */
+  nameOf: (userId: string) => string;
+}
+
+/**
+ * Approve or Deny from a widget, the App Intent's server half: the same vote as in the session.
+ * A plain approve under a release gate sends `DEFAULT_RATING`; under any other rule it carries
+ * no rating, as the app's does not; a deny never carries one. A person the session has not seen
+ * is seated first, with the role identity gives them, and a rank below the rule's is refused
+ * rather than recorded as a voice that does not count. The caller drives the session on.
+ */
+export function castGlanceVote(
+  src: GlanceVoteSource,
+  userId: string,
+  input: GlanceVote,
+): GlanceVoteResult {
+  const sh = src.find(input.projectId, input.sessionId);
+  if (!sh) throw new GlanceVoteError(404, `unknown session ${input.sessionId}`);
+  let st = sh.session.state();
+  const a = st.approvals[input.approvalId];
+  if (!a) throw new GlanceVoteError(404, `unknown approval ${input.approvalId}`);
+  if (a.status !== "pending") throw new GlanceVoteError(409, `already ${a.status}`);
+  const rule = ruleFor(st.policy.approvals, a.call.risk);
+  if (rule === "none") throw new GlanceVoteError(409, "this call needs no approval");
+  const derived = src.roleIn(input.projectId, st.ownerId);
+  if (rankIn(st, userId, derived) < minimumRank(rule))
+    throw new GlanceVoteError(403, `the rule wants ${describeRule(rule)}`);
+  if (!st.participants[userId]) {
+    sh.session.join(
+      "main",
+      { id: userId, kind: "human", name: src.nameOf(userId) },
+      derived ?? "observer",
+    );
+    st = sh.session.state();
+  }
+  if (a.ballots[userId]) throw new GlanceVoteError(409, "your vote is in");
+  const rating: Rating | null =
+    input.vote === "approve"
+      ? (input.rating ?? (isRatingsRule(rule) ? DEFAULT_RATING : null))
+      : null;
+  sh.session.vote(
+    "main",
+    userId,
+    input.approvalId,
+    input.vote,
+    rating ?? undefined,
+    input.note || "from a widget",
+  );
+  const after = sh.session.state();
+  const decided = after.approvals[input.approvalId];
+  const tally = decided ? tallyOf(after, decided) : { votes: 0, needed: 0, average: null };
+  return {
+    outcome:
+      decided?.status === "granted" || decided?.status === "denied" ? decided.status : "pending",
+    rating,
+    votes: tally.votes,
+    needed: tally.needed,
+    glance: computeGlance(src, userId),
+  };
 }

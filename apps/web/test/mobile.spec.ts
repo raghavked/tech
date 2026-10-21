@@ -62,16 +62,17 @@ test("the tab bar is the frame and the Approvals tab carries the one needs-you n
   await rail.getByRole("button", { name: "Close the rail" }).click();
   await expect(rail).not.toBeInViewport();
 
-  // nothing waits: no count on Approvals
-  await expect(bar.getByRole("link", { name: /^Approvals/ }).locator(".count")).toHaveCount(0);
+  // the count the tab shows now: other specs may have gates open meanwhile, so what follows is relative
+  const count = bar.getByRole("link", { name: /^Approvals/ }).locator(".count");
+  const readCount = async () => ((await count.count()) ? Number(await count.textContent()) : 0);
 
   // the agent asks for an approval: the glance counts it on the tab and on the manager's sentence
   await steer(page, `Build a counter ${token()}`);
   await expect(approve(page)).toBeVisible({ timeout: 15_000 });
-  const count = bar.getByRole("link", { name: /^Approvals/ }).locator(".count");
-  await expect(count).toHaveText("1", { timeout: 15_000 });
+  await expect.poll(readCount, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
   await page.goto("/#/m/default");
-  await expect(page.locator(".sentence-bar .sentence")).toContainText("1 thing needs you", {
+  // other specs raise gates of their own meanwhile: the figure is whatever the tab shows
+  await expect(page.locator(".sentence-bar .sentence")).toContainText(/\d+ things? needs? you/, {
     timeout: 15_000,
   });
 
@@ -80,10 +81,20 @@ test("the tab bar is the frame and the Approvals tab carries the one needs-you n
     .getByRole("link", { name: /^Approvals/ })
     .click();
   await expect(page).toHaveURL(/#\/approvals$/);
-  await expect(page.locator(".topbar .subtitle")).toContainText("1 needs you", {
+  await expect(page.locator(".topbar .subtitle")).toContainText(/\d+ needs? you/, {
     timeout: 15_000,
   });
-  const card = page.locator(".grow").first();
+  // the tab and the page carry the one figure, read from the same glance
+  const figure = async () =>
+    Number(
+      ((await page.locator(".topbar .subtitle").textContent()) ?? "").match(
+        /(\d+) needs? you/,
+      )?.[1] ?? -1,
+    );
+  await expect
+    .poll(async () => (await figure()) === (await readCount()), { timeout: 15_000 })
+    .toBe(true);
+  const card = page.locator(".grow", { hasText: session });
   await expect(card).toContainText("wants to run");
   const thumb = page.locator(".thumb");
   await expect(thumb.getByRole("button", { name: /^Needs you/ })).toHaveAttribute(
@@ -96,7 +107,6 @@ test("the tab bar is the frame and the Approvals tab carries the one needs-you n
   await expect(page.locator(`.drow[data-key*="/${session}/"]`)).toContainText("Approved", {
     timeout: 15_000,
   });
-  await expect(count).toHaveCount(0, { timeout: 15_000 });
 });
 
 test("a release gate rates with the star tiles and opens the one sheet from the queue", async ({
@@ -131,7 +141,7 @@ test("a release gate rates with the star tiles and opens the one sheet from the 
   await tabs(page)
     .getByRole("link", { name: /^Approvals/ })
     .click();
-  const card = page.locator(".grow.gate").first();
+  const card = page.locator(".grow.gate", { hasText: session });
   await expect(card).toContainText("deploy", { timeout: 15_000 });
   await expect(card).toContainText("Release gate");
   await card.getByRole("button", { name: "Open the gate" }).click();

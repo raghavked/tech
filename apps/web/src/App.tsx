@@ -29,6 +29,7 @@ import { Home } from "./views/Home.js";
 import {
   Approvals,
   ChatView,
+  GlancePanel,
   Inbox,
   Memory,
   Project,
@@ -148,6 +149,13 @@ function Page() {
   if (!identity || route.name === "home")
     return (
       <Home me={me.data} meError={me.error} identity={identity} ctx={ctx} onRetry={me.reload} />
+    );
+  // widgets: the menu-bar panel is one surface without the shell around it.
+  if (route.name === "glance")
+    return (
+      <Suspense fallback={<div className="glance" aria-busy="true" />}>
+        <GlancePanel identity={identity} />
+      </Suspense>
     );
   return (
     <Suspense fallback={<Loading ctx={ctx} />}>

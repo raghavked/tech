@@ -104,6 +104,19 @@ await you:
   bundled apps (macOS, Windows). Open the session from the tray or the client when it does
   not. Bodies name the tool and risk class, never the arguments.
 
+## Menu-bar panel
+
+The client's `#/glance` route is the macOS menu-bar panel (widgets): a bare surface, no rail
+and no top row, drawn from `GET /api/glance?user=<id>` on its own timeline (every 8 s, brisker
+for half a minute after a vote). It answers the three questions a glance settles, in the
+manager's order: Needs you (the one needs-you number in the head, the top gate with its quorum,
+Approve · 4 or Approve and a quiet Deny through `POST /api/glance/vote`), Agents (running,
+waiting on an approval, blocked), Tokens today (the figure in mono); then Inbox, Approvals,
+Pause notifications (an hour, until tomorrow, until you say; the moon takes the count's place)
+and Open Henosis. The shell opens it in a popover under the menu-bar item whose title is the
+ring plus two numbers (decisions, running); that window and its item are native work in
+`main.rs`, not yet built. Until then the panel is reachable from any window at `#/glance`.
+
 ## Deep links
 
 `henosis://p/<project>/s/<session>` (and `henosis://m/<team>`) become the client's hash route.

@@ -192,6 +192,16 @@ counts model calls as they land into `store/usage-days.json`, attributed to the 
 like `/api/usage`, and keeps fourteen days. Every push payload and `GET /api/notifications`
 carry the same figure as `needsYou`, so the badge, the tab and the sentence agree.
 
+`POST /api/glance/vote?user=<id>` is Approve or Deny from a widget, the App Intent's server
+half (`{ projectId, sessionId, approvalId, vote, rating?, note? }`). It is the same vote as in
+the session: a plain approve under a release gate sends `DEFAULT_RATING`, under any other rule
+no rating, and a deny never carries one. A person the session has not seated is seated with the
+role identity gives them; a rank below the rule's is refused (403) rather than recorded as a
+voice that does not count; a decided gate answers 409. The answer says what the ballot did
+(`granted`, `denied` or `pending` with the quorum so far) and carries the glance after the
+vote, so a widget redraws from one call. The web client's `#/glance` is the menu-bar panel
+drawn from the same two calls (`apps/web/src/views/Glance.tsx`).
+
 ## Slack
 
 `packages/slack` maps channels to the hierarchy: a channel per team, a channel per project,

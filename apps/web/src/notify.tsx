@@ -11,7 +11,7 @@ import { DEFAULT_RATING } from "./approvalsQueue.js";
 import { copy } from "./copy.js";
 import { useIdentity } from "./identity.js";
 import { acceptFromInbox, markRead, voteFromInbox } from "./inbox.js";
-import { type NotifyKind, wantsNotify } from "./prefs.js";
+import { isNotifyPaused, type NotifyKind, wantsNotify } from "./prefs.js";
 import { navigate, paths } from "./router.js";
 import { desktop } from "./shell.js";
 import { isTyping, type TargetLike } from "./shortcuts.js";
@@ -60,6 +60,7 @@ export async function requestNotifications(): Promise<NotifyPermission> {
 export function notifyIfHidden(title: string, body: string, tag?: string, kind?: NotifyKind): void {
   try {
     if (kind && !wantsNotify(kind)) return;
+    if (isNotifyPaused(kind)) return;
     const d = desktop();
     if (d) {
       if (typeof document !== "undefined" && document.hasFocus()) return;

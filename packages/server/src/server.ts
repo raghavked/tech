@@ -32,6 +32,8 @@ import { Curator, MemoryStore, type SerializedMemory } from "@henosis/memory";
 import {
   ClientMessage,
   DEFAULT_SESSION_POLICY,
+  GlanceVote,
+  type GlanceVoteResult,
   MAIN_BRANCH,
   type ServerMessage,
   type SessionEvent,
@@ -46,7 +48,16 @@ import { handleBranchApi } from "./branchApi.js";
 import { ChatHost, type ChatSubscriber } from "./chatHost.js";
 import { CouncilHost } from "./councilHost.js";
 import { EXPORT_PATH, exportHeaders, exportSessionMarkdown } from "./export.js";
-import { computeGlance, GLANCE_PATH, type GlanceSource, UsageDays } from "./glance.js";
+import {
+  castGlanceVote,
+  computeGlance,
+  GLANCE_PATH,
+  GLANCE_VOTE_PATH,
+  type GlanceSource,
+  GlanceVoteError,
+  type GlanceVoteSource,
+  UsageDays,
+} from "./glance.js";
 import type { ClientLink, SessionHost } from "./host.js";
 import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
 import { ModelFactory } from "./models.js";
@@ -185,12 +196,40 @@ export class HenosisServer {
    * as `/api/me` lists them).
    */
   glance(userId: string) {
+    return computeGlance(this.glanceSource(userId), userId);
+  }
+
+  /**
+   * Approve or Deny from a widget (glance.ts `castGlanceVote`): the App Intent's server half.
+   * The same vote as in the session; a plain approve under a release gate sends
+   * `DEFAULT_RATING`. The session is driven on, as after a vote over the socket.
+   */
+  glanceVote(userId: string, input: GlanceVote): GlanceVoteResult {
+    const src: GlanceVoteSource = {
+      ...this.glanceSource(userId),
+      find: (projectId, sessionId) => {
+        const host = this.projects.get(projectId) ?? null;
+        if (!host) return null;
+        return (
+          host.hosts.get(sessionId) ??
+          (host.state().sessions[sessionId] ? host.session(sessionId) : null)
+        );
+      },
+      nameOf: (id) => this.orgs.user(id)?.name ?? this.names.get(id) ?? id,
+    };
+    const result = castGlanceVote(src, userId, input);
+    const sh = this.projects.get(input.projectId)?.hosts.get(input.sessionId);
+    if (sh) void sh.drive("main");
+    return result;
+  }
+
+  private glanceSource(userId: string): GlanceSource {
     const projects: ProjectHost[] = [];
     for (const p of this.orgs.projectsFor(userId)) projects.push(this.project(p.projectId));
     for (const [id, p] of this.projects)
       if (!projects.some((x) => x.projectId === id)) projects.push(p);
     const user = this.orgs.user(userId);
-    const src: GlanceSource = {
+    return {
       projects,
       user: user ? { id: user.id, name: user.name } : null,
       roleIn: (projectId, ownerId) => {
@@ -199,7 +238,6 @@ export class HenosisServer {
       },
       usageDays: this.usageDays,
     };
-    return computeGlance(src, userId);
   }
 
   /** Get or create the host for a project known to the org registry (or "default"). */
@@ -919,6 +957,39 @@ export class HenosisServer {
       // mobile-rail / widgets: the one needs-you number, the top gate, agents running, tokens today.
       if (url.pathname === GLANCE_PATH)
         return json(200, this.glance(url.searchParams.get("user") ?? ""));
+      // widgets: Approve or Deny from a widget, the App Intent's server half (glance.ts).
+      if (url.pathname === GLANCE_VOTE_PATH) {
+        if (req.method !== "POST") return json(405, { error: "POST" });
+        if (!this.auth.acceptsSharedToken(bearerOf(req, url)))
+          return json(401, { error: "unauthorized" });
+        const user = url.searchParams.get("user") ?? "";
+        if (!user) return json(400, { error: "user is required" });
+        void readBody(req).then((body) => {
+          let raw: unknown;
+          try {
+            raw = JSON.parse(body || "{}");
+          } catch {
+            return json(400, { error: "bad json" });
+          }
+          const input = GlanceVote.safeParse(raw);
+          if (!input.success)
+            return json(400, {
+              error: input.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
+            });
+          try {
+            return json(200, this.glanceVote(user, input.data));
+          } catch (err) {
+            const status =
+              err instanceof GlanceVoteError
+                ? err.status
+                : err instanceof KernelError && err.code === "not_found"
+                  ? 404
+                  : 500;
+            return json(status, { error: err instanceof Error ? err.message : String(err) });
+          }
+        });
+        return true;
+      }
       // search: one query over sessions, messages, memory, people and agents (search.ts).
       if (url.pathname === SEARCH_PATH)
         return json(

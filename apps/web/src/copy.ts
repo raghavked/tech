@@ -1926,6 +1926,64 @@ export const copy = {
     quiet: "Quiet until the hour · mentions still come through",
   },
 
+  /**
+   * The glance (views/Glance.tsx): the menu-bar panel and the widgets' one surface. Three
+   * questions a glance settles without opening the app: what waits for me, who is running,
+   * what today has cost. Figures in mono; "nothing stops" at the foot when over budget.
+   */
+  glance: {
+    title: "Henosis at a glance",
+    needsYou: "Needs you",
+    agents: "Agents",
+    tokens: "Tokens today",
+    nothing: "Nothing waits for you.",
+    asOf: (at: string) => `As of ${at} · reconnecting`,
+    /** The head's count, read aloud: "2 need you", "Nothing needs you". */
+    count: (n: number) => (n === 0 ? "Nothing needs you" : `${n} need${n === 1 ? "s" : ""} you`),
+    paused: (until: string) => `Notifications paused ${until}`,
+    pausedUntil: (at: string) => `until ${at}`,
+    pausedTomorrow: "until tomorrow",
+    pausedAlways: "until you say",
+    whoseAgent: (who: string) => `${who}'s agent`,
+    wantsTo: "wants to",
+    gate: "Gate",
+    quorum: (votes: number, needed: number) => `${votes} of ${needed}`,
+    approveWith: (n: number) => `Approve · ${n}`,
+    approve: "Approve",
+    deny: "Deny",
+    /** After the vote, for a minute: what your ballot did. */
+    granted: (rating: number | null) =>
+      rating === null ? "Your approve granted it" : `Your ${rating} granted it`,
+    denied: "Your deny stopped it",
+    heard: (rating: number | null, votes: number, needed: number) =>
+      `${rating === null ? "Your vote is in" : `Your ${rating} is in`} · ${votes} of ${needed}`,
+    handoffs: (n: number) => `${n} handoff${n === 1 ? "" : "s"} offered to you`,
+    andMore: (n: number) => `and ${n} more… in the queue`,
+    running: (n: number) => `${n} running`,
+    awaiting: (n: number) => `${n} waiting on an approval`,
+    blocked: (n: number) => `${n} blocked`,
+    open: (n: number) => `${n} open`,
+    noAgents: "No agents running.",
+    of: (budget: string) => `of ${budget}`,
+    left: (n: string) => `${n} left`,
+    noBudget: "no budget set",
+    over: "Over the budget",
+    nothingStops: "nothing stops",
+    /** The lock screen's one line: "2 approvals · 3 running · 142.6k". */
+    line: (approvals: number, running: number, tokens: string) =>
+      `${plural(approvals, "approval")} · ${running} running · ${tokens}`,
+    inbox: "Inbox",
+    approvals: "Approvals",
+    pause: "Pause notifications",
+    pauseHour: "An hour",
+    pauseTomorrow: "Until tomorrow",
+    pauseAlways: "Until you say",
+    resume: "Resume notifications",
+    openHenosis: "Open Henosis",
+    refresh: "Refresh",
+    failed: "Henosis is out of reach",
+  },
+
   /** The command palette (palette.tsx): five groups, one lit surface. */
   palette: {
     label: "Commands",

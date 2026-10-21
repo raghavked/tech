@@ -10,7 +10,15 @@ import type {
 } from "@henosis/fleet";
 import type { SessionStatus } from "@henosis/kernel";
 import type { CuratorReport, EntryRecord, MemoryConflict } from "@henosis/memory";
-import type { GlanceReport, SessionPolicy, UsageQuery, UsageReport } from "@henosis/protocol";
+import type {
+  GlanceGate,
+  GlanceReport,
+  GlanceVoteInput,
+  GlanceVoteResult,
+  SessionPolicy,
+  UsageQuery,
+  UsageReport,
+} from "@henosis/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { authHeaders } from "./identity.js";
 import { apiUrl } from "./shell.js";
@@ -224,7 +232,10 @@ export type {
   AgentProfileInput,
   CuratorReport,
   EntryRecord,
+  GlanceGate,
   GlanceReport,
+  GlanceVoteInput,
+  GlanceVoteResult,
   MemoryConflict,
   ProjectState,
   SharedAgentInput,
@@ -259,7 +270,7 @@ export async function getJson<T>(url: string): Promise<T> {
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(apiUrl(url), {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
+    headers: { "content-type": "application/json", accept: "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
@@ -366,11 +377,17 @@ export const api = {
       `/api/notifications?user=${encodeURIComponent(user)}`,
     ),
   /**
-   * The glance (mobile-rail, widgets): the one needs-you number, the top gate, the agents running
-   * and the tokens today (packages/server/src/glance.ts). The phone's Approvals tab, the manager's
-   * sentence and the push badge read this figure and no other.
+   * The glance (widgets, mobile-rail): the one needs-you number, the top gate with its quorum,
+   * the agents running and the tokens today, in one call for a widget's timeline, the
+   * menu-bar panel (views/Glance.tsx) and the phone's Approvals tab.
    */
   glance: (user: string) => getJson<GlanceReport>(`/api/glance?user=${encodeURIComponent(user)}`),
+  /**
+   * Approve or Deny from a widget: the same vote as in the session. A plain approve under a
+   * release gate sends `DEFAULT_RATING`; the answer carries the glance after the vote.
+   */
+  glanceVote: (user: string, input: GlanceVoteInput) =>
+    postJson<GlanceVoteResult>(`/api/glance/vote?user=${encodeURIComponent(user)}`, input),
   /** Groups and chats: the folded state of an org's chat, a person's unread rows, the pickers. */
   chat: (org: string) => getJson<ChatState>(`/api/chat/${encodeURIComponent(org)}`),
   chatUnread: (org: string, user: string) =>

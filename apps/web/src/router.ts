@@ -1,4 +1,4 @@
-/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId[/council/:councilId[/instruct/:profileId]]]`, `#/inbox`, `#/approvals`, `#/memory/:orgId`, `#/settings`, `#/auth/callback`. */
+/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId[/council/:councilId[/instruct/:profileId]]]`, `#/inbox`, `#/approvals`, `#/glance`, `#/memory/:orgId`, `#/settings`, `#/auth/callback`. */
 import { useSyncExternalStore } from "react";
 
 export type Route =
@@ -25,6 +25,8 @@ export type Route =
     }
   | { name: "inbox" }
   | { name: "approvals" }
+  /** The glance (widgets): the menu-bar panel, a bare surface the desktop shell opens under its item. */
+  | { name: "glance" }
   /** Search over everything the team keeps; `q` is the query, `org` the scope. */
   | { name: "search"; q: string; org: string | null }
   | { name: "memory"; orgId: string; team: string | null; project: string | null }
@@ -69,6 +71,7 @@ export function parseHash(hash: string): Route {
     };
   if (parts[0] === "settings") return { name: "settings" };
   if (parts[0] === "approvals") return { name: "approvals" };
+  if (parts[0] === "glance") return { name: "glance" };
   if (parts[0] === "auth" && parts[1] === "callback") return { name: "auth", query };
   if (parts[0] === "search")
     return { name: "search", q: params.get("q") ?? "", org: params.get("org") };
@@ -103,6 +106,7 @@ export const paths = {
   },
   settings: () => "#/settings",
   approvals: () => "#/approvals",
+  glance: () => "#/glance",
   authCallback: () => "#/auth/callback",
   search: (q = "", org?: string | null) => {
     const p = new URLSearchParams();

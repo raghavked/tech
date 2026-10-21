@@ -1,3 +1,11 @@
+import { compactTokens } from "@henosis/kernel";
+import { type GlanceGate, type GlanceReport, usageTotal } from "@henosis/protocol";
+import { useEffect, useSyncExternalStore } from "react";
+import { api } from "./api.js";
+import { copy } from "./copy.js";
+import { type PauseSpan, pauseEndOf } from "./prefs.js";
+import type { Route } from "./router.js";
+
 /**
  * The glance (design/henosis SCREENS.md §21, BACKLOG.md L3): one needs-you number for the
  * signed-in person. `GET /api/glance?user=` counts the approvals they can still vote on plus the
@@ -8,10 +16,6 @@
  * The pure helpers at the end (the tab of a route, the phone subtitles, the folded sentence) are
  * tested in glance.test.ts.
  */
-import { compactTokens } from "@henosis/kernel";
-import { useEffect, useSyncExternalStore } from "react";
-import { api, type GlanceReport } from "./api.js";
-import type { Route } from "./router.js";
 
 export interface GlanceSnapshot {
   userId: string | null;
@@ -157,3 +161,115 @@ export function foldedSentence(open: number, needs: number, tokens: number, rang
     .filter(Boolean)
     .join(" · ");
 }
+
+/**
+ * The glance's pure half (widgets, mobile-rail): what a widget, the lock screen and the
+ * menu-bar panel say from one `GlanceReport`. No React and no DOM, so it is unit-tested
+ * directly; the panel itself is views/Glance.tsx.
+ *
+ * The rules the widgets fixed: every figure in mono (the view's job; the strings here carry the
+ * short forms), the one needs-you number counts decisions only, the over-budget line turns red
+ * and its "· nothing stops" moves to the foot, and a stale widget says "as of" and never guesses.
+ */
+
+/** The one state a widget is in; "live" is the ordinary one. */
+export type WidgetState = "live" | "empty" | "stale" | "paused";
+
+export function widgetState(p: {
+  report: GlanceReport | null;
+  /** The last fetch failed after an earlier one succeeded, or nothing has loaded yet. */
+  stale: boolean;
+  paused: boolean;
+}): WidgetState {
+  if (p.paused) return "paused";
+  if (p.stale || !p.report) return "stale";
+  return p.report.needsYou === 0 ? "empty" : "live";
+}
+
+/** Input and output only: the budget counts what a turn spends; cache never moves the bar. */
+export function usedToday(report: GlanceReport): number {
+  return usageTotal(report.tokensToday);
+}
+
+/**
+ * The small Tokens widget's lines: the figure, "of 200k · 57.4k left" under it, the meter's
+ * fill, and when over the budget the number and the meter turn red, the detail says only
+ * "Over the budget", and "nothing stops" moves to the foot.
+ */
+export function tokensLine(
+  used: number,
+  budget: number | null,
+): { figure: string; detail: string; fraction: number | null; over: boolean; foot: string | null } {
+  const figure = compactTokens(used);
+  if (budget === null || budget <= 0)
+    return { figure, detail: copy.glance.noBudget, fraction: null, over: false, foot: null };
+  const over = used > budget;
+  return {
+    figure,
+    detail: over
+      ? copy.glance.over
+      : `${copy.glance.of(compactTokens(budget))} · ${copy.glance.left(compactTokens(budget - used))}`,
+    fraction: Math.min(1, used / budget),
+    over,
+    foot: over ? copy.glance.nothingStops : null,
+  };
+}
+
+/** The quorum's segments: filled where a vote counts, the next one outlined, the rest empty. */
+export function segmentsOf(votes: number, needed: number): ("on" | "next" | "")[] {
+  return Array.from({ length: Math.max(0, needed) }, (_, i) =>
+    i < votes ? "on" : i === votes ? "next" : "",
+  );
+}
+
+/** The Needs-you row in the toast's grammar: who's agent · session, "wants to" and the call. */
+export function gateLine(gate: GlanceGate): { who: string; session: string; call: string } {
+  return { who: copy.glance.whoseAgent(gate.owner), session: gate.title, call: gate.call.name };
+}
+
+/** What the Approve button reads: "Approve · 4" under a release gate, "Approve" elsewhere. */
+export function approveLabel(gate: GlanceGate, defaultRating: number): string {
+  return gate.ratings ? copy.glance.approveWith(defaultRating) : copy.glance.approve;
+}
+
+/** The lock screen's one line above the clock: "2 approvals · 3 running · 142.6k". */
+export function glanceLine(report: GlanceReport): string {
+  return copy.glance.line(
+    report.approvals,
+    report.agents.running,
+    compactTokens(usedToday(report)),
+  );
+}
+
+/** "09:26" in the viewer's locale: the "as of" time of the last answer the widget got. */
+export function asOfText(at: number): string {
+  return new Date(at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+/** How a pause reads in the head: "until 10:30", "until tomorrow", "until you say". */
+export function pauseText(until: number, now: number = Date.now()): string {
+  if (!Number.isFinite(until)) return copy.glance.pausedAlways;
+  if (until >= pauseEndOf("tomorrow", now)) return copy.glance.pausedTomorrow;
+  return copy.glance.pausedUntil(asOfText(until));
+}
+
+export const PAUSE_SPANS: { span: PauseSpan; label: string }[] = [
+  { span: "hour", label: copy.glance.pauseHour },
+  { span: "tomorrow", label: copy.glance.pauseTomorrow },
+  { span: "always", label: copy.glance.pauseAlways },
+];
+
+/** The ballot's outcome line, shown for a minute after a vote from the widget. */
+export function outcomeText(o: {
+  outcome: "granted" | "denied" | "pending";
+  rating: number | null;
+  votes: number;
+  needed: number;
+}): string {
+  if (o.outcome === "granted") return copy.glance.granted(o.rating);
+  if (o.outcome === "denied") return copy.glance.denied;
+  return copy.glance.heard(o.rating, o.votes, o.needed);
+}
+
+/** How long a just-decided row stays before the widget moves on. */
+export const OUTCOME_STAYS_MS = 60_000;

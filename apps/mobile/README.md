@@ -32,5 +32,16 @@ an injectable sender on the server; the per-user inbox is also readable at
 `GET /api/notifications?user=<id>`. A tapped notification carries a deep link
 `henosis://p/<project>/s/<session>` that the shell turns into the client's hash route.
 
+## Widgets
+
+The native widget targets are not in this repository yet. They draw from two calls on the
+Henosis server: `GET /api/glance?user=<id>` (the one needs-you number, the top gate with its
+quorum, agents running, tokens today, in one answer for a WidgetKit timeline) and
+`POST /api/glance/vote?user=<id>` for the Approve App Intent, which sends the same vote the
+session takes (`DEFAULT_RATING`, 4, for a plain approve under a release gate) without opening
+the app. The web client's `#/glance` route renders the same three widgets and is the reference
+for their copy and states (`apps/web/src/views/Glance.tsx`, `apps/web/src/glance.ts`).
+
+
 Add `henosis` as a URL scheme in the iOS target (Info → URL Types) and an intent filter in
 `AndroidManifest.xml` so links open the app.
