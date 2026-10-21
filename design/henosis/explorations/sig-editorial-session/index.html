@@ -180,7 +180,8 @@ a { color: var(--accent); text-decoration: none; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .topbar { display: flex; align-items: center; gap: 14px; padding: 0 24px; height: 56px; flex: none; border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--canvas) 86%, transparent); backdrop-filter: blur(10px); position: relative; z-index: 3; }
-.topbar .title { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: baseline; gap: 12px; min-width: 0; white-space: nowrap; }
+.topbar .title { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: baseline; gap: 12px; min-width: 0; white-space: nowrap; flex: 0 1 auto; overflow: hidden; }
+.topbar .title .scope { overflow: hidden; text-overflow: ellipsis; }
 .topbar .title .scope { font-family: var(--font); font-size: 13px; color: var(--page-ink-soft); }
 .topbar .title .scope b { font-weight: 500; color: var(--ink); }
 .topbar .status { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--page-ink-soft); white-space: nowrap; }
@@ -260,10 +261,11 @@ a { color: var(--accent); text-decoration: none; }
 
 /* the plan as a ledger with hung markers (editorial-type §10) */
 .plan { list-style: none; margin: 8px 0 0; padding: 0; counter-reset: step; }
-.plan li { counter-increment: step; display: grid; grid-template-columns: 1fr auto; gap: 2px 18px; padding: 8px 0; border-top: 1px solid var(--line); position: relative; line-height: 22px; font-size: 15px; }
+.plan li { counter-increment: step; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 2px 18px; padding: 8px 0; border-top: 1px solid var(--line); position: relative; line-height: 22px; font-size: 15px; }
 .plan li::before { content: counter(step); position: absolute; inset-inline-start: -2.2ch; top: 8px; font-family: var(--serif); font-size: 16px; color: var(--hand-ink); font-variant-numeric: lining-nums; }
 .plan li.done::before { color: var(--ok-ink); }
-.plan li .d { grid-column: 1; font-size: 13.5px; color: var(--page-ink-soft); }
+.plan li .t { grid-column: 1; grid-row: 1; }
+.plan li .d { grid-column: 1; grid-row: 2; font-size: 13.5px; color: var(--page-ink-soft); }
 .plan li .d .verb { font-family: var(--mono); font-size: 11.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
 .plan li .est { grid-column: 2; grid-row: 1 / span 2; text-align: right; display: flex; flex-direction: column; align-items: flex-end; line-height: 20px; }
 .plan li .est .n { font-size: 15px; } .plan li .est .mono { color: var(--ink-3); font-size: 12px; }
@@ -297,7 +299,7 @@ a { color: var(--accent); text-decoration: none; }
 .gate .frame .tick.bl { left: 0; bottom: 0; transform: rotate(-90deg); } .gate .frame .tick.br { right: 0; bottom: 0; transform: rotate(180deg); }
 .gate .kind { display: flex; align-items: center; gap: 10px; line-height: 20px; }
 .gate .kind .pill { background: var(--gradient-brand); color: var(--grad-fg); height: 20px; font-size: 11px; }
-.ask { margin: 6px 0 0; font-family: var(--serif); font-style: italic; font-size: 21px; line-height: 30px; font-variation-settings: "opsz" 22, "SOFT" 60; text-wrap: pretty; }
+.ask { margin: 6px 0 0; font-family: var(--serif); font-style: italic; font-size: 21px; line-height: 30px; font-variation-settings: "opsz" 22, "SOFT" 60; text-wrap: pretty; hanging-punctuation: first last; }
 .ask code { font-style: normal; font-size: .72em; vertical-align: 1px; }
 .gate .needs { margin: 6px 0 0; font-size: 15px; line-height: 24px; color: var(--page-ink-soft); text-wrap: pretty; }
 .gate .needs b { font-weight: 500; color: var(--ink); }
@@ -392,6 +394,7 @@ a { color: var(--accent); text-decoration: none; }
 
 /* ---- narrower desktops: the margin folds under the passage below 1000 px of main ---- */
 @media (max-width: 1296px) {
+  .topbar .status { display: none; }
   .page, .composer { grid-template-columns: var(--gutter-w) minmax(0, var(--measure)); max-width: none; }
   .note { position: static; width: auto; margin: 10px 0 4px; padding: 10px 14px; border-left: 0; background: var(--team-wash); border-radius: 10px; }
   .note::before { display: none; }
@@ -522,10 +525,10 @@ a { color: var(--accent); text-decoration: none; }
               <summary><span class="row-n">2</span><span class="t"><span class="who">Ana's agent</span> proposes a plan in <i>four steps</i></span><span class="mono">09:14</span><span class="n">1,062</span></summary>
               <div class="open">
                 <ol class="plan">
-                  <li class="done">Read the invoice renderer and the Checkout tax lines<span class="d"><span class="verb">read</span>src/billing/render.ts, checkout/tax.ts</span><span class="est"><span class="n">1,184</span><span class="mono">~1,200</span></span></li>
-                  <li class="done">Write <code>proration.ts</code> with one row per prorated period<span class="d"><span class="verb">write</span>the sign carried by the amount, the period in the description</span><span class="est"><span class="n">6,412</span><span class="mono">~6,800</span></span></li>
-                  <li>Run the PDF snapshot tests for both pages<span class="d"><span class="verb">test</span>pdf-snapshots · 11 fixtures</span><span class="est"><span class="n">2,090</span><span class="mono">~2,400</span></span></li>
-                  <li>Apply the stored prorations<span class="d"><span class="verb">gate</span>held by Billing and Checkout · two ratings at 4 or above</span><span class="est"><span class="n">—</span><span class="mono">~600</span></span></li>
+                  <li class="done"><span class="t">Read the invoice renderer and the Checkout tax lines</span><span class="d"><span class="verb">read</span>src/billing/render.ts, checkout/tax.ts</span><span class="est"><span class="n">1,184</span><span class="mono">~1,200</span></span></li>
+                  <li class="done"><span class="t">Write <code>proration.ts</code> with one row per prorated period</span><span class="d"><span class="verb">write</span>the sign carried by the amount, the period in the description</span><span class="est"><span class="n">6,412</span><span class="mono">~6,800</span></span></li>
+                  <li><span class="t">Run the PDF snapshot tests for both pages</span><span class="d"><span class="verb">test</span>pdf-snapshots · 11 fixtures</span><span class="est"><span class="n">2,090</span><span class="mono">~2,400</span></span></li>
+                  <li><span class="t">Apply the stored prorations</span><span class="d"><span class="verb">gate</span>held by Billing and Checkout · two ratings at 4 or above</span><span class="est"><span class="n">—</span><span class="mono">~600</span></span></li>
                 </ol>
                 <p class="sum">Estimated <span class="n">11,000</span>; <span class="n">9,686</span> spent through step 3, <span class="n">12%</span> under.</p>
               </div>
