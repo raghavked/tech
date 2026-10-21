@@ -6,11 +6,14 @@
 <title>Henosis · The glass rail</title>
 <style>
 /* ============================================================================================
-   sig-glass-rail · the agents rail as layered navy glass.
-   Tokens are inlined from design/henosis/tokens.css (v5 final values, the ones apps/web reads) so
-   the page is self-contained. Light in :root; dark twice, byte-identical: the system media query
-   and the chosen attribute. Fraunces and Inter are asked for first; Instrument and the system
-   faces are the fallbacks. No font is fetched, no asset is loaded.
+   sig-glass-rail · the agents rail as layered navy glass: a facade of windows.
+   Every card is a window in the glass. Where an agent is working the window is lit from inside
+   (apricot), and its light climbs the stack: the card's top edge, then the pane that holds it,
+   then the crease between rail and page. Nothing else on the rail is apricot.
+   Tokens are inlined from design/henosis/tokens.css (the values apps/web reads) so the page is
+   self-contained. Light in :root; dark twice, byte-identical: the system media query and the
+   chosen attribute. Fraunces and Inter are asked for first; Instrument and the system faces are
+   the fallbacks. No font is fetched, no asset is loaded.
    ============================================================================================ */
 :root {
   /* palette, by role */
@@ -25,7 +28,8 @@
   --count-bg: #E2C4A6; --count-fg: #2A3244;            /* the count on navy: apricot, navy ink */
   --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
   --team-wash: var(--apricot-soft);
-  --ok: #4F7D4A; --ok-soft: rgba(79,125,74,.14); --warn: #B9792E; --warn-soft: rgba(185,121,46,.14); --danger: #A8463A; --info: #5B6273;
+  --ok: #4F7D4A; --ok-soft: rgba(79,125,74,.14); --on-ok: #FFFFFF;
+  --warn: #B9792E; --warn-soft: rgba(185,121,46,.14); --danger: #A8463A; --info: #5B6273;
   --rail-ok: #9BC88F; --rail-warn: #E2B06A; --rail-danger: #E2847A;   /* the dot on navy, both themes */
   --gradient-brand: linear-gradient(135deg, #2A3244 0%, #3E343B 55%, #56352D 100%);
   --grad-fg: #F8F2EA;
@@ -46,19 +50,23 @@
   --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
   --motion: 0;
 
-  /* ---- the glass (new; proposed for tokens.css under "frame") ---- */
-  --lamp: rgba(226, 196, 166, 0.15);        /* one apricot light at the rail's top-left corner */
-  --lacquer: rgba(255, 255, 255, 0.045);    /* the 170° sheen on the navy, three-colour-brands §7 */
-  --grain-alpha: 0.26;                      /* the 240 px tile at soft-light */
-  --glass: rgba(243, 237, 228, 0.055);      /* a pane's tint */
-  --glass-2: rgba(243, 237, 228, 0.05);     /* a pane on a pane adds this much */
-  --glass-rim: rgba(243, 237, 228, 0.075);  /* the 1 px rim all round */
-  --glass-edge: rgba(255, 255, 255, 0.14);  /* the light caught on the top edge */
-  --glass-foot: rgba(0, 0, 0, 0.32);        /* the shadow under the bottom edge */
-  --glass-drop: rgba(0, 0, 0, 0.20);        /* the 1 px the pane casts on the ground */
-  --glass-blur: 10px;                       /* backdrop blur on the two outer panes only */
-  --pulse: rgba(226, 196, 166, 0.24);       /* the running card's inner light */
-  --pulse-edge: rgba(226, 196, 166, 0.55);  /* its top edge, warmed */
+  /* ---- the glass (proposed for tokens.css under "frame"; one lamp and one grain per theme,
+          shared with night-mode and paper-and-lacquer) ---- */
+  --lamp: rgba(226, 196, 166, 0.15);        /* the room's one apricot light, top-left of the rail */
+  --lacquer: rgba(255, 255, 255, 0.05);     /* the 170° sheen on the navy (three-colour-brands §6) */
+  --grain-alpha: 0.34;                      /* the 240 px tile at soft-light */
+  --glass: rgba(243, 237, 228, 0.05);       /* a pane's tint */
+  --glass-2: rgba(243, 237, 228, 0.045);    /* a window (a pane on a pane) adds this much */
+  --glass-rim: rgba(243, 237, 228, 0.08);   /* the 1 px rim all round */
+  --glass-edge: rgba(255, 255, 255, 0.16);  /* the light caught on the top edge */
+  --glass-shade: rgba(0, 0, 0, 0.14);       /* the 1 px of shade under that light: the glass has thickness */
+  --glass-foot: rgba(0, 0, 0, 0.34);        /* the shadow under the bottom edge */
+  --glass-drop: rgba(0, 0, 0, 0.22);        /* the 1 px the pane casts on the ground */
+  --glass-blur: 10px;                       /* backdrop blur on the waits pane only */
+  --pulse: rgba(226, 196, 166, 0.28);       /* a lit window: the light inside, pooled under the top edge */
+  --pulse-edge: rgba(226, 196, 166, 0.62);  /* its top edge, warmed */
+  --pulse-cast: rgba(226, 196, 166, 0.30);  /* the light it casts on the sill below */
+  --pulse-far: rgba(226, 196, 166, 0.24);   /* the edge of the pane that holds a lit window */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -72,16 +80,18 @@
   --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
   --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
   --team-wash: rgba(226, 196, 166, 0.09);
-  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --info: #8E95A5;
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --on-ok: #10141C;
+  --warn: #E2B06A; --danger: #E2847A; --info: #8E95A5;
   --gradient-brand: linear-gradient(135deg, #3A4661, #7A4B3E);
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
   --edge: inset 0 1px 0 rgba(255, 255, 255, 0.055); --scrim: rgba(0, 0, 0, 0.55);
   --focus-ring: var(--ink);
-  --lamp: rgba(226, 196, 166, 0.11); --lacquer: rgba(255, 255, 255, 0.035); --grain-alpha: 0.22;
+  --lamp: rgba(226, 196, 166, 0.11); --lacquer: rgba(255, 255, 255, 0.035); --grain-alpha: 0.30;
   --glass: rgba(240, 234, 224, 0.04); --glass-2: rgba(240, 234, 224, 0.04);
-  --glass-rim: rgba(240, 234, 224, 0.06); --glass-edge: rgba(255, 255, 255, 0.10);
-  --glass-foot: rgba(0, 0, 0, 0.5); --glass-drop: rgba(0, 0, 0, 0.35);
-  --pulse: rgba(226, 196, 166, 0.20); --pulse-edge: rgba(226, 196, 166, 0.45);
+  --glass-rim: rgba(240, 234, 224, 0.065); --glass-edge: rgba(255, 255, 255, 0.11);
+  --glass-shade: rgba(0, 0, 0, 0.22); --glass-foot: rgba(0, 0, 0, 0.5); --glass-drop: rgba(0, 0, 0, 0.4);
+  --pulse: rgba(226, 196, 166, 0.22); --pulse-edge: rgba(226, 196, 166, 0.5);
+  --pulse-cast: rgba(226, 196, 166, 0.22); --pulse-far: rgba(226, 196, 166, 0.2);
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
@@ -95,16 +105,18 @@
   --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
   --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
   --team-wash: rgba(226, 196, 166, 0.09);
-  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --info: #8E95A5;
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --on-ok: #10141C;
+  --warn: #E2B06A; --danger: #E2847A; --info: #8E95A5;
   --gradient-brand: linear-gradient(135deg, #3A4661, #7A4B3E);
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
   --edge: inset 0 1px 0 rgba(255, 255, 255, 0.055); --scrim: rgba(0, 0, 0, 0.55);
   --focus-ring: var(--ink);
-  --lamp: rgba(226, 196, 166, 0.11); --lacquer: rgba(255, 255, 255, 0.035); --grain-alpha: 0.22;
+  --lamp: rgba(226, 196, 166, 0.11); --lacquer: rgba(255, 255, 255, 0.035); --grain-alpha: 0.30;
   --glass: rgba(240, 234, 224, 0.04); --glass-2: rgba(240, 234, 224, 0.04);
-  --glass-rim: rgba(240, 234, 224, 0.06); --glass-edge: rgba(255, 255, 255, 0.10);
-  --glass-foot: rgba(0, 0, 0, 0.5); --glass-drop: rgba(0, 0, 0, 0.35);
-  --pulse: rgba(226, 196, 166, 0.20); --pulse-edge: rgba(226, 196, 166, 0.45);
+  --glass-rim: rgba(240, 234, 224, 0.065); --glass-edge: rgba(255, 255, 255, 0.11);
+  --glass-shade: rgba(0, 0, 0, 0.22); --glass-foot: rgba(0, 0, 0, 0.5); --glass-drop: rgba(0, 0, 0, 0.4);
+  --pulse: rgba(226, 196, 166, 0.22); --pulse-edge: rgba(226, 196, 166, 0.5);
+  --pulse-cast: rgba(226, 196, 166, 0.22); --pulse-far: rgba(226, 196, 166, 0.2);
   color-scheme: dark;
 }
 
@@ -127,10 +139,11 @@ button { font: inherit; }
 
 /* ============================================================================================
    THE RAIL · layered navy glass
-   Ground: Dress Blues lacquer (a 170° sheen), one apricot lamp at the top-left, a 240 px grain tile
-   at soft-light. Panes: translucent cream on the lacquer, a 1 px rim, the light caught on the top
-   edge, a shadow under the foot, the two outer panes frosted with a small backdrop blur. Cards are
-   panes on panes at concentric radii (18 − 4 = 14). Only transform, opacity and box-shadow move.
+   Ground: Dress Blues lacquer (a 170° sheen), the room's one apricot lamp at the top-left, a 240 px
+   grain tile at soft-light. Panes: translucent cream on the lacquer, a 1 px rim, the light caught
+   on the top edge with 1 px of shade beneath it (the glass has thickness), a shadow under the foot,
+   the 1 px it casts. Windows are panes on panes at concentric radii (18 − 4 = 14) with the agent's
+   tight bottom-left corner. Only transform, opacity and box-shadow move.
    ============================================================================================ */
 .rail {
   width: var(--rail-w); flex: none; height: 100%;
@@ -151,7 +164,7 @@ button { font: inherit; }
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>") 0 0 / 240px 240px;
 }
 
-/* a pane of glass */
+/* a pane of glass: tint, rim, lit edge + shade, foot, drop. Two knobs change per state. */
 .pane {
   --pane-tint: var(--glass);
   --pane-edge: var(--glass-edge);
@@ -159,7 +172,7 @@ button { font: inherit; }
   background: var(--pane-tint);
   border: 1px solid var(--glass-rim);
   border-radius: 18px;
-  box-shadow: inset 0 1px 0 var(--pane-edge), inset 0 -1px 0 var(--glass-foot), 0 1px 0 var(--glass-drop);
+  box-shadow: inset 0 1px 0 var(--pane-edge), inset 0 2px 0 var(--glass-shade), inset 0 -1px 0 var(--glass-foot), 0 1px 0 var(--glass-drop);
 }
 .pane.frost { backdrop-filter: blur(var(--glass-blur)) saturate(1.15); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.15); }
 .pane .pane { --pane-tint: var(--glass-2); border-radius: 14px; }
@@ -170,21 +183,21 @@ button { font: inherit; }
 .brand .mark { width: 24px; height: 24px; flex: none; }
 .brand .wordmark { font-size: 24px; letter-spacing: -0.01em; line-height: 1; }
 .mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); }
-.rail .mark .arc.a { stroke: color-mix(in srgb, #E2C4A6 62%, #56352D); }   /* the one tinted arc: 22 px on navy */
+.rail .mark .arc.a { stroke: color-mix(in srgb, #E2C4A6 62%, #56352D); }   /* the one tinted arc: 22 px on navy (SYSTEM §5) */
 .mark .arc, .mark .dot { transform-origin: 48px 48px; }
 .fold, .me .dots, .close { width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; color: var(--rail-muted); display: grid; place-items: center; cursor: pointer; flex: none; transition: background var(--t-fast) var(--ease-move), color var(--t-fast) var(--ease-move); }
 .fold:hover, .me .dots:hover, .close:hover { background: var(--rail-2); color: var(--rail-fg); }
 .close { display: none; }
 .whowhere { display: none; }
 
-/* New session: the one gradient on the screen */
-.new { display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px var(--font); cursor: pointer; box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255,255,255,.14); text-align: left; }
+/* New session: the one gradient on the screen, with the same lit edge as the glass */
+.new { display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px var(--font); cursor: pointer; box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 rgba(0,0,0,.2); text-align: left; }
 .new .ic { stroke-width: 2; }
 .new kbd { margin-left: auto; font: 500 11px var(--mono); color: rgba(255,255,255,.72); background: rgba(255,255,255,.12); border-radius: 6px; padding: 1px 6px; }
 
 /* search */
 .search { display: flex; align-items: center; gap: 9px; padding: 7px 10px 7px 12px; border-radius: var(--radius); background: var(--rail-2); color: var(--rail-muted); font-size: 13.5px; border: 1px solid transparent; cursor: text; box-shadow: var(--edge); }
-.search .ph { flex: 1; }
+.search .ph { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .search kbd { font: 500 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 6px; padding: 1px 6px; }
 
 /* rows: rest · hover · active · focus (SYSTEM §6) */
@@ -201,10 +214,10 @@ button { font: inherit; }
 .count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--count-bg); color: var(--count-fg); font: 600 11.5px var(--mono); font-variant-numeric: tabular-nums; margin-left: auto; flex: none; }
 .count.sm { min-width: 18px; height: 18px; font-size: 11px; }
 
-/* the waits pane */
+/* the waits pane: the one frosted pane (it sits over the lamp, so the blur has something to sample) */
 .waits { padding: 4px; display: flex; flex-direction: column; gap: 1px; }
 
-/* the agents pane */
+/* the roster pane: opaque lacquer beneath, so tint alone; no frost */
 .lists { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px; margin: 0 -4px; padding: 0 4px 2px; scrollbar-width: thin; scrollbar-color: var(--rail-2) transparent; }
 .section { padding: 8px 10px 2px; font: 600 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
 .section .n { margin-left: auto; letter-spacing: 0; font-weight: 500; }
@@ -219,11 +232,16 @@ button { font: inherit; }
 .proj-links { display: flex; flex-direction: column; gap: 1px; padding: 2px 0 0; }
 .proj-links .item { padding: 5px 10px; font-size: 13.5px; }
 
-/* the agent card: a pane on a pane */
+/* LIGHT CLIMBS: a pane that holds a lit window catches a little of its light on its own top edge;
+   the crease at the rail's right is the last edge the light reaches. */
+.roster:has(.agent.running) { --pane-edge: var(--pulse-far); }
+
+/* the window: a pane on a pane, with the agent's tight bottom-left corner (SYSTEM §4 --radius-agent) */
 /* the card rule never reaches an avatar or a message (SYSTEM §6) */
-.agent:not(.avatar):not(.msg) { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px 8px; color: var(--rail-fg); text-decoration: none; overflow: hidden; transition: background var(--t-fast) var(--ease-move), transform var(--t) var(--ease-mark); }
-.agent.pane:hover { --pane-tint: color-mix(in srgb, var(--rail-fg) 9%, transparent); }
-.agent.active { --pane-tint: var(--rail-active); box-shadow: inset 0 1px 0 var(--pane-edge), inset 0 -1px 0 var(--glass-foot), inset 0 0 0 1px var(--select-line), inset 3px 0 0 var(--apricot), 0 1px 0 var(--glass-drop); }
+.agent:not(.avatar):not(.msg) { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px 8px; color: var(--rail-fg); text-decoration: none; transition: background var(--t-fast) var(--ease-move), transform var(--t) var(--ease-mark); }
+.agent.pane { --pane-edge: var(--glass-edge); border-radius: 14px 14px 14px 5px; }
+.agent.pane:hover { --pane-tint: color-mix(in srgb, var(--rail-fg) 10%, transparent); }
+.agent.active { --pane-tint: var(--rail-active); box-shadow: inset 0 1px 0 var(--pane-edge), inset 0 2px 0 var(--glass-shade), inset 0 -1px 0 var(--glass-foot), inset 0 0 0 1px var(--select-line), inset 3px 0 0 var(--apricot), 0 1px 0 var(--glass-drop); }
 .agent .head { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .agent .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--serif); font-size: 15.5px; font-variation-settings: "SOFT" 50, "WONK" 0; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; position: relative; box-shadow: 0 0 0 0 transparent; }
@@ -238,28 +256,32 @@ button { font: inherit; }
 .agent .head .count { margin-left: auto; } .agent .head .count + .pill { margin-left: 0; } .agent .head .pill:only-of-type { margin-left: auto; }
 .agent .doing { font-size: 12.5px; color: var(--rail-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .agent .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); font-size: 13px; }
-.agent .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); min-width: 0; margin-top: 1px; }
+.agent .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); min-width: 0; margin-top: 2px; min-height: 22px; }
 .agent .foot .with { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -5px; }
-.avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--rail-2); color: var(--rail-fg); display: inline-grid; place-items: center; font: 600 8.5px var(--font); border: 1.5px solid var(--rail); position: relative; }
-.avatar.driver { box-shadow: 0 0 0 1.5px var(--apricot-deep); }
+/* avatars: the system's .sm 22, one initial, the driver first and ringed (SYSTEM §12) */
+.stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -6px; }
+.avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--rail-2); color: var(--rail-fg); display: inline-grid; place-items: center; font: 600 10px var(--font); border: 2px solid var(--avatar-edge, var(--rail)); position: relative; flex: none; }
+.avatar.driver { box-shadow: 0 0 0 1.5px var(--apricot-deep); z-index: 1; }
+.agent.active .avatar { --avatar-edge: color-mix(in srgb, var(--apricot) 18%, var(--rail)); }
 .agent .foot .tokens { margin-left: auto; font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; position: relative; padding-bottom: 4px; line-height: 1.2; }
 .agent .foot .tokens::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 1px; background: var(--rail-line); }
 .agent .foot .tokens > i { position: absolute; left: 0; bottom: 0; height: 2px; border-radius: 1px; background: var(--apricot); width: var(--spent, 0%); z-index: 1; }
 .agent .foot .tokens.warn > i { background: var(--rail-warn); } .agent .foot .tokens.over > i { background: var(--rail-danger); }
+.agent .foot .tokens:not(:has(> i))::after { display: none; }
 
-/* THE PULSE: a running card holds an apricot light pooled under its top edge, and the edge itself
-   warms. It breathes under the one guard; at rest it is simply lit. (three-colour-brands §6,
-   SYSTEM principle 2: an apricot glow means alive) */
+/* THE PULSE: a running window is lit from inside. The light pools under its top edge, the edge
+   itself warms to apricot, and the light falls on the sill below (the next pane). It breathes
+   under the one guard; at rest it is simply lit. (SYSTEM principle 2: an apricot glow means alive) */
 .agent.running { --pane-edge: var(--pulse-edge); }
 .agent.running::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
-  background: radial-gradient(150px 64px at 22% -6%, var(--pulse), transparent 72%); }
+  background: radial-gradient(190px 46px at 18% -14%, var(--pulse), transparent 72%);
+  box-shadow: 0 10px 26px -10px var(--pulse-cast); }
 .agent.pane > * { position: relative; z-index: 1; }
 
 /* the me row: the bottom pane */
 .me-wrap { margin-top: auto; position: relative; }
 .me { display: flex; align-items: center; gap: 10px; padding: 7px 8px 7px 10px; color: inherit; border-radius: 18px; }
-.me .avatar { width: 30px; height: 30px; font-size: 11px; border-width: 0; background: var(--rail-2); }
+.me .avatar { width: 30px; height: 30px; font-size: 12px; border-width: 0; background: var(--rail-2); }
 .me .meta { flex: 1; min-width: 0; line-height: 1.25; display: flex; flex-direction: column; }
 .me .meta .name { font-family: var(--serif); font-size: 16px; }
 .me .meta .role { font-size: 12px; color: var(--rail-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -295,7 +317,8 @@ button { font: inherit; }
 .steps .step { display: grid; grid-template-columns: 14px 44px 1fr auto; gap: 10px; padding: 3px 0; align-items: center; }
 .steps .step .tick { width: 14px; height: 14px; border-radius: 50%; background: var(--ok); display: grid; place-items: center; }
 .steps .step .tick.now { background: transparent; box-shadow: inset 0 0 0 1.5px var(--apricot-deep); }
-.steps .step .tick svg { width: 9px; height: 9px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.steps .step .tick.todo { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); }
+.steps .step .tick svg { width: 9px; height: 9px; stroke: var(--on-ok); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .steps .step .verb { color: var(--ink-3); }
 .steps .step .n { color: var(--ink-3); }
 .plan { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); position: relative; overflow: hidden; }
@@ -305,7 +328,7 @@ button { font: inherit; }
 .plan .head .waitfor { margin-left: auto; font-size: 13px; color: var(--ink-2); }
 .plan .pstep { display: grid; grid-template-columns: 22px 1fr auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .plan .pstep .k { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font: 11px var(--mono); color: var(--ink-2); }
-.plan .pstep.done .k { background: var(--ok); border-color: var(--ok); color: #fff; }
+.plan .pstep.done .k { background: var(--ok); border-color: var(--ok); color: var(--on-ok); font-weight: 500; }
 .plan .pstep.now .k { border-color: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
 .plan .pstep .est { font: 12.5px var(--mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .plan .actions { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
@@ -322,7 +345,7 @@ button { font: inherit; }
 .composer .reach { font-size: 12.5px; color: var(--ink-3); }
 .send { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; }
 
-/* ---- the drawer: the anatomy of the glass ---- */
+/* ---- the drawer: the anatomy of the glass (not part of the design; the app ships the rail alone) ---- */
 .drawer { width: var(--drawer-w); flex: none; border-left: 1px solid var(--line); background: var(--surface); padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 18px; font-size: 14px; overflow: auto; box-shadow: var(--edge); }
 .drawer h2 { font-size: 22px; line-height: 1.15; }
 .drawer h3 { font: 600 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
@@ -334,17 +357,22 @@ button { font: inherit; }
 .layer .sw.lacquer { background: linear-gradient(170deg, rgba(255,255,255,.09), transparent 46%), var(--rail); }
 .layer .sw.lamp { background: radial-gradient(70px 56px at 0% 0%, rgba(226,196,166,.42), transparent 64%), var(--rail); }
 .layer .sw.grain::before { content: ""; position: absolute; inset: 0; opacity: .7; mix-blend-mode: soft-light; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>") 0 0 / 120px 120px; }
-.layer .sw.paneSw::after { content: ""; position: absolute; inset: 6px 8px; border-radius: 7px; background: rgba(243,237,228,.07); border: 1px solid rgba(243,237,228,.09); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(0,0,0,.25); }
-.layer .sw.pulseSw::after { content: ""; position: absolute; inset: 6px 8px; border-radius: 7px; background: radial-gradient(40px 20px at 24% 0%, rgba(226,196,166,.5), transparent 72%), rgba(243,237,228,.07); border: 1px solid rgba(243,237,228,.09); box-shadow: inset 0 1px 0 rgba(226,196,166,.6), inset 0 -1px 0 rgba(0,0,0,.35); }
-.layer .sw.hereSw::after { content: ""; position: absolute; inset: 6px 8px; border-radius: 7px; background: rgba(226,196,166,.18); box-shadow: inset 0 0 0 1px rgba(207,167,130,.5), inset 3px 0 0 #E2C4A6, inset 0 1px 0 rgba(255,255,255,.14); }
-.layer .t { font-size: 13.5px; line-height: 1.35; }
-.layer .t b { font-weight: 500; color: var(--ink); } .layer .t { color: var(--ink-2); }
+.layer .sw.paneSw::after { content: ""; position: absolute; inset: 6px 8px; border-radius: 7px; background: rgba(243,237,228,.08); border: 1px solid rgba(243,237,228,.1); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 2px 0 rgba(0,0,0,.2), inset 0 -1px 0 rgba(0,0,0,.4), 0 1px 0 rgba(0,0,0,.3); }
+.layer .sw.winSw::after { content: ""; position: absolute; inset: 6px 8px; border-radius: 7px 7px 7px 2px; background: rgba(243,237,228,.08); border: 1px solid rgba(243,237,228,.1); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 2px 0 rgba(0,0,0,.2), inset 0 -1px 0 rgba(0,0,0,.4), 0 1px 0 rgba(0,0,0,.3); }
+.layer .sw.pulseSw::after { content: ""; position: absolute; inset: 5px 8px 9px; border-radius: 7px 7px 7px 2px; background: radial-gradient(44px 22px at 20% 0%, rgba(226,196,166,.55), transparent 72%), rgba(243,237,228,.08); border: 1px solid rgba(243,237,228,.1); box-shadow: inset 0 1px 0 rgba(226,196,166,.7), inset 0 2px 0 rgba(0,0,0,.2), inset 0 -1px 0 rgba(0,0,0,.4), 0 6px 12px -4px rgba(226,196,166,.5); }
+.layer .sw.hereSw::after { content: ""; position: absolute; inset: 6px 8px; border-radius: 7px 7px 7px 2px; background: rgba(226,196,166,.18); box-shadow: inset 0 0 0 1px rgba(207,167,130,.5), inset 3px 0 0 #E2C4A6, inset 0 1px 0 rgba(255,255,255,.14); }
+.layer .t { font-size: 13.5px; line-height: 1.35; color: var(--ink-2); }
+.layer .t b { font-weight: 500; color: var(--ink); }
+.climb { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 12px; align-items: center; font-size: 13px; color: var(--ink-2); }
+.climb .bar { height: 3px; border-radius: 2px; background: var(--surface-3); position: relative; overflow: hidden; }
+.climb .bar i { position: absolute; inset: 0; background: #E2C4A6; opacity: var(--a); }
+.climb .v { font: 500 12px var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.climb .k { font-family: var(--serif); font-size: 14.5px; color: var(--ink); }
 .zoom { border-radius: 12px; overflow: hidden; background: var(--rail); border: 1px solid var(--line); height: 206px; position: relative; isolation: isolate; }
 .zoom::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: var(--grain-alpha); mix-blend-mode: soft-light; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>") 0 0 / 120px 120px; }
 .zoom .z { position: absolute; left: 0; top: 0; width: 250px; zoom: 2; transform-origin: 0 0; color: var(--rail-fg); background: radial-gradient(260px 200px at 0% 0%, var(--lamp), transparent 62%); padding: 6px 0 6px 10px; }
-.zoom .z .pane { border-radius: 14px; }
-.zoom .z .roster { padding: 4px; }
-.zoom .z .agent { border-radius: 10px; }
+.zoom .z .roster { padding: 4px; border-radius: 14px; }
+.zoom .z .agent { border-radius: 10px 10px 10px 4px; }
 .zoom .z .agent .foot .tokens { padding-bottom: 3px; }
 .zoom .cap { position: absolute; right: 10px; top: 8px; font: 500 11px var(--mono); color: var(--rail-muted); letter-spacing: .06em; }
 .cost { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-2); }
@@ -362,10 +390,10 @@ button { font: inherit; }
 
 /* ============================================================================================
    MOTION · the one guard (MOTION §3). Every animation lives inside the positive block; Calm and
-   reduced motion zero the clocks and keep every end state.
+   reduced motion zero the clocks and keep every end state (a lit window stays lit, still).
    ============================================================================================ */
 @keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--dot-halo) } 70% { box-shadow: 0 0 0 5px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
-@keyframes glass-breathe { 0%, 100% { opacity: .42 } 50% { opacity: 1 } }
+@keyframes glass-breathe { 0%, 100% { opacity: .45 } 50% { opacity: 1 } }
 @keyframes card-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 @keyframes pop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: none; opacity: 1 } }
 @keyframes ripple { 0% { box-shadow: 0 0 0 0 var(--apricot); opacity: 1 } 100% { box-shadow: 0 0 0 14px var(--apricot); opacity: 0 } }
@@ -414,7 +442,6 @@ button { font: inherit; }
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <!-- design/mark.svg · #mark-small: disc r48, arcs r29 stroke 13, centre r8.5. The person's arc is on the right (12 → 6), the agent's on the left. -->
     <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
     <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></symbol>
     <symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2 9h3.5l1 2h3l1-2H14M3.5 3h9l1.5 6v4H2V9z"/></symbol>
@@ -436,6 +463,7 @@ button { font: inherit; }
   <aside class="rail" aria-label="Rail">
     <div class="brand-row">
       <a class="brand" href="#" aria-label="Henosis, home">
+        <!-- design/mark.svg · #mark-small: disc r48, arcs r29 stroke 13, centre r8.5. The person's arc is on the right (12 → 6), the agent's on the left. -->
         <svg class="mark" id="brandMark" viewBox="0 0 96 96" aria-hidden="true">
           <circle cx="48" cy="48" r="48" fill="var(--mark-disc)"/>
           <path class="arc a" d="M48 19 A29 29 0 0 1 48 77" fill="none" stroke-width="13"/>
@@ -450,9 +478,9 @@ button { font: inherit; }
     <div class="whowhere"><span class="serif">Ana</span> · owner · <span class="serif">Payments</span></div>
 
     <button class="new" title="New session · N"><svg class="ic"><use href="#i-plus"/></svg> New session <kbd>N</kbd></button>
-    <div class="search" role="search"><svg class="ic"><use href="#i-search"/></svg><span class="ph">Search sessions, people, memory</span><kbd>⌘K</kbd></div>
+    <div class="search" role="search"><svg class="ic"><use href="#i-search"/></svg><span class="ph">Search sessions, people</span><kbd>⌘K</kbd></div>
 
-    <!-- pane 1: the things that wait for you -->
+    <!-- pane 1: the things that wait for you. The one frosted pane: it sits over the lamp. -->
     <nav class="pane frost waits" aria-label="Waiting for you">
       <a class="item" href="#"><svg class="ic"><use href="#i-inbox"/></svg><span class="lbl">Inbox</span><span class="count" id="inboxCount">3</span></a>
       <a class="item" href="#"><svg class="ic"><use href="#i-check"/></svg><span class="lbl">Approvals</span><span class="count">2</span></a>
@@ -460,35 +488,35 @@ button { font: inherit; }
 
     <div class="lists">
       <div class="section">Agents <span class="n" id="agentN">4</span></div>
-      <!-- pane 2: the roster, one pane per project; every card is a pane on it -->
-      <section class="pane frost roster" aria-label="Payments">
+      <!-- pane 2: the roster, one pane per project; every card is a window in it -->
+      <section class="pane roster" aria-label="Payments">
         <div class="project serif">Payments <span class="n">2 crews</span></div>
 
         <div class="crew"><span class="serif">Ana and Bo</span></div>
         <div class="rows">
-          <a class="agent pane running active enter" href="#" style="--i:0" aria-current="page" aria-label="Billing page · Checkout, running, Team, writing proration.ts step 3 of 4, with Bo, 12.4k tokens of 20k">
+          <a class="agent pane running active enter" href="#" style="--i:0" aria-current="page" aria-label="Billing page · Checkout, running, Team, writing proration.ts step 3 of 4, Ana driving with Bo, 12.4k tokens of 20k">
             <span class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Billing page · Checkout</span><span class="pill team">Team</span></span>
             <span class="doing"><i>Writing proration.ts</i> · step 3 of 4 · the cent rounding on tax lines</span>
-            <span class="foot"><span class="stack"><span class="avatar driver" title="Ana, driving">AN</span><span class="avatar" title="Bo">BO</span></span><span class="with">with Bo</span><span class="tokens" style="--spent:62%" title="12.4k of 20k">12.4k<i></i></span></span>
+            <span class="foot"><span class="stack"><span class="avatar driver" title="Ana, driving">A</span><span class="avatar" title="Bo">B</span></span><span class="with">with Bo</span><span class="tokens" style="--spent:62%" title="12.4k of 20k">12.4k<i></i></span></span>
           </a>
-          <a class="agent pane enter" href="#" style="--i:1" aria-label="Invoice PDF, awaiting approval, 1 approval waits, Team, with Ana, 8.1k tokens of 9.6k">
+          <a class="agent pane enter" href="#" style="--i:1" aria-label="Invoice PDF, awaiting approval, 1 approval waits, Team, Bo driving with Ana, 8.1k tokens of 9.6k">
             <span class="head"><span class="dot awaiting"><span class="sr">awaiting approval</span></span><span class="t">Invoice PDF</span><span class="count sm" title="Approvals waiting">1</span><span class="pill team">Team</span></span>
             <span class="doing"><i>Waits for two ratings</i> · stripe prorations apply</span>
-            <span class="foot"><span class="stack"><span class="avatar driver" title="Bo, driving">BO</span><span class="avatar" title="Ana">AN</span></span><span class="with">with Ana</span><span class="tokens warn" style="--spent:84%" title="8.1k of 9.6k">8.1k<i></i></span></span>
+            <span class="foot"><span class="stack"><span class="avatar driver" title="Bo, driving">B</span><span class="avatar" title="Ana">A</span></span><span class="with">with Ana</span><span class="tokens warn" style="--spent:84%" title="8.1k of 9.6k">8.1k<i></i></span></span>
           </a>
         </div>
 
         <div class="crew solo"><span class="serif" style="color:var(--rail-muted)">Solo</span></div>
         <div class="rows" id="solos">
-          <a class="agent pane running enter" href="#" style="--i:2" aria-label="Tax lines, running, Solo, reading invoice.ts, Cy, 4.7k tokens">
+          <a class="agent pane running enter" href="#" style="--i:2" aria-label="Tax lines, running, Solo, reading invoice.ts, Cy, 4.7k tokens of 15k">
             <span class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></span>
             <span class="doing"><i>Reading invoice.ts</i> · 3 files · the VAT line order</span>
-            <span class="foot"><span class="stack"><span class="avatar" title="Cy">CY</span></span><span class="with">Cy</span><span class="tokens" style="--spent:31%" title="4.7k of 15k">4.7k<i></i></span></span>
+            <span class="foot"><span class="stack"><span class="avatar driver" title="Cy, driving">C</span></span><span class="with">Cy</span><span class="tokens" style="--spent:31%" title="4.7k of 15k">4.7k<i></i></span></span>
           </a>
           <a class="agent pane enter" href="#" style="--i:3" aria-label="Refund flow, paused, Solo, Dee, 3.2k tokens">
             <span class="head"><span class="dot paused"><span class="sr">paused</span></span><span class="t">Refund flow</span><span class="pill solo">Solo</span></span>
             <span class="doing"><i>Paused</i> · until the proration lands</span>
-            <span class="foot"><span class="stack"><span class="avatar" title="Dee">DE</span></span><span class="with">Dee</span><span class="tokens" title="3.2k">3.2k</span></span>
+            <span class="foot"><span class="stack"><span class="avatar" title="Dee">D</span></span><span class="with">Dee</span><span class="tokens" title="3.2k">3.2k</span></span>
           </a>
         </div>
 
@@ -511,7 +539,7 @@ button { font: inherit; }
     <!-- the bottom pane: you -->
     <div class="me-wrap">
       <a class="me pane" href="#">
-        <span class="avatar driver">AN</span>
+        <span class="avatar driver">A</span>
         <span class="meta"><span class="name">Ana</span><span class="role">owner · driving <i>Billing page · Checkout</i></span></span>
         <button class="dots" aria-label="Account menu"><svg class="ic"><use href="#i-dots"/></svg></button>
       </a>
@@ -533,7 +561,7 @@ button { font: inherit; }
     <div class="scroll">
       <div class="column">
         <div class="msg human">
-          <span class="gutter"><span class="avatar">AN</span></span>
+          <span class="gutter"><span class="avatar">A</span></span>
           <div class="meta"><span class="who">Ana</span><span class="time">09:41</span></div>
           <div class="text">The proration on the invoice PDF is off by a cent whenever a tax line rounds up. Fix it in <span class="mono">proration.ts</span> before Bo reviews the layout, and keep the tax lines in VAT order.</div>
         </div>
@@ -545,11 +573,11 @@ button { font: inherit; }
             <div class="step"><span class="tick"><svg viewBox="0 0 12 12"><path d="m2.5 6.5 2.5 2.5 4.5-5"/></svg></span><span class="verb">read</span><span>src/billing/proration.ts</span><span class="n">1 of 4</span></div>
             <div class="step"><span class="tick"><svg viewBox="0 0 12 12"><path d="m2.5 6.5 2.5 2.5 4.5-5"/></svg></span><span class="verb">read</span><span>src/billing/invoice.ts · tax lines</span><span class="n">2 of 4</span></div>
             <div class="step"><span class="tick now"></span><span class="verb">edit</span><span>src/billing/proration.ts <span class="n">+14 −3</span></span><span class="n">3 of 4</span></div>
-            <div class="step"><span class="tick" style="background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)"></span><span class="verb">test</span><span>billing/proration.test.ts</span><span class="n">4 of 4</span></div>
+            <div class="step"><span class="tick todo"></span><span class="verb">test</span><span>billing/proration.test.ts</span><span class="n">4 of 4</span></div>
           </div>
         </div>
         <div class="msg team">
-          <span class="gutter"><span class="avatar">BO</span></span>
+          <span class="gutter"><span class="avatar">B</span></span>
           <div class="meta"><span class="who">Bo</span><span class="to">to the team</span><span class="time">09:44</span></div>
           <div class="text">I take the PDF layout once the tax lines land. Cy, hold the VAT order in <span class="mono">invoice.ts</span> until then.</div>
         </div>
@@ -578,17 +606,26 @@ button { font: inherit; }
     <div>
       <h3>Signature element</h3>
       <h2 class="serif" style="margin-top:8px">The glass rail</h2>
-      <p style="margin-top:6px">The roster is a stack of navy glass. One lamp at the top-left lights every pane from above; a card that is working holds an apricot light under its edge and breathes.</p>
+      <p style="margin-top:6px">A facade of navy glass. Every card is a window; where an agent is working the window is lit from inside, and its light climbs the stack: the card's edge, the pane that holds it, the crease between rail and page.</p>
     </div>
     <div>
-      <h3>Six layers, bottom to top</h3>
+      <h3>Seven layers, bottom to top</h3>
       <div class="layers" style="margin-top:6px">
-        <div class="layer"><span class="sw lacquer"></span><span class="t"><b>Lacquer.</b> Dress Blues with a 170° sheen; the rail is the one glossy object in a matte room.</span></div>
-        <div class="layer"><span class="sw lamp"></span><span class="t"><b>Lamp.</b> One apricot light, 15 %, at the top-left corner. The one gradient the rail adds.</span></div>
-        <div class="layer"><span class="sw grain"></span><span class="t"><b>Grain.</b> A 240 px tile at soft-light, rendered once; never a live filter.</span></div>
-        <div class="layer"><span class="sw paneSw"></span><span class="t"><b>Pane.</b> Cream at 5.5 %, a 1 px rim, light on the top edge, shadow under the foot. Cards nest at 18 − 4 = 14.</span></div>
-        <div class="layer"><span class="sw pulseSw"></span><span class="t"><b>Pulse.</b> A running card: apricot pooled under its top edge, breathing on the 1.8 s clock. Rest: lit, still.</span></div>
+        <div class="layer"><span class="sw lacquer"></span><span class="t"><b>Lacquer.</b> Dress Blues with a 170° sheen; the one glossy object in a matte room.</span></div>
+        <div class="layer"><span class="sw lamp"></span><span class="t"><b>Lamp.</b> The room's one apricot light, 15 %, top-left. Shared with night-mode.</span></div>
+        <div class="layer"><span class="sw grain"></span><span class="t"><b>Grain.</b> A 240 px tile at soft-light, 34 %, rendered once; never a live filter.</span></div>
+        <div class="layer"><span class="sw paneSw"></span><span class="t"><b>Pane.</b> Cream at 5 %, a 1 px rim, 1 px of light on the top edge and 1 px of shade under it: the glass has thickness.</span></div>
+        <div class="layer"><span class="sw winSw"></span><span class="t"><b>Window.</b> A pane on a pane at 18 − 4 = 14, with the agent's tight bottom-left corner.</span></div>
+        <div class="layer"><span class="sw pulseSw"></span><span class="t"><b>Lit.</b> A running window: apricot inside, the edge warmed, light on the sill below. It breathes; at rest it is lit, still.</span></div>
         <div class="layer"><span class="sw hereSw"></span><span class="t"><b>Where you are.</b> The wash, the hairline ring, the 3 px bar. Apricot keeps its one meaning.</span></div>
+      </div>
+    </div>
+    <div>
+      <h3>Light climbs</h3>
+      <div class="climb" style="margin-top:10px">
+        <span class="k">window</span><span class="bar"><i style="--a:.62"></i></span><span class="v">62 %</span>
+        <span class="k">pane</span><span class="bar"><i style="--a:.24"></i></span><span class="v">24 %</span>
+        <span class="k">crease</span><span class="bar"><i style="--a:1"></i></span><span class="v">1 px</span>
       </div>
     </div>
     <div>
@@ -599,7 +636,7 @@ button { font: inherit; }
             <a class="agent pane running" href="#" style="--i:5" tabindex="-1" aria-hidden="true">
               <span class="head"><span class="dot running"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></span>
               <span class="doing"><i>Reading invoice.ts</i> · 3 files</span>
-              <span class="foot"><span class="stack"><span class="avatar">CY</span></span><span class="with">Cy</span><span class="tokens" style="--spent:31%">4.7k<i></i></span></span>
+              <span class="foot"><span class="stack"><span class="avatar driver">C</span></span><span class="with">Cy</span><span class="tokens" style="--spent:31%">4.7k<i></i></span></span>
             </a>
           </div>
         </div>
@@ -609,33 +646,32 @@ button { font: inherit; }
     <div>
       <h3>Cost</h3>
       <div class="cost" style="margin-top:8px">
-        <div><span>Backdrop blur layers</span><b>2 panes</b></div>
+        <div><span>Backdrop blur layers</span><b>1 pane</b></div>
         <div><span>Per-pixel filters at runtime</span><b>0</b></div>
         <div><span>Animated properties</span><b>opacity · box-shadow · transform</b></div>
-        <div><span>Breathing panes at once</span><b>≤ 3</b></div>
+        <div><span>Lit windows breathing at once</span><b>≤ 3</b></div>
         <div><span>Extra DOM per card</span><b>0 nodes</b></div>
       </div>
     </div>
     <div>
       <h3>Keys</h3>
-      <div class="keys" style="margin-top:8px"><span><kbd>[</kbd> fold</span><span><kbd>]</kbd> unfold</span><span><kbd>N</kbd> new session</span><span><kbd>⌘K</kbd> search</span></div>
+      <div class="keys" style="margin-top:8px"><span><kbd>[</kbd> fold</span><span><kbd>]</kbd> unfold</span><span><kbd>N</kbd> new session</span><span><kbd>⌘K</kbd> search</span><span><kbd>J</kbd> join</span><span><kbd>C</kbd> calm</span><span><kbd>D</kbd> dark</span></div>
     </div>
   </aside>
 </div>
 <div class="toasts" role="status" aria-live="polite"></div>
 
 <template id="joinCard">
-  <a class="agent pane running enter" href="#" style="--i:4" aria-label="Receipt email, running, Solo, Dee's agent opening receipt.tsx, Dee, 0.3k tokens">
+  <a class="agent pane running enter" href="#" style="--i:4" aria-label="Receipt email, running, Solo, Dee's agent opening receipt.tsx, Dee, 0.3k tokens of 15k">
     <span class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Receipt email</span><span class="pill solo">Solo</span></span>
     <span class="doing"><i>Opening receipt.tsx</i> · reading the brief</span>
-    <span class="foot"><span class="stack"><span class="avatar joined" title="Dee">DE</span></span><span class="with">Dee</span><span class="tokens" style="--spent:2%" title="0.3k of 15k">0.3k<i></i></span></span>
+    <span class="foot"><span class="stack"><span class="avatar driver joined" title="Dee, driving">D</span></span><span class="with">Dee</span><span class="tokens" style="--spent:2%" title="0.3k of 15k">0.3k<i></i></span></span>
   </a>
 </template>
 
 <script>
 (() => {
   const root = document.documentElement;
-  const motion = () => getComputedStyle(root).getPropertyValue('--motion').trim() === '1';
 
   // Dark: the chosen attribute, exactly as theme.ts sets it.
   const darkBtn = document.getElementById('darkBtn');
@@ -650,8 +686,8 @@ button { font: inherit; }
   calmBtn.addEventListener('click', () => { if (root.dataset.motion === 'calm') delete root.dataset.motion; else root.dataset.motion = 'calm'; paintCalm(); });
   paintCalm();
 
-  // A join: the card arrives (card-in), its avatar ripples, the brand mark settles once, the toast
-  // carries the sentence. Nothing waits on animationend: under Calm the end states are simply there.
+  // A join: the window arrives (card-in) already lit, its avatar ripples, the brand mark settles once,
+  // the toast carries the sentence. Nothing waits on animationend: under Calm the end states are there.
   const joinBtn = document.getElementById('joinBtn');
   joinBtn.addEventListener('click', () => {
     const tpl = document.getElementById('joinCard');
@@ -671,14 +707,13 @@ button { font: inherit; }
   document.getElementById('closeRail').addEventListener('click', () => { document.querySelector('.rail').style.display = 'none'; document.querySelector('.scrim').style.display = 'none'; });
   document.querySelector('.menu').addEventListener('click', () => { document.querySelector('.rail').style.display = ''; document.querySelector('.scrim').style.display = ''; });
 
-  // keys: [ and ] are the app's; here they only toggle the button state so the sheet reads
+  // keys: [ and ] are the app's; here j, c and d drive the inspector
   addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === 'c') calmBtn.click();
     if (e.key === 'd') darkBtn.click();
     if (e.key === 'j' && !joinBtn.disabled) joinBtn.click();
   });
-  void motion;
 })();
 </script>
 </body>
