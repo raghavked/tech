@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henosis · Payments · the presence constellation</title>
-<meta name="description" content="The team page header drawn as a chart of who is here: every open session is a ring, people and agents are the points on it, each present member draws its own arc of the ring, the same person in two sessions sits where the rings cross, the baton holder is the brightest point.">
+<meta name="description" content="The team page header drawn from presence: every open session is a hairline ring, people and agents are the points on it, each present member draws its own arc, the same person in two sessions sits where the rings cross, the baton holder is the brightest point, crews are stitched beneath.">
 <style>
 /* ------------------------------------------------------------------------------------------------
-   Tokens, inlined from design/henosis/tokens.css with the settled dark block (SYSTEM §16) and the
-   v6 motion vocabulary (MOTION §12). Self-contained: no @import, nothing fetched. Fraunces and Inter
-   are asked for first (editorial-type.md), then the Instrument faces, then the system.
+   Tokens. Inlined from design/henosis/tokens.css with SYSTEM.md §2 and §16's settled dark block and
+   MOTION.md §12's clocks. Self-contained: nothing fetched. Fraunces and Inter are asked for first
+   (editorial-type.md), then the Instrument faces the tokens ship, then the system's own.
    ------------------------------------------------------------------------------------------------ */
 :root {
   --canvas: #FBF7F1; --wash: rgba(226, 196, 166, 0.35);
@@ -19,11 +19,13 @@
   --rail-active: rgba(226, 196, 166, 0.18); --rail-line: rgba(243, 237, 228, 0.10);
   --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
   --apricot: #E2C4A6; --apricot-deep: #CFA782; --apricot-soft: rgba(226, 196, 166, 0.30);
+  --select-wash: rgba(226, 196, 166, 0.16); --select-line: rgba(207, 167, 130, 0.5);
   --count-bg: #CFA782; --count-fg: #2A3244; --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
   --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --grad-fg: #F8F2EA;
   --ok: #4F7D4A; --ok-soft: rgba(79,125,74,0.14); --ok-ink: #3E6639;
   --warn: #B9792E; --warn-soft: rgba(185,121,46,0.14); --warn-ink: #7F5320;
   --danger: #A8463A; --danger-soft: rgba(168,70,58,0.14); --danger-ink: #8E3A30; --info: #5B6273;
+  --agent-bg: #2A3244;
   --shadow-soft: 0 10px 30px rgba(42, 50, 68, 0.08); --shadow-pop: 0 18px 50px rgba(42, 50, 68, 0.16);
   --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --rail-w: 296px;
   --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
@@ -35,17 +37,17 @@
   --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
   --focus-ring: var(--accent); --focus-halo: var(--apricot-soft);
   --motion: 0;
-  /* the chart: colour by ground (SYSTEM §5). On cream a person's arc is chocolate, an agent's is navy,
-     the centre is apricot. The baton is the driver ring (SYSTEM §12), apricot-deep. */
-  --cst-person: #56352D; --cst-person-a: 0.84;
-  --cst-agent: #2A3244;  --cst-agent-a: 0.72;
-  --cst-bright: #56352D;                       /* the baton holder's point */
-  --cst-baton: #CFA782;                        /* the driver ring */
-  --cst-centre: #E2C4A6;                       /* the centre, while the ring is whole */
-  --cst-guide: rgba(42, 50, 68, 0.30);         /* an away member's share of the ring */
-  --cst-thread: rgba(86, 53, 45, 0.50);        /* the crew stitch */
-  --cst-halo: rgba(226, 196, 166, 0.75);       /* the baton holder's breath, the join ripple */
-  --cst-w: 1.6; --cst-w-baton: 2.5;            /* hairline widths, px */
+  /* the constellation. Colour by ground (SYSTEM §5): on cream a person's arc is chocolate, an agent's
+     is navy, the centre is apricot. The baton is the driver ring (SYSTEM §12), apricot-deep. */
+  --cst-person: #56352D; --cst-person-a: 0.86;
+  --cst-agent: #2A3244;  --cst-agent-a: 0.74;
+  --cst-bright: #56352D;                       /* the baton holder's point: the hand, solid */
+  --cst-baton: #CFA782;                        /* the driver ring around it */
+  --cst-centre: #E2C4A6;                       /* the centre, only while the ring is whole */
+  --cst-guide: rgba(42, 50, 68, 0.34);         /* an away member's share of the ring */
+  --cst-thread: rgba(86, 53, 45, 0.55);        /* the crew stitch */
+  --cst-halo: rgba(226, 196, 166, 0.85);       /* the holder's breath, the join ripple */
+  --cst-w: 1.6; --cst-w-baton: 2.6;            /* hairline widths in px */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -56,21 +58,23 @@
   --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08);
   --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
+  --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
   --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
   --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,0.18); --ok-ink: #9BC88F;
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226,132,122,0.18); --danger-ink: #E2847A; --info: #B4BAC6;
+  --agent-bg: #3A4458;
   --shadow-soft: 0 10px 30px rgba(0,0,0,0.35); --shadow-pop: 0 18px 50px rgba(0,0,0,0.5);
   --focus-ring: var(--ink);
-  /* the dark canvas is a navy ground: the agent's arc and the centre keep apricot; the person's arc is
-     the hand as text (--accent-ink), the dusty brown that is clearly not apricot; the baton holder is
-     cream, brighter than anything. Hairlines go up a quarter pixel so the chart does not fade at night. */
-  --cst-person: #CAA49B; --cst-person-a: 0.92;
-  --cst-agent: #E2C4A6;  --cst-agent-a: 0.68;
+  /* the dark canvas is a navy ground: the agent's arc and the centre keep apricot; the person's arc is the
+     hand as text (--accent-ink), the dusty brown that is clearly not apricot; the holder is cream, brighter
+     than anything. Hairlines gain a third of a pixel so the chart does not fade at night (judge, take 1). */
+  --cst-person: #CAA49B; --cst-person-a: 1;
+  --cst-agent: #E2C4A6;  --cst-agent-a: 0.8;
   --cst-bright: #F0EAE0; --cst-baton: #E2C4A6; --cst-centre: #E2C4A6;
-  --cst-guide: rgba(240, 234, 224, 0.30); --cst-thread: rgba(226, 196, 166, 0.55);
-  --cst-halo: rgba(226, 196, 166, 0.7); --cst-w: 1.75; --cst-w-baton: 2.6;
+  --cst-guide: rgba(240, 234, 224, 0.36); --cst-thread: rgba(226, 196, 166, 0.62);
+  --cst-halo: rgba(226, 196, 166, 0.75); --cst-w: 1.9; --cst-w-baton: 2.8;
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
@@ -81,18 +85,20 @@
   --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08);
   --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
+  --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
   --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
   --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,0.18); --ok-ink: #9BC88F;
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226,132,122,0.18); --danger-ink: #E2847A; --info: #B4BAC6;
+  --agent-bg: #3A4458;
   --shadow-soft: 0 10px 30px rgba(0,0,0,0.35); --shadow-pop: 0 18px 50px rgba(0,0,0,0.5);
   --focus-ring: var(--ink);
-  --cst-person: #CAA49B; --cst-person-a: 0.92;
-  --cst-agent: #E2C4A6;  --cst-agent-a: 0.68;
+  --cst-person: #CAA49B; --cst-person-a: 1;
+  --cst-agent: #E2C4A6;  --cst-agent-a: 0.8;
   --cst-bright: #F0EAE0; --cst-baton: #E2C4A6; --cst-centre: #E2C4A6;
-  --cst-guide: rgba(240, 234, 224, 0.30); --cst-thread: rgba(226, 196, 166, 0.55);
-  --cst-halo: rgba(226, 196, 166, 0.7); --cst-w: 1.75; --cst-w-baton: 2.6;
+  --cst-guide: rgba(240, 234, 224, 0.36); --cst-thread: rgba(226, 196, 166, 0.62);
+  --cst-halo: rgba(226, 196, 166, 0.75); --cst-w: 1.9; --cst-w-baton: 2.8;
   color-scheme: dark;
 }
 
@@ -119,23 +125,23 @@ a { color: var(--accent-ink); text-decoration: none; }
 .shell { display: flex; height: 100%; }
 .rail { width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 4px; overflow: auto; }
 .rail .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font-family: var(--serif); font-size: 24px; }
+.rail .brand .mark { --mark-arc-a: #AD8E78; } /* the one tinted arc: a 62 % lift toward apricot on the navy rail at 24 px (SYSTEM §5) */
 .rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
 .rail .section { padding: 18px 10px 6px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
 .rail .item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); color: var(--rail-fg); font-size: 14px; }
 .rail .item:hover { background: var(--rail-2); }
-.rail .item.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px rgba(226,196,166,0.35); }
+.rail .item.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line); }
 .rail .item .ic { width: 18px; height: 18px; flex: none; opacity: .85; }
 .rail .item .n { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--count-bg); color: var(--count-fg); font: 600 11.5px var(--mono); display: inline-grid; place-items: center; }
 .rail .item kbd { margin-left: auto; font: 500 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 1px 5px; }
-.rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 14px; }
-.rail .me .s { font-size: 12px; color: var(--rail-muted); }
+.rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 14px; font-family: var(--serif); font-size: 15.5px; }
+.rail .me .s { font: 12px var(--font); color: var(--rail-muted); }
 .agentcard { display: flex; flex-direction: column; gap: 4px; padding: 9px 12px; border-radius: var(--radius); color: var(--rail-fg); }
 .agentcard:hover { background: var(--rail-2); }
-.agentcard .head { display: flex; align-items: center; gap: 9px; font-size: 14.5px; font-family: var(--serif); min-width: 0; }
+.agentcard .head { display: flex; align-items: center; gap: 9px; font-size: 15px; font-family: var(--serif); min-width: 0; }
 .agentcard .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
 .agentcard .head .dot.running { background: #9BC88F; box-shadow: 0 0 0 3px rgba(155,200,143,0.22); }
 .agentcard .head .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,0.22); }
-.agentcard .head .dot.paused { background: var(--rail-muted); }
 .agentcard .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agentcard .doing { font-size: 13px; color: var(--rail-muted); line-height: 1.4; }
 .agentcard .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
@@ -144,18 +150,17 @@ a { color: var(--accent-ink); text-decoration: none; }
 .crewline { padding: 12px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
 .crewline .serif { font-size: 15px; color: var(--apricot); }
 .crewline::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
-.pill { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: var(--radius-full); font-size: 11px; font-weight: 600; letter-spacing: 0.02em; background: var(--surface-3); color: var(--ink-2); }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: var(--radius-full); font-size: 11px; font-weight: 600; letter-spacing: 0.02em; background: var(--surface-3); color: var(--ink-2); font-family: var(--font); }
 .pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
 .pill.solo { background: transparent; border: 1px solid var(--line); }
 .rail .pill.solo { border-color: var(--rail-line); color: var(--rail-muted); }
-.pill.navy { background: var(--rail); color: var(--apricot); }
-.pill.warn { background: var(--warn-soft); color: var(--warn-ink); }
+.pill.warn { background: var(--warn-soft); color: var(--warn-ink); font-family: var(--mono); font-weight: 500; }
 
-/* avatars (SYSTEM §12): the glyph colour follows the fill, never the theme's foreground (the judge's fix) */
+/* avatars (SYSTEM §12). The glyph colour follows the fill, never the theme's foreground (judge, takes 1 and 2) */
 .avatar { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; font: 600 10.5px var(--font); letter-spacing: .02em; border: 2px solid var(--avatar-edge, var(--canvas)); flex: none; position: relative; }
 .avatar.t1 { background: #E9DCC9; color: #2A3244; } .avatar.t2 { background: #D9DEE8; color: #2A3244; }
 .avatar.t3 { background: #D7E2D2; color: #2A3244; } .avatar.t4 { background: #EAD3CC; color: #2A3244; }
-.avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--rail); color: var(--apricot); }
+.avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--agent-bg); }
 .avatar.agent::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot); }
 .avatar.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
 .avatar.off { opacity: .5; filter: saturate(.4); }
@@ -171,7 +176,7 @@ a { color: var(--accent-ink); text-decoration: none; }
 .topbar .crumbs { font: 14px var(--font); color: var(--ink-2); }
 .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .scroll { flex: 1; overflow: auto; }
-.column { width: min(1080px, 100%); margin: 0 auto; padding: 26px 40px 120px; display: flex; flex-direction: column; gap: 34px; }
+.column { width: min(1120px, 100%); margin: 0 auto; padding: 26px 40px 120px; display: flex; flex-direction: column; gap: 34px; }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px var(--font); cursor: pointer; box-shadow: var(--edge); transition: box-shadow var(--t) ease, transform var(--t-fast) var(--ease-move); }
 .btn:hover { box-shadow: var(--shadow-soft); } .btn:active { transform: translateY(1px) scale(.99); }
@@ -184,7 +189,8 @@ a { color: var(--accent-ink); text-decoration: none; }
 .seg .lead { padding: 0 6px 0 10px; font-size: 12px; color: var(--ink-3); }
 
 /* ------------------------------------------------------------------------------------------------
-   The lede: serif title, the range control top right, the chart, one sentence (Team.tsx `.lede`)
+   The lede (Team.tsx `.lede`): serif title, the range control top right, the constellation, one
+   sentence in the manager's voice.
    ------------------------------------------------------------------------------------------------ */
 .lede { display: flex; flex-direction: column; gap: 10px; }
 .lede-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -193,27 +199,27 @@ a { color: var(--accent-ink); text-decoration: none; }
 .lede-line .mono { font-size: 14px; color: var(--ink); }
 
 /* the constellation */
-.constellation { margin: 4px 0 0; display: flex; flex-direction: column; gap: 6px; }
-.constellation .band { width: 100%; min-height: 120px; }
+.constellation { margin: 6px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.constellation .band { width: 100%; min-height: 140px; }
 .sky { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--serif); }
-.sky text { fill: var(--ink); font-size: 15px; paint-order: stroke; stroke: var(--canvas); stroke-width: 4px; stroke-linejoin: round; font-variant-numeric: lining-nums; }
+.sky text { fill: var(--ink); font-size: 16px; paint-order: stroke; stroke: var(--canvas); stroke-width: 4px; stroke-linejoin: round; font-variant-numeric: lining-nums; }
 .sky text.state { font-family: var(--font); font-size: 12px; fill: var(--ink-2); letter-spacing: .005em; }
 .sky text.state tspan.mono { font-family: var(--mono); font-size: 11.5px; }
-.sky text.crew { font-style: italic; font-size: 13px; fill: var(--accent-ink); letter-spacing: .04em; stroke-width: 3px; }
+.sky text.crew { font-style: italic; font-size: 13.5px; fill: var(--accent-ink); letter-spacing: .04em; stroke-width: 3px; }
 .sky .arc { fill: none; stroke-linecap: round; stroke-width: var(--cst-w); stroke-dasharray: 1; stroke-dashoffset: 0; }
 .sky .arc.person { stroke: var(--cst-person); stroke-opacity: var(--cst-person-a); }
 .sky .arc.agent { stroke: var(--cst-agent); stroke-opacity: var(--cst-agent-a); }
-.sky .arc.paused { stroke-opacity: .42; }
+.sky .arc.paused { stroke-opacity: .45; }
 .sky .arc.baton { stroke-width: var(--cst-w-baton); stroke-opacity: 1; }
-.sky .guide { fill: none; stroke: var(--cst-guide); stroke-width: 1.25; stroke-linecap: round; stroke-dasharray: 0.5 4; }
+.sky .guide { fill: none; stroke: var(--cst-guide); stroke-width: 1.3; stroke-linecap: round; stroke-dasharray: 0.5 4.2; }
 .sky .centre { fill: var(--cst-centre); transform-box: fill-box; transform-origin: center; }
 .sky .ghost { fill: none; stroke: var(--cst-guide); stroke-width: 1.25; stroke-dasharray: 1.5 2.5; }
-.sky .thread { fill: none; stroke: var(--cst-thread); stroke-width: 1.25; stroke-linecap: round; stroke-dasharray: 0.5 4.5; }
+.sky .thread { fill: none; stroke: var(--cst-thread); stroke-width: 1.3; stroke-linecap: round; stroke-dasharray: 0.5 4.6; }
 .sky a { outline: 0; cursor: pointer; }
 .sky .hit { fill: transparent; }
-.sky .pt .dot { fill: var(--cst-person); }
-.sky .pt.away .dot { fill: var(--canvas); stroke: var(--cst-person); stroke-width: 1.5; stroke-opacity: .7; }
-.sky .pt.baton .dot { fill: var(--cst-bright); }
+.sky .pt .dot { fill: var(--cst-person); fill-opacity: var(--cst-person-a); }
+.sky .pt.away .dot { fill: var(--canvas); fill-opacity: 1; stroke: var(--cst-person); stroke-width: 1.5; stroke-opacity: .75; }
+.sky .pt.baton .dot { fill: var(--cst-bright); fill-opacity: 1; }
 .sky .ring-baton { fill: none; stroke: var(--cst-baton); stroke-width: 2; transform-box: fill-box; transform-origin: center; }
 .sky .halo { fill: var(--cst-halo); opacity: 0; transform-box: fill-box; transform-origin: center; }
 .sky .ripple { fill: none; stroke: var(--cst-halo); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
@@ -223,11 +229,12 @@ a { color: var(--accent-ink); text-decoration: none; }
 .sky .pt.agent.paused .sq { fill-opacity: .55; }
 .sky .pr { stroke: var(--canvas); stroke-width: 2; }
 .sky .pr.running { fill: var(--ok); } .sky .pr.awaiting { fill: var(--warn); } .sky .pr.paused { fill: var(--info); }
+.sky .pr-halo { fill: none; stroke: var(--ok); opacity: 0; transform-box: fill-box; transform-origin: center; }
 .sky .ring, .sky .pt, .sky .threadg { transition: opacity var(--t) var(--ease-move); }
 .sky.dim .ring, .sky.dim .pt, .sky.dim .threadg { opacity: .2; }
 .sky.dim .warm { opacity: .62; } .sky.dim .hot { opacity: 1; }
 .sky .pt.joined .dot, .sky .pt.joined .sq { transform-box: fill-box; transform-origin: center; }
-.reading { margin: 0; font-size: 15.5px; color: var(--ink-2); line-height: 1.55; max-width: 76ch; min-height: 1.55em; }
+.reading { margin: 0; font-size: 15.5px; color: var(--ink-2); line-height: 1.55; max-width: 78ch; min-height: 1.55em; }
 .reading .who, .reading i { font-family: var(--serif); font-size: 1.08em; color: var(--ink); }
 .reading i { font-style: italic; } .reading .mono { font-size: 13px; color: var(--ink); }
 .reading.hover { color: var(--ink); }
@@ -254,10 +261,11 @@ a { color: var(--accent-ink); text-decoration: none; }
 .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px 12px; box-shadow: var(--edge); display: flex; flex-direction: column; gap: 2px; }
 .tile .k { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
-.tile .v { font-family: var(--serif); font-size: 30px; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+.tile .v { font-family: var(--mono); font-weight: 500; font-size: 28px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.tile .v .u { font-size: 14px; color: var(--ink-3); font-weight: 400; }
 .tile .d { font-size: 12.5px; color: var(--ink-2); }
 .roster { display: flex; flex-direction: column; }
-.row { display: grid; grid-template-columns: 36px 180px 1fr auto auto; gap: 14px; align-items: center; padding: 11px 10px; border-top: 1px solid var(--line); scroll-margin-top: 80px; border-radius: 10px; transition: background var(--t) ease, box-shadow var(--t) ease; }
+.row { display: grid; grid-template-columns: 36px 190px 1fr auto auto; gap: 14px; align-items: center; padding: 11px 10px; border-top: 1px solid var(--line); scroll-margin-top: 80px; border-radius: 10px; transition: background var(--t) ease, box-shadow var(--t) ease; }
 .row:first-child { border-top: 0; }
 .row .name { font-family: var(--serif); font-size: 16.5px; }
 .row .name .s { font-family: var(--font); font-size: 12.5px; color: var(--ink-3); margin-left: 8px; }
@@ -270,10 +278,10 @@ a { color: var(--accent-ink); text-decoration: none; }
 .row .status.paused::before { background: var(--info); }
 .row .status.away::before { background: transparent; border: 1.5px solid var(--ink-3); }
 .row .tokens { font-family: var(--mono); font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 5ch; text-align: right; }
-.row.here { background: var(--apricot-soft); box-shadow: inset 0 0 0 1px var(--apricot-deep); border-top-color: transparent; }
+.row.here { background: var(--select-wash); box-shadow: inset 0 0 0 1px var(--select-line); border-top-color: transparent; }
 .row.here + .row { border-top-color: transparent; }
 
-/* exploration inspector: shown only with #inspector in the URL; never part of the design */
+/* the exploration's inspector: shown only with #inspector in the URL; never part of the design */
 .inspector { display: none; align-items: center; gap: 8px; }
 :root[data-inspector] .inspector { display: inline-flex; }
 .inspector .tag { font: 600 10.5px var(--mono); letter-spacing: .08em; color: var(--ink-3); margin-right: 4px; }
@@ -284,11 +292,13 @@ a { color: var(--accent-ink); text-decoration: none; }
   .rail, .topbar { display: none; }
   .phonebar { display: flex; flex-direction: column; gap: 2px; background: var(--rail); color: var(--rail-fg); padding: 50px 18px 14px; }
   .phonebar .t { font-family: var(--serif); font-size: 22px; display: flex; align-items: center; gap: 10px; }
+  .phonebar .t .mark { --mark-arc-a: #AD8E78; }
   .phonebar .s { font-size: 13px; color: var(--rail-muted); }
   .phonebar .s b { color: var(--apricot); font-weight: 500; }
   .column { padding: 18px 16px 90px; gap: 26px; }
   h1 { font-size: 32px; }
   .lede-head .seg { display: none; }
+  .sky text { font-size: 14px; } .sky text.state { font-size: 11px; }
   .cards, .tiles { grid-template-columns: 1fr 1fr; }
   .cards { grid-template-columns: 1fr; }
   .row { grid-template-columns: 36px 1fr auto; }
@@ -298,30 +308,29 @@ a { color: var(--accent-ink); text-decoration: none; }
 }
 
 /* ------------------------------------------------------------------------------------------------
-   Motion, under the one guard (MOTION §3). Every rest state above is the end state.
+   Motion, under the one guard (MOTION §3). Every rest state above is the end state: arcs drawn,
+   halo and ripple at opacity 0, the centre at scale 1. Nothing on this page animates on load
+   (MOTION §6.9): the overview opens still. What moves: the holder's breath, a running dot, a join.
    ------------------------------------------------------------------------------------------------ */
-@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
-@keyframes cst-breathe { 0% { transform: scale(1); opacity: .55 } 70% { transform: scale(2); opacity: 0 } 100% { transform: scale(2); opacity: 0 } }
+@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .38 } }
+@keyframes cst-breathe { 0% { transform: scale(1); opacity: .55 } 70% { transform: scale(2.1); opacity: 0 } 100% { transform: scale(2.1); opacity: 0 } }
+@keyframes cst-pr-live { 0% { transform: scale(1); opacity: .7 } 70% { transform: scale(2.4); opacity: 0 } 100% { transform: scale(2.4); opacity: 0 } }
 @keyframes cst-draw { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
 @keyframes cst-ripple { from { transform: scale(1); opacity: .8 } to { transform: scale(3.4); opacity: 0 } }
 @keyframes dot-once { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
-@keyframes pop { 0% { transform: scale(.6); opacity: 0 } 70% { transform: scale(1.12) } 100% { transform: scale(1); opacity: 1 } }
-@keyframes card-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@keyframes pop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: none; opacity: 1 } }
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-motion="calm"]) { --motion: 1; }
   :root:not([data-motion="calm"]) .agentcard .dot.running,
-  :root:not([data-motion="calm"]) .sky .pr.running,
-  :root:not([data-motion="calm"]) .row .status.running::before { animation: dot-live 1.8s ease-in-out infinite; }
-  :root:not([data-motion="calm"]) .sky .pt.baton .halo { animation: cst-breathe 1.8s ease-in-out infinite; }
+  :root:not([data-motion="calm"]) .row .status.running::before { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .sky .pr-halo.running { animation: cst-pr-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .sky .pt.baton .halo { animation: cst-breathe 1.8s var(--ease-move) infinite; }
   :root:not([data-motion="calm"]) .sky .arc.draw { animation: cst-draw .45s var(--ease-arrive) both; }
   :root:not([data-motion="calm"]) .sky .pt.joined .dot,
   :root:not([data-motion="calm"]) .sky .pt.joined .sq { animation: pop .32s var(--ease-arrive) both; }
   :root:not([data-motion="calm"]) .sky .pt.joined .ripple { animation: cst-ripple .9s var(--ease-leave) .9s both; }
   :root:not([data-motion="calm"]) .sky .ring.joined .centre { animation: dot-once 1s var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .sky .pt.passed .ring-baton { animation: pop .36s var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .card { animation: card-in .32s var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .card:nth-child(2) { animation-delay: 40ms; }
-  :root:not([data-motion="calm"]) .card:nth-child(3) { animation-delay: 80ms; }
+  :root:not([data-motion="calm"]) .sky .pt.passed .ring-baton { animation: pop .32s var(--ease-arrive) both; }
 }
 :root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
@@ -342,7 +351,7 @@ a { color: var(--accent-ink); text-decoration: none; }
 
 <div class="shell">
   <nav class="rail" aria-label="Henosis">
-    <div class="brand"><svg width="24" height="24" aria-hidden="true"><use href="#mark-small"/></svg>Henosis</div>
+    <div class="brand"><svg class="mark" width="24" height="24" aria-hidden="true"><use href="#mark-small"/></svg>Henosis</div>
     <button class="new" type="button"><span aria-hidden="true">+</span> New session</button>
     <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.5"/><path d="m12.5 12.5 3 3"/></svg>Search<kbd>⌘K</kbd></a>
     <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="14" height="10" rx="2"/><path d="m2 6 7 4 7-4"/></svg>Inbox<span class="n">3</span></a>
@@ -352,7 +361,7 @@ a { color: var(--accent-ink); text-decoration: none; }
     <a class="agentcard" href="#roster-invoice">
       <div class="head"><i class="dot running"></i><span class="t">Invoice PDF</span><span class="pill team">Team</span></div>
       <div class="doing"><i>Rendering tax lines</i> · step 2 of 5</div>
-      <div class="foot"><span class="stack"><span class="avatar sm t3">CY</span><span class="avatar sm t4 off">DE</span></span>with Dee<span class="mono">6.8k</span></div>
+      <div class="foot"><span class="stack"><span class="avatar sm t3 driver">CY</span><span class="avatar sm t4 off">DE</span></span>with Dee<span class="mono">6.8k</span></div>
     </a>
     <a class="agentcard" href="#roster-tax">
       <div class="head"><i class="dot paused"></i><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
@@ -374,12 +383,12 @@ a { color: var(--accent-ink); text-decoration: none; }
     <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 14V8M8 14V4M13 14v-6"/></svg>Usage</a>
     <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6.5" cy="7" r="2.5"/><circle cx="12" cy="7" r="2"/><path d="M2.5 14c0-2.5 1.8-4 4-4s4 1.5 4 4M10.5 14c0-2 1-3.2 2.5-3.2s2.5 1.2 2.5 3.2"/></svg>Groups</a>
     <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 3h10v12l-5-3-5 3z"/></svg>Memory<span class="n">1</span></a>
-    <div class="me"><span class="avatar t1">AN</span><span>Ana Moreau<div class="s">Payments · lead</div></span></div>
+    <div class="me"><span class="avatar t1">AN</span><span>Ana Moreau<div class="s">owner · driving Billing page</div></span></div>
   </nav>
 
   <main class="main">
     <header class="phonebar">
-      <div class="t"><svg width="22" height="22" aria-hidden="true"><use href="#mark-small"/></svg>Payments</div>
+      <div class="t"><svg class="mark" width="22" height="22" aria-hidden="true"><use href="#mark-small"/></svg>Payments</div>
       <div class="s">4 open sessions · 2 projects · <b>2 need you</b></div>
     </header>
     <div class="topbar">
@@ -392,7 +401,7 @@ a { color: var(--accent-ink); text-decoration: none; }
           <button class="btn sm" type="button" id="btn-calm" aria-pressed="false">Calm</button>
           <button class="btn sm" type="button" id="btn-dark" aria-pressed="false">Dark</button>
         </div>
-        <span class="stack" aria-label="Ana, Bo and Cy are here. Dee is away."><span class="avatar t1 driver">AN</span><span class="avatar t2">BO</span><span class="avatar t3">CY</span><span class="avatar t4 off">DE</span></span>
+        <span class="stack" aria-label="Ana, Bo and Cy are here. Dee is away. Ana is driving."><span class="avatar t1 driver">AN</span><span class="avatar t2">BO</span><span class="avatar t3">CY</span><span class="avatar t4 off">DE</span></span>
         <button class="btn sm" type="button">Share</button>
       </div>
     </div>
@@ -449,10 +458,10 @@ a { color: var(--accent-ink); text-decoration: none; }
         <section class="group" aria-label="Where the tokens went">
           <div class="group-head"><h2 class="grow">Where the tokens went</h2><span class="right">since Monday · input + output</span></div>
           <div class="tiles">
-            <div class="tile"><div class="k">Tokens</div><div class="v">30.4k</div><div class="d">19.2k in · 11.2k out</div></div>
-            <div class="tile"><div class="k">By agent</div><div class="v">16.3k</div><div class="d">Billing page leads, 12.4k</div></div>
-            <div class="tile"><div class="k">By person</div><div class="v">14.1k</div><div class="d">Ana 6.2k · Bo 4.6k</div></div>
-            <div class="tile"><div class="k">Plans</div><div class="v">3<span class="faint" style="font-size:18px"> of 4</span></div><div class="d">rated · avg 4.1</div></div>
+            <div class="tile"><div class="k">Tokens</div><div class="v">30.4<span class="u">k</span></div><div class="d">19.2k in · 11.2k out</div></div>
+            <div class="tile"><div class="k">By agent</div><div class="v">16.3<span class="u">k</span></div><div class="d">Billing page leads, 12.4k</div></div>
+            <div class="tile"><div class="k">By person</div><div class="v">14.1<span class="u">k</span></div><div class="d">Ana 6.2k · Bo 4.6k</div></div>
+            <div class="tile"><div class="k">Plans</div><div class="v">3<span class="u"> of 4</span></div><div class="d">rated · avg 4.1</div></div>
           </div>
         </section>
 
@@ -477,13 +486,17 @@ a { color: var(--accent-ink); text-decoration: none; }
 <script>
 /* ==================================================================================================
    The presence constellation.
-   Data: the team page already holds this (Team.tsx: people[].online, people[].driving, crew, live).
-   Layout: a chain solver, not physics. Consecutive sessions that share a person form a chain; two
-   shared people make a vesica (centre distance 1.12 r), one shared person makes the rings kiss (2 r).
-   Shared people sit at the intersections; the remaining members spread evenly through the free arc,
-   the agent first; a crew's agents sit at the foot of their rings so the stitch bows under the sky.
-   Each member draws the arc of the ring centred on itself, in its own colour; an away member's share
-   is a dotted guide; the centre lands only while every member is present.
+
+   Data: what Team.tsx already builds (people[].online, people[].driving, s.crew, s.live).
+   Layout: a chain solver, not physics, so the same team sees the same sky every morning.
+     1. Sessions that share a person are chained; a shared person sits where the rings cross:
+        two shared people make a vesica (centre distance 1.12 r), one makes the rings kiss (2 r).
+     2. The other members spread evenly through the largest free arc, the agent first; a crew's
+        agent sits at the foot of its ring so the crew's stitch bows under the sky; a lone session
+        takes the mark's own pose, the person on the right, the agent on the left.
+     3. Each member owns the arc of the ring centred on itself and draws it in its colour; an away
+        member's share is a dotted guide; the apricot centre lands only while every member is in.
+   The radius is the largest from 104 down to 44 that keeps the fewest rows inside the band.
    ================================================================================================== */
 (() => {
   const html = document.documentElement;
@@ -504,259 +517,243 @@ a { color: var(--accent-ink); text-decoration: none; }
   const angDist = (a, b) => { const d = Math.abs(norm(a) - norm(b)); return Math.min(d, TAU - d); };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const f = n => Math.round(n * 100) / 100;
+  const byId = id => SESSIONS.find(s => s.id === id);
 
-  /* ---- layout ------------------------------------------------------------------------------- */
+  /* ---- chains: sessions that share a person, adjacent or not ------------------------------- */
   function chainsOf(sessions) {
-    const chains = []; let cur = [sessions[0]];
-    for (let i = 1; i < sessions.length; i++) {
-      const shared = sessions[i].members.some(m => sessions[i - 1].members.includes(m));
-      if (shared) cur.push(sessions[i]); else { chains.push(cur); cur = [sessions[i]]; }
+    const left = [...sessions], chains = [];
+    while (left.length) {
+      const chain = [left.shift()];
+      for (let grew = true; grew;) {
+        grew = false;
+        const last = chain[chain.length - 1];
+        const i = left.findIndex(s => s.members.some(m => last.members.includes(m)));
+        if (i >= 0) { chain.push(left.splice(i, 1)[0]); grew = true; }
+      }
+      chains.push(chain);
     }
-    chains.push(cur); return chains;
+    return chains;
   }
+
+  /* ---- one chain: rings, points, labels, stitches ------------------------------------------ */
   function layoutChain(chain, r, small) {
     const rings = []; let x = 0;
     chain.forEach((s, i) => {
       if (i > 0) { const n = s.members.filter(m => chain[i - 1].members.includes(m)).length; x += n >= 2 ? 1.12 * r : 2 * r; }
       rings.push({ s, cx: x, cy: 0, r, placed: [] });
     });
+    // shared people take the intersections; the first listed on top
     for (let i = 1; i < rings.length; i++) {
       const A = rings[i - 1], B = rings[i], d = B.cx - A.cx;
-      const shared = A.s.members.filter(m => B.s.members.includes(m));   // the first listed on top
+      const shared = A.s.members.filter(m => B.s.members.includes(m));
       const th = Math.acos(Math.min(1, d / (2 * r)));
       shared.forEach((m, k) => {
-        const sign = k === 0 ? -1 : 1;                       // the first listed on top
-        A.placed.push({ id: m, kind: 'person', a: sign * th, shared: true });
-        B.placed.push({ id: m, kind: 'person', a: Math.PI - sign * th, shared: true });
+        const sign = k === 0 ? -1 : 1;
+        A.placed.push({ id: m, kind: 'person', a: sign * th });
+        B.placed.push({ id: m, kind: 'person', a: Math.PI - sign * th });
       });
     }
+    const freeGap = placed => {
+      const angles = placed.map(p => norm(p.a)).sort((a, b) => a - b);
+      let best = { start: 0, len: 0 };
+      for (let k = 0; k < angles.length; k++) {
+        const a = angles[k], b = k + 1 < angles.length ? angles[k + 1] : angles[0] + TAU;
+        if (b - a > best.len) best = { start: a, len: b - a };
+      }
+      return best;
+    };
     rings.forEach(R => {
-      const rest = [{ id: R.s.id, kind: 'agent' }, ...R.s.members.filter(m => !R.placed.some(p => p.id === m)).map(m => ({ id: m, kind: 'person' }))];
-      if (!R.placed.length) {
+      const people = R.s.members.filter(m => !R.placed.some(p => p.id === m)).map(m => ({ id: m, kind: 'person' }));
+      const agent = { id: R.s.id, kind: 'agent' };
+      if (!R.placed.length && !R.s.crew) {
         // the mark's own pose: the person on the right, the agent on the left
-        rest.forEach((m, k) => R.placed.push({ ...m, a: m.kind === 'agent' ? Math.PI : (k - 1) * (TAU / rest.length) }));
-      } else {
-        const angles = R.placed.map(p => norm(p.a)).sort((a, b) => a - b);
-        let best = { start: 0, len: 0 };
-        for (let k = 0; k < angles.length; k++) {
-          const a = angles[k], b = k + 1 < angles.length ? angles[k + 1] : angles[0] + TAU;
-          if (b - a > best.len) best = { start: a, len: b - a };
-        }
-        rest.forEach((m, k) => R.placed.push({ ...m, a: best.start + best.len * (k + 1) / (rest.length + 1) }));
+        R.placed.push({ ...agent, a: Math.PI });
+        people.forEach((m, k) => R.placed.push({ ...m, a: (k - (people.length - 1) / 2) * (TAU / (people.length + 1)) }));
+        return;
       }
-      if (R.s.crew) {                                          // crew agents sit at the foot of the ring
-        const ag = R.placed.find(p => p.kind === 'agent');
-        if (R.placed.filter(p => p !== ag).every(o => angDist(o.a, Math.PI / 2) >= 50 * DEG)) ag.a = Math.PI / 2;
-      }
+      if (R.s.crew && R.placed.every(o => angDist(o.a, Math.PI / 2) >= 50 * DEG)) R.placed.push({ ...agent, a: Math.PI / 2 });
+      else { const g = freeGap(R.placed); R.placed.push({ ...agent, a: g.start + g.len / 2 }); }
+      if (people.length) { const g = freeGap(R.placed); people.forEach((m, k) => R.placed.push({ ...m, a: g.start + g.len * (k + 1) / (people.length + 1) })); }
     });
-    // nodes: one per person in the chain, one per agent
+    // nodes: one per person in the chain (however many rings), one per agent
     const nodes = new Map();
     rings.forEach((R, ri) => R.placed.forEach(p => {
-      const key = p.kind === 'agent' ? 'agent:' + p.id : 'person:' + p.id;
-      const px = R.cx + R.r * Math.cos(p.a), py = R.cy + R.r * Math.sin(p.a);
-      if (!nodes.has(key)) nodes.set(key, { key, id: p.id, kind: p.kind, x: px, y: py, rings: [], dir: { x: 0, y: 0 } });
+      const key = p.kind + ':' + p.id;
+      if (!nodes.has(key)) nodes.set(key, { key, id: p.id, kind: p.kind, x: R.cx + r * Math.cos(p.a), y: R.cy + r * Math.sin(p.a), rings: [], dir: { x: 0, y: 0 } });
       const n = nodes.get(key); n.rings.push(ri); n.dir.x += Math.cos(p.a); n.dir.y += Math.sin(p.a);
-      p.node = n;
     }));
-    const fs = small ? 13.5 : 15, ss = small ? 11 : 12;
+    const fs = small ? 14 : 16, ss = small ? 11 : 12;
     for (const n of nodes.values()) {
       const L = Math.hypot(n.dir.x, n.dir.y);
-      if (L < 0.05) n.dir = { x: 0, y: -1 }; else n.dir = { x: n.dir.x / L, y: n.dir.y / L };
-      const sess = n.kind === 'agent' ? SESSIONS.find(s => s.id === n.id) : null;
-      if (sess && sess.crew) {                                 // away from the crew-mate, along the stitch
+      n.dir = L < 0.05 ? { x: 0, y: -1 } : { x: n.dir.x / L, y: n.dir.y / L };
+      const sess = n.kind === 'agent' ? byId(n.id) : null;
+      if (sess && sess.crew) {                               // a crew'd agent's label points away from its mate
         const mate = SESSIONS.find(s => s !== sess && s.crew === sess.crew);
-        const mateRing = rings.find(R => R.s === mate);
-        n.dir = { x: mateRing && mateRing.cx > rings[n.rings[0]].cx ? -1 : 1, y: 0 };
+        const mateRing = mate && rings.find(R => R.s === mate);
+        if (mateRing) n.dir = { x: mateRing.cx > rings[n.rings[0]].cx ? -1 : 1, y: 0 };
       }
       n.label = labelOf(n); n.fs = fs; n.ss = ss;
-      const w = Math.max(n.label.name.length * fs * 0.52, (n.label.state || '').length * ss * 0.58) + 4;
+      const w = Math.max(n.label.name.length * fs * 0.5, (n.label.state || '').length * ss * 0.56) + 4;
       const h = n.label.state ? fs + ss + 4 : fs;
-      if (Math.abs(n.dir.x) > 0.38) {                          // beside the point
+      if (Math.abs(n.dir.x) > 0.38) {                        // beside the point
         n.anchor = n.dir.x > 0 ? 'start' : 'end';
-        n.lx = n.x + Math.sign(n.dir.x) * 17; n.ly = n.y + (n.label.state ? -2 : 5);
+        n.lx = n.x + Math.sign(n.dir.x) * 18; n.ly = n.y + (n.label.state ? -2 : 5);
         n.box = { x: n.dir.x > 0 ? n.lx : n.lx - w, y: n.ly - fs, w, h: h + 2 };
-      } else if (n.dir.y < 0) {                                // above
-        n.anchor = 'middle'; n.lx = n.x; n.ly = n.y - (n.label.state ? 31 : 17);
+      } else if (n.dir.y < 0) {                              // above
+        n.anchor = 'middle'; n.lx = n.x; n.ly = n.y - (n.label.state ? 32 : 18);
         n.box = { x: n.lx - w / 2, y: n.ly - fs, w, h: h + 2 };
-      } else {                                                 // below
-        n.anchor = 'middle'; n.lx = n.x; n.ly = n.y + 27;
+      } else {                                               // below
+        n.anchor = 'middle'; n.lx = n.x; n.ly = n.y + 28;
         n.box = { x: n.lx - w / 2, y: n.ly - fs, w, h: h + 2 };
       }
     }
-    // threads: one per crew, between the agents
+    // the crew stitch: one dotted bow per pair of crew-mates, under the sky
     const threads = [];
-    const crews = [...new Set(chain.map(s => s.crew).filter(Boolean))];
-    crews.forEach(crew => {
-      const ags = [...nodes.values()].filter(n => n.kind === 'agent' && SESSIONS.find(s => s.id === n.id).crew === crew);
+    [...new Set(chain.map(s => s.crew).filter(Boolean))].forEach(crew => {
+      const ags = [...nodes.values()].filter(n => n.kind === 'agent' && byId(n.id).crew === crew);
       for (let i = 1; i < ags.length; i++) {
         const a = ags[i - 1], b = ags[i];
-        threads.push({ crew, a, b, cx: (a.x + b.x) / 2, cy: Math.max(a.y, b.y) + 0.62 * r });
+        // on a small sky the bow drops deeper and the crew's name sits under it, clear of the foot labels
+        threads.push({ crew, a, b, cx: (a.x + b.x) / 2, cy: Math.max(a.y, b.y) + (small ? 0.95 : 0.62) * r, under: small });
       }
     });
-    // extents
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     const grow = (x0, y0, x1, y1) => { minX = Math.min(minX, x0); minY = Math.min(minY, y0); maxX = Math.max(maxX, x1); maxY = Math.max(maxY, y1); };
     rings.forEach(R => grow(R.cx - r - 3, R.cy - r - 3, R.cx + r + 3, R.cy + r + 3));
     for (const n of nodes.values()) grow(n.box.x, n.box.y, n.box.x + n.box.w, n.box.y + n.box.h);
-    threads.forEach(t => grow(t.cx - 40, 0, t.cx + 40, (t.a.y + 2 * t.cy + t.b.y) / 4 + 6));
+    threads.forEach(t => grow(t.cx - 48, 0, t.cx + 48, (t.a.y + 2 * t.cy + t.b.y) / 4 + (t.under ? 26 : 8)));
     return { rings, nodes: [...nodes.values()], threads, bbox: { x: minX, y: minY, w: maxX - minX, h: maxY - minY } };
   }
+
+  /* ---- the sky: the largest radius that keeps the fewest rows inside the band -------------- */
   function layoutSky(width) {
     const chains = chainsOf(SESSIONS);
     const plan = r => {
-      const small = r < 64, gap = Math.max(44, 0.7 * r);
+      const small = r < 66, gap = Math.max(48, 0.72 * r);
       const laid = chains.map(ch => layoutChain(ch, r, small));
       const rows = []; let row = { items: [], w: 0 };
       laid.forEach(c => {
-        const w = c.bbox.w;
-        if (row.items.length && row.w + gap + w > width) { rows.push(row); row = { items: [], w: 0 }; }
-        row.items.push(c); row.w += (row.items.length > 1 ? gap : 0) + w;
+        if (row.items.length && row.w + gap + c.bbox.w > width) { rows.push(row); row = { items: [], w: 0 }; }
+        row.items.push(c); row.w += (row.items.length > 1 ? gap : 0) + c.bbox.w;
       });
       rows.push(row);
-      return { r, gap, rows, small, fits: laid.every(c => c.bbox.w <= width) };
+      return { r, gap, rows, fits: laid.every(c => c.bbox.w <= width) };
     };
-    // the largest radius that keeps the fewest rows, every chain inside the band
-    let best = plan(46);
-    for (let r = 92; r > 46; r -= 2) { const p = plan(r); if (p.fits && p.rows.length === best.rows.length) { best = p; break; } }
-    // place rows, centred
-    let y = 0; const rowGap = 26;
+    // the fewest rows, at the largest radius that keeps them (a header stays a header: it never trades
+    // a row for a bigger ring; the rail folds at 1180 and gives the band its width back, SYSTEM §4)
+    let best = plan(44);
+    for (let r = 104; r > 44; r -= 2) { const p = plan(r); if (p.fits && p.rows.length === best.rows.length) { best = p; break; } }
+    let y = 0; const rowGap = 28;
     best.rows.forEach(row => {
-      let x = (width - row.w) / 2; let rowH = 0;
-      row.items.forEach((c, i) => {
-        if (i) x += best.gap;
-        c.ox = x - c.bbox.x; c.oy = y - c.bbox.y; x += c.bbox.w; rowH = Math.max(rowH, c.bbox.h);
-      });
+      let x = (width - row.w) / 2, rowH = 0;
+      row.items.forEach((c, i) => { if (i) x += best.gap; c.ox = x - c.bbox.x; c.oy = y - c.bbox.y; x += c.bbox.w; rowH = Math.max(rowH, c.bbox.h); });
       y += rowH + rowGap;
     });
     best.height = y - rowGap;
     return best;
   }
 
-  /* ---- words -------------------------------------------------------------------------------- */
+  /* ---- words: the labels, the resting sentence, each member's sentence ---------------------- */
   function labelOf(n) {
-    if (n.kind === 'agent') {
-      const s = SESSIONS.find(x => x.id === n.id);
-      return { name: s.title, state: s.word };
-    }
+    if (n.kind === 'agent') { const s = byId(n.id); return { name: s.title, state: s.word }; }
     const p = PEOPLE[n.id];
     if (!p.online) return { name: p.name, state: 'away since ' + p.since, mono: p.since };
-    const holds = SESSIONS.filter(s => s.baton === n.id);
-    return { name: p.name, state: holds.length ? 'has the baton' : 'here' };
+    return { name: p.name, state: SESSIONS.some(s => s.baton === n.id) ? 'has the baton' : 'here' };
   }
-  const I = t => '<i>' + esc(t) + '</i>', WHO = t => '<span class="who">' + esc(t) + '</span>';
+  const I = t => '<i>' + esc(t) + '</i>', WHO = t => '<span class="who">' + esc(t) + '</span>', MONO = t => '<span class="mono">' + esc(t) + '</span>';
   const list = xs => xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
+  const plain = h => h.replace(/<[^>]+>/g, '');
   function restingSentence() {
     const batons = SESSIONS.filter(s => s.baton);
-    const first = batons[0];
-    let a = WHO(PEOPLE[first.baton].name) + ' has the baton in ' + I(first.title);
-    const more = batons.slice(1).map(s => WHO(PEOPLE[s.baton].name) + ' in ' + I(s.title));
-    if (more.length) a += ', ' + more.join(', ');
-    a += '.';
-    const away = Object.values(PEOPLE).filter(p => !p.online);
+    let a = batons.map((s, k) => WHO(PEOPLE[s.baton].name) + (k ? ' in ' : ' has the baton in ') + I(s.title)).join(', ') + '.';
+    const away = Object.keys(PEOPLE).filter(k => !PEOPLE[k].online);
     if (!away.length) return a + ' Every circle is whole.';
-    const b = away.map(p => {
-      const id = Object.keys(PEOPLE).find(k => PEOPLE[k] === p);
+    return a + ' ' + away.map(id => {
       const waits = SESSIONS.filter(s => s.members.includes(id)).map(s => I(s.title));
-      return list(waits) + (waits.length > 1 ? ' wait' : ' waits') + ' for ' + WHO(p.name) + ', away since <span class="mono">' + p.since + '</span>.';
+      return list(waits) + (waits.length > 1 ? ' wait for ' : ' waits for ') + WHO(PEOPLE[id].name) + ', away since ' + MONO(PEOPLE[id].since) + '.';
     }).join(' ');
-    return a + ' ' + b;
   }
-  function memberSentence(n) {
-    if (n.kind === 'agent') {
-      const s = SESSIONS.find(x => x.id === n.id);
-      const with_ = list(s.members.map(m => PEOPLE[m].name));
-      return [I(s.title), PEOPLE[s.owner].name + "'s agent", esc(s.word) + ': ' + esc(s.doing), esc(s.mode) + ' with ' + esc(with_), s.crew ? 'crew ' + I(s.crew) : null, '<span class="mono">' + esc(s.tokens) + '</span> tokens'].filter(Boolean).join(' · ');
+  function memberSentence(kind, id) {
+    if (kind === 'agent') {
+      const s = byId(id);
+      return [I(s.title), PEOPLE[s.owner].name + "'s agent", esc(s.word) + ': ' + esc(s.doing), esc(s.mode) + ' with ' + esc(list(s.members.map(m => PEOPLE[m].name))), s.crew ? 'crew ' + I(s.crew) : null, MONO(s.tokens) + ' tokens'].filter(Boolean).join(' · ');
     }
-    const p = PEOPLE[n.id];
-    const parts = [WHO(p.full), esc(p.role)];
+    const p = PEOPLE[id], parts = [WHO(p.full), esc(p.role)];
     if (!p.online) {
-      const waits = SESSIONS.filter(s => s.members.includes(n.id)).map(s => I(s.title));
-      parts.push('away since <span class="mono">' + p.since + '</span>', list(waits) + (waits.length > 1 ? ' wait' : ' waits'));
-    } else SESSIONS.filter(s => s.members.includes(n.id)).forEach(s => {
-      const others = s.members.filter(m => m !== n.id).map(m => PEOPLE[m].name);
-      parts.push(s.baton === n.id ? 'has the baton in ' + I(s.title) : 'in ' + I(s.title) + (others.length ? ' with ' + esc(list(others)) : ''));
+      const waits = SESSIONS.filter(s => s.members.includes(id)).map(s => I(s.title));
+      parts.push('away since ' + MONO(p.since), list(waits) + (waits.length > 1 ? ' wait' : ' waits'));
+    } else SESSIONS.filter(s => s.members.includes(id)).forEach(s => {
+      const others = s.members.filter(m => m !== id).map(m => PEOPLE[m].name);
+      parts.push(s.baton === id ? 'has the baton in ' + I(s.title) : 'in ' + I(s.title) + (others.length ? ' with ' + esc(list(others)) : ''));
     });
-    parts.push('<span class="mono">' + esc(p.tokens) + '</span> tokens');
+    parts.push(MONO(p.tokens) + ' tokens');
     return parts.join(' · ');
   }
-  const plain = h => h.replace(/<[^>]+>/g, '');
 
   /* ---- drawing ------------------------------------------------------------------------------ */
   const arcPath = (cx, cy, r, a0, a1) => {
     const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0), x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
     return `M${f(x0)} ${f(y0)} A${f(r)} ${f(r)} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${f(x1)} ${f(y1)}`;
   };
-  const SQ = 'M-2 -6H2A4 4 0 0 1 6 -2V2A4 4 0 0 1 2 6H-4.5A1.5 1.5 0 0 1 -6 4.5V-2A4 4 0 0 1 -2 -6Z';
-  function renderSky(lay, width, opts = {}) {
-    const out = [];
-    const whole = {};
-    out.push(`<svg class="sky" width="${width}" height="${f(lay.height)}" viewBox="0 0 ${width} ${f(lay.height)}" role="group" aria-label="Who is here, drawn as rings">`);
-    // rings: member-owned arcs
+  // the agent's shape (SYSTEM §12): the rounded square with the tight bottom-left corner, 14 px
+  const SQ = 'M-2.5 -7H2.5A4.5 4.5 0 0 1 7 -2.5V2.5A4.5 4.5 0 0 1 2.5 7H-5.5A1.5 1.5 0 0 1 -7 5.5V-2.5A4.5 4.5 0 0 1 -2.5 -7Z';
+  function renderSky(lay, width, opts) {
+    const out = [`<svg class="sky" width="${width}" height="${f(lay.height)}" viewBox="0 0 ${width} ${f(lay.height)}" role="group" aria-label="Who is here, drawn as rings">`];
     lay.rows.forEach(row => row.items.forEach(c => {
-      c.rings.forEach((R, ri) => {
+      c.rings.forEach(R => {
         const cx = R.cx + c.ox, cy = R.cy + c.oy, r = R.r;
         const ps = [...R.placed].sort((a, b) => norm(a.a) - norm(b.a));
-        const isWhole = R.s.members.every(m => PEOPLE[m].online); whole[R.s.id] = isWhole;
-        const joined = opts.joinedRings && opts.joinedRings.includes(R.s.id);
-        out.push(`<g class="ring${joined ? ' joined' : ''}" data-ring="${R.s.id}">`);
+        const whole = R.s.members.every(m => PEOPLE[m].online);
+        out.push(`<g class="ring${opts.joinedRings && opts.joinedRings.includes(R.s.id) ? ' joined' : ''}" data-ring="${R.s.id}">`);
         const seam = 4.5 / r;
         ps.forEach((p, k) => {
           const prev = ps[(k - 1 + ps.length) % ps.length], next = ps[(k + 1) % ps.length];
           let a = norm(p.a), ap = norm(prev.a), an = norm(next.a);
-          if (ps.length === 1) { ap = a - TAU; an = a + TAU; }
-          else { if (ap >= a) ap -= TAU; if (an <= a) an += TAU; }
+          if (ps.length === 1) { ap = a - TAU; an = a + TAU; } else { if (ap >= a) ap -= TAU; if (an <= a) an += TAU; }
           const a0 = (ap + a) / 2 + seam, a1 = (a + an) / 2 - seam;
-          const away = p.kind === 'person' && !PEOPLE[p.id].online;
-          if (away) out.push(`<path class="guide" d="${arcPath(cx, cy, r, a0, a1)}"/>`);
-          else {
-            const cls = ['arc', p.kind, R.s.baton === p.id ? 'baton' : '', p.kind === 'agent' && R.s.status === 'paused' ? 'paused' : '', opts.drawFor && opts.drawFor === p.id ? 'draw' : ''].filter(Boolean).join(' ');
-            out.push(`<path class="${cls}" pathLength="1" d="${arcPath(cx, cy, r, a0, a1)}"/>`);
-          }
+          if (p.kind === 'person' && !PEOPLE[p.id].online) { out.push(`<path class="guide" d="${arcPath(cx, cy, r, a0, a1)}"/>`); return; }
+          const cls = ['arc', p.kind, R.s.baton === p.id ? 'baton' : '', p.kind === 'agent' && R.s.status === 'paused' ? 'paused' : '', opts.drawFor === p.id ? 'draw' : ''].filter(Boolean).join(' ');
+          out.push(`<path class="${cls}" pathLength="1" d="${arcPath(cx, cy, r, a0, a1)}"/>`);
         });
-        out.push(isWhole ? `<circle class="centre" cx="${f(cx)}" cy="${f(cy)}" r="3.6"/>` : `<circle class="ghost" cx="${f(cx)}" cy="${f(cy)}" r="3.6"/>`);
+        out.push(whole ? `<circle class="centre" cx="${f(cx)}" cy="${f(cy)}" r="3.8"/>` : `<circle class="ghost" cx="${f(cx)}" cy="${f(cy)}" r="3.8"/>`);
         out.push('</g>');
       });
-      // threads
       c.threads.forEach(t => {
-        const id = 'thread-' + t.crew.replace(/\W+/g, '-').toLowerCase() + '-' + f(t.cx);
+        const id = 'thread-' + t.crew.replace(/\W+/g, '-').toLowerCase() + '-' + Math.round(t.cx + c.ox);
         const d = `M${f(t.a.x + c.ox)} ${f(t.a.y + c.oy)} Q${f(t.cx + c.ox)} ${f(t.cy + c.oy)} ${f(t.b.x + c.ox)} ${f(t.b.y + c.oy)}`;
-        out.push(`<g class="threadg" data-crew="${esc(t.crew)}"><path class="thread" id="${id}" d="${d}"/><text class="crew" dy="-7"><textPath href="#${id}" startOffset="50%" text-anchor="middle">${esc(t.crew)}</textPath></text></g>`);
+        out.push(`<g class="threadg" data-crew="${esc(t.crew)}"><path class="thread" id="${id}" d="${d}"/><text class="crew" dy="${t.under ? 17 : -7}"><textPath href="#${id}" startOffset="50%" text-anchor="middle">${esc(t.crew)}</textPath></text></g>`);
       });
-      // nodes
       c.nodes.forEach(n => {
         const x = f(n.x + c.ox), y = f(n.y + c.oy);
-        const ringIds = n.rings.map(i => c.rings[i].s.id);
-        const sentence = memberSentence(n);
+        const ringIds = n.rings.map(i => c.rings[i].s.id).join(' ');
+        const sentence = plain(memberSentence(n.kind, n.id));
         const joined = opts.joined === n.key, passed = opts.passed === n.key;
         if (n.kind === 'person') {
-          const p = PEOPLE[n.id];
-          const baton = SESSIONS.some(s => s.baton === n.id);
+          const p = PEOPLE[n.id], baton = SESSIONS.some(s => s.baton === n.id);
           const cls = ['pt', 'person', baton ? 'baton' : '', p.online ? '' : 'away', joined ? 'joined' : '', passed ? 'passed' : ''].filter(Boolean).join(' ');
-          out.push(`<a class="${cls}" href="#roster-${n.id}" data-member="${n.key}" data-rings="${ringIds.join(' ')}" aria-label="${esc(plain(sentence))}"><title>${esc(plain(sentence))}</title>`);
+          out.push(`<a class="${cls}" href="#roster-${n.id}" data-member="${n.key}" data-rings="${ringIds}" aria-label="${esc(sentence)}"><title>${esc(sentence)}</title>`);
           out.push(`<circle class="hit" cx="${x}" cy="${y}" r="16"/>`);
-          if (baton) out.push(`<circle class="halo" cx="${x}" cy="${y}" r="10.5"/>`);
+          if (baton) out.push(`<circle class="halo" cx="${x}" cy="${y}" r="11"/>`);
           if (joined) out.push(`<circle class="ripple" cx="${x}" cy="${y}" r="7"/>`);
-          out.push(`<circle class="focus" cx="${x}" cy="${y}" r="14"/>`);
-          if (baton) out.push(`<circle class="ring-baton" cx="${x}" cy="${y}" r="10.5"/>`);
-          out.push(`<circle class="dot" cx="${x}" cy="${y}" r="${baton ? 6.4 : 5}"/>`);
+          out.push(`<circle class="focus" cx="${x}" cy="${y}" r="15"/>`);
+          if (baton) out.push(`<circle class="ring-baton" cx="${x}" cy="${y}" r="11"/>`);
+          out.push(`<circle class="dot" cx="${x}" cy="${y}" r="${baton ? 6.6 : 5}"/>`);
         } else {
-          const s = SESSIONS.find(q => q.id === n.id);
+          const s = byId(n.id);
           const cls = ['pt', 'agent', s.status, joined ? 'joined' : ''].filter(Boolean).join(' ');
           const ring = c.rings[n.rings[0]]; const ox = n.x - ring.cx, oy = n.y - ring.cy; const L = Math.hypot(ox, oy) || 1;
-          const dx = f(x + 7.4 * ox / L), dy = f(y + 7.4 * oy / L);
-          out.push(`<a class="${cls}" href="#roster-${n.id}" data-member="${n.key}" data-rings="${ringIds.join(' ')}" data-crew="${esc(s.crew || '')}" aria-label="${esc(plain(sentence))}"><title>${esc(plain(sentence))}</title>`);
+          const dx = f(x + 7.6 * ox / L), dy = f(y + 7.6 * oy / L);
+          out.push(`<a class="${cls}" href="#roster-${n.id}" data-member="${n.key}" data-rings="${ringIds}" data-crew="${esc(s.crew || '')}" aria-label="${esc(sentence)}"><title>${esc(sentence)}</title>`);
           out.push(`<circle class="hit" cx="${x}" cy="${y}" r="16"/>`);
           if (joined) out.push(`<circle class="ripple" cx="${x}" cy="${y}" r="7"/>`);
-          out.push(`<circle class="focus" cx="${x}" cy="${y}" r="14"/>`);
-          out.push(`<path class="sq" d="${SQ}" transform="translate(${x} ${y}) scale(1.15)"/>`);
-          out.push(`<circle class="pr ${s.status}" cx="${dx}" cy="${dy}" r="3.6"/>`);
+          out.push(`<circle class="focus" cx="${x}" cy="${y}" r="15"/>`);
+          out.push(`<path class="sq" d="${SQ}" transform="translate(${x} ${y})"/>`);
+          if (s.status === 'running') out.push(`<circle class="pr-halo running" cx="${dx}" cy="${dy}" r="3.8"/>`);
+          out.push(`<circle class="pr ${s.status}" cx="${dx}" cy="${dy}" r="3.8"/>`);
         }
-        // labels
-        const st = n.label.state ? (n.label.mono
-          ? esc(n.label.state.replace(n.label.mono, '')) + `<tspan class="mono">${esc(n.label.mono)}</tspan>`
-          : esc(n.label.state)) : '';
-        out.push(`<text x="${f(n.lx + c.ox)}" y="${f(n.ly + c.oy)}" text-anchor="${n.anchor}" font-size="${n.fs}">${esc(n.label.name)}</text>`);
-        if (st) out.push(`<text class="state" x="${f(n.lx + c.ox)}" y="${f(n.ly + c.oy + n.ss + 3)}" text-anchor="${n.anchor}" font-size="${n.ss}">${st}</text>`);
+        const st = n.label.state ? (n.label.mono ? esc(n.label.state.replace(n.label.mono, '')) + `<tspan class="mono">${esc(n.label.mono)}</tspan>` : esc(n.label.state)) : '';
+        out.push(`<text x="${f(n.lx + c.ox)}" y="${f(n.ly + c.oy)}" text-anchor="${n.anchor}">${esc(n.label.name)}</text>`);
+        if (st) out.push(`<text class="state" x="${f(n.lx + c.ox)}" y="${f(n.ly + c.oy + n.ss + 3)}" text-anchor="${n.anchor}">${st}</text>`);
         out.push('</a>');
       });
     }));
@@ -764,14 +761,13 @@ a { color: var(--accent-ink); text-decoration: none; }
     return out.join('');
   }
 
-  /* ---- mount -------------------------------------------------------------------------------- */
+  /* ---- mount, hover, focus, keys ------------------------------------------------------------ */
   const band = document.getElementById('band'), reading = document.getElementById('reading'), figure = document.getElementById('constellation');
   let lastWidth = 0, lastOpts = {};
   function draw(opts) {
     const width = Math.max(280, Math.round(band.clientWidth));
     lastWidth = width; lastOpts = opts || {};
-    const lay = layoutSky(width);
-    band.innerHTML = renderSky(lay, width, lastOpts);
+    band.innerHTML = renderSky(layoutSky(width), width, lastOpts);
     const rest = restingSentence();
     reading.innerHTML = rest; reading.classList.remove('hover');
     figure.setAttribute('aria-label', plain(rest));
@@ -779,28 +775,34 @@ a { color: var(--accent-ink); text-decoration: none; }
   }
   function wire() {
     const sky = band.querySelector('.sky');
-    const rest = reading.innerHTML;
-    sky.querySelectorAll('a.pt').forEach(a => {
+    const points = [...sky.querySelectorAll('a.pt')];
+    points.forEach(a => {
+      const [kind, id] = a.dataset.member.split(':');
       const light = () => {
         sky.classList.add('dim');
         const rings = a.dataset.rings.split(' ');
         sky.querySelectorAll('.ring').forEach(g => g.classList.toggle('hot', rings.includes(g.dataset.ring)));
-        sky.querySelectorAll('a.pt').forEach(b => {
-          const bRings = b.dataset.rings.split(' ');
+        points.forEach(b => {
           b.classList.toggle('hot', b === a);
-          b.classList.toggle('warm', b !== a && bRings.some(r => rings.includes(r)));
+          b.classList.toggle('warm', b !== a && b.dataset.rings.split(' ').some(r => rings.includes(r)));
         });
         sky.querySelectorAll('.threadg').forEach(t => t.classList.toggle('hot', !!a.dataset.crew && t.dataset.crew === a.dataset.crew));
-        reading.innerHTML = memberSentence(nodeOf(a.dataset.member)); reading.classList.add('hover');
+        reading.innerHTML = memberSentence(kind, id); reading.classList.add('hover');
       };
-      const rest_ = () => {
+      const rest = () => {
         sky.classList.remove('dim');
         sky.querySelectorAll('.hot, .warm').forEach(e => e.classList.remove('hot', 'warm'));
         reading.innerHTML = restingSentence(); reading.classList.remove('hover');
       };
       a.addEventListener('pointerenter', light); a.addEventListener('focus', light);
-      a.addEventListener('pointerleave', rest_); a.addEventListener('blur', rest_);
-      a.addEventListener('click', () => {                      // the sky is navigation: the point opens its row
+      a.addEventListener('pointerleave', rest); a.addEventListener('blur', rest);
+      a.addEventListener('keydown', e => {                   // arrows walk the points in reading order
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        e.preventDefault();
+        const i = points.indexOf(a), n = points[(i + (e.key === 'ArrowRight' ? 1 : points.length - 1)) % points.length];
+        n.focus();
+      });
+      a.addEventListener('click', () => {                    // the sky is navigation: a point opens its row
         const row = document.getElementById(a.getAttribute('href').slice(1));
         if (!row) return;
         document.querySelectorAll('.row.here').forEach(r => r.classList.remove('here'));
@@ -809,19 +811,14 @@ a { color: var(--accent-ink); text-decoration: none; }
       });
     });
   }
-  function nodeOf(key) {
-    const [kind, id] = key.split(':');
-    return { kind, id };
-  }
   const motionOn = () => getComputedStyle(html).getPropertyValue('--motion').trim() === '1';
 
-  /* ---- the exploration's controls (not part of the design) ---------------------------------- */
+  /* ---- the exploration's controls (#inspector): not part of the design ---------------------- */
   const showInspector = () => { if (/inspector/.test(location.hash) || /inspector/.test(location.search)) html.dataset.inspector = ''; };
   showInspector(); addEventListener('hashchange', showInspector);
   const btnDee = document.getElementById('btn-dee');
   btnDee.addEventListener('click', () => {
-    const p = PEOPLE.dee;
-    const tax = SESSIONS.find(s => s.id === 'tax');
+    const p = PEOPLE.dee, tax = byId('tax');
     if (!p.online) {
       p.online = true; tax.baton = 'dee'; tax.status = 'running'; tax.word = 'running'; tax.doing = 'resuming tax lines, step 3 of 5';
       btnDee.textContent = 'Dee leaves';
@@ -830,12 +827,11 @@ a { color: var(--accent-ink); text-decoration: none; }
     } else {
       p.online = false; p.since = '09:47'; tax.baton = null; tax.status = 'paused'; tax.word = 'paused'; tax.doing = 'waits for Dee';
       btnDee.textContent = 'Dee returns';
-      draw({});                                               // leaving is no motion: the ring simply opens
+      draw({});                                              // leaving is no motion: the ring simply opens
     }
   });
   document.getElementById('btn-baton').addEventListener('click', () => {
-    const s = SESSIONS.find(x => x.id === 'billing');
-    s.baton = s.baton === 'ana' ? 'bo' : 'ana';
+    const s = byId('billing'); s.baton = s.baton === 'ana' ? 'bo' : 'ana';
     draw({ passed: 'person:' + s.baton });
     if (motionOn()) setTimeout(() => { if (lastOpts.passed) draw({}); }, 500); else draw({});
   });

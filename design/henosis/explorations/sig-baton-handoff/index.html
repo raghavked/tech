@@ -1,25 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-state="rest">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henosis · The baton</title>
-<meta name="description" content="The signature element: the driver's ring is the baton. On a handoff it leaves one avatar, rolls along the composer's lane with weight, waits open beside the next person, and closes around them on Accept; a refusal stops it short and it rolls home.">
+<meta name="description" content="Signature element: the driver's ring is the baton. It lifts off one person, rolls one full turn per seat along a lane that folds out of the composer, sags the lane under its weight, waits open beside the next person, and closes around them on Accept. A decline raises a stop; the baton bumps it and rolls home heavier. A refusal by rule has no motion at all.">
 <style>
-/* -------------------------------------------------------------------------------------------
-   Tokens, inlined from design/henosis/tokens.v5.css (SYSTEM §2, §16). Self-contained: no @import,
-   no web font, no external asset. Fraunces and Inter are asked for first; the Instrument faces and
-   the system faces follow.
-   ------------------------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------------------
+   Tokens, inlined from design/henosis/tokens.v5.css (SYSTEM §2, §3, §14, §16). Self-contained:
+   no @import, no font fetched, no external asset. Fraunces and Inter are asked for first (the
+   research memos' faces); the Instrument faces and the system faces follow (BRIEF).
+   ------------------------------------------------------------------------------------------------ */
 :root {
   --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
   --canvas: #FBF7F1; --wash: rgba(226,196,166,.35);
-  --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
+  --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6; --out-bg: #2A3244;
   --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --edge: none;
   --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2;
   --rail-active: rgba(226,196,166,.18); --rail-line: rgba(243,237,228,.10); --crease: #E2C4A6;
   --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
-  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30); --select-wash: rgba(226,196,166,.16); --select-line: rgba(207,167,130,.5);
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30);
+  --select-wash: rgba(226,196,166,.16); --select-line: rgba(207,167,130,.5);
   --glow: 0 0 0 4px rgba(226,196,166,.35);
   --count-bg: #CFA782; --count-fg: #2A3244; --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
   --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --grad-fg: #F8F2EA;
@@ -27,8 +28,8 @@
   --warn: #B9792E; --warn-soft: rgba(185,121,46,.14); --warn-ink: #7F5320;
   --danger: #A8463A; --danger-soft: rgba(168,70,58,.14); --danger-ink: #8E3A30;
   --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
-  --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --radius-agent: 9px 9px 9px 3px;
-  --col: 780px; --rail-w: 296px; --spec-w: 384px;
+  --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --radius-agent: 9px 9px 9px 3px;
+  --col: 780px; --rail-w: 296px; --spec-w: 392px; --gutter: 24px;
   --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --serif: "Fraunces", "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -36,39 +37,51 @@
   --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
   --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
   --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
-  --focus-ring: var(--accent); --focus-halo: var(--apricot-soft);
-  --motion: 0;                               /* 1 only inside the one guard (MOTION §3) */
+  --focus-ring: var(--accent); --focus-halo: rgba(226,196,166,.45);
+  --motion: 0; /* 1 only inside the one guard (MOTION §3) */
 
-  /* ---- the baton: four springs, sampled once into CSS linear() so every device lands on the same
-     frame (MOTION §2's reason for keyed overshoot, with the memo's spring physics).
-     x(t) = 1 − e^(−ζω₀t)·(cos ω_d t + (ζω₀/ω_d)·sin ω_d t), from rest, 36 samples, cut where it stays
-     within 0.4 % of the target. Units: mass in kg-ish, stiffness N/m, damping N·s/m. ---- */
-  --d-travel: 830ms;  /* m 1.4 · k 170 · c 20 → ζ .65 · ω₀ 11.0 rad/s · overshoot 6.9 % */
-  --spring-travel: linear(0, 0.029, 0.103, 0.205, 0.322, 0.443, 0.561, 0.67, 0.766, 0.848, 0.915, 0.968, 1.008, 1.037, 1.055, 1.065, 1.069, 1.068, 1.063, 1.057, 1.049, 1.04, 1.032, 1.025, 1.018, 1.012, 1.007, 1.003, 1, 0.998, 0.996, 0.996, 0.995, 0.995, 0.996, 0.996, 1);
-  --d-return: 640ms;  /* m 1.4 · k 140 · c 26 → ζ .93 · ω₀ 10.0 · no overshoot: it comes home tired */
-  --spring-return: linear(0, 0.014, 0.051, 0.103, 0.164, 0.231, 0.299, 0.367, 0.433, 0.496, 0.554, 0.608, 0.658, 0.702, 0.742, 0.778, 0.81, 0.838, 0.862, 0.883, 0.902, 0.917, 0.931, 0.943, 0.953, 0.961, 0.968, 0.974, 0.979, 0.983, 0.987, 0.989, 0.992, 0.994, 0.995, 0.996, 1);
-  --d-close: 380ms;   /* m 1 · k 420 · c 34 → ζ .83 · ω₀ 20.5 · overshoot 0.9 %: the ring closes and holds */
-  --spring-close: linear(0, 0.021, 0.074, 0.147, 0.231, 0.32, 0.409, 0.495, 0.574, 0.646, 0.71, 0.766, 0.815, 0.856, 0.89, 0.918, 0.941, 0.96, 0.974, 0.985, 0.993, 1, 1.004, 1.007, 1.008, 1.009, 1.009, 1.009, 1.009, 1.008, 1.007, 1.006, 1.006, 1.005, 1.004, 1.003, 1);
-  --d-lift: 250ms;    /* m 1 · k 600 · c 44 → ζ .90 · ω₀ 24.5 · the pick-up */
-  --spring-lift: linear(0, 0.013, 0.047, 0.096, 0.155, 0.219, 0.285, 0.352, 0.418, 0.48, 0.539, 0.594, 0.645, 0.691, 0.733, 0.77, 0.803, 0.833, 0.858, 0.881, 0.901, 0.917, 0.932, 0.944, 0.955, 0.964, 0.971, 0.977, 0.982, 0.987, 0.99, 0.993, 0.995, 0.997, 0.998, 0.999, 1);
-  --d-stop: 200ms; --d-bump: 160ms;
+  /* avatars: the initial's colour is derived from the fill, never from the theme's foreground
+     (judge-signature-2's cross-cutting fix). Four tints of the three colours on cream. */
+  --av-ana-bg: #EBD9C6; --av-ana-fg: #56352D;
+  --av-bo-bg:  #D9DEE8; --av-bo-fg:  #2A3244;
+  --av-cy-bg:  #E6DCCF; --av-cy-fg:  #56352D;
+  --av-dee-bg: #DCD6CF; --av-dee-fg: #2A3244;
 
-  /* colour by ground (SYSTEM §5): the baton is the driver ring, apricot-deep on cream, apricot at night */
-  --baton: var(--apricot-deep);
-  --baton-halo: rgba(207,167,130,.45);
-  --baton-shadow: 0 6px 10px rgba(42,50,68,.18);
+  /* ---- the baton (this exploration) ----
+     Four damped springs, each sampled into a CSS linear() easing so every device lands on the
+     same frame (MOTION §2: overshoot is keyed, never a runtime spring). From rest:
+       x(t) = 1 − e^(−ζω₀t) · ( cos ω_d t + (ζω₀ / ω_d) · sin ω_d t ),
+       ω₀ = √(k/m), ζ = c / 2√(km), ω_d = ω₀√(1 − ζ²).
+     41 stops; the run is cut where the response stays within 0.4 % of the target, rounded up to
+     10 ms. The generator (12 lines) is in the page script and also draws the plots in the spec pane. */
+  --d-travel: 730ms; /* m 1.2 · k 180 · c 19 → ζ .646 · ω₀ 12.25 rad/s · overshoot 7.0 % · the roll to the next seat */
+  --spring-travel: linear(0, 0.023, 0.082, 0.166, 0.265, 0.371, 0.477, 0.58, 0.674, 0.76, 0.834, 0.896, 0.948, 0.989, 1.02, 1.042, 1.057, 1.066, 1.07, 1.069, 1.066, 1.061, 1.054, 1.047, 1.04, 1.032, 1.025, 1.019, 1.014, 1.009, 1.005, 1.002, 0.999, 0.998, 0.996, 0.996, 0.995, 0.995, 0.995, 0.996, 1);
+  --d-return: 790ms; /* m 1.5 · k 120 · c 26 → ζ .969 · ω₀ 8.94 · no overshoot · home after a decline, heavier */
+  --spring-return: linear(0, 0.014, 0.05, 0.1, 0.16, 0.224, 0.291, 0.356, 0.42, 0.48, 0.537, 0.589, 0.638, 0.681, 0.721, 0.756, 0.787, 0.815, 0.84, 0.862, 0.881, 0.898, 0.912, 0.925, 0.936, 0.945, 0.954, 0.961, 0.967, 0.972, 0.976, 0.98, 0.983, 0.986, 0.988, 0.99, 0.992, 0.993, 0.994, 0.995, 1);
+  --d-close: 340ms;  /* m 1 · k 500 · c 36 → ζ .805 · ω₀ 22.36 · overshoot 1.4 % · the last of the turn and the ring closing */
+  --spring-close: linear(0, 0.016, 0.059, 0.119, 0.191, 0.269, 0.349, 0.429, 0.505, 0.576, 0.642, 0.701, 0.754, 0.801, 0.842, 0.876, 0.906, 0.93, 0.951, 0.967, 0.98, 0.991, 0.999, 1.004, 1.009, 1.011, 1.013, 1.014, 1.014, 1.014, 1.013, 1.012, 1.011, 1.01, 1.009, 1.008, 1.007, 1.006, 1.005, 1.004, 1);
+  --d-lift: 220ms;   /* m 1 · k 700 · c 48 → ζ .907 · ω₀ 26.46 · 0.1 % · the pick-up: 6 px rise and the ring opening */
+  --spring-lift: linear(0, 0.01, 0.036, 0.073, 0.12, 0.171, 0.227, 0.283, 0.34, 0.396, 0.45, 0.502, 0.551, 0.597, 0.64, 0.68, 0.716, 0.749, 0.779, 0.807, 0.831, 0.853, 0.873, 0.89, 0.906, 0.919, 0.931, 0.942, 0.951, 0.959, 0.965, 0.971, 0.976, 0.981, 0.984, 0.987, 0.99, 0.992, 0.994, 0.996, 1);
+  --d-stop: 200ms; --d-bump: 160ms; /* two keyed clocks: the stop rises on --ease-arrive, the bump on --ease-leave */
+
+  /* geometry: one seat is one turn of the ring. pitch = 2π·r → r 19.1 px at a 120 px pitch. */
+  --seat: 32px; --pitch: 120px; --r: 19.1; --gap: 36px; --lane-pad: 16px; --lane-h: 68px; --first: 104px;
+  --baton: var(--apricot-deep);           /* the driver ring's colour by day (SYSTEM §12) */
+  --baton-halo: rgba(207,167,130,.55);
+  --baton-shadow: drop-shadow(0 5px 4px rgba(42,50,68,.22));
   --track: var(--line);
-  --stop: var(--danger);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --canvas: #1A202C; --wash: rgba(226,196,166,.10);
-  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
-  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A; --out-bg: #0E1218;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14);
+  --edge: inset 0 1px 0 rgba(255,255,255,.055);
   --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
   --rail-active: rgba(226,196,166,.12); --rail-line: rgba(240,234,224,.08); --crease: rgba(226,196,166,.55);
   --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
-  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
   --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6;
   --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
@@ -76,17 +89,21 @@
   --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
   --focus-ring: var(--ink);
-  --baton-halo: rgba(226,196,166,.4); --baton-shadow: 0 6px 10px rgba(0,0,0,.45);
+  --av-ana-bg: #5C443A; --av-ana-fg: #F0EAE0; --av-bo-bg: #3A4458; --av-bo-fg: #F0EAE0;
+  --av-cy-bg: #4E4A44; --av-cy-fg: #F0EAE0; --av-dee-bg: #474A55; --av-dee-fg: #F0EAE0;
+  --baton: var(--apricot); --baton-halo: rgba(226,196,166,.5); --baton-shadow: drop-shadow(0 5px 5px rgba(0,0,0,.45));
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
   --canvas: #1A202C; --wash: rgba(226,196,166,.10);
-  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
-  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A; --out-bg: #0E1218;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14);
+  --edge: inset 0 1px 0 rgba(255,255,255,.055);
   --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
   --rail-active: rgba(226,196,166,.12); --rail-line: rgba(240,234,224,.08); --crease: rgba(226,196,166,.55);
   --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
-  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
   --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6;
   --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
@@ -94,643 +111,649 @@
   --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
   --focus-ring: var(--ink);
-  --baton-halo: rgba(226,196,166,.4); --baton-shadow: 0 6px 10px rgba(0,0,0,.45);
+  --av-ana-bg: #5C443A; --av-ana-fg: #F0EAE0; --av-bo-bg: #3A4458; --av-bo-fg: #F0EAE0;
+  --av-cy-bg: #4E4A44; --av-cy-fg: #F0EAE0; --av-dee-bg: #474A55; --av-dee-fg: #F0EAE0;
+  --baton: var(--apricot); --baton-halo: rgba(226,196,166,.5); --baton-shadow: drop-shadow(0 5px 5px rgba(0,0,0,.45));
   color-scheme: dark;
 }
 
-/* ---- the one guard (MOTION §3): every transition and animation lives inside it; calm and reduce
-   zero the clocks and the baton simply sits where the state puts it ---- */
-@media (prefers-reduced-motion: no-preference) {
-  :root:not([data-motion="calm"]) { --motion: 1; }
-  /* the carrier travels on the travel spring; on the way home it takes the return spring */
-  :root:not([data-motion="calm"]) .carrier { transition: translate var(--d-travel) var(--spring-travel); }
-  :root:not([data-motion="calm"]) .lane[data-state="return"] .carrier,
-  :root:not([data-motion="calm"]) .lane[data-state="recall"] .carrier { transition-duration: var(--d-return); transition-timing-function: var(--spring-return); }
-  /* it rolls: the rotation rides the same spring as the position, so the overshoot rolls back too */
-  :root:not([data-motion="calm"]) .baton { transition: rotate var(--d-travel) var(--spring-travel), filter var(--t) var(--ease-move); }
-  :root:not([data-motion="calm"]) .lane[data-state="return"] .baton,
-  :root:not([data-motion="calm"]) .lane[data-state="recall"] .baton { transition-duration: var(--d-return), var(--t); transition-timing-function: var(--spring-return), var(--ease-move); }
-  /* the pick-up and the put-down */
-  :root:not([data-motion="calm"]) .lift { transition: translate var(--d-lift) var(--spring-lift); }
-  /* weight: while it rolls, the carrier sags into the lane and the lane dips under it */
-  :root:not([data-motion="calm"]) .lane[data-state="travel"] .lift { animation: sag var(--d-travel) var(--ease-move) both; }
-  :root:not([data-motion="calm"]) .lane[data-state="return"] .lift,
-  :root:not([data-motion="calm"]) .lane[data-state="recall"] .lift { animation: sag var(--d-return) var(--ease-move) both; }
-  :root:not([data-motion="calm"]) .dip { transition: opacity var(--t) var(--ease-move); }
-  /* the ring opens as it is picked up and closes on Accept, on the close spring */
-  :root:not([data-motion="calm"]) .ring { transition: stroke-dasharray var(--d-close) var(--spring-close), stroke-width var(--t) var(--ease-move); }
-  :root:not([data-motion="calm"]) .lane[data-state="lift"] .ring { transition-duration: var(--d-lift), var(--t); transition-timing-function: var(--spring-lift), var(--ease-move); }
-  /* waiting is the halo pulse (MOTION §5.5), never a ring that re-opens */
-  :root:not([data-motion="calm"]) .lane[data-state="offered"] .halo { animation: baton-halo 1.8s var(--ease-move) infinite; }
-  /* the refusal: a stop rises, the baton bumps against it */
-  :root:not([data-motion="calm"]) .stop { transition: scale var(--d-stop) var(--ease-arrive), opacity var(--t) var(--ease-move); }
-  :root:not([data-motion="calm"]) .lane[data-state="blocked"] .baton { animation: bump var(--d-bump) var(--ease-move) .06s both; }
-  :root:not([data-motion="calm"]) .seat.pop .avatar { animation: pop var(--t-slow) var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .seat.pop .avatar::after { content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; animation: ripple .9s var(--ease-leave) both; }
-  :root:not([data-motion="calm"]) .say.enter, :root:not([data-motion="calm"]) .divider.enter, :root:not([data-motion="calm"]) .actions.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .status.running::before, :root:not([data-motion="calm"]) .avatar.agent .pr, :root:not([data-motion="calm"]) .step.live .ic { animation: dot-live 1.8s var(--ease-move) infinite; }
-  :root:not([data-motion="calm"]) .avatar { transition: box-shadow var(--t-slow) var(--ease-move); }
-  :root:not([data-motion="calm"]) .btn, :root:not([data-motion="calm"]) .chip { transition: background var(--t-fast) var(--ease-move), box-shadow var(--t-fast) var(--ease-move), transform var(--t) var(--ease-move), opacity var(--t) var(--ease-move); }
-  :root:not([data-motion="calm"]) .composer { transition: box-shadow var(--t-fast) var(--ease-move); }
-}
-:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
-@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
-
-@keyframes sag { 0% { translate: 0 -5px } 42% { translate: 0 3px } 100% { translate: 0 0 } }
-@keyframes baton-halo { 0% { stroke-width: 2; opacity: .9 } 70% { stroke-width: 13; opacity: 0 } 100% { stroke-width: 13; opacity: 0 } }
-@keyframes bump { 0% { scale: 1 1 } 50% { scale: .78 1.14 } 100% { scale: 1 1 } }
-@keyframes pop { 0% { transform: scale(.9) } 60% { transform: scale(1.08) } 100% { transform: none } }
-@keyframes ripple { 0% { box-shadow: 0 0 0 0 var(--apricot); opacity: 1 } 100% { box-shadow: 0 0 0 14px var(--apricot); opacity: 0 } }
-@keyframes card-in { 0% { opacity: 0; transform: translateY(6px) } 100% { opacity: 1; transform: none } }
-@keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--dot-halo, var(--apricot-soft)) } 70% { box-shadow: 0 0 0 5px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
-
-/* ---- base ---- */
+/* ---------------------------------- base ---------------------------------- */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; overflow: hidden; }
-h1, h2, h3 { margin: 0; letter-spacing: -.01em; text-wrap: balance; font-weight: 400; }
-p { margin: 0; }
+body { margin: 0; background: var(--canvas); background-image: radial-gradient(1200px 600px at 20% -10%, var(--wash), transparent 60%); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; overflow: hidden; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font: 400 26px/32px var(--serif); }
+h3 { font: 600 15px/20px var(--font); }
 .serif { font-family: var(--serif); font-weight: 400; } .serif.i { font-style: italic; }
-.mono { font-family: var(--mono); font-size: 12.5px; line-height: 16px; font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
 .muted { color: var(--ink-2); } .faint { color: var(--ink-3); } .small { font-size: 13px; line-height: 20px; }
 .kicker { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-button { font: 500 14px/20px var(--font); color: inherit; }
-:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; box-shadow: 0 0 0 5px var(--focus-halo); }
-kbd { font: 500 11px/18px var(--mono); padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--surface); color: var(--ink-2); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: 0 0 0 6px var(--focus-halo); border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* ---- shell ---- */
-.shell { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--spec-w); height: 100%; }
-.rail { background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 4px; border-right: 1px solid var(--crease); min-height: 0; }
-.rail .brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 14px; font-family: var(--serif); font-size: 24px; line-height: 28px; }
-.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: #fff; border: 0; font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
+/* ---------------------------------- shell ---------------------------------- */
+.shell { display: flex; height: 100%; }
+.rail { width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 6px; box-shadow: inset -1px 0 0 var(--crease); }
+.rail .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font: 400 24px/28px var(--serif); }
+.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
 .rail .section { padding: 16px 10px 6px; font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
-.rail .item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: var(--radius); color: var(--rail-fg); font: 500 14px/20px var(--font); text-decoration: none; }
-.rail .item:hover { background: var(--rail-2); }
-.rail .item .count { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--count-bg); color: var(--count-fg); font: 600 11.5px/20px var(--mono); text-align: center; }
-.rail .crew { padding: 10px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
-.rail .crew .serif { font-size: 15px; color: var(--apricot); }
-.rail .crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
-.rail .agentcard { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-radius: var(--radius); color: var(--rail-fg); }
-.rail .agentcard.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line); }
-.rail .agentcard .head { display: flex; align-items: center; gap: 9px; font-family: var(--serif); font-size: 15.5px; line-height: 20px; }
-.rail .agentcard .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
-.rail .agentcard .head .dot.running { background: #9BC88F; --dot-halo: rgba(155,200,143,.25); }
-.rail .agentcard .head .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); }
-.rail .agentcard .head .dot.idle { background: transparent; border: 1.5px solid var(--rail-muted); }
-.rail .agentcard .head .pill { margin-left: auto; }
-.rail .agentcard .doing { font-size: 13px; line-height: 18px; color: var(--rail-muted); }
-.rail .agentcard .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
-.rail .agentcard .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); }
-.rail .agentcard .foot .mono { margin-left: auto; font-size: 12px; }
+.rail .section .n { margin-left: auto; letter-spacing: 0; }
+.rail .item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); color: var(--rail-fg); font-size: 14px; }
 .rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 14px; }
-.rail .me .who { display: flex; flex-direction: column; line-height: 18px; }
-.rail .me .who .name { font-family: var(--serif); font-size: 16px; }
-.rail .me .who .role { font-size: 12px; color: var(--rail-muted); }
-.rail .avatar { --avatar-edge: var(--rail); }
-
-.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
-.main::before { content: ""; position: absolute; left: 10%; top: -220px; width: 720px; height: 420px; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; }
-.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); position: relative; }
-.topbar .title { font-family: var(--serif); font-size: 20px; line-height: 24px; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; flex: none; }
-.topbar .status, .topbar .pill { flex: none; }
-.topbar .title .crumb { color: var(--ink-3); font-family: var(--font); font-size: 13.5px; }
-.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-.status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
-.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
-.status.running::before { background: var(--ok); --dot-halo: var(--ok-soft); }
-.pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/22px var(--font); letter-spacing: .02em; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
+.rail .me .role { margin-left: auto; font: 500 12px/16px var(--font); color: var(--rail-muted); }
+.crew { padding: 12px 12px 4px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
+.crew .serif { font-size: 15px; color: var(--apricot); }
+.agentcard { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-radius: var(--radius); color: var(--rail-fg); text-decoration: none; }
+.agentcard.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px rgba(226,196,166,.35); }
+.agentcard .head { display: flex; align-items: center; gap: 9px; font: 400 16px/20px var(--serif); min-width: 0; }
+.agentcard .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
+.agentcard .head .dot.running { background: #9BC88F; box-shadow: 0 0 0 3px rgba(155,200,143,.25); }
+.agentcard .head .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); }
+.agentcard .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agentcard .doing { font: 400 13px/18px var(--font); color: var(--rail-muted); }
+.agentcard .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+.agentcard .foot { display: flex; align-items: center; gap: 8px; font: 500 12px/16px var(--font); color: var(--rail-muted); }
+.agentcard .foot .mono { font-size: 12px; margin-left: auto; }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/16px var(--font); letter-spacing: .02em; background: var(--surface-3); color: var(--ink-2); }
 .pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
-.tokchip { display: inline-flex; flex-direction: column; gap: 3px; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; line-height: 16px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.tokchip .hair { height: 3px; border-radius: 2px; background: var(--surface-3); position: relative; overflow: hidden; }
-.tokchip .hair i { position: absolute; left: 0; top: 0; bottom: 0; width: 31%; background: var(--apricot-deep); border-radius: 2px; }
-.tokchip .hair::after { content: ""; position: absolute; left: 80%; top: 0; bottom: 0; width: 1px; background: var(--ink-3); }
+.pill.solo { background: transparent; border: 1px solid var(--line); }
+.rail .pill.solo { border-color: var(--rail-line); color: var(--rail-muted); }
 
-/* avatars (SYSTEM §12): a person is a circle; an agent is the tight-cornered tile on the gradient */
-.avatar { --size: 28px; width: var(--size); height: var(--size); border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 600 11px/1 var(--font); border: 2px solid var(--avatar-edge, var(--canvas)); position: relative; flex: none; }
-.avatar.a { background: #DCC8B8; } .avatar.b { background: #C9CFDB; } .avatar.c { background: #D6D9C9; }
-:root[data-theme="dark"] .avatar.a, :root[data-theme="dark"] .avatar.b, :root[data-theme="dark"] .avatar.c { color: var(--blues); }
-.avatar.sm { --size: 22px; font-size: 9px; } .avatar.xs { --size: 18px; font-size: 8px; border-width: 1.5px; }
-.avatar.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
-.avatar.agent { border-radius: var(--radius-agent); background: var(--gradient-brand); color: var(--grad-fg); }
-.avatar.agent.sm, .avatar.agent.xs { border-radius: 7px 7px 7px 2px; }
-.avatar.agent::before { content: ""; width: 28%; height: 28%; border-radius: 50%; background: var(--apricot); }
-.avatar.agent .pr { position: absolute; right: -3px; bottom: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); border: 2px solid var(--avatar-edge, var(--canvas)); --dot-halo: var(--ok-soft); }
-.stack { display: inline-flex; align-items: center; isolation: isolate; }
-.stack .avatar { z-index: 1; } .stack .avatar.driver { z-index: 2; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: clip; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: blur(8px); }
+.topbar .title { font: 400 20px/24px var(--serif); display: inline-flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; flex: 1; }
+.topbar .title > :first-child { overflow: hidden; text-overflow: ellipsis; }
+/* the title row's collision fix (judge-signature-2): the meter and the stack each own a flex slot */
+.topbar .tokens { flex: none; display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 11px; border-radius: var(--radius-full); background: var(--surface-2); color: var(--ink-2); font: 400 12.5px/16px var(--mono); font-variant-numeric: tabular-nums; }
+.topbar .tokens .hair { width: 56px; height: 3px; border-radius: 2px; background: var(--surface-3); overflow: hidden; }
+.topbar .tokens .hair i { display: block; height: 100%; width: 31%; background: var(--apricot-deep); border-radius: inherit; }
+.topbar .stack { flex: none; display: inline-flex; margin-left: 4px; }
+.topbar .phone-sentence, .topbar .phone-row { display: none; }
+a { color: inherit; text-decoration: none; }
+.scroll { flex: 1; overflow: auto; }
+.column { width: min(var(--col), 100%); margin: 0 auto; padding: 18px var(--gutter) 40px; display: flex; flex-direction: column; gap: 24px; }
+
+/* ---------------------------------- avatars ---------------------------------- */
+.avatar { --av-bg: var(--surface-3); --av-fg: var(--ink); width: 28px; height: 28px; border-radius: 50%; background: var(--av-bg); color: var(--av-fg); display: inline-grid; place-items: center; font: 400 13px/1 var(--serif); border: 2px solid var(--canvas); flex: none; position: relative; }
+.avatar.ana { --av-bg: var(--av-ana-bg); --av-fg: var(--av-ana-fg); }
+.avatar.bo  { --av-bg: var(--av-bo-bg);  --av-fg: var(--av-bo-fg); }
+.avatar.cy  { --av-bg: var(--av-cy-bg);  --av-fg: var(--av-cy-fg); }
+.avatar.dee { --av-bg: var(--av-dee-bg); --av-fg: var(--av-dee-fg); }
+.avatar.driver { box-shadow: 0 0 0 2px var(--baton); }
+.avatar.agent { border-radius: var(--radius-agent); background: var(--gradient-brand); color: #fff; }
+.avatar.agent::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--mark-dot); }
+.avatar.sm { width: 22px; height: 22px; font-size: 11px; } .avatar.sm.agent::after { width: 5px; height: 5px; }
+.avatar.xs { width: 18px; height: 18px; font-size: 9px; border-width: 1.5px; } .avatar.xs.driver { box-shadow: 0 0 0 1.5px var(--baton); }
+.rail .avatar { border-color: var(--rail); }
 .stack .avatar + .avatar { margin-left: -8px; }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 14px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px/20px var(--font); cursor: pointer; white-space: nowrap; }
-.btn:hover { box-shadow: var(--shadow-soft); } .btn:active { transform: translateY(1px) scale(.99); }
-.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; } .btn.primary:hover { background: var(--accent-hover); }
+.stack .avatar.agent { border-color: var(--canvas); }
+.pr { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); border: 2px solid var(--surface); }
+
+/* ---------------------------------- stream ---------------------------------- */
+.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font: 400 12.5px/16px var(--mono); }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.divider .serif { font-size: 15px; color: var(--ink-2); }
+.divider .serif b { font-weight: 400; color: var(--accent-ink); }
+.divider.baton-line { opacity: 1; }
+.divider.baton-line[hidden] { display: none; }
+.msg { display: flex; flex-direction: column; gap: 6px; }
+.msg .meta { display: flex; align-items: center; gap: 8px; font: 400 13px/20px var(--font); color: var(--ink-2); }
+.msg .meta .who { font: 400 16px/20px var(--serif); color: var(--ink); }
+.msg .meta .time { font: 400 12.5px/16px var(--mono); color: var(--ink-3); margin-left: 2px; }
+.msg.human .text { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 13px 18px; align-self: flex-start; max-width: 85%; box-shadow: var(--shadow-soft), var(--edge); }
+.msg.agentmsg .text { font: 400 15.5px/24px var(--font); max-width: 600px; }
+.msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 13px 18px; align-self: flex-start; max-width: 85%; }
+.msg.team .meta .to { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
+.steps { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 4px; }
+.step { display: flex; align-items: center; gap: 10px; font: 400 13px/22px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.step::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ok); background: var(--ok-soft); flex: none; }
+.step .d { color: var(--ink-3); margin-left: auto; }
+.step .ins { color: var(--ok-ink); } .step .del { color: var(--danger-ink); }
+
+/* ---------------------------------- composer ---------------------------------- */
+.composer-wrap { flex: none; padding: 10px var(--gutter) 18px; background: linear-gradient(to top, var(--canvas) 70%, transparent); }
+.composer-wrap .composing { width: min(var(--col), 100%); margin: 0 auto 6px; padding: 0 4px; min-height: 20px; font: 400 13px/20px var(--font); color: var(--ink-3); }
+.composer { width: min(var(--col), 100%); margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 0 14px 12px 18px; display: flex; flex-direction: column; box-shadow: var(--shadow-pop), var(--edge); }
+.composer .field { display: flex; align-items: center; gap: 10px; padding-top: 14px; }
+.composer textarea { width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; resize: none; outline: none; min-height: 24px; padding: 0; }
+.composer textarea::placeholder { color: var(--ink-3); }
+.composer .key { font: 400 12px/18px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; }
+.composer .bar { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.composer .bar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; }
+.seg button { border: 0; background: transparent; font: 500 12.5px/18px var(--font); color: var(--ink-2); padding: 3px 12px; border-radius: var(--radius-full); cursor: pointer; }
+.seg .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.how { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: var(--radius-full); background: var(--surface-2); font: 400 12.5px/16px var(--mono); color: var(--ink-2); }
+.how b { font-weight: 500; color: var(--ink); }
+.send { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-soft); }
+.hint { width: min(var(--col), 100%); margin: 8px auto 0; padding: 0 6px; display: flex; align-items: center; gap: 8px; font: 400 13px/20px var(--font); color: var(--ink-2); min-height: 20px; }
+.hint .serif { color: var(--ink); }
+.hint .linkish { color: var(--accent-ink); cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
+.hint .keys { margin-left: auto; color: var(--ink-3); font: 400 12.5px/16px var(--mono); }
+.hint.rule .rule-text { color: var(--ink); }
+.hint .rule-text, .hint.rule .drive-text, .hint.rule .keys { display: none; }
+.hint.rule .rule-text { display: inline; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 0 14px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 13.5px/20px var(--font); cursor: pointer; box-shadow: var(--edge); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
 .btn.ghost.no { color: var(--danger-ink); }
-.btn.sm { min-height: 30px; padding: 0 12px; font-size: 13px; }
-.btn.on { background: var(--apricot-soft); border-color: transparent; }
-.btn.icon { width: 34px; padding: 0; }
 
-/* ---- the stream (SYSTEM §7) ---- */
-.scroll { flex: 1; overflow: auto; min-height: 0; }
-.column { width: min(var(--col), 100%); margin: 0 auto; padding: 18px 24px 8px; display: flex; flex-direction: column; gap: 22px; }
-.msg { display: flex; flex-direction: column; gap: 6px; }
-.msg .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
-.msg .meta .who { font-family: var(--serif); font-size: 16px; color: var(--ink); display: inline-flex; align-items: center; gap: 8px; }
-.msg .meta .when { margin-left: auto; font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.msg .meta .to { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
-.msg.human .text { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 18px; align-self: flex-start; max-width: 85%; box-shadow: var(--shadow-soft), var(--edge); }
-.msg.human .text .goal { font-family: var(--serif); font-style: italic; color: var(--accent-ink); margin-right: 6px; }
-.msg.human .text code, .step code { font-family: var(--mono); font-size: 13px; }
-.msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 12px 18px; align-self: flex-start; max-width: 85%; }
-.msg.agent .text { font-size: 15.5px; max-width: 600px; }
-.steps { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
-.step { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; font: 400 13px/20px var(--mono); color: var(--ink-2); padding: 3px 8px; border-radius: 8px; font-variant-numeric: tabular-nums; }
-.step .ic { width: 14px; height: 14px; border-radius: 50%; display: grid; place-items: center; }
-.step.done .ic { background: var(--ok); } .step.done .ic::after { content: ""; width: 6px; height: 3px; border-left: 1.5px solid #fff; border-bottom: 1.5px solid #fff; transform: translateY(-1px) rotate(-45deg); }
-.step.live { background: var(--apricot-soft); color: var(--ink); } .step.live .ic { background: var(--apricot-deep); --dot-halo: var(--apricot-soft); width: 8px; height: 8px; margin: 0 3px; }
-.step.wait .ic { border: 1.5px solid var(--line); }
-.step .r { color: var(--ink-3); }
-.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
-.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.divider .serif { color: var(--ink-2); font-size: 14px; }
-.divider .mono { font-size: 12px; }
-.divider .no { color: var(--danger-ink); }
-
-/* ---- the composer with the lane ---- */
-.composer-wrap { flex: none; padding: 10px 24px 14px; background: linear-gradient(to top, var(--canvas) 70%, transparent); position: relative; }
-.composer { width: min(var(--col), 100%); margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px 12px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-pop), var(--edge); --avatar-edge: var(--surface); }
-.composer:focus-within { box-shadow: var(--shadow-pop), var(--glow), var(--edge); }
-
-/* the lane: the people stand on one hairline; the agent at its end; the baton is the only thing that moves */
-.lane { position: relative; height: 66px; margin: 0 2px; }
-.lane .track { position: absolute; left: 14px; right: 14px; top: 17px; height: 1px; background: var(--track); }
-.lane .seats { position: absolute; inset: 0; display: flex; align-items: flex-start; }
-.lane .seat { position: absolute; top: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 72px; margin-left: -36px; }
-.lane .seat .avatar { --size: 32px; font-size: 12px; cursor: default; }
-.lane .seat .name { font-family: var(--serif); font-size: 13px; line-height: 16px; color: var(--ink-2); white-space: nowrap; }
-.lane .seat .name b { font-weight: 400; color: var(--ink-3); font-family: var(--font); font-size: 11.5px; }
-.lane .seat.agentseat .name { color: var(--ink-2); }
-.lane .seat.agentseat .avatar { --size: 32px; }
-.lane .seat[data-who="ana"] { left: 52px; } .lane .seat[data-who="bo"] { left: 160px; } .lane .seat[data-who="cy"] { left: 268px; }
-.lane .seat.agentseat { left: auto; right: 14px; margin-left: 0; margin-right: -36px; }
-/* the baton: the driver's ring. r 18 on a 44 box at stroke 2 is exactly the 2 px ring outside the 2 px edge */
-.carrier { position: absolute; left: 0; top: 17px; width: 44px; height: 44px; margin: -22px 0 0 -22px; translate: var(--bx, 0px) 0; pointer-events: none; z-index: 3; }
-.lift { position: absolute; inset: 0; translate: 0 0; }
-.lane[data-state="lift"] .lift, .lane[data-state="travel"] .lift, .lane[data-state="offered"] .lift, .lane[data-state="blocked"] .lift, .lane[data-state="return"] .lift, .lane[data-state="recall"] .lift { translate: 0 -5px; }
-.lane[data-state="offered"] .lift { translate: 0 -2px; }
-.baton { position: absolute; inset: 0; width: 44px; height: 44px; overflow: visible; rotate: var(--rot, 0deg); transform-origin: 50% 50%; }
-.baton .ring { fill: none; stroke: var(--baton); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 1 0; }
+/* ---------------------------------- the baton: the lane that folds ---------------------------------- */
+/* The composer's first row. Folded to zero when no handoff is pending (judge-signature-1 and -3's fix:
+   a Solo Tuesday pays nothing for it); it unfolds on --t-slow when an offer starts. */
+.fold { display: grid; grid-template-rows: 0fr; opacity: 0; }
+.fold > div { min-height: 0; overflow: hidden; }
+.composer.open .fold { grid-template-rows: 1fr; opacity: 1; }
+.lane { position: relative; height: var(--lane-h); margin: 0 -4px; }
+.lane .track { position: absolute; left: var(--lane-pad); right: var(--lane-pad); top: calc(var(--lane-h) / 2 - 1px); height: 1px; background: var(--track); }
+/* the thread: a stitched guide from the agent to whoever holds the baton (generative-visuals §6,
+   "the seam is stitched, not walled"). It answers "is the agent in the circle": it is at the lane's head,
+   and the dotted line says who is steering it. */
+.lane .thread { position: absolute; left: var(--lane-pad); right: var(--lane-pad); top: calc(var(--lane-h) / 2 - 1px); height: 1px; background: linear-gradient(90deg, var(--baton) 0 2px, transparent 2px) 0 0 / 6px 1px repeat-x; clip-path: inset(0 var(--tr, 100%) 0 var(--tl, 0)); }
+.seat { position: absolute; top: calc(var(--lane-h) / 2 - var(--seat) / 2 - 7px); left: calc(var(--lane-pad) + var(--pitch) * var(--i) + var(--first) - var(--seat) / 2); width: var(--seat); display: flex; flex-direction: column; align-items: center; }
+.seat .avatar { width: var(--seat); height: var(--seat); font-size: calc(var(--seat) * .42); border-color: var(--surface); }
+.seat .label { position: absolute; top: calc(var(--seat) + 4px); white-space: nowrap; font: 400 13px/16px var(--serif); color: var(--ink-2); }
+.seat .label i { font: 500 11px/16px var(--font); color: var(--ink-3); font-style: normal; }
+.seat.agentseat { left: var(--lane-pad); }
+.seat.agentseat .avatar { border-radius: var(--radius-agent); }
+.seat.agentseat .avatar::after { width: 8px; height: 8px; }
+.seat.agentseat .pr { right: -3px; bottom: -3px; }
+.seat.agentseat .label { color: var(--ink-2); }
+.seat .avatar.joined { }
+/* the stop: 2 × 24 px of --danger at the receiver's near edge. Red only for a human no (SYSTEM §2.7). */
+.stop { position: absolute; top: calc(var(--lane-h) / 2 - 12px - 7px); left: 0; width: 2px; height: 24px; border-radius: 1px; background: var(--danger); translate: var(--sx, -40px) 0; scale: 1 0; transform-origin: 50% 50%; }
+.lane.stopped .stop { scale: 1 1; }
+/* the carrier travels; the sag rides it; the lift rises; the baton rolls */
+.carrier { --d: var(--d-travel); --e: var(--spring-travel); position: absolute; left: 0; top: calc(var(--lane-h) / 2 - 24px - 7px); width: 48px; height: 48px; translate: var(--bx, 0px) 0; will-change: translate; }
+.carrier[data-spring="return"] { --d: var(--d-return); --e: var(--spring-return); }
+.carrier[data-spring="close"] { --d: var(--d-close); --e: var(--spring-close); }
+.carrier[data-spring="none"] { --d: 0ms; }
+.sag { width: 48px; height: 48px; }
+.lift { width: 48px; height: 48px; translate: 0 var(--ly, 0px); }
+.baton { position: absolute; inset: 0; width: 48px; height: 48px; overflow: visible; rotate: var(--rot, 0deg); transform-origin: 50% 50%; }
+.lift.up .baton { filter: var(--baton-shadow); }
+.baton .ring { fill: none; stroke: var(--baton); stroke-width: 2; stroke-linecap: round; stroke-dasharray: var(--da, 1 0); stroke-dashoffset: var(--do, 0); }
 .baton .halo { fill: none; stroke: var(--baton-halo); stroke-width: 2; opacity: 0; }
-.lane[data-state="lift"] .ring, .lane[data-state="travel"] .ring, .lane[data-state="blocked"] .ring, .lane[data-state="return"] .ring, .lane[data-state="recall"] .ring { stroke-dasharray: .34 .66; stroke-width: 3.4; }
-.lane[data-state="offered"] .ring { stroke-dasharray: .42 .58; stroke-width: 3; }
-.lane[data-state="offered"] .halo { opacity: .9; }
-.lane[data-state="lift"] .baton, .lane[data-state="travel"] .baton, .lane[data-state="blocked"] .baton, .lane[data-state="return"] .baton, .lane[data-state="recall"] .baton { filter: drop-shadow(var(--baton-shadow)); }
-.lane[data-state="offered"] .baton { filter: drop-shadow(0 3px 6px rgba(42,50,68,.14)); }
-/* the dip: the lane sags under the rolling weight. A canvas stroke erases the track, the curve redraws it */
-.dip { position: absolute; left: -16px; right: -16px; top: 20px; height: 14px; opacity: 0; }
-.dip .erase { stroke: var(--surface); stroke-width: 3; fill: none; }
-.dip .curve { stroke: var(--track); stroke-width: 1; fill: none; }
-.lane[data-state="travel"] .dip, .lane[data-state="return"] .dip, .lane[data-state="recall"] .dip { opacity: 1; }
-/* the stop: a refusal is a human no, the one place the lane goes red (SYSTEM §2.7) */
-.stop { position: absolute; top: 5px; width: 2px; height: 24px; margin-left: -1px; border-radius: 1px; background: var(--stop); translate: var(--sx, 0px) 0; scale: 1 0; transform-origin: 50% 100%; opacity: 0; z-index: 2; }
-.lane[data-state="blocked"] .stop, .lane[data-state="return"] .stop { scale: 1 1; opacity: 1; }
-/* the sentence under the lane: who has it, who is offered it, and the one or two things you can do */
-.laneline { display: flex; align-items: center; gap: 10px; min-height: 32px; border-top: 1px solid var(--line); padding-top: 8px; }
-.laneline .say { font-size: 14px; line-height: 20px; color: var(--ink-2); min-width: 0; }
-.laneline .say .serif { color: var(--ink); font-size: 15.5px; }
-.laneline .say .no { color: var(--danger-ink); }
-.laneline .say .mono { color: var(--ink-3); margin-left: 6px; }
-.laneline .actions { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: none; }
-.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: var(--radius-full); background: var(--surface-2); border: 0; font: 500 13px/28px var(--font); color: var(--ink-2); cursor: pointer; }
-.chip.on { background: var(--select-wash); box-shadow: inset 0 0 0 1px var(--select-line); color: var(--ink); }
-.chip .ic { width: 14px; height: 14px; }
-.field { position: relative; }
-.field textarea { width: 100%; border: 0; background: transparent; color: var(--ink); font: 400 15px/24px var(--font); resize: none; outline: none; min-height: 28px; padding: 2px 0; }
-.field textarea::placeholder { color: var(--ink-3); }
-.field .key { position: absolute; right: 2px; top: 5px; }
-.bar { display: flex; align-items: center; gap: 8px; }
-.bar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-.bar .mode { font-size: 12.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
-.bar .mode::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); }
-.seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; }
-.seg label { font: 500 12.5px/20px var(--font); color: var(--ink-2); padding: 2px 12px; border-radius: var(--radius-full); cursor: pointer; }
-.seg label.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
-.send { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-soft); }
-.send:disabled { opacity: .45; cursor: default; }
-.composer-wrap .hint { width: min(var(--col), 100%); margin: 6px auto 0; text-align: center; font-size: 12.5px; line-height: 18px; color: var(--ink-3); min-height: 18px; }
-.composer-wrap .hint .serif { color: var(--ink-2); font-size: 13.5px; }
+.lift.up .baton .ring { stroke-width: 2.6; }
+/* the dip: the lane gives under the weight. An erase stroke in the surface colour and a quadratic that redraws
+   the hairline 7 px lower, riding the carrier; opacity only. */
+.dip { position: absolute; left: -24px; top: 23px; width: 96px; height: 16px; overflow: visible; opacity: 0; }
+.dip .erase { fill: none; stroke: var(--surface); stroke-width: 3; }
+.dip .curve { fill: none; stroke: var(--track); stroke-width: 1; }
+.carrier.rolling .dip { opacity: 1; }
+/* the sentence row: who, how long, the two things the receiver can press */
+.handline { display: flex; align-items: center; gap: 10px; padding: 2px 2px 12px; border-bottom: 1px solid var(--line); min-height: 46px; }
+.handline .say { font: 400 15px/20px var(--font); color: var(--ink); }
+.handline .say .serif { font-size: 17px; }
+.handline .say .no { color: var(--danger-ink); }
+.handline .clock { font: 400 12.5px/16px var(--mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.handline .acts { margin-left: auto; display: flex; gap: 6px; }
+.handline .acts[hidden] { display: none; }
 
-/* ---- the spec column: the element explained beside itself ---- */
-.spec { border-left: 1px solid var(--line); background: var(--surface); padding: 22px 22px 26px; display: flex; flex-direction: column; gap: 20px; overflow: auto; min-height: 0; font-size: 14px; line-height: 20px; box-shadow: var(--edge); }
-.spec h2 { font-family: var(--serif); font-size: 26px; line-height: 32px; font-variation-settings: "opsz" 32, "SOFT" 40; }
-.spec h3 { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
-.spec h3 .sum { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 400; font-family: var(--mono); font-size: 12px; }
-.spec .lede { color: var(--ink-2); }
-.spec .lede .serif { color: var(--ink); }
-.frames { display: flex; flex-direction: column; gap: 2px; }
-.frame { display: grid; grid-template-columns: 100px 1fr; gap: 12px; align-items: center; padding: 4px 6px; border-radius: 10px; cursor: pointer; border: 0; background: transparent; text-align: left; color: inherit; }
-.frame:hover { background: var(--surface-2); }
-.frame.cur { background: var(--select-wash); box-shadow: inset 0 0 0 1px var(--select-line); }
-.frame svg { width: 100px; height: 40px; display: block; overflow: visible; }
-.frame .t { font-family: var(--serif); font-size: 15.5px; line-height: 20px; }
-.frame .m { font-family: var(--mono); font-size: 11px; line-height: 15px; color: var(--ink-3); display: block; }
-.frame .m b { font-weight: 500; color: var(--ink-2); }
-.springs { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; font-family: var(--mono); font-size: 11.5px; line-height: 16px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.springs .k { color: var(--ink); font-weight: 500; padding-top: 5px; } .springs .v { color: var(--ink-3); text-align: right; padding-top: 5px; }
-.springs .p { grid-column: 1 / -1; color: var(--ink-3); border-bottom: 1px solid var(--line); padding-bottom: 5px; }
-.springs .p:last-child { border-bottom: 0; }
-.demo { display: flex; flex-wrap: wrap; gap: 6px; }
-.demo .btn { gap: 8px; }
-.demo .btn kbd { margin-right: -4px; }
-.spec .fine { font-size: 12.5px; line-height: 18px; color: var(--ink-3); }
+/* ---------------------------------- spec pane (exploration only; data-inspector) ---------------------------------- */
+.spec { width: var(--spec-w); flex: none; border-left: 1px solid var(--line); background: var(--surface); padding: 22px 22px 28px; display: flex; flex-direction: column; gap: 20px; font-size: 13px; line-height: 20px; overflow: auto; color: var(--ink-2); }
+.spec h2 { color: var(--ink); margin-top: 2px; }
+.spec h3 { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+.spec p { margin: 0; }
+.spec .lede { color: var(--ink); font-size: 14px; }
+.spec table { width: 100%; border-collapse: collapse; font: 400 12px/16px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.spec th { text-align: left; font: 600 11px/16px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 4px 6px 6px 0; border-bottom: 1px solid var(--line); }
+.spec td { padding: 6px 6px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.spec td.name { font-family: var(--serif); font-size: 14px; color: var(--ink); }
+.spec td.over { color: var(--accent-ink); }
+.plots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.plot { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px 6px; display: flex; flex-direction: column; gap: 2px; }
+.plot svg { width: 100%; height: 56px; display: block; }
+.plot .cap { display: flex; flex-direction: column; gap: 0; font: 400 11px/16px var(--mono); color: var(--ink-3); }
+.plot .cap b { font: 400 13px/16px var(--serif); color: var(--ink); }
+.frames { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.frame { border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px 4px; display: flex; flex-direction: column; gap: 2px; background: var(--canvas); }
+.frame svg { width: 100%; height: 48px; display: block; overflow: visible; }
+.frame .cap { font: 400 11px/16px var(--mono); color: var(--ink-3); display: flex; flex-direction: column; }
+.frame .cap b { font: 400 12.5px/16px var(--serif); color: var(--ink); }
+.controls { display: flex; flex-wrap: wrap; gap: 6px; }
+.controls .btn { min-height: 30px; padding: 0 12px; font-size: 13px; }
+.controls .btn[aria-pressed="true"] { background: var(--select-wash); box-shadow: inset 0 0 0 1px var(--select-line); }
+.spec .colophon { font: 400 12px/18px var(--mono); color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 12px; }
+.spec .rule { display: flex; flex-direction: column; gap: 6px; }
+.spec .rule p b { font-weight: 500; color: var(--ink); }
 
-/* ---- phone (≤ 480): the navy top block, the lane across the composer at the thumb ---- */
+/* ---------------------------------- the one guard (MOTION §3) ---------------------------------- */
+@keyframes sag { 0% { translate: 0 0 } 40% { translate: 0 2.5px } 72% { translate: 0 -1px } 100% { translate: 0 0 } }
+@keyframes baton-halo { 0% { stroke-width: 2; opacity: .6 } 70% { stroke-width: 16; opacity: 0 } 100% { stroke-width: 16; opacity: 0 } }
+@keyframes bump { 0% { scale: 1 1; translate: 0 0 } 40% { scale: .84 1.1; translate: -4px 0 } 100% { scale: 1 1; translate: 0 0 } }
+@keyframes pop { 0% { scale: 1 } 55% { scale: 1.1 } 100% { scale: 1 } }
+@keyframes ripple { from { box-shadow: 0 0 0 2px var(--baton), 0 0 0 2px rgba(226,196,166,.6) } to { box-shadow: 0 0 0 2px var(--baton), 0 0 0 16px rgba(226,196,166,0) } }
+@keyframes card-in { from { opacity: 0; translate: 0 8px } to { opacity: 1; translate: 0 0 } }
+@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) { --motion: 1; }
+  :root:not([data-motion="calm"]) .fold { transition: grid-template-rows var(--t-slow) var(--ease-mark), opacity var(--t-slow) var(--ease-move); }
+  :root:not([data-motion="calm"]) .carrier { transition: translate var(--d) var(--e); }
+  :root:not([data-motion="calm"]) .baton { transition: rotate var(--d) var(--e); }
+  :root:not([data-motion="calm"]) .lift { transition: translate var(--d-lift) var(--spring-lift); }
+  :root:not([data-motion="calm"]) .carrier[data-spring="close"] .lift { transition: translate var(--d-close) var(--spring-close); }
+  :root:not([data-motion="calm"]) .baton .ring { transition: stroke-dasharray var(--d-lift) var(--spring-lift), stroke-width var(--d-lift) var(--spring-lift); }
+  :root:not([data-motion="calm"]) .carrier[data-spring="close"] .baton .ring { transition: stroke-dasharray var(--d-close) var(--spring-close), stroke-width var(--d-close) var(--spring-close); }
+  :root:not([data-motion="calm"]) .lift .baton { transition: rotate var(--d) var(--e), filter var(--t) var(--ease-move); }
+  :root:not([data-motion="calm"]) .carrier.rolling .sag { animation: sag var(--d) var(--ease-move) both; }
+  :root:not([data-motion="calm"]) .dip { transition: opacity var(--t) var(--ease-move); }
+  :root:not([data-motion="calm"]) .lane .thread { transition: clip-path var(--t-slow) var(--ease-mark); }
+  :root:not([data-motion="calm"]) .lane.offered .baton .halo { animation: baton-halo 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .stop { transition: scale var(--d-stop) var(--ease-arrive); }
+  :root:not([data-motion="calm"]) .baton.bump { animation: bump var(--d-bump) var(--ease-leave) both; transform-origin: 100% 50%; }
+  :root:not([data-motion="calm"]) .avatar.joined { animation: pop var(--t-slow) var(--ease-arrive) both, ripple .9s var(--ease-leave) .12s 1; }
+  :root:not([data-motion="calm"]) .divider.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .agentcard .head .dot.running, :root:not([data-motion="calm"]) .pr.running { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .btn, :root:not([data-motion="calm"]) .send { transition: transform var(--t-fast) var(--ease-move), box-shadow var(--t) ease, background var(--t-fast) ease; }
+  :root:not([data-motion="calm"]) .btn:active, :root:not([data-motion="calm"]) .send:active { transform: translateY(1px) scale(.98); }
+  :root:not([data-motion="calm"]) .hint, :root:not([data-motion="calm"]) .handline .say { transition: opacity var(--t) var(--ease-move); }
+}
+/* calm or reduced: every clock to zero, every end state kept */
+:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --d-travel: 0ms; --d-return: 0ms; --d-close: 0ms; --d-lift: 0ms; --d-stop: 0ms; --d-bump: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --d-travel: 0ms; --d-return: 0ms; --d-close: 0ms; --d-lift: 0ms; --d-stop: 0ms; --d-bump: 0ms; } }
+
+/* ---------------------------------- the phone ---------------------------------- */
 @media (max-width: 480px) {
-  :root { --col: 100%; }
-  .shell { grid-template-columns: 1fr; }
+  :root { --seat: 30px; --pitch: 84px; --gap: 32px; --lane-pad: 12px; --lane-h: 64px; --gutter: 12px; --first: 60px; }
+  body { font-size: 16px; }
   .rail, .spec { display: none; }
-  .main::before { display: none; }
-  .topbar { background: var(--rail); color: var(--rail-fg); padding: 52px 16px 10px; border-bottom: 0; flex-wrap: wrap; gap: 8px 10px; --avatar-edge: var(--rail); }
-  .topbar .title { font-size: 21px; line-height: 26px; }
-  .topbar .title .crumb { display: none; }
-  .topbar .status { color: var(--rail-muted); }
-  .topbar .tokchip, .topbar .btn { display: none; }
-  .topbar .right { margin-left: auto; }
-  .column { padding: 14px 16px 8px; gap: 18px; }
-  .msg.human .text, .msg.team .text { max-width: 100%; font-size: 16px; }
-  .msg .meta .who { font-size: 18px; }
-  .composer-wrap { padding: 8px 12px 18px; }
-  .composer { padding: 10px 12px 10px 14px; }
-  .lane { height: 62px; }
-  .lane .seat { width: 60px; margin-left: -30px; }
-  .lane .seat .avatar { --size: 30px; }
-  .lane .seat[data-who="ana"] { left: 40px; } .lane .seat[data-who="bo"] { left: 124px; } .lane .seat[data-who="cy"] { left: 208px; }
-  .lane .seat.agentseat { right: 12px; margin-right: -30px; }
-  .laneline .say { font-size: 15px; }
-  .laneline .say .mono { display: none; }
-  .field textarea { font-size: 16px; }
-  .field .key, .bar .mode { display: none; }
-  .composer-wrap .hint { font-size: 12px; }
-  .step .r { display: none; }
+  .topbar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px 10px; padding: 54px 18px 16px; background: var(--rail); color: var(--rail-fg); border-bottom: 0; backdrop-filter: none; }
+  .topbar .title, .topbar .tokens { display: none; }
+  .topbar .phone-sentence { display: block; grid-column: 1 / -1; font: 400 23px/28px var(--serif); color: var(--rail-fg); }
+  .topbar .phone-sentence b, .topbar .phone-sentence .serif { font-weight: 400; color: var(--apricot); }
+  .topbar .phone-row { display: flex; align-items: center; font: 400 13px/20px var(--font); color: var(--rail-muted); }
+  .topbar .stack { margin: 0; justify-self: end; } .topbar .stack .avatar { border-color: var(--rail); }
+  .column { padding: 14px var(--gutter) 24px; gap: 18px; }
+  .msg.human .text, .msg.team .text { max-width: 100%; }
+  .composer-wrap { padding: 8px var(--gutter) 24px; }
+  .composer { padding: 0 12px 10px 14px; }
+  .composer textarea { font-size: 16px; }
+  .seat .label { font-size: 12px; }
+  .seat .label i { display: none; }
+  .handline { flex-wrap: wrap; row-gap: 8px; }
+  .handline .clock { display: none; }
+  .handline .acts { margin-left: 0; width: 100%; }
+  .handline .acts .btn { flex: 1; min-height: 40px; }
+  .hint .keys { display: none; }
+  .how { display: none; }
 }
 </style>
 </head>
 <body>
 <div class="shell">
 
-  <!-- the rail: the team's roster -->
-  <aside class="rail" aria-label="Henosis">
+  <!-- ================= rail ================= -->
+  <aside class="rail" aria-label="Rail">
     <div class="brand">
-      <svg width="24" height="24" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="48" fill="#2A3244"/><path d="M48 19a29 29 0 0 1 0 58" fill="none" stroke="#A98074" stroke-width="13" stroke-linecap="round"/><path d="M48 77a29 29 0 0 1 0-58" fill="none" stroke="#E2C4A6" stroke-width="13" stroke-linecap="round"/><circle cx="48" cy="48" r="8.5" fill="#E2C4A6"/></svg>
+      <svg width="28" height="28" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="48" fill="var(--mark-disc)"/><path d="M48 19a29 29 0 0 1 0 58" fill="none" stroke="#8C6A5E" stroke-width="13" stroke-linecap="round"/><path d="M48 77a29 29 0 0 1 0-58" fill="none" stroke="var(--mark-arc-b)" stroke-width="13" stroke-linecap="round"/><circle cx="48" cy="48" r="8.5" fill="var(--mark-dot)"/></svg>
       Henosis
     </div>
     <button class="new" type="button">New session</button>
-    <a class="item" href="#">Search <span class="mono" style="margin-left:auto;color:var(--rail-muted);font-size:12px">⌘K</span></a>
-    <a class="item" href="#">Inbox <span class="count">2</span></a>
-    <a class="item" href="#">Approvals <span class="count">1</span></a>
-    <div class="section">Agents</div>
-    <div class="crew"><span class="serif">Ana and Bo</span></div>
-    <div class="agentcard active">
-      <div class="head"><i class="dot running"></i><span>Billing page · Checkout</span><span class="pill team">Team</span></div>
-      <div class="doing"><i>Writing proration.ts</i> · step 3 of 4</div>
-      <div class="foot"><span class="stack"><span class="avatar xs a driver" data-who="ana">A</span><span class="avatar xs b" data-who="bo">B</span></span><span class="withline">with Bo</span><span class="mono">12.4k</span></div>
-    </div>
-    <div class="agentcard">
-      <div class="head"><i class="dot awaiting"></i><span>Invoice PDF</span><span class="pill">Solo</span></div>
-      <div class="doing"><i>Waiting for a rating</i> · the plan</div>
-      <div class="foot"><span class="stack"><span class="avatar xs c">C</span></span><span>Cy</span><span class="mono">8.1k</span></div>
-    </div>
-    <div class="agentcard">
-      <div class="head"><i class="dot idle"></i><span>Tax lines</span><span class="pill">Solo</span></div>
-      <div class="doing">Idle since 15:50</div>
-      <div class="foot"><span class="stack"><span class="avatar xs">D</span></span><span>Dee</span><span class="mono">3.0k</span></div>
-    </div>
-    <div class="section">Payments</div>
-    <a class="item" href="#">Overview</a>
-    <a class="item" href="#">Usage</a>
-    <a class="item" href="#">Groups</a>
-    <a class="item" href="#">Memory</a>
-    <div class="me"><span class="avatar b">B</span><span class="who"><span class="name">Bo Lindqvist</span><span class="role" id="merole">contributor</span></span></div>
+    <div class="section">Agents <span class="n">3</span></div>
+    <div class="crew"><span class="serif">Payments</span> · 3 agents</div>
+    <a class="agentcard active" href="#"><div class="head"><i class="dot running"></i><span class="t">Checkout</span></div><div class="doing">Writing <i>tax lines</i> under the subtotal</div><div class="foot"><span class="pill team">Team</span> with Ana <span class="mono">12.4k</span></div></a>
+    <a class="agentcard" href="#"><div class="head"><i class="dot awaiting"></i><span class="t">Invoice PDF</span></div><div class="doing">The plan waits for two ratings</div><div class="foot"><span class="pill solo">Solo</span> Dee <span class="mono">4.1k</span></div></a>
+    <a class="agentcard" href="#"><div class="head"><i class="dot"></i><span class="t">Tax lines</span></div><div class="doing">Idle since 08:52</div><div class="foot"><span class="pill solo">Solo</span> <span class="mono">0</span></div></a>
+    <div class="section">Groups <span class="n">2</span></div>
+    <a class="item" href="#"># billing</a>
+    <a class="item" href="#"># release</a>
+    <div class="me"><span class="avatar bo sm">B</span> Bo <span class="role">engineer</span></div>
   </aside>
 
-  <!-- the session -->
+  <!-- ================= main ================= -->
   <main class="main">
     <header class="topbar">
-      <span class="title"><span>Billing page · Checkout</span></span>
-      <span class="status running">running · turn 14</span>
-      <span class="pill team" id="teampill">Team · with Ana</span>
-      <div class="right">
-        <span class="tokchip"><span>12.4k tokens <span class="faint">31 %</span></span><span class="hair"><i></i></span></span>
-        <span class="stack" id="topstack" aria-label="Ana, Bo and Cy are here. Ana is driving.">
-          <span class="avatar sm a driver" data-who="ana" title="Ana Moreau · driving">A</span>
-          <span class="avatar sm b" data-who="bo" title="Bo Lindqvist · you">B</span>
-          <span class="avatar sm c" data-who="cy" title="Cy Okafor · observer">C</span>
-          <span class="avatar sm agent" title="Checkout · running"></span>
-        </span>
-        <button class="btn sm on" type="button">Details</button>
+      <div class="title"><span>Billing page · Checkout</span><span class="pill team">Team</span></div>
+      <p class="phone-sentence" id="phoneSentence"><b>Ana</b> offers you the baton.</p>
+      <div class="phone-row" aria-hidden="true"><span>Billing page · Checkout</span></div>
+      <div class="tokens" aria-label="31 percent of the budget spent, 12.4k of 40k tokens"><span class="hair"><i></i></span>31 % · 12.4k</div>
+      <div class="stack" id="topStack" aria-label="Ana, Bo, Cy and Dee are here with Checkout. Ana is driving.">
+        <span class="avatar ana driver" data-id="ana">A</span><span class="avatar bo" data-id="bo">B</span><span class="avatar cy" data-id="cy">C</span><span class="avatar dee" data-id="dee">D</span><span class="avatar agent" aria-hidden="true"></span>
       </div>
     </header>
 
     <div class="scroll">
-      <div class="column stream" id="stream" aria-label="Session stream">
-        <div class="msg human">
-          <div class="meta"><span class="who"><span class="avatar sm a">A</span>Ana</span><span class="mono faint">goal</span><span class="when">16:12</span></div>
-          <div class="text"><span class="goal">Goal</span>Proration on Checkout must match the invoice PDF to the cent. Start from <code>proration.ts</code>; the tax lines are the reference.</div>
-        </div>
-        <div class="msg agent">
-          <div class="meta"><span class="who"><span class="avatar sm agent"></span>Checkout</span><span class="when">turn 14 · step 3 of 4</span></div>
-          <div class="text">The PDF rounds each tax line before it sums; Checkout rounds the total once. I am moving the rounding into <code>prorate()</code> so both paths agree, then running the fixtures.</div>
+      <section class="column" aria-label="Session">
+        <div class="divider"><span class="serif"><b>Ana</b> has the baton</span>09:41</div>
+        <article class="msg human">
+          <div class="meta"><span class="who">Ana</span><span class="time">09:42</span></div>
+          <div class="text">Checkout, take the invoice PDF: tax lines under the subtotal, proration as one line per seat change. Keep it in pdf-layout until Bo has looked at the rounding.</div>
+        </article>
+        <article class="msg agentmsg">
+          <div class="meta"><span class="avatar agent sm" aria-hidden="true"></span><span class="who">Checkout</span><span class="time">09:42</span><span>steering · goal</span></div>
+          <div class="text">Reading the Billing page spec and the current invoice template first.</div>
           <div class="steps">
-            <div class="step done"><i class="ic"></i><span>read <code>src/billing/invoice-pdf.ts</code></span><span class="r">2.1k</span></div>
-            <div class="step done"><i class="ic"></i><span>read <code>src/checkout/proration.ts</code></span><span class="r">1.4k</span></div>
-            <div class="step live"><i class="ic"></i><span>write <code>src/checkout/proration.ts</code></span><span class="r">3 of 7 hunks</span></div>
-            <div class="step wait"><i class="ic"></i><span>test <code>checkout/proration.test.ts</code></span><span class="r">waits at the gate</span></div>
+            <div class="step"><span>read apps/billing/invoice.tsx</span><span class="d">0.4 s</span></div>
+            <div class="step"><span>grep proration packages/billing</span><span class="d">0.2 s</span></div>
+            <div class="step"><span>write pdf-layout/tax-lines.tsx <span class="ins">+84</span> <span class="del">−12</span></span><span class="d">3.1 s</span></div>
           </div>
-        </div>
-        <div class="msg team">
-          <div class="meta"><span class="who"><span class="avatar sm a">A</span>Ana</span><span class="to">to the team</span><span class="when">16:40</span></div>
-          <div class="text">I'm off at five. Bo, can you take Checkout through the tests? The plan is approved; step 4 waits at the gate for two ratings.</div>
-        </div>
-        <div class="divider" id="div-offer"><span><span class="serif">Ana</span> offers the baton to <span class="serif">Bo</span></span><span class="mono">16:41</span></div>
-      </div>
+          <div class="text">Tax lines render under the subtotal and proration is one line per seat change. Two things for a person: the rounding on the tax total (banker's or half-up), and whether the credit note shares this template.</div>
+        </article>
+        <article class="msg team">
+          <div class="meta"><span class="who">Cy</span><span class="to">to the team</span><span class="time">09:44</span></div>
+          <div class="text">Credit notes share the template in prod. Mind the sign on proration lines; the last invoice showed a credit as a charge.</div>
+        </article>
+        <article class="msg human">
+          <div class="meta"><span class="who">Bo</span><span class="time">09:45</span></div>
+          <div class="text">I'll take the rounding from here once I have the baton. Half-up, and the credit note keeps the template.</div>
+        </article>
+        <div class="divider baton-line" id="batonLine" hidden><span class="serif" id="batonLineText"><b>Bo</b> has the baton</span><span id="batonLineTime">09:46</span></div>
+      </section>
     </div>
 
     <div class="composer-wrap">
-      <form class="composer" onsubmit="return false" aria-label="Say something to Checkout">
-        <div class="lane" id="lane" data-state="offered">
-          <div class="track" aria-hidden="true"></div>
-          <div class="seats" role="group" aria-label="The baton">
-            <div class="seat" data-who="ana"><span class="avatar a" title="Ana Moreau">A</span><span class="name">Ana</span></div>
-            <div class="seat" data-who="bo"><span class="avatar b" title="Bo Lindqvist · you">B</span><span class="name">Bo <b>· you</b></span></div>
-            <div class="seat" data-who="cy"><span class="avatar c" title="Cy Okafor">C</span><span class="name">Cy</span></div>
-            <div class="seat agentseat" data-who="agent"><span class="avatar agent" title="Checkout · running"><i class="pr"></i></span><span class="name">Checkout</span></div>
-          </div>
-          <div class="stop" id="stop" aria-hidden="true"></div>
-          <div class="carrier" id="carrier" aria-hidden="true">
-            <div class="lift">
-              <svg class="baton" id="baton" viewBox="0 0 44 44">
-                <circle class="halo" cx="22" cy="22" r="18" pathLength="1"/>
-                <circle class="ring" cx="22" cy="22" r="18" pathLength="1"/>
-              </svg>
-              <svg class="dip" viewBox="0 0 76 14" preserveAspectRatio="none" aria-hidden="true">
-                <path class="erase" d="M0 1H76"/>
-                <path class="curve" d="M0 1Q38 11 76 1"/>
-              </svg>
+      <p class="composing" aria-live="polite" id="composing"></p>
+      <form class="composer" id="composer" aria-label="Directive to Checkout" onsubmit="return false">
+        <div class="fold">
+          <div>
+            <div class="lane" id="lane" role="group" aria-label="The baton">
+              <i class="track" aria-hidden="true"></i>
+              <i class="thread" id="thread" aria-hidden="true"></i>
+              <div class="seat agentseat" data-id="agent"><span class="avatar agent" aria-hidden="true"><i class="pr running"></i></span><span class="label">Checkout</span></div>
+              <div class="seat" data-id="ana" style="--i:0"><span class="avatar ana" id="seatAna">A</span><span class="label">Ana</span></div>
+              <div class="seat" data-id="bo" style="--i:1"><span class="avatar bo" id="seatBo">B</span><span class="label">Bo <i>· you</i></span></div>
+              <div class="seat" data-id="cy" style="--i:2"><span class="avatar cy">C</span><span class="label">Cy</span></div>
+              <div class="seat" data-id="dee" style="--i:3"><span class="avatar dee">D</span><span class="label">Dee</span></div>
+              <i class="stop" id="stop" aria-hidden="true"></i>
+              <div class="carrier" id="carrier" data-spring="none" aria-hidden="true">
+                <div class="sag"><div class="lift" id="lift">
+                  <svg class="baton" id="baton" viewBox="0 0 48 48"><circle class="halo" cx="24" cy="24" r="19.1"/><circle class="ring" cx="24" cy="24" r="19.1" pathLength="1"/></svg>
+                  <svg class="dip" viewBox="0 0 96 16" preserveAspectRatio="none"><path class="erase" d="M0 1H96"/><path class="curve" d="M0 1Q48 17 96 1"/></svg>
+                </div></div>
+              </div>
+            </div>
+            <div class="handline">
+              <span class="say" id="say" aria-live="polite"><span class="serif">Ana</span> offers you the baton.</span>
+              <span class="clock mono" id="clock">0:32</span>
+              <div class="acts" id="acts">
+                <button class="btn primary" type="button" id="acceptBtn">Take the baton</button>
+                <button class="btn ghost no" type="button" id="declineBtn">Decline</button>
+              </div>
             </div>
           </div>
-          <p class="sr-only" id="lanesr" aria-live="polite"></p>
-        </div>
-        <div class="laneline">
-          <p class="say" id="say"></p>
-          <div class="actions" id="actions"></div>
         </div>
         <div class="field">
-          <textarea rows="1" placeholder="Say something · reaches Checkout at its next step" aria-label="Directive"></textarea>
-          <kbd class="key" aria-hidden="true">/</kbd>
+          <textarea rows="1" aria-label="Directive" placeholder="Steer Checkout, or ask the team" id="ta"></textarea>
+          <span class="key" aria-hidden="true">/</span>
         </div>
         <div class="bar">
-          <div class="seg" role="radiogroup" aria-label="Send to"><label class="on">Agent</label><label>Team</label></div>
-          <button class="chip" type="button" aria-label="Mode and scope"><span class="mono">steer · <b>goal</b></span></button>
+          <div class="seg" role="group" aria-label="Who hears you"><button type="button" class="on">Agent</button><button type="button">Team</button></div>
+          <span class="how"><b>steer</b> · goal</span>
           <div class="right">
-            <span class="mode" aria-hidden="true">Keys live</span>
-            <button class="send" type="button" aria-label="Send to Checkout" disabled><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button>
+            <button class="send" type="button" aria-label="Send to Checkout"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button>
           </div>
         </div>
       </form>
-      <p class="hint" id="hint"></p>
+      <p class="hint" id="hint">
+        <span class="drive-text" id="driveText"><span class="avatar ana xs driver" id="hintAvatar" aria-hidden="true">A</span>&nbsp;<span class="serif" id="hintWho">Ana</span>&nbsp;<span id="hintVerb">is driving</span> Checkout.&nbsp;<button class="linkish" type="button" id="handoffLink">Hand off to…</button></span>
+        <span class="rule-text">Only <span class="serif">Ana</span> or an owner can hand off. The baton stays where it is.</span>
+        <span class="keys">Enter sends · Shift+Enter newline · / commands</span>
+      </p>
     </div>
   </main>
 
-  <!-- the spec: the element explained beside itself -->
-  <aside class="spec" aria-label="The baton, explained">
+  <!-- ================= spec pane (exploration only) ================= -->
+  <aside class="spec" data-inspector aria-label="Specification">
     <div>
-      <p class="kicker">Signature element</p>
+      <div class="kicker">Signature element</div>
       <h2>The baton</h2>
     </div>
-    <p class="lede">The driver's ring <span class="serif">is</span> the baton. When <span class="serif">Ana</span> hands off, the ring leaves her avatar, rolls along the composer's lane with weight, waits open beside <span class="serif">Bo</span>, and closes around him when he accepts. A refusal stops it short, and it rolls home.</p>
+    <p class="lede">The driver's ring, which the system already calls the baton, is the thing that is handed. It lifts off one person, rolls one full turn per seat along a lane that folds out of the composer, sags the lane under its weight, waits open beside the next person, and closes around them when they take it.</p>
     <div>
-      <h3>Seven frames <span class="sum" id="framesum">4 of 7 · offered</span></h3>
+      <h3>Springs · sampled into linear()</h3>
+      <table>
+        <tr><th>spring</th><th>m · k · c</th><th><span style="text-transform:none">ζ</span></th><th><span style="text-transform:none">ω₀</span></th><th>over</th><th>run</th></tr>
+        <tr><td class="name">travel</td><td>1.2 · 180 · 19</td><td>.646</td><td>12.25</td><td class="over">7.0 %</td><td>730 ms</td></tr>
+        <tr><td class="name">return</td><td>1.5 · 120 · 26</td><td>.969</td><td>8.94</td><td>none</td><td>790 ms</td></tr>
+        <tr><td class="name">close</td><td>1 · 500 · 36</td><td>.805</td><td>22.36</td><td class="over">1.4 %</td><td>340 ms</td></tr>
+        <tr><td class="name">lift</td><td>1 · 700 · 48</td><td>.907</td><td>26.46</td><td>0.1 %</td><td>220 ms</td></tr>
+      </table>
+    </div>
+    <div class="plots" id="plots"></div>
+    <div>
+      <h3>Frames · drawn from the live geometry</h3>
       <div class="frames" id="frames"></div>
     </div>
+    <div class="rule">
+      <h3>Two refusals, two drawings</h3>
+      <p><b>A person says no.</b> A 2 × 24 px stop rises at their edge in 200 ms; the baton bumps it (160 ms, squash .84 × 1.1) and rolls home on the return spring, no overshoot, and closes around the driver again. The only red on the lane.</p>
+      <p><b>A rule says no.</b> Nothing moves. The hint carries the kernel's sentence: "Only Ana or an owner can hand off. The baton stays where it is."</p>
+    </div>
     <div>
-      <h3>The springs <span class="sum">x(t) → css linear()</span></h3>
-      <div class="springs">
-        <span class="k">travel</span><span class="v">830 ms</span><span class="p">m 1.4 · k 170 · c 20 → ζ .65 · ω₀ 11.0 · overshoot 6.9 %</span>
-        <span class="k">return</span><span class="v">640 ms</span><span class="p">m 1.4 · k 140 · c 26 → ζ .93 · no overshoot</span>
-        <span class="k">close</span><span class="v">380 ms</span><span class="p">m 1 · k 420 · c 34 → ζ .83 · overshoot 0.9 %</span>
-        <span class="k">lift</span><span class="v">250 ms</span><span class="p">m 1 · k 600 · c 44 → ζ .90</span>
-        <span class="k">stop · bump</span><span class="v">200 · 160 ms</span><span class="p">ease-arrive · scale .78 1.14 · then the return spring</span>
-        <span class="k">waiting</span><span class="v">1.8 s</span><span class="p">halo stroke 2 → 13 · the status pulse's clock</span>
+      <h3>Try it · as Bo</h3>
+      <div class="controls">
+        <button class="btn" type="button" data-act="offer">Ana offers</button>
+        <button class="btn" type="button" data-act="accept">Take</button>
+        <button class="btn" type="button" data-act="decline">Decline</button>
+        <button class="btn" type="button" data-act="rule">Bo tries to hand off</button>
+        <button class="btn" type="button" data-act="reset">Reset</button>
       </div>
     </div>
     <div>
-      <h3>Try it <span class="sum">keys 1 – 5</span></h3>
-      <div class="demo">
-        <button class="btn sm" type="button" data-act="offer-ana-bo"><kbd>1</kbd>Ana offers Bo</button>
-        <button class="btn sm" type="button" data-act="accept"><kbd>2</kbd>Bo accepts</button>
-        <button class="btn sm" type="button" data-act="decline"><kbd>3</kbd>Bo declines</button>
-        <button class="btn sm" type="button" data-act="offer-bo-cy"><kbd>4</kbd>Bo offers Cy</button>
-        <button class="btn sm" type="button" data-act="reset"><kbd>5</kbd>Ana drives again</button>
+      <h3>Theme · motion</h3>
+      <div class="controls">
+        <button class="btn" type="button" data-theme-set="light">Light</button>
+        <button class="btn" type="button" data-theme-set="dark">Dark</button>
+        <button class="btn" type="button" data-theme-set="">System</button>
+        <button class="btn" type="button" id="calmBtn" aria-pressed="false">Calm</button>
       </div>
-      <p class="fine" style="margin-top:10px">Keys never fire while the field has focus. <code class="mono">?at=rest|offered|accepted|declined</code> opens a frame; <code class="mono">?calm</code> sets <code class="mono">data-motion="calm"</code>. Under Calm or reduced motion the baton appears where the state puts it; the sentence carries the news.</p>
     </div>
+    <p class="colophon" id="colophon">?at=rest|offered|accepted|declined|rule · ?play · ?calm · keys 1–5</p>
   </aside>
 </div>
 
 <script>
 (() => {
   const root = document.documentElement;
-  const q = new URLSearchParams(location.search);
-  if (q.has('calm')) root.dataset.motion = 'calm';
-  const motionOn = () => matchMedia('(prefers-reduced-motion: no-preference)').matches && root.dataset.motion !== 'calm';
-  const wait = (ms) => new Promise((r) => setTimeout(r, motionOn() ? ms : 0));
+  const $ = (s) => document.querySelector(s);
+  const lane = $('#lane'), carrier = $('#carrier'), lift = $('#lift'), baton = $('#baton'), ring = baton.querySelector('.ring');
+  const stop = $('#stop'), thread = $('#thread'), composer = $('#composer'), say = $('#say'), clock = $('#clock'), acts = $('#acts');
+  const hint = $('#hint'), hintWho = $('#hintWho'), hintAvatar = $('#hintAvatar'), topStack = $('#topStack');
+  const batonLine = $('#batonLine'), batonLineText = $('#batonLineText'), composing = $('#composing');
+  const phoneSentence = $('#phoneSentence');
+  const NAMES = { ana: 'Ana', bo: 'Bo', cy: 'Cy', dee: 'Dee' };
+  const S = { driver: 'ana', state: 'rest', rot: 0, x: 0, clockT: null, clockS: 0, run: 0 };
+
+  // ---- the one guard, read from CSS: wait() returns at once under Calm or reduce (MOTION §3) ----
+  const motionOn = () => getComputedStyle(root).getPropertyValue('--motion').trim() === '1';
   const ms = (name) => parseFloat(getComputedStyle(root).getPropertyValue(name)) || 0;
+  const wait = (t) => new Promise((r) => setTimeout(r, motionOn() ? t : 0));
+  const num = (name) => parseFloat(getComputedStyle(root).getPropertyValue(name));
+  const degPerPx = () => 180 / (Math.PI * num('--r'));
 
-  const names = { ana: 'Ana', bo: 'Bo', cy: 'Cy' };
-  const me = 'bo';
-  const R = 18;                                    // the ring's radius: it rolls, so angle = distance / R
-  const lane = document.getElementById('lane');
-  const carrier = document.getElementById('carrier');
-  const baton = document.getElementById('baton');
-  const stop = document.getElementById('stop');
-  const say = document.getElementById('say');
-  const actions = document.getElementById('actions');
-  const hint = document.getElementById('hint');
-  const sr = document.getElementById('lanesr');
-  const stream = document.getElementById('stream');
-  const framesum = document.getElementById('framesum');
+  // ---- geometry: seats measured once per layout, never computed in CSS ----
+  const seatEl = (id) => lane.querySelector(`.seat[data-id="${id}"] .avatar`);
+  const cx = (id) => { const a = seatEl(id).getBoundingClientRect(), l = lane.getBoundingClientRect(); return a.left - l.left + a.width / 2; };
+  const edgeL = (id) => cx(id) - num('--seat') / 2;
+  const setX = (x) => { carrier.style.setProperty('--bx', (x - 24) + 'px'); S.x = x; };
+  const rollTo = (x, spring) => {
+    carrier.dataset.spring = spring;
+    const dx = x - S.x; S.rot += dx * degPerPx();
+    baton.style.setProperty('--rot', S.rot.toFixed(2) + 'deg');
+    setX(x);
+  };
+  const open = (a, towardDeg, rotAtEnd) => {
+    // gap centre sits at 360·(−d + (1+a)/2) + R; choose d so it faces towardDeg once R = rotAtEnd
+    const d = ((1 + a) / 2 + rotAtEnd / 360 - towardDeg / 360) % 1;
+    ring.style.setProperty('--do', ((d + 1) % 1).toFixed(4));
+    ring.style.setProperty('--da', `${a} ${(1 - a).toFixed(2)}`);
+  };
+  const close = () => ring.style.setProperty('--da', '1 0');
+  const threadTo = (id) => { // the stitched guide from the agent to the driver
+    const l = lane.getBoundingClientRect(), pad = num('--lane-pad');
+    const agent = seatEl('agent').getBoundingClientRect();
+    const left = agent.right - l.left + 6 - pad;
+    const right = (l.width - pad) - (edgeL(id) - 6);
+    thread.style.setProperty('--tl', left + 'px'); thread.style.setProperty('--tr', right + 'px');
+  };
+  const ringOn = (id) => {
+    topStack.querySelectorAll('.avatar[data-id]').forEach((a) => a.classList.toggle('driver', a.dataset.id === id));
+    topStack.setAttribute('aria-label', `Ana, Bo, Cy and Dee are here with Checkout. ${NAMES[id]} is driving.`);
+    hintAvatar.className = `avatar ${id} xs driver`; hintAvatar.textContent = NAMES[id][0];
+    hintWho.textContent = id === 'bo' ? 'You' : NAMES[id];
+    $('#hintVerb').textContent = id === 'bo' ? 'are driving' : 'is driving';
+  };
+  const sentence = (html, phone) => { say.innerHTML = html; phoneSentence.innerHTML = phone || html; };
+  const startClock = (from) => { stopClock(); S.clockS = from; const tick = () => { const m = Math.floor(S.clockS / 60), s = S.clockS % 60; clock.textContent = `${m}:${String(s).padStart(2, '0')}`; }; tick(); S.clockT = setInterval(() => { S.clockS++; tick(); }, 1000); clock.hidden = false; };
+  const stopClock = () => { clearInterval(S.clockT); S.clockT = null; clock.hidden = true; };
 
-  let driver = 'ana', at = 'ana', state = 'offered', offer = { from: 'ana', to: 'bo', since: Date.now() - 32000 };
-  let rot = 0, busy = false, declinedLine = null;
-  const xs = {};
-  const measure = () => {
-    const L = lane.getBoundingClientRect().left;
-    lane.querySelectorAll('.seat').forEach((s) => { const r = s.querySelector('.avatar').getBoundingClientRect(); xs[s.dataset.who] = r.left + r.width / 2 - L; });
+  // ---- rest: the ring sits around the driver, closed; the lane is folded ----
+  const rest = (driver) => {
+    S.driver = driver; S.state = 'rest'; S.rot = 0;
+    carrier.dataset.spring = 'none'; baton.style.setProperty('--rot', '0deg'); close(); ring.style.setProperty('--do', '0');
+    lift.style.setProperty('--ly', '0px'); lift.classList.remove('up');
+    carrier.classList.remove('rolling'); lane.classList.remove('offered', 'stopped'); baton.classList.remove('bump');
+    setX(cx(driver)); threadTo(driver); ringOn(driver);
+    composer.classList.remove('open'); hint.classList.remove('rule'); acts.hidden = true; stopClock();
+    lane.querySelectorAll('.avatar.joined').forEach((a) => a.classList.remove('joined'));
   };
-  const place = (who) => { carrier.style.setProperty('--bx', `${xs[who]}px`); at = who; };
-  const roll = (from, to) => { rot += ((xs[to] - xs[from]) / R) * 180 / Math.PI; baton.style.setProperty('--rot', `${rot}deg`); };
-  const setState = (s) => { state = s; lane.dataset.state = s; paintFrames(); };
-  const clockText = () => offer ? `${Math.max(0, Math.round((Date.now() - offer.since) / 1000))} s` : '';
 
-  // the driver ring everywhere else (topbar stack, rail card) follows the baton
-  const paintDriver = () => {
-    document.querySelectorAll('[data-who]').forEach((el) => { if (el.classList.contains('avatar')) el.classList.toggle('driver', el.dataset.who === driver); });
-    document.getElementById('merole').textContent = driver === me ? 'driver' : 'contributor';
-    document.getElementById('teampill').textContent = driver === me ? 'Team · with Ana' : `Team · with ${names[driver] === 'Ana' ? 'Ana' : names[driver]}`;
+  // ---- offer: Ana hands to Bo. unfold → lift → roll (one turn per seat, minus the gap) → wait open ----
+  const offer = async () => {
+    if (S.state !== 'rest') return; S.state = 'offering'; const run = ++S.run;
+    const from = S.driver, to = 'bo';
+    composer.classList.add('open'); composing.textContent = '';
+    sentence(`<span class="serif">${NAMES[from]}</span> is handing off…`);
+    await wait(ms('--t-slow') + 60); if (run !== S.run) return;
+    setX(cx(from)); carrier.dataset.spring = 'none'; void carrier.offsetWidth;
+    const target = cx(to) - num('--gap');
+    const rotEnd = S.rot + (target - S.x) * degPerPx();
+    open(0.62, 0, rotEnd);                                  // open so the gap faces Bo when it arrives
+    lift.style.setProperty('--ly', '-6px'); lift.classList.add('up');
+    await wait(ms('--d-lift')); if (run !== S.run) return;
+    carrier.classList.add('rolling'); rollTo(target, 'travel');
+    await wait(ms('--d-travel')); if (run !== S.run) return;
+    carrier.classList.remove('rolling');
+    lane.classList.add('offered'); S.state = 'offered';
+    sentence(`<span class="serif">${NAMES[from]}</span> offers you the baton.`);
+    acts.hidden = false; startClock(0);
   };
-  const btn = (label, cls, act) => { const b = document.createElement('button'); b.type = 'button'; b.className = `btn sm ${cls}`; b.textContent = label; b.dataset.act = act; return b; };
-  const serif = (t) => `<span class="serif">${t}</span>`;
-  const paintLine = (enter = true) => {
-    actions.replaceChildren();
-    let html = '', h = '';
-    if (state === 'offered' && offer) {
-      if (offer.to === me) {
-        html = `${serif(names[offer.from])} offers you the baton.<span class="mono" id="clock">${clockText()}</span>`;
-        actions.append(btn('Accept', 'primary', 'accept'), btn('Decline', 'ghost no', 'decline'));
-        h = `Accept and you drive this session; <span class="serif">Checkout</span> keeps its plan and its claims. Decline and nothing changes.`;
-      } else {
-        html = `You offered the baton to ${serif(names[offer.to])}.<span class="mono" id="clock">${clockText()}</span>`;
-        actions.append(btn('Take it back', 'ghost', 'recall'));
-        h = `${serif(names[offer.to])} sees it in the composer and in the inbox · you still drive until it is accepted`;
-      }
-    } else if (state === 'blocked' || state === 'return' || state === 'recall') {
-      if (state === 'recall') { html = `You took the baton back.`; h = `${serif(names[driver])} still drives · ${serif('Checkout')} keeps its plan`; }
-      else { html = `${serif(names[offer.to])} <span class="no">declined the baton</span> · ${serif(names[offer.from])} still drives.`; h = `A no is a no: nothing changes, and the offer leaves the inbox.`; }
-    } else if (state === 'lift' || state === 'travel' || state === 'close') {
-      html = state === 'close' ? `${serif(names[at])} has the baton.` : `${serif(names[offer.from])} hands the baton to ${serif(names[offer.to])}…`;
-      h = '';
-    } else {
-      if (driver === me) { html = `You have the baton · steering ${serif('Checkout')}.`; actions.append(btn('Hand off to Ana', 'ghost', 'offer-bo-ana'), btn('Hand off to Cy', 'ghost', 'offer-bo-cy')); h = `Bo · driver · Enter sends · ⇧ Enter newline · <span class="serif">/</span> for keys`; }
-      else { html = `${serif(names[driver])} has the baton · steering ${serif('Checkout')}.`; h = `Bo · contributor · what you send is a steer that ${names[driver]} can see · Enter sends`; }
-      if (declinedLine) { html += ` <span class="faint">${declinedLine}</span>`; }
-    }
-    say.innerHTML = html; hint.innerHTML = h;
-    if (enter && motionOn()) { say.classList.remove('enter'); void say.offsetWidth; say.classList.add('enter'); actions.classList.remove('enter'); void actions.offsetWidth; actions.classList.add('enter'); }
-    sr.textContent = say.textContent;
-  };
-  const divider = (html, no = false) => {
-    const d = document.createElement('div'); d.className = 'divider enter';
-    const t = new Date(); const hh = `16:${String(41 + Math.min(18, Math.floor((t - start) / 60000) + 1)).padStart(2, '0')}`;
-    d.innerHTML = `<span>${html}</span><span class="mono">${hh}</span>`; stream.append(d); stream.parentElement.scrollTop = 1e6;
-  };
-  const start = Date.now();
 
-  // ---- the moves ----
-  const offerTo = async (from, to) => {
-    if (busy) return; busy = true; declinedLine = null;
-    offer = { from, to, since: Date.now() };
-    divider(`${serif(names[from])} offers the baton to ${serif(names[to])}`);
-    setState('lift'); paintLine();                          // the ring opens and lifts
-    await wait(ms('--d-lift'));
-    setState('travel'); place(to); roll(from, to);          // it rolls, sags, the lane dips
-    await wait(ms('--d-travel'));
-    setState('offered'); paintLine();                       // it waits, open, breathing
-    busy = false;
-  };
+  // ---- accept: the last of the turn, the ring drops and closes around Bo; the thread follows ----
   const accept = async () => {
-    if (busy || state !== 'offered' || offer.to !== me) return; busy = true;
-    setState('close'); paintLine();                         // the ring closes around the new driver
-    const seat = lane.querySelector(`.seat[data-who="${offer.to}"]`); seat.classList.remove('pop'); void seat.offsetWidth; seat.classList.add('pop');
-    await wait(ms('--d-close'));
-    driver = offer.to; paintDriver();
-    divider(`${serif(names[driver])} has the baton`);
-    await wait(900);
-    offer = null; setState('rest'); paintLine(); busy = false;
+    if (S.state !== 'offered') return; S.state = 'accepting'; const run = ++S.run;
+    const from = S.driver, to = 'bo';
+    lane.classList.remove('offered'); acts.hidden = true; stopClock();
+    lift.style.setProperty('--ly', '0px'); lift.classList.remove('up'); close();
+    rollTo(cx(to), 'close');
+    await wait(ms('--d-close')); if (run !== S.run) return;
+    S.driver = to; threadTo(to); ringOn(to);
+    seatEl(to).classList.add('joined');
+    sentence(`You have the baton · steering <span class="serif">Checkout</span>.`, `You have the baton.`);
+    batonLineText.innerHTML = `<b>Bo</b> has the baton`; batonLine.hidden = false; batonLine.classList.add('enter');
+    await wait(2400); if (run !== S.run) return;
+    composer.classList.remove('open'); S.state = 'rest'; S.rot = 0; baton.style.setProperty('--rot', '0deg'); carrier.dataset.spring = 'none';
   };
+
+  // ---- decline: the stop rises at Bo's edge, the baton bumps it and rolls home heavier ----
   const decline = async () => {
-    if (busy || state !== 'offered' || offer.to !== me) return; busy = true;
-    stop.style.setProperty('--sx', `${xs[offer.to] - 22}px`);
-    setState('blocked'); paintLine();                       // the stop rises, the baton bumps against it
-    divider(`${serif(names[offer.to])} <span class="no">declined the baton</span>`);
-    await wait(ms('--d-stop') + ms('--d-bump') + 120);
-    setState('return'); place(offer.from); roll(offer.to, offer.from);   // it rolls home, tired
-    await wait(ms('--d-return'));
-    setState('close');
-    await wait(ms('--d-close'));
-    declinedLine = `${names[offer.to]} declined · 16:42`;
-    offer = null; setState('rest'); paintLine(); busy = false;
+    if (S.state !== 'offered') return; S.state = 'declining'; const run = ++S.run;
+    const from = S.driver, to = 'bo';
+    lane.classList.remove('offered'); acts.hidden = true; stopClock();
+    stop.style.setProperty('--sx', (edgeL(to) - 7) + 'px'); lane.classList.add('stopped');
+    sentence(`<span class="serif">Bo</span> <span class="no">declined the baton</span> · <span class="serif">${NAMES[from]}</span> still drives.`, `You declined · <b>${NAMES[from]}</b> still drives.`);
+    await wait(ms('--d-stop')); if (run !== S.run) return;
+    baton.classList.add('bump');
+    await wait(ms('--d-bump')); if (run !== S.run) return;
+    baton.classList.remove('bump');
+    carrier.classList.add('rolling'); rollTo(cx(from), 'return');
+    await wait(ms('--d-return')); if (run !== S.run) return;
+    carrier.classList.remove('rolling');
+    carrier.dataset.spring = 'close'; lift.style.setProperty('--ly', '0px'); lift.classList.remove('up'); close();
+    await wait(ms('--d-close') + 2600); if (run !== S.run) return;
+    composer.classList.remove('open'); lane.classList.remove('stopped'); S.state = 'rest'; S.rot = 0; baton.style.setProperty('--rot', '0deg'); carrier.dataset.spring = 'none';
   };
-  const recall = async () => {
-    if (busy || state !== 'offered' || offer.from !== me) return; busy = true;
-    setState('recall'); paintLine(); place(offer.from); roll(offer.to, offer.from);
-    await wait(ms('--d-return'));
-    setState('close'); await wait(ms('--d-close'));
-    offer = null; setState('rest'); paintLine(); busy = false;
-  };
-  const reset = () => { if (busy) return; driver = 'ana'; offer = null; declinedLine = null; paintDriver(); place('ana'); setState('rest'); paintLine(); };
-  const act = (a) => {
-    if (a === 'accept') accept(); else if (a === 'decline') decline(); else if (a === 'recall') recall(); else if (a === 'reset') reset();
-    else if (a.startsWith('offer-')) { const [, from, to] = a.split('-'); if (busy || state !== 'rest') return; if (from !== driver) { paintRefused(from); return; } offerTo(from, to); }
-  };
-  // the policy refusal (kernel: only the driver or an owner can hand off): the baton does not lift
-  const paintRefused = (from) => { hint.innerHTML = `Only ${serif(names[driver])} or an owner can hand off. The baton stays where it is.`; };
-  document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act); });
+
+  // ---- a refusal by rule: no motion; the sentence does the work ----
+  const rule = () => { if (S.state !== 'rest') return; hint.classList.add('rule'); setTimeout(() => hint.classList.remove('rule'), 4000); };
+
+  // ---- frames by URL (the scrubber's "past": the state at that event, no travel) ----
+  const still = (fn) => { const calm = root.dataset.motion; root.dataset.motion = 'calm'; fn(); void lane.offsetWidth; if (calm) root.dataset.motion = calm; else delete root.dataset.motion; };
+  const at = (frame) => still(() => {
+    rest('ana');
+    if (frame === 'offered') { composer.classList.add('open'); const t = cx('bo') - num('--gap'); S.rot = (t - S.x) * degPerPx(); open(0.62, 0, S.rot); baton.style.setProperty('--rot', S.rot + 'deg'); setX(t); lift.style.setProperty('--ly', '-6px'); lift.classList.add('up'); lane.classList.add('offered'); S.state = 'offered'; sentence(`<span class="serif">Ana</span> offers you the baton.`); acts.hidden = false; startClock(32); }
+    if (frame === 'accepted') { rest('bo'); composer.classList.add('open'); sentence(`You have the baton · steering <span class="serif">Checkout</span>.`, `You have the baton.`); batonLine.hidden = false; seatEl('bo').classList.add('joined'); }
+    if (frame === 'declined') { composer.classList.add('open'); stop.style.setProperty('--sx', (edgeL('bo') - 7) + 'px'); lane.classList.add('stopped'); sentence(`<span class="serif">Bo</span> <span class="no">declined the baton</span> · <span class="serif">Ana</span> still drives.`, `You declined · <b>Ana</b> still drives.`); }
+    if (frame === 'rule') { hint.classList.add('rule'); }
+  });
+
+  // ---- wiring ----
+  $('#acceptBtn').addEventListener('click', accept);
+  $('#declineBtn').addEventListener('click', decline);
+  $('#handoffLink').addEventListener('click', rule);
+  document.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => ({ offer, accept, decline, rule, reset: () => rest('ana') })[b.dataset.act]()));
+  document.querySelectorAll('[data-theme-set]').forEach((b) => b.addEventListener('click', () => { const v = b.dataset.themeSet; if (v) root.dataset.theme = v; else delete root.dataset.theme; }));
+  $('#calmBtn').addEventListener('click', (e) => { const on = root.dataset.motion !== 'calm'; if (on) root.dataset.motion = 'calm'; else delete root.dataset.motion; e.currentTarget.setAttribute('aria-pressed', String(on)); });
   document.addEventListener('keydown', (e) => {
-    if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
-    const k = { '1': 'offer-ana-bo', '2': 'accept', '3': 'decline', '4': 'offer-bo-cy', '5': 'reset' }[e.key]; if (k) act(k);
+    if (e.target.matches('input, textarea, [contenteditable]')) return;
+    ({ '1': () => rest('ana'), '2': offer, '3': accept, '4': decline, '5': rule })[e.key]?.();
   });
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (S.state === 'rest') rest(S.driver); else { threadTo(S.driver); } }, 80); });
 
-  // ---- the seven frames, drawn small: the same lane, the baton in each pose ----
-  const FR = [
-    ['rest', 'At rest', 'the driver ring · stroke <b>2</b> · apricot-deep'],
-    ['lift', 'Lift', '<b>250 ms</b> · the ring opens to an arc and rises 5 px'],
-    ['travel', 'Roll', '<b>830 ms</b> · rolls on the hairline · the lane dips · 6.9 % over'],
-    ['offered', 'Offered', 'the apart pose · breathes <b>1.8 s</b> · Accept or Decline'],
-    ['close', 'Accepted', '<b>380 ms</b> · the arc closes into the ring · the avatar pops'],
-    ['blocked', 'Declined', 'a stop rises <b>200</b> · bump <b>160</b> · home in <b>640 ms</b>'],
-    ['calm', 'Calm', 'no travel · the ring appears at the new driver · words carry it'],
+  // ---- the spring generator: the same twelve lines that produced the tokens, used for the plots ----
+  const spring = (m, k, c, n = 40, tol = 0.004) => {
+    const w0 = Math.sqrt(k / m), z = c / (2 * Math.sqrt(k * m)), wd = w0 * Math.sqrt(1 - z * z);
+    const x = (t) => 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z * w0 / wd) * Math.sin(wd * t));
+    let T = 0; for (let t = 0; t < 4; t += 0.001) if (Math.abs(x(t) - 1) > tol) T = t;
+    T = Math.ceil(T * 100) / 100;
+    const stops = []; for (let i = 0; i <= n; i++) stops.push(+x(T * i / n).toFixed(3)); stops[n] = 1;
+    return { z, w0, ms: Math.round(T * 1000), over: z < 1 ? Math.exp(-z * Math.PI / Math.sqrt(1 - z * z)) : 0, stops };
+  };
+  const SPRINGS = [['travel', 1.2, 180, 19, 'the roll'], ['return', 1.5, 120, 26, 'home, declined'], ['close', 1, 500, 36, 'the ring closes'], ['lift', 1, 700, 48, 'the pick-up']];
+  $('#plots').innerHTML = SPRINGS.map(([name, m, k, c, what]) => {
+    const s = spring(m, k, c); const W = 150, H = 52, top = 14, base = 46;
+    const pts = s.stops.map((v, i) => `${(5 + i / 40 * W).toFixed(1)},${(base - v * (base - top)).toFixed(1)}`).join(' ');
+    return `<div class="plot"><svg viewBox="0 0 160 56" aria-label="${name} spring"><line x1="5" y1="${top}" x2="155" y2="${top}" stroke="var(--line)" stroke-dasharray="2 3"/><line x1="5" y1="${base}" x2="155" y2="${base}" stroke="var(--line)"/><polyline points="${pts}" fill="none" stroke="var(--baton)" stroke-width="1.6" stroke-linejoin="round"/><circle cx="155" cy="${top}" r="2" fill="var(--baton)"/></svg><div class="cap"><b>${name}</b><span>${s.over > 0.002 ? (s.over * 100).toFixed(1) + ' % over · ' : ''}${s.ms} ms</span></div></div>`;
+  }).join('');
+
+  // ---- the frames, drawn from the same geometry (a 2:1 reduction of the lane) ----
+  const frame = (o) => {
+    const r = 11, A = 32, B = 92, y = 24, gap = 20, da = o.open ? `${0.62} 0.38` : '1 0';
+    const seat = (x, c) => `<circle cx="${x}" cy="${y}" r="9" fill="var(--av-${c}-bg)"/><text x="${x}" y="${y + 3}" text-anchor="middle" font-family="var(--serif)" font-size="8" fill="var(--av-${c}-fg)">${c[0].toUpperCase()}</text>`;
+    const rx = o.at === 'a' ? A : o.at === 'b' ? B : o.at === 'mid' ? 62 : B - gap;
+    const ry = o.up ? y - 4 : y;
+    const dip = o.dip ? `<path d="M${rx - 22} ${y}Q${rx} ${y + 6} ${rx + 22} ${y}" fill="none" stroke="var(--track)"/>` : '';
+    const track = o.dip ? `<line x1="8" y1="${y}" x2="${rx - 22}" y2="${y}" stroke="var(--track)"/><line x1="${rx + 22}" y1="${y}" x2="116" y2="${y}" stroke="var(--track)"/>` : `<line x1="8" y1="${y}" x2="116" y2="${y}" stroke="var(--track)"/>`;
+    const stopEl = o.stop ? `<rect x="${B - 13}" y="${y - 7}" width="1.5" height="14" rx=".75" fill="var(--danger)"/>` : '';
+    const halo = o.halo ? `<circle cx="${rx}" cy="${ry}" r="${r + 5}" fill="none" stroke="var(--baton-halo)" stroke-width="1"/>` : '';
+    const d = o.open ? (((1 + 0.62) / 2 + (o.rot || 0) / 360 - (o.toward || 0) / 360) % 1 + 1) % 1 : 0;
+    return `<svg viewBox="0 0 124 48">${track}${dip}${seat(A, 'ana')}${seat(B, 'bo')}${stopEl}${halo}<circle cx="${rx}" cy="${ry}" r="${r}" pathLength="1" fill="none" stroke="var(--baton)" stroke-width="${o.up ? 1.6 : 1.3}" stroke-linecap="round" stroke-dasharray="${da}" stroke-dashoffset="${d.toFixed(3)}" transform="rotate(${o.rot || 0} ${rx} ${ry})"/></svg>`;
+  };
+  const FRAMES = [
+    ['rest', '0 ms', { at: 'a' }], ['lift', '220', { at: 'a', up: true, open: true, rot: 0, toward: 250 }], ['roll', '+730', { at: 'mid', up: true, open: true, dip: true, rot: 180, toward: 0 }],
+    ['offered', 'wait', { at: 'near', up: true, open: true, halo: true, rot: 252, toward: 0 }], ['taken', '+340', { at: 'b' }], ['declined', '+200 · 790', { at: 'near', up: true, open: true, stop: true, rot: 240, toward: 0 }],
   ];
-  const frameSvg = (k) => {
-    const A = 20, B = 92, y = 22, r = 12, Rr = 15;
-    const av = (x, t, cls) => `<circle cx="${x}" cy="${y}" r="${r}" fill="var(--surface-3)" stroke="var(--surface)" stroke-width="2"/><text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-family="var(--font)" font-size="9" font-weight="600" fill="var(--ink)">${t}</text>`;
-    const ring = (x, dy, dash, w, extra = '') => `<circle cx="${x}" cy="${y + dy}" r="${Rr}" pathLength="1" fill="none" stroke="var(--baton)" stroke-width="${w}" stroke-linecap="round" stroke-dasharray="${dash}" ${extra}/>`;
-    let track = `<path d="M6 ${y}H106" stroke="var(--track)" fill="none"/>`;
-    let b = '';
-    if (k === 'rest') b = ring(A, 0, '1 0', 2);
-    if (k === 'lift') b = ring(A, -5, '.34 .66', 3.2, 'transform="rotate(-30 20 17)"') + `<ellipse cx="${A}" cy="${y + 13}" rx="12" ry="2.5" fill="rgba(42,50,68,.12)"/>`;
-    if (k === 'travel') { const x = 56; track = `<path d="M6 ${y}H${x - 20}Q${x} ${y + 7} ${x + 20} ${y}H106" stroke="var(--track)" fill="none"/>`; b = ring(x, -2, '.34 .66', 3.2, `transform="rotate(140 ${x} ${y - 2})"`) + `<ellipse cx="${x}" cy="${y + 12}" rx="12" ry="2.5" fill="rgba(42,50,68,.12)"/>`; }
-    if (k === 'offered') b = ring(B, -2, '.42 .58', 3, `transform="rotate(-150 ${B} ${y - 2})"`) + `<circle cx="${B}" cy="${y - 2}" r="20" fill="none" stroke="var(--baton-halo)" stroke-width="4"/><circle cx="${B}" cy="${y - 2}" r="25" fill="none" stroke="var(--baton-halo)" stroke-width="2" opacity=".4"/>`;
-    if (k === 'close') b = ring(B, 0, '.82 .18', 2.4, `transform="rotate(-100 ${B} ${y})"`);
-    if (k === 'blocked') b = `<rect x="${B - 21}" y="${y - 14}" width="2" height="20" rx="1" fill="var(--stop)"/>` + `<g transform="translate(${B - 10} ${y - 4}) scale(.78 1.14) translate(${-(B - 10)} ${-(y - 4)})">${ring(B - 10, -4, '.34 .66', 3.2, `transform="rotate(30 ${B - 10} ${y - 4})"`)}</g>`;
-    if (k === 'calm') b = ring(B, 0, '1 0', 2);
-    return `<svg viewBox="0 0 112 44" aria-hidden="true">${track}${av(A, 'A')}${av(B, 'B')}${b}</svg>`;
-  };
-  const frames = document.getElementById('frames');
-  FR.forEach(([k, t, m], i) => { const f = document.createElement('button'); f.type = 'button'; f.className = 'frame'; f.dataset.frame = k; f.innerHTML = `${frameSvg(k)}<span><span class="t">${t}</span><br><span class="m">${m}</span></span>`; frames.append(f); });
-  const paintFrames = () => {
-    const key = !motionOn() && state !== 'rest' && state !== 'offered' ? 'calm' : (state === 'return' || state === 'recall') ? 'blocked' : state;
-    let idx = 0; frames.querySelectorAll('.frame').forEach((f, i) => { const cur = f.dataset.frame === key; f.classList.toggle('cur', cur); if (cur) idx = i; });
-    framesum.textContent = `${idx + 1} of 7 · ${FR[idx][1].toLowerCase()}`;
-  };
-  frames.addEventListener('click', (e) => {
-    const f = e.target.closest('.frame'); if (!f || busy) return;
-    const k = f.dataset.frame;
-    if (k === 'rest' || k === 'calm') reset();
-    else if (k === 'offered') jump('offered');
-    else if (k === 'close') jump('accepted');
-    else if (k === 'blocked') { jump('offered'); decline(); }
-    else if (k === 'lift' || k === 'travel') { reset(); offerTo('ana', 'bo'); }
-  });
+  $('#frames').innerHTML = FRAMES.map(([n, t, o]) => `<div class="frame">${frame(o)}<div class="cap"><b>${n}</b><span>${t}</span></div></div>`).join('');
 
-  // ---- open at a frame, with no travel: the page is a finished drawing at any state ----
-  const jump = (s) => {
-    const was = root.dataset.motion; root.dataset.motion = 'calm';    // one frame under calm: nothing plays
-    declinedLine = null;
-    if (s === 'accepted') { driver = 'bo'; offer = null; place('bo'); setState('rest'); }
-    else if (s === 'declined') { driver = 'ana'; offer = null; declinedLine = 'Bo declined · 16:42'; place('ana'); setState('rest'); divider(`${serif('Bo')} <span class="no">declined the baton</span>`); }
-    else if (s === 'rest') { driver = 'ana'; offer = null; place('ana'); setState('rest'); }
-    else { driver = 'ana'; offer = { from: 'ana', to: 'bo', since: Date.now() - 32000 }; place('bo'); rot = -150; baton.style.setProperty('--rot', `${rot}deg`); setState('offered'); }
-    paintDriver(); paintLine(false);
-    void carrier.offsetWidth;
-    if (was) root.dataset.motion = was; else delete root.dataset.motion;
-    paintFrames();
+  // ---- colophon: which faces actually rendered ----
+  const face = (fam) => (document.fonts && document.fonts.check(`16px "${fam}"`)) ? fam : null;
+  const serifOn = ['Fraunces', 'Instrument Serif', 'Iowan Old Style', 'Georgia'].map(face).find(Boolean) || 'serif fallback';
+  const sansOn = ['Inter', 'Instrument Sans', 'Segoe UI'].map(face).find(Boolean) || 'system sans';
+  $('#colophon').textContent = `rendered with ${serifOn} · ${sansOn} · JetBrains Mono · ?at=rest|offered|accepted|declined|rule · ?play · ?calm · keys 1–5`;
+
+  // ---- boot ----
+  const q = new URLSearchParams(location.search);
+  if (q.has('theme')) root.dataset.theme = q.get('theme');
+  if (q.has('calm')) { root.dataset.motion = 'calm'; $('#calmBtn').setAttribute('aria-pressed', 'true'); }
+  // the stream sits at now, like a session does: pinned to the bottom while the composer changes height
+  const scroll = $('.scroll'); let pinned = true, lastSet = 0;
+  const toNow = () => { scroll.scrollTop = scroll.scrollHeight; lastSet = scroll.scrollTop; };
+  scroll.addEventListener('scroll', () => {
+    if (scroll.scrollTop < lastSet - 2) pinned = false;                                   // the reader went back
+    else if (scroll.scrollHeight - scroll.clientHeight - scroll.scrollTop < 4) pinned = true; // the reader is at now
+  });
+  new ResizeObserver(() => { if (pinned) toNow(); }).observe(scroll);
+  const boot = () => {
+    rest('ana');
+    toNow(); requestAnimationFrame(toNow); setTimeout(toNow, 450);
+    const f = q.get('at');
+    if (f && f !== 'rest') at(f);
+    else if (q.has('play') || !f) setTimeout(offer, q.has('play') ? 300 : 1100);
   };
-  measure();
-  stream.parentElement.scrollTop = 1e6;
-  const open = q.get('at') || 'offered';
-  if (open !== 'offered') document.getElementById('div-offer').remove();
-  jump(open);
-  addEventListener('resize', () => { measure(); place(at); if (state === 'blocked' || state === 'return') stop.style.setProperty('--sx', `${xs[offer.to] - 22}px`); });
-  setInterval(() => { const c = document.getElementById('clock'); if (c && offer) c.textContent = clockText(); }, 1000);
-  if (q.has('play')) { setTimeout(async () => { reset(); await wait(600); await offerTo('ana', 'bo'); await wait(1600); await accept(); }, 800); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(boot); else boot();
 })();
 </script>
 </body>
