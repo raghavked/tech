@@ -4,14 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henosis · Paper and lacquer</title>
-<meta name="description" content="Signature exploration: a cream paper canvas with a faint grain, navy lacquer rails, chocolate ink; the print stylesheet as the same paper.">
+<meta name="description" content="Signature surfaces: a cream stock with a faint grain under one lamp, navy lacquer for the frame, chocolate ink for the hand, the drawn rule and the seal; the print stylesheet as the same paper.">
 <style>
 /* ============================================================================================
-   sig-paper-and-lacquer · the surfaces of Henosis
-   Three materials. Paper (cream stock with a faint grain; everything written on it is matte).
-   Lacquer (every Dress Blues surface: the rail, the output block, the phone's bar, a toast; glossy,
-   smooth, no grain). Ink (chocolate: the hand, the drawn rule, the pressed label, the stamp).
-   Tokens below are tokens.css v5 / SYSTEM §2 values, inlined so the page is self-contained.
+   sig-paper-and-lacquer · the surfaces of Henosis, second pass
+   Three materials under one lamp. STOCK: the cream page is a sheet of paper with a faint grain; what
+   is written on it is more paper (a white sheet, a warmer card, a label pressed into the board).
+   LACQUER: every Dress Blues surface (the rail, the agent's output block, the phone's bar) is glossy,
+   lit from the same lamp, no grain. INK: chocolate is what the room writes with: the hand, the rule
+   drawn under a title, and the SEAL, the mark in one ink pressed on a decision that landed.
+   Tokens are SYSTEM §2 / §16 values inlined so the page is self-contained; the exploration's own
+   tokens are grouped under "paper, lacquer, ink". No asset is fetched.
    ============================================================================================ */
 :root {
   /* palette */
@@ -26,7 +29,7 @@
   /* the hand */
   --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
   /* the pulse */
-  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30); --glow: 0 0 0 4px rgba(226,196,166,.35);
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30);
   --select-wash: rgba(226,196,166,.16); --select-line: rgba(207,167,130,.50); --live-line: transparent;
   --team-wash: var(--apricot-soft); --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
   --count-bg: #CFA782; --count-fg: #2A3244; --star-on: #B4865C; --star-pre: #CFA782;
@@ -37,38 +40,53 @@
   --ok: #4F7D4A; --ok-soft: rgba(79,125,74,.14); --ok-ink: #3E6639;
   --warn: #B9792E; --warn-soft: rgba(185,121,46,.14); --warn-ink: #7F5320;
   --danger: #A8463A; --danger-soft: rgba(168,70,58,.14); --danger-ink: #8E3A30; --info: #5B6273;
-  /* type: Fraunces and Inter first, Instrument then the system faces */
+  /* type: Fraunces and Inter first (editorial-type), Instrument and the system faces behind them */
   --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --serif: "Fraunces", "Instrument Serif", "Iowan Old Style", Georgia, serif;
-  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   /* shape, depth, layout */
   --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px;
   --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
-  --col: 780px; --gutter: 24px; --rail-w: 296px; --drawer-w: 332px;
-  /* clocks and curves */
+  --col: 780px; --gutter: 24px; --rail-w: 296px; --drawer-w: 340px;
+  /* clocks and curves (MOTION §2) */
   --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
-  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
-  /* paper (print-export) */
-  --paper-bg: #FFFFFF; --paper-ink: #1F2634; --paper-ink-2: #5B6273; --paper-cream: #FBF7F1; --paper-line: rgba(31,38,52,.18);
+  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1); --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
+  /* focus (MOTION §9) */
+  --focus-ring: var(--accent); --focus-halo: rgba(226,196,166,.45);
 
-  /* ---- this exploration: paper, lacquer, ink ------------------------------------------------ */
-  /* the grain: one 240 px feTurbulence tile, rasterised once by the image decoder and repeated; never a live filter */
-  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch' seed='7'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>");
-  --grain-opacity: .085; --grain-blend: soft-light;
-  /* the stamp's ink, broken by the stock: a coarser noise thresholded to a bitmap, used as a luminance mask */
-  --stamp-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='s' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='0.22' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='discrete' tableValues='0 1 1 1 1 1 1'/><feFuncG type='discrete' tableValues='0 1 1 1 1 1 1'/><feFuncB type='discrete' tableValues='0 1 1 1 1 1 1'/></feComponentTransfer></filter><rect width='140' height='140' filter='url(%23s)'/></svg>");
-  /* edges are cut, rules are drawn: a card's edge is the navy hairline; a rule under a title is chocolate ink */
+  /* ---- paper, lacquer, ink ---------------------------------------------------------------- */
+  /* ONE LAMP. Everything that has a direction takes it from here: the wash is where the lamp falls on
+     the stock, the lacquer's sheen is the lamp caught on gloss, every rest shadow falls down and to the
+     right of what casts it, and a pressed label is dark along its top edge. */
+  --lamp: 18% -10%;
+  --wash-paint: radial-gradient(1200px 600px at var(--lamp), var(--wash), transparent 60%);
+  /* THE GRAIN: one 240 px feTurbulence tile, rasterised once by the image decoder and repeated by the
+     compositor; the filter never runs against the viewport. sRGB interpolation keeps the tile's mean at
+     mid-grey so soft-light neither lightens nor darkens the stock. Alpha is forced opaque so the knob is
+     one number. */
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g' color-interpolation-filters='sRGB' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch' seed='7'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='240' height='240' filter='url(%23g)'/></svg>");
+  --grain-alpha: .11;
+  /* THE SEAL'S TOOTH: a coarser noise thresholded to a bitmap, a luminance mask, so the ink breaks where
+     the stock is rough (three-colour-brands' dithered transitions). About a seventh of the tile is bare. */
+  --tooth: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='s' color-interpolation-filters='sRGB' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='.34' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='discrete' tableValues='0 0 0 1 1 1 1 1'/><feFuncG type='discrete' tableValues='0 0 0 1 1 1 1 1'/><feFuncB type='discrete' tableValues='0 0 0 1 1 1 1 1'/><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='140' height='140' filter='url(%23s)'/></svg>");
+  /* EDGES ARE CUT, RULES ARE DRAWN. A sheet's edge is the navy hairline, drawn as a ring so it moves no
+     layout. A line *under* something is chocolate: ink on the page, never a cut. */
   --ring: 0 0 0 1px var(--line);
   --rule: rgba(86,53,45,.22); --rule-strong: rgba(86,53,45,.58);
-  /* paper on paper: a sheet resting on the stock is a ring plus two low-alpha layers; only a floating layer takes --shadow-pop */
-  --rest: 0 1px 2px rgba(42,50,68,.05), 0 4px 12px rgba(42,50,68,.05);
+  /* PAPER ON PAPER. A sheet at rest: the ring plus two warm, low-alpha layers (the lamp is warm, so what a
+     sheet casts is warm: premium-product-ui's chocolate-tinted stack). Only the one floating sheet per
+     screen takes --shadow-pop. */
+  --rest: 0 1px 2px rgba(86,53,45,.06), 0 4px 12px rgba(86,53,45,.06);
   --float: var(--shadow-pop);
-  /* lacquer: a 170° sheen and a lit top edge on every navy surface */
-  --lacquer-sheen: linear-gradient(170deg, rgba(255,255,255,.13), rgba(255,255,255,.035) 38%, transparent 56%);
+  /* LACQUER: the sheen is the lamp on gloss, 170° so the light sits top-left; a lit top edge and a dark
+     bottom edge make the slab. It is a finish, not a height: lacquer casts nothing. */
+  --sheen: linear-gradient(170deg, rgba(255,255,255,.13), rgba(255,255,255,.035) 38%, transparent 56%);
   --lacquer-edge: inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.18);
-  /* pressed: a label debossed into the stock */
+  /* PRESSED: a label debossed into the board: dark along the top edge, the letters lifted by a hairline of
+     light beneath them (Hatch's brown ink pressed into uncoated board, three-colour-brands). */
   --deboss: inset 0 1px 2px rgba(86,53,45,.25); --deboss-text: 0 1px 0 rgba(255,255,255,.55);
-  --stamp: #56352D;
+  /* THE SEAL: the hand's ink. Denied takes the danger ink, Returned the warn ink; the frame never changes. */
+  --seal: #56352D;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -87,13 +105,16 @@
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A; --info: #B4BAC6;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
-  --grain-opacity: .12;
+  --focus-ring: var(--ink);
+  /* night stock: the grain rises so the dark page still reads as paper, not as flat grey; the sheen drops
+     because the lamp is lower; what a sheet casts goes black; the seal takes the hand's text colour */
+  --grain-alpha: .13;
   --rule: rgba(202,164,155,.28); --rule-strong: rgba(202,164,155,.62);
   --rest: 0 1px 2px rgba(0,0,0,.28), 0 4px 12px rgba(0,0,0,.28);
-  --lacquer-sheen: linear-gradient(170deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 38%, transparent 56%);
+  --sheen: linear-gradient(170deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 38%, transparent 56%);
   --lacquer-edge: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.35);
   --deboss: inset 0 1px 2px rgba(0,0,0,.5); --deboss-text: none;
-  --stamp: #CAA49B;
+  --seal: #CAA49B;
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
@@ -112,18 +133,22 @@
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A; --info: #B4BAC6;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
-  --grain-opacity: .12;
+  --focus-ring: var(--ink);
+  --grain-alpha: .13;
   --rule: rgba(202,164,155,.28); --rule-strong: rgba(202,164,155,.62);
   --rest: 0 1px 2px rgba(0,0,0,.28), 0 4px 12px rgba(0,0,0,.28);
-  --lacquer-sheen: linear-gradient(170deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 38%, transparent 56%);
+  --sheen: linear-gradient(170deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 38%, transparent 56%);
   --lacquer-edge: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.35);
   --deboss: inset 0 1px 2px rgba(0,0,0,.5); --deboss-text: none;
-  --stamp: #CAA49B;
+  --seal: #CAA49B;
   color-scheme: dark;
 }
-/* the inspector's switches */
-:root[data-grain="off"] { --grain-opacity: 0; }
-:root[data-sheen="off"] { --lacquer-sheen: none; --lacquer-edge: none; }
+/* on a 2× panel the tile rasterises at 480 device pixels and reads finer, so the alpha steps down a notch (the judge's fix) */
+@media (min-resolution: 2dppx) { :root { --grain-alpha: .10; } :root[data-theme="dark"] { --grain-alpha: .12; } }
+@media (min-resolution: 2dppx) and (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --grain-alpha: .12; } }
+/* the inspector's switches (exploration only) */
+:root[data-grain="off"] { --grain-alpha: 0; }
+:root[data-sheen="off"] { --sheen: none; --lacquer-edge: none; }
 
 /* ============================ base ============================ */
 * { box-sizing: border-box; }
@@ -135,24 +160,34 @@ h1, h2, h3 { margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
 .muted { color: var(--ink-2); } .faint { color: var(--ink-3); } .small { font-size: 13px; line-height: 20px; }
 a { color: var(--accent-ink); text-decoration: none; }
 button { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 6px rgba(226,196,166,.45); border-radius: 6px; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: 0 0 0 6px var(--focus-halo); border-radius: 6px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ============================ materials ============================ */
-/* PAPER: the stock. The wash is the one blurred apricot disc; the grain is an overlay on top of everything that is written on the sheet. */
-.paper { position: relative; isolation: isolate; background: var(--canvas); }
-.paper::before { content: ""; position: absolute; left: 8%; top: -320px; width: 1100px; height: 560px; max-width: 100%; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; z-index: -1; }
-.paper::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 240px 240px; mix-blend-mode: var(--grain-blend); opacity: var(--grain-opacity); pointer-events: none; z-index: 5; }
-/* LACQUER: every navy surface. Smooth: no grain reaches it (soft-light noise is invisible on a dark base). */
-.lacquer { background-color: var(--rail); background-image: var(--lacquer-sheen); box-shadow: var(--lacquer-edge); color: var(--rail-fg); }
-/* SHEET: a white sheet resting on the stock; CARD STOCK: a heavier, warmer sheet; PRESSED: debossed into the stock. */
+/* STOCK. `.main` is the page: the wash is painted as the app paints it (the radial gradient L7 kept), the
+   grain is one overlay above everything written on the sheet. `overflow: clip` so no pseudo-element ever
+   widens the page (the judge's fix). A sheet laid over the stock (the drawer) sits above the overlay. */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; isolation: isolate; overflow: clip; background: var(--wash-paint), var(--canvas); }
+.main::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 240px 240px; mix-blend-mode: soft-light; opacity: var(--grain-alpha); pointer-events: none; z-index: 5; }
+/* LACQUER. Every navy surface. Smooth: the grain overlay does reach the output block, and soft-light noise on
+   a dark base moves a pixel by at most one level, so no mask is needed. */
+.lacquer { background-color: var(--rail); background-image: var(--sheen); box-shadow: var(--lacquer-edge); color: var(--rail-fg); }
+/* SHEET: a white sheet resting on the stock. CARD: a heavier, warmer sheet (a chip, a command). PRESSED: a
+   label debossed into the board. */
 .sheet { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--ring), var(--rest), var(--edge); }
-.stock { background: var(--surface-2); border-radius: var(--radius); box-shadow: var(--ring), var(--edge); }
+.card-stock { background: var(--surface-2); border-radius: var(--radius); box-shadow: var(--ring), var(--edge); }
 .pressed { background: var(--surface-3); box-shadow: var(--deboss); text-shadow: var(--deboss-text); }
-/* INK: a drawn rule, the hand, the stamp. */
+/* INK: a drawn rule, the hand, the seal. */
 .rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
 .rule.strong { border-top-width: 1.5px; border-top-color: var(--rule-strong); }
-.stamp { display: inline-block; padding: 3px 10px 2px; border: 2px solid var(--stamp); border-radius: 5px; color: var(--stamp); font: 600 11.5px/16px var(--font); letter-spacing: .14em; text-transform: uppercase; transform: rotate(-4deg); -webkit-mask-image: var(--stamp-mask); mask-image: var(--stamp-mask); -webkit-mask-size: 140px 140px; mask-size: 140px 140px; mask-mode: luminance; -webkit-mask-mode: luminance; opacity: .9; }
+/* THE SEAL. The mark in one ink (SYSTEM §2.10's `.mark-ink`: the agent's arc dotted) in a double frame
+   with the word and the time, pressed at −4°, its ink broken by the tooth of the stock. One per screen;
+   only on a decision that landed; never on anything live. */
+.seal { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 5px 11px 5px 8px; border: 2px solid var(--seal); border-radius: 7px; color: var(--seal); font: 600 11.5px/16px var(--font); letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; transform: rotate(-4deg); -webkit-mask-image: var(--tooth); mask-image: var(--tooth); -webkit-mask-size: 140px 140px; mask-size: 140px 140px; -webkit-mask-mode: luminance; mask-mode: luminance; opacity: .92; }
+.seal::before { content: ""; position: absolute; inset: 2px; border: 1px solid var(--seal); border-radius: 4px; pointer-events: none; }
+.seal .mark-ink { width: 20px; height: 20px; flex: none; color: inherit; }
+.seal .when { font: 500 11.5px/16px var(--mono); letter-spacing: .06em; opacity: .85; }
+.seal.denied { --seal: var(--danger-ink); } .seal.returned { --seal: var(--warn-ink); }
 
 /* ============================ shell ============================ */
 .shell { display: flex; height: 100%; }
@@ -164,7 +199,8 @@ button { font: inherit; color: inherit; }
 .rail .item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); color: var(--rail-fg); font: 500 14px/20px var(--font); transition: background var(--t-fast) var(--ease-move); }
 .rail .item:hover { background: var(--rail-2); }
 .rail .item .ic { width: 16px; height: 16px; color: var(--rail-muted); flex: none; }
-.rail .item .count { margin-left: auto; }
+.rail .item .count, .rail .item .key { margin-left: auto; }
+.rail .item .key { font: 500 11.5px/16px var(--mono); color: var(--rail-muted); }
 .count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--count-bg); color: var(--count-fg); font: 600 11.5px/16px var(--mono); font-variant-numeric: tabular-nums; }
 .crew { padding: 8px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
 .crew .serif { font-size: 15px; color: var(--apricot); }
@@ -175,15 +211,16 @@ button { font: inherit; color: inherit; }
 .agent.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line), inset 3px 0 0 var(--apricot-deep); }
 .agent .head { display: flex; align-items: center; gap: 9px; font-family: var(--serif); font-size: 15.5px; min-width: 0; }
 .agent .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
-.dot.running { background: #9BC88F; box-shadow: 0 0 0 3px rgba(155,200,143,.25); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; position: relative; }
+.dot.running { background: #9BC88F; --dot-halo: rgba(155,200,143,.25); box-shadow: 0 0 0 3px var(--dot-halo); }
 .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); }
 .dot.idle { background: transparent; box-shadow: inset 0 0 0 1.5px var(--rail-muted); }
 .agent .doing { font-size: 13px; line-height: 20px; color: var(--rail-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .agent .doing i { font-family: var(--serif); color: var(--apricot); }
 .agent .foot { display: flex; align-items: center; gap: 8px; font: 500 12px/16px var(--font); color: var(--rail-muted); }
-.agent .foot .tokens { margin-left: auto; font-family: var(--mono); font-size: 12px; position: relative; padding-bottom: 4px; }
+.agent .foot .tokens { margin-left: auto; font-family: var(--mono); font-size: 12px; position: relative; padding-bottom: 4px; font-variant-numeric: tabular-nums; }
 .agent .foot .tokens::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 1px; background: linear-gradient(90deg, var(--apricot) var(--spent, 30%), var(--rail-line) 0); }
+.agent .foot .tokens.warn::after { background: linear-gradient(90deg, #E2B06A var(--spent, 30%), var(--rail-line) 0); }
 .pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/16px var(--font); letter-spacing: .02em; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
 .pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
 .pill.solo { background: transparent; box-shadow: inset 0 0 0 1px var(--rail-line); color: var(--rail-muted); }
@@ -197,22 +234,26 @@ button { font: inherit; color: inherit; }
 .avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); color: #fff; padding: 0; gap: 0; }
 .avatar.agent::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot); }
 .avatar.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
-.stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -6px; }
+.avatar.missing { background: transparent; box-shadow: none; border: 1.5px dashed var(--ink-3); color: var(--ink-3); }
+.stack { display: inline-flex; flex: none; } .stack .avatar + .avatar { margin-left: -6px; }
 
-/* ============================ main (paper) ============================ */
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* ============================ the page ============================ */
+/* the title row: the chip and the stack are `flex: none` with a 12 px gap and the title gives way (the judge's collision fix) */
 .topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: blur(8px); position: relative; z-index: 3; }
-.topbar .title { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; }
-.status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.topbar .title { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; flex: 1 1 auto; }
+.topbar .title > :first-child { overflow: hidden; text-overflow: ellipsis; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); font-family: var(--font); }
 .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
-.status.running::before { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
-.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.tokchip { display: inline-flex; flex-direction: column; gap: 4px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
-.tokchip .hair { height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--apricot-deep) 31%, var(--surface-3) 0); position: relative; }
-.tokchip .hair::after { content: ""; position: absolute; left: 80%; top: -1px; width: 1px; height: 5px; background: var(--ink-3); }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 0; background: var(--surface); color: var(--ink); font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--ring), var(--edge); transition: box-shadow var(--t-fast) ease, transform var(--t-fast) ease, background var(--t-fast) ease; }
+.status.running::before { background: var(--ok); --dot-halo: var(--ok-soft); box-shadow: 0 0 0 3px var(--dot-halo); }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; flex: none; }
+.topbar .right > * { flex: none; }
+.tokchip { display: inline-flex; flex-direction: column; gap: 4px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tokchip .hair { height: 3px; border-radius: 2px; background: var(--surface-3); position: relative; overflow: hidden; box-shadow: var(--deboss); }
+.tokchip .hair > i { position: absolute; left: 0; top: 0; bottom: 0; width: var(--spent, 0%); background: var(--apricot-deep); border-radius: 2px; }
+.tokchip .hair::after { content: ""; position: absolute; left: 80%; top: 0; width: 1px; height: 3px; background: var(--ink-3); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 0; background: var(--surface); color: var(--ink); font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--ring), var(--edge); transition: box-shadow var(--t-fast) var(--ease-move), transform var(--t) var(--ease-move), background var(--t-fast) var(--ease-move); }
 .btn:hover { box-shadow: var(--ring), var(--rest), var(--edge); }
-.btn:active { transform: translateY(1px); }
+.btn:active { transform: translateY(1px) scale(.99); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 1px 2px rgba(86,53,45,.25); }
 .btn.primary:hover { background: var(--accent-hover); }
 .btn.ghost { background: transparent; box-shadow: none; color: var(--ink-2); }
@@ -220,22 +261,22 @@ button { font: inherit; color: inherit; }
 .btn.sm { min-height: 30px; padding: 0 11px; font-size: 13px; }
 .btn.on { background: var(--apricot-soft); box-shadow: inset 0 0 0 1px var(--select-line); }
 .body { flex: 1; min-height: 0; display: flex; }
-.scroll { flex: 1; min-width: 0; overflow: auto; position: relative; }
-.column { width: min(var(--col), 100%); margin: 0 auto; padding: 18px var(--gutter) 140px; display: flex; flex-direction: column; gap: 26px; }
+.scroll { flex: 1; min-width: 0; overflow: auto; position: relative; display: flex; flex-direction: column; }
+.column { width: min(var(--col), 100%); margin: 0 auto; padding: 18px var(--gutter) 24px; display: flex; flex-direction: column; gap: 26px; flex: none; }
 
 /* conversation */
 .divider { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font: 500 12px/16px var(--font); }
 .divider::before, .divider::after { content: ""; flex: 1; border-top: 1px solid var(--rule); }
 .msg { display: flex; flex-direction: column; gap: 6px; }
-.msg .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 20px; color: var(--ink-2); }
+.msg .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 20px; color: var(--ink-2); flex-wrap: wrap; min-width: 0; }
 .msg .meta .who { font-family: var(--serif); font-size: 16px; color: var(--ink); }
-.msg .meta .when { margin-left: auto; font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+.msg .meta .when { margin-left: auto; font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .msg .meta .scope { font-family: var(--mono); font-size: 12px; padding: 1px 7px; border-radius: 5px; color: var(--ink-2); }
 .msg.human .text { padding: 13px 18px; align-self: flex-start; max-width: 85%; }
 .msg.human .goal { font-family: var(--serif); font-style: italic; color: var(--accent-ink); margin-right: 6px; }
 .msg.agent .text { font-size: 15.5px; line-height: 24px; max-width: 600px; }
 .msg.agent .text p { margin: 0 0 8px; }
-.steps { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; max-width: 600px; }
+.steps { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; max-width: 600px; }
 .step { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; font: 400 13px/20px var(--mono); color: var(--ink-2); padding: 4px 8px; border-radius: 8px; font-variant-numeric: tabular-nums; }
 .step .ic { width: 14px; height: 14px; color: var(--ok); }
 .step .r { color: var(--ink-3); font-size: 12.5px; }
@@ -251,17 +292,20 @@ button { font: inherit; color: inherit; }
 .notice::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
 .notice.gate::before { background: var(--gate-stripe); }
 .notice.quiet::before { background: var(--surface-3); }
-.kind { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 10px; }
-.kind .step-ref { margin-left: auto; font-family: var(--mono); letter-spacing: 0; text-transform: none; font-weight: 400; font-size: 12.5px; }
+.kind { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kind .step-ref { margin-left: auto; font-family: var(--mono); letter-spacing: 0; text-transform: none; font-weight: 400; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .notice .lead { font-family: var(--serif); font-size: 20px; line-height: 26px; }
 .notice .lead i { font-style: italic; }
-.command { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-sm); font: 400 13px/20px var(--mono); color: var(--ink); }
+.notice .landed { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.notice .landed .lead { flex: 1 1 320px; }
+.command { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-sm); font: 400 13px/20px var(--mono); color: var(--ink); flex-wrap: wrap; }
 .command .pill { margin-left: auto; }
 .pill.risk { font-family: var(--mono); font-weight: 500; letter-spacing: 0; height: 20px; padding: 0 8px; border-radius: 5px; color: var(--ink-2); }
 .pill.risk.write { background: var(--apricot-soft); color: var(--ink); }
 .pill.risk.exec { background: rgba(42,50,68,.12); color: var(--ink); }
 .pill.risk.irreversible { background: var(--danger-soft); color: var(--danger-ink); }
 .rulesay { font-size: 13.5px; line-height: 20px; color: var(--ink-2); }
+.rulesay .mono { font-size: 12.5px; }
 .vote { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .vote .name { font-family: var(--serif); font-size: 16px; } .vote .role { color: var(--ink-3); font-size: 12px; margin-left: 6px; }
 .vote .note { font-family: var(--serif); font-style: italic; color: var(--ink-2); font-size: 14px; }
@@ -271,7 +315,7 @@ button { font: inherit; color: inherit; }
 .stars svg.on { fill: var(--star-on); stroke: var(--star-on); }
 .quorum { display: flex; align-items: center; gap: 10px; font: 400 12.5px/16px var(--mono); color: var(--ink-2); }
 .quorum .segs { display: inline-flex; gap: 4px; }
-.quorum .segs i { width: 28px; height: 6px; border-radius: 3px; background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line); }
+.quorum .segs i { width: 28px; height: 6px; border-radius: 3px; background: var(--surface-3); box-shadow: var(--deboss); }
 .quorum .segs i.on { background: var(--apricot-deep); box-shadow: none; }
 .quorum .segs i.next { box-shadow: inset 0 0 0 1.5px var(--apricot-deep); background: transparent; }
 .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -291,24 +335,24 @@ button { font: inherit; color: inherit; }
 .pstep .used { font-family: var(--mono); font-size: 12.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .pstep .used.sofar { color: var(--accent-ink); } .pstep .used.under { color: var(--ok-ink); }
 .pstep .est { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.budget { position: relative; height: 6px; border-radius: 3px; background: var(--surface-3); box-shadow: var(--deboss); overflow: visible; }
+.budget { position: relative; height: 6px; border-radius: 3px; background: var(--surface-3); box-shadow: var(--deboss); }
 .budget > i { position: absolute; left: 0; top: 0; bottom: 0; width: var(--pct); border-radius: 3px; background: var(--apricot-deep); }
 .budget .tick { position: absolute; top: -3px; width: 1px; height: 12px; background: var(--ink-3); }
 .budget .tick.est { left: var(--est); background: var(--accent-ink); }
 .budget .tick.eighty { left: 80%; }
-.plan .totals { display: flex; align-items: center; gap: 12px; font: 400 12.5px/16px var(--mono); color: var(--ink-2); flex-wrap: wrap; }
+.plan .totals { display: flex; align-items: center; gap: 12px; font: 400 12.5px/16px var(--mono); color: var(--ink-2); flex-wrap: wrap; font-variant-numeric: tabular-nums; }
 .plan .totals .big { color: var(--ink); font-weight: 500; }
 .plan .totals .foot { margin-left: auto; color: var(--ink-3); font-family: var(--font); }
 .raters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .rater { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 6px; border-radius: var(--radius-full); font-size: 13px; }
 .rater .name { font-family: var(--serif); font-size: 15px; }
 .rater .note { font-family: var(--serif); font-style: italic; color: var(--ink-2); }
-.rater.missing { box-shadow: inset 0 0 0 1.5px var(--line); border-style: dashed; color: var(--ink-3); background: transparent; }
+.rater.missing { box-shadow: none; border: 1.5px dashed var(--line); color: var(--ink-3); background: transparent; }
 .rater.missing::before { content: ""; width: 18px; height: 18px; border-radius: 50%; border: 1.5px dashed var(--ink-3); }
 .ratingline { font: 400 12.5px/16px var(--mono); color: var(--ink-2); }
 
-/* composer: the one floating sheet */
-.composer-wrap { position: sticky; bottom: 0; padding: 14px var(--gutter) 22px; background: linear-gradient(to top, var(--canvas) 70%, transparent); z-index: 4; }
+/* composer: the one floating sheet. It sits inside the scroller so the grain covers it like every other sheet. */
+.composer-wrap { position: sticky; bottom: 0; margin-top: auto; padding: 14px var(--gutter) 22px; background: linear-gradient(to top, var(--canvas) 70%, transparent); z-index: 4; }
 .composer { width: min(var(--col), 100%); margin: 0 auto; background: var(--surface); border-radius: var(--radius-lg); padding: 14px 14px 12px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--ring), var(--float), var(--edge); }
 .composer .input { color: var(--ink-3); min-height: 24px; }
 .composer .bar { display: flex; align-items: center; gap: 8px; }
@@ -319,54 +363,51 @@ button { font: inherit; color: inherit; }
 .send { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 1px 2px rgba(86,53,45,.3); }
 .send svg { width: 16px; height: 16px; }
 
-/* ============================ the inspector drawer (not part of the design) ============================ */
-.drawer { width: var(--drawer-w); flex: none; border-left: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; gap: 18px; padding: 20px 20px 24px; font-size: 13px; line-height: 20px; overflow: auto; position: relative; z-index: 3; }
-.drawer h2 { font-family: var(--serif); font-size: 22px; line-height: 28px; font-weight: 400; }
+/* ============================ the drawer: a sheet laid over the stock ============================
+   White --surface, so the grain stops at its edge (the judge's fix: a sheet stays a sheet). Its left edge is
+   a cut (navy hairline); the lines between its sections are drawn (chocolate rules). */
+.drawer { width: var(--drawer-w); flex: none; background: var(--surface); box-shadow: -1px 0 0 var(--line), var(--edge); display: flex; flex-direction: column; gap: 0; padding: 0; font-size: 14px; line-height: 20px; overflow: auto; position: relative; z-index: 6; }
+.drawer .head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; }
+.drawer .head .seg { margin-right: auto; }
+.drawer .head .live { font: 500 12px/16px var(--font); color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+.drawer .group { display: flex; flex-direction: column; gap: 10px; padding: 16px 20px 18px; border-top: 1px solid var(--rule); }
 .drawer h3 { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
-.drawer h3 .sum { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 400; font-family: var(--mono); font-size: 12px; }
-.drawer .group { display: flex; flex-direction: column; gap: 8px; }
-.switches { display: flex; flex-wrap: wrap; gap: 6px; }
-.sw { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: var(--radius-full); background: var(--surface-2); color: var(--ink-2); font: 500 12.5px/16px var(--font); border: 0; cursor: pointer; box-shadow: var(--ring); }
-.sw[aria-pressed="true"] { background: var(--select-wash); color: var(--ink); box-shadow: inset 0 0 0 1px var(--select-line); }
-.sw kbd { font: 500 11px/14px var(--mono); padding: 0 4px; border-radius: 4px; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 1px 0 var(--line); color: var(--ink-3); }
-.layers { display: flex; flex-direction: column; gap: 0; }
-.layer { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
-.layer:first-child { border-top: 0; }
-.layer .sw-tile { width: 44px; height: 36px; border-radius: 9px; position: relative; overflow: hidden; }
-.layer .lbl { font-weight: 500; color: var(--ink); }
-.layer .val { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); line-height: 16px; }
-.tile-stock { background: var(--canvas); box-shadow: var(--ring); }
-.tile-wash { background: var(--canvas); box-shadow: var(--ring); } .tile-wash::after { content: ""; position: absolute; inset: 0; background: radial-gradient(18px 14px at 30% 40%, var(--wash), transparent 70%); }
-.tile-grain { background: var(--canvas); box-shadow: var(--ring); } .tile-grain::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 80px 80px; mix-blend-mode: var(--grain-blend); opacity: calc(var(--grain-opacity) * 3); }
-.tile-sheet { background: var(--canvas); box-shadow: var(--ring); } .tile-sheet::after { content: ""; position: absolute; inset: 7px 9px 5px; background: var(--surface); border-radius: 6px; box-shadow: var(--ring), var(--rest), var(--edge); }
-.tile-stock2 { background: var(--canvas); box-shadow: var(--ring); } .tile-stock2::after { content: ""; position: absolute; inset: 7px 9px 5px; background: var(--surface-2); border-radius: 6px; box-shadow: var(--ring), var(--edge); }
-.tile-pressed { background: var(--canvas); box-shadow: var(--ring); } .tile-pressed::after { content: ""; position: absolute; inset: 10px 9px 10px; background: var(--surface-3); border-radius: 4px; box-shadow: var(--deboss); }
-.tile-float { background: var(--canvas); box-shadow: var(--ring); } .tile-float::after { content: ""; position: absolute; inset: 7px 9px 5px; background: var(--surface); border-radius: 6px; box-shadow: var(--ring), var(--float), var(--edge); }
-.tile-lacquer { background-color: var(--rail); background-image: var(--lacquer-sheen); box-shadow: var(--lacquer-edge); }
-.tile-ink { background: var(--canvas); box-shadow: var(--ring); } .tile-ink::before { content: ""; position: absolute; left: 8px; right: 8px; top: 11px; border-top: 1.5px solid var(--rule-strong); } .tile-ink::after { content: ""; position: absolute; left: 8px; right: 20px; top: 20px; height: 8px; border-radius: 4px; background: var(--accent); }
-.crop { height: 86px; border-radius: var(--radius); background: var(--canvas); box-shadow: var(--ring); position: relative; overflow: hidden; isolation: isolate; }
-.crop::before { content: ""; position: absolute; inset: 0; background: radial-gradient(120px 60px at 20% 0%, var(--wash), transparent 70%); }
-.crop::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 720px 720px; mix-blend-mode: var(--grain-blend); opacity: calc(var(--grain-opacity) * 2.2); }
-.crop .tag { position: absolute; right: 8px; bottom: 6px; font: 500 11px/14px var(--mono); color: var(--ink-3); z-index: 1; }
-.cost { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12.5px; line-height: 18px; }
-.cost dt { font-family: var(--mono); color: var(--ink-3); } .cost dd { margin: 0; color: var(--ink-2); }
-.drawer p { margin: 0; color: var(--ink-2); }
+.drawer h3 .sum { margin-left: auto; letter-spacing: 0; text-transform: none; font-weight: 400; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.drawer p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.drawer p .serif { color: var(--ink); }
+.drawer .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.drawer .row:first-of-type { border-top: 0; }
+.drawer .row .t { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.drawer .row .s { font-size: 12.5px; color: var(--ink-3); }
+.drawer .row .s .serif { color: var(--ink-2); }
+.drawer .tile { background-color: var(--rail); background-image: var(--sheen); box-shadow: var(--lacquer-edge); color: var(--rail-fg); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.drawer .tile .who { font-family: var(--serif); font-size: 17px; display: flex; align-items: center; gap: 8px; }
+.drawer .tile .who .avatar { --avatar-edge: var(--rail); background: var(--rail-2); color: var(--rail-fg); --size: 24px; font-size: 10px; }
+.drawer .tile .what { font-size: 13px; color: var(--rail-muted); }
+.drawer .tile .what i { font-family: var(--serif); color: var(--apricot); }
+.drawer .meter { display: flex; flex-direction: column; gap: 6px; font: 400 12.5px/16px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.drawer .meter .lbl { display: flex; } .drawer .meter .lbl b { color: var(--ink); font-weight: 500; } .drawer .meter .lbl span:last-child { margin-left: auto; }
+.drawer .fold { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13.5px; }
+.drawer .fold .chev { width: 12px; height: 12px; color: var(--ink-3); }
 
 /* ============================ the mark ============================ */
-/* colour reaches a <use> only through custom properties (print-export's finding): the symbol reads --mark-* */
+/* colour reaches a <use> only through custom properties (print-export): the symbols read --mark-* */
 .mark { display: inline-block; flex: none; --mark-disc: var(--rail); --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6; }
 .rail .mark { --mark-arc-a: color-mix(in srgb, #56352D 38%, #E2C4A6); }
+.mark-ink { color: currentColor; }
 
-/* ============================ motion: the one guard ============================ */
-@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+/* ============================ motion: the one guard (MOTION §3) ============================ */
+@keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--dot-halo) } 70% { box-shadow: 0 0 0 5px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
 @keyframes weave { 0% { background-position: 0 0 } 100% { background-position: 200% 0 } }
-@keyframes card-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@keyframes card-in { 0% { opacity: 0; transform: translateY(6px) } 100% { opacity: 1; transform: none } }
+/* the seal is pressed: it lands from 1.12× and a hair off its angle, once, on the decision's arrival; at rest it is exactly its natural styles */
+@keyframes press { 0% { opacity: 0; transform: rotate(-7deg) scale(1.12) } 60% { opacity: 1 } 100% { opacity: .92; transform: rotate(-4deg) scale(1) } }
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-motion="calm"]) { --motion: 1; }
-  :root:not([data-motion="calm"]) .dot.running, :root:not([data-motion="calm"]) .status.running::before { animation: dot-live 1.8s ease-in-out infinite; }
-  :root:not([data-motion="calm"]) .tokchip .hair.live { background: linear-gradient(90deg, var(--apricot-deep) 31%, var(--surface-3) 0); }
-  :root:not([data-motion="calm"]) .tokchip .hair.live::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 31%; border-radius: 2px; background: var(--gradient-live); background-size: 200% 100%; animation: weave 1.2s linear infinite; }
-  :root:not([data-motion="calm"]) .enter { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(var(--i, 0) * 36ms); }
+  :root:not([data-motion="calm"]) .dot.running, :root:not([data-motion="calm"]) .status.running::before { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .tokchip .hair.live > i { background: var(--gradient-live); background-size: 200% 100%; animation: weave 1.2s linear infinite; }
+  :root:not([data-motion="calm"]) .enter { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(min(var(--i, 0), 8) * 36ms); }
+  :root:not([data-motion="calm"]) .seal.enter { animation: press var(--t-slow) var(--ease-arrive) both; animation-delay: calc(min(var(--i, 0), 8) * 36ms + 120ms); }
 }
 :root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
@@ -375,53 +416,77 @@ button { font: inherit; color: inherit; }
 @media (max-width: 480px) {
   .rail, .drawer { display: none; }
   body { font-size: 16px; }
-  .topbar { padding: 52px 12px 8px; min-height: 100px; border-bottom: 0; backdrop-filter: none; background-color: var(--rail); background-image: var(--lacquer-sheen); box-shadow: var(--lacquer-edge); color: var(--rail-fg); gap: 10px; }
+  /* the top block is lacquer: the 48 px status bar and the 44 px bar on --rail, lit by the same lamp; the paper runs under it */
+  .topbar { padding: 52px 12px 8px; min-height: 100px; border-bottom: 0; backdrop-filter: none; background-color: var(--rail); background-image: var(--sheen); box-shadow: var(--lacquer-edge); color: var(--rail-fg); gap: 10px; }
   .topbar .title { font-size: 21px; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.2; }
-  .topbar .status { color: var(--rail-muted); font-size: 12px; } .topbar .status.running::before { background: #9BC88F; box-shadow: none; }
+  .topbar .status { color: var(--rail-muted); font-size: 12px; } .topbar .status.running::before { background: #9BC88F; box-shadow: none; animation: none; }
   .topbar .title .pill.team { display: none; }
-  .topbar .right .btn { background: var(--rail-active); color: var(--rail-fg); box-shadow: none; width: 40px; padding: 0; }
+  .topbar .right { gap: 8px; }
+  .topbar .right .btn { background: var(--rail-active); color: var(--rail-fg); box-shadow: none; width: 40px; padding: 0; font-size: 0; }
+  .topbar .right .btn::before { content: "T"; font: 500 14px/20px var(--font); }
   .topbar .right .btn.on { box-shadow: inset 0 0 0 1px var(--select-line); }
   .topbar .right .tokchip, .topbar .right .stack, .topbar .right .btn.details { display: none; }
   .topbar .menu { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius); background: transparent; border: 0; color: var(--rail-fg); }
-  .column { padding: 14px 16px 120px; gap: 22px; }
+  .column { padding: 14px 16px 16px; gap: 22px; }
   .msg.human .text, .msg.team .text { max-width: 100%; }
   .step { font-size: 12px; gap: 8px; } .step > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .out { font-size: 11.5px; }
   .pstep { grid-template-columns: 22px 1fr; } .pstep .pill, .pstep .est { display: none; } .pstep .used { grid-column: 2; font-size: 12px; }
   .composer-wrap { padding: 10px 12px 18px; }
   .notice .lead { font-size: 19px; }
+  .notice .landed .lead { flex-basis: 100%; }
+  #now { scroll-margin-top: 14px; }
+  .kind .step-ref { margin-left: 0; flex-basis: 100%; }
 }
 @media (min-width: 481px) { .topbar .menu { display: none; } }
 
+/* ============================ the inspector (exploration only; hidden unless `i`) ============================ */
+[data-inspector] { display: none; }
+:root[data-inspect] [data-inspector] { display: flex; }
+.inspector { position: fixed; left: calc(var(--rail-w) + 16px); bottom: 16px; z-index: 50; flex-direction: column; gap: 10px; width: 300px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--ring), var(--float), var(--edge); font-size: 12.5px; line-height: 18px; }
+.inspector h2 { font: 400 18px/24px var(--serif); }
+.inspector .switches { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: var(--radius-full); background: var(--surface-2); color: var(--ink-2); font: 500 12.5px/16px var(--font); border: 0; cursor: pointer; box-shadow: var(--ring); }
+.sw[aria-pressed="true"] { background: var(--select-wash); color: var(--ink); box-shadow: inset 0 0 0 1px var(--select-line); }
+.sw kbd { font: 500 11px/14px var(--mono); padding: 0 4px; border-radius: 4px; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 1px 0 var(--line); color: var(--ink-3); }
+.inspector .seals { display: flex; flex-wrap: wrap; gap: 14px 18px; padding: 6px 2px; }
+.inspector .seals .seal { transform: none; }
+.inspector .crop { height: 72px; border-radius: 10px; background: var(--canvas); box-shadow: var(--ring); position: relative; overflow: hidden; isolation: isolate; }
+.inspector .crop::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 720px 720px; mix-blend-mode: soft-light; opacity: calc(var(--grain-alpha) * 2.2); }
+.inspector .crop .tag { position: absolute; right: 8px; bottom: 5px; font: 500 11px/14px var(--mono); color: var(--ink-3); z-index: 1; }
+.inspector p { margin: 0; color: var(--ink-2); }
+.inspector .legend { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font: 400 11.5px/16px var(--mono); color: var(--ink-3); }
+.inspector .legend b { color: var(--ink); font-weight: 500; font-family: var(--font); }
+
 /* ============================ print: the same paper ============================
-   The sheet is the paper itself: no grain is printed (the stock supplies its own), no wash, no shadow
-   (paper cannot float), lacquer becomes one navy band at the head, every hairline becomes an ink rule,
-   the hand and the stamp stay ink. Cream survives only under a quoted human message and under the gate
-   (print-export's rule), with print-color-adjust so the band is kept. */
+   The sheet is the paper itself. No grain is printed (the stock supplies its own), no wash, no shadow (paper
+   cannot float); the lacquer collapses to the one navy band of the running head; every hairline becomes an ink
+   rule; the hand and the seal stay ink, the seal's tooth comes off and it prints solid. Cream survives only
+   under a quoted human message and under the gate (print-export's rule). The stock's watermark, the mark in
+   one ink, sits in the foot of every page the way a mill's does. */
 @media print {
   :root { --canvas: #FFFFFF; --surface: #FFFFFF; --surface-2: #FBF7F1; --surface-3: #F4EEE5; --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183;
           --line: rgba(31,38,52,.18); --rule: rgba(86,53,45,.35); --rule-strong: rgba(86,53,45,.7); --ring: 0 0 0 1px var(--line);
-          --rest: none; --float: none; --edge: none; --shadow-soft: none; --shadow-pop: none; --grain-opacity: 0; --wash: transparent;
-          --lacquer-sheen: none; --lacquer-edge: none; --accent: #56352D; --accent-ink: #56352D; --accent-fg: #FFF8F1; --stamp: #56352D;
+          --rest: none; --float: none; --edge: none; --shadow-soft: none; --shadow-pop: none; --grain-alpha: 0; --wash: transparent; --wash-paint: none;
+          --sheen: none; --lacquer-edge: none; --accent: #56352D; --accent-ink: #56352D; --accent-fg: #FFF8F1; --seal: #56352D;
           --team-wash: #FBF7F1; --apricot-soft: #FBF7F1; --deboss: 0 0 0 1px var(--rule); --deboss-text: none; color-scheme: light; }
-  @page { size: A4; margin: 16mm; }
+  @page { size: A4; margin: 16mm 16mm 20mm; }
   html, body { height: auto; background: #fff; }
-  .shell { display: block; } .rail, .drawer, .composer-wrap, .topbar .right, .topbar .menu { display: none !important; }
-  .main { display: block; } .paper::before, .paper::after { display: none; }
-  .scroll { overflow: visible; }
+  .shell { display: block; } .rail, .drawer, .composer-wrap, .topbar .right, .topbar .menu, .inspector { display: none !important; }
+  .main { display: block; overflow: visible; } .main::after { display: none; }
+  .body { display: block; } .scroll { overflow: visible; display: block; }
   .topbar { display: block; position: static; backdrop-filter: none; background: #fff; border-bottom: 0; padding: 0 0 10px; min-height: 0; }
-  .topbar .title { display: flex; } .topbar .pill.team { display: none; }
+  .topbar .title { display: flex; font-size: 24px; } .topbar .pill.team { display: none; }
   .avatar.agent { background: #2A3244; } .avatar { border-color: #fff; }
   .mark { --mark-disc: #FBF7F1; --mark-arc-b: #2A3244; }
   .topbar::after { content: "Henosis · Billing page · Invoice PDF · exported by Cy Okafor · session invoice-pdf-3"; display: block; width: 100%; margin-top: 8px; padding: 6px 0; border-top: 2.5px solid #2A3244; border-bottom: 1px solid var(--rule); font: 500 10.5px/14px var(--mono); color: #2A3244; letter-spacing: .04em; }
-  .topbar .title { font-size: 24px; }
   .column { width: 100%; padding: 0; gap: 18px; }
   .sheet, .notice, .plan { box-shadow: none; border: 0; border-top: 1px solid var(--rule); border-radius: 0; break-inside: avoid; padding-left: 0; padding-right: 0; }
   .notice::before { display: none; }
   .notice.gate { background: #FBF7F1; padding: 14px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .msg.human .text { box-shadow: none; border: 0; background: #FBF7F1; -webkit-print-color-adjust: exact; print-color-adjust: exact; border-radius: 0; }
   .msg.team .text { box-shadow: none; border-left: 2px solid var(--rule-strong); border-radius: 0; background: transparent; }
-  .out { background: #fff; color: #1F2634; border: 1px solid var(--rule); border-left: 3px solid #2A3244; border-radius: 0; }
+  .out { background: #fff; color: #1F2634; border: 1px solid var(--rule); border-left: 3px solid #2A3244; border-radius: 0; box-shadow: none; background-image: none; }
   .out .k { color: #56352D; } .out .c { color: #5B6273; }
   .step.live { background: transparent; box-shadow: none; } .step.live .ic { color: #56352D; }
   .pill.gate { background: #2A3244; color: #FBF7F1; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -429,14 +494,22 @@ button { font: inherit; color: inherit; }
   .budget { box-shadow: 0 0 0 1px var(--rule); background: #fff; } .budget > i { background: #56352D; }
   .quorum .segs i.on { background: #56352D; }
   .btn, .send, .actions { display: none !important; }
-  .stamp { -webkit-mask-image: none; mask-image: none; opacity: 1; }
+  .seal { -webkit-mask-image: none; mask-image: none; opacity: 1; animation: none; }
   .pill.risk { box-shadow: 0 0 0 1px var(--rule); background: transparent; color: #1F2634; }
+  .watermark { display: flex; align-items: center; gap: 8px; margin-top: 28px; padding-top: 10px; border-top: 1px solid var(--rule); font: 500 10.5px/14px var(--mono); color: #56352D; letter-spacing: .04em; opacity: .55; }
+  .watermark .mark-ink { width: 16px; height: 16px; }
 }
+@media screen { .watermark { display: none; } }
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- the mark, default cut (SYSTEM §5): disc r46, arcs r28 stroke 10, centre r7 -->
   <symbol id="mark" viewBox="0 0 96 96"><circle class="disc" cx="48" cy="48" r="46" fill="var(--mark-disc, #2A3244)"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76" fill="none" stroke="var(--mark-arc-a, #56352D)" stroke-width="10"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20" fill="none" stroke="var(--mark-arc-b, #E2C4A6)" stroke-width="10"/><circle class="dot" cx="48" cy="48" r="7" fill="var(--mark-dot, #E2C4A6)"/></symbol>
+  <!-- the small cut for 20–31 px: disc to the edge, heavier arcs -->
+  <symbol id="mark-small" viewBox="0 0 96 96"><circle class="disc" cx="48" cy="48" r="48" fill="var(--mark-disc, #2A3244)"/><path class="arc a" d="M48 19 A29 29 0 0 1 48 77" fill="none" stroke="var(--mark-arc-a, #56352D)" stroke-width="13"/><path class="arc b" d="M48 77 A29 29 0 0 1 48 19" fill="none" stroke="var(--mark-arc-b, #E2C4A6)" stroke-width="13"/><circle class="dot" cx="48" cy="48" r="8.5" fill="var(--mark-dot, #E2C4A6)"/></symbol>
+  <!-- the mark in one ink (SYSTEM §2.10, §5 #mark-mono): no disc, the person's arc solid, the agent's arc dotted, the centre solid -->
+  <symbol id="mark-ink" viewBox="0 0 96 96"><path d="M48 16 A32 32 0 0 1 48 80" fill="none" stroke="currentColor" stroke-width="14"/><path d="M48 80 A32 32 0 0 1 48 16" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-dasharray="0.5 22"/><circle cx="48" cy="48" r="9" fill="currentColor"/></symbol>
   <symbol id="check" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="star" viewBox="0 0 16 16"><path d="M8 1.6l1.9 4 4.4.6-3.2 3.1.8 4.4L8 11.6l-3.9 2.1.8-4.4L1.7 6.2l4.4-.6z" stroke-linejoin="round"/></symbol>
   <symbol id="live" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="currentColor"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/></symbol>
@@ -446,38 +519,39 @@ button { font: inherit; color: inherit; }
   <symbol id="hash" viewBox="0 0 16 16"><path d="M6 2L4.5 14M11.5 2L10 14M2.5 6h11M2 10.5h11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
   <symbol id="send" viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="menu" viewBox="0 0 16 16"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="chev" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 
 <div class="shell">
   <!-- LACQUER: the rail -->
   <nav class="rail lacquer" aria-label="Henosis">
-    <div class="brand"><svg class="mark" width="26" height="26" aria-hidden="true"><use href="#mark"/></svg>Henosis</div>
+    <div class="brand"><svg class="mark" width="26" height="26" aria-hidden="true"><use href="#mark-small"/></svg>Henosis</div>
     <button class="new" type="button">New session</button>
-    <a class="item" href="#"><svg class="ic" aria-hidden="true"><use href="#search"/></svg>Search <span class="mono faint" style="margin-left:auto;font-size:11.5px;color:var(--rail-muted)">⌘K</span></a>
+    <a class="item" href="#"><svg class="ic" aria-hidden="true"><use href="#search"/></svg>Search <span class="key">⌘K</span></a>
     <a class="item" href="#"><svg class="ic" aria-hidden="true"><use href="#inbox"/></svg>Inbox <span class="count">2</span></a>
     <a class="item" href="#"><svg class="ic" aria-hidden="true"><use href="#gate"/></svg>Approvals <span class="count">1</span></a>
     <div class="section">Agents <span class="n">4</span></div>
     <div class="crew"><span class="serif">Ana and Bo</span> · crew</div>
-    <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div><div class="doing"><i>Writing tax.ts</i> · step 2 of 3</div><div class="foot"><span class="stack"><span class="avatar" style="--size:20px;font-size:9px">A</span><span class="avatar" style="--size:20px;font-size:9px">B</span></span>with Bo<span class="tokens" style="--spent:46%">18.2k</span></div></a>
-    <a class="agent" href="#"><div class="head"><span class="dot awaiting"></span><span class="t">Checkout</span><span class="pill team">Team</span></div><div class="doing"><i>Waiting</i> · a gate needs one more rating</div><div class="foot"><span class="stack"><span class="avatar" style="--size:20px;font-size:9px">B</span><span class="avatar" style="--size:20px;font-size:9px">A</span></span>with Ana<span class="tokens" style="--spent:84%">33.6k</span></div></a>
-    <a class="agent active" href="#" aria-current="page"><div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill team">Team</span></div><div class="doing"><i>Writing proration.ts</i> · step 2 of 4</div><div class="foot"><span class="stack"><span class="avatar driver" style="--size:20px;font-size:9px">C</span><span class="avatar" style="--size:20px;font-size:9px">A</span></span>with Ana<span class="tokens" style="--spent:35%">14.1k</span></div></a>
-    <a class="agent" href="#"><div class="head"><span class="dot idle"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div><div class="doing"><i>Idle</i> · plan approved, not started</div><div class="foot"><span class="stack"><span class="avatar" style="--size:20px;font-size:9px">D</span></span>Dee<span class="tokens" style="--spent:4%">1.6k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Billing page</span><span class="pill team">Team</span></div><div class="doing"><i>Writing tax.ts</i> · step 2 of 3</div><div class="foot"><span class="stack"><span class="avatar" style="--size:20px;font-size:9px">A</span><span class="avatar" style="--size:20px;font-size:9px">B</span></span>with Bo<span class="tokens" style="--spent:46%">18.2k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot awaiting"><span class="sr">awaiting</span></span><span class="t">Checkout</span><span class="pill team">Team</span></div><div class="doing"><i>Waiting</i> · a gate needs one more rating</div><div class="foot"><span class="stack"><span class="avatar" style="--size:20px;font-size:9px">B</span><span class="avatar" style="--size:20px;font-size:9px">A</span></span>with Ana<span class="tokens warn" style="--spent:84%">33.6k</span></div></a>
+    <a class="agent active" href="#" aria-current="page"><div class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Invoice PDF</span><span class="pill team">Team</span></div><div class="doing"><i>Writing proration.ts</i> · step 3 of 5</div><div class="foot"><span class="stack"><span class="avatar driver" style="--size:20px;font-size:9px">C</span><span class="avatar" style="--size:20px;font-size:9px">A</span></span>with Ana<span class="tokens" style="--spent:35%">14.1k</span></div></a>
+    <a class="agent" href="#"><div class="head"><span class="dot idle"><span class="sr">idle</span></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div><div class="doing"><i>Idle</i> · plan approved, not started</div><div class="foot"><span class="stack"><span class="avatar" style="--size:20px;font-size:9px">D</span></span>Dee<span class="tokens" style="--spent:4%">1.6k</span></div></a>
     <div class="section">Chats</div>
     <a class="item" href="#"><svg class="ic" aria-hidden="true"><use href="#hash"/></svg>billing <span class="count">3</span></a>
     <a class="item" href="#"><svg class="ic" aria-hidden="true"><use href="#hash"/></svg>release</a>
     <div class="me"><span class="avatar">CO</span><div><div class="who">Cy Okafor</div><div class="role">owner · driving <i>Invoice PDF</i></div></div></div>
   </nav>
 
-  <!-- PAPER: the main -->
-  <div class="main paper">
+  <!-- STOCK: the page -->
+  <div class="main">
     <header class="topbar">
       <button class="menu" type="button" aria-label="Menu"><svg width="18" height="18" aria-hidden="true"><use href="#menu"/></svg></button>
       <div class="title"><span>Invoice PDF</span><span class="status running">running · turn 4</span><span class="pill team">Team · with Ana</span></div>
       <div class="right">
-        <div class="tokchip" role="meter" aria-label="12.4k of 40k tokens, 31 percent" aria-valuenow="31" aria-valuemin="0" aria-valuemax="100"><span>12.4k tokens <span class="faint">31 %</span></span><span class="hair live"></span></div>
-        <span class="stack"><span class="avatar driver">CO</span><span class="avatar">AM</span><span class="avatar agent" aria-label="the agent"></span></span>
-        <button class="btn on" type="button">Team</button>
-        <button class="btn details" type="button">Details</button>
+        <div class="tokchip" role="meter" aria-label="12.4k of 40k tokens, 31 percent, spending now" aria-valuenow="31" aria-valuemin="0" aria-valuemax="100"><span>12.4k tokens <span class="faint">31 %</span></span><span class="hair live" style="--spent:31%"><i></i></span></div>
+        <span class="stack" aria-label="Cy, Ana and the agent are here. Cy is driving."><span class="avatar driver">CO</span><span class="avatar">AM</span><span class="avatar agent" aria-hidden="true"></span></span>
+        <button class="btn" type="button">Team</button>
+        <button class="btn on details" type="button" aria-pressed="true">Details</button>
       </div>
     </header>
     <div class="body">
@@ -486,60 +560,64 @@ button { font: inherit; color: inherit; }
           <div class="divider">Today · Billing page · with Ana</div>
 
           <article class="msg human">
-            <div class="meta"><span class="who">Cy</span><span class="scope stock">billing/invoice</span><span class="when">13:52</span></div>
+            <div class="meta"><span class="who">Cy</span><span class="scope card-stock">billing/invoice</span><span class="when">13:52</span></div>
             <div class="text sheet"><span class="goal">Goal.</span>Make the invoice PDF carry tax lines and proration. Keep the layout from <span class="mono">pdf-layout</span>; Dee's tax lines land next week, so leave the hook open.</div>
           </article>
 
           <article class="msg agent">
-            <div class="meta"><span class="avatar agent" style="--size:22px" aria-hidden="true"></span><span class="who">Invoice PDF</span><span class="when">turn 4 · step 2 of 4</span></div>
-            <div class="text"><p>Reading the two files first. The proration in Checkout rounds half-up at the line, not the total; I will match it in <span class="mono">proration.ts</span> so Dee's lines reconcile to the cent, then render once before anything touches stored invoices.</p></div>
+            <div class="meta"><span class="avatar agent" style="--size:22px" aria-hidden="true"></span><span class="who">Invoice PDF</span><span class="when">turn 4 · step 3 of 5</span></div>
+            <div class="text"><p>The layout is in. Checkout rounds half-up at the line, not the total; <span class="mono">proration.ts</span> matches it so Dee's lines reconcile to the cent. One render before anything touches a stored invoice.</p></div>
             <div class="steps">
               <div class="step"><svg class="ic" aria-hidden="true"><use href="#check"/></svg><span>read src/billing/invoice.ts · tax.ts</span><span class="r">412 lines · 1.1k</span></div>
+              <div class="step"><svg class="ic" aria-hidden="true"><use href="#check"/></svg><span>unite pdf-layout → main</span><span class="r">Ana 5 · Bo 4 · 0.6k</span></div>
               <div class="step live"><svg class="ic" aria-hidden="true"><use href="#live"/></svg><span>write src/billing/proration.ts</span><span class="r">3.4k so far</span></div>
             </div>
             <pre class="out lacquer"><span class="c">$ henosis test billing/proration</span>
 <span class="k">proration</span> › splits a 31-day period at the 14th    <span class="c">ok</span>
 <span class="k">proration</span> › rounds half-up at the line             <span class="c">ok</span>
-<span class="k">proration</span> › carries the tax line hook              <span class="c">ok</span>
-<span class="c">3 passed · 0.41 s</span></pre>
+<span class="c">2 passed · 0.41 s</span></pre>
           </article>
 
+          <!-- the decision that landed: the seal, one per screen -->
+          <section class="notice quiet sheet enter" style="--i:1" id="now" aria-label="United pdf-layout into main at 14:03">
+            <div class="kind">United <span class="step-ref">step 2 of 5 · 14:03 · commit 0c8d44</span></div>
+            <div class="landed"><div class="lead">United <i>pdf-layout</i> into <i>main</i>.</div><span class="seal enter" style="--i:1" aria-hidden="true"><svg class="mark-ink" aria-hidden="true"><use href="#mark-ink"/></svg>United <span class="when">14:03</span></span></div>
+            <div class="rulesay">Ana 5, Bo 4 · the layout every invoice renders with from here on. The gate on step 5 is still held.</div>
+          </section>
+
           <article class="msg team">
-            <div class="meta"><span class="avatar" style="--size:22px;font-size:9px">AM</span><span class="who">Ana</span><span class="to">to the team</span><span class="when">13:58</span></div>
+            <div class="meta"><span class="avatar" style="--size:22px;font-size:9px">AM</span><span class="who">Ana</span><span class="to">to the team</span><span class="when">14:05</span></div>
             <div class="text">Keep the half-up rounding; Checkout does it at the line and the reconciliation report compares totals. If we round at the total, Dee's tax lines drift by a cent on long periods.</div>
           </article>
 
-          <section class="plan sheet enter" style="--i:1" aria-label="Plan: Tax lines and proration">
+          <section class="plan sheet enter" style="--i:2" aria-label="Plan: Tax lines and proration">
             <div class="head"><span class="serif">Tax lines and proration</span><span class="status running">running</span><span class="ruleword">needs 2 at 3+</span></div>
             <div class="pstep done"><span class="n"><svg width="11" height="11" aria-hidden="true"><use href="#check"/></svg></span><div><div class="t">Read invoice.ts and tax.ts</div><div class="d">the current layout and the tax hook</div></div><span class="pill risk">read</span><span class="used under">1.1k</span><span class="est">~1.2k</span></div>
-            <div class="pstep running"><span class="n">2</span><div><div class="t">Write proration.ts</div><div class="d">half-up at the line, as Checkout does</div></div><span class="pill risk write pressed">write</span><span class="used sofar">3.4k so far</span><span class="est">~3.0k</span></div>
-            <div class="pstep"><span class="n">3</span><div><div class="t">Render the PDF</div><div class="d">one invoice, one credit note, side by side with pdf-layout</div></div><span class="pill risk exec pressed">exec</span><span class="used">–</span><span class="est">~4.0k</span></div>
-            <div class="pstep gate"><span class="n">4</span><div><div class="t">Migrate stored invoices</div><div class="d">waits at the release gate</div></div><span class="pill risk irreversible pressed">irreversible</span><span class="used">–</span><span class="est">~2.5k</span></div>
-            <div class="budget" style="--pct:35%;--est:27%" role="meter" aria-label="14.1k of 40k tokens" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"><i></i><span class="tick est"></span><span class="tick eighty"></span></div>
-            <div class="totals"><span class="big">14.1k of 40k</span><span>est 10.7k</span><span class="foot">Soft budget · nothing stops at 100 %</span></div>
+            <div class="pstep done"><span class="n"><svg width="11" height="11" aria-hidden="true"><use href="#check"/></svg></span><div><div class="t">Unite pdf-layout into main</div><div class="d">united at 14:03 · Ana 5, Bo 4</div></div><span class="pill risk write pressed">write</span><span class="used under">0.6k</span><span class="est">~0.8k</span></div>
+            <div class="pstep running"><span class="n">3</span><div><div class="t">Write proration.ts</div><div class="d">half-up at the line, as Checkout does</div></div><span class="pill risk write pressed">write</span><span class="used sofar">3.4k so far</span><span class="est">~3.0k</span></div>
+            <div class="pstep"><span class="n">4</span><div><div class="t">Render the PDF</div><div class="d">one invoice, one credit note, beside the old render</div></div><span class="pill risk exec pressed">exec</span><span class="used">–</span><span class="est">~4.0k</span></div>
+            <div class="pstep gate"><span class="n">5</span><div><div class="t">Migrate stored invoices</div><div class="d">waits at the release gate</div></div><span class="pill risk irreversible pressed">irreversible</span><span class="used">–</span><span class="est">~2.5k</span></div>
+            <div class="budget" style="--pct:35%;--est:29%" role="meter" aria-label="14.1k of 40k tokens" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"><i></i><span class="tick est"></span><span class="tick eighty"></span></div>
+            <div class="totals"><span class="big">14.1k of 40k</span><span>est 11.5k</span><span class="foot">Soft budget · nothing stops at 100 %</span></div>
             <hr class="rule">
-            <div class="raters"><span class="rater stock"><span class="avatar" style="--size:20px;font-size:9px">AM</span><span class="name">Ana</span><span class="stars" aria-label="4 of 5, Good"><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg><use href="#star"/></svg></span><span class="note">"matches Checkout"</span></span><span class="rater missing">Bo has not rated</span></div>
+            <div class="raters"><span class="rater card-stock"><span class="avatar" style="--size:20px;font-size:9px">AM</span><span class="name">Ana</span><span class="stars" aria-label="4 of 5, Good"><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg><use href="#star"/></svg></span><span class="note">"matches Checkout"</span></span><span class="rater missing">Bo has not rated</span></div>
             <div class="ratingline">1 of 2 ratings · 4.0 average · waiting · needs 2 at 3+</div>
           </section>
 
-          <section class="notice quiet sheet" id="now" aria-label="Resolved: united pdf-layout into main">
-            <div class="kind">United <span class="step-ref">13:41 · commit 0c8d44</span></div>
-            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap"><div class="lead">United <i>pdf-layout</i> into <i>main</i>.</div><span class="stamp" aria-hidden="true">United · 13:41</span></div>
-            <div class="rulesay">Ana 5, Bo 4 · the layout the invoice renders with from here on.</div>
-          </section>
-
-          <section class="notice gate sheet enter" style="--i:2" aria-label="Release gate: Migrate stored invoices">
-            <div class="kind"><span class="pill gate">Release gate</span><span class="step-ref">step 4 of 4 · Migrate stored invoices</span></div>
+          <section class="notice gate sheet enter" style="--i:3" aria-label="Release gate: Migrate stored invoices">
+            <div class="kind"><span class="pill gate">Release gate</span><span class="step-ref">step 5 of 5 · Migrate stored invoices</span></div>
             <div class="lead">The gate holds <i>Migrate stored invoices</i> until two of the people who consume this code say 4 or better.</div>
-            <div class="command stock"><span>henosis migrate invoices --apply --from pdf-layout</span><span class="pill risk irreversible pressed">irreversible</span></div>
+            <div class="command card-stock"><span>henosis migrate invoices --apply --from pdf-layout</span><span class="pill risk irreversible pressed">irreversible</span></div>
             <div class="rulesay">Rewrites 1,284 stored invoices in place. There is no undo; the previous render is kept in the export bundle only.</div>
             <div>
               <div class="vote"><span class="avatar" style="--size:24px;font-size:10px">AM</span><span><span class="name">Ana</span><span class="role">consumes · Billing page</span><br><span class="note">"the rounding matches Checkout; ship it"</span></span><span><span class="stars" aria-label="4 of 5, Good"><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg class="on"><use href="#star"/></svg><svg><use href="#star"/></svg></span> <span class="n">4</span></span></div>
-              <div class="vote"><span class="avatar" style="--size:24px;font-size:10px;box-shadow:inset 0 0 0 1.5px var(--ink-3);background:transparent;border-style:dashed">B</span><span><span class="name">Bo</span><span class="role">consumes · Checkout</span><br><span class="note faint">has not voted</span></span><span class="n">—</span></div>
+              <div class="vote"><span class="avatar missing" style="--size:24px;font-size:10px">B</span><span><span class="name">Bo</span><span class="role">consumes · Checkout</span><br><span class="note faint">has not voted</span></span><span class="n">—</span></div>
             </div>
             <div class="quorum"><span class="segs"><i class="on"></i><i class="next"></i></span><span>1 of 2 at 4+ · avg 4.0</span></div>
             <div class="actions"><button class="btn primary" type="button">Approve with 4</button><button class="btn" type="button">Ask to revise</button><button class="btn ghost danger" type="button">Deny</button><span class="hint">4 if you leave it · your vote counts as a consumer of Invoice PDF</span></div>
           </section>
+
+          <div class="watermark" aria-hidden="true"><svg class="mark-ink"><use href="#mark-ink"/></svg>Henosis stock · printed 29 Oct 2026 · verify with henosis verify 0c8d44</div>
         </main>
         <div class="composer-wrap">
           <div class="composer" role="group" aria-label="Composer">
@@ -549,52 +627,75 @@ button { font: inherit; color: inherit; }
         </div>
       </div>
 
-      <!-- the inspector: the element's own anatomy. Not part of the design; the app ships the surfaces alone. -->
-      <aside class="drawer" aria-label="Paper and lacquer">
-        <div class="group"><h2>Paper and lacquer</h2><p>Cream stock with a faint grain; every navy surface lacquered; chocolate as ink. Edges are cut, rules are drawn, only a floating sheet casts a shadow.</p></div>
-        <div class="group"><h3>Switches</h3><div class="switches">
-          <button class="sw" type="button" id="sw-grain" aria-pressed="true">Grain <kbd>g</kbd></button>
-          <button class="sw" type="button" id="sw-sheen" aria-pressed="true">Lacquer <kbd>l</kbd></button>
-          <button class="sw" type="button" id="sw-dark" aria-pressed="false">Dark <kbd>d</kbd></button>
-          <button class="sw" type="button" id="sw-calm" aria-pressed="false">Calm <kbd>c</kbd></button>
-          <button class="sw" type="button" id="sw-print" aria-pressed="false">Print</button>
-        </div></div>
-        <div class="group"><h3>Grain at 3× <span class="sum">240 px tile · soft-light</span></h3><div class="crop"><span class="tag">stock + wash + grain</span></div></div>
-        <div class="group"><h3>Layers, bottom to top</h3><div class="layers">
-          <div class="layer"><span class="sw-tile tile-stock"></span><div><div class="lbl">Stock</div><div class="val">--canvas #FBF7F1 · night #1A202C</div></div></div>
-          <div class="layer"><span class="sw-tile tile-wash"></span><div><div class="lbl">Wash</div><div class="val">one apricot disc, blur 110 · .35 / .10</div></div></div>
-          <div class="layer"><span class="sw-tile tile-grain"></span><div><div class="lbl">Grain</div><div class="val">feTurbulence .82 ×3, tiled · .085 / .12</div></div></div>
-          <div class="layer"><span class="sw-tile tile-sheet"></span><div><div class="lbl">Sheet</div><div class="val">--surface · ring 1px + 0 1px 2px + 0 4px 12px</div></div></div>
-          <div class="layer"><span class="sw-tile tile-stock2"></span><div><div class="lbl">Card stock</div><div class="val">--surface-2 · ring only</div></div></div>
-          <div class="layer"><span class="sw-tile tile-pressed"></span><div><div class="lbl">Pressed</div><div class="val">--surface-3 · inset 0 1px 2px chocolate .25</div></div></div>
-          <div class="layer"><span class="sw-tile tile-float"></span><div><div class="lbl">Floating</div><div class="val">composer, palette, toast · --shadow-pop</div></div></div>
-          <div class="layer"><span class="sw-tile tile-lacquer"></span><div><div class="lbl">Lacquer</div><div class="val">--rail · 170° sheen .13 · lit edge 1px</div></div></div>
-          <div class="layer"><span class="sw-tile tile-ink"></span><div><div class="lbl">Ink</div><div class="val">rule chocolate .22 / .58 · the hand · the stamp</div></div></div>
-        </div></div>
-        <div class="group"><h3>Cost</h3><dl class="cost"><dt>paint</dt><dd>one 240 px tile, decoded once, repeated; no filter on the viewport</dd><dt>layers</dt><dd>two pseudo-elements on .main; the sheen is a background on the rail</dd><dt>bytes</dt><dd>0.6 kB for both data URIs; no fonts, no images fetched</dd><dt>print</dt><dd>grain, wash and shadow off; lacquer becomes the running head's navy rule</dd></dl></div>
+      <!-- a SHEET laid over the stock: the Details drawer. White, ungrained; its edge is cut, its sections are ruled. -->
+      <aside class="drawer" aria-label="Details">
+        <div class="head"><div class="seg" role="tablist"><button type="button" role="tab" aria-selected="false">Team</button><button class="on" type="button" role="tab" aria-selected="true">Details</button></div><span class="live"><span class="dot running" style="width:6px;height:6px;background:var(--ok);box-shadow:none"></span>3 here</span></div>
+        <div class="group"><h3>Intent <span class="sum">turn 4</span></h3><p><span class="serif">Invoice PDF</span> carries tax lines and proration; the hook for Dee's lines stays open; stored invoices migrate only through the gate.</p></div>
+        <div class="group"><h3>Crewmate <span class="sum">driving with you</span></h3>
+          <div class="tile"><div class="who"><span class="avatar">AM</span>Ana Moreau</div><div class="what"><i>Consumes</i> Billing page · rated the plan 4 · here since 13:40</div></div>
+        </div>
+        <div class="group"><h3>Branches <span class="sum">2</span></h3>
+          <div class="row"><div><div class="t">pdf-layout → main</div><div class="s">united 14:03 · <span class="serif">Ana</span> 5, <span class="serif">Bo</span> 4 · 0c8d44</div></div><span class="pill">united</span></div>
+          <div class="row"><div><div class="t">proration-ts</div><div class="s">open · 3 files · step 3 writes here</div></div><button class="btn sm" type="button">Compare</button></div>
+        </div>
+        <div class="group"><h3>Usage <span class="sum">35 % · about 25.9k left</span></h3>
+          <div class="meter"><div class="lbl"><b>14.1k</b>&nbsp;of 40k<span>est 11.5k</span></div><div class="budget" style="--pct:35%;--est:29%" role="meter" aria-label="14.1k of 40k tokens" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"><i></i><span class="tick est"></span><span class="tick eighty"></span></div><div class="lbl"><span>in 9.8k · out 4.3k</span><span>cache 2.1k · not counted</span></div></div>
+        </div>
+        <div class="group"><h3>Memory <span class="sum">3 entries · 1 conflict</span></h3><div class="fold"><svg class="chev" aria-hidden="true"><use href="#chev"/></svg>rounding · half-up at the line, from Checkout</div></div>
+        <div class="group"><h3>Brief <span class="sum">as of 13:52</span></h3><div class="fold"><svg class="chev" aria-hidden="true"><use href="#chev"/></svg>The goal, the plan and the gate on one sheet</div></div>
       </aside>
     </div>
   </div>
 </div>
 
+<!-- the inspector: the element's own anatomy. Not part of the design; hidden unless `i` is pressed. The app ships the surfaces alone. -->
+<aside class="inspector" data-inspector aria-label="Paper and lacquer, the anatomy">
+  <h2>Paper, lacquer, ink</h2>
+  <div class="switches">
+    <button class="sw" type="button" id="sw-grain" aria-pressed="true">Grain <kbd>g</kbd></button>
+    <button class="sw" type="button" id="sw-sheen" aria-pressed="true">Lacquer <kbd>l</kbd></button>
+    <button class="sw" type="button" id="sw-dark" aria-pressed="false">Dark <kbd>d</kbd></button>
+    <button class="sw" type="button" id="sw-calm" aria-pressed="false">Calm <kbd>c</kbd></button>
+    <button class="sw" type="button" id="sw-print" aria-pressed="false">Print</button>
+  </div>
+  <div class="crop"><span class="tag">the stock at 3×</span></div>
+  <div class="seals" aria-label="The four seals">
+    <span class="seal"><svg class="mark-ink"><use href="#mark-ink"/></svg>United</span>
+    <span class="seal"><svg class="mark-ink"><use href="#mark-ink"/></svg>Approved</span>
+    <span class="seal denied"><svg class="mark-ink"><use href="#mark-ink"/></svg>Denied</span>
+    <span class="seal returned"><svg class="mark-ink"><use href="#mark-ink"/></svg>Returned</span>
+  </div>
+  <div class="legend">
+    <b>lamp</b><span>18% −10% · wash, sheen 170°, rest shadows, deboss</span>
+    <b>grain</b><span>240 px tile · soft-light · .11 / .13 night · .10 at 2×</span>
+    <b>sheet</b><span>ring 1px navy · 0 1px 2px + 0 4px 12px chocolate .06</span>
+    <b>lacquer</b><span>sheen white .13 → 0 at 56% · lit edge · casts nothing</span>
+    <b>ink</b><span>rule chocolate .22 / .58 · the hand · the seal</span>
+    <b>seal</b><span>mark-ink · 2px + 1px frame · −4° · tooth 140 px</span>
+  </div>
+  <p><kbd>i</kbd> hides this.</p>
+</aside>
+
 <script>
 (function () {
   var root = document.documentElement;
+  if (location.hash === '#inspect') root.dataset.inspect = '';
   function flag(btn, on) { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+  var g = document.getElementById('sw-grain'), l = document.getElementById('sw-sheen'), d = document.getElementById('sw-dark'), c = document.getElementById('sw-calm'), p = document.getElementById('sw-print');
   var sw = {
     grain: function () { var off = root.dataset.grain === 'off'; if (off) delete root.dataset.grain; else root.dataset.grain = 'off'; flag(g, off); },
     sheen: function () { var off = root.dataset.sheen === 'off'; if (off) delete root.dataset.sheen; else root.dataset.sheen = 'off'; flag(l, off); },
     dark:  function () { var on = root.dataset.theme === 'dark'; root.dataset.theme = on ? 'light' : 'dark'; flag(d, !on); },
     calm:  function () { var on = root.dataset.motion === 'calm'; if (on) delete root.dataset.motion; else root.dataset.motion = 'calm'; flag(c, !on); },
-    print: function () { if (window.print) window.print(); }
+    print: function () { if (window.print) window.print(); },
+    inspect: function () { if ('inspect' in root.dataset) delete root.dataset.inspect; else root.dataset.inspect = ''; }
   };
-  var g = document.getElementById('sw-grain'), l = document.getElementById('sw-sheen'), d = document.getElementById('sw-dark'), c = document.getElementById('sw-calm'), p = document.getElementById('sw-print');
   g.onclick = sw.grain; l.onclick = sw.sheen; d.onclick = sw.dark; c.onclick = sw.calm; p.onclick = sw.print;
   if (root.dataset.theme === 'dark' || (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches)) flag(d, true);
   if (root.dataset.motion === 'calm') flag(c, true);
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey || /input|textarea/i.test(e.target.tagName)) return;
-    if (e.key === 'g') sw.grain(); else if (e.key === 'l') sw.sheen(); else if (e.key === 'd') sw.dark(); else if (e.key === 'c') sw.calm();
+    if (e.key === 'i') sw.inspect(); else if (e.key === 'g') sw.grain(); else if (e.key === 'l') sw.sheen(); else if (e.key === 'd') sw.dark(); else if (e.key === 'c') sw.calm();
   });
 })();
 </script>
