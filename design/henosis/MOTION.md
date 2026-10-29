@@ -50,7 +50,7 @@ Three clocks and three curves cover the app; the mark keeps its own curve. (`mot
 | `--t` | 200 ms | press, toggles, segments, hover cards |
 | `--t-slow` | 320 ms | anything arriving or settling: cards, badges, toasts, pills, sheets |
 | (fixed) | 450 ms | the drawn check, the send ring |
-| (fixed) | 500 ms | team colours crossfade, hero fade |
+| (fixed) | 500 ms | hero fade (the team colours set at once, 6.10) |
 | (fixed) | 800 ms · 1 s | the mark settling once; its centre |
 | (fixed) | 900 ms | the joined avatar's ripple |
 | loops | 1.4 – 1.8 s | weave 1.4 · orbit, shimmer 1.5 · mark, status pulse 1.8 |
@@ -491,8 +491,12 @@ on load. **500 ms · `--ease-arrive` · once.** Calm: present.
 ### 6.10 Team colours · registered properties · entering a team
 
 The route enters Payments and `--team-accent`, `--team-highlight`, `--team-surface`, `--team-glow` cross
-over **500 ms · `--ease-move`**, one transition on `:root`. Calm: instant. Open: every element reading the
-team properties repaints for 500 ms; measure on the fleet board before keeping it on the manager pages.
+at once. **Settled** (L7, measured on the fleet board with 40 rows, `scripts/perf-l7.mjs`): the 500 ms
+crossfade on `:root` that this section asked for recalculated style for the whole page on every frame
+(444 ms of style work and 153 paints inside the 500 ms) and missed the tick on half its frames, while
+setting the four properties at once costs 19 ms of style once and drops no frame an idle board does not.
+So there is no transition on `:root`, and Calm is the same as the default. The 500 ms row in the
+duration table is the hero fade alone.
 
 ### 6.11 Budget fill · transition `width` · tokens are spent
 
@@ -503,10 +507,13 @@ budget turns: amber from 80 %, red past 100 % (`token-meter`). Calm: jumps to th
 
 ### 6.12 Ring draw · `ring-draw` · the invite is accepted
 
-Kept, with one home. **Settled** (`motion-spec`'s open question): `ring-draw` (dashoffset 176 → 0,
-**900 ms · `--ease-arrive`**) draws the five-segment progress ring in the corner of a tour coach mark and
-the onboarding steps as each closes (`tour`, `onboarding`); the ghost centre stays dashed until the last
-step, when `dot-once` pops it and the toast says "Dee is in the circle." Calm: full ring, dot present.
+Deleted. **Settled** (L7, closing `motion-spec`'s open question): the five-segment ring in the corner
+of a tour coach mark (`.tour-ring`, L2) draws each segment as it closes with the shared `draw` keyframe
+(a 20 px dash, **450 ms · `--ease-move`**), since a segment is a fifth of the ring and `ring-draw`'s
+176 → 0 was the whole circumference; nothing played `ring-draw`, so the keyframes are gone from
+`tokens.css` (a declared set nobody plays is a word in the vocabulary nobody says). The ghost centre
+stays dashed until the last step, when `dot-once` pops it and the toast says "Dee is in the circle."
+Calm: full ring, dot present.
 
 ---
 
@@ -732,7 +739,6 @@ Diffable. Removes the v5 drift (`pulse`, `orbit` / `converge`, the gradient `wea
 
 /* keyframes: one vocabulary, the app's names */
 @keyframes arc-a, arc-b, dot-in, arc-a-once, arc-b-once, dot-once      /* section 4, ±60° start */
-@keyframes ring-draw                                                    /* 176 → 0, tour and onboarding */
 @keyframes orbit-1, orbit-2, orbit-3                                    /* 54 px page centre only */
 @keyframes weave-slide, weave-over, weave-under                         /* replaces weave */
 @keyframes shimmer                                                      /* 100% → -20% */
@@ -754,6 +760,5 @@ Diffable. Removes the v5 drift (`pulse`, `orbit` / `converge`, the gradient `wea
 Open, to verify before v6 ships:
 
 - The `mark.svg`-internal animation driven by `--mark-run` (4.3): confirm the 0 s rest state in Safari.
-- The team-colour crossfade's 500 ms repaint on the fleet board (6.10).
 - Whether `apps/web/src/tokens.css` moves its hold from 12 / 68 / 84 % to 15 / 70 / 85 % and its start to
   ±60° in the same commit as the design tokens, so `mark-motion`'s storyboard stays true.

@@ -57,8 +57,8 @@
 
   /* ---- canvas ---- */
   --canvas: #FBF7F1;
-  --wash: rgba(226, 196, 166, 0.35);   /* the one apricot wash, drawn as a blurred disc (see .main) */
-  --canvas-wash: radial-gradient(1200px 600px at 20% -10%, var(--wash), transparent 60%); /* fallback for pages that paint body */
+  --wash: rgba(226, 196, 166, 0.35);   /* the one apricot wash */
+  --canvas-wash: radial-gradient(1200px 600px at 20% -10%, var(--wash), transparent 60%); /* painted by .main (and by pages that paint body) */
   --surface: #FFFFFF;                  /* a card, a bubble, a sheet */
   --surface-2: #F4EEE5;                /* raised: hover, the composer, a field */
   --surface-3: #ECE3D6;                /* pressed: a segment track, an off star tile */
@@ -353,9 +353,14 @@ input[type="checkbox"]:not(.switch), input[type="radio"] { accent-color: var(--a
 .sidebar .item .dot.running { background: var(--ok); } .sidebar .item .dot.awaiting_approval { background: var(--warn); } .sidebar .item .dot.blocked { background: var(--danger); }
 .sidebar .me, .rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 14px; color: var(--rail-fg); }
 .sidebar .me .serif, .rail .me .serif { font-size: 15px; }
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--canvas); position: relative; isolation: isolate; }
-/* the wash as a blurred disc: flat pixels, one layer, no dithered radial gradient (loading-screens) */
-.main::before { content: ""; position: absolute; left: 10%; top: -320px; width: 1100px; height: 560px; max-width: 100%; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; z-index: -1; }
+/* The wash is the radial gradient, painted by the main column. loading-screens' blurred disc (a 1100×560
+   `.main::before` under `filter: blur(110px)`) was measured against it on the fleet board with 40 rows
+   (scripts/perf-l7.mjs, median of 3): scrolling the board re-rasterised the disc every frame (6.8 s of
+   raster against the gradient's 1.7 s; 34 ms a frame, nine frames in ten over the 60 Hz budget, where the
+   gradient and no wash at all sit at 19–20 ms), a layer of its own or a clip made the frames worse still,
+   the blur bled 70 px past the window into a horizontal scrollbar, and the page weighed more as a PNG,
+   not less. The gradient scrolls at the frame tick and stays inside the window. */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--canvas-wash), var(--canvas); position: relative; isolation: isolate; }
 .topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: blur(8px); }
 .topbar .title { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; }
 .topbar .title > :first-child { overflow: hidden; text-overflow: ellipsis; }
@@ -692,7 +697,6 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
 @keyframes arc-a-once { 0% { transform: rotate(60deg); opacity: 0.5; } 70% { transform: rotate(-4deg); opacity: 1; } 100% { transform: rotate(0); } }
 @keyframes arc-b-once { 0% { transform: rotate(-60deg); opacity: 0.5; } 70% { transform: rotate(4deg); opacity: 1; } 100% { transform: rotate(0); } }
 @keyframes dot-once { 0%, 55% { transform: scale(0); } 80% { transform: scale(1.25); } 100% { transform: scale(1); } }
-@keyframes ring-draw { 0% { stroke-dashoffset: 176; } 100% { stroke-dashoffset: 0; } }
 @keyframes orbit-1 { 0% { transform: rotate(0deg) translateX(18px); } 60% { transform: rotate(300deg) translateX(0); } 100% { transform: rotate(360deg) translateX(18px); } }
 @keyframes orbit-2 { 0% { transform: rotate(120deg) translateX(18px); } 60% { transform: rotate(420deg) translateX(0); } 100% { transform: rotate(480deg) translateX(18px); } }
 @keyframes orbit-3 { 0% { transform: rotate(240deg) translateX(18px); } 60% { transform: rotate(540deg) translateX(0); } 100% { transform: rotate(600deg) translateX(18px); } }
@@ -752,11 +756,16 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
   :root:not([data-motion="calm"]) .send.pressed { animation: pressed 0.45s var(--ease-leave) both; }
   :root:not([data-motion="calm"]) .pill .w { animation: word-in var(--t-slow) var(--ease-arrive) both; }
   :root:not([data-motion="calm"]) .hero-card, :root:not([data-motion="calm"]) .hero { animation: fade-in 0.5s var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) { transition: --team-accent 0.5s var(--ease-move), --team-highlight 0.5s var(--ease-move), --team-surface 0.5s var(--ease-move), --team-glow 0.5s var(--ease-move); }
 }
-/* a team's Calm, and the system's reduce, both end here: no change ever animates, every end state stays */
+/* Entering a team sets --team-* at once. The 500 ms crossfade on :root (MOTION.md 6.10) was measured on the
+   fleet board with 40 rows (scripts/perf-l7.mjs, median of 3): every frame of it recalculated style for the
+   whole page (444 ms of style work and 153 paints inside the 500 ms) and half its frames missed the tick,
+   where setting the four properties at once costs 19 ms of style once and drops nothing an idle board does
+   not; Calm never reached :root either. So no transition. */
+/* a team's Calm, and the system's reduce, both end here: no change ever animates, every end state stays
+   (:root itself included, so nothing declared on the root element can animate under Calm either) */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
-:root[data-motion="calm"] *, :root[data-motion="calm"] *::before, :root[data-motion="calm"] *::after { animation: none !important; transition: none !important; }
+:root[data-motion="calm"], :root[data-motion="calm"] *, :root[data-motion="calm"] *::before, :root[data-motion="calm"] *::after { animation: none !important; transition: none !important; }
 
 /* ============================ BREAKPOINTS (written once; see SYSTEM.md §17) ============================ */
 @media (max-width: 1180px) { :root { --rail-w: var(--rail-collapsed); } }

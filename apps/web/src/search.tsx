@@ -350,6 +350,36 @@ export async function forgetSearch(userId: string, id: string): Promise<SavedSea
   return body.searches ?? [];
 }
 
+/** How many rows of a kind the All tab shows before "Show all N →" (SCREENS.md §27). */
+export const PER_KIND = 3;
+
+export interface HitGroup {
+  kind: SearchKind;
+  /** The rows shown: the first `perKind` on All, every row on a kind's own tab. */
+  rows: SearchHit[];
+  /** How many hits the kind has in all, the count the group head and the tab carry. */
+  all: number;
+}
+
+/**
+ * "All" is a group cut, not a ranked list with kind pills (settled, BACKLOG.md L7): every kind
+ * in the tab order as a short group of its first `perKind` rows in `hits`' order, with the
+ * kind's full count beside it; a kind's own tab shows every row. Kinds with nothing stay out.
+ */
+export function groupHits(
+  hits: readonly SearchHit[],
+  tab: SearchKind | "all",
+  perKind = PER_KIND,
+): HitGroup[] {
+  const kinds = tab === "all" ? SEARCH_KINDS : [tab];
+  return kinds
+    .map((kind) => {
+      const rows = hits.filter((h) => h.kind === kind);
+      return { kind, rows: tab === "all" ? rows.slice(0, perKind) : rows, all: rows.length };
+    })
+    .filter((g) => g.rows.length > 0);
+}
+
 /** The "why" under a group head: human 6 · agent 5 for messages, the kind's one line otherwise. */
 export function whyOf(kind: SearchKind, hits: SearchHit[], fallback: string): string {
   if (kind !== "message") return fallback;

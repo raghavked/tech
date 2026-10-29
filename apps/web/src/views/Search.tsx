@@ -15,6 +15,8 @@ import { Highlight } from "../palette.js";
 import { navigate, paths } from "../router.js";
 import {
   forgetSearch,
+  groupHits,
+  type HitGroup,
   listSavedSearches,
   parseFilters,
   type SavedSearch,
@@ -34,7 +36,6 @@ import { Avatar, ICONS, Icon, Loader, Mark, Status } from "../ui.js";
 
 type Tab = SearchKind | "all";
 const TABS: Tab[] = ["all", ...SEARCH_KINDS];
-const PER_KIND = 3;
 
 export function Search({
   q: initial,
@@ -91,15 +92,8 @@ export function Search({
   }, [result, sort]);
   const counts = result?.counts ?? { session: 0, message: 0, memory: 0, person: 0, agent: 0 };
   const total = result?.total ?? 0;
-  const groups = useMemo<{ kind: SearchKind; rows: SearchHit[]; all: number }[]>(() => {
-    const kinds = tab === "all" ? SEARCH_KINDS : [tab];
-    return kinds
-      .map((kind) => {
-        const rows = hits.filter((h) => h.kind === kind);
-        return { kind, rows: tab === "all" ? rows.slice(0, PER_KIND) : rows, all: rows.length };
-      })
-      .filter((g) => g.rows.length > 0);
-  }, [hits, tab]);
+  // All is the group cut (settled, L7): the first three of every kind, each with its full count.
+  const groups = useMemo<HitGroup[]>(() => groupHits(hits, tab), [hits, tab]);
   const keys = groups.flatMap((g) => g.rows.map((h) => h.id));
   const cursor = cursorId && keys.includes(cursorId) ? cursorId : (keys[0] ?? null);
 

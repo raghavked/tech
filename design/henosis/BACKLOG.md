@@ -678,6 +678,17 @@ actions, link last); the needs-you card with a stripe by kind; votes as rows; es
 - Search: "All" as a group cut or a ranked list with kind pills (N7 ships the group cut).
 - Replay: whether the Team panel and the token chip fold while looking back (N3 ships them unfolded).
 
+**Settled** (`scripts/perf-l7.mjs` against the built app, 40 rows, median of 3; `apps/web/src/tokens.test.ts`,
+`apps/web/test/leftovers.spec.ts`). The radial gradient wins: scrolling the board under the blurred disc
+re-rasterised it every frame (34 ms a frame, nine frames in ten over budget, 6.8 s of raster to the
+gradient's 1.7 s), a clip or a layer of its own made it worse, and the blur bled 70 px into a horizontal
+scrollbar. The crossfade is retired: 444 ms of style recalculation and 153 paints inside its 500 ms,
+half its frames dropped, where setting `--team-*` at once costs 19 ms once; Calm now covers `:root`.
+`ring-draw` is deleted: the tour's ring draws each segment with `draw`, and no rule played it.
+`--accent-ink` `#CAA49B` is confirmed on the session page in dark (7.2 : 1 on the canvas, 6.2 : 1 on a
+bubble, never the apricot of the pulse beside it). "All" is the group cut (`groupHits`); the Team panel
+and the token chip keep the live circle and the live total while looking back.
+
 ---
 
 ## Server changes, collected

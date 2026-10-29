@@ -686,12 +686,12 @@ group); `.sidebar .section` may adopt `.rail-section`. The Slack adapter sends `
 
 ## 20. Open
 
-- `--accent-ink` in dark (`#CAA49B`) is derived, not shot: confirm it on the session page beside the
-  apricot pulses before the next wave inherits it.
-- The blurred-disc wash (`.main::before`, `filter: blur(110px)`) needs a paint measurement against the
-  radial gradient on the fleet board.
-- Whether "All" in search is a group cut or a ranked list; whether the Team panel and the token chip
-  fold during replay; the rank a group role gives a mention; owner override on a gate ("Decide as owner"
+- Settled by L7 (`scripts/perf-l7.mjs`, BACKLOG.md): `--accent-ink` in dark is confirmed on the session
+  page, where the Goal label resolves to `#CAA49B` at 7.2 : 1 on the canvas and 6.2 : 1 on a bubble
+  beside apricot pulses it never matches; the blurred-disc wash lost its paint measurement to the radial
+  gradient on the fleet board (nine scrolled frames in ten over budget, a 70 px bleed, a heavier PNG);
+  "All" in search is a group cut; the Team panel and the token chip stay unfolded during replay.
+- The rank a group role gives a mention; owner override on a gate ("Decide as owner"
   only when the policy returns an owner-override rule).
 - `ring-draw` has keyframes but no rule plays it; keep for the tour's five-segment ring or remove.
 - The pricing seat is defined by role (driver or owner); the estimator and the invoice must be one

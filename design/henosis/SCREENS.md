@@ -923,8 +923,10 @@ WHEN, kinds of message, ending in "Keep this search".
 **Copy.** "everything the team keeps", "Cy appears through Cy's agent only", "Keep this search".
 
 **Fix before build.** Use the rail exploration's rail (the page drew caps project headers, hairlines
-between cards and a "Payments" pill on the you row); then settle whether All is a group cut or a ranked
-list with kind pills. "Keep this search" promises a notification path that does not exist; build it as a
+between cards and a "Payments" pill on the you row). All is a group cut, **settled** (L7): every kind
+with hits as a short group in the tab order, its first three rows in the ranking's own order under the
+kind's full count and a "Show all N →" that is the kind's tab; a ranked list with kind pills would
+make the reader sort by eye what the groups already sort. "Keep this search" promises a notification path that does not exist; build it as a
 rail item or an inbox rule, or cut it.
 
 ---
@@ -1254,7 +1256,7 @@ status sets because they were missing.
    @media (prefers-reduced-motion: reduce), :root[data-motion="calm"] — the (data-motion="calm")
    media query in v5 is invalid */
 /* collisions: rename .rail .section → .rail-section; .avatar.agent vs rail .agent; the presence dot is
-   .pr; --canvas-wash as a blurred disc, not a radial gradient */
+   .pr; --canvas-wash stays the radial gradient (the blurred disc lost L7's paint measurement) */
 ```
 
 ## Appendix C · Open questions for the founder
