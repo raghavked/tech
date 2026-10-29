@@ -117,7 +117,9 @@ Environment the server reads:
 | `HENOSIS_OIDC_AUDIENCE` | what ID tokens' `aud` must carry when it is not the client id (optional) |
 | `HENOSIS_AUTH=supabase` | sign-in through Supabase Auth, with `SUPABASE_URL` and `SUPABASE_ANON_KEY` (optional `SUPABASE_JWT_SECRET`); `HENOSIS_AUTO_JOIN` (`org:team:project:role`) places a new sign-up (`docs/20_hosting.md`) |
 | `HENOSIS_DATABASE_URL` | the postgres store's connection string (`--store postgres`, or `HENOSIS_STORE=postgres` in the hosted function) |
-| `HENOSIS_APP_URL` | where the web app is served, for links in Slack messages |
+| `HENOSIS_APP_URL` | where the web app is served, for links in Slack messages, PR comments and the digest |
+| `HENOSIS_SMTP_URL`, `HENOSIS_MAIL_FROM` | where `henosis digest` sends through (`smtp://user:pass@host:587`) and as whom |
+| `GITHUB_TOKEN` | the token `henosis github` posts with, when github.json carries none |
 
 In oidc mode the server verifies every ID token against the provider and maps the token's
 groups to teams and projects through `sso` in `orgs.json`; `docs/07_security_and_compliance.md`,
@@ -137,6 +139,8 @@ groups to teams and projects through `sso` in `orgs.json`; `docs/07_security_and
 | `henosis council <org> [<id>] [--dir]` | a council's rounds, plan with dissent, work and conclusion from the org's chat log; no id lists them |
 | `henosis fleet <ledger.json>` | fleet brief from a project ledger |
 | `henosis slack --config slack.json` | serve plus the Slack adapter in socket mode |
+| `henosis github --config github.json` | serve plus the GitHub adapter: one comment per attached pull request, edited in place |
+| `henosis digest [--out dir \| --smtp url] [--cadence weekly\|daily] [--to user]` | the leads' digests as `.eml` files, over SMTP, or printed |
 
 ## Repository map
 
@@ -151,6 +155,8 @@ packages/chat       groups and chats: a chained log per org where people and age
 packages/server     websocket and HTTP server, project, session and chat hosts, notifications, persistence
 packages/slack      Slack adapter on an interface with an in-memory fake; Bolt socket mode;
                     the council as a thread with rating buttons
+packages/email      the leads' digest and the invite as e-mail; mailer interface with a fake, .eml files and SMTP
+packages/github     GitHub adapter: a pull request is a session, one comment edited in place; fake and REST clients
 packages/cli        the henosis binary
 apps/web            the product: React client that folds the same events as the server (PWA);
                     agents rail, team panel, groups and chats, command palette (⌘K), inbox,
@@ -173,7 +179,7 @@ docs/               thesis, market, landscape, product spec, architecture, kerne
 
 ```bash
 pnpm check     # lint (biome), typecheck, unit and integration tests (vitest), build, e2e
-pnpm test      # kernel semantics, runner, fleet, memory, server, Slack adapter
+pnpm test      # kernel semantics, runner, fleet, memory, server, Slack, e-mail and GitHub adapters
 ```
 
 Tests and e2e run offline. CI runs the same pipeline on every push.

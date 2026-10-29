@@ -13,6 +13,8 @@ export default defineConfig({
       "@henosis/memory": src("memory"),
       "@henosis/chat": src("chat"),
       "@henosis/slack": src("slack"),
+      "@henosis/email": src("email"),
+      "@henosis/github": src("github"),
       "@henosis/server": src("server"),
     },
   },

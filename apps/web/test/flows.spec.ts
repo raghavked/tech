@@ -634,3 +634,21 @@ test("print and export: the session on paper with the cream mark, the audit trai
   await sheet.getByRole("button", { name: "Close export" }).click();
   await expect(conversation(page)).toContainText("Ana exported the audit trail.");
 });
+
+// surfaces: the settings page names the three surfaces outside the window and, when none runs
+// beside this server, says how to start each one (packages/slack, packages/github, packages/email).
+test("settings lists Slack, GitHub and e-mail with how to connect each", async ({ page }) => {
+  await signIn(page, "Ana", "ana");
+  await page.goto("/#/settings");
+  const integrations = page.locator("section.group", { hasText: "Integrations" });
+  await expect(integrations.getByRole("heading", { name: "Integrations" })).toBeVisible();
+  for (const [title, how] of [
+    ["Slack", "henosis slack --config slack.json"],
+    ["GitHub", "henosis github --config github.json"],
+    ["E-mail", "henosis digest"],
+  ]) {
+    const row = integrations.locator(".rowitem", { hasText: title });
+    await expect(row).toContainText("Not connected");
+    await expect(row).toContainText(how ?? "");
+  }
+});

@@ -11,4 +11,5 @@ export * from "./report.js";
 export * from "./session.js";
 export * from "./state.js";
 export * from "./usage.js";
+export * from "./words.js";
 export * from "./workspace.js";

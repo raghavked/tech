@@ -48,7 +48,9 @@ session; nothing in the kernel changes because the kernel never does I/O.
 | `@henosis/chat` | groups and chats: a chained log per org with people and agents as members, mentions, agent replies, read markers, the council's events | kernel |
 | `@henosis/server` | websocket and HTTP front door, project, session and chat hosts, notifications, the store seam | runner, fleet, memory, chat |
 | `@henosis/slack` | Slack adapter (interface, fake, Bolt socket mode) | server |
-| `@henosis/cli` | `henosis serve / migrate / demo / join / replay / verify / report / fleet / slack` | server, slack |
+| `@henosis/email` | the leads' digest and the invite as e-mail; mailer interface with an in-memory fake, `.eml` files and a small SMTP client | server |
+| `@henosis/github` | GitHub adapter: a pull request is a session, one comment edited in place; fake and REST clients | server |
+| `@henosis/cli` | `henosis serve / migrate / demo / join / replay / verify / report / fleet / slack / github / digest` | server, slack, email, github |
 | `@henosis/web` | the product: React client that folds the same events as the server; PWA | kernel, fleet, protocol |
 
 The kernel has **no Node dependency**: it ships its own SHA-256 so the browser, the CLI and

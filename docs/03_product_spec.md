@@ -79,7 +79,15 @@ it, nothing is cut off.
   session; approvals as buttons; contentions and memory conflicts with resolve buttons.
 - **Desktop and mobile shells** (`apps/desktop`, `apps/mobile`): the same web client with a
   tray and native push, opened by deep links from notifications.
-- **Phase 1 surfaces:** GitHub PR adapter (a PR is a session), VS Code and Zed panels, and a
+- **GitHub** (`packages/github`): a pull request is a session. Henosis posts one comment on it
+  and edits it in place as the session moves: the plan as a table with estimate and actual, the
+  ratings as rows with glyph stars, the release gate with every voice, the tokens against the
+  budget, the session link first and last. Plain Markdown, found again by its marker.
+- **E-mail** (`packages/email`): the leads' digest (Monday, or every working day) opens with the
+  team sentence and the period's figures, then what needs them as cards, the tokens, the plans
+  and the release gates, and the join moment; the invite is the same door for a person and an
+  agent. Counted since the previous digest, since the ledger keeps no clock.
+- **Phase 1 surfaces:** VS Code and Zed panels, and a
   harness SDK so Claude Agent SDK, LangGraph and OpenAI Agents runs can be hosted as Henosis
   sessions.
 

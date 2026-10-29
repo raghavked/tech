@@ -7,7 +7,7 @@ import { describeRule, ruleFor } from "@henosis/kernel";
 import type { ContentionPolicy, RiskClass, SessionPolicy } from "@henosis/protocol";
 import { type ReactNode, useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
-import { api, type Me, useFetch } from "../api.js";
+import { api, type Integrations as IntegrationStatus, type Me, useFetch } from "../api.js";
 import { copy } from "../copy.js";
 import { clearIdentity, type Identity } from "../identity.js";
 import { notifyPermission, requestNotifications } from "../notify.js";
@@ -306,26 +306,47 @@ function TeamPolicy({ me }: { me: Me | null }) {
   );
 }
 
+/** The surfaces outside the window: each row says what the surface does when it runs, else how to start it. */
+const SURFACES: { key: keyof IntegrationStatus; title: string; on: string; off: string }[] = [
+  {
+    key: "slack",
+    title: "Slack",
+    on: "Channels per team and project; a thread per session",
+    off: "Start the server with `henosis slack --config slack.json` to connect",
+  },
+  {
+    key: "github",
+    title: "GitHub",
+    on: "A pull request is a session: one comment, edited in place as the session moves",
+    off: "Start the server with `henosis github --config github.json` to connect",
+  },
+  {
+    key: "email",
+    title: "E-mail",
+    on: "Leads get the digest: the team sentence, what needs them, tokens, plans and gates",
+    off: "Set HENOSIS_SMTP_URL on the server and run `henosis digest` on a schedule",
+  },
+];
+
 function Integrations() {
-  const slack = useFetch(() => api.integrations(), "integrations");
-  const on = slack.data?.slack === true;
+  const status = useFetch(() => api.integrations(), "integrations");
   return (
     <Section title="Integrations">
       <div className="list">
-        <Row
-          title="Slack"
-          detail={
-            slack.error
-              ? slack.error
-              : on
-                ? "Channels per team and project; a thread per session"
-                : "Start the server with `henosis slack --config slack.json` to connect"
-          }
-        >
-          <span className={`status${on ? " on" : " idle"}`}>
-            {slack.data ? (on ? "Connected" : "Not connected") : "Checking"}
-          </span>
-        </Row>
+        {SURFACES.map((s) => {
+          const on = status.data?.[s.key] === true;
+          return (
+            <Row
+              key={s.key}
+              title={s.title}
+              detail={status.error ? status.error : on ? s.on : s.off}
+            >
+              <span className={`status${on ? " on" : " idle"}`}>
+                {status.data ? (on ? "Connected" : "Not connected") : "Checking"}
+              </span>
+            </Row>
+          );
+        })}
       </div>
     </Section>
   );

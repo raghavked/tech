@@ -43,6 +43,12 @@ least a minor bump; a fix is a patch. The pipeline itself is in `docs/16_desktop
   rising, a granted approval drawing its check) and a team look leads can set.
 - [web] Tokens v6 from the design wave: one dark status triplet, a lifted hand in dark,
   selection and status ink tokens, one motion guard.
+- [server] Two surfaces outside the window. `henosis digest` sends every lead the team
+  sentence with the week's figures, what needs them, the tokens, the plans and the release
+  gates, and who joined, as an e-mail (`.eml` files, SMTP, or printed; counted since the
+  previous digest). `henosis github` keeps one comment per attached pull request and edits it
+  in place as the session moves: the plan with estimate and actual, ratings as rows, the
+  gate with every voice, the tokens, the replay hash. Both run offline against fakes in CI.
 
 - [desktop] Auto-update: the shell checks a signed manifest after launch and every six
   hours, downloads a newer build quietly, and shows one "Restart to update" row in the

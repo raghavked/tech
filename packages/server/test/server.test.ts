@@ -233,9 +233,10 @@ describe("websocket server", () => {
     const base = url.replace(/^ws/, "http").replace(/\/ws$/, "");
     const policy = await (await fetch(`${base}/api/projects/default/policy`)).json();
     expect(policy).toEqual(DEFAULT_SESSION_POLICY);
-    expect(await (await fetch(`${base}/api/integrations`)).json()).toEqual({ slack: false });
+    const off = { slack: false, github: false, email: false };
+    expect(await (await fetch(`${base}/api/integrations`)).json()).toEqual(off);
     server.integrations.slack = true;
-    expect(await (await fetch(`${base}/api/integrations`)).json()).toEqual({ slack: true });
+    expect(await (await fetch(`${base}/api/integrations`)).json()).toEqual({ ...off, slack: true });
     server.integrations.slack = false;
   });
 

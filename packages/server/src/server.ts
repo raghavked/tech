@@ -110,6 +110,10 @@ export interface AttachOptions {
 /** settings-page hook point: adapters flip their flag here (the CLI's `slack` command does). */
 export interface Integrations {
   slack: boolean;
+  /** The GitHub adapter runs beside this server: attached sessions keep a comment on their pull request. */
+  github: boolean;
+  /** A mailer is configured: leads get the digest. */
+  email: boolean;
 }
 
 const DEFAULT_POLICY: SessionPolicy = { ...DEFAULT_SESSION_POLICY };
@@ -173,7 +177,7 @@ export class HenosisServer {
     this.searches = new SavedSearches(opts.root);
     // Every push payload carries the needs-you figure, so the badge and the tab agree.
     this.notifier.badge = (userId) => this.glance(userId).needsYou;
-    this.integrations = { slack: false, ...opts.integrations };
+    this.integrations = { slack: false, github: false, email: false, ...opts.integrations };
     this.models = new ModelFactory({ log: opts.log });
     // supabase mode: a verified stranger is placed by the auto-join rules (orgs.ts).
     this.orgs.autoJoin =

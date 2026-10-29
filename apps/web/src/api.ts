@@ -323,7 +323,7 @@ export const api = {
   /** settings-page: the policy new sessions in a project are created with. */
   policy: (id: string) => getJson<SessionPolicy>(`/api/projects/${encodeURIComponent(id)}/policy`),
   /** settings-page: which adapters run beside the server. */
-  integrations: () => getJson<{ slack: boolean }>("/api/integrations"),
+  integrations: () => getJson<Integrations>("/api/integrations"),
   /** token-usage: totals by session, user, project and turn bucket (packages/server/src/usageApi.ts). */
   usage: (q: UsageQuery = {}) => {
     const p = new URLSearchParams();
@@ -430,6 +430,15 @@ export async function markNotificationsRead(userId: string, ids: string[]): Prom
 // Deep links (henosis://p/<project>/s/<session>, henosis://inbox) are parsed in links.ts; this
 // re-export keeps the name the views already import.
 export { routeOfLink } from "./links.js";
+
+/** settings-page: which adapters run beside the server (GET /api/integrations). */
+export interface Integrations {
+  slack: boolean;
+  /** The GitHub adapter keeps one comment per attached pull request. */
+  github: boolean;
+  /** A mailer is configured: leads get the digest. */
+  email: boolean;
+}
 
 export interface Fetched<T> {
   data: T | null;

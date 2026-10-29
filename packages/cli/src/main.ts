@@ -48,9 +48,14 @@ const USAGE = `henosis <command> [options]
   council  <org> [<id>] [--dir ./store]                                         a council's rounds and conclusion from the org's chat log; no id lists them
   fleet    <ledger.json>                                                        fleet brief from a project ledger
   slack    --config slack.json [--port 7700] [--dir ./store] [--model ...]     serve plus the Slack adapter (socket mode)
+  github   --config github.json [--port 7700] [--dir ./store] [--model ...]    serve plus the GitHub adapter (one comment per pull request)
+  digest   [--dir ./store] [--out ./digests | --smtp smtp://u:p@host:587]      the leads' digests: .eml files, SMTP, or the text to stdout
+           [--from "Henosis <digest@example.com>"] [--cadence weekly|daily] [--to <user>] [--app-url URL]
 
 slack.json: { "botToken": "xoxb-...", "appToken": "xapp-...", "map": { "teams": {"payments": "C..."},
              "projects": {"billing": "C..."}, "management": "C...", "users": {"U123": "ana"} }, "projects": ["billing"] }
+github.json: { "token": "ghp_...", "prs": { "<sessionId>": "owner/repo#418" }, "projects": ["billing"],
+             "appBaseUrl": "https://henosis.example.com", "apiBaseUrl": "https://henosis.example.com" }
 
 Environment: HENOSIS_OFFLINE=1 blocks the Claude adapter; ANTHROPIC_API_KEY enables it.
              HENOSIS_TOKEN is the dev-mode shared token; HENOSIS_OIDC_ISSUER, HENOSIS_OIDC_CLIENT_ID
@@ -58,6 +63,7 @@ Environment: HENOSIS_OFFLINE=1 blocks the Claude adapter; ANTHROPIC_API_KEY enab
              HENOSIS_AUTH=supabase with SUPABASE_URL and SUPABASE_ANON_KEY (optional SUPABASE_JWT_SECRET,
              HENOSIS_AUTO_JOIN=org:team:project:role) signs people in through Supabase Auth (docs/20).
              HENOSIS_DATABASE_URL is the postgres store's connection string (or --database-url).
+             HENOSIS_SMTP_URL and HENOSIS_MAIL_FROM are what the digest command sends through when --smtp and --from are absent.
 Exit codes: 0 ok, 2 usage, 3 verification failed, 4 network.`;
 
 function parseArgs(argv: string[]): { positional: string[]; flags: Record<string, string | true> } {
@@ -115,6 +121,11 @@ async function pickStore(flags: Record<string, string | true>, root: string) {
   }
 }
 
+/** The settings page's E-mail row: a mailer is configured when `henosis digest` has somewhere to send. */
+function mailConfigured(env: NodeJS.ProcessEnv): boolean {
+  return Boolean(env.HENOSIS_SMTP_URL?.trim());
+}
+
 function pickModel(name: string): Model {
   if (name === "claude") {
     if (!claudeAvailable()) {
@@ -149,6 +160,7 @@ async function main(): Promise<number> {
         auth,
         log: (l) => process.stderr.write(`${l}\n`),
       });
+      server.integrations.email = mailConfigured(process.env);
       const bound = await server.listen(port, flag(flags, "host", "127.0.0.1"));
       const identity =
         auth.mode === "oidc"
@@ -205,6 +217,7 @@ async function main(): Promise<number> {
         adapter.watchProject(pid);
       await adapter.start();
       server.integrations.slack = true;
+      server.integrations.email = mailConfigured(process.env);
       process.stdout.write(
         `henosis server on ws://127.0.0.1:${bound}/ws with Slack adapter (socket mode)\n`,
       );
@@ -216,6 +229,113 @@ async function main(): Promise<number> {
       process.on("SIGINT", stop);
       process.on("SIGTERM", stop);
       return new Promise(() => {});
+    }
+    case "github": {
+      const cfgPath = flag(flags, "config", "");
+      if (!cfgPath) return usage();
+      const { GitHubAdapter, GitHubConfig, RestGitHubClient } = await import("@henosis/github");
+      const cfg = GitHubConfig.parse(JSON.parse(readFileSync(resolve(cfgPath), "utf8")));
+      const token = cfg.token ?? process.env.GITHUB_TOKEN;
+      if (!token) {
+        process.stderr.write('github: a token is needed (github.json "token" or GITHUB_TOKEN)\n');
+        return 2;
+      }
+      const port = Number(flag(flags, "port", "7700"));
+      const root = resolve(flag(flags, "dir", "./store"));
+      const { store } = await pickStore(flags, root);
+      const server = new HenosisServer({
+        root,
+        store,
+        model: pickModel(flag(flags, "model", "scripted")),
+        tools: defaultTools(),
+        token: process.env.HENOSIS_TOKEN,
+        auth: authConfigFromEnv(process.env, process.env.HENOSIS_TOKEN),
+        log: (l) => process.stderr.write(`${l}\n`),
+      });
+      const bound = await server.listen(port, flag(flags, "host", "127.0.0.1"));
+      const client = cfg.githubApiBaseUrl
+        ? new RestGitHubClient({ token, apiBaseUrl: cfg.githubApiBaseUrl })
+        : new RestGitHubClient({ token });
+      const adapter = new GitHubAdapter({
+        server,
+        client,
+        prs: cfg.prs,
+        appBaseUrl: cfg.appBaseUrl ?? process.env.HENOSIS_APP_URL,
+        apiBaseUrl: cfg.apiBaseUrl ?? process.env.HENOSIS_APP_URL,
+        log: (l) => process.stderr.write(`${l}\n`),
+      });
+      for (const pid of cfg.projects ?? server.orgs.projectsFor(null).map((p) => p.projectId))
+        adapter.watchProject(pid);
+      server.integrations.github = true;
+      server.integrations.email = mailConfigured(process.env);
+      process.stdout.write(
+        `henosis server on ws://127.0.0.1:${bound}/ws with GitHub adapter (${Object.keys(cfg.prs).length} pull request(s))\n`,
+      );
+      const stop = async () => {
+        adapter.stop();
+        await server.close();
+        process.exit(0);
+      };
+      process.on("SIGINT", stop);
+      process.on("SIGTERM", stop);
+      return new Promise(() => {});
+    }
+    case "digest": {
+      const { EmailDigest, FileMailer, parseSmtpUrl, SmtpMailer } = await import("@henosis/email");
+      const root = resolve(flag(flags, "dir", "./store"));
+      const { store } = await pickStore(flags, root);
+      const server = new HenosisServer({
+        root,
+        store,
+        model: new ScriptedModel(),
+        tools: defaultTools(),
+        log: (l) => process.stderr.write(`${l}\n`),
+      });
+      const out = flag(flags, "out", "");
+      const smtp = flag(flags, "smtp", process.env.HENOSIS_SMTP_URL ?? "");
+      const from = flag(
+        flags,
+        "from",
+        process.env.HENOSIS_MAIL_FROM ?? "Henosis <digest@localhost>",
+      );
+      const cadence = flag(flags, "cadence", "weekly") === "daily" ? "daily" : "weekly";
+      const only = flag(flags, "to", "");
+      const mailer = out
+        ? new FileMailer(resolve(out))
+        : smtp
+          ? new SmtpMailer(parseSmtpUrl(smtp))
+          : null;
+      try {
+        const digests = new EmailDigest({
+          server,
+          mailer: mailer ?? { send: async () => ({ id: "<printed>" }) },
+          from,
+          appBaseUrl: flag(flags, "app-url", process.env.HENOSIS_APP_URL ?? ""),
+          cadence,
+          log: (l) => process.stderr.write(`${l}\n`),
+        });
+        const recipients = digests.recipients().filter((r) => !only || r.userId === only);
+        if (!recipients.length) {
+          process.stderr.write(
+            "digest: nobody to send to (a lead or manager of a team with an email in users.json)\n",
+          );
+          return 2;
+        }
+        for (const r of recipients) {
+          if (!mailer) {
+            const rendered = digests.render(r.userId, r.teamId);
+            process.stdout.write(
+              `To: ${r.name} <${r.email}>\nSubject: ${rendered.subject}\n${rendered.preheader}\n\n${rendered.text}\n`,
+            );
+            continue;
+          }
+          const sent = await digests.send(r);
+          process.stdout.write(`sent ${r.teamName} digest to ${r.email} (${sent.id})\n`);
+        }
+        return 0;
+      } finally {
+        await server.close();
+      }
     }
     case "migrate": {
       const from = flag(flags, "from", "");
