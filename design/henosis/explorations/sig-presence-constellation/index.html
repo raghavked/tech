@@ -4,31 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henosis · Payments · the presence constellation</title>
-<meta name="description" content="The signature element: the team page header draws the team as a constellation. Every session is a ring drawn from its members' own arcs, people and agents are the points, the baton holder is the bright one, and a ring is whole only while everyone is here.">
+<meta name="description" content="The team page header drawn as a chart of who is here: every open session is a ring, people and agents are the points on it, each present member draws its own arc of the ring, the same person in two sessions sits where the rings cross, the baton holder is the brightest point.">
 <style>
-/* ---------------------------------------------------------------------------------------------
-   Tokens, inlined from design/henosis/tokens.css (v5) with the settled dark block (SYSTEM §16) and
-   the v6 motion patch (MOTION §12). Self-contained: no @import, no fetched fonts. Fraunces and Inter
-   are asked for first and fall back to the Instrument faces, then to the system.
-   --------------------------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------------------
+   Tokens, inlined from design/henosis/tokens.css with the settled dark block (SYSTEM §16) and the
+   v6 motion vocabulary (MOTION §12). Self-contained: no @import, nothing fetched. Fraunces and Inter
+   are asked for first (editorial-type.md), then the Instrument faces, then the system.
+   ------------------------------------------------------------------------------------------------ */
 :root {
-  --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
   --canvas: #FBF7F1; --wash: rgba(226, 196, 166, 0.35);
   --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
   --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42, 50, 68, 0.12); --edge: none;
-  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2;
-  --rail-active: rgba(226, 196, 166, 0.18); --rail-line: rgba(243, 237, 228, 0.10); --crease: #E2C4A6;
+  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #B9BFCB;
+  --rail-active: rgba(226, 196, 166, 0.18); --rail-line: rgba(243, 237, 228, 0.10);
   --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
-  --apricot-deep: #CFA782; --apricot-soft: rgba(226, 196, 166, 0.30);
-  --glow: 0 0 0 4px rgba(226, 196, 166, 0.35);
+  --apricot: #E2C4A6; --apricot-deep: #CFA782; --apricot-soft: rgba(226, 196, 166, 0.30);
   --count-bg: #CFA782; --count-fg: #2A3244; --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
   --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --grad-fg: #F8F2EA;
-  --gate-stripe: var(--gradient-brand);
   --ok: #4F7D4A; --ok-soft: rgba(79,125,74,0.14); --ok-ink: #3E6639;
   --warn: #B9792E; --warn-soft: rgba(185,121,46,0.14); --warn-ink: #7F5320;
   --danger: #A8463A; --danger-soft: rgba(168,70,58,0.14); --danger-ink: #8E3A30; --info: #5B6273;
   --shadow-soft: 0 10px 30px rgba(42, 50, 68, 0.08); --shadow-pop: 0 18px 50px rgba(42, 50, 68, 0.16);
-  --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --col: 780px; --rail-w: 296px;
+  --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --rail-w: 296px;
   --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --serif: "Fraunces", "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -37,345 +34,383 @@
   --ease-move: cubic-bezier(0.4, 0, 0.2, 1); --ease-mark: cubic-bezier(0.3, 0.9, 0.3, 1);
   --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
   --focus-ring: var(--accent); --focus-halo: var(--apricot-soft);
-  --motion: 0;                                   /* 1 only under the one guard, below */
-  /* the constellation: colour by ground (SYSTEM §5). On cream the person's arc is chocolate, the
-     agent's is navy, the centre is apricot; the baton is the driver ring, apricot-deep. */
-  --cst-person: #56352D; --cst-person-a: 0.78;
-  --cst-agent: #2A3244;  --cst-agent-a: 0.66;
-  --cst-bright: #56352D;                          /* the baton holder's point */
-  --cst-baton: #CFA782;                           /* the baton ring = .avatar.driver */
-  --cst-centre: #E2C4A6;
-  --cst-guide: rgba(42, 50, 68, 0.22);            /* an away member's share of the ring */
-  --cst-thread: rgba(42, 50, 68, 0.42);           /* the crew stitch */
+  --motion: 0;
+  /* the chart: colour by ground (SYSTEM §5). On cream a person's arc is chocolate, an agent's is navy,
+     the centre is apricot. The baton is the driver ring (SYSTEM §12), apricot-deep. */
+  --cst-person: #56352D; --cst-person-a: 0.84;
+  --cst-agent: #2A3244;  --cst-agent-a: 0.72;
+  --cst-bright: #56352D;                       /* the baton holder's point */
+  --cst-baton: #CFA782;                        /* the driver ring */
+  --cst-centre: #E2C4A6;                       /* the centre, while the ring is whole */
+  --cst-guide: rgba(42, 50, 68, 0.30);         /* an away member's share of the ring */
+  --cst-thread: rgba(86, 53, 45, 0.50);        /* the crew stitch */
+  --cst-halo: rgba(226, 196, 166, 0.75);       /* the baton holder's breath, the join ripple */
+  --cst-w: 1.6; --cst-w-baton: 2.5;            /* hairline widths, px */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --canvas: #1A202C; --wash: rgba(226, 196, 166, 0.10);
   --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
   --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240, 234, 224, 0.14); --edge: inset 0 1px 0 rgba(255,255,255,0.055);
-  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
-  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08); --crease: rgba(226, 196, 166, 0.55);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #A3A9B8;
+  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08);
   --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
   --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
   --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
-  --gate-stripe: linear-gradient(180deg, #E2C4A6, #7A4B3E);
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,0.18); --ok-ink: #9BC88F;
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226,132,122,0.18); --danger-ink: #E2847A; --info: #B4BAC6;
   --shadow-soft: 0 10px 30px rgba(0,0,0,0.35); --shadow-pop: 0 18px 50px rgba(0,0,0,0.5);
   --focus-ring: var(--ink);
-  /* the dark canvas is a navy ground: the agent's arc and the centre keep apricot; the person's arc
-     is the hand as text (--accent-ink, SYSTEM §2.4), the dusty brown that is clearly not apricot,
-     because #56352D and #7A4B3E vanish as a hairline at night. The baton holder is cream: brighter. */
-  --cst-person: #CAA49B; --cst-person-a: 0.82;
-  --cst-agent: #E2C4A6;  --cst-agent-a: 0.58;
+  /* the dark canvas is a navy ground: the agent's arc and the centre keep apricot; the person's arc is
+     the hand as text (--accent-ink), the dusty brown that is clearly not apricot; the baton holder is
+     cream, brighter than anything. Hairlines go up a quarter pixel so the chart does not fade at night. */
+  --cst-person: #CAA49B; --cst-person-a: 0.92;
+  --cst-agent: #E2C4A6;  --cst-agent-a: 0.68;
   --cst-bright: #F0EAE0; --cst-baton: #E2C4A6; --cst-centre: #E2C4A6;
-  --cst-guide: rgba(240, 234, 224, 0.20); --cst-thread: rgba(226, 196, 166, 0.45);
+  --cst-guide: rgba(240, 234, 224, 0.30); --cst-thread: rgba(226, 196, 166, 0.55);
+  --cst-halo: rgba(226, 196, 166, 0.7); --cst-w: 1.75; --cst-w-baton: 2.6;
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
   --canvas: #1A202C; --wash: rgba(226, 196, 166, 0.10);
   --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
   --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240, 234, 224, 0.14); --edge: inset 0 1px 0 rgba(255,255,255,0.055);
-  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
-  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08); --crease: rgba(226, 196, 166, 0.55);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #A3A9B8;
+  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08);
   --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
   --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
   --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
-  --gate-stripe: linear-gradient(180deg, #E2C4A6, #7A4B3E);
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,0.18); --ok-ink: #9BC88F;
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,0.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226,132,122,0.18); --danger-ink: #E2847A; --info: #B4BAC6;
   --shadow-soft: 0 10px 30px rgba(0,0,0,0.35); --shadow-pop: 0 18px 50px rgba(0,0,0,0.5);
   --focus-ring: var(--ink);
-  --cst-person: #CAA49B; --cst-person-a: 0.82;
-  --cst-agent: #E2C4A6;  --cst-agent-a: 0.58;
+  --cst-person: #CAA49B; --cst-person-a: 0.92;
+  --cst-agent: #E2C4A6;  --cst-agent-a: 0.68;
   --cst-bright: #F0EAE0; --cst-baton: #E2C4A6; --cst-centre: #E2C4A6;
-  --cst-guide: rgba(240, 234, 224, 0.20); --cst-thread: rgba(226, 196, 166, 0.45);
+  --cst-guide: rgba(240, 234, 224, 0.30); --cst-thread: rgba(226, 196, 166, 0.55);
+  --cst-halo: rgba(226, 196, 166, 0.7); --cst-w: 1.75; --cst-w-baton: 2.6;
   color-scheme: dark;
 }
 
-/* ---- base ---------------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------------------
+   Base
+   ------------------------------------------------------------------------------------------------ */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15px/24px var(--font); font-optical-sizing: auto; -webkit-font-smoothing: antialiased; }
-h1, h2, h3 { margin: 0; letter-spacing: 0; text-wrap: balance; }
-h1 { font: 400 40px/44px var(--serif); font-variation-settings: "SOFT" 50, "WONK" 0; }
-h2 { font: 400 26px/32px var(--serif); }
-h3 { font: 600 15px/20px var(--font); }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 15px/1.6 var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: 42px; line-height: 1.1; font-variant-numeric: lining-nums; }
+h2 { font-family: var(--serif); font-weight: 400; font-size: 26px; line-height: 1.2; }
+h3 { font-size: 15px; font-weight: 600; }
 .serif { font-family: var(--serif); font-weight: 400; } .serif.i { font-style: italic; }
-.muted { color: var(--ink-2); } .faint { color: var(--ink-3); } .small { font-size: 13px; line-height: 20px; }
+.muted { color: var(--ink-2); } .faint { color: var(--ink-3); } .small { font-size: 13px; }
 .mono { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
 a { color: var(--accent-ink); text-decoration: none; }
-:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; box-shadow: 0 0 0 5px var(--focus-halo); }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: 0 0 0 6px var(--focus-halo); border-radius: 6px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* the mark (96 grid): person's arc right 12→6 chocolate, agent's arc left apricot, centre apricot */
-.mark { display: inline-block; vertical-align: middle; }
-.mark .disc { fill: var(--mark-disc); } .mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; }
-.mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); }
-.rail .mark { --mark-arc-a: color-mix(in srgb, #56352D 38%, #E2C4A6); }   /* the one tinted arc: 24 px on navy (SYSTEM §5) */
-
-/* ---- shell: navy rail + cream canvas ------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------------------
+   Shell: navy rail, cream canvas (SYSTEM §6)
+   ------------------------------------------------------------------------------------------------ */
 .shell { display: flex; height: 100%; }
-.rail { width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 4px; border-right: 1px solid color-mix(in srgb, var(--crease) 40%, transparent); }
-.rail .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font: 400 24px/28px var(--serif); }
-.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
-.rail .section { padding: 16px 10px 6px; font: 600 11.5px/16px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
-.rail .item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); color: var(--rail-fg); font: 500 14px/20px var(--font); }
-.rail .item.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--apricot) 38%, transparent); }
-.rail .item .count { margin-left: auto; }
-.rail .item svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
-.rail .kbd { margin-left: auto; font: 500 11px/18px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 0 5px; }
-.count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--count-bg); color: var(--count-fg); font: 600 11.5px/1 var(--mono); }
-.crew { padding: 10px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
-.crew .serif { font-size: 15px; color: var(--apricot); }
-.crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); flex: none; }
-.agent { display: flex; flex-direction: column; gap: 4px; padding: 9px 12px; border-radius: var(--radius); color: var(--rail-fg); }
-.agent .head { display: flex; align-items: center; gap: 9px; font: 400 15.5px/20px var(--serif); min-width: 0; }
-.agent .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
-.agent .head .dot.running { background: #9BC88F; --dot-halo: rgba(155,200,143,.28); }
-.agent .head .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); }
-.agent .head .dot.paused { background: #8E95A5; }
-.agent .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.agent .doing { font: 400 13px/18px var(--font); color: var(--rail-muted); }
-.agent .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); font-size: 14px; }
-.agent .foot { display: flex; align-items: center; gap: 8px; font: 500 12px/16px var(--font); color: var(--rail-muted); }
-.agent .foot .tokens { margin-left: auto; font-family: var(--mono); font-weight: 400; }
-.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/1 var(--font); letter-spacing: 0.02em; background: var(--surface-3); color: var(--ink-2); }
+.rail { width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 4px; overflow: auto; }
+.rail .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font-family: var(--serif); font-size: 24px; }
+.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
+.rail .section { padding: 18px 10px 6px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.rail .item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); color: var(--rail-fg); font-size: 14px; }
+.rail .item:hover { background: var(--rail-2); }
+.rail .item.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px rgba(226,196,166,0.35); }
+.rail .item .ic { width: 18px; height: 18px; flex: none; opacity: .85; }
+.rail .item .n { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--count-bg); color: var(--count-fg); font: 600 11.5px var(--mono); display: inline-grid; place-items: center; }
+.rail .item kbd { margin-left: auto; font: 500 11px var(--mono); color: var(--rail-muted); border: 1px solid var(--rail-line); border-radius: 5px; padding: 1px 5px; }
+.rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 14px; }
+.rail .me .s { font-size: 12px; color: var(--rail-muted); }
+.agentcard { display: flex; flex-direction: column; gap: 4px; padding: 9px 12px; border-radius: var(--radius); color: var(--rail-fg); }
+.agentcard:hover { background: var(--rail-2); }
+.agentcard .head { display: flex; align-items: center; gap: 9px; font-size: 14.5px; font-family: var(--serif); min-width: 0; }
+.agentcard .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
+.agentcard .head .dot.running { background: #9BC88F; box-shadow: 0 0 0 3px rgba(155,200,143,0.22); }
+.agentcard .head .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,0.22); }
+.agentcard .head .dot.paused { background: var(--rail-muted); }
+.agentcard .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agentcard .doing { font-size: 13px; color: var(--rail-muted); line-height: 1.4; }
+.agentcard .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
+.agentcard .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); }
+.agentcard .foot .mono { margin-left: auto; font-size: 12px; }
+.crewline { padding: 12px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.crewline .serif { font-size: 15px; color: var(--apricot); }
+.crewline::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: var(--radius-full); font-size: 11px; font-weight: 600; letter-spacing: 0.02em; background: var(--surface-3); color: var(--ink-2); }
 .pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
-.pill.gate { background: var(--rail); color: var(--apricot); }
-.pill.irreversible { background: var(--danger-soft); color: var(--danger-ink); font-family: var(--mono); font-weight: 500; }
-.rail .pill.solo { background: transparent; border: 1px solid var(--rail-line); color: var(--rail-muted); }
-.rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 14px; }
-.rail .me .n { font: 400 16px/20px var(--serif); } .rail .me .r { font: 400 12px/16px var(--font); color: var(--rail-muted); }
-.rail .me .r i { font-family: var(--serif); font-style: italic; color: var(--apricot); font-size: 13px; }
-.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 600 11px/1 var(--font); border: 2px solid var(--avatar-edge, var(--canvas)); flex: none; position: relative; }
-.avatar.t1 { background: #E9D7C3; } .avatar.t2 { background: #D9DEE8; } .avatar.t3 { background: #E4E0D4; } .avatar.t4 { background: #EAD9D3; }
+.pill.solo { background: transparent; border: 1px solid var(--line); }
+.rail .pill.solo { border-color: var(--rail-line); color: var(--rail-muted); }
+.pill.navy { background: var(--rail); color: var(--apricot); }
+.pill.warn { background: var(--warn-soft); color: var(--warn-ink); }
+
+/* avatars (SYSTEM §12): the glyph colour follows the fill, never the theme's foreground (the judge's fix) */
+.avatar { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; font: 600 10.5px var(--font); letter-spacing: .02em; border: 2px solid var(--avatar-edge, var(--canvas)); flex: none; position: relative; }
+.avatar.t1 { background: #E9DCC9; color: #2A3244; } .avatar.t2 { background: #D9DEE8; color: #2A3244; }
+.avatar.t3 { background: #D7E2D2; color: #2A3244; } .avatar.t4 { background: #EAD3CC; color: #2A3244; }
+.avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--rail); color: var(--apricot); }
+.avatar.agent::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot); }
 .avatar.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
-.avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); color: #fff; padding: 0; gap: 0; }
-.avatar.agent::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot); }
-.avatar.sm { width: 22px; height: 22px; font-size: 9px; } .avatar.agent.sm { border-radius: 7px 7px 7px 2px; } .avatar.agent.sm::after { width: 5px; height: 5px; }
+.avatar.off { opacity: .5; filter: saturate(.4); }
+.avatar.sm { width: 22px; height: 22px; font-size: 9px; }
 .rail .avatar { --avatar-edge: var(--rail); }
 .stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -8px; }
 
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; isolation: isolate; }
-.main::before { content: ""; position: absolute; left: 8%; top: -220px; width: 760px; height: 520px; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; z-index: -1; }
-.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 24px; min-height: 56px; border-bottom: 1px solid var(--line); }
-.topbar .title { font: 400 20px/24px var(--serif); display: inline-flex; align-items: center; gap: 12px; white-space: nowrap; }
-.topbar .title .where { font: 400 13px/20px var(--font); color: var(--ink-3); }
-.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--edge); transition: background var(--t-fast) var(--ease-move), box-shadow var(--t-fast) var(--ease-move), transform var(--t) var(--ease-move); }
-.btn:hover { box-shadow: var(--shadow-soft), var(--edge); } .btn:active { transform: translateY(1px) scale(.99); }
-.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; } .btn.primary:hover { background: var(--accent-hover); }
-.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
-.btn.sm { min-height: 30px; padding: 0 11px; font-size: 13px; }
-.btn.on { background: var(--apricot-soft); border-color: transparent; }
-.btn .kbd { font: 500 11px/18px var(--mono); color: var(--ink-3); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; overflow: clip; }
+.main::before { content: ""; position: absolute; left: 8%; top: -320px; width: 900px; height: 520px; max-width: 100%; border-radius: 50%; background: var(--wash); filter: blur(100px); pointer-events: none; z-index: 0; }
+.main > * { position: relative; z-index: 1; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 24px; min-height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: blur(12px); }
+.topbar .title { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: baseline; gap: 12px; min-width: 0; white-space: nowrap; }
+.topbar .crumbs { font: 14px var(--font); color: var(--ink-2); }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .scroll { flex: 1; overflow: auto; }
-.column { width: min(var(--col), 100%); margin: 0 auto; padding: 20px 24px 96px; display: flex; flex-direction: column; gap: 34px; }
+.column { width: min(1080px, 100%); margin: 0 auto; padding: 26px 40px 120px; display: flex; flex-direction: column; gap: 34px; }
 
-/* the inspector is the exploration's own control; the app does not ship it */
-.insp { display: inline-flex; gap: 6px; align-items: center; }
-.insp .lbl { font: 500 11px/16px var(--mono); color: var(--ink-3); letter-spacing: .04em; margin-right: 4px; }
-
-/* ---- the lede: serif title, the constellation, one sentence --------------------------------- */
-.lede { display: flex; flex-direction: column; gap: 10px; }
-.lede-head { display: flex; align-items: flex-end; gap: 16px; }
-.lede-head .seg { margin-left: auto; margin-bottom: 6px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px var(--font); cursor: pointer; box-shadow: var(--edge); transition: box-shadow var(--t) ease, transform var(--t-fast) var(--ease-move); }
+.btn:hover { box-shadow: var(--shadow-soft); } .btn:active { transform: translateY(1px) scale(.99); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn.sm { min-height: 30px; padding: 0 12px; font-size: 13px; }
 .seg { display: inline-flex; align-items: center; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; border: 0; margin: 0; gap: 2px; }
-.seg .lab { font: 400 12px/16px var(--font); color: var(--ink-3); padding: 0 8px 0 10px; }
-.seg button { border: 0; background: transparent; font: 500 12.5px/18px var(--font); color: var(--ink-2); padding: 4px 12px; border-radius: var(--radius-full); cursor: pointer; }
-.seg .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft), var(--edge); }
-.lede-line { margin: 0; font-size: 15.5px; max-width: 64ch; }
-.lede-line b { font-weight: 500; } .lede-line b.hot { color: var(--accent-ink); }
-.lede-line .mono { font-size: 14px; }
+.seg button { border: 0; background: transparent; font: 500 12.5px var(--font); color: var(--ink-2); padding: 4px 12px; border-radius: var(--radius-full); cursor: pointer; }
+.seg .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.seg .lead { padding: 0 6px 0 10px; font-size: 12px; color: var(--ink-3); }
 
-/* ---- the constellation --------------------------------------------------------------------- */
-.constellation { margin: 4px 0 0; position: relative; }
-.constellation .band { display: block; width: 100%; }
-.cst { display: block; width: 100%; overflow: visible; font-family: var(--serif); }
-.cst text { font-family: var(--serif); font-size: 14.5px; fill: var(--ink); user-select: none; paint-order: stroke; stroke: var(--canvas); stroke-width: 4px; stroke-linejoin: round; }
-.cst text.rname { font-style: italic; font-size: 14px; fill: var(--ink-2); }
-.cst text.crewname { font-style: italic; font-size: 13px; fill: var(--accent-ink); }
-.cst .crewring { fill: none; stroke: var(--apricot-deep); stroke-width: 1.6; }
-.cst .arc { fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; transition: opacity var(--t) var(--ease-move), stroke-width var(--t) var(--ease-move); }
-.cst .arc.person { stroke: var(--cst-person); opacity: var(--cst-person-a); }
-.cst .arc.agent { stroke: var(--cst-agent); opacity: var(--cst-agent-a); }
-.cst .arc.baton { stroke-width: 2.4; opacity: 1; }
-.cst .arc.quiet { opacity: .45; stroke-dasharray: 1; }
-.cst .guide { fill: none; stroke: var(--cst-guide); stroke-width: 1.2; stroke-dasharray: 1.2 4.2; stroke-linecap: round; }
-.cst .thread { fill: none; stroke: var(--cst-thread); stroke-width: 1.2; stroke-dasharray: 1.2 4.4; stroke-linecap: round; }
-.cst .centre { fill: var(--cst-centre); transform-box: fill-box; transform-origin: center; }
-.cst .m { cursor: pointer; }
-.cst .m:focus, .cst .m:focus-visible { outline: 0; box-shadow: none; }   /* the ring is drawn as .fr, in the focus colour */
-.cst .m .pt { transition: opacity var(--t) var(--ease-move); }
-.cst .m.person .pt { fill: var(--cst-person); }
-.cst .m.person.baton .pt { fill: var(--cst-bright); }
-.cst .m.person.away .pt { fill: var(--canvas); stroke: var(--cst-person); stroke-width: 1.4; opacity: .55; }
-.cst .m.person.away text { opacity: .55; }
-.cst .m.agent .pt { fill: var(--cst-agent); }
-.cst .m.agent.paused .pt { fill: var(--canvas); stroke: var(--cst-agent); stroke-width: 1.4; opacity: .7; }
-.cst .m .ring { fill: none; stroke: var(--cst-baton); stroke-width: 2; }             /* the baton: the driver ring */
-.cst .m .halo { fill: none; stroke-width: 1.5; opacity: 0; transform-box: fill-box; transform-origin: center; }   /* rest: no halo (Calm: a solid dot) */
-.cst .m .halo.baton { stroke: var(--cst-baton); }
-.cst .m .halo.running { stroke: var(--ok); }
-.cst .m .pr { stroke: var(--canvas); stroke-width: 1.5; }                               /* the status dot, always present */
-.cst .m .pr.running { fill: var(--ok); } .cst .m .pr.awaiting { fill: var(--warn); } .cst .m .pr.paused { fill: var(--info); } .cst .m .pr.blocked { fill: var(--danger); }
-.cst .m .fr { fill: none; stroke: var(--focus-ring); stroke-width: 2; opacity: 0; }
-.cst .m:focus-visible .fr { opacity: 1; }
-/* hover and focus: the member's own arcs and rings stay, the rest of the sky dims */
-.cst.dim .arc:not(.hot), .cst.dim .guide:not(.hot), .cst.dim .thread:not(.hot), .cst.dim .centre:not(.hot), .cst.dim .rname:not(.hot), .cst.dim .crewname:not(.hot), .cst.dim .crewring:not(.hot) { opacity: .22; }
-.cst.dim .m:not(.hot) { opacity: .38; }
-.cst .m, .cst .rname, .cst .centre, .cst .guide, .cst .thread, .cst .crewname, .cst .crewring { transition: opacity var(--t) var(--ease-move); }
-.reading { margin: 2px 0 0; font: 400 15px/24px var(--font); color: var(--ink-2); min-height: 24px; text-wrap: pretty; max-width: 72ch; }
-.reading b { font-family: var(--serif); font-weight: 400; font-size: 16.5px; color: var(--ink); }
-.reading i { font-family: var(--serif); font-size: 16.5px; color: var(--ink); }
-.reading .mono { font-size: 13px; }
-.reading .ok { color: var(--ok-ink); }
+/* ------------------------------------------------------------------------------------------------
+   The lede: serif title, the range control top right, the chart, one sentence (Team.tsx `.lede`)
+   ------------------------------------------------------------------------------------------------ */
+.lede { display: flex; flex-direction: column; gap: 10px; }
+.lede-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.lede-line { margin: 0; font-size: 15.5px; color: var(--ink-2); max-width: 70ch; }
+.lede-line b { font-weight: 600; color: var(--ink); } .lede-line b.hot { color: var(--accent-ink); }
+.lede-line .mono { font-size: 14px; color: var(--ink); }
 
-/* ---- the rest of the page: needs-you, tiles, crews, roster ---------------------------------- */
+/* the constellation */
+.constellation { margin: 4px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.constellation .band { width: 100%; min-height: 120px; }
+.sky { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--serif); }
+.sky text { fill: var(--ink); font-size: 15px; paint-order: stroke; stroke: var(--canvas); stroke-width: 4px; stroke-linejoin: round; font-variant-numeric: lining-nums; }
+.sky text.state { font-family: var(--font); font-size: 12px; fill: var(--ink-2); letter-spacing: .005em; }
+.sky text.state tspan.mono { font-family: var(--mono); font-size: 11.5px; }
+.sky text.crew { font-style: italic; font-size: 13px; fill: var(--accent-ink); letter-spacing: .04em; stroke-width: 3px; }
+.sky .arc { fill: none; stroke-linecap: round; stroke-width: var(--cst-w); stroke-dasharray: 1; stroke-dashoffset: 0; }
+.sky .arc.person { stroke: var(--cst-person); stroke-opacity: var(--cst-person-a); }
+.sky .arc.agent { stroke: var(--cst-agent); stroke-opacity: var(--cst-agent-a); }
+.sky .arc.paused { stroke-opacity: .42; }
+.sky .arc.baton { stroke-width: var(--cst-w-baton); stroke-opacity: 1; }
+.sky .guide { fill: none; stroke: var(--cst-guide); stroke-width: 1.25; stroke-linecap: round; stroke-dasharray: 0.5 4; }
+.sky .centre { fill: var(--cst-centre); transform-box: fill-box; transform-origin: center; }
+.sky .ghost { fill: none; stroke: var(--cst-guide); stroke-width: 1.25; stroke-dasharray: 1.5 2.5; }
+.sky .thread { fill: none; stroke: var(--cst-thread); stroke-width: 1.25; stroke-linecap: round; stroke-dasharray: 0.5 4.5; }
+.sky a { outline: 0; cursor: pointer; }
+.sky .hit { fill: transparent; }
+.sky .pt .dot { fill: var(--cst-person); }
+.sky .pt.away .dot { fill: var(--canvas); stroke: var(--cst-person); stroke-width: 1.5; stroke-opacity: .7; }
+.sky .pt.baton .dot { fill: var(--cst-bright); }
+.sky .ring-baton { fill: none; stroke: var(--cst-baton); stroke-width: 2; transform-box: fill-box; transform-origin: center; }
+.sky .halo { fill: var(--cst-halo); opacity: 0; transform-box: fill-box; transform-origin: center; }
+.sky .ripple { fill: none; stroke: var(--cst-halo); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.sky .focus { fill: none; stroke: var(--focus-ring); stroke-width: 2; opacity: 0; }
+.sky a:focus-visible .focus { opacity: 1; }
+.sky .pt.agent .sq { fill: var(--cst-agent); }
+.sky .pt.agent.paused .sq { fill-opacity: .55; }
+.sky .pr { stroke: var(--canvas); stroke-width: 2; }
+.sky .pr.running { fill: var(--ok); } .sky .pr.awaiting { fill: var(--warn); } .sky .pr.paused { fill: var(--info); }
+.sky .ring, .sky .pt, .sky .threadg { transition: opacity var(--t) var(--ease-move); }
+.sky.dim .ring, .sky.dim .pt, .sky.dim .threadg { opacity: .2; }
+.sky.dim .warm { opacity: .62; } .sky.dim .hot { opacity: 1; }
+.sky .pt.joined .dot, .sky .pt.joined .sq { transform-box: fill-box; transform-origin: center; }
+.reading { margin: 0; font-size: 15.5px; color: var(--ink-2); line-height: 1.55; max-width: 76ch; min-height: 1.55em; }
+.reading .who, .reading i { font-family: var(--serif); font-size: 1.08em; color: var(--ink); }
+.reading i { font-style: italic; } .reading .mono { font-size: 13px; color: var(--ink); }
+.reading.hover { color: var(--ink); }
+
+/* ------------------------------------------------------------------------------------------------
+   The page beneath the header (SCREENS §10): needs-you cards, the stat row, the roster
+   ------------------------------------------------------------------------------------------------ */
 .group { display: flex; flex-direction: column; gap: 14px; }
-.group-head { display: flex; align-items: baseline; gap: 12px; } .group-head .grow { flex: 1; }
-.needs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.notice { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px 16px 20px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); position: relative; overflow: hidden; min-width: 0; }
-.notice::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
-.notice.gate::before { background: var(--gate-stripe); } .notice.contention::before { background: var(--warn); }
-.notice .kind { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
-.notice .line { font: 400 17px/24px var(--serif); } .notice .line i { font-style: italic; }
-.notice .command { font: 400 12.5px/18px var(--mono); background: var(--surface-2); border-radius: 8px; padding: 4px 8px; display: inline-flex; gap: 8px; align-items: center; align-self: flex-start; }
-.notice .actions { display: flex; gap: 8px; align-items: center; margin-top: 2px; }
-.notice .sub { font: 400 13px/20px var(--font); color: var(--ink-2); }
-.quorum { display: inline-flex; gap: 3px; align-items: center; vertical-align: middle; margin-right: 6px; }
-.quorum i { width: 14px; height: 5px; border-radius: 3px; background: var(--apricot-deep); } .quorum i.empty { background: transparent; border: 1px solid var(--apricot-deep); }
-.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--edge); display: flex; flex-direction: column; gap: 2px; }
-.tile .l { font: 500 11px/16px var(--mono); color: var(--ink-3); letter-spacing: .04em; }
-.tile .v { font: 500 28px/32px var(--mono); font-variant-numeric: tabular-nums; } .tile .v small { font: 400 13px/16px var(--font); color: var(--ink-2); margin-left: 4px; }
-.tile .d { font: 400 13px/20px var(--font); color: var(--ink-2); }
-.list { display: flex; flex-direction: column; }
-.rowitem { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 12px 6px; border-bottom: 1px solid var(--line); color: inherit; }
-.rowitem .t { font: 400 16px/20px var(--serif); } .rowitem .s { font: 400 13px/20px var(--font); color: var(--ink-2); display: block; }
-.rowitem .crewline { display: inline-flex; align-items: center; gap: 8px; } .rowitem .crewline::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot-deep); }
-.roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 16px; }
-.member { display: flex; align-items: center; gap: 10px; padding: 6px 0; min-width: 0; color: inherit; }
-.member .who { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.member .who .n { font: 400 15px/20px var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.member .who .r { font: 400 12px/16px var(--font); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.status { display: inline-flex; align-items: center; gap: 6px; font: 400 12px/16px var(--font); color: var(--ink-2); flex: none; }
-.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
-.status.running::before { background: var(--ok); --dot-halo: var(--ok-soft); } .status.awaiting::before { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); } .status.paused::before { background: var(--info); }
-.status.away::before { background: transparent; border: 1.5px solid var(--ink-3); width: 6px; height: 6px; }
+.group-head { display: flex; align-items: baseline; gap: 12px; }
+.group-head .grow { flex: 1; }
+.group-head .count-word { font-family: var(--mono); font-size: 14px; color: var(--ink-3); margin-left: 8px; }
+.group-head .right { font-size: 13px; color: var(--ink-2); }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-soft), var(--edge); display: flex; flex-direction: column; gap: 10px; position: relative; overflow: hidden; }
+.card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
+.card.gate::before { background: linear-gradient(180deg, var(--apricot), var(--accent)); }
+.card.contention::before { background: var(--warn); }
+.card .kind { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.card .what { font-family: var(--serif); font-size: 19px; line-height: 1.25; }
+.card .what i { font-style: italic; }
+.card .meta { font-size: 13.5px; color: var(--ink-2); }
+.card .code { font: 13px var(--mono); background: var(--surface-2); border-radius: 10px; padding: 8px 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.card .actions { display: flex; gap: 10px; align-items: center; margin-top: auto; padding-top: 6px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px 12px; box-shadow: var(--edge); display: flex; flex-direction: column; gap: 2px; }
+.tile .k { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.tile .v { font-family: var(--serif); font-size: 30px; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+.tile .d { font-size: 12.5px; color: var(--ink-2); }
+.roster { display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: 36px 180px 1fr auto auto; gap: 14px; align-items: center; padding: 11px 10px; border-top: 1px solid var(--line); scroll-margin-top: 80px; border-radius: 10px; transition: background var(--t) ease, box-shadow var(--t) ease; }
+.row:first-child { border-top: 0; }
+.row .name { font-family: var(--serif); font-size: 16.5px; }
+.row .name .s { font-family: var(--font); font-size: 12.5px; color: var(--ink-3); margin-left: 8px; }
+.row .doing { font-size: 14px; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .doing i { font-family: var(--serif); font-style: italic; color: var(--ink); }
+.row .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.row .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+.row .status.running::before { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.row .status.awaiting::before { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+.row .status.paused::before { background: var(--info); }
+.row .status.away::before { background: transparent; border: 1.5px solid var(--ink-3); }
+.row .tokens { font-family: var(--mono); font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 5ch; text-align: right; }
+.row.here { background: var(--apricot-soft); box-shadow: inset 0 0 0 1px var(--apricot-deep); border-top-color: transparent; }
+.row.here + .row { border-top-color: transparent; }
 
-/* ---- motion: one guard (MOTION §3). Rest states are written above, outside it. ------------- */
-@keyframes cst-breathe { 0% { transform: scale(1); opacity: .55 } 70% { transform: scale(2.1); opacity: 0 } 100% { transform: scale(2.1); opacity: 0 } }
+/* exploration inspector: shown only with #inspector in the URL; never part of the design */
+.inspector { display: none; align-items: center; gap: 8px; }
+:root[data-inspector] .inspector { display: inline-flex; }
+.inspector .tag { font: 600 10.5px var(--mono); letter-spacing: .08em; color: var(--ink-3); margin-right: 4px; }
+
+/* the phone */
+.phonebar { display: none; }
+@media (max-width: 640px) {
+  .rail, .topbar { display: none; }
+  .phonebar { display: flex; flex-direction: column; gap: 2px; background: var(--rail); color: var(--rail-fg); padding: 50px 18px 14px; }
+  .phonebar .t { font-family: var(--serif); font-size: 22px; display: flex; align-items: center; gap: 10px; }
+  .phonebar .s { font-size: 13px; color: var(--rail-muted); }
+  .phonebar .s b { color: var(--apricot); font-weight: 500; }
+  .column { padding: 18px 16px 90px; gap: 26px; }
+  h1 { font-size: 32px; }
+  .lede-head .seg { display: none; }
+  .cards, .tiles { grid-template-columns: 1fr 1fr; }
+  .cards { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 36px 1fr auto; }
+  .row .doing { display: none; }
+  .row .status { font-size: 0; gap: 0; }
+  .reading { font-size: 15px; }
+}
+
+/* ------------------------------------------------------------------------------------------------
+   Motion, under the one guard (MOTION §3). Every rest state above is the end state.
+   ------------------------------------------------------------------------------------------------ */
+@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+@keyframes cst-breathe { 0% { transform: scale(1); opacity: .55 } 70% { transform: scale(2); opacity: 0 } 100% { transform: scale(2); opacity: 0 } }
 @keyframes cst-draw { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
+@keyframes cst-ripple { from { transform: scale(1); opacity: .8 } to { transform: scale(3.4); opacity: 0 } }
 @keyframes dot-once { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
-@keyframes pop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: none; opacity: 1 } }
-@keyframes cst-ripple { 0% { transform: scale(1); opacity: .9 } 100% { transform: scale(3.2); opacity: 0 } }
-@keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--dot-halo) } 70% { box-shadow: 0 0 0 5px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
-@keyframes word-in { 0% { opacity: 0; transform: translateY(3px) } 100% { opacity: 1; transform: none } }
-@media (prefers-reduced-motion: no-preference) { :root:not([data-motion="calm"]) {
-  --motion: 1;
-  & .cst .m .halo.baton, & .cst .m .halo.running { animation: cst-breathe 1.8s var(--ease-move) infinite; }   /* the two things that live */
-  & .cst .m .halo.running { animation-delay: -.6s; }
-  & .cst .arc.draw { animation: cst-draw .45s var(--ease-move) both; }                                            /* a join draws the arcs */
-  & .cst .centre.settle { animation: dot-once 1s var(--ease-arrive) both; }                                       /* the centre lands after the ring is one */
-  & .cst .m.joined .pt { animation: pop var(--t-slow) var(--ease-arrive) both; }
-  & .cst .m.joined .ripple { animation: cst-ripple .9s var(--ease-leave) .3s both; }
-  & .cst .m .ring.passed { animation: pop var(--t-slow) var(--ease-arrive) both; transform-box: fill-box; transform-origin: center; }
-  & .reading.changed { animation: word-in var(--t-slow) var(--ease-arrive) both; }
-  & .agent .head .dot.running, & .status.running::before { animation: dot-live 1.8s var(--ease-move) infinite; }
-} }
-.cst .m .ripple { fill: none; stroke: var(--apricot); stroke-width: 1.5; opacity: 0; transform-box: fill-box; transform-origin: center; }   /* rest: nothing (the stack carries the news) */
+@keyframes pop { 0% { transform: scale(.6); opacity: 0 } 70% { transform: scale(1.12) } 100% { transform: scale(1); opacity: 1 } }
+@keyframes card-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) { --motion: 1; }
+  :root:not([data-motion="calm"]) .agentcard .dot.running,
+  :root:not([data-motion="calm"]) .sky .pr.running,
+  :root:not([data-motion="calm"]) .row .status.running::before { animation: dot-live 1.8s ease-in-out infinite; }
+  :root:not([data-motion="calm"]) .sky .pt.baton .halo { animation: cst-breathe 1.8s ease-in-out infinite; }
+  :root:not([data-motion="calm"]) .sky .arc.draw { animation: cst-draw .45s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .sky .pt.joined .dot,
+  :root:not([data-motion="calm"]) .sky .pt.joined .sq { animation: pop .32s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .sky .pt.joined .ripple { animation: cst-ripple .9s var(--ease-leave) .9s both; }
+  :root:not([data-motion="calm"]) .sky .ring.joined .centre { animation: dot-once 1s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .sky .pt.passed .ring-baton { animation: pop .36s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .card { animation: card-in .32s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .card:nth-child(2) { animation-delay: 40ms; }
+  :root:not([data-motion="calm"]) .card:nth-child(3) { animation-delay: 80ms; }
+}
 :root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
-
-/* ---- the phone: the rail becomes the navy top block, the sky folds into two rows ------------- */
-@media (max-width: 720px) {
-  .rail { display: none; }
-  .main::before { left: -20%; width: 520px; height: 360px; top: -120px; }
-  .topbar { background: var(--rail); color: var(--rail-fg); border-bottom: 0; padding: 48px 12px 0; min-height: 92px; align-items: center; gap: 8px; box-shadow: var(--edge); }
-  .topbar .title { font-size: 21px; color: var(--rail-fg); flex-direction: column; align-items: flex-start; gap: 0; }
-  .topbar .title .where { color: var(--rail-muted); font-size: 12px; }
-  .topbar .menu { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--rail-fg); }
-  .topbar .menu svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; }
-  .topbar .right .btn { display: none; } .topbar .right .btn.keep { display: inline-flex; background: var(--rail-active); color: var(--rail-fg); border-color: transparent; }
-  .insp .lbl, .insp .btn:not(.keep) { display: none; }
-  .column { padding: 18px 16px 96px; gap: 28px; }
-  h1 { font-size: 32px; line-height: 36px; } h2 { font-size: 22px; line-height: 28px; }
-  .lede-head { flex-wrap: wrap; } .lede-head .seg { margin-left: 0; width: 100%; justify-content: flex-start; }
-  .lede-line, .reading { font-size: 16px; }
-  .needs { grid-template-columns: 1fr; } .tiles { grid-template-columns: 1fr 1fr; }
-}
-@media (min-width: 721px) { .topbar .menu { display: none; } }
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="mark" viewBox="0 0 96 96">
-    <!-- colour reaches a <use> only through custom properties (SYSTEM §5): the symbol reads them itself -->
-    <circle class="disc" cx="48" cy="48" r="46" style="fill:var(--mark-disc)"/>
-    <path class="arc a" d="M48 20 A28 28 0 0 1 48 76" style="fill:none;stroke:var(--mark-arc-a);stroke-width:10;stroke-linecap:round"/>
-    <path class="arc b" d="M48 76 A28 28 0 0 1 48 20" style="fill:none;stroke:var(--mark-arc-b);stroke-width:10;stroke-linecap:round"/>
-    <circle class="dot" cx="48" cy="48" r="7" style="fill:var(--mark-dot)"/>
-  </symbol>
+  <defs>
+    <!-- the mark (SYSTEM §5): a <use> reads --mark-* only; the small cut for the rail at 24 px -->
+    <symbol id="mark-small" viewBox="0 0 96 96">
+      <circle cx="48" cy="48" r="48" fill="var(--mark-disc)"/>
+      <path class="arc a" d="M48 19 A29 29 0 0 1 48 77" fill="none" stroke="var(--mark-arc-a)" stroke-width="13" stroke-linecap="round"/>
+      <path class="arc b" d="M48 77 A29 29 0 0 1 48 19" fill="none" stroke="var(--mark-arc-b)" stroke-width="13" stroke-linecap="round"/>
+      <circle cx="48" cy="48" r="8.5" fill="var(--mark-dot)"/>
+    </symbol>
+  </defs>
 </svg>
+
 <div class="shell">
-  <aside class="rail" aria-label="Henosis">
-    <div class="brand"><svg class="mark" width="24" height="24" aria-hidden="true"><use href="#mark"/></svg>Henosis</div>
+  <nav class="rail" aria-label="Henosis">
+    <div class="brand"><svg width="24" height="24" aria-hidden="true"><use href="#mark-small"/></svg>Henosis</div>
     <button class="new" type="button"><span aria-hidden="true">+</span> New session</button>
-    <a class="item" href="#"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>Search <span class="kbd">⌘K</span></a>
-    <a class="item" href="#"><svg viewBox="0 0 16 16"><path d="M2 4h12v9H2zM2 4l6 5 6-5"/></svg>Inbox <span class="count">3</span></a>
-    <a class="item" href="#"><svg viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5"/></svg>Approvals <span class="count">2</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.5"/><path d="m12.5 12.5 3 3"/></svg>Search<kbd>⌘K</kbd></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="14" height="10" rx="2"/><path d="m2 6 7 4 7-4"/></svg>Inbox<span class="n">3</span></a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m3 9.5 4 4 8-9"/></svg>Approvals<span class="n">2</span></a>
     <div class="section">Agents</div>
-    <div class="crew"><span class="serif">Invoice rollout</span> · Cy and Dee</div>
-    <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Invoice PDF</span><span class="pill team">Team</span></div><div class="doing"><i>Rendering tax lines</i> · step 2 of 5</div><div class="foot"><span class="stack"><span class="avatar sm t3">CO</span></span>with Dee<span class="tokens">6.8k</span></div></a>
-    <a class="agent" href="#"><div class="head"><span class="dot paused"></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div><div class="doing"><i>Paused</i> · waits for Dee</div><div class="foot"><span class="stack"><span class="avatar sm t4">D</span></span><span class="tokens">3.1k</span></div></a>
-    <a class="agent" href="#"><div class="head"><span class="dot running"></span><span class="t">Billing page</span><span class="pill team">Team</span></div><div class="doing"><i>Writing proration.ts</i> · step 3 of 4</div><div class="foot"><span class="stack"><span class="avatar sm t1 driver">AM</span><span class="avatar sm t2">BL</span></span>with Bo<span class="tokens">12.4k</span></div></a>
-    <a class="agent" href="#"><div class="head"><span class="dot awaiting"></span><span class="t">Checkout</span><span class="pill team">Team</span></div><div class="doing"><i>Asks to run</i> stripe prorations apply</div><div class="foot"><span class="stack"><span class="avatar sm t2 driver">BL</span><span class="avatar sm t1">AM</span></span>with Ana<span class="tokens">8.1k</span></div></a>
+    <div class="crewline"><span class="serif">Invoice rollout</span>· Cy and Dee</div>
+    <a class="agentcard" href="#roster-invoice">
+      <div class="head"><i class="dot running"></i><span class="t">Invoice PDF</span><span class="pill team">Team</span></div>
+      <div class="doing"><i>Rendering tax lines</i> · step 2 of 5</div>
+      <div class="foot"><span class="stack"><span class="avatar sm t3">CY</span><span class="avatar sm t4 off">DE</span></span>with Dee<span class="mono">6.8k</span></div>
+    </a>
+    <a class="agentcard" href="#roster-tax">
+      <div class="head"><i class="dot paused"></i><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing"><i>Paused</i> · waits for Dee</div>
+      <div class="foot"><span class="stack"><span class="avatar sm t4 off">DE</span></span>Dee is away<span class="mono">3.1k</span></div>
+    </a>
+    <a class="agentcard" href="#roster-billing">
+      <div class="head"><i class="dot running"></i><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing"><i>Writing proration.ts</i> · step 3 of 4</div>
+      <div class="foot"><span class="stack"><span class="avatar sm t1 driver">AN</span><span class="avatar sm t2">BO</span></span>with Bo<span class="mono">12.4k</span></div>
+    </a>
+    <a class="agentcard" href="#roster-checkout">
+      <div class="head"><i class="dot awaiting"></i><span class="t">Checkout</span><span class="pill team">Team</span></div>
+      <div class="doing"><i>Asks to run</i> stripe prorations apply</div>
+      <div class="foot"><span class="stack"><span class="avatar sm t2 driver">BO</span><span class="avatar sm t1">AN</span></span>with Ana<span class="mono">8.1k</span></div>
+    </a>
     <div class="section">Payments</div>
-    <a class="item active" href="#"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="1.5"/></svg>Overview</a>
-    <a class="item" href="#"><svg viewBox="0 0 16 16"><path d="M2 13V7M6 13V3M10 13V9M14 13V5"/></svg>Usage</a>
-    <a class="item" href="#"><svg viewBox="0 0 16 16"><circle cx="5.5" cy="6" r="2.5"/><circle cx="11" cy="7" r="2"/><path d="M1.5 13c0-2.5 2-4 4-4s4 1.5 4 4M9.5 13c0-1.8 1-3 2.5-3s2.5 1.2 2.5 3"/></svg>Groups</a>
-    <a class="item" href="#"><svg viewBox="0 0 16 16"><path d="M3 3h10v10H3zM6 6h4M6 9h4"/></svg>Memory <span class="count">1</span></a>
-    <div class="section">Chats</div>
-    <a class="item" href="#"><svg viewBox="0 0 16 16"><path d="M2 3h12v8H6l-3 3V11H2z"/></svg>#billing <span class="count">2</span></a>
-    <div class="me"><span class="avatar t1 driver">AM</span><span><div class="n">Ana Moreau</div><div class="r">owner · driving <i>Billing page</i></div></span></div>
-  </aside>
+    <a class="item active" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9" r="6.5"/><circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none"/></svg>Overview</a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 14V8M8 14V4M13 14v-6"/></svg>Usage</a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6.5" cy="7" r="2.5"/><circle cx="12" cy="7" r="2"/><path d="M2.5 14c0-2.5 1.8-4 4-4s4 1.5 4 4M10.5 14c0-2 1-3.2 2.5-3.2s2.5 1.2 2.5 3.2"/></svg>Groups</a>
+    <a class="item" href="#"><svg class="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 3h10v12l-5-3-5 3z"/></svg>Memory<span class="n">1</span></a>
+    <div class="me"><span class="avatar t1">AN</span><span>Ana Moreau<div class="s">Payments · lead</div></span></div>
+  </nav>
 
   <main class="main">
-    <header class="topbar">
-      <button class="menu btn ghost" type="button" aria-label="Menu"><svg viewBox="0 0 18 18"><path d="M2 5h14M2 9h14M2 13h14"/></svg></button>
-      <div class="title"><span>Payments</span><span class="where">Billing · Checkout · 4 open sessions</span></div>
+    <header class="phonebar">
+      <div class="t"><svg width="22" height="22" aria-hidden="true"><use href="#mark-small"/></svg>Payments</div>
+      <div class="s">4 open sessions · 2 projects · <b>2 need you</b></div>
+    </header>
+    <div class="topbar">
+      <div class="title"><span>Payments</span><span class="crumbs">Billing · Checkout · 4 open sessions</span></div>
       <div class="right">
-        <div class="insp" aria-label="Exploration controls (not shipped)">
-          <span class="lbl">EXPLORATION</span>
-          <button class="btn sm keep" type="button" id="btn-dee">Dee returns</button>
+        <div class="inspector" id="inspector" aria-label="Exploration inspector">
+          <span class="tag">EXPLORATION</span>
+          <button class="btn sm" type="button" id="btn-dee">Dee returns</button>
           <button class="btn sm" type="button" id="btn-baton">Pass the baton</button>
           <button class="btn sm" type="button" id="btn-calm" aria-pressed="false">Calm</button>
           <button class="btn sm" type="button" id="btn-dark" aria-pressed="false">Dark</button>
         </div>
+        <span class="stack" aria-label="Ana, Bo and Cy are here. Dee is away."><span class="avatar t1 driver">AN</span><span class="avatar t2">BO</span><span class="avatar t3">CY</span><span class="avatar t4 off">DE</span></span>
         <button class="btn sm" type="button">Share</button>
       </div>
-    </header>
+    </div>
 
     <div class="scroll">
       <div class="column page">
-        <section class="lede" aria-label="Payments, the team">
+        <div class="lede">
           <div class="lede-head">
             <h1>Payments</h1>
             <fieldset class="seg range" aria-label="Since">
-              <span class="lab">since</span>
+              <span class="lead">since</span>
               <button type="button" class="on" aria-pressed="true">Monday</button>
               <button type="button" aria-pressed="false">20 turns</button>
               <button type="button" aria-pressed="false">5 turns</button>
             </fieldset>
           </div>
 
-          <figure class="constellation" aria-label="Who is here">
+          <figure class="constellation" id="constellation" aria-label="">
             <div class="band" id="band"></div>
             <figcaption class="reading" id="reading" aria-live="polite"></figcaption>
           </figure>
@@ -384,61 +419,54 @@ a { color: var(--accent-ink); text-decoration: none; }
             <b>4 open sessions</b> across <b>2 projects</b>: 2 running, 1 awaiting approval, 1 paused.
             <b class="hot">2 need you.</b> <span class="mono">30.4k</span> tokens since Monday, 3 plans rated, 61 turns.
           </p>
-        </section>
+        </div>
 
         <section class="group" aria-label="Needs you">
-          <div class="group-head"><h2 class="grow">Needs you</h2><span class="small muted">2 decisions · 1 contention</span></div>
-          <div class="needs">
-            <article class="notice gate">
-              <span class="kind">Release gate</span>
-              <div class="line"><i>Checkout</i> asks to run the proration apply.</div>
-              <div class="command">stripe prorations apply <span class="pill irreversible">irreversible</span></div>
-              <div class="sub"><span class="quorum"><i></i><i class="empty"></i></span><span class="mono">1 of 2 at 4+ · avg 4.0</span> · Bo rated</div>
+          <div class="group-head"><h2 class="grow">Needs you<span class="count-word">2</span></h2><span class="right">2 decisions · 1 contention</span></div>
+          <div class="cards">
+            <article class="card gate">
+              <div class="kind">Release gate</div>
+              <div class="what"><i>Checkout</i> asks to run the proration apply.</div>
+              <div class="code">stripe prorations apply <span class="pill warn">irreversible</span></div>
+              <div class="meta">1 of 2 at 4+ · avg 4.0 · Bo rated</div>
               <div class="actions"><button class="btn primary sm" type="button">Approve with 4</button><button class="btn ghost sm" type="button">Open</button></div>
             </article>
-            <article class="notice">
-              <span class="kind">Plan</span>
-              <div class="line"><i>Invoice PDF</i>'s plan waits for two ratings.</div>
-              <div class="sub">5 steps · <span class="mono">~18k</span> · needs 2 at 3+ · Cy rated 4</div>
+            <article class="card plan">
+              <div class="kind">Plan</div>
+              <div class="what"><i>Invoice PDF</i>'s plan waits for two ratings.</div>
+              <div class="meta">5 steps · ~18k tokens · needs 2 at 3+ · Cy rated 4</div>
               <div class="actions"><button class="btn primary sm" type="button">Rate the plan</button><button class="btn ghost sm" type="button">Open</button></div>
             </article>
-            <article class="notice contention">
-              <span class="kind">Contention</span>
-              <div class="line"><i>Billing page</i> and <i>Checkout</i> both touch proration.ts.</div>
-              <div class="sub">Ana has the baton in Billing page · Bo in Checkout · unite when the gate opens</div>
+            <article class="card contention">
+              <div class="kind">Contention</div>
+              <div class="what"><i>Billing page</i> and <i>Checkout</i> both touch proration.ts.</div>
+              <div class="meta">Ana has the baton in Billing page · Bo in Checkout · unite when the gate opens</div>
               <div class="actions"><button class="btn sm" type="button">Compare branches</button></div>
             </article>
           </div>
         </section>
 
         <section class="group" aria-label="Where the tokens went">
-          <div class="group-head"><h2 class="grow">Where the tokens went</h2><span class="small muted">since Monday · input + output</span></div>
+          <div class="group-head"><h2 class="grow">Where the tokens went</h2><span class="right">since Monday · input + output</span></div>
           <div class="tiles">
-            <div class="tile"><span class="l">TOKENS</span><span class="v">30.4k<small>of 120k</small></span><span class="d">25 % of the soft budget</span></div>
-            <div class="tile"><span class="l">BY AGENT</span><span class="v">12.4k</span><span class="d">Billing page, the most</span></div>
-            <div class="tile"><span class="l">BY PERSON</span><span class="v">14.2k</span><span class="d">Ana, across two sessions</span></div>
-            <div class="tile"><span class="l">PLANS</span><span class="v">3<small>rated</small></span><span class="d">2 approved · 1 waits</span></div>
+            <div class="tile"><div class="k">Tokens</div><div class="v">30.4k</div><div class="d">19.2k in · 11.2k out</div></div>
+            <div class="tile"><div class="k">By agent</div><div class="v">16.3k</div><div class="d">Billing page leads, 12.4k</div></div>
+            <div class="tile"><div class="k">By person</div><div class="v">14.1k</div><div class="d">Ana 6.2k · Bo 4.6k</div></div>
+            <div class="tile"><div class="k">Plans</div><div class="v">3<span class="faint" style="font-size:18px"> of 4</span></div><div class="d">rated · avg 4.1</div></div>
           </div>
         </section>
 
-        <section class="group" aria-label="Crews">
-          <h2>Crews</h2>
-          <div class="list">
-            <a class="rowitem" href="#"><span><span class="t crewline">Invoice rollout</span><span class="s">Billing · 2 agents · Cy and Dee</span></span><span class="small mono muted">9.9k</span></a>
-          </div>
-        </section>
-
-        <section class="group" aria-label="Members and agents">
-          <div class="group-head"><h2 class="grow">Members and agents</h2><span class="small muted">4 people · 4 agents · 4 open sessions</span></div>
-          <div class="roster">
-            <div class="member"><span class="avatar t1 driver">AM</span><span class="who"><span class="n">Ana Moreau</span><span class="r">owner · here · Billing, Checkout</span></span><span class="status running">here</span></div>
-            <div class="member"><span class="avatar t2 driver">BL</span><span class="who"><span class="n">Bo Lindqvist</span><span class="r">member · here · Billing, Checkout</span></span><span class="status running">here</span></div>
-            <div class="member"><span class="avatar t3 driver">CO</span><span class="who"><span class="n">Cy Okafor</span><span class="r">member · here · Billing</span></span><span class="status running">here</span></div>
-            <div class="member" id="roster-dee"><span class="avatar t4">D</span><span class="who"><span class="n">Dee</span><span class="r">member · away since 09:47 · Billing</span></span><span class="status away">away</span></div>
-            <a class="member" href="#"><span class="avatar agent sm"></span><span class="who"><span class="n">Billing page</span><span class="r">Ana's agent · in Billing</span></span><span class="status running">running</span></a>
-            <a class="member" href="#"><span class="avatar agent sm"></span><span class="who"><span class="n">Checkout</span><span class="r">Bo's agent · in Checkout</span></span><span class="status awaiting">awaiting approval</span></a>
-            <a class="member" href="#"><span class="avatar agent sm"></span><span class="who"><span class="n">Invoice PDF</span><span class="r">Cy's agent · in Billing · Invoice rollout</span></span><span class="status running">running</span></a>
-            <a class="member" href="#"><span class="avatar agent sm"></span><span class="who"><span class="n">Tax lines</span><span class="r">Dee's agent · in Billing · Invoice rollout</span></span><span class="status paused">paused</span></a>
+        <section class="group" aria-label="The circle">
+          <div class="group-head"><h2 class="grow">The circle<span class="count-word">4 + 4</span></h2><span class="right">people and agents · one roster</span></div>
+          <div class="roster" id="roster">
+            <div class="row" id="roster-ana"><span class="avatar t1 driver">AN</span><span class="name">Ana Moreau<span class="s">lead</span></span><span class="doing">has the baton in <i>Billing page</i> · in <i>Checkout</i> with Bo</span><span class="status running">here</span><span class="tokens">6.2k</span></div>
+            <div class="row" id="roster-bo"><span class="avatar t2 driver">BO</span><span class="name">Bo Lindqvist<span class="s">member</span></span><span class="doing">has the baton in <i>Checkout</i> · in <i>Billing page</i> with Ana</span><span class="status running">here</span><span class="tokens">4.6k</span></div>
+            <div class="row" id="roster-cy"><span class="avatar t3 driver">CY</span><span class="name">Cy Okafor<span class="s">member</span></span><span class="doing">has the baton in <i>Invoice PDF</i> · crew Invoice rollout</span><span class="status running">here</span><span class="tokens">2.4k</span></div>
+            <div class="row" id="roster-dee"><span class="avatar t4 off">DE</span><span class="name">Dee Haddad<span class="s">member</span></span><span class="doing"><i>Invoice PDF</i> and <i>Tax lines</i> wait for Dee · crew Invoice rollout</span><span class="status away">away since 09:47</span><span class="tokens">0.9k</span></div>
+            <div class="row" id="roster-billing"><span class="avatar agent"></span><span class="name">Billing page<span class="s">Ana's agent</span></span><span class="doing"><i>Writing proration.ts</i> · step 3 of 4 · Team with Ana and Bo</span><span class="status running">running</span><span class="tokens">12.4k</span></div>
+            <div class="row" id="roster-checkout"><span class="avatar agent"></span><span class="name">Checkout<span class="s">Bo's agent</span></span><span class="doing"><i>Asks to run</i> stripe prorations apply · Team with Bo and Ana</span><span class="status awaiting">awaiting approval</span><span class="tokens">8.1k</span></div>
+            <div class="row" id="roster-invoice"><span class="avatar agent"></span><span class="name">Invoice PDF<span class="s">Cy's agent</span></span><span class="doing"><i>Rendering tax lines</i> · step 2 of 5 · Team with Cy and Dee</span><span class="status running">running</span><span class="tokens">6.8k</span></div>
+            <div class="row" id="roster-tax"><span class="avatar agent"></span><span class="name">Tax lines<span class="s">Dee's agent</span></span><span class="doing"><i>Paused</i> · waits for Dee · Solo</span><span class="status paused">paused</span><span class="tokens">3.1k</span></div>
           </div>
         </section>
       </div>
@@ -447,375 +475,377 @@ a { color: var(--accent-ink); text-decoration: none; }
 </div>
 
 <script>
-/* -------------------------------------------------------------------------------------------------
+/* ==================================================================================================
    The presence constellation.
-
-   Every open session is a ring. Its members, people and the agent, sit on the ring as points; each
-   present member draws the arc centred on itself, halfway to each neighbour, in its own colour
-   (person chocolate, agent navy on cream, SYSTEM §5), so a session of one person and one agent is
-   exactly the mark: two arcs, a person's and an agent's, closing into one ring. A member in two
-   sessions sits where the two rings meet: two shared members make the rings overlap (a vesica),
-   one shared member makes them touch. The baton holder is the bright point with the driver ring.
-   An away member's share of the ring is a dotted guide, and the apricot centre lands only while
-   the ring is whole. Crews stitch their agents with a dotted thread under the rings.
-
-   Deterministic layout, no physics: the picture is the same for everyone on the team.
-   ------------------------------------------------------------------------------------------------- */
+   Data: the team page already holds this (Team.tsx: people[].online, people[].driving, crew, live).
+   Layout: a chain solver, not physics. Consecutive sessions that share a person form a chain; two
+   shared people make a vesica (centre distance 1.12 r), one shared person makes the rings kiss (2 r).
+   Shared people sit at the intersections; the remaining members spread evenly through the free arc,
+   the agent first; a crew's agents sit at the foot of their rings so the stitch bows under the sky.
+   Each member draws the arc of the ring centred on itself, in its own colour; an away member's share
+   is a dotted guide; the centre lands only while every member is present.
+   ================================================================================================== */
 (() => {
-  const people = {
-    ana: { name: "Ana", full: "Ana Moreau", role: "owner", online: true, spent: "9.6k" },
-    bo:  { name: "Bo",  full: "Bo Lindqvist", role: "member", online: true, spent: "4.6k" },
-    cy:  { name: "Cy",  full: "Cy Okafor", role: "member", online: true, spent: "3.3k" },
-    dee: { name: "Dee", full: "Dee", role: "member", online: false, since: "09:47", spent: "1.4k" },
+  const html = document.documentElement;
+  const PEOPLE = {
+    ana: { name: 'Ana', full: 'Ana Moreau', role: 'lead', online: true, tokens: '6.2k' },
+    bo:  { name: 'Bo',  full: 'Bo Lindqvist', role: 'member', online: true, tokens: '4.6k' },
+    cy:  { name: 'Cy',  full: 'Cy Okafor', role: 'member', online: true, tokens: '2.4k' },
+    dee: { name: 'Dee', full: 'Dee Haddad', role: 'member', online: false, since: '09:47', tokens: '0.9k' },
   };
-  // members: people in order; the agent is the session itself (one per session)
-  const sessions = [
-    { id: "billing",  title: "Billing page", project: "Billing", status: "running",  doing: "Writing proration.ts · step 3 of 4", baton: "ana", members: ["ana", "bo"], tokens: "12.4k" },
-    { id: "checkout", title: "Checkout",     project: "Checkout", status: "awaiting", doing: "asks to run stripe prorations apply", baton: "bo",  members: ["bo", "ana"], tokens: "8.1k" },
-    { id: "invoice",  title: "Invoice PDF",  project: "Billing", status: "running",  doing: "Rendering tax lines · step 2 of 5", baton: "cy",  members: ["cy", "dee"], crew: "Invoice rollout", tokens: "6.8k" },
-    { id: "tax",      title: "Tax lines",    project: "Billing", status: "paused",   doing: "paused · waits for Dee", baton: null, members: ["dee"], crew: "Invoice rollout", tokens: "3.1k" },
+  const SESSIONS = [
+    { id: 'billing',  title: 'Billing page', status: 'running',  word: 'running', doing: 'writing proration.ts, step 3 of 4', members: ['ana', 'bo'], baton: 'ana', mode: 'Team', tokens: '12.4k', owner: 'ana' },
+    { id: 'checkout', title: 'Checkout',     status: 'awaiting', word: 'awaiting approval', doing: 'asks to run stripe prorations apply', members: ['bo', 'ana'], baton: 'bo', mode: 'Team', tokens: '8.1k', owner: 'bo' },
+    { id: 'invoice',  title: 'Invoice PDF',  status: 'running',  word: 'running', doing: 'rendering tax lines, step 2 of 5', members: ['cy', 'dee'], baton: 'cy', mode: 'Team', tokens: '6.8k', owner: 'cy', crew: 'Invoice rollout' },
+    { id: 'tax',      title: 'Tax lines',    status: 'paused',   word: 'paused', doing: 'waits for Dee', members: ['dee'], baton: null, mode: 'Solo', tokens: '3.1k', owner: 'dee', crew: 'Invoice rollout' },
   ];
-  const STATUS_WORD = { running: "running", awaiting: "awaiting approval", paused: "paused", blocked: "blocked", idle: "idle" };
-  const band = document.getElementById("band");
-  const reading = document.getElementById("reading");
-  const motionOn = () => getComputedStyle(document.documentElement).getPropertyValue("--motion").trim() === "1";
+  const TAU = Math.PI * 2, DEG = Math.PI / 180;
+  const norm = a => ((a % TAU) + TAU) % TAU;
+  const angDist = (a, b) => { const d = Math.abs(norm(a) - norm(b)); return Math.min(d, TAU - d); };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const f = n => Math.round(n * 100) / 100;
 
-  const shared = (a, b) => a.members.filter((m) => b.members.includes(m));
-  const deg = Math.PI / 180;
-  const pt = (cx, cy, r, a) => [cx + r * Math.cos(a * deg), cy + r * Math.sin(a * deg)];
-  const f = (n) => Math.round(n * 10) / 10;
-  const arcPath = (cx, cy, r, a1, a2) => {
-    if (a2 - a1 >= 359.5) a2 = a1 + 359.5;
-    const [x1, y1] = pt(cx, cy, r, a1), [x2, y2] = pt(cx, cy, r, a2);
-    return `M${f(x1)} ${f(y1)} A${r} ${r} 0 ${a2 - a1 > 180 ? 1 : 0} 1 ${f(x2)} ${f(y2)}`;
-  };
-  const textW = (s, px) => s.length * px * 0.5;   // enough for a placement decision; the serif is narrow
-  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-
-  /* ---- layout -------------------------------------------------------------------------------- */
-  function layout(width) {
-    // chains: consecutive sessions that share a person
-    const chains = [];
-    let cur = [];
-    sessions.forEach((s, i) => {
-      const prev = sessions[i - 1];
-      if (prev && shared(prev, s).length) cur.push(s); else { if (cur.length) chains.push(cur); cur = [s]; }
-    });
-    chains.push(cur);
-
-    const GAP = 104, PAD_TOP = 30, PAD_BOTTOM = 40;
-    const plan = (r) => {
-      // every circle: centre x inside its chain, fixed angles for shared members, name placement
-      const vesica = r * 1.12, kiss = 2 * r;
-      return chains.map((ch) => {
-        const circles = ch.map((s) => ({ s, cx: 0, r, fixed: {}, left: null, right: null }));
-        for (let i = 1; i < circles.length; i++) {
-          const a = circles[i - 1], b = circles[i];
-          const sh = shared(a.s, b.s);
-          const d = sh.length >= 2 ? vesica : kiss;
-          b.cx = a.cx + d; a.right = d; b.left = d;
-          if (sh.length >= 2) {
-            const half = Math.acos(d / (2 * r)) / deg;
-            a.fixed[sh[0]] = -half; b.fixed[sh[0]] = 180 + half;     // the first shared member on top
-            a.fixed[sh[1]] = half;  b.fixed[sh[1]] = 180 - half;
-          } else { a.fixed[sh[0]] = 0; b.fixed[sh[0]] = 180; }      // the rings touch at the shared member
-        }
-        // session names: inside when the free chord holds them, else outside on the free side
-        let padL = 0, padR = 0;
-        circles.forEach((c, i) => {
-          const free = Math.min(c.left ?? 2 * r, c.right ?? 2 * r);
-          const w = textW(c.s.title, 14);
-          if (free >= w + 16) c.name = "in";
-          else if (i === 0) { c.name = "left"; padL = w + 18; }
-          else if (i === circles.length - 1) { c.name = "right"; padR = w + 18; }
-          else c.name = "below";
-        });
-        // people outside the ring on the far side need room too
-        const w = circles[circles.length - 1].cx + 2 * r + padL + padR;
-        return { circles, padL, padR, w };
-      });
-    };
-    let r = 58, chainsL = plan(r);
-    const total = (cl) => cl.reduce((a, c) => a + c.w, 0) + GAP * (cl.length - 1);
-    while (total(chainsL) > width && r > 48) { r -= 2; chainsL = plan(r); }
-    // rows: wrap chains when they still do not fit (the phone)
-    const rows = [[]];
-    let rw = 0;
-    chainsL.forEach((c) => {
-      const row = rows[rows.length - 1];
-      if (row.length && rw + GAP + c.w > width) { rows.push([c]); rw = c.w; } else { row.push(c); rw += (row.length > 1 ? GAP : 0) + c.w; }
-    });
-    const rowH = 2 * r + PAD_TOP + PAD_BOTTOM;
-    const out = [];
-    rows.forEach((row, ri) => {
-      const wsum = row.reduce((a, c) => a + c.w, 0) + GAP * (row.length - 1);
-      let x = (width - wsum) / 2;
-      const cy = ri * rowH + PAD_TOP + r;
-      row.forEach((chain) => {
-        const x0 = x + chain.padL + r;
-        chain.circles.forEach((c) => out.push({ ...c, cx: x0 + c.cx, cy }));
-        x += chain.w + GAP;
-      });
-    });
-    return { circles: out, r, height: rows.length * rowH - 6 };
-  }
-
-  /* ---- render -------------------------------------------------------------------------------- */
-  let last = { joined: null, settled: [], passed: null };
-  function render(width) {
-    const { circles, r, height } = layout(width);
-    const seam = (3 / r) / deg;                     // a 3 px seam where two arcs meet
-    const wholeNow = [];
-    const members = new Map();                      // id -> { x, y, kind, rings:[], label placement }
-    const rings = [], arcs = [], guides = [], centres = [], names = [];
-
-    for (const c of circles) {
-      const s = c.s;
-      const ids = [...s.members, `agent:${s.id}`];
-      const free = ids.filter((id) => !(id in c.fixed));
-      const fixed = Object.entries(c.fixed).map(([id, a]) => ({ id, a: ((a % 360) + 360) % 360 })).sort((p, q) => p.a - q.a);
-      const angle = {};
-      fixed.forEach((p) => { angle[p.id] = p.a; });
-      if (!fixed.length) {
-        // the mark's convention: the person on the right, the agent on the left
-        const order = [...free.filter((id) => !id.startsWith("agent:")), ...free.filter((id) => id.startsWith("agent:"))];
-        order.forEach((id, i) => { angle[id] = (i * 360) / order.length; });
-      } else {
-        // the widest gap between fixed members takes the free ones, evenly; the agent first
-        let gi = 0, gw = -1;
-        for (let i = 0; i < fixed.length; i++) {
-          const a = fixed[i].a, b = fixed[(i + 1) % fixed.length].a + (i + 1 === fixed.length ? 360 : 0);
-          if (b - a > gw) { gw = b - a; gi = i; }
-        }
-        const start = fixed[gi].a;
-        const order = [...free.filter((id) => id.startsWith("agent:")), ...free.filter((id) => !id.startsWith("agent:"))];
-        order.forEach((id, i) => { angle[id] = (start + (gw * (i + 1)) / (order.length + 1)) % 360; });
-      }
-      const sorted = ids.map((id) => ({ id, a: angle[id] })).sort((p, q) => p.a - q.a);
-      const n = sorted.length;
-      let whole = true;
-      sorted.forEach((m, i) => {
-        const prev = i === 0 ? sorted[n - 1].a - 360 : sorted[i - 1].a;
-        const next = i === n - 1 ? sorted[0].a + 360 : sorted[i + 1].a;
-        const a1 = (prev + m.a) / 2 + seam, a2 = (m.a + next) / 2 - seam;
-        const isAgent = m.id.startsWith("agent:");
-        const present = isAgent ? true : people[m.id].online;
-        const d = arcPath(c.cx, c.cy, r, a1, a2);
-        if (present) arcs.push({ d, m: m.id, ring: s.id, kind: isAgent ? "agent" : "person", baton: s.baton === m.id, quiet: isAgent && s.status === "paused" });
-        else { guides.push({ d, m: m.id, ring: s.id }); whole = false; }
-        const [x, y] = pt(c.cx, c.cy, r, m.a);
-        const rec = members.get(m.id) ?? { id: m.id, x, y, kind: isAgent ? "agent" : "person", rings: [], out: [] };
-        rec.rings.push(s.id);
-        rec.out.push([Math.cos(m.a * deg), Math.sin(m.a * deg)]);
-        if (s.baton === m.id) rec.baton = s.id;
-        if (isAgent) rec.status = s.status;
-        members.set(m.id, rec);
-      });
-      rings.push({ id: s.id, cx: c.cx, cy: c.cy, whole });
-      if (whole) { centres.push({ ring: s.id, cx: c.cx, cy: c.cy }); wholeNow.push(s.id); }
-      // the session's name
-      const w = textW(s.title, 14);
-      if (c.name === "in") names.push({ ring: s.id, x: c.cx, y: c.cy + 21, anchor: "middle", t: s.title });
-      else if (c.name === "left") names.push({ ring: s.id, x: c.cx - r - 14, y: c.cy + 5, anchor: "end", t: s.title });
-      else if (c.name === "right") names.push({ ring: s.id, x: c.cx + r + 14, y: c.cy + 5, anchor: "start", t: s.title });
-      else names.push({ ring: s.id, x: c.cx, y: c.cy + r + 20, anchor: "middle", t: s.title });
-      void w;
+  /* ---- layout ------------------------------------------------------------------------------- */
+  function chainsOf(sessions) {
+    const chains = []; let cur = [sessions[0]];
+    for (let i = 1; i < sessions.length; i++) {
+      const shared = sessions[i].members.some(m => sessions[i - 1].members.includes(m));
+      if (shared) cur.push(sessions[i]); else { chains.push(cur); cur = [sessions[i]]; }
     }
-
-    // crews: a dotted thread between crew-mates' agents, bowing under the rings
+    chains.push(cur); return chains;
+  }
+  function layoutChain(chain, r, small) {
+    const rings = []; let x = 0;
+    chain.forEach((s, i) => {
+      if (i > 0) { const n = s.members.filter(m => chain[i - 1].members.includes(m)).length; x += n >= 2 ? 1.12 * r : 2 * r; }
+      rings.push({ s, cx: x, cy: 0, r, placed: [] });
+    });
+    for (let i = 1; i < rings.length; i++) {
+      const A = rings[i - 1], B = rings[i], d = B.cx - A.cx;
+      const shared = A.s.members.filter(m => B.s.members.includes(m));   // the first listed on top
+      const th = Math.acos(Math.min(1, d / (2 * r)));
+      shared.forEach((m, k) => {
+        const sign = k === 0 ? -1 : 1;                       // the first listed on top
+        A.placed.push({ id: m, kind: 'person', a: sign * th, shared: true });
+        B.placed.push({ id: m, kind: 'person', a: Math.PI - sign * th, shared: true });
+      });
+    }
+    rings.forEach(R => {
+      const rest = [{ id: R.s.id, kind: 'agent' }, ...R.s.members.filter(m => !R.placed.some(p => p.id === m)).map(m => ({ id: m, kind: 'person' }))];
+      if (!R.placed.length) {
+        // the mark's own pose: the person on the right, the agent on the left
+        rest.forEach((m, k) => R.placed.push({ ...m, a: m.kind === 'agent' ? Math.PI : (k - 1) * (TAU / rest.length) }));
+      } else {
+        const angles = R.placed.map(p => norm(p.a)).sort((a, b) => a - b);
+        let best = { start: 0, len: 0 };
+        for (let k = 0; k < angles.length; k++) {
+          const a = angles[k], b = k + 1 < angles.length ? angles[k + 1] : angles[0] + TAU;
+          if (b - a > best.len) best = { start: a, len: b - a };
+        }
+        rest.forEach((m, k) => R.placed.push({ ...m, a: best.start + best.len * (k + 1) / (rest.length + 1) }));
+      }
+      if (R.s.crew) {                                          // crew agents sit at the foot of the ring
+        const ag = R.placed.find(p => p.kind === 'agent');
+        if (R.placed.filter(p => p !== ag).every(o => angDist(o.a, Math.PI / 2) >= 50 * DEG)) ag.a = Math.PI / 2;
+      }
+    });
+    // nodes: one per person in the chain, one per agent
+    const nodes = new Map();
+    rings.forEach((R, ri) => R.placed.forEach(p => {
+      const key = p.kind === 'agent' ? 'agent:' + p.id : 'person:' + p.id;
+      const px = R.cx + R.r * Math.cos(p.a), py = R.cy + R.r * Math.sin(p.a);
+      if (!nodes.has(key)) nodes.set(key, { key, id: p.id, kind: p.kind, x: px, y: py, rings: [], dir: { x: 0, y: 0 } });
+      const n = nodes.get(key); n.rings.push(ri); n.dir.x += Math.cos(p.a); n.dir.y += Math.sin(p.a);
+      p.node = n;
+    }));
+    const fs = small ? 13.5 : 15, ss = small ? 11 : 12;
+    for (const n of nodes.values()) {
+      const L = Math.hypot(n.dir.x, n.dir.y);
+      if (L < 0.05) n.dir = { x: 0, y: -1 }; else n.dir = { x: n.dir.x / L, y: n.dir.y / L };
+      const sess = n.kind === 'agent' ? SESSIONS.find(s => s.id === n.id) : null;
+      if (sess && sess.crew) {                                 // away from the crew-mate, along the stitch
+        const mate = SESSIONS.find(s => s !== sess && s.crew === sess.crew);
+        const mateRing = rings.find(R => R.s === mate);
+        n.dir = { x: mateRing && mateRing.cx > rings[n.rings[0]].cx ? -1 : 1, y: 0 };
+      }
+      n.label = labelOf(n); n.fs = fs; n.ss = ss;
+      const w = Math.max(n.label.name.length * fs * 0.52, (n.label.state || '').length * ss * 0.58) + 4;
+      const h = n.label.state ? fs + ss + 4 : fs;
+      if (Math.abs(n.dir.x) > 0.38) {                          // beside the point
+        n.anchor = n.dir.x > 0 ? 'start' : 'end';
+        n.lx = n.x + Math.sign(n.dir.x) * 17; n.ly = n.y + (n.label.state ? -2 : 5);
+        n.box = { x: n.dir.x > 0 ? n.lx : n.lx - w, y: n.ly - fs, w, h: h + 2 };
+      } else if (n.dir.y < 0) {                                // above
+        n.anchor = 'middle'; n.lx = n.x; n.ly = n.y - (n.label.state ? 31 : 17);
+        n.box = { x: n.lx - w / 2, y: n.ly - fs, w, h: h + 2 };
+      } else {                                                 // below
+        n.anchor = 'middle'; n.lx = n.x; n.ly = n.y + 27;
+        n.box = { x: n.lx - w / 2, y: n.ly - fs, w, h: h + 2 };
+      }
+    }
+    // threads: one per crew, between the agents
     const threads = [];
-    const byCrew = new Map();
-    for (const c of circles) if (c.s.crew) byCrew.set(c.s.crew, [...(byCrew.get(c.s.crew) ?? []), c]);
-    for (const [crew, cs] of byCrew) {
-      for (let i = 1; i < cs.length; i++) {
-        const a = members.get(`agent:${cs[i - 1].s.id}`), b = members.get(`agent:${cs[i].s.id}`);
-        const mx = (a.x + b.x) / 2, by = Math.max(cs[i - 1].cy, cs[i].cy) + r + 34;
-        const d = `M${f(a.x)} ${f(a.y)} Q${f(mx)} ${f(by)} ${f(b.x)} ${f(b.y)}`;
-        const ly = 0.25 * a.y + 0.5 * by + 0.25 * b.y;     // the curve at t = .5
-        threads.push({ d, crew, x: mx, y: ly + 17, ids: [a.id, b.id] });
+    const crews = [...new Set(chain.map(s => s.crew).filter(Boolean))];
+    crews.forEach(crew => {
+      const ags = [...nodes.values()].filter(n => n.kind === 'agent' && SESSIONS.find(s => s.id === n.id).crew === crew);
+      for (let i = 1; i < ags.length; i++) {
+        const a = ags[i - 1], b = ags[i];
+        threads.push({ crew, a, b, cx: (a.x + b.x) / 2, cy: Math.max(a.y, b.y) + 0.62 * r });
       }
-    }
-
-    // labels for people: outward from the ring; a shared member sits above or below the seam
-    const labelOf = (m) => {
-      if (m.kind === "agent") return null;
-      const ox = m.out.reduce((s, v) => s + v[0], 0), oy = m.out.reduce((s, v) => s + v[1], 0);
-      const len = Math.hypot(ox, oy);
-      let ux = len < 0.01 ? 0 : ox / len, uy = len < 0.01 ? -1 : oy / len;
-      if (m.rings.length > 1 && Math.abs(uy) < 0.35) { ux = 0; uy = -1; }   // a kiss: name above
-      const dist = 16;
-      const x = m.x + ux * dist, y = m.y + uy * dist + (uy > 0.35 ? 11 : uy < -0.35 ? -2 : 5);
-      const anchor = ux > 0.35 ? "start" : ux < -0.35 ? "end" : "middle";
-      return { x, y, anchor };
-    };
-
-    const sessionOf = (id) => sessions.find((s) => s.id === id);
-    const describe = (id) => {
-      if (id.startsWith("agent:")) {
-        const s = sessionOf(id.slice(6));
-        const owner = people[s.members[0]].name;
-        const others = s.members.slice(1).map((m) => people[m].name);
-        return `${s.title} · ${owner}'s agent · ${STATUS_WORD[s.status]} · ${s.doing}` + (others.length ? ` · with ${others.join(" and ")}` : " · Solo") + (s.crew ? ` · ${s.crew}` : "") + ` · ${s.tokens} tokens`;
-      }
-      const p = people[id];
-      if (!p.online) {
-        const waits = sessions.filter((s) => s.members.includes(id)).map((s) => s.title);
-        return `${p.full} · away since ${p.since} · ${waits.join(" and ")} wait${waits.length === 1 ? "s" : ""} for ${p.name}`;
-      }
-      const parts = [p.full, p.role];
-      for (const s of sessions.filter((s) => s.members.includes(id))) {
-        const with_ = s.members.filter((m) => m !== id).map((m) => people[m].name);
-        parts.push(s.baton === id ? `has the baton in ${s.title}` : `in ${s.title}` + (with_.length ? ` with ${with_.join(" and ")}` : ""));
-      }
-      parts.push(`${p.spent} tokens`);
-      return parts.join(" · ");
-    };
-
-    // ---- the SVG
-    let svg = `<svg class="cst" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(sky())}" data-r="${r}">`;
-    for (const t of threads) svg += `<path class="thread" data-ids="${t.ids.join(" ")}" d="${t.d}"/>`;
-    for (const t of threads) svg += `<circle class="crewring" data-ids="${t.ids.join(" ")}" cx="${f(t.x - textW(t.crew, 13) / 2 - 10)}" cy="${f(t.y - 4.5)}" r="4"/><text class="crewname" data-ids="${t.ids.join(" ")}" x="${f(t.x)}" y="${f(t.y)}" text-anchor="middle">${esc(t.crew)}</text>`;
-    for (const g of guides) svg += `<path class="guide" data-m="${g.m}" data-ring="${g.ring}" d="${g.d}"/>`;
-    for (const a of arcs) svg += `<path class="arc ${a.kind}${a.baton ? " baton" : ""}${a.quiet ? " quiet" : ""}${last.joined === a.m ? " draw" : ""}" pathLength="1" data-m="${a.m}" data-ring="${a.ring}" d="${a.d}"/>`;
-    for (const c of centres) svg += `<circle class="centre${last.settled.includes(c.ring) ? " settle" : ""}" data-ring="${c.ring}" cx="${f(c.cx)}" cy="${f(c.cy)}" r="4"/>`;
-    for (const nm of names) svg += `<text class="rname" data-ring="${nm.ring}" x="${f(nm.x)}" y="${f(nm.y)}" text-anchor="${nm.anchor}">${esc(nm.t)}</text>`;
-    // members in reading order, so the tab order runs left to right across the sky
-    const ordered = [...members.values()].sort((a, b) => a.x - b.x || a.y - b.y);
-    for (const m of ordered) {
-      const x = f(m.x), y = f(m.y);
-      const away = m.kind === "person" && !people[m.id].online;
-      const cls = ["m", m.kind, m.baton ? "baton" : "", away ? "away" : "", m.status === "paused" ? "paused" : "", last.joined === m.id ? "joined" : ""].filter(Boolean).join(" ");
-      const label = m.kind === "agent" ? sessionOf(m.id.slice(6)).title : people[m.id].name;
-      svg += `<a class="${cls}" href="#${m.id.replace(":", "-")}" data-m="${m.id}" data-rings="${m.rings.join(" ")}" aria-label="${esc(describe(m.id))}" tabindex="0"><title>${esc(describe(m.id))}</title>`;
-      svg += `<circle class="fr" cx="${x}" cy="${y}" r="13"/>`;
-      if (m.kind === "person") {
-        if (m.baton) svg += `<circle class="halo baton" cx="${x}" cy="${y}" r="9.5"/><circle class="ring${last.passed === m.id ? " passed" : ""}" cx="${x}" cy="${y}" r="9.5"/>`;
-        if (last.joined === m.id) svg += `<circle class="ripple" cx="${x}" cy="${y}" r="7"/>`;
-        svg += `<circle class="pt" cx="${x}" cy="${y}" r="${m.baton ? 5.5 : 4.6}"/>`;
-      } else {
-        if (m.status === "running") svg += `<rect class="halo running" x="${f(m.x - 7.5)}" y="${f(m.y - 7.5)}" width="15" height="15" rx="5"/>`;
-        // the agent's shape: the rounded square with the tight bottom-left corner (SYSTEM §12)
-        const s = 5.5, rr = 3.2, rt = 1.1;
-        svg += `<path class="pt" d="M${f(m.x - s + rr)} ${f(m.y - s)} h${f(2 * s - 2 * rr)} a${rr} ${rr} 0 0 1 ${rr} ${rr} v${f(2 * s - 2 * rr)} a${rr} ${rr} 0 0 1 -${rr} ${rr} h-${f(2 * s - rr - rt)} a${rt} ${rt} 0 0 1 -${rt} -${rt} v-${f(2 * s - rr - rt)} a${rr} ${rr} 0 0 1 ${rr} -${rr} z"/>`;
-        svg += `<circle class="pr ${m.status}" cx="${f(m.x + 5)}" cy="${f(m.y + 5)}" r="2.6"/>`;
-      }
-      const lb = labelOf(m);
-      if (lb) svg += `<text x="${f(lb.x)}" y="${f(lb.y)}" text-anchor="${lb.anchor}">${esc(label)}</text>`;
-      svg += `</a>`;
-    }
-    svg += `</svg>`;
-    band.innerHTML = svg;
-    wire(band.querySelector("svg"));
-    return { whole: wholeNow };
+    });
+    // extents
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    const grow = (x0, y0, x1, y1) => { minX = Math.min(minX, x0); minY = Math.min(minY, y0); maxX = Math.max(maxX, x1); maxY = Math.max(maxY, y1); };
+    rings.forEach(R => grow(R.cx - r - 3, R.cy - r - 3, R.cx + r + 3, R.cy + r + 3));
+    for (const n of nodes.values()) grow(n.box.x, n.box.y, n.box.x + n.box.w, n.box.y + n.box.h);
+    threads.forEach(t => grow(t.cx - 40, 0, t.cx + 40, (t.a.y + 2 * t.cy + t.b.y) / 4 + 6));
+    return { rings, nodes: [...nodes.values()], threads, bbox: { x: minX, y: minY, w: maxX - minX, h: maxY - minY } };
   }
-
-  /* ---- the sentence under the sky ------------------------------------------------------------ */
-  function sky(plain = true) {
-    const holders = sessions.filter((s) => s.baton).map((s, i) => plain ? `${people[s.baton].name} has the baton in ${s.title}` : (i === 0 ? `<b>${people[s.baton].name}</b> has the baton in <i>${s.title}</i>` : `<b>${people[s.baton].name}</b> in <i>${s.title}</i>`));
-    const away = Object.entries(people).filter(([, p]) => !p.online);
-    let tail;
-    if (away.length) {
-      const [id, p] = away[0];
-      const waits = sessions.filter((s) => s.members.includes(id)).map((s) => plain ? s.title : `<i>${s.title}</i>`);
-      tail = `${waits.join(" and ")} wait${waits.length === 1 ? "s" : ""} for ${plain ? p.name : `<b>${p.name}</b>`}, away since ${plain ? p.since : `<span class="mono">${p.since}</span>`}.`;
-    } else tail = plain ? "Every circle is whole." : `<span class="ok">Every circle is whole.</span>`;
-    const unheld = sessions.filter((s) => !s.baton).map((s) => plain ? s.title : `<i>${s.title}</i>`);
-    const held = holders.length ? `${holders.join(", ")}.` : "";
-    const nobody = unheld.length && !away.length ? ` Nobody holds the baton in ${unheld.join(" and ")}.` : "";
-    return `${held} ${tail}${nobody}`.trim();
-  }
-  function say(html, changed = true) {
-    reading.innerHTML = html;
-    reading.classList.remove("changed");
-    if (changed) { void reading.offsetWidth; reading.classList.add("changed"); }
-  }
-
-  /* ---- hover and focus ----------------------------------------------------------------------- */
-  function wire(svg) {
-    // hot = the member, everything on the member's rings, and any crew thread the member is on
-    const all = svg.querySelectorAll("[data-m], [data-ring], [data-ids]");
-    const lit = (id, ringsOf) => {
-      svg.classList.add("dim");
-      all.forEach((el) => {
-        const { m, ring, ids } = el.dataset;
-        el.classList.toggle("hot", m === id || (ring !== undefined && ringsOf.includes(ring)) || (ids !== undefined && ids.split(" ").includes(id)));
+  function layoutSky(width) {
+    const chains = chainsOf(SESSIONS);
+    const plan = r => {
+      const small = r < 64, gap = Math.max(44, 0.7 * r);
+      const laid = chains.map(ch => layoutChain(ch, r, small));
+      const rows = []; let row = { items: [], w: 0 };
+      laid.forEach(c => {
+        const w = c.bbox.w;
+        if (row.items.length && row.w + gap + w > width) { rows.push(row); row = { items: [], w: 0 }; }
+        row.items.push(c); row.w += (row.items.length > 1 ? gap : 0) + w;
       });
+      rows.push(row);
+      return { r, gap, rows, small, fits: laid.every(c => c.bbox.w <= width) };
     };
-    const clear = () => { svg.classList.remove("dim"); all.forEach((el) => el.classList.remove("hot")); say(sky(false), false); };
-    svg.querySelectorAll(".m").forEach((a) => {
-      const id = a.dataset.m, ringsOf = a.dataset.rings.split(" ");
-      const enter = () => { lit(id, ringsOf); say(pretty(a.getAttribute("aria-label")), false); };
-      a.addEventListener("pointerenter", enter);
-      a.addEventListener("focus", enter);
-      a.addEventListener("pointerleave", clear);
-      a.addEventListener("blur", clear);
-      a.addEventListener("click", (e) => e.preventDefault());
+    // the largest radius that keeps the fewest rows, every chain inside the band
+    let best = plan(46);
+    for (let r = 92; r > 46; r -= 2) { const p = plan(r); if (p.fits && p.rows.length === best.rows.length) { best = p; break; } }
+    // place rows, centred
+    let y = 0; const rowGap = 26;
+    best.rows.forEach(row => {
+      let x = (width - row.w) / 2; let rowH = 0;
+      row.items.forEach((c, i) => {
+        if (i) x += best.gap;
+        c.ox = x - c.bbox.x; c.oy = y - c.bbox.y; x += c.bbox.w; rowH = Math.max(rowH, c.bbox.h);
+      });
+      y += rowH + rowGap;
+    });
+    best.height = y - rowGap;
+    return best;
+  }
+
+  /* ---- words -------------------------------------------------------------------------------- */
+  function labelOf(n) {
+    if (n.kind === 'agent') {
+      const s = SESSIONS.find(x => x.id === n.id);
+      return { name: s.title, state: s.word };
+    }
+    const p = PEOPLE[n.id];
+    if (!p.online) return { name: p.name, state: 'away since ' + p.since, mono: p.since };
+    const holds = SESSIONS.filter(s => s.baton === n.id);
+    return { name: p.name, state: holds.length ? 'has the baton' : 'here' };
+  }
+  const I = t => '<i>' + esc(t) + '</i>', WHO = t => '<span class="who">' + esc(t) + '</span>';
+  const list = xs => xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
+  function restingSentence() {
+    const batons = SESSIONS.filter(s => s.baton);
+    const first = batons[0];
+    let a = WHO(PEOPLE[first.baton].name) + ' has the baton in ' + I(first.title);
+    const more = batons.slice(1).map(s => WHO(PEOPLE[s.baton].name) + ' in ' + I(s.title));
+    if (more.length) a += ', ' + more.join(', ');
+    a += '.';
+    const away = Object.values(PEOPLE).filter(p => !p.online);
+    if (!away.length) return a + ' Every circle is whole.';
+    const b = away.map(p => {
+      const id = Object.keys(PEOPLE).find(k => PEOPLE[k] === p);
+      const waits = SESSIONS.filter(s => s.members.includes(id)).map(s => I(s.title));
+      return list(waits) + (waits.length > 1 ? ' wait' : ' waits') + ' for ' + WHO(p.name) + ', away since <span class="mono">' + p.since + '</span>.';
+    }).join(' ');
+    return a + ' ' + b;
+  }
+  function memberSentence(n) {
+    if (n.kind === 'agent') {
+      const s = SESSIONS.find(x => x.id === n.id);
+      const with_ = list(s.members.map(m => PEOPLE[m].name));
+      return [I(s.title), PEOPLE[s.owner].name + "'s agent", esc(s.word) + ': ' + esc(s.doing), esc(s.mode) + ' with ' + esc(with_), s.crew ? 'crew ' + I(s.crew) : null, '<span class="mono">' + esc(s.tokens) + '</span> tokens'].filter(Boolean).join(' · ');
+    }
+    const p = PEOPLE[n.id];
+    const parts = [WHO(p.full), esc(p.role)];
+    if (!p.online) {
+      const waits = SESSIONS.filter(s => s.members.includes(n.id)).map(s => I(s.title));
+      parts.push('away since <span class="mono">' + p.since + '</span>', list(waits) + (waits.length > 1 ? ' wait' : ' waits'));
+    } else SESSIONS.filter(s => s.members.includes(n.id)).forEach(s => {
+      const others = s.members.filter(m => m !== n.id).map(m => PEOPLE[m].name);
+      parts.push(s.baton === n.id ? 'has the baton in ' + I(s.title) : 'in ' + I(s.title) + (others.length ? ' with ' + esc(list(others)) : ''));
+    });
+    parts.push('<span class="mono">' + esc(p.tokens) + '</span> tokens');
+    return parts.join(' · ');
+  }
+  const plain = h => h.replace(/<[^>]+>/g, '');
+
+  /* ---- drawing ------------------------------------------------------------------------------ */
+  const arcPath = (cx, cy, r, a0, a1) => {
+    const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0), x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+    return `M${f(x0)} ${f(y0)} A${f(r)} ${f(r)} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${f(x1)} ${f(y1)}`;
+  };
+  const SQ = 'M-2 -6H2A4 4 0 0 1 6 -2V2A4 4 0 0 1 2 6H-4.5A1.5 1.5 0 0 1 -6 4.5V-2A4 4 0 0 1 -2 -6Z';
+  function renderSky(lay, width, opts = {}) {
+    const out = [];
+    const whole = {};
+    out.push(`<svg class="sky" width="${width}" height="${f(lay.height)}" viewBox="0 0 ${width} ${f(lay.height)}" role="group" aria-label="Who is here, drawn as rings">`);
+    // rings: member-owned arcs
+    lay.rows.forEach(row => row.items.forEach(c => {
+      c.rings.forEach((R, ri) => {
+        const cx = R.cx + c.ox, cy = R.cy + c.oy, r = R.r;
+        const ps = [...R.placed].sort((a, b) => norm(a.a) - norm(b.a));
+        const isWhole = R.s.members.every(m => PEOPLE[m].online); whole[R.s.id] = isWhole;
+        const joined = opts.joinedRings && opts.joinedRings.includes(R.s.id);
+        out.push(`<g class="ring${joined ? ' joined' : ''}" data-ring="${R.s.id}">`);
+        const seam = 4.5 / r;
+        ps.forEach((p, k) => {
+          const prev = ps[(k - 1 + ps.length) % ps.length], next = ps[(k + 1) % ps.length];
+          let a = norm(p.a), ap = norm(prev.a), an = norm(next.a);
+          if (ps.length === 1) { ap = a - TAU; an = a + TAU; }
+          else { if (ap >= a) ap -= TAU; if (an <= a) an += TAU; }
+          const a0 = (ap + a) / 2 + seam, a1 = (a + an) / 2 - seam;
+          const away = p.kind === 'person' && !PEOPLE[p.id].online;
+          if (away) out.push(`<path class="guide" d="${arcPath(cx, cy, r, a0, a1)}"/>`);
+          else {
+            const cls = ['arc', p.kind, R.s.baton === p.id ? 'baton' : '', p.kind === 'agent' && R.s.status === 'paused' ? 'paused' : '', opts.drawFor && opts.drawFor === p.id ? 'draw' : ''].filter(Boolean).join(' ');
+            out.push(`<path class="${cls}" pathLength="1" d="${arcPath(cx, cy, r, a0, a1)}"/>`);
+          }
+        });
+        out.push(isWhole ? `<circle class="centre" cx="${f(cx)}" cy="${f(cy)}" r="3.6"/>` : `<circle class="ghost" cx="${f(cx)}" cy="${f(cy)}" r="3.6"/>`);
+        out.push('</g>');
+      });
+      // threads
+      c.threads.forEach(t => {
+        const id = 'thread-' + t.crew.replace(/\W+/g, '-').toLowerCase() + '-' + f(t.cx);
+        const d = `M${f(t.a.x + c.ox)} ${f(t.a.y + c.oy)} Q${f(t.cx + c.ox)} ${f(t.cy + c.oy)} ${f(t.b.x + c.ox)} ${f(t.b.y + c.oy)}`;
+        out.push(`<g class="threadg" data-crew="${esc(t.crew)}"><path class="thread" id="${id}" d="${d}"/><text class="crew" dy="-7"><textPath href="#${id}" startOffset="50%" text-anchor="middle">${esc(t.crew)}</textPath></text></g>`);
+      });
+      // nodes
+      c.nodes.forEach(n => {
+        const x = f(n.x + c.ox), y = f(n.y + c.oy);
+        const ringIds = n.rings.map(i => c.rings[i].s.id);
+        const sentence = memberSentence(n);
+        const joined = opts.joined === n.key, passed = opts.passed === n.key;
+        if (n.kind === 'person') {
+          const p = PEOPLE[n.id];
+          const baton = SESSIONS.some(s => s.baton === n.id);
+          const cls = ['pt', 'person', baton ? 'baton' : '', p.online ? '' : 'away', joined ? 'joined' : '', passed ? 'passed' : ''].filter(Boolean).join(' ');
+          out.push(`<a class="${cls}" href="#roster-${n.id}" data-member="${n.key}" data-rings="${ringIds.join(' ')}" aria-label="${esc(plain(sentence))}"><title>${esc(plain(sentence))}</title>`);
+          out.push(`<circle class="hit" cx="${x}" cy="${y}" r="16"/>`);
+          if (baton) out.push(`<circle class="halo" cx="${x}" cy="${y}" r="10.5"/>`);
+          if (joined) out.push(`<circle class="ripple" cx="${x}" cy="${y}" r="7"/>`);
+          out.push(`<circle class="focus" cx="${x}" cy="${y}" r="14"/>`);
+          if (baton) out.push(`<circle class="ring-baton" cx="${x}" cy="${y}" r="10.5"/>`);
+          out.push(`<circle class="dot" cx="${x}" cy="${y}" r="${baton ? 6.4 : 5}"/>`);
+        } else {
+          const s = SESSIONS.find(q => q.id === n.id);
+          const cls = ['pt', 'agent', s.status, joined ? 'joined' : ''].filter(Boolean).join(' ');
+          const ring = c.rings[n.rings[0]]; const ox = n.x - ring.cx, oy = n.y - ring.cy; const L = Math.hypot(ox, oy) || 1;
+          const dx = f(x + 7.4 * ox / L), dy = f(y + 7.4 * oy / L);
+          out.push(`<a class="${cls}" href="#roster-${n.id}" data-member="${n.key}" data-rings="${ringIds.join(' ')}" data-crew="${esc(s.crew || '')}" aria-label="${esc(plain(sentence))}"><title>${esc(plain(sentence))}</title>`);
+          out.push(`<circle class="hit" cx="${x}" cy="${y}" r="16"/>`);
+          if (joined) out.push(`<circle class="ripple" cx="${x}" cy="${y}" r="7"/>`);
+          out.push(`<circle class="focus" cx="${x}" cy="${y}" r="14"/>`);
+          out.push(`<path class="sq" d="${SQ}" transform="translate(${x} ${y}) scale(1.15)"/>`);
+          out.push(`<circle class="pr ${s.status}" cx="${dx}" cy="${dy}" r="3.6"/>`);
+        }
+        // labels
+        const st = n.label.state ? (n.label.mono
+          ? esc(n.label.state.replace(n.label.mono, '')) + `<tspan class="mono">${esc(n.label.mono)}</tspan>`
+          : esc(n.label.state)) : '';
+        out.push(`<text x="${f(n.lx + c.ox)}" y="${f(n.ly + c.oy)}" text-anchor="${n.anchor}" font-size="${n.fs}">${esc(n.label.name)}</text>`);
+        if (st) out.push(`<text class="state" x="${f(n.lx + c.ox)}" y="${f(n.ly + c.oy + n.ss + 3)}" text-anchor="${n.anchor}" font-size="${n.ss}">${st}</text>`);
+        out.push('</a>');
+      });
+    }));
+    out.push('</svg>');
+    return out.join('');
+  }
+
+  /* ---- mount -------------------------------------------------------------------------------- */
+  const band = document.getElementById('band'), reading = document.getElementById('reading'), figure = document.getElementById('constellation');
+  let lastWidth = 0, lastOpts = {};
+  function draw(opts) {
+    const width = Math.max(280, Math.round(band.clientWidth));
+    lastWidth = width; lastOpts = opts || {};
+    const lay = layoutSky(width);
+    band.innerHTML = renderSky(lay, width, lastOpts);
+    const rest = restingSentence();
+    reading.innerHTML = rest; reading.classList.remove('hover');
+    figure.setAttribute('aria-label', plain(rest));
+    wire();
+  }
+  function wire() {
+    const sky = band.querySelector('.sky');
+    const rest = reading.innerHTML;
+    sky.querySelectorAll('a.pt').forEach(a => {
+      const light = () => {
+        sky.classList.add('dim');
+        const rings = a.dataset.rings.split(' ');
+        sky.querySelectorAll('.ring').forEach(g => g.classList.toggle('hot', rings.includes(g.dataset.ring)));
+        sky.querySelectorAll('a.pt').forEach(b => {
+          const bRings = b.dataset.rings.split(' ');
+          b.classList.toggle('hot', b === a);
+          b.classList.toggle('warm', b !== a && bRings.some(r => rings.includes(r)));
+        });
+        sky.querySelectorAll('.threadg').forEach(t => t.classList.toggle('hot', !!a.dataset.crew && t.dataset.crew === a.dataset.crew));
+        reading.innerHTML = memberSentence(nodeOf(a.dataset.member)); reading.classList.add('hover');
+      };
+      const rest_ = () => {
+        sky.classList.remove('dim');
+        sky.querySelectorAll('.hot, .warm').forEach(e => e.classList.remove('hot', 'warm'));
+        reading.innerHTML = restingSentence(); reading.classList.remove('hover');
+      };
+      a.addEventListener('pointerenter', light); a.addEventListener('focus', light);
+      a.addEventListener('pointerleave', rest_); a.addEventListener('blur', rest_);
+      a.addEventListener('click', () => {                      // the sky is navigation: the point opens its row
+        const row = document.getElementById(a.getAttribute('href').slice(1));
+        if (!row) return;
+        document.querySelectorAll('.row.here').forEach(r => r.classList.remove('here'));
+        row.classList.add('here');
+        setTimeout(() => row.classList.remove('here'), 2400);
+      });
     });
   }
-  const pretty = (s) => {
-    const [head, ...rest] = s.split(" · ");
-    return `<b>${esc(head)}</b> · ${rest.map((p) => esc(p).replace(/(has the baton in|in|with) (.+)$/, (m, v, n) => `${v} <i>${n}</i>`)).join(" · ")}`;
-  };
+  function nodeOf(key) {
+    const [kind, id] = key.split(':');
+    return { kind, id };
+  }
+  const motionOn = () => getComputedStyle(html).getPropertyValue('--motion').trim() === '1';
 
-  /* ---- the exploration's controls ------------------------------------------------------------ */
-  let width = 0;
-  const draw = () => {
-    const w = Math.max(300, Math.round(band.getBoundingClientRect().width));
-    if (w === width && band.firstChild) return;
-    width = w;
-    render(width);
-  };
-  const ro = new ResizeObserver(() => draw());
-  ro.observe(band);
-  draw();
-  say(sky(false), false);
-
-  const btnDee = document.getElementById("btn-dee");
-  btnDee.addEventListener("click", () => {
-    const p = people.dee;
-    const row = document.getElementById("roster-dee");
+  /* ---- the exploration's controls (not part of the design) ---------------------------------- */
+  const showInspector = () => { if (/inspector/.test(location.hash) || /inspector/.test(location.search)) html.dataset.inspector = ''; };
+  showInspector(); addEventListener('hashchange', showInspector);
+  const btnDee = document.getElementById('btn-dee');
+  btnDee.addEventListener('click', () => {
+    const p = PEOPLE.dee;
+    const tax = SESSIONS.find(s => s.id === 'tax');
     if (!p.online) {
-      // a join: the arcs draw, the point pops and ripples, the centre lands once the ring is one (MOTION §7)
-      p.online = true;
-      const before = sessions.filter((s) => s.members.includes("dee"));
-      last = { joined: "dee", settled: before.map((s) => s.id), passed: null };
-      render(width);
-      say(`<b>Dee</b> joins the circle. <i>Invoice PDF</i> and <i>Tax lines</i> are whole again.`);
-      row.querySelector(".r").textContent = "member · here · Billing";
-      row.querySelector(".status").className = "status running"; row.querySelector(".status").textContent = "here";
-      btnDee.textContent = "Dee leaves";
-      setTimeout(() => { last = { joined: null, settled: [], passed: null }; }, motionOn() ? 1900 : 0);
+      p.online = true; tax.baton = 'dee'; tax.status = 'running'; tax.word = 'running'; tax.doing = 'resuming tax lines, step 3 of 5';
+      btnDee.textContent = 'Dee leaves';
+      draw({ joined: 'person:dee', drawFor: 'dee', joinedRings: SESSIONS.filter(s => s.members.includes('dee')).map(s => s.id) });
+      if (motionOn()) setTimeout(() => { if (lastOpts.joined) draw({}); }, 1900); else draw({});
     } else {
-      // leaving is a quiet divider, no motion: the ring opens and that is all
-      p.online = false; p.since = "now";
-      last = { joined: null, settled: [], passed: null };
-      render(width);
-      say(sky(false), false);
-      row.querySelector(".r").textContent = "member · away since now · Billing";
-      row.querySelector(".status").className = "status away"; row.querySelector(".status").textContent = "away";
-      btnDee.textContent = "Dee returns";
+      p.online = false; p.since = '09:47'; tax.baton = null; tax.status = 'paused'; tax.word = 'paused'; tax.doing = 'waits for Dee';
+      btnDee.textContent = 'Dee returns';
+      draw({});                                               // leaving is no motion: the ring simply opens
     }
   });
-  document.getElementById("btn-baton").addEventListener("click", () => {
-    // Checkout's baton goes from Bo to Ana: the ring pops on the new holder; nothing travels (MOTION §8)
-    const s = sessions.find((x) => x.id === "checkout");
-    s.baton = s.baton === "bo" ? "ana" : "bo";
-    last = { joined: null, settled: [], passed: s.baton };
-    render(width);
-    say(`<b>${people[s.baton].name}</b> has the baton in <i>Checkout</i>.`);
-    setTimeout(() => { last = { joined: null, settled: [], passed: null }; }, motionOn() ? 400 : 0);
+  document.getElementById('btn-baton').addEventListener('click', () => {
+    const s = SESSIONS.find(x => x.id === 'billing');
+    s.baton = s.baton === 'ana' ? 'bo' : 'ana';
+    draw({ passed: 'person:' + s.baton });
+    if (motionOn()) setTimeout(() => { if (lastOpts.passed) draw({}); }, 500); else draw({});
   });
-  const calm = document.getElementById("btn-calm");
-  calm.addEventListener("click", () => {
-    const on = document.documentElement.dataset.motion !== "calm";
-    if (on) document.documentElement.dataset.motion = "calm"; else delete document.documentElement.dataset.motion;
-    calm.setAttribute("aria-pressed", String(on)); calm.classList.toggle("on", on);
-  });
-  const dark = document.getElementById("btn-dark");
-  const syncDark = () => { const d = document.documentElement.dataset.theme === "dark"; dark.setAttribute("aria-pressed", String(d)); dark.classList.toggle("on", d); };
-  dark.addEventListener("click", () => { document.documentElement.dataset.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; syncDark(); });
-  new MutationObserver(syncDark).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  syncDark();
+  const btnCalm = document.getElementById('btn-calm');
+  btnCalm.addEventListener('click', () => { const on = html.dataset.motion !== 'calm'; if (on) html.dataset.motion = 'calm'; else delete html.dataset.motion; btnCalm.setAttribute('aria-pressed', String(on)); });
+  const btnDark = document.getElementById('btn-dark');
+  btnDark.addEventListener('click', () => { const on = html.dataset.theme !== 'dark'; html.dataset.theme = on ? 'dark' : 'light'; btnDark.setAttribute('aria-pressed', String(on)); });
+
+  draw({});
+  new ResizeObserver(() => { const w = Math.round(band.clientWidth); if (w && w !== lastWidth) draw(lastOpts); }).observe(band);
 })();
 </script>
 </body>

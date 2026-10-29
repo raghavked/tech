@@ -1,199 +1,228 @@
 # sig-editorial-session · The session as an editorial page
 
 The session view set like a long read instead of a chat. One text column on cream, 68 characters
-wide. The brief is the masthead: Ana's goal in a display serif at 44 px, with "Goal." in the hand's
-ink. Every turn opens with a serif heading and a numeral hung into the gutter; the byline under it is
-on the page's one line-height, with the two-arc ring saying who (person, agent, or the whole team).
-The team's words are a pull-quote whose opening quote hangs into the margin. Everything that is a
-decision (the ratings on the plan, "to the team", the release gate with your stars and *Approve with
-4*) is a **marginal note** anchored to the passage it answers and stitched to it with a dotted guide.
-Token counts are numerals in Fraunces, lining and tabular, so spend reads as part of the sentence.
-The composer is a rule under the text, aligned to the text edge, with a *To* row instead of a toggle.
+wide. The brief is the masthead: Ana's goal in a display serif, "Goal." in the hand's ink, the headline
+running across the margin, the dek on the measure. Turns already read fold into a **contents ledger**
+(one hairline row each, the serif heading, the time, the count), and each row opens to its passage:
+the plan as a ledger with hung numerals, Bo's words as a pull-quote with the opening mark hung. The
+live turn is a serif heading with its numeral hung in the gutter, a byline on the page's one line, two
+lines of prose and a mono commit log with the running step on an apricot wash. The gate is the last
+passage, inside registration ticks, directly above the composer. Everything that is a decision (the
+plan's ratings, "to the team", the gate's vote with your stars and *Approve with 4*) is a **marginal
+note** anchored to the passage it answers and stitched to it with a dotted guide; when two notes
+would collide the lower one slides down and its guide bends into an L so it still points at its own
+line. Token counts are numerals in Fraunces, lining and tabular, so spend reads as part of the
+sentence. The composer is a rule under the text, with a *To* row of recipients; it covers only the
+gutter and the measure, so the margin, and the gate's note in it, stay in view beside it.
 
-Files: `index.html` (self-contained: tokens inlined from `tokens.css` v5, light and dark via
-`prefers-color-scheme` and `[data-theme]`, every animation inside the one guard with
-`prefers-reduced-motion` and `[data-motion="calm"]`, Fraunces and Inter asked for first with
-Instrument and the system faces as fallbacks, no external assets, no fonts fetched, no external
-script); `light.png`, `dark.png` (1440×900, the page as it opens); `light-now.png`, `dark-now.png`
-(the same page scrolled to the live turn and the gate, `index.html#now`, which is where the app
-opens a running session); `phone.png`, `phone-gate.png` (390×844). The screenshots show the
-fallback faces (Instrument Serif, Instrument Sans, JetBrains Mono): Fraunces and Inter are not on
-this machine, and the page fetches nothing.
+Files: `index.html` (self-contained: tokens inlined from `design/henosis/tokens.css`; light in
+`:root`, dark twice, byte-identical, under `prefers-color-scheme` and `[data-theme="dark"]`; every
+animation inside the one `prefers-reduced-motion: no-preference` + `:root:not([data-motion="calm"])`
+guard with the clocks zeroed under either; Fraunces and Inter asked for first with Instrument and the
+system faces behind them; no asset, font or script fetched); `light.png`, `dark.png` (1440×900, the
+page as it opens); `phone.png` (390×844). The stills show the fallback faces, Instrument Serif,
+Instrument Sans and JetBrains Mono, because Fraunces and Inter are not on this machine and the page
+fetches nothing. The exploration's own Calm / Dark / Join controls are hidden unless the url carries
+`#inspector`, so no still shows a topbar the product will not have (judge 3's note).
 
 ## What it is
 
 | Part | What | Where |
 |---|---|---|
-| The masthead | the brief as the headline: "Goal." in `--accent-ink` italic, the sentence at `clamp(30px, 3.2vw, 44px)/1.08`, `opsz 144 SOFT 50`, `text-wrap: balance`, `hanging-punctuation: first last`; a kicker in tracked mono ("THE BRIEF · Ana · Tuesday 09:12 · Billing page"); a dek in `--ink-2` with the budget as numerals | the top of every session; the human block that carries the Goal label |
-| The gutter | 72 px: the turn's numeral in the serif at 30 px, right-aligned 22 px from the text; the author's ring beside the masthead | left of the measure; folds to an inline "7 ·" before the heading on the phone |
-| The turn heading | serif 26/32, `opsz 48`, the named thing in italic (*four steps*, *proration.ts*, *to the team*); the byline on `--lh` with the ring, the serif name, the state word, the mono time and the Fraunces count | every agent turn, every human turn after the brief, the gate |
-| The measure | `--measure: 58ch` of Inter = 67–70 characters of prose per line, measured (see The cost); `--lh: 26px` is the one line everything sits on | the text column; the composer shares it |
-| The plan | an `ol` with hung markers (`::before` at `inset-inline-start: -2.2ch`, serif 500 in the hand's ink, green when done); each row title · risk word · detail, with the actual in Fraunces and the estimate in faint mono on the right; totals as a sentence | turn 2; the same markup is the plan card |
-| The pull-quote | the team message as a serif italic quote at 22/30 (`opsz 22 SOFT 100`) on an apricot rule, the opening quote hung by `text-indent: -0.42em`, "read by Ana and Dee" under it | every `.msg.team` |
-| The log | tool steps as a mono commit log: tick, command, result right-aligned; the live step on `--apricot-soft` with a dotted underline and an apricot sweep passing over it every 1.6 s | under an agent's prose |
-| The fold | turns already read, folded to one hairline sentence with the tokens they cost; `<details>` opens them as a short ledger | between the plan and the live turn |
-| Marginal notes | 272 px in the margin, 44 px off the text, a hairline on the left, a dotted guide to the passage; kinds: **rated** (Bo 4, Dee 5, the verdict in `--ok-ink`), **to the team** (who hears it), **release gate** (Bo's vote and note, your five stars with the serif word, *Approve with 4*, Deny as a ghost, the quorum segments) | the plan, the team message, the gate; on the phone they fold under the passage on a warm wash |
-| Numerals | `.n`: Fraunces 500, `lining-nums tabular-nums`, `opsz 14 SOFT 30`; "of" in Inter `--ink-3` | the running head's meter, the rail's cards, the plan, bylines, the dek, the colophon |
-| The composer | a rule in `--ink` under the text, the *To* row with serif chips (navy dot for the agent, chocolate for a person), the steer line "reaches Ana's agent at its next step", the Agent/Team segment, the chocolate send; the margin beside it says who is here and what waits | the bottom of the page, sticky |
-| The colophon | one line: session id, opened when, turns, tokens, who | after the last turn |
+| The masthead | kicker in tracked mono ("THE BRIEF · Ana · Tuesday 09:12 · Billing page"); the goal at `clamp(28px, 2.5vw, 36px)/1.1`, `opsz 144`, `text-wrap: balance`, `hanging-punctuation: first last`, spanning the measure and the margin so it sets in two lines; "Goal." italic in `--hand-ink`; the dek on the measure; the bare ring (both arcs closed, centre lit) in the gutter | the top of every session |
+| The contents | "READ · turns 2–6 · 09:14 to 09:46 · 10,506 tokens", then one 27 px hairline row per read turn: the numeral in the gutter, the serif heading with the named thing in italic and the speaker in the hand's ink, the mono time, the count in Fraunces; a `<details>` whose summary is the row and whose body is the passage | between the masthead and the live turn; replaces a wall of bubbles |
+| The plan ledger | an `ol` with markers hung at `inset-inline-start: -2.2ch` in the hand's ink (green when done); title · verb chip · detail; the actual in Fraunces and the estimate in faint mono on the right; the total as a sentence | row 2 opened; the same markup is the plan card |
+| The pull-quote | the team message in the serif at 21/30 italic, `opsz 22 SOFT 100`, on an apricot rule, the opening quote hung by `text-indent: -0.42em` (or `hanging-punctuation` where it exists); "Bo · read by Ana and Dee · never reaches the agent" under it | row 3 opened; every `.msg.team` |
+| The live turn | numeral in the gutter in the hand's ink; h2 at 25/32 with the file in italic; byline on `--lh` (ring glyph, serif name, the running dot, mono "step 3 of 4 · 09:48", the Fraunces count); two lines of prose; the log | the newest agent turn, `#now` |
+| The log | tool steps as a mono commit log: tick, command, result right-aligned; the live step on `--live-wash` with a dotted underline and an apricot sweep passing over it every 1.6 s (0.6 Hz, nowhere near 0.2 Hz); the finished-turn byline ("11 tool uses · 1 m 06 s") appears only when the turn finishes | under an agent's prose |
+| The gate | the last passage before the composer: four 1 px registration ticks frame it (Stripe Press's device); kicker pill "Release gate" on the one gradient in the column, "step 4 of 4 · held by Billing and Checkout"; the ask as a serif italic sentence with the command in mono and the figure in Fraunces; the rule in a sentence; on grant, a drawn check and "Granted by Bo and you" | turn 8 |
+| Marginal notes | 268 px, 44 px off the text, a hairline on the left, a dotted guide at the passage's line; kinds: **rated** (Bo 4, Dee 5 as 7 px rating dots, the verdict in `--ok-ink`), **to the team** (who heard it), **release gate** (Bo's stars and quote; your stars as one radiogroup with the threshold tick after the third and the serif word; *Approve with 4*, Deny as a ghost; "4 if you leave it"; the quorum segments) | beside the plan row, the team row and the gate; under the passage on a warm wash below 1296 px and on the phone |
+| Numerals | `.n`: Fraunces 500, `lining-nums tabular-nums`, `opsz 14 SOFT 30`, `font-synthesis-weight: none` so the fallback never fakes the weight; "of" in Inter `--ink-3` | the running head's meter, the rail's cards, the ledger, the byline, the ask, the colophon |
+| The composer | a rule in `--ink` under the text; *To* row with serif chips (navy dot for the agent, chocolate for a person), "@ adds anyone", the Agent/Team segment at its right; the field whose placeholder is the steer line ("reaches Ana's agent before step 4 · Bo hears it too"); the chocolate send | the bottom, sticky over the gutter and the measure only |
+| The running head | serif title, scope, the running dot; the Team pill, the meter as Fraunces numerals over a 3 px hairline with the 80 % tick, the presence stack, Team and Details; the meter and the stack have fixed slots (`flex: none`, 12 px gap) so they never run into each other | the topbar |
 
 ## Why it is ours
 
-- **It refuses the template.** No bubbles, no alternating sides, no centred pill at the bottom, no
-  suggestion chips: the twelve-platform sameness that ai-interfaces-avoid names. People and agents
-  write into the same column and the same type; who spoke is marginalia (its §1 ledger column, §2
-  composer as a bottom rule, §3 addressing chips, §7 mono commit log, §9 margin notes, not a second
-  chat). Irvan Lathief's test ("the AI cannot show a chat box; what does the product become?") is
-  answered: it becomes the record of the work.
-- **Named things are serif, read things are sans, counts are figures** (SYSTEM principle 6), and the
-  serif is now carrying the *structure* of the page and not only the names: editorial-type §1
-  (masthead on the optical axis), §3 (the 66-character column), §4 (rhythm from one line), §5
-  (decision pull-quotes), §6 (ledger numerals, tabular), §7 (tracked mono eyebrows), §10 (hung
-  markers). three-colour-brands §10 and premium-product-ui §9: Fraunces for address, Inter for what
-  the room did.
+- **It refuses the template.** No bubbles, no alternating sides, no centred pill, no suggestion chips:
+  the twelve-platform sameness `ai-interfaces-avoid` names. Its §1 ledger column (author in the
+  gutter, no background behind words), §2 composer as a bottom rule, §4 recipient chips, §7 mono
+  commit log and §9 margin notes are all here, and nobody gets a different typeface by species.
+- **The serif carries structure, not a speaker.** `editorial-type` §1 (the accent word: "Goal.", *to the
+  team*, *four steps*), §3 (opsz low on the figures, high on the masthead), §5 (figures by register:
+  lining in chrome, in sentences they belong to the sentence), §6 (one rag for all prose, 68
+  characters, `text-wrap: pretty`), §7 (`calt` so "->" and digits sit right in chips), §8 (the gate's
+  registration ticks), §10 (hung quotes). SYSTEM §3's three voices hold: serif says who and what is
+  named, sans is read, mono is how; the one departure is counts in Fraunces (see The cost).
 - **The decision is in the margin because that is where a reviewer writes.** A rating, an approval,
   the gate: each is a note beside the passage it judges, in the reviewer's own voice (the serif name,
-  the italic quote), with the one chocolate verb. The quorum, the threshold tick after the third star,
-  "4 if you leave it", *Approve with N*: all SYSTEM §10's rating control, moved to the margin
-  unchanged. presence-and-agents §10's same byline closes every finished turn ("Ana's agent · 11
-  tool uses · 1 m 06 s · 3,612 tokens so far").
-- **The ring is the byline.** The bare mark on cream (person chocolate on the right, agent navy on
-  the left, the colour-by-ground table in SYSTEM §5); one voice shows its arc with the other as a
-  ghost, the team shows the closed ring with its centre. presence-and-agents §9's agreement ring,
-  without a new element.
+  the italic quote) with the one chocolate verb. SYSTEM §10's control is unchanged: one radiogroup,
+  the tick after the third star, the word as the accessible name, *Approve with N*, "4 if you leave
+  it", the default shown as a preview and never pre-picked in the on colour. `data-craft` §6's rating
+  dots carry the plan's ratings at caption size.
+- **The contents ledger is the fold the brief asks for** (SYSTEM §7's folded turns, `presence-and-agents`
+  §6's repeated calls folding into a summary) and it is also the table of contents an editorial page
+  has: the session's record at a glance, each row a door.
+- **The ring is the byline.** The bare mark on cream, coloured by ground (person chocolate on the right,
+  agent navy on the left, apricot centre, BRIEF); one voice shows its arc with the other ghosted, the
+  team shows the closed ring with its centre. `presence-and-agents` §10's same byline for everyone.
 - **Apricot keeps one meaning** (SYSTEM principle 2): the live step's wash and sweep, the quote's rule,
-  the meter's fill, the quorum's filled segment. Chocolate is only the hand: "Goal.", the hung step
-  numerals (the numbers you act on), *Approve with 4*, the send. The gate's stripe is the one
-  gradient in the column; the rail's New session is the one in the frame.
-- **Warm paper, not a terminal and not a chat.** Cream does most of the work (three-colour-brands:
-  "a four-colour system pretending to be three"); hairlines, not boxes; the only shadow is under the
-  send button (premium-product-ui §1, §4). Dark re-weighs rather than inverts (SYSTEM §16): the
-  agent's arc and the live line turn apricot, the person's arc is the dark hand, the ink is cream.
+  the meter's fill, the quorum's filled segment, the preview star. Chocolate is only the hand: "Goal.",
+  the hung numerals and the live turn's numeral (the numbers you act on), the gate's verb, the send.
+  The gate's pill is the one gradient in the column; the rail's New session is the one in the frame.
+- **Warm paper, hairlines, no boxes.** Cream does the work (`three-colour-brands`: cream at 60, the
+  darks at 30, apricot as light); the only shadows are under the send and the raised buttons
+  (`premium-product-ui` §1, §4). Dark re-weighs rather than inverts (SYSTEM §16): the hand turns
+  apricot for the verb, the live line's wash drops to 14 %, the ticks go apricot, ink is cream.
 - **It is not Claude's, ChatGPT's or Linear's.** Claude sets the assistant's prose in a serif and the
-  person's in a sans (type.today, via editorial-type), with bubbles and a floating composer; here
-  nobody gets a different typeface, the serif marks *structure* (headline, heading, quote, figure) and
-  the composer is a rule. ChatGPT has no margin and no numbers. Linear's column is dark, dense and
-  13 px with an indigo glow. A navy frame beside a long read with marginal approvals belongs to a
-  product where approving is reviewing.
+  person's in a sans, with bubbles and a floating composer; here nobody's prose is serif, the serif
+  marks structure, and the composer is a rule. ChatGPT has no margin and no numbers. Linear's column
+  is dark, dense, 13 px with an indigo glow. A navy frame beside a long read with marginal approvals
+  belongs to a product where approving is reviewing.
 
 ## The technique
 
 - **One grid, four columns**: `grid-template-columns: var(--gutter-w) minmax(0, var(--measure))
-  var(--margin-gap) var(--margin-w)` on `.page`; every child uses `grid-template-columns: subgrid`
-  so the gutter, the text and the margin line up across the masthead, the turns, the colophon and the
-  composer.
-- **Notes are anchored, not stacked.** A `.note` is a child of the passage it answers (`.body`,
-  `position: relative`) at `left: calc(100% + var(--margin-gap))`, so it sits beside its own
-  paragraph as the column scrolls; the dotted guide is its `::before` across the gap. When the note is
-  taller than the passage (the gate), the passage holds the page open with a `min-height`. On the
-  phone (`≤ 720`) the same element goes `position: static` under the passage on a warm wash.
-- **Hanging punctuation twice.** `hanging-punctuation: first last` on the masthead and the prose for
-  the engines that have it (WebKit); for the others the quote's opening mark is hung by
-  `text-indent: -0.42em` and the plan's numerals by `inset-inline-start: -2.2ch`. The still looks the
-  same in both.
-- **Numerals as a class.** `.n` sets `font-family: var(--serif)`, `font-variant-numeric: lining-nums
-  tabular-nums`, `font-variation-settings: "opsz" 14, "SOFT" 30, "WONK" 0`; the opsz is pinned low so
-  Fraunces keeps its text contrast beside Inter at 13–18 px, `.n.lg` opens it to 36 for the meter.
-  With the Instrument fallback the settings are inert and the figures are Instrument Serif's.
-- **The ring through custom properties.** One `<symbol id="ring">` with the arcs drawn 6 → 12
-  (`pathLength="100"`, `stroke-dasharray: 97 100` for the seam); page CSS cannot reach inside a
-  `<use>` (SYSTEM §5), so the paths take `stroke: var(--arc-a)`, `opacity: var(--arc-a-o)` and the
-  `.person`, `.agent`, `.both` classes set the variables on the `<svg>`.
-- **Motion under the one guard** (MOTION §3): `card-in` on the newest turn, `dot-live` on the running
-  dots, the live step's apricot `sweep` at 1.6 s (motion-choreography §9: well away from 0.2 Hz;
-  under Calm the dotted underline alone says it is live), the picked star's `pop`. All inside
-  `@media (prefers-reduced-motion: no-preference) { :root:not([data-motion="calm"]) … }`; the clocks
-  go to 0 ms under either guard, so hover, press and the composer's focus are instant. Every rest
-  state is the element's natural style.
+  var(--margin-gap) var(--margin-w)` on `.page`; every block is `grid-template-columns: subgrid` so the
+  gutter, the text and the margin line up across the masthead, the contents, the turns and the
+  composer (which repeats the same template with the page's padding).
+- **Notes are anchored, then stacked.** A `.note` is an absolutely positioned child of the passage it
+  answers (`.body`, `position: relative`) at `left: calc(100% + var(--margin-gap))`; the dotted guide is
+  its `::before` across the gap. A 20-line pass on load, resize and `<details>` toggle walks the notes
+  in order and, when one would overlap the one above, pushes it down with `translateY` and sets
+  `--up`, which the guide reads: `::before` stays at the passage's line and `::after` draws the
+  vertical leg down to the note. Only the gate's passage (`data-hold`) grows to its note's height so
+  the page never ends before the note does. Below 1296 px the same element goes `position: static`
+  under its passage on `--team-wash`.
+- **The composer covers only the text.** `.composer-wrap` is sticky and `pointer-events: none`; the
+  opaque `.paper` (canvas, with a 22 px fade as its own `::before` strip) spans the gutter and the
+  measure and re-enables pointer events. The margin keeps scrolling beside it, so a note's *Approve*
+  stays clickable and nothing bleeds through the *To* row (judge 1 and 2's fix).
+- **Hanging punctuation twice.** `hanging-punctuation: first last` on the masthead, the prose, the ask
+  and the quote for engines that have it; for the others the quote's mark is hung by `text-indent:
+  -0.42em` (removed under `@supports (hanging-punctuation: first)`) and the plan's numerals by
+  `inset-inline-start: -2.2ch`.
+- **The measure in `ch`.** `--measure: 52ch` resolves against the page's 15 px sans: 519 px with the
+  fallback face, measured at 67 characters per line of 16.5 px prose (`Range.getClientRects` per
+  character in headless Chromium); the previous pass's 58ch set 76. With Inter the zero is wider and
+  the number of characters per line stays within 66–70; it should be re-measured once the font ships.
+- **The ring through custom properties.** One `<symbol id="ring">`, arcs drawn with `pathLength="100"`
+  and `stroke-dasharray: 94 100` for the seam. Page CSS cannot reach inside a `<use>` (SYSTEM §5), so
+  the paths carry `stroke="var(--p)"`, `opacity="var(--po)"` as presentation attributes and the
+  `.person`, `.agent`, `.both` classes set the variables on the `<svg>`. The masthead's ring is inlined
+  so the joining run (arcs swing in, the centre appears, 1.6 s on `--ease-mark`) can move it; it plays
+  when something joins (the inspector's Join, `#join`), not when the page opens.
+- **Motion under the one guard** (MOTION §3): `card-in` on the live turn, `dot-live` on the running dots,
+  the live step's `sweep` at 1.6 s on `background-position` and `opacity` (compositor only), the picked
+  star's `pop`, the check's `draw` on grant, the masthead ring's `arc-p / arc-a / dot-in`. Measured: 5
+  animations at rest, 0 under `prefers-reduced-motion: reduce`, 0 under `[data-motion="calm"]`; the
+  clocks go to 0 ms under either, so hover, press and the segment are instant.
 - **The rating** is one `radiogroup` with roving tabindex: arrows and 1–5 pick, hover previews in
-  `--star-pre`, the serif word doubles as the accessible name ("4 of 5, Good"), the button carries the
-  number it sends.
-- **The exploration's own controls** (Calm, Dark in the running head) set `data-motion` and
-  `data-theme` on `<html>` exactly as `theme.ts` does; they are not part of the design.
+  `--star-pre`, the serif word doubles as the name ("4 of 5, Good"), the button carries the number it
+  sends; `a` approves from anywhere but the field.
+- **Dark is the same bytes twice**, and the avatar's fill and initial are fixed (`#ECE3D6` / navy) in
+  both themes so the initial is derived from the fill, never from the theme's foreground (judge 2).
 
 ## The cost
 
-- **Width.** Gutter 72 + measure 531 + gap 44 + margin 272 + 48 of padding = 967 px of main; with the
-  296 px rail that is a 1263 px window. Between 1180 and ~1000 px of main the rail folds to 72
-  (desktop-compact) and the page still fits; under ~1000 px of main the margin must fold under the
-  passage as it does on the phone (one more breakpoint than the app has today, at `960` where the
-  compact topbar already lands).
-- **The measure, measured** (headless Chromium, the fallback faces, `Range.getClientRects` per
-  paragraph): 1440 wide, prose 67–70 characters per line in a 531 px column; the dek 45 (two short
-  lines of figures); the phone 45–47 in 358 px. `58ch` is what gives 68 characters, because `ch` is the
-  zero's advance (0.6 em in Inter) and a prose character averages 0.51 em; `68ch` would set ~80
-  characters, over webtypography's 75.
+- **Width.** Gutter 72 + measure 519 + gap 44 + margin 268 + 48 padding = 951 px of main; with the
+  296 px rail, a 1247 px window. From 1296 px down the margin folds under the passage (one breakpoint
+  more than the app has; it sits between SYSTEM §4's 1180 and 960, and at 1180 the rail folds to 72
+  so the page regains 224 px and could keep its margin: the app should fold the margin on the
+  *main's* width, not the window's, with a container query).
+- **Vertical room.** At 1440×900 the masthead, the contents, the live turn and the gate with its note
+  all fit above the composer's rule (gate frame bottom 777, composer rule 815, note bottom 838).
+  That holds for a five-row contents and a two-line prose; a longer live turn pushes the gate under
+  the composer and the app must open at `#now` as it does today (scrolled to the latest moment, the
+  masthead a scroll up). The contents ledger is what makes the opening frame possible: without it the
+  plan and the quote alone take the screen.
 - **Fonts.** Fraunces variable (wght, opsz, SOFT, WONK) is ~390 KB as woff2 for the full file, ~120 KB
   subset to Latin; Inter variable ~100 KB subset. Self-host both in `apps/web/public/fonts` with
   `font-display: swap` and `size-adjust` on the Instrument fallbacks so the swap does not reflow the
-  measure. Nothing is fetched by this page.
-- **Vertical room.** The page is ~1,700 px at 1440×900: the masthead and the plan fill the first
-  screen, the live turn and the gate the second. The app opens a running session at the latest moment
-  (session-view's rule: the pending gate directly above the composer), which is the `#now` shots;
-  someone who scrolls up gets the masthead. The composer's sticky fade covers ~110 px of the column,
-  the same as the app's today.
-- **Anchored notes can collide** when two passages shorter than a note sit together (two approvals in
-  a row). The page avoids it by content; the app needs one pass that pushes a note down to clear the
-  one above it (Tufte-style sidenote stacking: measure, then `translate`), or CSS anchor positioning
-  with `position-try` where it exists.
-- **Numerals in Fraunces** depart from SYSTEM §3 (mono for counts). Here the figures sit inside prose
-  and bylines, where mono breaks the line's colour; the mono stays for times, estimates, commands and
-  ids, which are not read as part of a sentence. If the system keeps mono for every count, `.n` is one
-  class to drop and the page still stands.
-- **Paint.** No filters, no blur except the running head's backdrop, no canvas; the sweep animates
-  `background-position` on a pseudo-element with `opacity` (compositor only). The dotted guides and
-  hairlines are borders.
+  measure. SYSTEM §3 has not decided Instrument versus Fraunces/Inter (judge 3's first note); the page
+  stands on Instrument, as the stills show, but the numerals are its most exposed idea: Instrument
+  Serif has one weight and its figures are narrow, so `.n` at 13 px in the rail is small. If the
+  decision is Instrument, keep `.n` for the meter, the ledger and the ask (≥ 14 px) and let the rail
+  keep mono counts.
+- **Numerals in Fraunces** depart from BRIEF's "JetBrains Mono inside tool lines and numbers" and
+  SYSTEM §3's mono for counts. Here the figures sit inside prose and bylines where mono breaks the
+  line's colour; mono stays for times, estimates, commands and ids, which are not read as part of a
+  sentence. `.n` is one class to drop and the page still stands.
+- **Note stacking is a layout pass**, run on load, resize and fold toggles; in the app it also runs when
+  `VirtualList` mounts or re-measures a row, and it is ~0.1 ms for ten notes (`getBoundingClientRect`
+  per note, one `transform` write). CSS anchor positioning with `position-try` could replace it where
+  it exists, but Safari's support is partial; the pass is the safe path.
+- **The contents fold changes what is on screen** for someone who scrolls up to re-read: the plan and
+  the quote are behind a row until opened. The app already folds the past (replay's edge, the agent's
+  repeated calls); the row is the same move with a serif heading. "Open all" belongs in the head.
+- **Paint.** No filters, no blur except the running head's backdrop, no canvas; borders for the
+  hairlines and guides; the sweep is a pseudo-element on `background-position` + `opacity`.
+- **Targets.** Stars 24 px, segment buttons 24 px high, every other control ≥ 30 px.
 
 ## How it ports into `apps/web`
 
-1. **`apps/web/src/tokens.css`**: `--serif` and `--font` take Fraunces and Inter as their first
-   entries (Instrument stays second); add `--lh: 26px`, `--measure: 58ch` (today `600px`),
-   `--gutter-w`, `--margin-w`, `--margin-gap`, `--ring-person / --ring-agent / --ring-centre` (light
-   and both dark blocks, values in `index.html`'s `:root`), and the `.n` numeral class. The
-   `@font-face` rules and the two woff2 files go in `apps/web/index.html` and `public/fonts`.
-2. **`apps/web/src/stream/Message.tsx`** (`Stream`, `renderBlock`): the `.column` section becomes the
-   `.page` grid; a `human` block with the Goal label at the head of the session renders the
-   `.masthead` (kicker, `h1`, dek from the plan's budget); every other block renders a `.turn` with
-   `.gutter` (the numeral from the block's turn index) and `.body` (the `h2` from the block's
-   heading, the `.byline`, then the prose, the `ol.plan`, the `.quote` or the `.log`). The three
-   message shapes map one to one: `.msg.human` → heading + prose, `.msg.agent` → heading + prose +
-   `.log`, `.msg.team` → heading + `.quote` with the "to the team" note. `VirtualList` keeps working:
-   a note is inside its row, so windowing never orphans it; `estimateHeight` in
-   `stream/blocks.ts` adds the note's height on the phone where it is in flow.
-3. **`apps/web/src/stream/PlanCard.tsx`**: the card becomes the `ol.plan` ledger inside the agent's
-   turn; `.raters` (Bo and Dee's chips, the verdict line) move to the `.note.approved` in the margin,
-   `MiniStars` unchanged.
-4. **`apps/web/src/stream/ApprovalNotice.tsx`**: the notice becomes the `.decision` line in the
-   column (the `.kind` kicker as the "Release gate" pill, the `.ask` sentence, the rule) and the
-   `.note.gate` in the margin (`.votes`, `.rating` with the stars radiogroup, `.actions` with
-   *Approve with N* and Deny, the quorum segs). Same handlers, same copy keys.
-5. **`apps/web/src/stream/Composer.tsx`**: the floating card becomes the `.composer` bottom rule on
-   the page grid; the Agent/Team `.seg` stays and the `.to` row shows the recipients the toggle
-   implies; the steer line is the placeholder's suffix on desktop and the line under the field on
+1. **`apps/web/src/tokens.css`** (`--font`, `--serif`, `--mono` at lines 141–143; `--col` at 166): the
+   serif and sans take Fraunces and Inter first with Instrument second once SYSTEM §3 decides; add
+   `--lh: 26px`, `--measure: 52ch`, `--gutter-w`, `--margin-w`, `--margin-gap`, `--hand-ink`,
+   `--ring-person / --ring-agent / --ring-centre`, `--live-wash`, `--tick` (light and both dark blocks,
+   values in `index.html`'s `:root`) and the `.n` numeral class. The `@font-face` rules and the woff2
+   files go in `apps/web/index.html` and `public/fonts`.
+2. **`apps/web/src/stream/Message.tsx`** (`Stream`, `renderBlock`'s `human / agent / join / divider /
+   approval / plan` cases): the `.column` becomes the `.page` grid. The first `human` block with the
+   Goal label renders the `.masthead` (kicker from the author, time and scope; the h1; the dek from the
+   plan's step count and the gate rule). Every block before the latest agent turn renders a contents
+   row (`.fold .entry`: `<details>` with the row as summary and the block's current markup inside);
+   the latest `agent` block renders `.turn.live` (numeral from `block.turn`, the `h2` from the step's
+   `describeCall`, the `.byline`, the prose, `StepLine` rows as the `.log`); an `approval` block renders
+   `.turn.gate` with its note. `VirtualList` keeps working: a note is inside its row, so windowing never
+   orphans it; `estimateHeight` in `stream/blocks.ts` (line 427) adds 27 px for a folded row and, below
+   1296 px, the note's height for an unfolded one. The stacking pass runs in a `useLayoutEffect` on the
+   list's container after render and on `ResizeObserver`.
+3. **`apps/web/src/stream/blocks.ts`** (`BlockFolder`, `blocksOf`): no new block kinds; a `read: true`
+   flag on every block before the latest agent turn (or before the replay cursor) tells `renderBlock`
+   to fold it, and the turn's token count already on `AgentBlock` fills the row's `.n`.
+4. **`apps/web/src/stream/PlanCard.tsx`**: the card becomes the `ol.plan` ledger inside the folded row's
+   body; the raters (Bo and Dee's `MiniStars`, the verdict line) move to the `.note.compact` beside the
+   row as rating dots; `planSig` unchanged.
+5. **`apps/web/src/stream/ApprovalNotice.tsx`**: the notice becomes the `.gate .frame` in the column
+   (the kind pill, the ask, the rule sentence, the granted line) and the `.note.gate-note` in the margin
+   (Bo's row, `Stars` from `ui.tsx` as the radiogroup, *Approve with N* and Deny, the hint, the quorum
+   segments). Same handlers, same copy keys in `copy.ts`.
+6. **`apps/web/src/stream/Composer.tsx`** (`Composer`, `styles.css` `.composer-wrap` at 1338): the
+   floating card becomes `.composer-wrap > .composer > .paper`, sticky over the gutter and the measure
+   only; the Agent/Team `.seg` moves into the *To* row and the `.bar .to` stack becomes the serif
+   chips; the steer line (`.bar .how`) becomes the placeholder's suffix on desktop and stays a line on
    the phone.
-6. **`apps/web/src/ui.tsx`** (`Mark`): add the bare `ring` cut with the `--arc-*` custom properties
-   and a `who: "person" | "agent" | "both"` prop; `Avatar` keeps its circle and cornered square.
-7. **`apps/web/src/styles.css`** lines 927–960 (`.msg .meta`, `.msg .text`): replaced by the
-   `.turn`, `.byline`, `.prose`, `.plan`, `.quote`, `.log`, `.note` rules from `index.html`'s `<style>`,
-   plus the `≤ 720` block for the phone.
-8. **Nothing in the rail, the topbar's data or the kernel changes.** The running head reads the same
-   session fields it does today; only the token chip becomes the `.spend` numerals with the hairline.
+7. **`apps/web/src/stream/TokenMeter.tsx`**: the chip becomes the `.spend` numerals over the 3 px
+   hairline with the 80 % tick, in a fixed 150 px slot; the presence `Stack` gets `flex: none` beside it
+   (the title-row collision judge 2 found in three pages, fixed once).
+8. **`apps/web/src/ui.tsx`** (`Mark` at 77, `Stars` at 559, `Avatar` at 700): add the bare `ring` cut
+   with the `--p / --a / --c` presentation attributes and a `who: "person" | "agent" | "both"` prop;
+   `Stars` gains the `pre` state for the default; `Avatar` takes its initial colour from its fill.
+9. **`apps/web/src/styles.css`** lines 891–960 (`.column.page`, `.msg .meta`, `.msg .text`): replaced by
+   the `.page`, `.masthead`, `.fold`, `.turn`, `.byline`, `.prose`, `.plan`, `.quote`, `.log`, `.gate`
+   and `.note` rules from `index.html`'s `<style>`, plus the `≤ 1296` and `≤ 720` blocks. The
+   `.rail .agent` scoping matters: the exploration found `.agent` on the ring glyph picking up the
+   rail card's padding.
+10. **`apps/web/src/views/ReplayScrubber.tsx` and `views/Export.tsx` / `print.css`**: the same page with
+    every row folded except the viewed turn is the replay frame ("turn N · you are here" shares the
+    gutter numeral), and with every row open it is the export (judge 3's split: the masthead and the
+    gutter numerals into the stream now, the full page for replay and export). Nothing in the rail,
+    the topbar's data or the kernel changes.
 
 Accessibility (MOTION §11): the rings are `aria-hidden` and the byline carries the name and the state
 word; the meter has `role="meter"` with `aria-valuetext`; the stars are one `radiogroup` with roving
-tabindex and the word as the name; the live step is `aria-live="polite"`; the composer's label and
-the send's name say who hears it; the focus ring is chocolate by day and cream by night and never
-borrows the pulse; nothing flashes (the sweep is 0.6 Hz).
+tabindex and the word as the name; the log is `aria-live="polite"`; the composer's label and the
+send's name say who hears it; the focus ring is the hand's ink over a canvas halo and never borrows
+the pulse; nothing flashes (the sweep is 0.6 Hz). Contrast: `--ink-3` is used only for decoration
+(guides, hung numerals at 30 px, the "of"); readable secondary text is `--ink-2`.
 
 ## Open
 
-- Whether the brief should stay as a masthead when a session has several goals (a re-steer from
-  the project page): a second human directive could become a second masthead-sized heading, or an
-  ordinary turn whose heading is the new goal in italic. The exploration shows one goal.
-- The gutter numeral is the turn number; replay-scrubber's "turn N · you are here" wants the same
-  number, so the two should share the index.
-- Two notes closer than their own height collide (see The cost); the app needs the stacking pass
-  before this ships on a session with back-to-back approvals.
-- Fraunces figures at 13 px in the rail's cards are small; the rail could keep mono counts
-  (SYSTEM §6's `.tokens`) while the page takes the serif, if the two reading contexts are judged
-  different enough.
+- Instrument versus Fraunces/Inter (SYSTEM §3). The page is designed for Fraunces's optical axis and
+  shown in Instrument; re-measure the measure and the `.n` sizes once the face is chosen.
+- A session with several goals (a re-steer from the project page): a second directive could be a
+  second masthead-sized heading, or a turn whose heading is the new goal in italic. One goal shown.
+- Whether the contents ledger should open the plan row by default on a wide-enough window (the plan
+  is the most re-read passage), and whether "Open all" lives in the head or the gutter.
+- The margin folds on the window's width here; in the app it should fold on the main's width with a
+  container query so a folded rail buys the margin back.

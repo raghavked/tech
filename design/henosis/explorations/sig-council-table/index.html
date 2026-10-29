@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henosis · Council · the round table</title>
-<meta name="description" content="The signature element: a council drawn as a round table. Member models sit on a ring, the chair at twelve; every word lights an arc toward the centre, where the chair's plan forms; a dissent opens a gap in the ring.">
+<meta name="description" content="The signature element: a council drawn as the round table it is. Member models sit on a ring with the chair at twelve; every word they say lights an arc toward the centre, where the chair's plan forms; a dissent opens a gap in the ring; the people's vote fills their circles on the same drawing.">
 <style>
 /* -------------------------------------------------------------------------------------------
-   Tokens, inlined from design/henosis/tokens.v5.css (SYSTEM §2, §16). Self-contained: no @import,
-   no web font, no external asset. Fraunces and Inter are asked for first; the Instrument faces and
-   the system faces follow.
+   Tokens, inlined from design/henosis/tokens.v5.css (SYSTEM §2, §16) so the page is one file:
+   no @import, no font fetched, no external asset. Fraunces and Inter are asked for first (the
+   memos' faces); the Instrument faces and the system faces follow (SYSTEM §3 still ships Instrument).
    ------------------------------------------------------------------------------------------- */
 :root {
   --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
@@ -19,16 +19,17 @@
   --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2;
   --rail-active: rgba(226,196,166,.18); --rail-line: rgba(243,237,228,.10); --crease: #E2C4A6;
   --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
-  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30); --select-wash: rgba(226,196,166,.16); --select-line: rgba(207,167,130,.5);
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30);
+  --select-wash: rgba(226,196,166,.16); --select-line: rgba(207,167,130,.5);
   --glow: 0 0 0 4px rgba(226,196,166,.35);
   --count-bg: #CFA782; --count-fg: #2A3244; --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D;
-  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --grad-a: #2A3244; --grad-b: #56352D; --grad-fg: #F8F2EA;
+  --grad-a: #2A3244; --grad-b: #56352D; --gradient-brand: linear-gradient(135deg, var(--grad-a) 0%, var(--grad-b) 100%); --grad-fg: #F8F2EA;
   --ok: #4F7D4A; --ok-soft: rgba(79,125,74,.14); --ok-ink: #3E6639;
   --warn: #B9792E; --warn-soft: rgba(185,121,46,.14); --warn-ink: #7F5320;
   --danger: #A8463A; --danger-ink: #8E3A30;
   --star-on: #B4865C; --star-pre: #CFA782;
   --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
-  --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --rail-w: 296px;
+  --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --rail-w: 296px;
   --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --serif: "Fraunces", "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -36,21 +37,24 @@
   --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
   --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
   --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
-  --focus-ring: var(--accent);
+  --focus-ring: var(--accent); --focus-halo: rgba(226,196,166,.45);
   --motion: 0;                               /* 1 only inside the one guard (MOTION §3) */
-  /* the table: colour by ground (SYSTEM §5). On cream a model's arc is navy, a person is chocolate,
-     the centre is apricot. Nothing on the table is a fifth colour. */
-  --table-rest: rgba(42,50,68,.16);          /* a seat nobody has spoken from yet */
-  --table-lit: #2A3244;                      /* a model's arc: the agent's arc on cream */
-  --table-lit-soft: rgba(42,50,68,.55);      /* an earlier round's arc, settled */
+  /* The table, colour by ground (SYSTEM §5, brand-board's table): on cream a model's arc is navy,
+     a person is chocolate, the centre is the only apricot on the stage. Twelve properties; a team
+     look that retints the hand retints the people. Nothing on the table is a fifth colour. */
+  --table-rest: rgba(42,50,68,.22);          /* a seat nobody has spoken from yet: a hairline ring */
+  --table-lit: #2A3244;                      /* a model's word: the agent's arc on cream */
+  --table-settled: rgba(42,50,68,.42);       /* an earlier round's word, settled */
   --table-person: #56352D;                   /* a person: the hand */
-  --table-person-fg: #FFF8F1;
+  --table-person-ink: #56352D;               /* the person's initial on an unfilled circle */
+  --table-person-fg: #FFF8F1;                /* the initial on a filled circle */
   --table-centre: #E2C4A6;                   /* the synthesis: the centre, the lightest colour present */
   --table-centre-ink: #2A3244;
   --table-centre-ink-2: rgba(42,50,68,.72);
-  --table-ghost: rgba(42,50,68,.28);         /* the dashed ghost centre: no plan yet */
-  --table-halo: rgba(226,196,166,.55);       /* the pulse around whoever speaks or is waited for */
-  --table-tile-a: #2A3244; --table-tile-b: #56352D;
+  --table-ghost: rgba(42,50,68,.30);         /* the dashed ghost: no plan yet */
+  --table-halo: rgba(226,196,166,.6);        /* the pulse around whoever speaks or is waited for */
+  --table-rating: #B4865C;                   /* a person's rating on the ring: the picked star */
+  --table-rating-track: rgba(42,50,68,.14);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
@@ -60,23 +64,25 @@
   --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
   --rail-active: rgba(226,196,166,.12); --rail-line: rgba(240,234,224,.08); --crease: rgba(226,196,166,.55);
   --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
-  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
   --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6;
-  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%); --grad-a: #3A4661; --grad-b: #7A4B3E;
+  --grad-a: #3A4661; --grad-b: #7A4B3E;
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-ink: #E2847A;
   --star-on: #E2C4A6; --star-pre: #CFA782;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
   --focus-ring: var(--ink);
-  /* the dark canvas is a navy ground: a model's arc is apricot, a person is the lifted hand */
-  --table-rest: rgba(226,196,166,.16);
-  --table-lit: #E2C4A6; --table-lit-soft: rgba(226,196,166,.5);
-  --table-person: #9A5F4E; --table-person-fg: #FFF8F1;
+  /* the dark canvas is a navy ground: a model's word is apricot; a person is the lifted hand, the
+     initial on an unfilled circle is chocolate 300 (the dark avatar fix: 7.9 : 1, never dim chocolate) */
+  --table-rest: rgba(226,196,166,.18);
+  --table-lit: #E2C4A6; --table-settled: rgba(226,196,166,.46);
+  --table-person: #7A4B3E; --table-person-ink: #CAA49B; --table-person-fg: #FFF8F1;
   --table-centre: #E2C4A6; --table-centre-ink: #2A3244; --table-centre-ink-2: rgba(42,50,68,.72);
-  --table-ghost: rgba(226,196,166,.38);
+  --table-ghost: rgba(226,196,166,.40);
   --table-halo: rgba(226,196,166,.45);
-  --table-tile-a: #3A4661; --table-tile-b: #7A4B3E;
+  --table-rating: #E2C4A6; --table-rating-track: rgba(240,234,224,.16);
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
@@ -86,60 +92,61 @@
   --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
   --rail-active: rgba(226,196,166,.12); --rail-line: rgba(240,234,224,.08); --crease: rgba(226,196,166,.55);
   --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
-  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
+  --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
   --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6;
-  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%); --grad-a: #3A4661; --grad-b: #7A4B3E;
+  --grad-a: #3A4661; --grad-b: #7A4B3E;
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-ink: #E2847A;
   --star-on: #E2C4A6; --star-pre: #CFA782;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
   --focus-ring: var(--ink);
-  --table-rest: rgba(226,196,166,.16);
-  --table-lit: #E2C4A6; --table-lit-soft: rgba(226,196,166,.5);
-  --table-person: #9A5F4E; --table-person-fg: #FFF8F1;
+  --table-rest: rgba(226,196,166,.18);
+  --table-lit: #E2C4A6; --table-settled: rgba(226,196,166,.46);
+  --table-person: #7A4B3E; --table-person-ink: #CAA49B; --table-person-fg: #FFF8F1;
   --table-centre: #E2C4A6; --table-centre-ink: #2A3244; --table-centre-ink-2: rgba(42,50,68,.72);
-  --table-ghost: rgba(226,196,166,.38);
+  --table-ghost: rgba(226,196,166,.40);
   --table-halo: rgba(226,196,166,.45);
-  --table-tile-a: #3A4661; --table-tile-b: #7A4B3E;
+  --table-rating: #E2C4A6; --table-rating-track: rgba(240,234,224,.16);
   color-scheme: dark;
 }
 
-/* ---- the one guard (MOTION §3): every animation lives inside it; calm and reduce zero the clocks ---- */
+/* ---- the one guard (MOTION §3): every animation and every draw-in transition lives inside it;
+       Calm and reduce zero the clocks and the table sits at whatever event is asked for ---- */
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-motion="calm"]) { --motion: 1; }
-  :root:not([data-motion="calm"]) .mark.settle .arc.a { animation: arc-a-once .8s var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .mark.settle .arc.b { animation: arc-b-once .8s var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .mark.settle .dot   { animation: dot-once 1s var(--ease-arrive) both; }
   :root:not([data-motion="calm"]) .halo.speaking { animation: seat-breathe 1.8s var(--ease-move) infinite; }
-  :root:not([data-motion="calm"]) .person.waited .pring { animation: person-wait 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .person.waited .pwait { animation: person-wait 1.8s var(--ease-move) infinite; }
   :root:not([data-motion="calm"]) .centre.enter .disc { animation: centre-land 1s var(--ease-arrive) both; }
   :root:not([data-motion="calm"]) .centre.enter .ctext { animation: word-in .5s var(--ease-arrive) .55s both; }
-  :root:not([data-motion="calm"]) .said.enter, :root:not([data-motion="calm"]) .plan.enter, :root:not([data-motion="calm"]) .dissent-row.enter, :root:not([data-motion="calm"]) .vote.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .scrub .now { animation: dot-live 1.8s var(--ease-move) infinite; }
-  :root:not([data-motion="calm"]) .status.running::before { animation: dot-live 1.8s var(--ease-move) infinite; }
-  :root:not([data-motion="calm"]) .arc { transition: stroke-dashoffset .72s var(--ease-mark), opacity var(--t-slow) var(--ease-move); }
-  :root:not([data-motion="calm"]) .arc.enter { transition-duration: .9s; }
-  :root:not([data-motion="calm"]) .seg { transition: stroke-dasharray .8s var(--ease-mark), opacity var(--t-slow) var(--ease-move), stroke var(--t-slow) var(--ease-move); }
-  :root:not([data-motion="calm"]) .seat .tile, :root:not([data-motion="calm"]) .seat .person, :root:not([data-motion="calm"]) .seat .label { transition: transform .8s var(--ease-mark), opacity var(--t-slow) var(--ease-move); }
-  :root:not([data-motion="calm"]) .ghost { transition: opacity var(--t-slow) var(--ease-move), fill-opacity .6s var(--ease-move), stroke-dashoffset 1.2s var(--ease-move); }
-  :root:not([data-motion="calm"]) .owner { transition: stroke-dashoffset .6s var(--ease-mark) .5s, opacity var(--t-slow) var(--ease-move); }
-  :root:not([data-motion="calm"]) .dnote { transition: opacity .5s var(--ease-move) .4s, transform .8s var(--ease-mark) .4s; }
-  :root:not([data-motion="calm"]) .instruct { transition: stroke-dashoffset .5s var(--ease-mark), opacity var(--t) var(--ease-move); }
-  :root:not([data-motion="calm"]) .pfill { transition: fill-opacity .4s var(--ease-move) .3s; }
+  :root:not([data-motion="calm"]) .said.enter, :root:not([data-motion="calm"]) .plan.enter, :root:not([data-motion="calm"]) .dissent-row.enter, :root:not([data-motion="calm"]) .vote.enter, :root:not([data-motion="calm"]) .instr.enter { animation: card-in var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .scrub .now, :root:not([data-motion="calm"]) .status.running::before, :root:not([data-motion="calm"]) .dot.running { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .rnum.enter { animation: pop var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .table.ready .word { transition: stroke-dashoffset .72s var(--ease-mark), opacity var(--t-slow) var(--ease-move), stroke-width var(--t-slow) var(--ease-move); }
+  :root:not([data-motion="calm"]) .table.ready .word.enter { transition-duration: 1.05s, var(--t-slow), var(--t-slow); }
+  :root:not([data-motion="calm"]) .table.ready .wend { transition: opacity var(--t-slow) var(--ease-move) .6s, transform var(--t-slow) var(--ease-arrive) .6s; }
+  :root:not([data-motion="calm"]) .table.ready .seg { transition: stroke-dasharray .8s var(--ease-mark), stroke-width var(--t-slow) var(--ease-move), opacity var(--t-slow) var(--ease-move), stroke var(--t-slow) var(--ease-move); }
+  :root:not([data-motion="calm"]) .table.ready .seat .tile-g, :root:not([data-motion="calm"]) .table.ready .seat .person, :root:not([data-motion="calm"]) .table.ready .seat .label { transition: transform .8s var(--ease-mark), opacity var(--t-slow) var(--ease-move); }
+  :root:not([data-motion="calm"]) .table.ready .ghost { transition: opacity var(--t-slow) var(--ease-move), fill-opacity .6s var(--ease-move); }
+  :root:not([data-motion="calm"]) .table.ready .owner { transition: stroke-dashoffset .6s var(--ease-mark) .5s, opacity var(--t-slow) var(--ease-move); }
+  :root:not([data-motion="calm"]) .table.ready .dnote { transition: opacity .5s var(--ease-move) .4s, transform .8s var(--ease-mark) .4s; }
+  :root:not([data-motion="calm"]) .table.ready .instruct { transition: stroke-dashoffset .5s var(--ease-mark), opacity var(--t) var(--ease-move); }
+  :root:not([data-motion="calm"]) .table.ready .pfill { transition: fill-opacity .4s var(--ease-move) .3s; }
+  :root:not([data-motion="calm"]) .table.ready .prate { transition: stroke-dasharray .7s var(--ease-mark), opacity var(--t-slow) var(--ease-move); }
+  :root:not([data-motion="calm"]) .table.ready .ptrack, :root:not([data-motion="calm"]) .table.ready .pwait { transition: opacity var(--t-slow) var(--ease-move); }
+  :root:not([data-motion="calm"]) .table.ready .word, :root:not([data-motion="calm"]) .table.ready .seg, :root:not([data-motion="calm"]) .table.ready .seat .label, :root:not([data-motion="calm"]) .table.ready .seat .tile-g, :root:not([data-motion="calm"]) .table.ready .seat .person { transition-property: all; }
 }
 :root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
 
-@keyframes arc-a-once { 0% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 100% { transform: rotate(0) } }
-@keyframes arc-b-once { 0% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 100% { transform: rotate(0) } }
-@keyframes dot-once   { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
 @keyframes centre-land { 0% { transform: scale(.08); opacity: .4 } 70% { transform: scale(1.06); opacity: 1 } 100% { transform: scale(1); opacity: 1 } }
 @keyframes word-in { 0% { opacity: 0; transform: translateY(4px) } 100% { opacity: 1; transform: none } }
-@keyframes seat-breathe { 0% { opacity: .95; stroke-width: 14 } 70% { opacity: 0; stroke-width: 30 } 100% { opacity: 0; stroke-width: 30 } }
-@keyframes person-wait { 0% { opacity: .9; r: 15 } 70% { opacity: 0; r: 24 } 100% { opacity: 0; r: 24 } }
+@keyframes seat-breathe { 0% { opacity: .9; stroke-width: 9 } 70% { opacity: 0; stroke-width: 26 } 100% { opacity: 0; stroke-width: 26 } }
+@keyframes person-wait { 0% { opacity: .9; r: 19 } 70% { opacity: 0; r: 29 } 100% { opacity: 0; r: 29 } }
 @keyframes card-in { 0% { opacity: 0; transform: translateY(6px) } 100% { opacity: 1; transform: none } }
-@keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--apricot-soft) } 70% { box-shadow: 0 0 0 5px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
+@keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--dot-halo, var(--apricot-soft)) } 70% { box-shadow: 0 0 0 5px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
+@keyframes pop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: none; opacity: 1 } }
 
 /* ---- base ---- */
 * { box-sizing: border-box; }
@@ -151,11 +158,12 @@ h1, h2, h3 { margin: 0; letter-spacing: -.01em; text-wrap: balance; font-weight:
 .muted { color: var(--ink-2); } .faint { color: var(--ink-3); }
 .kicker { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 a { color: var(--accent-ink); text-decoration: none; }
-:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--apricot) 45%, transparent); }
-button { font: 500 14px/20px var(--font); }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); box-shadow: 0 0 0 6px var(--focus-halo); }
+button { font: 500 14px/20px var(--font); color: inherit; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .shell { display: flex; height: 100%; }
-/* rail (SYSTEM §6) */
+/* the rail (SYSTEM §6): the roster; the council is a thread inside #billing */
 .rail { width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 4px; border-right: 1px solid var(--crease); }
 .rail .brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 14px; font-family: var(--serif); font-size: 24px; }
 .rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; cursor: pointer; box-shadow: var(--shadow-soft); }
@@ -170,15 +178,16 @@ button { font: 500 14px/20px var(--font); }
 .rail .agent { display: flex; flex-direction: column; gap: 3px; padding: 9px 12px; border-radius: var(--radius); }
 .rail .agent .head { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 500; }
 .rail .agent .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
-.rail .agent .head .dot.running { background: #9BC88F; }
+.rail .agent .head .dot.running { background: #9BC88F; --dot-halo: rgba(155,200,143,.3); }
 .rail .agent .head .dot.awaiting { background: #E2B06A; }
+.rail .agent .head .own { font-weight: 400; color: var(--rail-muted); }
 .rail .agent .doing { font-size: 13px; color: var(--rail-muted); line-height: 18px; }
 .rail .agent .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
 .rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 14px; }
 .rail .me .avatar { border-color: var(--rail); }
 
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; isolation: isolate; overflow: hidden; }
-.main::before { content: ""; position: absolute; left: 10%; top: -220px; width: 760px; height: 520px; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; z-index: 0; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; isolation: isolate; overflow: clip; }
+.main::before { content: ""; position: absolute; left: 6%; top: -240px; width: 760px; height: 520px; max-width: 100%; border-radius: 50%; background: var(--wash); filter: blur(110px); pointer-events: none; z-index: 0; }
 .topbar { position: relative; z-index: 2; display: flex; align-items: center; gap: 12px; padding: 12px 22px; min-height: 56px; border-bottom: 1px solid var(--line); }
 .topbar .title { font-family: var(--serif); font-size: 20px; line-height: 24px; display: inline-flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; }
 .topbar .title .crumb { color: var(--ink-3); font-family: var(--font); font-size: 13.5px; }
@@ -187,65 +196,83 @@ button { font: 500 14px/20px var(--font); }
 .pill.round { background: var(--select-wash); color: var(--ink); box-shadow: inset 0 0 0 1px var(--select-line); }
 .pill.round::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot-deep); }
 .chip { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 11px; border-radius: var(--radius-full); background: var(--surface-2); font-size: 13px; color: var(--ink-2); }
-.chip .meter { width: 72px; height: 3px; border-radius: 2px; background: var(--surface-3); position: relative; overflow: visible; }
+.chip .meter { width: 72px; height: 3px; border-radius: 2px; background: var(--surface-3); position: relative; }
 .chip .meter i { position: absolute; left: 0; top: 0; height: 100%; border-radius: 2px; background: var(--apricot-deep); }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; box-shadow: var(--edge); transition: box-shadow var(--t-fast) var(--ease-move), transform var(--t) var(--ease-move); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; box-shadow: var(--edge); transition: box-shadow var(--t-fast) var(--ease-move), transform var(--t) var(--ease-move), background var(--t-fast) var(--ease-move); }
 .btn:hover { box-shadow: var(--shadow-soft), var(--edge); } .btn:active { transform: translateY(1px) scale(.99); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
 .btn.primary:hover { background: var(--accent-hover); }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
 .btn.sm { min-height: 30px; padding: 0 11px; font-size: 13px; }
+.btn.icon { width: 36px; padding: 0; font-size: 18px; }
 .btn.on { background: var(--select-wash); box-shadow: inset 0 0 0 1px var(--select-line); color: var(--ink); }
-.kbd { display: inline-block; min-width: 18px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--line); font: 500 11px/16px var(--mono); color: var(--ink-3); text-align: center; }
 
 .body { position: relative; z-index: 1; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 424px; }
 .stage { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 14px 8px 12px 22px; }
-.stage .task { display: flex; align-items: baseline; gap: 14px; padding: 0 6px 4px; }
+.stage .task { display: flex; align-items: baseline; gap: 14px; padding: 0 6px 2px; }
 .stage .task h1 { font-family: var(--serif); font-size: 26px; line-height: 32px; font-variation-settings: "opsz" 48, "SOFT" 40; }
 .stage .task h1 em { font-style: italic; color: var(--accent-ink); }
 .stage .task .by { font-size: 13px; color: var(--ink-3); white-space: nowrap; }
 .table-wrap { flex: 1; min-height: 0; display: grid; place-items: center; }
 svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overflow: visible; font-family: var(--font); }
 
-/* the table */
-.table .seg { fill: none; stroke: var(--table-rest); stroke-width: 11; stroke-linecap: round; }
-.table .seg.lit { stroke: var(--table-lit); }
-.table .seg.gap { stroke: var(--table-lit); }
-.table .halo { fill: none; stroke: var(--table-halo); stroke-width: 14; stroke-linecap: round; opacity: 0; }
-.table .arc { fill: none; stroke: var(--table-lit); stroke-width: 2.25; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; opacity: 0; }
-.table .arc.on { stroke-dashoffset: 0; opacity: .5; }
-.table .arc.on.r1 { opacity: .5; } .table .arc.on.r2 { opacity: .78; }
-.table .arc.on.latest { opacity: 1; stroke-width: 2.75; }
-.table .arc.differ { stroke-dasharray: .035 .025; }
-.table .arc .end { display: none; }
-.table .arcdot { fill: var(--table-lit); opacity: 0; transition: opacity var(--t-slow) var(--ease-move); }
-.table .arcdot.on { opacity: 1; }
-.table .arcdot.plus { fill: none; stroke: var(--table-lit); stroke-width: 2; }
+/* ---- the table: a thin ring until a model speaks; the lit segments are the only heavy navy ---- */
+.table .seg { fill: none; stroke: var(--table-rest); stroke-width: 4.5; stroke-linecap: round; }
+.table .seg.lit, .table .seg.gap { stroke: var(--table-lit); stroke-width: 6.5; }
+.table .tick { stroke: var(--table-lit); stroke-width: 1.5; stroke-linecap: round; opacity: .55; }
+.table .halo { fill: none; stroke: var(--table-halo); stroke-width: 9; stroke-linecap: round; opacity: 0; }
+/* a word: round one is a spoke that bends; round two runs along the table first, then turns in */
+.table .word { fill: none; stroke: var(--table-lit); stroke-width: 1.75; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; opacity: 0; }
+.table .word.on { stroke-dashoffset: 0; opacity: 1; stroke: var(--table-settled); }
+.table .word.on.r2 { stroke-width: 2.4; stroke: var(--table-lit); opacity: .82; }
+.table .word.on.latest { opacity: 1; stroke: var(--table-lit); stroke-width: 3; }
+.table .word.differ { stroke-dasharray: .034 .022; }
+.table .word.differ.on { stroke-dashoffset: 0; }
+.table .wend { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.4); }
+.table .wend.on { opacity: 1; transform: none; }
+.table .wend.agree { fill: var(--table-lit); }
+.table .wend.add { fill: var(--canvas); stroke: var(--table-lit); stroke-width: 2; }
+.table .wend.differ { fill: none; stroke: var(--warn); stroke-width: 2; stroke-linecap: round; }
 .table .instruct { fill: none; stroke: var(--table-person); stroke-width: 2.25; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; opacity: 0; }
 .table .instruct.on { stroke-dashoffset: 0; opacity: 1; }
-/* seats */
+/* seats: the attribution pair (ai-interfaces-avoid §8): the model's tile leads, its person behind it */
 .seat { cursor: pointer; outline: none; }
+.seat .hit { fill: transparent; }
 .seat .tile { fill: url(#tile); }
 .seat .tile-dot { fill: var(--apricot); }
-.seat .person .pfill { fill: var(--table-person); fill-opacity: 0; stroke: var(--table-person); stroke-width: 2; }
+.seat .person .pfill { fill: var(--table-person); fill-opacity: 0; stroke: var(--table-person); stroke-width: 1.75; }
 .seat .person.instructed .pfill { fill-opacity: 1; }
-.seat .person .pinit { font-family: var(--serif); font-size: 13px; fill: var(--table-person); text-anchor: middle; dominant-baseline: central; }
+.seat .person .pinit { font-family: var(--serif); font-size: 13.5px; fill: var(--table-person-ink); text-anchor: middle; dominant-baseline: central; }
 .seat .person.instructed .pinit { fill: var(--table-person-fg); }
-.seat .person .pring { fill: none; stroke: var(--table-halo); stroke-width: 2; opacity: 0; }
+/* the vote on the table: a five-segment ring around the person fills to their rating */
+.seat .person .ptrack { fill: none; stroke: var(--table-rating-track); stroke-width: 3; stroke-dasharray: .86 .14; opacity: 0; }
+.seat .person .prate { fill: none; stroke: var(--table-rating); stroke-width: 3; stroke-dasharray: 0 5; opacity: 0; }
+.seat .person .pcut { fill: none; stroke: var(--canvas); stroke-width: 4; stroke-dasharray: 0 .86 .14 0; stroke-dashoffset: -.86; opacity: 0; }
+.seat .person .pwait { fill: none; stroke: var(--table-halo); stroke-width: 2; opacity: 0; }
+.seat .person.voting .ptrack, .seat .person.voting .pcut { opacity: 1; }
+.seat .person.voting .prate { opacity: 1; }
+.seat .person.waited .ptrack { stroke-dasharray: .12 .13; }
+.seat .person .rnum { font-family: var(--serif); font-size: 14px; fill: var(--ink); text-anchor: middle; dominant-baseline: central; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.seat .person .rnum.on { opacity: 1; }
+.seat .person .rword { font-family: var(--serif); font-style: italic; font-size: 11.5px; fill: var(--ink-2); text-anchor: middle; opacity: 0; }
+.seat .person .rword.on { opacity: 1; }
 .seat .label .name { font-family: var(--serif); font-size: 20px; fill: var(--ink); font-variation-settings: "opsz" 20, "SOFT" 30; }
 .seat .label .owner { font-size: 12.5px; fill: var(--ink-2); }
+.seat .label .you { fill: var(--accent-ink); font-style: italic; font-family: var(--serif); font-size: 13px; }
 .seat .label .chair { font: 600 10.5px var(--font); letter-spacing: .08em; text-transform: uppercase; fill: var(--ink-3); }
 .seat .label .stance { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; fill: var(--ink-3); }
 .seat .label .stance.differ { fill: var(--warn-ink); }
 .seat .focus { fill: none; stroke: var(--focus-ring); stroke-width: 2; opacity: 0; }
 .seat:focus-visible { outline: 0; box-shadow: none; } .seat:focus-visible .focus { opacity: 1; }
-.table.dim .arc.on:not(.mine) { opacity: .14; }
-.table.dim .seg.lit:not(.mine) { opacity: .4; }
-.table.dim .seat:not(.mine) .label, .table.dim .seat:not(.mine) .tile, .table.dim .seat:not(.mine) .person { opacity: .45; }
-/* the centre */
+.table.dense .label .owner { display: none; }
+.table.dim .word.on:not(.mine), .table.dim .wend.on:not(.mine) { opacity: .12; }
+.table.dim .seg.lit:not(.mine) { opacity: .35; }
+.table.dim .seat:not(.mine) .label, .table.dim .seat:not(.mine) .tile-g, .table.dim .seat:not(.mine) .person { opacity: .4; }
+/* the centre: a dashed ghost while they deliberate; the plan, once the chair has written it */
 .centre .ghost { fill: var(--table-centre); fill-opacity: 0; stroke: var(--table-ghost); stroke-width: 1.5; stroke-dasharray: 6 7; }
 .centre .ghost.off { opacity: 0; }
 .centre .gtext { font-family: var(--serif); font-style: italic; font-size: 14.5px; fill: var(--ink-2); text-anchor: middle; }
+.centre .gcount { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-3); text-anchor: middle; letter-spacing: .02em; }
 .centre .disc { fill: var(--table-centre); transform-origin: center; transform-box: fill-box; }
 .centre .ctext { text-anchor: middle; }
 .centre .ctext .t1 { font-family: var(--serif); font-size: 23px; fill: var(--table-centre-ink); font-variation-settings: "opsz" 24, "SOFT" 40; }
@@ -257,31 +284,32 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
 .centre .onum { font-family: var(--serif); font-size: 12.5px; fill: var(--table-lit); text-anchor: middle; dominant-baseline: central; opacity: 0; transition: opacity var(--t-slow) var(--ease-move) .7s; }
 .centre .onum.on { opacity: 1; }
 .centre.off { display: none; }
-/* the dissent note */
+/* the dissent note: a margin note beside its passage (ai-interfaces-avoid §9), in the warn ink */
 .dnote { opacity: 0; transform: translateY(6px); }
 .dnote.on { opacity: 1; transform: none; }
 .dnote .dline { stroke: var(--warn); stroke-width: 1.25; stroke-dasharray: 2 3; fill: none; }
 .dnote .dk { font: 600 10.5px var(--font); letter-spacing: .08em; text-transform: uppercase; fill: var(--warn-ink); }
 .dnote .dt { font-family: var(--serif); font-style: italic; font-size: 14.5px; fill: var(--ink); }
 
-/* the scrubber (replay-scrubber's dot-per-turn row) */
-.scrub { display: flex; flex-direction: column; gap: 6px; padding: 6px 6px 0; }
+/* the scrubber (replay-scrubber's dot-per-turn row; 24 px targets) */
+.scrub { display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 0; }
 .scrub .rounds { display: grid; gap: 2px; }
 .scrub .rounds span { font: 600 10.5px/14px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); border-top: 2px solid var(--surface-3); padding-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.scrub .rounds span.done { border-top-color: var(--table-lit-soft); color: var(--ink-2); }
+.scrub .rounds span.done { border-top-color: var(--table-settled); color: var(--ink-2); }
 .scrub .rounds span.cur { border-top-color: var(--apricot-deep); color: var(--ink); }
-.scrub .dots { display: flex; align-items: center; gap: 2px; height: 22px; }
-.scrub .dots button { flex: 1; height: 22px; border: 0; background: transparent; padding: 0; cursor: pointer; display: grid; place-items: center; }
+.scrub .dots { display: flex; align-items: center; gap: 0; height: 24px; }
+.scrub .dots button { flex: 1; min-width: 24px; height: 24px; border: 0; background: transparent; padding: 0; cursor: pointer; display: grid; place-items: center; border-radius: 6px; }
 .scrub .dots button i { width: 6px; height: 6px; border-radius: 50%; background: var(--surface-3); display: block; transition: background var(--t-fast) var(--ease-move), transform var(--t-fast) var(--ease-move); }
-.scrub .dots button.done i { background: var(--table-lit-soft); }
+.scrub .dots button.done i { background: var(--table-settled); }
 .scrub .dots button.said i { width: 8px; height: 8px; }
 .scrub .dots button.now i { background: var(--apricot-deep); width: 10px; height: 10px; }
 .scrub .dots button:hover i { transform: scale(1.4); }
+.scrub .range { display: none; }
 .scrub .bar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
 .scrub .bar .what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scrub .bar .what b { font-weight: 500; color: var(--ink); font-family: var(--serif); font-size: 15px; }
 
-/* the ledger (right): what was said, round by round */
+/* the ledger (right): the same council as words, round by round (ai-interfaces-avoid §1) */
 .ledger { min-height: 0; overflow: auto; border-left: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 55%, transparent); padding: 18px 22px 120px; display: flex; flex-direction: column; gap: 18px; font-size: 14px; }
 .ledger .round { display: flex; flex-direction: column; gap: 10px; }
 .ledger .round > .h { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: baseline; }
@@ -299,18 +327,18 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
 .said .meta .stance { margin-left: auto; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--ink-2); }
 .said .meta .stance.differ { color: var(--warn-ink); }
 .said .meta .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
-.said .meta .stance + .n { margin-left: 0; }
-.said .meta .n:first-of-type:last-child { margin-left: auto; }
+.said .meta .n.alone { margin-left: auto; }
 .said .text { font-size: 13.5px; line-height: 20px; color: var(--ink-2); }
 .said .text .cite { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
 .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 600 11px/1 var(--font); border: 2px solid var(--canvas); flex: none; }
 .avatar.agent { border-radius: 9px 9px 9px 3px; background: linear-gradient(135deg, var(--grad-a), var(--grad-b)); position: relative; }
 .avatar.agent::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot); }
+.avatar.p { font: 400 12px var(--serif); background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--table-person); color: var(--table-person-ink); }
+.avatar.p.instructed { background: var(--table-person); color: var(--table-person-fg); }
 .pair { position: relative; width: 34px; height: 34px; }
 .pair .avatar { position: absolute; }
 .pair .avatar.agent { left: 0; top: 0; z-index: 1; }
-.pair .avatar.p { left: 10px; top: 10px; width: 24px; height: 24px; font: 400 12px var(--serif); background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--table-person); color: var(--table-person); }
-.pair .avatar.p.instructed { background: var(--table-person); color: var(--table-person-fg); }
+.pair .avatar.p { left: 10px; top: 10px; width: 24px; height: 24px; }
 .instr { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: baseline; padding: 6px 10px; margin: 0 -8px; border-left: 3px solid var(--table-person); font-size: 13px; line-height: 19px; color: var(--ink-2); }
 .instr.off { display: none; }
 .instr .who { font-family: var(--serif); font-size: 15px; color: var(--ink); }
@@ -339,7 +367,7 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
 .dissent-row .k { font: 600 10.5px/14px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--warn-ink); }
 .dissent-row .q { font-family: var(--serif); font-style: italic; font-size: 15px; line-height: 22px; color: var(--ink); }
 .dissent-row .w { color: var(--ink-2); }
-/* the vote (SYSTEM §10) */
+/* the vote (SYSTEM §10): votes as rows; the same ratings the table draws on the people */
 .vote { display: flex; flex-direction: column; gap: 10px; }
 .vote.off { display: none; }
 .vote .row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 5px 0; }
@@ -352,6 +380,7 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
 .vote .stars .word { font-family: var(--serif); font-style: italic; font-size: 13px; color: var(--ink-2); margin-left: 6px; }
 .vote .row.pending .stars { color: var(--ink-3); font-size: 13px; }
 .vote .sentence { font-family: var(--serif); font-size: 18px; line-height: 24px; color: var(--ink); padding-top: 4px; }
+.vote .rule { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
 .vote .actions { display: flex; gap: 8px; align-items: center; padding-top: 2px; }
 .vote .quorum { display: flex; gap: 3px; margin-left: auto; }
 .vote .quorum i { width: 18px; height: 4px; border-radius: 2px; background: var(--surface-3); }
@@ -361,11 +390,10 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
 .ledger .members .row .who { font-family: var(--serif); font-size: 15px; } .ledger .members .row .who span { font-family: var(--font); font-size: 12.5px; color: var(--ink-3); margin-left: 6px; }
 .status { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
 .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
-.status.running::before { background: var(--ok); box-shadow: 0 0 0 0 var(--ok-soft); }
+.status.running::before { background: var(--ok); --dot-halo: var(--ok-soft); }
 .status.awaiting::before { background: var(--warn); }
-.hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* mobile (390): the rail folds into a navy top block; the table first, the ledger under it */
+/* the phone (390): the rail folds into a navy top block; the table first, the ledger under it */
 .topblock { display: none; }
 @media (max-width: 760px) {
   .rail { display: none; }
@@ -373,10 +401,10 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
   .main::before { width: 420px; height: 320px; left: -40px; top: -140px; }
   .topblock { display: flex; flex-direction: column; gap: 4px; background: var(--rail); color: var(--rail-fg); padding: 14px 16px 12px; border-bottom: 1px solid var(--crease); position: relative; z-index: 2; }
   .topblock .row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--rail-muted); }
-  .topblock .row .back { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--rail-fg); background: var(--rail-2); margin-left: -6px; }
+  .topblock .row .back { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--rail-fg); background: var(--rail-2); margin-left: -6px; font-size: 20px; }
   .topblock .row .pill.round { margin-left: auto; background: rgba(226,196,166,.16); color: var(--rail-fg); box-shadow: inset 0 0 0 1px rgba(226,196,166,.38); }
   .topblock h1 { font-family: var(--serif); font-size: 22px; line-height: 28px; }
-  .topblock h1 em { color: var(--apricot); }
+  .topblock h1 em { color: var(--apricot); font-style: italic; }
   .topbar { display: none; }
   .body { display: block; }
   .stage { padding: 6px 12px 0; }
@@ -385,13 +413,27 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
   svg.table { max-height: none; }
   .seat .label .name { font-size: 24px; }
   .seat .label .owner { font-size: 15px; }
+  .seat .label .you { font-size: 15px; }
   .seat .label .chair { font-size: 12px; }
   .seat .label .stance { font-size: 13px; }
+  .seat .person .pinit { font-size: 15px; }
+  .seat .person .rnum { font-size: 16px; } .seat .person .rword { font-size: 13px; }
   .centre .ctext .t1 { font-size: 26px; } .centre .ctext .t2 { font-size: 13px; } .centre .ctext .t3 { font-size: 16px; } .centre .ctext .t4 { font-size: 14px; }
-  .centre .gtext { font-size: 17px; }
+  .centre .gtext { font-size: 17px; } .centre .gcount { font-size: 13px; }
   .dnote .dt { font-size: 17px; } .dnote .dk { font-size: 12px; }
-  .table .seg { stroke-width: 13; } .table .arc { stroke-width: 2.75; } .table .arc.on.latest { stroke-width: 3.25; }
+  .table .seg { stroke-width: 5; } .table .seg.lit, .table .seg.gap { stroke-width: 8; }
+  .table .word { stroke-width: 2.1; } .table .word.on.r2 { stroke-width: 2.8; } .table .word.on.latest { stroke-width: 3.4; }
+  .centre .onum { font-size: 15px; }
+  /* the scrubber on the phone: the dots are 17 px apart at 390, so the clock is a slider and two 44 px keys */
   .scrub { padding: 4px 2px 0; }
+  .scrub .dots { display: none; }
+  .scrub .range { display: block; width: 100%; height: 28px; margin: 0; -webkit-appearance: none; appearance: none; background: transparent; }
+  .scrub .range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--table-settled) var(--pct), var(--surface-3) 0); }
+  .scrub .range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: var(--apricot-deep); border: 3px solid var(--canvas); box-shadow: 0 0 0 1px var(--select-line); }
+  .scrub .range::-moz-range-track { height: 4px; border-radius: 2px; background: var(--surface-3); }
+  .scrub .range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--table-settled); }
+  .scrub .range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--apricot-deep); border: 3px solid var(--canvas); }
+  .scrub .bar .btn.icon { width: 44px; min-height: 44px; }
   .ledger { border-left: 0; border-top: 1px solid var(--line); padding: 16px 16px 96px; background: transparent; }
   .sticky-act { display: flex; position: sticky; bottom: 0; z-index: 3; padding: 10px 16px 18px; gap: 8px; background: linear-gradient(to top, var(--canvas) 70%, transparent); }
   .sticky-act .btn { flex: 1; min-height: 44px; }
@@ -404,13 +446,13 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" style="stop-color: var(--table-tile-a)"/>
-      <stop offset="1" style="stop-color: var(--table-tile-b)"/>
+      <stop offset="0" style="stop-color: var(--grad-a)"/>
+      <stop offset="1" style="stop-color: var(--grad-b)"/>
     </linearGradient>
     <symbol id="mark-small" viewBox="0 0 96 96">
       <circle cx="48" cy="48" r="48" style="fill:var(--mark-disc)"/>
-      <path class="arc a" d="M48 19 A29 29 0 0 1 48 77" style="stroke:var(--mark-arc-a)" stroke-width="13" fill="none" stroke-linecap="round"/>
-      <path class="arc b" d="M48 77 A29 29 0 0 1 48 19" style="stroke:var(--mark-arc-b)" stroke-width="13" fill="none" stroke-linecap="round"/>
+      <path d="M48 19 A29 29 0 0 1 48 77" style="stroke:var(--mark-arc-a)" stroke-width="13" fill="none" stroke-linecap="round"/>
+      <path d="M48 77 A29 29 0 0 1 48 19" style="stroke:var(--mark-arc-b)" stroke-width="13" fill="none" stroke-linecap="round"/>
       <circle cx="48" cy="48" r="8.5" style="fill:var(--mark-dot)"/>
     </symbol>
     <symbol id="star" viewBox="0 0 24 24"><path d="M12 2.6l2.9 6.1 6.7.8-4.9 4.6 1.3 6.6L12 17.4l-6 3.3 1.3-6.6L2.4 9.5l6.7-.8z"/></symbol>
@@ -418,7 +460,6 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
 </svg>
 
 <div class="shell">
-  <!-- rail (SYSTEM §6): the roster; the council is a thread inside #billing -->
   <nav class="rail" aria-label="Rail">
     <div class="brand"><svg width="24" height="24" aria-hidden="true"><use href="#mark-small"/></svg><span>Henosis</span></div>
     <button class="new">New session</button>
@@ -432,10 +473,10 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
     <a class="item" href="#">#checkout</a>
     <a class="item" href="#">#payments</a>
     <div class="section">Agents <span class="n">5</span></div>
-    <div class="agent"><div class="head"><span class="dot running"></span>Checkout <span class="faint" style="font-weight:400;color:var(--rail-muted)">· Ana's</span></div><div class="doing">in the council · <i>said its word</i></div></div>
-    <div class="agent"><div class="head"><span class="dot awaiting"></span>Ledger <span style="font-weight:400;color:var(--rail-muted)">· Dee's · chair</span></div><div class="doing">the plan <i>waits for Ana and Cy</i></div></div>
-    <div class="agent"><div class="head"><span class="dot"></span>Tax lines <span style="font-weight:400;color:var(--rail-muted)">· Cy's</span></div><div class="doing">holds a <i>dissent</i> beside the plan</div></div>
-    <div class="agent"><div class="head"><span class="dot"></span>Invoice <span style="font-weight:400;color:var(--rail-muted)">· Bo's</span></div><div class="doing">owns <i>step 2</i> once the plan is approved</div></div>
+    <div class="agent"><div class="head"><span class="dot running"></span>Checkout <span class="own">· Ana's</span></div><div class="doing">in the council · <i>said its word</i></div></div>
+    <div class="agent"><div class="head"><span class="dot awaiting"></span>Ledger <span class="own">· Dee's · chair</span></div><div class="doing">the plan <i>waits for you</i></div></div>
+    <div class="agent"><div class="head"><span class="dot"></span>Tax lines <span class="own">· Cy's</span></div><div class="doing">holds a <i>dissent</i> beside the plan</div></div>
+    <div class="agent"><div class="head"><span class="dot"></span>Invoice <span class="own">· Bo's</span></div><div class="doing">owns <i>step 2</i> once the plan is approved</div></div>
     <div class="me"><span class="avatar" style="background:var(--apricot);color:#2A3244">A</span>Ana <span style="color:var(--rail-muted)">· Payments</span></div>
   </nav>
 
@@ -464,15 +505,16 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
         <div class="table-wrap">
           <svg class="table" id="table" viewBox="0 0 800 760" role="img" aria-labelledby="tableTitle tableDesc">
             <title id="tableTitle">The council's table</title>
-            <desc id="tableDesc">Five member models around a ring, Ledger in the chair at twelve. Every word they said is an arc toward the centre, where the chair's plan has formed. Tax lines holds a dissent, drawn as a gap in the ring beside its seat.</desc>
+            <desc id="tableDesc">Five member models around a ring, Ledger in the chair at twelve. Every word they said is an arc toward the centre, where the chair's plan has formed. Tax lines holds a dissent, drawn as a gap in the ring beside its seat. The people's ratings fill the rings around their circles.</desc>
           </svg>
         </div>
         <div class="scrub" id="scrub" aria-label="The council's clock">
           <div class="rounds" id="scrubRounds"></div>
           <div class="dots" id="scrubDots" role="group" aria-label="Events"></div>
+          <input class="range" id="scrubRange" type="range" min="0" max="0" value="0" aria-label="Event">
           <div class="bar">
-            <button class="btn sm ghost" id="prevBtn" aria-label="Earlier (left arrow)">‹</button>
-            <button class="btn sm ghost" id="nextBtn" aria-label="Later (right arrow)">›</button>
+            <button class="btn sm ghost icon" id="prevBtn" aria-label="Earlier (left arrow)">‹</button>
+            <button class="btn sm ghost icon" id="nextBtn" aria-label="Later (right arrow)">›</button>
             <span class="what" id="what"></span>
             <span class="mono faint" id="clock"></span>
           </div>
@@ -488,20 +530,21 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
 <script>
 /* -------------------------------------------------------------------------------------------
    The council as a round table. One model object shaped like packages/chat's folded Council
-   (chair, members, rounds of `said`, instructions, synthesis with dissent, the vote) and a list
-   of its events; the table is drawn once and every state is a class on an element, so the
-   scrubber, the replay and Calm all read the same drawing. The draw-ins are CSS transitions on
-   stroke-dashoffset (pathLength = 1) under the one guard; under Calm every clock is zero and the
-   table simply sits at the state asked for.
+   (chair, members, rounds of `said`, instructions, synthesis with dissent) plus the chair
+   session's vote, and the list of the council's events; the table is drawn once and every state
+   is a class on an element, so the scrubber, the replay, ?at= and Calm all read one drawing.
+   The draw-ins are CSS transitions on stroke-dashoffset (pathLength = 1) under the one guard;
+   under Calm every clock is zero and the table sits at the state asked for.
    ------------------------------------------------------------------------------------------- */
 (function () {
   const M = [
     { id: "ledger",   name: "Ledger",    owner: "Dee", chair: true },
-    { id: "checkout", name: "Checkout",  owner: "Ana" },
+    { id: "checkout", name: "Checkout",  owner: "Ana", you: true },
     { id: "taxlines", name: "Tax lines", owner: "Cy" },
     { id: "invoice",  name: "Invoice",   owner: "Bo" },
     { id: "payments", name: "Payments",  owner: null, shared: true },
   ];
+  const PEOPLE = ["Ana", "Bo", "Cy", "Dee"];
   const STEPS = [
     { n: 1, title: "Store the proration credit on the subscription", owner: "checkout", est: 2400, risk: "write" },
     { n: 2, title: "Draw the credit as its own line on the invoice PDF", owner: "invoice", est: 3100, risk: "write" },
@@ -509,6 +552,7 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
     { n: 4, title: "Backfill September with the downgrade script", owner: "payments", est: 2400, risk: "exec" },
   ];
   const DISSENT = { m: "taxlines", text: "The plan rounds tax with the invoice total. It should round per tax line, or Finance's export is a cent out on about 3 % of invoices." };
+  const WORDS = { 1: "not yet", 2: "risky", 3: "fine", 4: "good", 5: "ship it" };
   // the council's events, in the order the group's log holds them
   const E = [
     { k: "convened", t: "09:12", what: "Dee convenes the council on the task · 5 models · 12,000 tokens" },
@@ -529,27 +573,33 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
     { k: "synthesised", m: "ledger", t: "09:17", n: 1650, what: "Ledger writes the plan: 4 steps, one owner each · Tax lines dissents" },
     { k: "round", round: "vote", index: 0, t: "09:17", what: "Round · vote · the people rate the plan" },
     { k: "rated", by: "Bo", n: 4, t: "09:19", what: "Bo rates the plan 4 · good" },
-    { k: "rated", by: "Dee", n: 5, t: "09:21", what: "Dee rates the plan 5 · exactly this" },
+    { k: "rated", by: "Dee", n: 5, t: "09:21", what: "Dee rates the plan 5 · ship it" },
+    { k: "rated", by: "Cy", n: 3, t: "09:22", what: "Cy rates the plan 3 · fine, with the dissent noted" },
   ];
   const BUDGET = 12000;
   const ROUND_LABEL = { individual: "individual", discussion: "discussion 1", synthesis: "synthesis", vote: "vote" };
 
-  // ---- geometry ----
-  const CX = 400, CY = 372, R = 252, RC = 104, N = M.length;
-  const seatAngle = (i) => i * 360 / N;                       // 0 = twelve o'clock, clockwise
-  const pt = (a, r) => { const t = (a - 90) * Math.PI / 180; return [CX + r * Math.cos(t), CY + r * Math.sin(t)]; };
+  // ---- geometry: 0° at twelve, clockwise; the chair is seat 0 ----
+  const CX = 400, CY = 374, R = 250, RC = 102, N = M.length;
+  const seatAngle = (i) => i * 360 / N;
+  const rad = (a) => (a - 90) * Math.PI / 180;
+  const pt = (a, r) => [CX + r * Math.cos(rad(a)), CY + r * Math.sin(rad(a))];
   const f = (n) => n.toFixed(2);
   const arcPath = (a0, a1, r) => { const [x0, y0] = pt(a0, r), [x1, y1] = pt(a1, r); return `M${f(x0)} ${f(y0)} A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${f(x1)} ${f(y1)}`; };
-  // a word: from the seat, along the table, curling inward and arriving tangent to the centre
-  const spiral = (a0, a1, r0, r1) => {
+  // a word: angle linear from a0 to a1; radius holds near the table for `hold` of the way, then
+  // eases inward on a smoothstep so it leaves tangent to the table and arrives tangent to the disc
+  const wordPath = (a0, a1, r0, r1, hold) => {
     const pts = [];
-    for (let i = 0; i <= 36; i++) { const t = i / 36, s = t * t * (3 - 2 * t); const a = a0 + (a1 - a0) * t, r = r0 + (r1 - r0) * s; const [x, y] = pt(a, r); pts.push(`${f(x)} ${f(y)}`); }
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40, u = Math.max(0, (t - hold) / (1 - hold)), s = u * u * (3 - 2 * u);
+      const [x, y] = pt(a0 + (a1 - a0) * t, r0 + (r1 - r0) * s); pts.push(`${f(x)} ${f(y)}`);
+    }
     return "M" + pts.join(" L");
   };
   const tilePath = (s, r, rb) => `M${-s/2 + r} ${-s/2} H${s/2 - r} A${r} ${r} 0 0 1 ${s/2} ${-s/2 + r} V${s/2 - r} A${r} ${r} 0 0 1 ${s/2 - r} ${s/2} H${-s/2 + rb} A${rb} ${rb} 0 0 1 ${-s/2} ${s/2 - rb} V${-s/2 + r} A${r} ${r} 0 0 1 ${-s/2 + r} ${-s/2} Z`;
   const svgNS = "http://www.w3.org/2000/svg";
   const el = (tag, attrs, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
-  const text = (parent, x, y, cls, str, attrs) => { const t = el("text", Object.assign({ x, y, class: cls }, attrs || {}), parent); t.textContent = str; return t; };
+  const text = (parent, x, y, cls, str, attrs) => { const t = el("text", Object.assign({ x: f(x), y: f(y), class: cls }, attrs || {}), parent); t.textContent = str; return t; };
   const fmt = (n) => n.toLocaleString("en-GB");
 
   const svg = document.getElementById("table");
@@ -558,122 +608,136 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
   const gSeats = el("g", { class: "seats" }, svg);
   const gCentre = el("g", { class: "centre" }, svg);
   const gNotes = el("g", { class: "notes" }, svg);
-
+  if (N > 7) svg.classList.add("dense");
 
   // ---- seats and their segments ----
   const HALF = 180 / N, GAP = 3.2;
   const seats = {};
+  const byId = (id) => M.find((m) => m.id === id);
   M.forEach((m, i) => {
     const a = seatAngle(i);
     const halo = el("path", { class: "halo", d: arcPath(a - HALF + GAP, a + HALF - GAP, R) }, gRing);
     const seg = el("path", { class: "seg", d: arcPath(a - HALF + GAP, a + HALF - GAP, R), pathLength: 1, "data-m": m.id }, gRing);
-    const g = el("g", { class: "seat", "data-m": m.id, tabindex: 0, role: "button", "aria-label": `${m.name}, ${m.shared ? "the team's shared model" : m.owner + "'s model"}${m.chair ? ", the chair" : ""}` }, gSeats);
+    if (m.chair) { const [tx0, ty0] = pt(a, R - 12), [tx1, ty1] = pt(a, R - 20); el("line", { class: "tick", x1: f(tx0), y1: f(ty0), x2: f(tx1), y2: f(ty1) }, gRing); }
+    const label = `${m.name}, ${m.shared ? "the team's shared model" : m.owner + "'s model"}${m.chair ? ", the chair" : ""}${m.you ? " (yours)" : ""}`;
+    const g = el("g", { class: "seat", "data-m": m.id, tabindex: 0, role: "button", "aria-label": label }, gSeats);
     const [sx, sy] = pt(a, R);
-    const [ox, oy] = pt(a, R + 1);                              // outward unit vector
-    const ux = (ox - sx), uy = (oy - sy);
+    const ux = Math.cos(rad(a)), uy = Math.sin(rad(a));
     const S = m.chair ? 52 : 46;
-    const focus = el("circle", { class: "focus", cx: f(sx), cy: f(sy), r: S / 2 + 8 }, g);
-    // the attribution pair: the model's tile leads, its person sits behind, a step outward
+    el("circle", { class: "hit", cx: f(sx + ux * 14), cy: f(sy + uy * 14), r: 40 }, g);   /* a 24 px+ target at any size */
+    el("circle", { class: "focus", cx: f(sx), cy: f(sy), r: S / 2 + 8 }, g);
+    // the attribution pair: the model's tile leads, its person sits behind it, a step outward
     let person = null;
     if (m.owner) {
-      person = el("g", { class: "person", transform: `translate(${f(sx + ux * (S / 2 + 11))} ${f(sy + uy * (S / 2 + 11))})` }, g);
-      el("circle", { class: "pring", r: 15 }, person);
+      person = el("g", { class: "person" }, g);
+      el("circle", { class: "pwait", r: 19 }, person);
+      el("circle", { class: "ptrack", r: 19, pathLength: 5, transform: "rotate(-90)" }, person);
+      el("circle", { class: "prate", r: 19, pathLength: 5, transform: "rotate(-90)" }, person);
+      el("circle", { class: "pcut", r: 19, pathLength: 5, transform: "rotate(-90)" }, person);
       el("circle", { class: "pfill", r: 13.5 }, person);
       text(person, 0, 0.5, "pinit", m.owner[0]);
+      // the rating: the number on the outward side of the circle, the word under it
+      const nx = ux * 27, ny = uy * 27;
+      text(person, nx, ny, "rnum", "");
+      text(person, nx, ny + 15, "rword", "");
+      seats[m.id] = { person, rnum: person.querySelector(".rnum"), rword: person.querySelector(".rword") };
     }
     const tile = el("g", { class: "tile-g", transform: `translate(${f(sx)} ${f(sy)})` }, g);
     el("path", { class: "tile", d: tilePath(S, 13, 4) }, tile);
     el("circle", { class: "tile-dot", r: m.chair ? 6.5 : 5.5 }, tile);
-    // the label, outside the ring, anchored by where it sits
-    const [lx, ly] = pt(a, R + 58);
-    const cos = Math.cos((a - 90) * Math.PI / 180), sin = Math.sin((a - 90) * Math.PI / 180);
+    // the label outside the ring, anchored by where it sits (data-craft §8: direct labels, no legend)
+    const [lx, ly] = pt(a, R + 60);
+    const cos = ux, sin = uy;
     const anchor = Math.abs(cos) < .25 ? "middle" : cos < 0 ? "end" : "start";
-    const label = el("g", { class: "label" }, g);
+    const lg = el("g", { class: "label" }, g);
     const top = sin < -.5;
-    const base = top ? ly - 48 : sin > .5 ? ly + 26 : ly + 8;
-    if (m.chair) text(label, lx, base - 22, "chair", "chair", { "text-anchor": anchor });
-    text(label, lx, base, "name", m.name, { "text-anchor": anchor });
-    text(label, lx, base + 18, "owner", m.shared ? "the team's" : `${m.owner}'s model`, { "text-anchor": anchor });
-    const stance = text(label, lx, base + 36, "stance", "", { "text-anchor": anchor });
-    seats[m.id] = { m, i, a, seg, halo, g, tile, person, label, stance, sx, sy, ux, uy };
-    g.addEventListener("mouseenter", () => focusMember(m.id, true));
-    g.addEventListener("mouseleave", () => focusMember(null, true));
-    g.addEventListener("focus", () => focusMember(m.id, true));
-    g.addEventListener("blur", () => focusMember(null, true));
+    const base = top ? ly - 48 : sin > .5 ? ly + 28 : ly + 8;
+    if (m.chair) text(lg, lx, base - 22, "chair", "chair", { "text-anchor": anchor });
+    text(lg, lx, base, "name", m.name, { "text-anchor": anchor });
+    const ownerT = text(lg, lx, base + 18, "owner", m.shared ? "the team's" : `${m.owner}'s model`, { "text-anchor": anchor });
+    if (m.you) { const y = el("tspan", { class: "you", dx: 5 }, ownerT); y.textContent = "yours"; }
+    const stance = text(lg, lx, base + 36, "stance", "", { "text-anchor": anchor });
+    seats[m.id] = Object.assign(seats[m.id] || {}, { m, i, a, seg, halo, g, tile, label: lg, stance, sx, sy, ux, uy, S });
+    g.addEventListener("mouseenter", () => focusMember(m.id));
+    g.addEventListener("mouseleave", () => focusMember(null));
+    g.addEventListener("focus", () => focusMember(m.id));
+    g.addEventListener("blur", () => focusMember(null));
     g.addEventListener("click", () => { const row = ledger.querySelector(`.said[data-m="${m.id}"]:not(.off)`); if (row) row.scrollIntoView({ block: "center", behavior: motion() ? "smooth" : "auto" }); });
+    g.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); g.click(); } });
   });
 
   // ---- the words: one arc per `said`, drawn once, lit by state ----
-  const words = [];     // { idx, path, dot, m }
-  const instructs = []; // { idx, path }
-  const roundCount = {};
+  // Round one (individual) is a spoke that bends: it leaves its seat and turns in at once.
+  // Round two (discussion) runs along the inside of the table first, past what the others said,
+  // and only then turns in: a reply has been around the table before it reaches the centre.
+  const words = [];     // { idx, path, end, m, e }
+  const instructs = []; // { idx, path, m }
+  const nth = {};
   E.forEach((e, idx) => {
     if (e.k === "said") {
       const s = seats[e.m];
-      const nth = roundCount[e.m] = (roundCount[e.m] || 0) + 1;      // 1st word curls near the seat, the 2nd beside it
-      const a0 = s.a - 6 + (nth - 1) * 11, a1 = s.a + 30 + (nth - 1) * 16;
-      const r0 = R - 7, r1 = RC + 3;
-      const d = spiral(a0, a1, r0, r1);
-      const path = el("path", { class: `arc r${nth}${e.stance === "differ" ? " differ" : ""}`, d, pathLength: 1, "data-m": e.m }, gWords);
-      let dot = null;
-      const [ex, ey] = pt(a1, r1);
-      if (e.stance === "add") dot = el("circle", { class: "arcdot", cx: f(ex), cy: f(ey), r: 4, "data-m": e.m }, gWords);
-      else if (e.stance === "agree") dot = el("circle", { class: "arcdot", cx: f(ex), cy: f(ey), r: 2.6, "data-m": e.m }, gWords);
-      words.push({ idx, path, dot, m: e.m, e });
+      const k = nth[e.m] = (nth[e.m] || 0) + 1;
+      const r1 = e.round === "individual";
+      const a0 = r1 ? s.a + 3 : s.a - 5, a1 = r1 ? s.a + 15 : s.a + 42;
+      const hold = r1 ? 0 : .42;
+      const d = wordPath(a0, a1, R - 7, RC + 3, hold);
+      const path = el("path", { class: `word r${k}${e.stance === "differ" ? " differ" : ""}`, d, pathLength: 1, "data-m": e.m }, gWords);
+      let end = null;
+      const [ex, ey] = pt(a1, RC + 3);
+      if (e.stance === "agree") end = el("circle", { class: "wend agree", cx: f(ex), cy: f(ey), r: 3, "data-m": e.m }, gWords);
+      else if (e.stance === "add") end = el("circle", { class: "wend add", cx: f(ex), cy: f(ey), r: 4, "data-m": e.m }, gWords);
+      else if (e.stance === "differ") { const [bx, by] = pt(a1, RC + 9), [cx2, cy2] = pt(a1, RC - 3); end = el("path", { class: "wend differ", d: `M${f(bx)} ${f(by)} L${f(cx2)} ${f(cy2)}`, "data-m": e.m }, gWords); }
+      words.push({ idx, path, end, m: e.m, e });
     } else if (e.k === "instructed") {
       const s = seats[e.m];
-      const [px, py] = [s.sx + s.ux * 34, s.sy + s.uy * 34];
+      const [px, py] = [s.sx + s.ux * 36, s.sy + s.uy * 36];
       const [qx, qy] = [s.sx + s.ux * 8, s.sy + s.uy * 8];
       const path = el("path", { class: "instruct", d: `M${f(px)} ${f(py)} L${f(qx)} ${f(qy)}`, pathLength: 1 }, gWords);
       instructs.push({ idx, path, m: e.m });
     }
   });
-  // segments sit above the words so a word visibly departs from under its seat
   svg.appendChild(gRing); svg.appendChild(gSeats); svg.appendChild(gCentre); svg.appendChild(gNotes);
 
   // ---- the centre: a ghost while they deliberate, the plan once the chair has written it ----
-  const ghost = el("circle", { class: "ghost", cx: CX, cy: CY, r: RC, pathLength: 1 }, gCentre);
+  const ghost = el("circle", { class: "ghost", cx: CX, cy: CY, r: RC }, gCentre);
   const gtext = el("text", { class: "gtext", x: CX, y: CY - 6 }, gCentre);
   const gt1 = el("tspan", { x: CX, dy: 0 }, gtext); gt1.textContent = "the plan";
   const gt2 = el("tspan", { x: CX, dy: 20 }, gtext); gt2.textContent = "forms here";
+  const gcount = text(gCentre, CX, CY + 40, "gcount", "");
   const centre = el("g", { class: "centre off" }, gCentre);
-  const disc = el("circle", { class: "disc", cx: CX, cy: CY, r: RC }, centre);
+  el("circle", { class: "disc", cx: CX, cy: CY, r: RC }, centre);
   const owners = {};
   STEPS.forEach((st) => {
     const s = seats[st.owner];
     const o = el("path", { class: "owner", d: arcPath(s.a - 7, s.a + 7, RC - 1), pathLength: 1 }, centre);
     const [nx, ny] = pt(s.a, RC - 13);
-    const num = text(centre, nx, ny, "onum", String(st.n));
-    owners[st.n] = { o, num };
+    owners[st.n] = { o, num: text(centre, nx, ny, "onum", String(st.n)) };
   });
   const ctext = el("text", { class: "ctext", x: CX, y: CY - 22 }, centre);
   const c1 = el("tspan", { class: "t1", x: CX, dy: 0 }, ctext); c1.textContent = "The plan";
   const c2 = el("tspan", { class: "t2", x: CX, dy: 22 }, ctext); c2.textContent = "4 steps · 1 owner each";
   const c2b = el("tspan", { class: "t2", x: CX, dy: 15 }, ctext); c2b.textContent = "est. 9,800 tokens";
-  const c3 = el("tspan", { class: "t3", x: CX, dy: 24 }, ctext); c3.textContent = "";
-  const c4 = el("tspan", { class: "t4", x: CX, dy: 17 }, ctext); c4.textContent = "";
+  const c3 = el("tspan", { class: "t3", x: CX, dy: 24 }, ctext);
+  const c4 = el("tspan", { class: "t4", x: CX, dy: 17 }, ctext);
 
   // ---- the dissent note, beside the open seat ----
   const dn = seats[DISSENT.m];
   const dnote = el("g", { class: "dnote" }, gNotes);
   {
-    const [ax, ay] = pt(dn.a + 26, R + 4);
-    const [bx, by] = pt(dn.a + 26, R + 60);
+    const [ax, ay] = pt(dn.a + 26, R + 4), [bx, by] = pt(dn.a + 26, R + 60);
     el("path", { class: "dline", d: `M${f(ax)} ${f(ay)} L${f(bx)} ${f(by)}` }, dnote);
     const [tx, ty] = pt(dn.a + 26, R + 70);
-    const lines = ["Tax lines holds that the credit's tax", "should round per line, not with the", "invoice total."];
     text(dnote, tx, ty + 4, "dk", "dissent", { "text-anchor": "start" });
-    lines.forEach((l, i) => text(dnote, tx, ty + 24 + i * 19, "dt", l, { "text-anchor": "start" }));
+    ["Tax lines holds that the credit's tax", "should round per line, not with the", "invoice total."].forEach((l, i) => text(dnote, tx, ty + 24 + i * 19, "dt", l, { "text-anchor": "start" }));
   }
 
   // ---- the ledger (right): the words, round by round ----
   const ledger = document.getElementById("ledger");
-  const byId = (id) => M.find((m) => m.id === id);
   const pairHTML = (m, instructed) => `<span class="pair av"><span class="avatar agent" aria-hidden="true"></span>${m.owner ? `<span class="avatar p${instructed ? " instructed" : ""}" title="${m.owner}">${m.owner[0]}</span>` : ""}</span>`;
-  const ledgerParts = [];
-  let html = "";
-  const rounds = [["individual", "Individual", "each model answers alone"], ["discussion", "Discussion 1 of 1", "each model reads every answer"], ["synthesis", "Synthesis", "the chair writes the plan"], ["vote", "Vote", "the people rate it"]];
+  const starsHTML = (n) => [1, 2, 3, 4, 5].map((i) => `<svg class="${i <= n ? "on" : ""}" viewBox="0 0 24 24" aria-hidden="true"><use href="#star"/></svg>`).join("") + `<span class="word">${WORDS[n]}</span>`;
+  const rounds = [["individual", "Individual", "each model answers alone"], ["discussion", "Discussion 1 of 1", "each model reads every answer"], ["synthesis", "Synthesis", "the chair writes the plan"], ["vote", "Vote", "the people rate it · every voice"]];
   const roundOfIdx = (idx) => { let r = null; for (let i = 0; i <= idx; i++) if (E[i].k === "round") r = E[i].round; return r; };
+  let html = "";
   rounds.forEach(([key, title, sub]) => {
     const start = E.findIndex((e) => e.k === "round" && e.round === key);
     html += `<section class="round off" data-at="${start}"><div class="h"><span class="kicker">${title}</span><span class="mono" data-roundn="${key}"></span><span class="sub">${sub}</span></div>`;
@@ -683,7 +747,7 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
       }
       if (e.k === "said" && e.round === key) {
         const m = byId(e.m);
-        html += `<article class="said off" data-at="${idx}" data-m="${m.id}">${pairHTML(m, e.cites)}<div class="meta"><span class="who">${m.name}</span><span class="own">${m.shared ? "shared" : m.owner + "'s"}${m.chair ? " · chair" : ""}</span>${e.stance ? `<span class="stance ${e.stance}">${e.stance.toUpperCase()}</span>` : ""}<span class="n"${e.stance ? "" : ' style="margin-left:auto"'}>${fmt(e.n)}</span></div><div class="text">${e.text}${e.cites ? ` <span class="cite">instructed by ${e.cites}</span>` : ""}</div></article>`;
+        html += `<article class="said off" data-at="${idx}" data-m="${m.id}">${pairHTML(m, e.cites)}<div class="meta"><span class="who">${m.name}</span><span class="own">${m.shared ? "shared" : m.owner + "'s"}${m.chair ? " · chair" : ""}</span>${e.stance ? `<span class="stance ${e.stance}">${e.stance.toUpperCase()}</span>` : ""}<span class="n${e.stance ? "" : " alone"}">${fmt(e.n)}</span></div><div class="text">${e.text}${e.cites ? ` <span class="cite">instructed by ${e.cites}</span>` : ""}</div></article>`;
       }
       if (e.k === "synthesised" && key === "synthesis") {
         html += `<div class="plan off" data-at="${idx}"><div class="head"><span class="serif">The plan</span><span class="faint" style="font-size:12.5px">by Ledger, Dee's model</span><span class="mono">est. 9,800</span></div>` +
@@ -693,24 +757,25 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
       }
     });
     if (key === "vote") {
-      const vstart = E.findIndex((e) => e.k === "round" && e.round === "vote");
-      html += `<div class="vote off" data-at="${vstart}">` +
-        ["Bo", "Dee", "Ana", "Cy"].map((p) => { const r = E.find((e) => e.k === "rated" && e.by === p); const at = r ? E.indexOf(r) : -1;
-          return `<div class="row${r ? "" : " pending"}" data-rate="${p}" data-at="${at}"><span class="avatar" style="font-family:var(--serif);font-weight:400;font-size:13px;box-shadow:inset 0 0 0 1.5px var(--table-person);background:var(--surface);color:var(--table-person)">${p[0]}</span><span class="who">${p}${p === "Ana" ? "<span>you</span>" : p === "Dee" ? "<span>convened it</span>" : ""}</span><span class="stars">${r ? [1,2,3,4,5].map((i) => `<svg class="${i <= r.n ? "on" : ""}" viewBox="0 0 24 24" aria-hidden="true"><use href="#star"/></svg>`).join("") + `<span class="word">${r.n === 5 ? "exactly this" : "good"}</span>` : "not yet"}</span></div>`; }).join("") +
-        `<div class="sentence" id="voteSentence"></div><div class="actions"><button class="btn primary">Rate the plan</button><button class="btn ghost sm">Instruct Checkout</button><span class="quorum" id="quorum" title="every person rates"><i></i><i></i><i></i><i></i></span></div></div>`;
+      html += `<div class="vote off" data-at="${start}">` +
+        PEOPLE.map((p) => { const r = E.find((e) => e.k === "rated" && e.by === p); const at = r ? E.indexOf(r) : -1;
+          return `<div class="row${r ? "" : " pending"}" data-rate="${p}" data-at="${at}"><span class="avatar p">${p[0]}</span><span class="who">${p}${p === "Ana" ? "<span>you</span>" : p === "Dee" ? "<span>convened it</span>" : ""}</span><span class="stars" data-stars="${r ? r.n : 0}">${r ? starsHTML(r.n) : "not yet"}</span></div>`; }).join("") +
+        `<div class="sentence" id="voteSentence"></div><div class="rule" id="voteRule"></div><div class="actions"><button class="btn primary">Rate the plan</button><button class="btn ghost sm">Instruct Checkout</button><span class="quorum" id="quorum" title="every person rates"><i></i><i></i><i></i><i></i></span></div></div>`;
     }
     html += `</section>`;
   });
-  html += `<div class="members"><div class="kicker" style="padding:6px 0 4px">In the circle</div>` + M.map((m) => `<div class="row">${pairHTML(m, false)}<span class="who">${m.name}<span>${m.shared ? "shared" : m.owner + "'s model"}${m.chair ? " · chair" : ""}</span></span><span class="status ${m.chair ? "awaiting" : ""}" data-status="${m.id}">${m.chair ? "waits for the vote" : "said its word"}</span></div>`).join("") + `</div>`;
+  html += `<div class="members"><div class="kicker" style="padding:6px 0 4px">In the circle</div>` + M.map((m) => `<div class="row">${pairHTML(m, false)}<span class="who">${m.name}<span>${m.shared ? "shared" : m.owner + "'s model"}${m.chair ? " · chair" : ""}</span></span><span class="status" data-status="${m.id}"></span></div>`).join("") + `</div>`;
   ledger.innerHTML = html;
 
   // ---- the scrubber ----
-  const scrubRounds = document.getElementById("scrubRounds"), scrubDots = document.getElementById("scrubDots");
+  const scrubRounds = document.getElementById("scrubRounds"), scrubDots = document.getElementById("scrubDots"), range = document.getElementById("scrubRange");
   const roundStarts = E.map((e, i) => (e.k === "round" ? i : -1)).filter((i) => i >= 0);
   scrubRounds.style.gridTemplateColumns = roundStarts.map((s, j) => `${(roundStarts[j + 1] ?? E.length) - s}fr`).join(" ");
   scrubRounds.innerHTML = roundStarts.map((s) => `<span data-at="${s}">${ROUND_LABEL[E[s].round]}</span>`).join("");
-  scrubDots.innerHTML = E.map((e, i) => `<button type="button" class="${e.k === "said" || e.k === "synthesised" ? "said" : ""}" data-at="${i}" aria-label="${i + 1}. ${describe(e)}"><i></i></button>`).join("");
-  scrubDots.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => setAt(+b.dataset.at)));
+  scrubDots.innerHTML = E.map((e, i) => `<button type="button" class="${e.k === "said" || e.k === "synthesised" || e.k === "rated" ? "said" : ""}" data-at="${i}" aria-label="${i + 1}. ${describe(e)}"><i></i></button>`).join("");
+  scrubDots.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { stop(); setAt(+b.dataset.at); }));
+  range.max = String(E.length - 1);
+  range.addEventListener("input", () => { stop(); setAt(+range.value); });
   function describe(e) {
     if (e.k === "said") return `${byId(e.m).name} ${e.stance ? "says " + e.stance.toUpperCase() : "answers"} · ${fmt(e.n)} tokens`;
     if (e.k === "instructed") return `${e.by} instructs ${byId(e.m).name} in private`;
@@ -719,61 +784,78 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
 
   // ---- state ----
   const motion = () => getComputedStyle(document.documentElement).getPropertyValue("--motion").trim() === "1";
-  let at = E.length - 1, timer = null, focused = null;
-  function spentUpTo(k) { let n = 0; for (let i = 0; i <= k; i++) if (E[i].n && (E[i].k === "said" || E[i].k === "synthesised")) n += E[i].n; return n; }
-  function roundAt(k) { let r = "convened"; for (let i = 0; i <= k; i++) if (E[i].k === "round") r = E[i].round; return r; }
+  let at = E.length - 1, timer = null;
+  const spentUpTo = (k) => E.slice(0, k + 1).reduce((a, x) => a + ((x.k === "said" || x.k === "synthesised") ? x.n : 0), 0);
+  const roundAt = (k) => { let r = "convened"; for (let i = 0; i <= k; i++) if (E[i].k === "round") r = E[i].round; return r; };
+  const list = (xs) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
 
   function setAt(k, opts) {
     const prev = at; at = Math.max(0, Math.min(E.length - 1, k));
     const e = E[at], r = roundAt(at), forward = at > prev;
+    const synthAt = E.findIndex((x) => x.k === "synthesised");
+    const formed = synthAt <= at, voteOpen = r === "vote";
+    const rated = E.filter((x, i) => x.k === "rated" && i <= at);
+    const owed = PEOPLE.filter((p) => !rated.some((x) => x.by === p));
+    const owedWords = list(owed.map((p) => p === "Ana" ? "you" : p));
     // words
     words.forEach((w) => {
       const on = w.idx <= at; w.path.classList.toggle("on", on); w.path.classList.toggle("latest", w.idx === at); w.path.classList.toggle("enter", on && w.idx === at && forward);
-      if (w.dot) w.dot.classList.toggle("on", on);
+      if (w.end) w.end.classList.toggle("on", on);
     });
     instructs.forEach((x) => x.path.classList.toggle("on", x.idx <= at));
     // seats
-    const dissentOn = E.findIndex((x) => x.k === "synthesised") <= at;
     M.forEach((m) => {
       const s = seats[m.id];
       const spoke = words.some((w) => w.m === m.id && w.idx <= at);
-      const speaking = e.k === "said" && e.m === m.id || (e.k === "synthesised" && e.m === m.id) || (e.k === "round" && e.round === "synthesis" && m.chair);
-      const gap = dissentOn && m.id === DISSENT.m;
+      const speaking = (e.k === "said" && e.m === m.id) || (e.k === "synthesised" && e.m === m.id) || (e.k === "round" && e.round === "synthesis" && m.chair);
+      const gap = formed && m.id === DISSENT.m;
       s.seg.classList.toggle("lit", spoke && !gap); s.seg.classList.toggle("gap", gap);
-      s.seg.style.strokeDasharray = gap ? ".16 .68 .16" : ".5 0 .5";
-      s.g.classList.toggle("speaking", speaking); s.halo.classList.toggle("speaking", speaking);
+      s.seg.style.strokeDasharray = gap ? ".17 .66 .17" : ".5 0 .5";
+      s.halo.classList.toggle("speaking", speaking);
       const out = gap ? 16 : 0;
       s.tile.setAttribute("transform", `translate(${f(s.sx + s.ux * out)} ${f(s.sy + s.uy * out)})`);
-      if (s.person) { const po = (m.chair ? 26 : 23) + 11 + out; s.person.setAttribute("transform", `translate(${f(s.sx + s.ux * po)} ${f(s.sy + s.uy * po)})`); s.person.classList.toggle("instructed", instructs.some((x) => x.m === m.id && x.idx <= at)); s.person.classList.toggle("waited", r === "vote" && (m.owner === "Ana" || m.owner === "Cy")); }
+      if (s.person) {
+        const po = s.S / 2 + 13 + out;
+        s.person.setAttribute("transform", `translate(${f(s.sx + s.ux * po)} ${f(s.sy + s.uy * po)})`);
+        s.person.classList.toggle("instructed", instructs.some((x) => x.m === m.id && x.idx <= at));
+        const rating = rated.find((x) => x.by === m.owner);
+        s.person.classList.toggle("voting", voteOpen);
+        s.person.classList.toggle("waited", voteOpen && !rating);
+        s.person.querySelector(".prate").style.strokeDasharray = `${rating ? rating.n : 0} 5`;
+        const was = s.rnum.classList.contains("on");
+        s.rnum.textContent = rating ? String(rating.n) : "";
+        s.rword.textContent = rating ? WORDS[rating.n] : "";
+        s.rnum.classList.toggle("on", !!rating); s.rword.classList.toggle("on", !!rating);
+        s.rnum.classList.toggle("enter", !!rating && !was && forward && E.indexOf(rating) === at);
+      }
       const lastWord = [...words].reverse().find((w) => w.m === m.id && w.idx <= at);
-      s.stance.textContent = lastWord && lastWord.e.stance ? lastWord.e.stance.toUpperCase() : (gap ? "" : "");
+      s.stance.textContent = lastWord && lastWord.e.stance ? lastWord.e.stance.toUpperCase() : "";
       s.stance.setAttribute("class", `stance ${lastWord && lastWord.e.stance === "differ" ? "differ" : ""}`);
       const st = ledger.querySelector(`[data-status="${m.id}"]`);
-      if (st) { st.className = "status" + (speaking ? " running" : m.chair && r === "vote" ? " awaiting" : ""); st.textContent = speaking ? (e.k === "synthesised" || (e.k === "round" && e.round === "synthesis") ? "writing the plan" : "speaking") : gap ? "holds a dissent" : m.chair && r === "vote" ? "waits for the vote" : spoke ? "said its word" : "listening"; }
+      st.className = "status" + (speaking ? " running" : m.chair && voteOpen ? " awaiting" : "");
+      st.textContent = speaking ? (e.k === "synthesised" || (e.k === "round" && e.round === "synthesis") ? "writing the plan" : "speaking") : gap ? "holds a dissent" : m.chair && voteOpen ? "waits for the vote" : spoke ? "said its word" : "listening";
     });
     // the centre
-    const synthAt = E.findIndex((x) => x.k === "synthesised");
     const nWords = words.filter((w) => w.idx <= at).length;
-    const formed = synthAt <= at;
     ghost.classList.toggle("off", formed);
     ghost.style.fillOpacity = String(0.04 + nWords * 0.045);
-    ghost.style.strokeDashoffset = String(0);
-    gtext.style.opacity = formed ? 0 : 1;
-    gt1.textContent = r === "synthesis" ? "Ledger is writing" : nWords ? `${nWords} ${nWords === 1 ? "word" : "words"} in` : "the plan";
-    gt2.textContent = r === "synthesis" ? "the plan" : nWords ? "the plan forms here" : "forms here";
+    gtext.style.opacity = formed ? 0 : 1; gcount.style.opacity = formed ? 0 : 1;
+    gt1.textContent = r === "synthesis" ? "Ledger is writing" : nWords ? "the plan" : "the plan";
+    gt2.textContent = r === "synthesis" ? "the plan" : "forms here";
+    gcount.textContent = r === "synthesis" ? `${nWords} words read` : nWords ? `${nWords} of ${words.length} words in` : "no word yet";
     centre.classList.toggle("off", !formed);
     centre.classList.toggle("enter", formed && at === synthAt && forward);
     Object.values(owners).forEach(({ o, num }) => { o.classList.toggle("on", formed); num.classList.toggle("on", formed); });
-    const rated = E.filter((x, i) => x.k === "rated" && i <= at);
-    const voteOpen = r === "vote";
-    c3.textContent = voteOpen ? (rated.length ? rated.map((x) => `${x.by} ${x.n}`).join(" · ") : "the people rate it") : formed ? "one dissent" : "";
-    c4.textContent = voteOpen ? (rated.length < 4 ? `waits for ${["Ana", "Cy", "Bo", "Dee"].filter((p) => !rated.some((x) => x.by === p)).join(" and ")}` : "approved") : formed ? "Tax lines" : "";
+    c3.textContent = voteOpen ? (rated.length ? `${rated.map((x) => `${x.by} ${x.n}`).join(" · ")}` : "the people rate it") : formed ? "one dissent" : "";
+    c4.textContent = voteOpen ? (owed.length ? `waits for ${owedWords}` : "approved by every voice") : formed ? "Tax lines" : "";
     dnote.classList.toggle("on", formed);
     // ledger
-    ledger.querySelectorAll("[data-at]").forEach((n) => { const k = +n.dataset.at; const on = k >= 0 && k <= at; const was = !n.classList.contains("off"); n.classList.toggle("off", !on); n.classList.toggle("enter", on && !was && k === at && forward); });
-    ledger.querySelectorAll(".vote .row[data-rate]").forEach((row) => { const k = +row.dataset.at; const done = k >= 0 && k <= at; row.classList.toggle("pending", !done); const stars = row.querySelector(".stars"); if (!done && !stars.dataset.orig) { stars.dataset.orig = stars.innerHTML; stars.textContent = "not yet"; } else if (done && stars.dataset.orig) { stars.innerHTML = stars.dataset.orig; delete stars.dataset.orig; } });
-    const vs = document.getElementById("voteSentence"); if (vs) vs.textContent = rated.length >= 4 ? "The plan is approved." : rated.length ? `The plan waits for ${["Ana", "Cy", "Bo", "Dee"].filter((p) => !rated.some((x) => x.by === p)).join(" and ")}.` : "The plan waits for everyone.";
-    const q = document.getElementById("quorum"); if (q) [...q.children].forEach((i, j) => i.classList.toggle("in", j < rated.length));
+    ledger.querySelectorAll("[data-at]").forEach((n) => { const k2 = +n.dataset.at; const on = k2 >= 0 && k2 <= at; const was = !n.classList.contains("off"); n.classList.toggle("off", !on); n.classList.toggle("enter", on && !was && k2 === at && forward); });
+    ledger.querySelectorAll(".vote .row[data-rate]").forEach((row) => { const k2 = +row.dataset.at; const done = k2 >= 0 && k2 <= at; row.classList.toggle("pending", !done); const stars = row.querySelector(".stars"); stars.innerHTML = done ? starsHTML(+stars.dataset.stars) : "not yet"; });
+    const avg = rated.length ? (rated.reduce((a, x) => a + x.n, 0) / rated.length).toFixed(1) : null;
+    const vs = document.getElementById("voteSentence"); vs.textContent = owed.length ? `The plan waits for ${owedWords}.` : "The plan is approved by every voice.";
+    const vr = document.getElementById("voteRule"); vr.textContent = `${rated.length} of ${PEOPLE.length} ratings${avg ? ` · ${avg} average` : ""} · every voice · dissent noted`;
+    [...document.getElementById("quorum").children].forEach((i, j) => i.classList.toggle("in", j < rated.length));
     ledger.querySelectorAll("[data-roundn]").forEach((n) => { const key = n.dataset.roundn; const t = E.filter((x, i) => i <= at && x.n && ((x.k === "said" && x.round === key) || (x.k === "synthesised" && key === "synthesis"))).reduce((a, x) => a + x.n, 0); n.textContent = t ? `${fmt(t)} tokens` : ""; });
     // chrome
     const spent = spentUpTo(at);
@@ -782,23 +864,24 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
     document.getElementById("spentBar").style.width = `${Math.round(100 * spent / BUDGET)}%`;
     document.getElementById("roundPill").textContent = r === "convened" ? "convened" : ROUND_LABEL[r];
     document.getElementById("roundPillM").textContent = r === "convened" ? "convened" : ROUND_LABEL[r];
-    document.getElementById("what").innerHTML = e.k === "said" ? `<b>${byId(e.m).name}</b> ${e.stance ? "says <span class=mono>" + e.stance.toUpperCase() + "</span>" : "answers alone"} · ${fmt(e.n)} tokens` : e.k === "instructed" ? `<b>${e.by}</b> instructs <b>${byId(e.m).name}</b> in private` : e.what;
+    document.getElementById("what").innerHTML = e.k === "said" ? `<b>${byId(e.m).name}</b> ${e.stance ? "says <span class=mono>" + e.stance.toUpperCase() + "</span>" : "answers alone"} · ${fmt(e.n)} tokens` : e.k === "instructed" ? `<b>${e.by}</b> instructs <b>${byId(e.m).name}</b> in private` : e.k === "rated" ? `<b>${e.by}</b> rates the plan <b>${e.n}</b> · ${WORDS[e.n]}` : e.what;
     document.getElementById("clock").textContent = `${e.t} · ${at + 1} of ${E.length}`;
-    scrubDots.querySelectorAll("button").forEach((b) => { const k = +b.dataset.at; b.classList.toggle("done", k < at); b.classList.toggle("now", k === at); });
-    scrubRounds.querySelectorAll("span").forEach((s) => { const k = +s.dataset.at; s.classList.toggle("done", k < at && roundAt(at) !== E[k].round); s.classList.toggle("cur", E[k].round === r); });
-    document.getElementById("tableDesc").textContent = `${M.length} member models around a ring, Ledger in the chair at twelve. ${nWords} words so far, each an arc toward the centre. ${formed ? "The chair's plan has formed in the centre; Tax lines holds a dissent, drawn as a gap in the ring beside its seat." : "The centre is a ghost until the chair writes the plan."}`;
+    scrubDots.querySelectorAll("button").forEach((b) => { const k2 = +b.dataset.at; b.classList.toggle("done", k2 < at); b.classList.toggle("now", k2 === at); });
+    scrubRounds.querySelectorAll("span").forEach((s) => { const k2 = +s.dataset.at; s.classList.toggle("done", k2 < at && r !== E[k2].round); s.classList.toggle("cur", E[k2].round === r); });
+    range.value = String(at); range.style.setProperty("--pct", `${Math.round(100 * at / (E.length - 1))}%`);
+    document.getElementById("tableDesc").textContent = `${M.length} member models around a ring, Ledger in the chair at twelve. ${nWords} words so far, each an arc toward the centre. ${formed ? "The chair's plan has formed in the centre; Tax lines holds a dissent, drawn as a gap in the ring beside its seat." : "The centre is a ghost until the chair writes the plan."}${voteOpen ? ` ${rated.length ? rated.map((x) => `${x.by} rated it ${x.n}`).join(", ") + "." : ""} ${owed.length ? `The plan waits for ${owedWords}.` : "Approved by every voice."}` : ""}`;
     if (!(opts && opts.silent)) history.replaceState(null, "", at === E.length - 1 ? location.pathname : `?at=${at}`);
   }
-  function focusMember(id, hover) { focused = id; svg.classList.toggle("dim", !!id); svg.querySelectorAll("[data-m]").forEach((n) => n.classList.toggle("mine", n.dataset.m === id)); ledger.querySelectorAll(".said").forEach((n) => n.classList.toggle("hl", n.dataset.m === id)); }
+  function focusMember(id) { svg.classList.toggle("dim", !!id); svg.querySelectorAll("[data-m]").forEach((n) => n.classList.toggle("mine", n.dataset.m === id)); ledger.querySelectorAll(".said").forEach((n) => n.classList.toggle("hl", n.dataset.m === id)); }
   ledger.addEventListener("mouseover", (ev) => { const row = ev.target.closest(".said"); if (row) focusMember(row.dataset.m); });
   ledger.addEventListener("mouseleave", () => focusMember(null));
 
-  // ---- replay: the council from its first word; under Calm it jumps to the end ----
+  // ---- replay: the council from its first word; under Calm it jumps to the end (useMotion) ----
   function replay() {
     stop();
     if (!motion()) { setAt(E.length - 1); return; }
     setAt(0);
-    const step = () => { if (at >= E.length - 1) { timer = null; return; } setAt(at + 1); const e = E[at]; timer = setTimeout(step, e.k === "said" ? 1050 : e.k === "synthesised" ? 1900 : e.k === "instructed" ? 800 : 650); };
+    const step = () => { if (at >= E.length - 1) { timer = null; return; } setAt(at + 1); const e = E[at]; timer = setTimeout(step, e.k === "said" ? 1100 : e.k === "synthesised" ? 1900 : e.k === "instructed" ? 800 : e.k === "rated" ? 900 : 650); };
     timer = setTimeout(step, 500);
   }
   function stop() { if (timer) { clearTimeout(timer); timer = null; } }
@@ -816,18 +899,19 @@ svg.table { width: 100%; height: 100%; max-height: 640px; display: block; overfl
   // exploration controls: the team's Calm and the theme, set the way theme.ts sets them
   const root = document.documentElement;
   const calmBtn = document.getElementById("calmBtn"), darkBtn = document.getElementById("darkBtn");
-  const syncBtns = () => { calmBtn.classList.toggle("on", root.dataset.motion === "calm"); calmBtn.setAttribute("aria-pressed", String(root.dataset.motion === "calm")); const dark = root.dataset.theme === "dark" || (!root.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches); darkBtn.classList.toggle("on", dark); darkBtn.setAttribute("aria-pressed", String(dark)); };
+  const isDark = () => root.dataset.theme === "dark" || (!root.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  const syncBtns = () => { const calm = root.dataset.motion === "calm"; calmBtn.classList.toggle("on", calm); calmBtn.setAttribute("aria-pressed", String(calm)); darkBtn.classList.toggle("on", isDark()); darkBtn.setAttribute("aria-pressed", String(isDark())); };
   calmBtn.addEventListener("click", () => { if (root.dataset.motion === "calm") delete root.dataset.motion; else root.dataset.motion = "calm"; stop(); syncBtns(); });
-  darkBtn.addEventListener("click", () => { const dark = root.dataset.theme === "dark" || (!root.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches); root.dataset.theme = dark ? "light" : "dark"; syncBtns(); });
+  darkBtn.addEventListener("click", () => { root.dataset.theme = isDark() ? "light" : "dark"; syncBtns(); });
   new MutationObserver(syncBtns).observe(root, { attributes: true, attributeFilter: ["data-theme", "data-motion"] });
   syncBtns();
 
-  // start: at the state the URL asks for, else the end (rest is the end state); ?replay plays it
+  // start at the state the URL asks for, else the end (rest is the end state); ?replay plays it
   const q = new URLSearchParams(location.search);
   if (q.has("replay")) { setAt(E.length - 1, { silent: true }); requestAnimationFrame(() => requestAnimationFrame(replay)); }
   else setAt(q.has("at") ? +q.get("at") : E.length - 1, { silent: true });
   // the draw-in transitions must not play on first paint: the drawing is finished when the page is
-  svg.classList.add("ready");
+  requestAnimationFrame(() => svg.classList.add("ready"));
 })();
 </script>
 </body>
