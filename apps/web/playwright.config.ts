@@ -4,6 +4,8 @@ export default defineConfig({
   testDir: "./test",
   // Only the Playwright specs: the *.test.ts files beside them belong to vitest.
   testMatch: /.*\.spec\.ts$/,
+  // test/live.spec.ts proves a hosted deployment and has its own config (playwright.live.config.ts).
+  testIgnore: /live\.spec\.ts$/,
   timeout: 60_000,
   retries: 0,
   use: {

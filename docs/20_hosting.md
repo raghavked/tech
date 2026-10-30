@@ -123,3 +123,26 @@ keeps what the file says.
 - **Magic links.** The link in the email returns to `/app/` with the session in the URL
   fragment, which supabase-js reads before the router does; the code is the primary path
   because the link opens in whatever browser the mail client picks.
+
+## Proving the deployment
+
+Every CI run proves the hosted deployment is wired front to back (`.github/workflows/ci.yml`,
+job `live`, after the `browser` job; `HENOSIS_LIVE_URL` names the deployment):
+
+- `scripts/live-check.mjs` (Node, `ws` only) checks `GET /api/health` reports `ok`, `store`
+  and `auth`; `GET /api/auth` says `supabase` with a project `url` and `anonKey` (or `dev`
+  with `tokenRequired`, for a local pair); `GET /app/` is the app shell with its scripts
+  under `/app/assets/`; `GET /` is the landing page with its hero sentence; and a websocket
+  `join` on `/ws` with no token is answered with the `unauthorized…` error the web client
+  treats as final, which proves the rewrite, the function and the websocket upgrade in one
+  go. One line per check; any failure exits non-zero with a `FAIL` line.
+- `apps/web/test/live.spec.ts` (`pnpm --filter @henosis/web run smoke:live`, config
+  `apps/web/playwright.live.config.ts`, no local servers) loads `/app/` in Chromium, waits
+  for the sign-in card the backend's `/api/auth` asks for (the email field and "Send a
+  code"; the dev form for a local pair), asserts the console logged no errors while the app
+  loaded, and loads `/` for the hero sentence. Without `HENOSIS_LIVE_URL` the spec skips
+  itself, and the ordinary smoke config ignores it.
+
+Both run against a local pair too: `henosis serve` on one port and `out/` (built with
+`HENOSIS_BASE=/app/ bash scripts/vercel-build.sh`) served with `vercel.json`'s rewrites in
+front of it, then `HENOSIS_LIVE_URL=http://127.0.0.1:<port>`.

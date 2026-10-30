@@ -54,3 +54,28 @@ jobs:
           name: playwright-report
           path: apps/web/test-results/
           if-no-files-found: ignore
+
+  # The hosted deployment is wired front to back (docs/20_hosting.md, "Proving the deployment"):
+  # the function, the rewrites, the websocket upgrade and the app shell, from GitHub's runners.
+  live:
+    runs-on: ubuntu-latest
+    needs: [browser]
+    env:
+      HENOSIS_LIVE_URL: https://henosis-raghav14.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/live-check.mjs
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @henosis/web run smoke:live
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-live-report
+          path: apps/web/test-results/
+          if-no-files-found: ignore
