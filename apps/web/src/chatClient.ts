@@ -45,6 +45,20 @@ const EMPTY: ChatSnapshot = {
   names: {},
 };
 
+/** What a person meant, kept while the socket is away; a name check is only worth asking once. */
+const KEPT_WHILE_AWAY = new Set<ChatClientMessage["type"]>([
+  "chat.say",
+  "chat.read",
+  "chat.create",
+  "chat.add",
+  "chat.remove",
+  "chat.rename",
+  "chat.role",
+  "chat.council.convene",
+  "chat.council.instruct",
+  "chat.council.end",
+]);
+
 export class ChatClient {
   private ws: WebSocket | null = null;
   snapshot: ChatSnapshot = EMPTY;
@@ -52,6 +66,8 @@ export class ChatClient {
   private liveListeners = new Set<(e: ChatEvent) => void>();
   private target: { url: string; orgId: string; userId: string; name: string } | null = null;
   private readonly reconnector = new Reconnector(() => this.dial());
+  /** Sent after the next subscribe: what was said or read while the socket was dialling. */
+  private held: ChatClientMessage[] = [];
 
   subscribe(fn: () => void): () => void {
     this.listeners.add(fn);
@@ -91,6 +107,10 @@ export class ChatClient {
       // Identity: the token the identity store holds rides along (the ID token in oidc mode).
       const token = getIdentity()?.token;
       this.send({ type: "chat.subscribe", orgId, userId, name, ...(token ? { token } : {}) });
+      // What was meant while the socket was away goes out now, in order, after the subscribe.
+      const held = this.held;
+      this.held = [];
+      for (const msg of held) this.send(msg);
     };
     ws.onclose = () => {
       if (this.ws !== ws) return;
@@ -144,6 +164,7 @@ export class ChatClient {
   disconnect(): void {
     this.target = null;
     this.reconnector.reset();
+    this.held = [];
     const ws = this.ws;
     this.ws = null;
     if (ws) {
@@ -153,7 +174,23 @@ export class ChatClient {
     this.emit({ connected: false, reconnecting: false, retry: null });
   }
 
+  /**
+   * Send on an open socket; while the socket is dialling or away, keep what the person meant
+   * for the next subscribe instead of throwing (a socket still connecting refuses `send` with an
+   * InvalidStateError, and the composer calls this from a React effect, where a throw would take
+   * the whole chat view down with it).
+   */
   send(msg: ChatClientMessage): void {
-    this.ws?.send(JSON.stringify(msg));
+    const ws = this.ws;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(msg));
+      return;
+    }
+    if (this.target && KEPT_WHILE_AWAY.has(msg.type)) this.held.push(msg);
+  }
+
+  /** Messages waiting for the socket, oldest first (tests). */
+  get pending(): readonly ChatClientMessage[] {
+    return this.held;
   }
 }

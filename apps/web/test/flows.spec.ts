@@ -51,6 +51,39 @@ async function steer(page: Page, text: string, scope?: string) {
   await expect(conversation(page)).toContainText(text);
 }
 
+/** Every uncaught exception and console error a page reports, oldest first. */
+function pageErrors(page: Page): string[] {
+  const out: string[] = [];
+  page.on("pageerror", (e) => out.push(`pageerror: ${e.message}`));
+  page.on("console", (m) => {
+    if (m.type() === "error") out.push(`console: ${m.text()}`);
+  });
+  return out;
+}
+
+/**
+ * Run an assertion; when it fails, say what the page was doing: its route, the exceptions it
+ * reported, and the words in its main column (an error boundary's "Something went wrong" row,
+ * a loading shell, a sign-in form) so a stream that is "not found" names what replaced it.
+ */
+async function withPageState(page: Page, errors: string[], check: () => Promise<void>) {
+  try {
+    await check();
+  } catch (err) {
+    const main = await page
+      .locator(".main")
+      .first()
+      .innerText({ timeout: 2_000 })
+      .catch(() => "(no .main column)");
+    const detail = [
+      `route: ${page.url()}`,
+      `page errors: ${errors.length ? errors.join("\n  ") : "none"}`,
+      `main column: ${main.replace(/\s+/g, " ").trim().slice(0, 600)}`,
+    ].join("\n");
+    throw new Error(`${err instanceof Error ? err.message : String(err)}\n\n${detail}`);
+  }
+}
+
 // Under a release gate the primary reads "Approve with N" (N the rating it sends).
 const approve = (page: Page) => page.getByRole("button", { name: /^Approve( with \d)?$/ });
 const planCard = (page: Page) => page.getByRole("region", { name: "Plan" }).last();
@@ -301,8 +334,10 @@ test("a group of Ana, Bo and her agent: Bo's mention steers the agent and its re
   const ask = "what is left to do?";
   const messages = (page: Page) => page.getByRole("region", { name: "Messages" });
 
-  // Bo shows up first (the server learns his name), on the org's chat list.
+  // Bo shows up first (the server learns his name), on the org's chat list. Anything his page
+  // throws is kept, so a stream that vanishes fails with the exception that took it down.
   const bo = await browser.newPage();
+  const boErrors = pageErrors(bo);
   await signIn(bo, "Bo", "bo");
   await bo.goto("/#/c/default");
   await expect(bo.getByRole("heading", { level: 1 })).toContainText("chats");
@@ -339,13 +374,16 @@ test("a group of Ana, Bo and her agent: Bo's mention steers the agent and its re
   // mentions the agent, picking it from the @ list.
   await bo.getByRole("link", { name: new RegExp(`#${groupName} ·`) }).click();
   await expect(bo).toHaveURL(/#\/c\/default\/grp_/);
+  // The stream is up (its join lines name both members) before anything is typed into it.
+  await expect(messages(bo)).toBeVisible();
+  await expect(messages(bo)).toContainText(session);
   const box = bo.getByLabel("Message", { exact: true });
   await box.fill(`@${session.slice(0, 9)}`);
   await bo.getByRole("option", { name: new RegExp(session) }).click();
   await expect(box).toHaveValue(`@${session} `);
   await box.pressSequentially(ask);
   await box.press("Enter");
-  await expect(messages(bo)).toContainText(`@${session} ${ask}`);
+  await withPageState(bo, boErrors, () => expect(messages(bo)).toContainText(`@${session} ${ask}`));
   await expect(messages(bo).locator("mark.mention")).toHaveText(`@${session}`);
 
   // The agent's next words come back into the group, under its session title, for everyone.

@@ -101,6 +101,19 @@ test("the tab bar is the frame and the Approvals tab carries the one needs-you n
     "aria-pressed",
     "true",
   );
+  // Her own ask reached the corner as a decision toast, which never times out (MOTION.md 6) and
+  // sits full width just above the thumb: when the queue is long enough for her card to be its
+  // last, the card's buttons are under the toast until she dismisses it, as flows.spec does.
+  await expect
+    .poll(
+      async () => {
+        const x = page.getByRole("alert").getByRole("button", { name: "Dismiss" }).first();
+        if (await x.isVisible().catch(() => false)) await x.click().catch(() => {});
+        return await page.getByRole("alert").count();
+      },
+      { timeout: 15_000, intervals: [250] },
+    )
+    .toBe(0);
   const box = await card.getByRole("button", { name: "Approve", exact: true }).boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
   await card.getByRole("button", { name: "Approve", exact: true }).click();

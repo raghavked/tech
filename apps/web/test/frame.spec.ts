@@ -79,7 +79,7 @@ test("at 960 the topbar drops words, not facts; at 720 the drawer overlays behin
   // the word goes, the button stays (34 px, named for a reader)
   await expect(details).toBeVisible();
   await expect(details.locator(".lbl")).toBeHidden();
-  await expect(page.getByRole("button", { name: "Team" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Team", exact: true })).toBeVisible();
   const box = await details.boundingBox();
   expect(box?.width).toBe(34);
   await details.click();
