@@ -3,822 +3,867 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Henosis · Night</title>
-<meta name="description" content="The dark theme as a night of its own: deep navy air, one apricot lamp, chocolate shadow. Every component on one sheet.">
+<title>Henosis · The night has a horizon</title>
 <style>
-/* ============================================================================================
-   sig-night-mode · the dark theme as a night of its own.
-   Three colours, three depths. Apricot is the only light (the lamp, every lit edge, every pulse).
-   Dress Blues is the air (the sky, the room, every surface, stepped toward the lamp). Chocolate
-   is the shadow (every shadow is warm, the deepest surface is chocolate-black, the hand is a
-   chocolate object that catches the lamp on its top edge). Nothing on the night is white and
-   nothing is grey.
-   Light in :root is the system's v5 final (the values apps/web reads). Dark twice, byte-identical:
-   the system media query and the chosen attribute. Fraunces and Inter are asked for first;
-   Instrument and the system faces are the fallbacks. No font is fetched, no asset is loaded.
-   ============================================================================================ */
+/* =====================================================================================
+   sig-night-mode · the night as a room with a horizon
+   Three colours, three places. Dress Blues is the sky (everything you read hangs in it),
+   Chocolate is the ground (everything you can touch stands on it: the composer, the me row,
+   the tab bar, and every hand is a piece of the ground lifted into the sky), Apricot is the
+   one lamp, hung over the table, so every lit edge, hairline, count and pulse is the same
+   light. The horizon is one line that runs across the rail and the page.
+   By day the sheet is the system's v5 light; the horizon is a quiet desk edge.
+   ===================================================================================== */
 :root {
-  /* palette names */
+  /* palette, never used directly by a component */
   --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1; --night: #0B0E14;
-  /* the page */
-  --canvas: #FBF7F1; --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6; --out-bg: #2A3244;
-  --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42, 50, 68, 0.12);
-  --edge: none;
-  /* the frame */
-  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2;
-  --rail-active: rgba(226, 196, 166, 0.18); --rail-line: rgba(243, 237, 228, 0.10); --crease: #E2C4A6;
+  /* canvas (the page) */
+  --canvas: #FBF7F1; --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6; --out-bg: #2A3244; --out-fg: #F3EDE4;
+  --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --edge: none;
+  /* frame */
+  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2; --rail-active: rgba(226,196,166,.18);
+  --rail-line: rgba(243,237,228,.10); --crease: var(--apricot);
   /* the hand */
   --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
-  --hand-edge: transparent;                         /* by day the hand needs no lamp */
+  --hand-edge: transparent; --hand-rim: transparent;
   /* the pulse */
-  --apricot-deep: #CFA782; --apricot-soft: rgba(226, 196, 166, 0.30);
-  --glow: 0 0 0 4px rgba(226, 196, 166, 0.35);
-  --select-wash: rgba(226, 196, 166, 0.16); --select-line: rgba(207, 167, 130, 0.50);
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30); --select-wash: rgba(226,196,166,.16); --select-line: rgba(207,167,130,.5);
   --live-line: transparent; --team-wash: var(--apricot-soft);
   --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D; --count-bg: #CFA782; --count-fg: #2A3244;
-  --star-on: #B4865C; --star-pre: #CFA782;
+  --star-on: #B4865C; --star-pre: #CFA782; --glow: 0 0 0 4px rgba(226,196,166,.35);
   /* gradients */
-  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%);
-  --gate-stripe: var(--gradient-brand); --grad-fg: #F8F2EA;
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --gate-stripe: var(--gradient-brand); --grad-fg: #F8F2EA;
   /* status */
   --ok: #4F7D4A; --ok-soft: rgba(79,125,74,.14); --ok-ink: #3E6639;
   --warn: #B9792E; --warn-soft: rgba(185,121,46,.14); --warn-ink: #7F5320;
   --danger: #A8463A; --danger-soft: rgba(168,70,58,.14); --danger-ink: #8E3A30;
   --info: #5B6273; --info-soft: rgba(91,98,115,.14); --info-ink: #4A5162;
-  --rail-ok: #9BC88F; --rail-warn: #E2B06A; --rail-danger: #E2847A;
-  /* overlays, focus */
-  --overlay: #FFFFFF; --overlay-edge: rgba(42, 50, 68, 0.12); --scrim: rgba(42, 50, 68, 0.46);
-  --focus-ring: var(--accent); --focus-halo: rgba(226, 196, 166, 0.45);
-  --shadow-soft: 0 10px 30px rgba(42, 50, 68, 0.08); --shadow-pop: 0 18px 50px rgba(42, 50, 68, 0.16);
-  --mention-person-bg: var(--apricot-soft); --mention-person-fg: #56352D; --mention-agent-bg: #2A3244; --mention-agent-fg: #F3EDE4;
-  --bezel: #1C2230; --orbit-2: #56352D;
+  --dot-idle: var(--ink-3);
+  /* mentions, overlays, focus */
+  --mention-person-bg: var(--apricot-soft); --mention-person-fg: #56352D; --mention-you-bg: #E2C4A6; --mention-you-fg: #56352D;
+  --mention-agent-bg: #2A3244; --mention-agent-fg: #F3EDE4;
+  --overlay: var(--surface); --overlay-edge: var(--line); --scrim: rgba(42,50,68,.46);
+  --focus-ring: var(--accent); --focus-halo: rgba(226,196,166,.45);
+  --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
+  --seg-on: var(--surface); --bezel: #1C2230;
   /* the mark: brand constants */
   --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
-  /* the lamp (by day: the system's one apricot wash) and the paper */
-  --lamp: radial-gradient(1100px 640px at 14% -10%, rgba(226, 196, 166, 0.35), transparent 62%);
-  --grain-alpha: 0.05;
-  /* type */
-  --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  /* ---- the three places, by day: sky is the page, ground is the desk, the lamp is daylight from the left ---- */
+  --ground: #F4EEE5; --ground-2: #ECE3D6; --ground-ink: #1F2634; --ground-muted: #5B6273;
+  --ground-rail: #222938; --ground-rail-2: #2C3447; --ground-rail-ink: #F3EDE4; --ground-rail-muted: #AEB4C2;
+  --horizon: rgba(42,50,68,.16); --horizon-rail: rgba(243,237,228,.14);
+  --lamp: radial-gradient(1200px 600px at 20% -10%, rgba(226,196,166,.35), transparent 60%);
+  --dusk: none; --grain-alpha: .05;
+  --ground-h: 136px;
+  /* type: Fraunces and Inter asked first, Instrument then the system faces behind them; nothing fetched */
   --serif: "Fraunces", "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font: "Inter", "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  /* shape, layout */
-  --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px;
-  --rail-w: 296px; --gutter: 24px; --topbar-h: 56px;
-  /* clocks and curves (MOTION §2) */
+  /* clocks and curves */
   --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
-  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
-  --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
+  --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1); --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
+  /* shape and layout */
+  --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px; --radius-agent: 9px 9px 9px 3px;
+  --col: 780px; --gutter: 24px; --rail-w: 296px; --drawer-w: 340px; --stream-gap: 26px;
   color-scheme: light;
 }
-/* ============================ NIGHT (system) ============================ */
+/* ---- the night, once under the system and once under the choice; byte-identical ---- */
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --canvas: #121826; --surface: #1A2131; --surface-2: #222A3C; --surface-3: #2A3244; --out-bg: #140F0E;
-  --ink: #F2E9DD; --ink-2: #C4BAAE; --ink-3: #9A948C; --line: rgba(226, 196, 166, 0.11);
-  --edge: inset 0 1px 0 rgba(226, 196, 166, 0.14);
-  --rail: #0C1019; --rail-2: #161C28; --rail-fg: #F2E9DD; --rail-muted: #A39D95;
-  --rail-active: rgba(226, 196, 166, 0.11); --rail-line: rgba(226, 196, 166, 0.08); --crease: rgba(226, 196, 166, 0.55);
-  --accent: #6B4339; --accent-hover: #7A4B3E; --accent-fg: #FFF3E6; --accent-ink: #CAA49B;
-  --hand-edge: rgba(226, 196, 166, 0.45);
-  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
-  --glow: 0 0 0 4px rgba(226, 196, 166, 0.28);
-  --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
-  --live-line: rgba(226, 196, 166, 0.35); --team-wash: rgba(226, 196, 166, 0.09);
-  --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6; --count-bg: #E2C4A6; --count-fg: #2A3244;
+  --canvas: #121826; --surface: #1A2131; --surface-2: #222A3C; --surface-3: #2A3244; --out-bg: #140F0E; --out-fg: #F2E9DD;
+  --ink: #F2E9DD; --ink-2: #C4BAAE; --ink-3: #9A948C; --line: rgba(226,196,166,.11); --edge: inset 0 1px 0 rgba(226,196,166,.14);
+  --rail: #0C1019; --rail-2: #161C28; --rail-fg: #F2E9DD; --rail-muted: #A39D95; --rail-active: rgba(226,196,166,.12);
+  --rail-line: rgba(226,196,166,.08); --crease: rgba(226,196,166,.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --hand-edge: rgba(226,196,166,.45); --hand-rim: rgba(226,196,166,.22);
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --live-line: rgba(226,196,166,.35); --team-wash: rgba(226,196,166,.09);
+  --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6; --count-bg: #E2C4A6; --count-fg: #2A3244;
   --star-on: #E2C4A6; --star-pre: #CFA782;
-  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%);
-  --gate-stripe: linear-gradient(180deg, #E2C4A6 0%, #56352D 100%); --grad-fg: #F8F2EA;
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --gate-stripe: linear-gradient(180deg, #E2C4A6 0%, #7A4B3E 100%);
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A;
   --info: #B4BAC6; --info-soft: rgba(180,186,198,.16); --info-ink: #B4BAC6;
-  --overlay: #1A2131; --overlay-edge: rgba(226, 196, 166, 0.12); --scrim: rgba(20, 12, 10, 0.6);
-  --focus-ring: var(--ink); --focus-halo: rgba(226, 196, 166, 0.35);
-  --shadow-soft: 0 10px 30px rgba(28, 14, 10, 0.45); --shadow-pop: 0 18px 50px rgba(28, 14, 10, 0.6);
-  --mention-person-fg: #F2E9DD; --mention-agent-bg: #2A3244;
-  --bezel: #0B0E14; --orbit-2: #CFA782;
-  --lamp: radial-gradient(1100px 640px at 14% -10%, rgba(226, 196, 166, 0.20), transparent 62%);
-  --grain-alpha: 0.07;
+  --mention-agent-bg: #2A3244; --mention-person-fg: #F2E9DD;
+  --overlay: #1A2131; --overlay-edge: rgba(226,196,166,.12); --scrim: rgba(20,12,10,.6);
+  --focus-ring: var(--ink);
+  --shadow-soft: 0 10px 30px rgba(20,15,14,.5); --shadow-pop: 0 18px 50px rgba(20,15,14,.65);
+  --seg-on: #333D52; --bezel: #0B0E14;
+  --ground: #140F0E; --ground-2: #1E1613; --ground-ink: #F2E9DD; --ground-muted: #B3A79D;
+  --ground-rail: #140F0E; --ground-rail-2: #1E1613; --ground-rail-ink: #F2E9DD; --ground-rail-muted: #B3A79D;
+  --horizon: rgba(226,196,166,.24); --horizon-rail: rgba(226,196,166,.24);
+  --lamp: radial-gradient(1100px 620px at 50% -6%, rgba(226,196,166,.30), transparent 62%);
+  --dusk: linear-gradient(to top, rgba(86,53,45,.34) var(--ground-h), transparent calc(var(--ground-h) + 280px));
+  --grain-alpha: .07;
   color-scheme: dark;
 } }
-/* ============================ NIGHT (chosen) ============================ */
 :root[data-theme="dark"] {
-  --canvas: #121826; --surface: #1A2131; --surface-2: #222A3C; --surface-3: #2A3244; --out-bg: #140F0E;
-  --ink: #F2E9DD; --ink-2: #C4BAAE; --ink-3: #9A948C; --line: rgba(226, 196, 166, 0.11);
-  --edge: inset 0 1px 0 rgba(226, 196, 166, 0.14);
-  --rail: #0C1019; --rail-2: #161C28; --rail-fg: #F2E9DD; --rail-muted: #A39D95;
-  --rail-active: rgba(226, 196, 166, 0.11); --rail-line: rgba(226, 196, 166, 0.08); --crease: rgba(226, 196, 166, 0.55);
-  --accent: #6B4339; --accent-hover: #7A4B3E; --accent-fg: #FFF3E6; --accent-ink: #CAA49B;
-  --hand-edge: rgba(226, 196, 166, 0.45);
-  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
-  --glow: 0 0 0 4px rgba(226, 196, 166, 0.28);
-  --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
-  --live-line: rgba(226, 196, 166, 0.35); --team-wash: rgba(226, 196, 166, 0.09);
-  --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6; --count-bg: #E2C4A6; --count-fg: #2A3244;
+  --canvas: #121826; --surface: #1A2131; --surface-2: #222A3C; --surface-3: #2A3244; --out-bg: #140F0E; --out-fg: #F2E9DD;
+  --ink: #F2E9DD; --ink-2: #C4BAAE; --ink-3: #9A948C; --line: rgba(226,196,166,.11); --edge: inset 0 1px 0 rgba(226,196,166,.14);
+  --rail: #0C1019; --rail-2: #161C28; --rail-fg: #F2E9DD; --rail-muted: #A39D95; --rail-active: rgba(226,196,166,.12);
+  --rail-line: rgba(226,196,166,.08); --crease: rgba(226,196,166,.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --hand-edge: rgba(226,196,166,.45); --hand-rim: rgba(226,196,166,.22);
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --live-line: rgba(226,196,166,.35); --team-wash: rgba(226,196,166,.09);
+  --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6; --count-bg: #E2C4A6; --count-fg: #2A3244;
   --star-on: #E2C4A6; --star-pre: #CFA782;
-  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%);
-  --gate-stripe: linear-gradient(180deg, #E2C4A6 0%, #56352D 100%); --grad-fg: #F8F2EA;
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --gate-stripe: linear-gradient(180deg, #E2C4A6 0%, #7A4B3E 100%);
   --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F;
   --warn: #E2B06A; --warn-soft: rgba(226,176,106,.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A;
   --info: #B4BAC6; --info-soft: rgba(180,186,198,.16); --info-ink: #B4BAC6;
-  --overlay: #1A2131; --overlay-edge: rgba(226, 196, 166, 0.12); --scrim: rgba(20, 12, 10, 0.6);
-  --focus-ring: var(--ink); --focus-halo: rgba(226, 196, 166, 0.35);
-  --shadow-soft: 0 10px 30px rgba(28, 14, 10, 0.45); --shadow-pop: 0 18px 50px rgba(28, 14, 10, 0.6);
-  --mention-person-fg: #F2E9DD; --mention-agent-bg: #2A3244;
-  --bezel: #0B0E14; --orbit-2: #CFA782;
-  --lamp: radial-gradient(1100px 640px at 14% -10%, rgba(226, 196, 166, 0.20), transparent 62%);
-  --grain-alpha: 0.07;
+  --mention-agent-bg: #2A3244; --mention-person-fg: #F2E9DD;
+  --overlay: #1A2131; --overlay-edge: rgba(226,196,166,.12); --scrim: rgba(20,12,10,.6);
+  --focus-ring: var(--ink);
+  --shadow-soft: 0 10px 30px rgba(20,15,14,.5); --shadow-pop: 0 18px 50px rgba(20,15,14,.65);
+  --seg-on: #333D52; --bezel: #0B0E14;
+  --ground: #140F0E; --ground-2: #1E1613; --ground-ink: #F2E9DD; --ground-muted: #B3A79D;
+  --ground-rail: #140F0E; --ground-rail-2: #1E1613; --ground-rail-ink: #F2E9DD; --ground-rail-muted: #B3A79D;
+  --horizon: rgba(226,196,166,.24); --horizon-rail: rgba(226,196,166,.24);
+  --lamp: radial-gradient(1100px 620px at 50% -6%, rgba(226,196,166,.30), transparent 62%);
+  --dusk: linear-gradient(to top, rgba(86,53,45,.34) var(--ground-h), transparent calc(var(--ground-h) + 280px));
+  --grain-alpha: .07;
   color-scheme: dark;
 }
-/* on the brand gradient the hand is apricot with navy ink */
-.hero, .on-gradient { --accent: var(--apricot); --accent-hover: #EBD3BB; --accent-fg: #2A3244; --accent-ink: var(--apricot); --hand-edge: transparent; }
 
-/* ============================ BASE ============================ */
+/* ---- base ---- */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; font-feature-settings: "calt", "case"; }
 h1, h2, h3 { margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
-.serif, h1, h2 { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 50, "WONK" 0; }
+h1, h2, .serif, .who { font-family: var(--serif); font-weight: 400; font-optical-sizing: auto; font-variation-settings: "SOFT" 50, "WONK" 0; }
+/* the serif is tuned by the ground, not the author: lower contrast on navy (editorial-type 3) */
+:root[data-theme="dark"] :is(h1, h2, .serif, .who) { font-variation-settings: "opsz" 9, "SOFT" 100, "WONK" 0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(h1, h2, .serif, .who) { font-variation-settings: "opsz" 9, "SOFT" 100, "WONK" 0; } }
+h1 { font-size: 40px; line-height: 44px; } h2 { font-size: 26px; line-height: 32px; } h3 { font: 600 15px/20px var(--font); }
 .serif.i, .i { font-style: italic; }
-h2 { font-size: 20px; line-height: 24px; }
-h3 { font: 600 11.5px/16px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
-.muted { color: var(--ink-2); } .faint { color: var(--ink-3); } .small { font-size: 13px; line-height: 20px; }
-.mono { font-family: var(--mono); font-size: 13px; line-height: 20px; font-variant-numeric: tabular-nums slashed-zero; }
-.mono.sm { font-size: 12.5px; line-height: 16px; }
+.muted { color: var(--ink-2); } .faint { color: var(--ink-3); } .small { font: 400 13px/20px var(--font); }
+.mono { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums slashed-zero; }
+.kicker { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
 a { color: var(--accent-ink); text-decoration: none; } a:hover { text-decoration: underline; }
-:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; box-shadow: 0 0 0 6px var(--focus-halo); }
-::selection { background: var(--apricot-soft); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: 0 0 0 6px var(--focus-halo); border-radius: var(--radius-sm); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* the mark */
-.mark { display: inline-block; vertical-align: middle; flex: none; }
+/* ---- the mark ---- */
+.mark { display: inline-block; width: 24px; height: 24px; flex: none; }
 .mark .disc { fill: var(--mark-disc); } .mark .arc { fill: none; stroke-width: 10; stroke-linecap: butt; }
 .mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); }
-.mark .arc, .mark .dot { transform-origin: 48px 48px; transform-box: view-box; }
-.rail .mark { --mark-arc-a: #9B7A6A; }   /* on the rail at 24 px the chocolate arc takes the 62 % lift toward apricot (the app keeps this) */
+.rail .mark { --mark-arc-a: #9B7A6A; }   /* the person's arc lifted 62 % on the rail at 24 px, the app's one tint */
 
-/* ============================ SHELL ============================ */
-.shell { display: flex; height: 100%; }
-.rail { width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 4px; position: relative; overflow: hidden auto; border-right: 1px solid var(--crease); }
-.rail .brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 14px; font-family: var(--serif); font-size: 24px; font-variation-settings: "SOFT" 50, "WONK" 0; }
-.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--shadow-soft), inset 0 1px 0 var(--hand-edge); }
-.rail .section { padding: 14px 10px 6px; font: 600 11.5px/16px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
-.rail .section .n { margin-left: auto; letter-spacing: 0; }
+/* ---- shell ---- */
+.shell { display: flex; height: 100%; min-height: 100%; }
+
+/* the rail: the dark of the room; its foot stands on the ground, and the horizon runs through it */
+.rail { width: var(--rail-w); flex: none; color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px 14px 0; gap: 4px; overflow: hidden;
+  background:
+    linear-gradient(to top, var(--ground-rail) 0 var(--ground-h), var(--horizon-rail) var(--ground-h) calc(var(--ground-h) + 1px), transparent calc(var(--ground-h) + 1px)),
+    var(--rail);
+  box-shadow: inset -1px 0 0 var(--crease); }
+.rail .list { display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; overflow: hidden; }
+.rail .brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 14px; font: 400 24px/28px var(--serif); font-variation-settings: "SOFT" 50; }
+.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px/20px var(--font); cursor: pointer; box-shadow: inset 0 1px 0 var(--hand-edge), var(--shadow-soft); }
+.rail .section { padding: 14px 10px 4px; font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
 .rail .item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: var(--radius); color: var(--rail-fg); font: 500 14px/20px var(--font); text-decoration: none; }
-.rail .item svg { width: 16px; height: 16px; flex: none; color: var(--rail-muted); }
+.rail .item svg { width: 16px; height: 16px; color: var(--rail-muted); flex: none; }
 .rail .item:hover { background: var(--rail-2); text-decoration: none; } .rail .item:hover svg { color: var(--apricot); }
 .rail .item.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line); }
-.rail .item .count { margin-left: auto; }
-.rail .item .kbd { margin-left: auto; }
-.rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 14px; border-top: 1px solid var(--rail-line); }
-.rail .me .who { font-family: var(--serif); font-size: 16px; } .rail .me .s { font-size: 12px; color: var(--rail-muted); line-height: 16px; }
-.rail .me .s i { font-family: var(--serif); color: var(--apricot); }
-.crew { padding: 10px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
-.crew .serif { font-size: 15px; color: var(--apricot); }
-.crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
-/* the agent card (the app's .agent:not(.avatar):not(.msg)) */
-.acard { display: flex; flex-direction: column; gap: 4px; padding: 9px 12px; border-radius: var(--radius); color: var(--rail-fg); text-decoration: none; }
-.acard:hover { background: var(--rail-2); }
-.acard.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line); }
-.acard .head { display: flex; align-items: center; gap: 9px; font-family: var(--serif); font-size: 15.5px; min-width: 0; }
-.acard .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.acard .doing { font-size: 13px; line-height: 18px; color: var(--rail-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.acard .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); font-size: 14px; }
-.acard .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--rail-muted); line-height: 16px; }
-.acard .foot .tokens { margin-left: auto; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; position: relative; padding-bottom: 3px; }
-.acard .foot .tokens::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: var(--rail-line); border-radius: 2px; }
-.acard .foot .tokens::before { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: var(--spent, 30%); background: var(--apricot); border-radius: 2px; z-index: 1; }
-.acard .foot .tokens.warn::before { background: var(--rail-warn); }
+.rail .item .count, .rail .item .kbd { margin-left: auto; }
+.rail .kbd { background: var(--rail-2); color: var(--rail-muted); border-color: var(--rail-line); box-shadow: none; }
+.crew { padding: 10px 12px 2px; font: 400 12px/16px var(--font); color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.crew .serif { font-size: 15px; line-height: 20px; color: var(--apricot); }
+.crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); flex: none; }
+/* the agent card, drawn once */
+.agent:not(.avatar):not(.msg) { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-radius: var(--radius); color: var(--rail-fg); text-decoration: none; }
+.agent:not(.avatar):not(.msg):hover { background: var(--rail-2); }
+.agent.active:not(.avatar):not(.msg) { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line); }
+.agent .head { display: flex; align-items: center; gap: 9px; font: 400 15.5px/20px var(--serif); min-width: 0; }
+.agent .head .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent .doing { font: 400 13px/18px var(--font); color: var(--rail-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.agent .doing i { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--apricot); }
+.agent .foot { display: flex; align-items: center; gap: 8px; font: 500 12px/16px var(--font); color: var(--rail-muted); }
+.agent .foot .tokens { margin-left: auto; font: 400 12px/16px var(--mono); font-variant-numeric: tabular-nums; position: relative; padding-bottom: 3px; }
+.agent .foot .tokens::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 1px; background: linear-gradient(90deg, var(--apricot) var(--spent, 0%), var(--rail-line) 0); }
+.agent .foot .tokens.warn::after { background: linear-gradient(90deg, var(--warn) var(--spent), var(--rail-line) 0); }
 .rail .pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); } .rail .pill.solo { border-color: var(--rail-line); color: var(--rail-muted); }
-.rail .avatar { --avatar-edge: var(--rail); }
+/* the rail's foot: the ground */
+.rail .list { mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); }
+.rail .ground { margin: auto -14px 0; height: var(--ground-h); padding: 0 14px 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; color: var(--ground-rail-ink); flex: none; }
+.rail .ground .today { padding: 0 12px; font: 400 12px/16px var(--mono); color: var(--ground-rail-muted); font-variant-numeric: tabular-nums; display: flex; gap: 8px; white-space: nowrap; }
+.rail .me { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius); font: 400 14px/20px var(--font); }
+.rail .me:hover { background: var(--ground-rail-2); }
+.rail .me .serif { font-size: 15px; } .rail .me .role { font: 400 12px/16px var(--font); color: var(--ground-rail-muted); }
+.rail .me .role i { font-family: var(--serif); color: var(--apricot); font-size: 13px; }
+.rail .me .avatar { border-color: var(--ground-rail); }
+.rail .me .more { margin-left: auto; width: 28px; height: 28px; border: 0; background: transparent; color: var(--ground-rail-muted); border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
+.rail .me .more svg { width: 16px; height: 16px; }
 
-/* status dots: the dot carries the colour, the word stays ink */
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex: none; position: relative; }
-.rail .dot { background: var(--rail-muted); }
-.dot.running { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
-.rail .dot.running { background: var(--rail-ok); box-shadow: 0 0 0 3px rgba(155,200,143,.22); }
-.dot.awaiting { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
-.rail .dot.awaiting { background: var(--rail-warn); box-shadow: 0 0 0 3px rgba(226,176,106,.22); }
-.dot.blocked { background: var(--danger); } .rail .dot.blocked { background: var(--rail-danger); }
-.dot.paused { background: var(--info); }
-.dot.idle { background: transparent; border: 1.5px solid var(--ink-3); } .rail .dot.idle { border-color: var(--rail-muted); }
-.dot.closed { background: transparent; border: 1.5px solid var(--ink-3); opacity: .62; } .rail .dot.closed { border-color: var(--rail-muted); }
-.dot.offline { background: transparent; border: 1.5px dashed var(--ink-3); } .rail .dot.offline { border-color: var(--rail-muted); }
-.dot .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.status { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; line-height: 20px; color: var(--ink-2); }
+/* ---- the main column: the sky, the lamp, the ground ---- */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; isolation: isolate; background: var(--canvas); overflow: hidden; }
+.main::before { content: ""; position: absolute; inset: 0; z-index: -2; pointer-events: none; background: var(--lamp), var(--dusk); }
+.main::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: var(--grain-alpha); mix-blend-mode: soft-light;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E") 0 0 / 160px 160px; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 62%, transparent); backdrop-filter: blur(8px); position: relative; z-index: 2; }
+.topbar .title { font: 400 20px/24px var(--serif); display: inline-flex; align-items: center; gap: 12px; min-width: 0; flex: 1; white-space: nowrap; }
+.topbar .title > :first-child { overflow: hidden; text-overflow: ellipsis; }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
+.topbar .tokchip { flex: none; margin-right: 12px; }
+.topbar .stack { flex: none; }
+.topbar .btn.on { background: var(--apricot-soft); border-color: transparent; }
+.tokchip { display: inline-flex; flex-direction: column; gap: 3px; font: 400 13px/16px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); min-width: 112px; }
+.tokchip .pct { color: var(--ink-3); }
+.tokchip .hair { height: 3px; border-radius: 2px; background: var(--surface-3); position: relative; overflow: hidden; }
+.tokchip .hair i { position: absolute; left: 0; top: 0; bottom: 0; width: var(--spent); background: var(--apricot-deep); border-radius: inherit; }
+.tokchip .hair::after { content: ""; position: absolute; left: 80%; top: -1px; bottom: -1px; width: 1px; background: var(--ink-3); opacity: .6; }
+.tokchip .live { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); margin-left: 6px; vertical-align: 1px; }
+.scroll { flex: 1; overflow: auto; position: relative; z-index: 1; }
+.column { width: min(var(--col), 100%); margin: 0 auto; padding: 16px var(--gutter) 40px; display: flex; flex-direction: column; gap: var(--stream-gap); }
+/* the ground: the composer stands on it, and the horizon is its top edge, in line with the rail's */
+.composer-wrap { position: sticky; bottom: 0; z-index: 3; height: var(--ground-h); flex: none; padding: 16px var(--gutter) 0; background: var(--ground); border-top: 1px solid var(--horizon); color: var(--ground-ink); }
+.composer-wrap::before { content: ""; position: absolute; left: 0; right: 0; top: -49px; height: 48px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--canvas) 92%, transparent)); }
+.composer { width: min(var(--col), 100%); margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 14px 12px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-pop), var(--edge); position: relative; color: var(--ink); transition: box-shadow var(--t) var(--ease-move); }
+.composer:focus-within { box-shadow: var(--shadow-pop), var(--glow); }
+.composer textarea { width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; resize: none; outline: none; min-height: 24px; padding: 0; }
+.composer textarea::placeholder { color: var(--ink-3); }
+.composer .bar { display: flex; align-items: center; gap: 8px; } .composer .bar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.toasts { position: absolute; right: 20px; bottom: calc(var(--ground-h) + 16px); width: 360px; display: flex; flex-direction: column; gap: 8px; z-index: 4; pointer-events: none; }
 
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--canvas); position: relative; isolation: isolate; }
-.main::before { content: ""; position: absolute; inset: 0; background: var(--lamp); pointer-events: none; z-index: -2; }   /* the lamp */
-.main::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: -1; opacity: var(--grain-alpha); mix-blend-mode: soft-light;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/></filter><rect width='160' height='160' filter='url(%23g)'/></svg>"); background-size: 160px 160px; }   /* the paper: a tile, never a live filter */
-.topbar { display: flex; align-items: center; gap: 12px; padding: 10px 20px; min-height: var(--topbar-h); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: blur(8px); position: relative; z-index: 2; }
-.topbar .title { font-family: var(--serif); font-size: 20px; line-height: 24px; display: inline-flex; align-items: center; gap: 12px; min-width: 0; white-space: nowrap; font-variation-settings: "SOFT" 50, "WONK" 0; }
-.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.scroll { flex: 1; min-height: 0; overflow: auto; }
-.sheet { display: grid; grid-template-columns: minmax(0, 1fr) 432px; gap: 24px; padding: 20px var(--gutter) 140px; }
-.col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-.spec { display: flex; flex-direction: column; gap: 14px; }
-.spec h3 { display: flex; align-items: center; gap: 10px; }
-.spec h3::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-
-/* ============================ TOKENS, AS A LADDER ============================ */
-.ladder { display: grid; grid-template-columns: 56px 1fr; gap: 6px 12px; align-items: stretch; }
-.ladder .role { font: 600 11px/14px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); padding-top: 6px; }
-.ladder .steps { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
-.sw { height: 46px; border-radius: 8px; border: 1px solid var(--line); box-shadow: var(--edge); display: flex; flex-direction: column; justify-content: flex-end; padding: 4px 6px; font: 500 10px/12px var(--mono); color: var(--ink-2); overflow: hidden; }
-.sw b { display: block; font-weight: 500; color: var(--ink); letter-spacing: .02em; } .sw .hx { opacity: .8; }
-.sw.on-dark { color: rgba(242,233,221,.7); } .sw.on-dark b { color: #F2E9DD; }
-.sw.on-light { color: #5B6273; } .sw.on-light b { color: #1F2634; }
-.sw.lamp { background: var(--canvas); position: relative; }
-.sw.lamp::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60px 36px at 20% 0%, var(--apricot), transparent 70%); opacity: .7; }
-.sw.lamp > * { position: relative; }
-.sw.edge { background: var(--surface); box-shadow: inset 0 1px 0 rgba(226,196,166,.6); }
-.sw.pulse { background: var(--surface); box-shadow: inset 3px 0 0 var(--apricot); }
-
-/* ============================ CONVERSATION ============================ */
-.joinline { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 16px; }
-.joinline .who { color: var(--accent-ink); } .joinline .when { margin-left: auto; font: 400 12.5px/16px var(--mono); color: var(--ink-3); }
+/* ---- stream ---- */
 .msg { display: flex; flex-direction: column; gap: 6px; }
-.msg .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; }
-.msg .meta .who { font-family: var(--serif); font-size: 16px; color: var(--ink); font-variation-settings: "SOFT" 50, "WONK" 0; }
-.msg .meta .goal, .msg .meta .to { font-family: var(--serif); font-style: italic; color: var(--accent-ink); font-size: 15px; }
-.msg .meta .when, .msg .meta .turn { margin-left: auto; font: 400 12.5px/16px var(--mono); color: var(--ink-3); }
-.msg.human .text { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 13px 18px; align-self: flex-start; max-width: 88%; box-shadow: var(--shadow-soft), var(--edge); }
-.msg.agent .text { font-size: 15.5px; max-width: 600px; }
-.msg.team .text { background: var(--team-wash); border: 1px solid var(--live-line); border-radius: var(--radius-lg); padding: 12px 18px; align-self: flex-start; max-width: 88%; }
-.steps { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
-.step { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; font: 400 13px/20px var(--mono); color: var(--ink-2); padding: 4px 10px 4px 8px; border-radius: 8px; }
-.step svg { width: 14px; height: 14px; color: var(--ink-3); }
-.step .r { color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.step.done svg { color: var(--ok); }
+.msg .meta { display: flex; align-items: center; gap: 8px; font: 400 13px/20px var(--font); color: var(--ink-2); }
+.msg .meta .who { font-size: 16px; line-height: 20px; color: var(--ink); }
+.msg .meta .when, .msg .meta .turn { margin-left: auto; font: 400 12.5px/16px var(--mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.msg .meta .chip.scope { height: 22px; font: 400 12px/16px var(--mono); }
+.msg.human .text { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 13px 18px; align-self: flex-start; max-width: 85%; box-shadow: var(--shadow-soft), var(--edge); max-inline-size: 66ch; text-wrap: pretty; }
+.msg.human .text .goal { font-family: var(--serif); font-style: italic; color: var(--accent-ink); font-size: 16px; }
+.msg.agent .text { font: 400 15.5px/24px var(--font); max-inline-size: 600px; text-wrap: pretty; }
+.msg.agent .text .serif { color: var(--accent-ink); }
+.msg.team .text { background: var(--team-wash); border: 1px solid transparent; box-shadow: inset 3px 0 0 var(--live-line); border-radius: var(--radius-lg); padding: 12px 18px; align-self: flex-start; max-width: 85%; }
+.msg.team .meta .to { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--accent-ink); }
+.steps { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.step { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center; font: 400 13px/20px var(--mono); color: var(--ink-2); padding: 3px 8px; border-radius: 8px; font-variant-numeric: tabular-nums; }
+.step svg { width: 14px; height: 14px; color: var(--ink-3); } .step.done svg { color: var(--ok); }
+.step .r { color: var(--ink-3); }
 .step.live { background: var(--apricot-soft); color: var(--ink); box-shadow: inset 3px 0 0 var(--live-line); }
-.step.live .r { color: var(--accent-ink); }
-.out { margin-top: 8px; background: var(--out-bg); color: #F2E9DD; border-radius: var(--radius); padding: 12px 16px; font: 400 12.5px/19px var(--mono); overflow: hidden; box-shadow: var(--edge); border: 1px solid rgba(226,196,166,.08); }
-.out .k { color: #9BC88F; } .out .d { color: #A39D95; } .out .a { color: #E2C4A6; }
-.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 12px; line-height: 16px; }
+.step.live svg { color: var(--apricot-deep); } .step.live .r { color: var(--accent-ink); }
+.out { margin-top: 8px; background: var(--out-bg); color: var(--out-fg); border-radius: max(0px, calc(var(--radius-lg) - 13px)); padding: 12px 14px; font: 400 12.5px/18px var(--mono); white-space: pre; overflow: auto; box-shadow: var(--edge); }
+.out .ok { color: var(--ok); } .out .dim { opacity: .6; }
+.join { display: flex; align-items: center; gap: 12px; font: 400 16px/24px var(--serif); color: var(--ink); }
+.join .mark { width: 30px; height: 30px; } .join b { font-weight: 400; color: var(--accent-ink); }
+.join .when { margin-left: auto; font: 400 12.5px/16px var(--mono); color: var(--ink-3); }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font: 400 12px/16px var(--mono); }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
-/* notices */
-.notice { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 16px 22px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); position: relative; overflow: hidden; }
+/* ---- notices ---- */
+.notice { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 16px 22px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); position: relative; overflow: hidden; flex: none; }
 .notice::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
-.notice.gate::before { background: var(--gate-stripe); } .notice.contention::before { background: var(--warn); }
-.notice .kind { font: 600 11.5px/16px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; }
-.notice .kind .origin { margin-left: auto; font: 400 12.5px/16px var(--mono); letter-spacing: 0; text-transform: none; color: var(--ink-3); }
-.notice .sentence { font-family: var(--serif); font-size: 18px; line-height: 24px; font-variation-settings: "SOFT" 50, "WONK" 0; }
-.notice .sentence i { color: var(--accent-ink); }
-.command { display: inline-flex; align-items: center; gap: 10px; background: var(--surface-2); border-radius: 10px; padding: 6px 10px; font: 400 13px/20px var(--mono); align-self: flex-start; max-width: 100%; }
-.notice .rule { font-size: 13.5px; color: var(--ink-2); line-height: 20px; }
-.vote { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; font-size: 13.5px; }
-.vote .name { font-family: var(--serif); font-size: 15px; } .vote .role { color: var(--ink-3); font-size: 12px; margin-left: 6px; } .vote .note { color: var(--ink-2); font-style: italic; font-family: var(--serif); }
-.quorum { display: flex; align-items: center; gap: 10px; font: 400 12.5px/16px var(--mono); color: var(--ink-2); }
-.quorum .segs { display: inline-flex; gap: 4px; } .quorum .segs i { width: 28px; height: 6px; border-radius: 3px; background: var(--surface-3); border: 1px solid transparent; }
-.quorum .segs i.on { background: var(--apricot); } .quorum .segs i.next { border-color: var(--apricot-deep); background: transparent; }
-.notice .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.notice .actions .hint { font-size: 12.5px; color: var(--ink-3); margin-left: 4px; }
+.notice.gate::before { background: var(--gate-stripe); } .notice.contention::before { background: var(--warn); } .notice.denied::before { background: var(--danger); } .notice.quiet::before { background: var(--surface-3); }
+.notice .kind { display: flex; align-items: center; gap: 10px; }
+.notice .kind .origin { margin-left: auto; font: 400 12.5px/16px var(--mono); color: var(--ink-3); }
+.notice .lead { font: 400 20px/26px var(--serif); }
+.notice .lead i { color: var(--accent-ink); }
+.command { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border-radius: 10px; padding: 8px 12px; font: 400 13px/20px var(--mono); color: var(--ink); box-shadow: var(--edge); }
+.command .pill { margin-left: auto; }
+.rule { font: 400 13px/20px var(--font); color: var(--ink-2); }
+.votes { display: flex; flex-direction: column; gap: 6px; }
+.vote { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; font: 400 14px/20px var(--font); }
+.vote .who { font-size: 16px; } .vote .role { font-size: 12px; color: var(--ink-3); margin-left: 6px; }
+.vote .note { font-style: italic; color: var(--ink-2); font-family: var(--serif); font-size: 15px; }
+.vote.missing { color: var(--ink-3); } .vote.missing .avatar { border: 1.5px dashed var(--ink-3); background: transparent; color: var(--ink-3); }
+.quorum { display: flex; align-items: center; gap: 10px; font: 400 12.5px/16px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.quorum .segs { display: inline-flex; gap: 4px; } .quorum .segs i { width: 34px; height: 6px; border-radius: 3px; background: var(--surface-3); }
+.quorum .segs i.on { background: var(--apricot-deep); } .quorum .segs i.next { background: transparent; box-shadow: inset 0 0 0 1.5px var(--apricot-deep); }
+.notice .actions, .plan .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.notice .actions .hint, .plan .actions .hint { margin-left: auto; font: 400 12.5px/16px var(--font); color: var(--ink-3); }
 
-/* plan card */
-.plan { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); position: relative; overflow: hidden; }
-.plan::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
-.plan .head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.plan .head .serif { font-size: 20px; line-height: 24px; } .plan .head .rule { margin-left: auto; font: 400 12.5px/16px var(--mono); color: var(--ink-3); }
-.pstep { display: grid; grid-template-columns: 22px 1fr auto auto auto; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+/* ---- plan card ---- */
+.plan { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); position: relative; overflow: hidden; flex: none; }
+.plan::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--ok); }
+.plan .head { display: flex; align-items: center; gap: 12px; }
+.plan .head .serif { font-size: 20px; line-height: 24px; }
+.plan .head .rulem { margin-left: auto; font: 400 12.5px/16px var(--mono); color: var(--ink-3); }
+.pstep { display: grid; grid-template-columns: 22px 1fr auto auto auto; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font: 400 14px/20px var(--font); }
 .pstep .n { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font: 500 11px/1 var(--mono); color: var(--ink-2); }
-.pstep.done .n { background: var(--ok); border-color: var(--ok); color: #FFF; }
+.pstep.done .n { background: var(--ok); border-color: var(--ok); color: #fff; }
+.pstep.done .n svg { width: 12px; height: 12px; }
 .pstep.running .n { border-color: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
-.pstep.gate .n { border-color: var(--accent-ink); border-style: dashed; }
-.pstep .d { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 16px; }
-.pstep .used, .pstep .est { font: 400 12.5px/16px var(--mono); font-variant-numeric: tabular-nums; } .pstep .est { color: var(--ink-3); }
-.pstep .used.sofar { color: var(--accent-ink); } .pstep .used.under { color: var(--ok-ink); } .pstep .used.over { color: var(--warn-ink); }
-.budget { height: 6px; border-radius: 3px; background: var(--surface-3); position: relative; overflow: visible; }
-.budget > i { display: block; height: 100%; width: var(--pct, 35%); background: var(--apricot-deep); border-radius: inherit; }
-.budget .tick { position: absolute; top: -3px; width: 1px; height: 12px; background: var(--ink-3); left: var(--at); }
-.budget .tick.warn { background: var(--warn); }
-.budget .lbl { position: absolute; top: 14px; left: var(--at); transform: translateX(-50%); font: 400 11px/14px var(--mono); color: var(--ink-3); }
-.plan .foot { display: flex; align-items: center; gap: 12px; font: 400 12.5px/16px var(--mono); color: var(--ink-2); flex-wrap: wrap; }
+.pstep.gate .n { border: 1.5px dashed var(--accent-ink); color: var(--accent-ink); }
+.pstep .d { font: 400 12.5px/16px var(--font); color: var(--ink-2); }
+.pstep .used, .pstep .est { font: 400 12.5px/16px var(--mono); font-variant-numeric: tabular-nums; }
+.pstep .used { color: var(--ink); } .pstep .used.sofar { color: var(--accent-ink); } .pstep .used.over { color: var(--warn-ink); } .pstep .used.under { color: var(--ok-ink); }
+.pstep .est { color: var(--ink-3); }
+.pill.risk { font: 500 11px/16px var(--mono); text-transform: none; letter-spacing: 0; height: 20px; }
+.pill.risk.write { background: var(--apricot-soft); color: var(--ink); } .pill.risk.exec { background: rgba(42,50,68,.12); color: var(--ink); }
+.pill.risk.external { background: var(--warn-soft); color: var(--warn-ink); } .pill.risk.irreversible { background: var(--danger-soft); color: var(--danger-ink); }
+.budget { display: flex; flex-direction: column; gap: 6px; font: 400 12.5px/16px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.budget .track { height: 6px; border-radius: 3px; background: var(--surface-3); position: relative; overflow: visible; }
+.budget .track i { position: absolute; left: 0; top: 0; bottom: 0; width: var(--spent); background: var(--apricot-deep); border-radius: inherit; }
+.budget .track .tick { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink-3); left: var(--at); }
+.budget .track .tick.est { background: var(--accent-ink); }
+.budget .track .tick::after { content: attr(data-l); position: absolute; top: 12px; left: -6px; font: 400 10.5px/14px var(--mono); color: var(--ink-3); white-space: nowrap; }
+.budget .foot { display: flex; gap: 12px; } .budget .foot .r { margin-left: auto; }
+.rating { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font: 400 12.5px/16px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .raters { display: flex; gap: 8px; flex-wrap: wrap; }
-.rater { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 6px; border-radius: var(--radius-full); background: var(--surface-2); font-size: 13px; }
-.rater .name { font-family: var(--serif); font-size: 14px; } .rater q { color: var(--ink-2); font-style: italic; font-family: var(--serif); quotes: "“" "”"; }
-.rater.missing { background: transparent; border: 1px dashed var(--line); color: var(--ink-3); }
+.rater { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 6px; border-radius: var(--radius-full); background: var(--surface-2); font: 400 13px/16px var(--font); box-shadow: var(--edge); }
+.rater .who { font-size: 15px; } .rater q { font-style: italic; color: var(--ink-2); font-family: var(--serif); font-size: 14px; } .rater q::before, .rater q::after { content: "“"; } .rater q::after { content: "”"; }
+.rater.missing { background: transparent; border: 1.5px dashed var(--ink-3); color: var(--ink-3); box-shadow: none; }
+.rater .stars { gap: 1px; } .rater .stars svg { width: 12px; height: 12px; }
 
-/* stars */
+/* ---- the rating control ---- */
 .stars { display: inline-flex; align-items: center; gap: 3px; }
-.stars .st { width: 22px; height: 22px; display: grid; place-items: center; border: 0; background: transparent; padding: 0; cursor: pointer; color: var(--ink-3); }
-.stars .st svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
-.stars .st.on { color: var(--star-on); } .stars .st.on svg { fill: currentColor; }
-.stars .st.pre { color: var(--star-pre); } .stars .st.pre svg { fill: currentColor; }
+.stars button, .stars span { width: 22px; height: 22px; border: 0; background: transparent; padding: 0; cursor: pointer; display: grid; place-items: center; }
+.stars svg { width: 18px; height: 18px; fill: transparent; stroke: var(--ink-3); stroke-width: 1.5; }
+.stars .on svg { fill: var(--star-on); stroke: var(--star-on); } .stars .pre svg { fill: var(--star-pre); stroke: var(--star-pre); }
 .stars .tick { width: 1px; height: 14px; background: var(--line); margin: 0 3px; }
-.stars .word { font-family: var(--serif); font-style: italic; font-size: 14px; margin-left: 6px; color: var(--ok-ink); }
-.stars.sm .st { width: 18px; height: 18px; } .stars.sm .st svg { width: 14px; height: 14px; }
+.stars .word { margin-left: 6px; font: italic 400 15px/20px var(--serif); color: var(--ok-ink); }
 
-/* ============================ CONTROLS ============================ */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--edge); transition: background var(--t-fast) var(--ease-move), box-shadow var(--t) var(--ease-move), transform var(--t-fast) var(--ease-move); white-space: nowrap; }
+/* ---- controls ---- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--edge); transition: background var(--t-fast) ease, box-shadow var(--t) ease, transform var(--t-fast) var(--ease-move); white-space: nowrap; }
 .btn:hover { background: var(--surface-2); box-shadow: var(--shadow-soft), var(--edge); } .btn:active { transform: translateY(1px) scale(.99); }
-.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; box-shadow: inset 0 1px 0 var(--hand-edge), 0 0 0 1px rgba(226,196,166,0), var(--shadow-soft); }
-:root[data-theme="dark"] .btn.primary { box-shadow: inset 0 1px 0 var(--hand-edge), 0 0 0 1px rgba(226,196,166,.22), 0 6px 18px rgba(20,10,8,.5); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { box-shadow: inset 0 1px 0 var(--hand-edge), 0 0 0 1px rgba(226,196,166,.22), 0 6px 18px rgba(20,10,8,.5); } }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; box-shadow: inset 0 1px 0 var(--hand-edge), 0 0 0 1px var(--hand-rim); }
 .btn.primary:hover { background: var(--accent-hover); }
-.btn.brand { background: var(--gradient-brand); color: var(--grad-fg); border-color: transparent; box-shadow: inset 0 1px 0 var(--hand-edge), var(--shadow-soft); }
+.btn.brand { background: var(--gradient-brand); color: var(--grad-fg); border-color: transparent; box-shadow: inset 0 1px 0 var(--hand-edge); }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); box-shadow: none; }
 .btn.ghost.danger { color: var(--danger-ink); }
-.btn.on { background: var(--apricot-soft); border-color: transparent; }
 .btn.icon { width: 36px; padding: 0; } .btn.sm { min-height: 30px; padding: 0 11px; font-size: 13px; }
 .btn svg { width: 16px; height: 16px; }
-.btn .kbd { margin-left: 4px; }
-.send { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; box-shadow: inset 0 1px 0 var(--hand-edge), var(--shadow-soft); }
+.btn .kbd { margin-left: 2px; }
+.send { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; cursor: pointer; box-shadow: inset 0 1px 0 var(--hand-edge), 0 0 0 1px var(--hand-rim), var(--shadow-soft); }
 .send svg { width: 16px; height: 16px; }
-.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: var(--radius-full); background: var(--surface-2); font-size: 13px; color: var(--ink-2); border: 1px solid transparent; }
+.seg { display: inline-flex; background: var(--surface-3); border-radius: var(--radius-full); padding: 3px; }
+.seg button { border: 0; background: transparent; font: 500 12.5px/18px var(--font); color: var(--ink-2); padding: 3px 12px; border-radius: var(--radius-full); cursor: pointer; }
+.seg .on { background: var(--seg-on); color: var(--ink); box-shadow: var(--shadow-soft), var(--edge); }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: var(--radius-full); background: var(--surface-2); font: 400 13px/20px var(--font); color: var(--ink-2); box-shadow: var(--edge); }
 .chip.on { background: var(--select-wash); color: var(--ink); box-shadow: inset 0 0 0 1px var(--select-line); }
-.chip.mono { font-family: var(--mono); font-size: 12.5px; }
-.seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; }
-.seg button { border: 0; background: transparent; font: 500 12.5px/20px var(--font); color: var(--ink-2); padding: 3px 12px; border-radius: var(--radius-full); cursor: pointer; }
-.seg .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft), var(--edge); }
-.rail .seg, .seg.night { background: var(--surface-3); }
-.field { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); font: inherit; box-shadow: var(--edge); min-width: 0; }
-.field.focus { box-shadow: var(--glow), var(--edge); border-color: var(--select-line); }
-.field input { border: 0; background: transparent; color: inherit; font: inherit; outline: 0; min-width: 0; flex: 1; }
-.field .ph { color: var(--ink-3); } .field svg { width: 15px; height: 15px; color: var(--ink-3); flex: none; }
+.chip .d { width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); }
 .switch { width: 38px; height: 22px; border-radius: 11px; background: var(--surface-3); position: relative; border: 0; cursor: pointer; padding: 0; box-shadow: var(--edge); }
-.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink-3); transition: transform var(--t) var(--ease-mark), background var(--t) var(--ease-move); }
-.switch.on { background: var(--apricot-deep); } .switch.on::after { transform: translateX(16px); background: var(--fondant); }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(20,15,14,.3); transition: transform var(--t) var(--ease-mark); }
+.switch.on { background: var(--apricot-deep); } .switch.on::after { transform: translateX(16px); }
 .check { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--ink-3); display: inline-grid; place-items: center; background: transparent; }
-.check.on { background: var(--apricot-deep); border-color: var(--apricot-deep); } .check svg { width: 12px; height: 12px; stroke: var(--fondant); fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-.lbl { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-2); }
-.kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 5px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 0 var(--line), var(--edge); font: 500 11px/1 var(--mono); color: var(--ink-2); text-transform: uppercase; }
+.check.on { background: var(--apricot-deep); border-color: var(--apricot-deep); } .check svg { width: 12px; height: 12px; color: var(--mark-disc); }
+.field { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); font: 400 14px/20px var(--font); box-shadow: var(--edge); }
+.field.focus { box-shadow: var(--edge), var(--glow); border-color: transparent; }
+.field .ph { color: var(--ink-3); } .field svg { width: 16px; height: 16px; color: var(--ink-3); }
+.kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 5px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 0 var(--line), var(--edge); font: 400 11.5px/16px var(--mono); color: var(--ink-2); text-transform: uppercase; }
 .kbd.live { background: var(--accent); color: var(--accent-fg); border-color: transparent; box-shadow: inset 0 1px 0 var(--hand-edge); }
-.kbd.pressed { background: var(--apricot); color: var(--fondant); border-color: transparent; }
-.rail .kbd { background: var(--rail-2); border-color: var(--rail-line); color: var(--rail-muted); box-shadow: none; }
+.kbd.pressed { background: var(--apricot); color: var(--mention-you-fg); border-color: transparent; }
 
-/* pills, counts */
-.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/1 var(--font); letter-spacing: 0.02em; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
+/* ---- pills, counts, status, mentions ---- */
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/16px var(--font); letter-spacing: .02em; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
 .pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
 .pill.solo { background: transparent; border: 1px solid var(--line); }
-.pill.planning { background: var(--apricot-soft); color: var(--ink); }
-.pill.status { background: var(--surface-2); color: var(--ink); }
-.pill.status.ok { background: var(--ok-soft); } .pill.status.warn { background: var(--warn-soft); } .pill.status.danger { background: var(--danger-soft); } .pill.status.info { background: var(--info-soft); }
-.pill.risk { font-family: var(--mono); font-weight: 500; }
-.pill.risk.read { background: var(--surface-2); } .pill.risk.write { background: var(--apricot-soft); color: var(--ink); } .pill.risk.exec { background: rgba(42,50,68,.12); color: var(--ink); }
-.pill.risk.external { background: var(--warn-soft); color: var(--warn-ink); } .pill.irreversible, .pill.risk.irreversible { background: var(--danger-soft); color: var(--danger-ink); font-family: var(--mono); font-weight: 500; }
-.pill.gate { background: var(--blues); color: var(--apricot); }
-:root[data-theme="dark"] .pill.gate { box-shadow: inset 0 0 0 1px rgba(226,196,166,.45); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill.gate { box-shadow: inset 0 0 0 1px rgba(226,196,166,.45); } }
-.pill .dot { width: 6px; height: 6px; box-shadow: none; }
+.pill.planning { background: var(--apricot-soft); color: var(--ink); } .pill.planning::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); }
+.pill.status { background: var(--ok-soft); color: var(--ink); } .pill.status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+.pill.irreversible { font: 500 11px/16px var(--mono); background: var(--danger-soft); color: var(--danger-ink); letter-spacing: 0; }
+.pill.gate { background: var(--blues); color: var(--apricot); box-shadow: inset 0 0 0 1px var(--hand-rim); }
 .count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--count-bg); color: var(--count-fg); font: 600 11.5px/1 var(--mono); font-variant-numeric: tabular-nums; }
-.count.sm { min-width: 18px; height: 18px; font-size: 11px; } .count.at { background: var(--accent); color: var(--accent-fg); font-family: var(--serif); font-size: 13px; box-shadow: inset 0 1px 0 var(--hand-edge); }
-mark.mention { border-radius: 7px; padding: 1px 6px; font-weight: 500; background: var(--mention-person-bg); color: var(--mention-person-fg); }
-mark.mention.you { background: var(--apricot); color: var(--fondant); }
-mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-agent-fg); font-family: var(--serif); font-weight: 400; border-radius: 8px 8px 8px 2px; }
+.count.sm { min-width: 18px; height: 18px; font-size: 11px; }
+.count.at { background: transparent; color: var(--accent-ink); font: 400 15px/1 var(--serif); }
+.status { display: inline-flex; align-items: center; gap: 6px; font: 400 13px/20px var(--font); color: var(--ink-2); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dot-idle); flex: none; display: inline-block; }
+.dot.running { background: var(--ok); } .dot.awaiting { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); } .dot.blocked { background: var(--danger); } .dot.paused { background: var(--info); }
+.dot.idle { background: transparent; box-shadow: inset 0 0 0 1.5px var(--dot-idle); } .dot.closed { background: transparent; box-shadow: inset 0 0 0 1.5px var(--dot-idle); opacity: .62; }
+.dot.offline { background: transparent; border: 1.5px dashed var(--dot-idle); width: 9px; height: 9px; }
+.rail .dot { --dot-idle: var(--rail-muted); }
+mark.mention { border-radius: 7px; padding: 1px 6px; background: var(--mention-person-bg); color: var(--mention-person-fg); font: inherit; }
+mark.mention.you { background: var(--mention-you-bg); color: var(--mention-you-fg); }
+mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-agent-fg); font-family: var(--serif); border-radius: 8px 8px 8px 2px; }
 
-/* avatars */
-.avatar { --size: 28px; width: var(--size); height: var(--size); border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 600 11px/1 var(--font); border: 2px solid var(--avatar-edge, var(--canvas)); position: relative; flex: none; box-shadow: var(--edge); }
-.avatar.lg { --size: 40px; font-size: 14px; font-family: var(--serif); font-weight: 400; } .avatar.sm { --size: 22px; font-size: 9px; }
+/* ---- avatars ---- */
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 600 11px/1 var(--font); border: 2px solid var(--canvas); flex: none; position: relative; }
+.avatar.a { background: #D9C3AE; color: #2A3244; } .avatar.b { background: #B9C0D1; color: #2A3244; } .avatar.c { background: #C9B5AD; color: #2A3244; } .avatar.d { background: #CDD3C4; color: #2A3244; }
 .avatar.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
-.avatar.off { opacity: .45; filter: saturate(.4); }
-.avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); color: var(--grad-fg); box-shadow: inset 0 1px 0 var(--hand-edge); }
+.avatar.agent { border-radius: var(--radius-agent); background: var(--gradient-brand); color: #fff; box-shadow: inset 0 1px 0 var(--hand-edge); }
 .avatar.agent::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--apricot); }
-.avatar.agent.lg::after { display: none; } .avatar.agent.lg .mark { width: 28px; height: 28px; }
-.avatar.missing { background: transparent; border: 1.5px dashed var(--ink-3); color: var(--ink-3); }
-.avatar .pr { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); border: 2px solid var(--avatar-edge, var(--canvas)); }
-.avatar .pr.away { background: var(--info); }
-.stack { display: inline-flex; align-items: center; } .stack .avatar + .avatar { margin-left: -8px; }
-.stack .more { margin-left: 6px; font: 500 12px/16px var(--font); color: var(--ink-3); }
-.card .avatar, .notice .avatar, .plan .avatar, .toast .avatar { --avatar-edge: var(--surface); }
+.avatar.sm { width: 22px; height: 22px; font-size: 10px; } .avatar.lg { width: 40px; height: 40px; font: 400 16px/1 var(--serif); }
+.avatar .pr { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); border: 2px solid var(--surface); }
+.avatar.off { opacity: .45; filter: saturate(.4); }
+.rail .avatar { border-color: var(--rail); }
+.stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -8px; }
+.notice .avatar, .plan .avatar, .card .avatar { border-color: var(--surface); }
 
-/* card, rows, selection */
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px 18px; box-shadow: var(--shadow-soft), var(--edge); display: flex; flex-direction: column; gap: 12px; }
-.card.tight { padding: 12px 14px; gap: 8px; }
-.rowitem { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 10px; font-size: 14px; position: relative; }
-.rowitem + .rowitem { border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; }
-.rowitem .t { font-weight: 500; } .rowitem .s { display: block; font-size: 12.5px; color: var(--ink-2); line-height: 16px; }
+/* ---- cards, rows, drawer ---- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-soft), var(--edge); }
+.rowitem { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 10px 10px; border-bottom: 1px solid var(--line); border-radius: 10px; font: 400 14px/20px var(--font); }
+.rowitem .t { font-weight: 500; } .rowitem .s { font: 400 12.5px/16px var(--font); color: var(--ink-2); }
 .rowitem:hover { background: var(--surface-2); }
 .rowitem.cursor { background: var(--select-wash); box-shadow: inset 0 0 0 1.5px var(--select-line), inset 3px 0 0 var(--apricot-deep); border-color: transparent; }
-.rowitem .keys { display: inline-flex; gap: 4px; align-items: center; }
+.rowitem .hint { font: 400 11.5px/16px var(--mono); color: var(--ink-2); }
+.drawer { width: var(--drawer-w); flex: none; border-left: 1px solid var(--line); background: var(--surface); padding: 18px 20px 40px; display: flex; flex-direction: column; gap: 18px; font: 400 14px/20px var(--font); overflow: auto; box-shadow: var(--edge); }
+.drawer h3 { font: 600 11.5px/16px var(--font); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.drawer h3 .sum { margin-left: auto; font: 400 11.5px/16px var(--mono); letter-spacing: 0; text-transform: none; color: var(--ink-3); }
+.drawer .group { display: flex; flex-direction: column; gap: 10px; } .drawer .group > * { flex: none; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.drawer .head { display: flex; align-items: center; gap: 10px; }
+.drawer .head .serif { font-size: 20px; line-height: 24px; }
+.drawer .head .inspector .seg button { padding: 3px 9px; font-size: 12px; }
 
-/* stat tile and sparkline (data-craft §1, §2, §9) */
-.tile { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: end; }
-.tile .l { font: 500 11px/14px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); grid-column: 1 / -1; }
-.tile .v { font: 500 28px/32px var(--mono); font-variant-numeric: tabular-nums; } .tile .v small { font-size: 13px; color: var(--ink-2); margin-left: 4px; font-weight: 400; }
-.tile .spark { width: 120px; height: 36px; overflow: visible; }
-.tile .spark .band { fill: var(--surface-3); } .tile .spark .line { fill: none; stroke: var(--ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; } .tile .spark .last { fill: var(--apricot); }
-.tile .d { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-2); line-height: 16px; }
+/* the ladder: a picture of the tokens, read from the computed style at runtime */
+.ladder { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ladder .place { display: flex; flex-direction: column; gap: 4px; }
+.ladder .place > b { font: 600 10.5px/14px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding: 0 2px; }
+.sw { height: 44px; border-radius: 8px; display: flex; flex-direction: column; justify-content: flex-end; padding: 5px 7px; gap: 0; border: 1px solid var(--line); position: relative; overflow: hidden; }
+.sw b { font: 500 10.5px/13px var(--mono); } .sw .hx { font: 400 9.5px/12px var(--mono); opacity: .8; }
+.sw.ink-light { color: var(--rail-fg); } .sw.ink-dark { color: var(--ink); }
+.sw.lamp { background: var(--canvas); } .sw.lamp::before { content: ""; position: absolute; inset: 0; background: var(--lamp); background-size: 100% 300%; background-position: 50% 0; }
+.sw.lamp b, .sw.lamp .hx { position: relative; }
+.sw.edgesw { background: var(--surface); box-shadow: inset 0 2px 0 rgba(226,196,166,.5), var(--edge); }
+.sw.line { background: var(--surface); background-image: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 8px); }
+.sw.pulse { background: var(--surface); } .sw.pulse::before { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 4px var(--apricot-soft); }
 
-/* loaders */
-.loaders { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
-.loader.orbit { position: relative; width: 54px; height: 54px; flex: none; }
-.loader.orbit i { position: absolute; top: 23px; left: 23px; width: 8px; height: 8px; border-radius: 50%; }
-.loader.orbit i:nth-child(1) { background: var(--apricot); } .loader.orbit i:nth-child(2) { background: var(--orbit-2); } .loader.orbit i:nth-child(3) { background: var(--ink); }
-.loader.halo { width: 18px; height: 18px; border-radius: 50%; background: var(--apricot); flex: none; }
-.loader.weave { position: relative; width: 120px; height: 3px; border-radius: 2px; background: var(--surface-3); overflow: hidden; }
-.loader.weave i { position: absolute; top: 0; left: 0; height: 100%; border-radius: 2px; }
-.loader.weave i:nth-child(1) { width: 100%; background: var(--apricot); } .loader.weave i:nth-child(2) { width: 40%; background: var(--accent-ink); display: none; }
-.loader.shimmer { display: flex; flex-direction: column; gap: 6px; width: 120px; }
-.loader.shimmer i { display: block; height: 10px; border-radius: 5px; background: var(--surface-3); }
-.loader.shimmer i:nth-child(2) { width: 74%; } .loader.shimmer i:nth-child(3) { width: 58%; }
+/* the hand in a column: the approvals queue's test */
+.hands { display: flex; flex-direction: column; gap: 6px; }
+.hands .btn { justify-content: space-between; }
+.hands .btn .kbd { margin-left: 8px; }
+.hands .btn.shadowhand { --accent: #6B4339; --accent-hover: #6B4339; }
 
-/* composer */
-.composer-wrap { position: sticky; bottom: 0; padding: 14px var(--gutter) 20px; background: linear-gradient(to top, var(--canvas) 70%, transparent); z-index: 2; }
-.composer { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 12px 10px 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-pop), var(--edge); }
-.composer.focus { box-shadow: var(--shadow-pop), var(--glow), var(--edge); }
-.composer .input { min-height: 24px; color: var(--ink-3); font-size: 15px; }
-.composer .bar { display: flex; align-items: center; gap: 8px; } .composer .bar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+/* stat tile with its spark-word */
+.tile { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-2); box-shadow: var(--edge); }
+.tile .l { font: 600 10.5px/14px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.tile .v { font: 500 28px/32px var(--mono); font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 8px; }
+.tile .v small { font: 400 13px/16px var(--font); color: var(--ink-2); }
+.tile .spark { width: 5em; height: 1em; vertical-align: -2px; }
+.tile .spark path { stroke: var(--ink-2); fill: none; vector-effect: non-scaling-stroke; stroke-width: 1.5; }
+.tile .spark rect { fill: var(--surface-3); } .tile .spark circle { fill: var(--apricot-deep); }
+.tile .d { font: 400 12.5px/16px var(--font); color: var(--ink-2); }
 
-/* toast */
-.toasts { position: absolute; right: 480px; bottom: 118px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
-.toast { background: var(--rail); color: var(--rail-fg); border-radius: var(--radius); padding: 12px 14px 12px 16px; display: flex; flex-direction: column; gap: 6px; width: 340px; box-shadow: var(--shadow-pop), inset 0 1px 0 rgba(226,196,166,.18); position: relative; overflow: hidden; font-size: 13.5px; line-height: 20px; }
-.toast::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--apricot); }
-.toast .who { font-family: var(--serif); font-size: 15px; } .toast .acts { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
-.toast .acts .btn { min-height: 28px; padding: 0 10px; font-size: 12.5px; background: var(--rail-2); color: var(--rail-fg); border-color: var(--rail-line); box-shadow: none; }
-.toast .acts .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; box-shadow: inset 0 1px 0 var(--hand-edge); }
+/* ---- loaders ---- */
+.loaders { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.loader.join { width: 36px; height: 36px; }
+.loader.orbit { position: relative; width: 36px; height: 36px; }
+.loader.orbit i { position: absolute; top: 14px; left: 14px; width: 8px; height: 8px; border-radius: 50%; }
+.loader.orbit i:nth-child(1) { background: var(--ink); } .loader.orbit i:nth-child(2) { background: #56352D; } .loader.orbit i:nth-child(3) { background: var(--apricot); }
+.loader.halo { width: 18px; height: 18px; display: grid; place-items: center; } .loader.halo i { width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); }
+.loader.weave { width: 110px; height: 4px; position: relative; } .loader.weave i { position: absolute; left: 0; top: 1px; height: 2px; border-radius: 1px; background: var(--apricot-deep); width: 100%; }
+.loader.weave i:nth-child(2) { background: var(--ink-3); width: 0; }
+.loader.shimmer { width: 120px; display: flex; flex-direction: column; gap: 5px; } .loader.shimmer i { height: 8px; border-radius: 4px; background: var(--surface-3); }
+.loader.shimmer i:nth-child(2) { width: 70%; }
+
+/* ---- toast ---- */
+.toast { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: var(--radius); background: var(--rail); color: var(--rail-fg); box-shadow: inset 3px 0 0 var(--apricot), var(--shadow-pop), var(--edge); pointer-events: auto; position: relative; overflow: hidden; }
+.toast .who { font-size: 15px; } .toast .s { font: 400 13px/18px var(--font); color: var(--rail-muted); }
+.toast .acts { display: flex; gap: 6px; white-space: nowrap; } .toast .acts .btn { min-height: 28px; padding: 0 10px; font-size: 12.5px; background: var(--rail-2); border-color: var(--rail-line); color: var(--rail-fg); }
 .toast .life { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--apricot); transform-origin: left; }
 
-/* the inspector (not part of the design) */
-.inspect { display: inline-flex; align-items: center; gap: 8px; }
-.inspect .lbl { font-size: 12px; color: var(--ink-3); }
+/* ---- phone frame (hidden on desktop) ---- */
+.phone-top, .tabbar { display: none; }
 
-/* ============================ MOTION: the one guard ============================ */
-@keyframes arc-a { 0% { transform: rotate(60deg); opacity: .35 } 15% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 85% { transform: rotate(2deg) } 100% { transform: rotate(0) } }
-@keyframes arc-b { 0% { transform: rotate(-60deg); opacity: .35 } 15% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 85% { transform: rotate(-2deg) } 100% { transform: rotate(0) } }
+/* ---- inspector (not part of the design) ---- */
+.inspector { display: inline-flex; align-items: center; gap: 6px; }
+
+/* =====================================================================================
+   motion · everything under the one guard; every rest state is the element's natural style
+   ===================================================================================== */
+@keyframes arc-a { 0%, 15% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 85% { transform: rotate(2deg) } 100% { transform: rotate(0) } }
+@keyframes arc-b { 0%, 15% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 85% { transform: rotate(-2deg) } 100% { transform: rotate(0) } }
 @keyframes dot-in { 0%, 60% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
-@keyframes arc-a-once { 0% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 100% { transform: rotate(0) } }
-@keyframes arc-b-once { 0% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 100% { transform: rotate(0) } }
-@keyframes dot-once { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
-@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
-@keyframes orbit-1 { 0% { transform: rotate(0deg) translateX(11px) } 60% { transform: rotate(300deg) translateX(0) } 100% { transform: rotate(360deg) translateX(11px) } }
-@keyframes orbit-2 { 0% { transform: rotate(120deg) translateX(11px) } 60% { transform: rotate(420deg) translateX(0) } 100% { transform: rotate(480deg) translateX(11px) } }
-@keyframes orbit-3 { 0% { transform: rotate(240deg) translateX(11px) } 60% { transform: rotate(540deg) translateX(0) } 100% { transform: rotate(600deg) translateX(11px) } }
-@keyframes mark-halo { 0%, 100% { box-shadow: 0 0 0 0 rgba(226,196,166,.5) } 50% { box-shadow: 0 0 0 7px rgba(226,196,166,0) } }
-@keyframes weave-slide { 0% { transform: translateX(-100%) } 100% { transform: translateX(250%) } }
+@keyframes orbit-1 { 0%, 100% { transform: translate(0, 0) } 50% { transform: translate(0, -12px) } }
+@keyframes orbit-2 { 0%, 100% { transform: translate(0, 0) } 50% { transform: translate(-11px, 7px) } }
+@keyframes orbit-3 { 0%, 100% { transform: translate(0, 0) } 50% { transform: translate(11px, 7px) } }
+@keyframes mark-halo { 0%, 100% { box-shadow: 0 0 0 0 rgba(226,196,166,.5) } 50% { box-shadow: 0 0 0 6px rgba(226,196,166,0) } }
+@keyframes weave-slide { 0% { transform: translateX(-100%) } 100% { transform: translateX(100%) } }
+@keyframes weave-under { 0% { width: 0; left: 0 } 50% { width: 100%; left: 0 } 100% { width: 0; left: 100% } }
 @keyframes shimmer { 0% { background-position: 100% 0 } 100% { background-position: -20% 0 } }
+@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .4 } }
+@keyframes card-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 @keyframes pop { 0% { transform: scale(.6); opacity: 0 } 70% { transform: scale(1.15) } 100% { transform: scale(1); opacity: 1 } }
-@keyframes toast-up { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@keyframes ripple { from { box-shadow: 0 0 0 0 rgba(226,196,166,.6) } to { box-shadow: 0 0 0 16px rgba(226,196,166,0) } }
+@keyframes draw { to { stroke-dashoffset: 0 } }
+@keyframes toast-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
 @keyframes drain { from { transform: scaleX(1) } to { transform: scaleX(0) } }
 @keyframes lamp-on { from { opacity: 0 } to { opacity: 1 } }
-@keyframes card-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
-@media (prefers-reduced-motion: no-preference) { :root:not([data-motion="calm"]) {
-  --motion: 1;
-  & .mark.joining .arc.a { animation: arc-a 1.8s var(--ease-mark) infinite; }
-  & .mark.joining .arc.b { animation: arc-b 1.8s var(--ease-mark) infinite; }
-  & .mark.joining .dot { animation: dot-in 1.8s ease infinite; }
-  & .mark.settle .arc.a { animation: arc-a-once .8s var(--ease-arrive) both; }
-  & .mark.settle .arc.b { animation: arc-b-once .8s var(--ease-arrive) both; }
-  & .mark.settle .dot { animation: dot-once 1s var(--ease-arrive) both; }
-  & .dot.running, & .avatar .pr.running { animation: dot-live 1.8s var(--ease-move) infinite; }
-  & .loader.orbit i:nth-child(1) { animation: orbit-1 1.5s var(--ease-move) infinite; }
-  & .loader.orbit i:nth-child(2) { animation: orbit-2 1.5s var(--ease-move) infinite; }
-  & .loader.orbit i:nth-child(3) { animation: orbit-3 1.5s var(--ease-move) infinite; }
-  & .loader.halo { animation: mark-halo 1.8s var(--ease-move) infinite; }
-  & .loader.weave i:nth-child(1) { width: 60%; }
-  & .loader.weave i:nth-child(2) { display: block; animation: weave-slide 1.4s linear infinite; }
-  & .loader.weave i:nth-child(1) { animation: weave-slide 1.4s linear -.7s infinite; }
-  & .loader.shimmer i { background: linear-gradient(90deg, var(--surface-3) 30%, var(--apricot-soft) 50%, var(--surface-3) 70%); background-size: 240% 100%; animation: shimmer 1.5s var(--ease-move) infinite; }
-  & .count.pop { animation: pop var(--t-slow) var(--ease-arrive) both; }
-  & .toast { animation: toast-up var(--t-slow) var(--ease-arrive) both; }
-  & .toast .life { animation: drain 8s linear forwards; }
-  & .main.lit::before { animation: lamp-on 500ms var(--ease-move) both; }
-  & .enter { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(var(--i, 0) * 36ms); }
-} }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) { --motion: 1; }
+  :root:not([data-motion="calm"]) .mark.joining .arc { transform-origin: 48px 48px; animation: arc-a 1.8s var(--ease-mark) infinite; }
+  :root:not([data-motion="calm"]) .mark.joining .arc.b { animation-name: arc-b; }
+  :root:not([data-motion="calm"]) .mark.joining .dot { transform-origin: 48px 48px; animation: dot-in 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .loader.orbit i:nth-child(1) { animation: orbit-1 1.5s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .loader.orbit i:nth-child(2) { animation: orbit-2 1.5s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .loader.orbit i:nth-child(3) { animation: orbit-3 1.5s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .loader.halo i { animation: mark-halo 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .loader.weave i:nth-child(1) { animation: weave-slide 1.4s linear infinite; }
+  :root:not([data-motion="calm"]) .loader.weave i:nth-child(2) { animation: weave-under 1.4s linear infinite; }
+  :root:not([data-motion="calm"]) .loader.shimmer i { background: linear-gradient(90deg, var(--surface-3) 30%, var(--apricot-soft) 50%, var(--surface-3) 70%); background-size: 240% 100%; animation: shimmer 1.5s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .dot.running, :root:not([data-motion="calm"]) .pill.status::before, :root:not([data-motion="calm"]) .avatar .pr { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .tokchip .live, :root:not([data-motion="calm"]) .pill.planning::before { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .enter { animation: card-in var(--t-slow) var(--ease-arrive) both; animation-delay: calc(var(--i, 0) * 36ms); }
+  :root:not([data-motion="calm"]) .count.pop { animation: pop var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .draw { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw 450ms var(--ease-move) .1s forwards; }
+  :root:not([data-motion="calm"]) .toast { animation: toast-up var(--t-slow) var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .toast .life { animation: drain 8s linear forwards; }
+  :root:not([data-motion="calm"]) .main.lit::before { animation: lamp-on 500ms var(--ease-move) both; }
+}
 :root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
-:root[data-motion="calm"] .toast .life { display: none; }
-@media (prefers-reduced-motion: reduce) { .toast .life { display: none; } }
+/* rest states that are not the element's natural style: the drawn check is drawn */
+.draw { stroke-dashoffset: 0; }
 
-/* ============================ PHONE ============================ */
-.phonebar, .tabbar { display: none; }
-@media (max-width: 640px) {
-  .rail { display: none; }
-  .topbar { display: none; }
-  .phonebar { display: flex; flex-direction: column; background: var(--rail); color: var(--rail-fg); border-bottom: 1px solid var(--crease); position: relative; z-index: 2; }
-  .phonebar .status { height: 48px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 22px 6px; font: 600 14px/18px var(--font); color: var(--rail-fg); }
-  .phonebar .bar { height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 8px; }
-  .phonebar .bar .ib { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--rail-fg); background: transparent; border: 0; }
-  .phonebar .bar .ib.on { background: var(--rail-active); }
-  .phonebar .bar .ib svg { width: 18px; height: 18px; }
-  .phonebar .bar .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .phonebar .bar .tt .t { font-family: var(--serif); font-size: 19px; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .phonebar .bar .tt .s { font-size: 12px; line-height: 14px; color: var(--rail-muted); } .phonebar .bar .tt .s b { font-weight: 500; color: var(--rail-ok); }
-  .phonebar .strip { display: flex; align-items: center; gap: 8px; padding: 0 12px 10px; }
-  .phonebar .strip .mono { color: var(--rail-muted); font-size: 12px; }
-  .sheet { grid-template-columns: 1fr; padding: 16px 16px 150px; gap: 20px; }
-  .spec { order: 2; }
-  .composer-wrap { padding: 10px 16px 8px; }
-  .composer { border-radius: 18px; }
-  .composer .kbd, .composer .chip { display: none; }
-  .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--rail); color: var(--rail-muted); border-top: 1px solid var(--rail-line); padding: 6px 8px 22px; position: sticky; bottom: 0; z-index: 3; }
-  .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 3px; font: 500 11px/14px var(--font); color: inherit; text-decoration: none; position: relative; padding: 4px 0; }
-  .tabbar a svg { width: 20px; height: 20px; } .tabbar a.on { color: var(--apricot); }
-  .tabbar a .count { position: absolute; top: 0; left: calc(50% + 6px); }
-  .toasts { left: 16px; right: 16px; bottom: 200px; } .toast { width: auto; }
+/* =====================================================================================
+   the phone · 390 × 844: the rail and the specimen go; the horizon stays, and the four-tab bar
+   stands on the ground with the composer
+   ===================================================================================== */
+@media (max-width: 480px) {
+  :root { --ground-h: 196px; --gutter: 16px; }
   body { font-size: 16px; }
-  .msg.human .text, .msg.team .text { max-width: 100%; }
-  .pstep { grid-template-columns: 22px 1fr auto; } .pstep .pill, .pstep .est { display: none; }
-  .sheet .ladder { grid-template-columns: 1fr; }
-  .notice .kind .origin { margin-left: 0; width: 100%; }
-  .command { white-space: normal; }
+  .rail, .drawer, .topbar, .composer-wrap::before { display: none; }
+  .msg.agent .text { font-size: 16px; }
+  .phone-top { display: block; flex: none; background: var(--rail); color: var(--rail-fg); position: relative; z-index: 2; }
+  .phone-top .statusbar { height: 48px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 22px 6px; font: 600 14px/16px var(--font); }
+  .phone-top .statusbar .sig { display: inline-flex; gap: 5px; align-items: center; font: 500 12px/16px var(--mono); }
+  .phone-top .bar { height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 10px; }
+  .phone-top .bar .mbtn { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: transparent; border: 0; color: var(--rail-fg); }
+  .phone-top .bar .mbtn.right { margin-left: auto; background: var(--rail-active); }
+  .phone-top .bar .mbtn svg { width: 18px; height: 18px; }
+  .phone-top .bar .t { display: flex; flex-direction: column; min-width: 0; }
+  .phone-top .bar .t .serif { font-size: 19px; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phone-top .bar .t .sub { font: 400 12px/16px var(--font); color: var(--rail-muted); } .phone-top .bar .t .sub b { font-weight: 500; color: var(--ok); }
+  .phone-top .strip { display: flex; align-items: center; gap: 8px; padding: 0 12px 10px; }
+  .phone-top .strip .tokchip { color: var(--rail-muted); } .phone-top .strip .tokchip .hair { background: var(--rail-2); }
+  .phone-top .strip .btn { min-height: 30px; padding: 0 10px; font-size: 12.5px; background: var(--rail-2); border-color: var(--rail-line); color: var(--rail-fg); }
+  .phone-top .strip .waits { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: var(--radius-full); background: var(--pill-team-bg); color: var(--pill-team-fg); font: 500 12.5px/16px var(--font); }
+  .msg.human .text, .msg.team .text { max-width: 92%; }
+  .pstep { grid-template-columns: 22px 1fr auto; } .pstep .pill.risk, .pstep .est { display: none; }
+  .composer-wrap { padding: 12px var(--gutter) 0; }
+  .composer { padding: 12px 12px 10px 16px; } .composer textarea { font-size: 16px; }
+  .composer .bar .chip { display: none; }
+  .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); position: absolute; left: 0; right: 0; bottom: 0; height: 76px; padding: 6px 8px 22px; z-index: 4; color: var(--ground-muted); }
+  .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 3px; font: 500 11px/14px var(--font); text-decoration: none; color: inherit; position: relative; border-radius: 10px; padding: 4px 0; }
+  .tabbar a svg { width: 22px; height: 22px; } .tabbar a.on { color: var(--apricot); }
+  .tabbar a .count { position: absolute; top: 0; left: calc(50% + 6px); }
+  .toasts { right: 12px; left: 12px; width: auto; }
 }
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <!-- resting marks: colour reaches a <use> only through custom properties (print-export's finding) -->
-    <symbol id="mark" viewBox="0 0 96 96">
-      <circle cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
-      <path d="M48 20 A28 28 0 0 1 48 76" fill="none" stroke="var(--mark-arc-a)" stroke-width="10"/>
-      <path d="M48 76 A28 28 0 0 1 48 20" fill="none" stroke="var(--mark-arc-b)" stroke-width="10"/>
-      <circle cx="48" cy="48" r="7" fill="var(--mark-dot)"/>
-    </symbol>
-    <symbol id="mark-small" viewBox="0 0 96 96">
-      <circle cx="48" cy="48" r="48" fill="var(--mark-disc)"/>
-      <path d="M48 19 A29 29 0 0 1 48 77" fill="none" stroke="var(--mark-arc-a)" stroke-width="13"/>
-      <path d="M48 77 A29 29 0 0 1 48 19" fill="none" stroke="var(--mark-arc-b)" stroke-width="13"/>
-      <circle cx="48" cy="48" r="8.5" fill="var(--mark-dot)"/>
-    </symbol>
-    <symbol id="mark-bare" viewBox="0 0 96 96">
-      <path d="M48 18 A30 30 0 0 1 48 78" fill="none" stroke="var(--mark-arc-a)" stroke-width="12"/>
-      <path d="M48 78 A30 30 0 0 1 48 18" fill="none" stroke="var(--mark-arc-b)" stroke-width="12"/>
-      <circle cx="48" cy="48" r="8" fill="var(--mark-dot)"/>
-    </symbol>
-    <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2 9h3.5l1 2h3l1-2H14M2 9l1.6-5h8.8L14 9M2 9v4h12V9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
-    <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-    <symbol id="i-gate" viewBox="0 0 16 16"><path d="M3 13V5a5 5 0 0 1 10 0v8M3 13h10M6 13V9m4 4V9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-grid" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
-    <symbol id="i-chart" viewBox="0 0 16 16"><path d="M2.5 13.5h11M4 11V7m4 4V4m4 7V9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-people" viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.5 13c.5-2.5 2.3-4 4.5-4s4 1.5 4.5 4M11 3.5a2.3 2.3 0 0 1 0 4.4M12.5 9.4c1.2.6 2 1.8 2.2 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-memory" viewBox="0 0 16 16"><path d="M4 2.5h8a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM6 6h4M6 9h4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-hash" viewBox="0 0 16 16"><path d="M6 2.5 4.5 13.5M11.5 2.5 10 13.5M2.5 6h11M2 10h11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-file" viewBox="0 0 16 16"><path d="M4 2h5l3 3v9H4zM9 2v3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
-    <symbol id="i-pen" viewBox="0 0 16 16"><path d="M3 13l.8-3.2L10.6 3a1.4 1.4 0 0 1 2 2L5.8 11.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
-    <symbol id="i-run" viewBox="0 0 16 16"><path d="M3 3l6 5-6 5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 3v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-send" viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-    <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-dots" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="12.5" cy="8" r="1.3" fill="currentColor"/></symbol>
-    <symbol id="i-star" viewBox="0 0 20 20"><path d="M10 2.5l2.3 4.8 5.2.7-3.8 3.6.9 5.2L10 14.3l-4.6 2.5.9-5.2L2.5 8l5.2-.7z"/></symbol>
-    <symbol id="i-at" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 8v1a1.8 1.8 0 0 0 3.5 0V8a6 6 0 1 0-2.4 4.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-clip" viewBox="0 0 16 16"><path d="M10.5 5.5 6 10a1.4 1.4 0 0 0 2 2l5-5a2.8 2.8 0 0 0-4-4L4 8a4.2 4.2 0 0 0 6 6l3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
-    <symbol id="i-sessions" viewBox="0 0 20 20"><path d="M3 5.5h14M3 10h14M3 14.5h9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
-    <symbol id="i-me" viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 17c.6-3.2 3-5 6-5s5.4 1.8 6 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
-  </defs>
+  <symbol id="mark" viewBox="0 0 96 96">
+    <circle class="disc" cx="48" cy="48" r="46" fill="var(--mark-disc)"/>
+    <path class="arc a" d="M48 20A28 28 0 0 1 48 76" fill="none" stroke="var(--mark-arc-a)" stroke-width="10"/>
+    <path class="arc b" d="M48 76A28 28 0 0 1 48 20" fill="none" stroke="var(--mark-arc-b)" stroke-width="10"/>
+    <circle class="dot" cx="48" cy="48" r="7" fill="var(--mark-dot)"/>
+  </symbol>
+  <symbol id="mark-small" viewBox="0 0 96 96">
+    <circle class="disc" cx="48" cy="48" r="48" fill="var(--mark-disc)"/>
+    <path class="arc a" d="M48 19A29 29 0 0 1 48 77" fill="none" stroke="var(--mark-arc-a)" stroke-width="13"/>
+    <path class="arc b" d="M48 77A29 29 0 0 1 48 19" fill="none" stroke="var(--mark-arc-b)" stroke-width="13"/>
+    <circle class="dot" cx="48" cy="48" r="8.5" fill="var(--mark-dot)"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2 9h3.5l1 2h3l1-2H14M2 9l1.6-5h8.8L14 9M2 9v4h12V9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gate" viewBox="0 0 16 16"><path d="M3 13V5a5 5 0 0 1 10 0v8M3 13h10M6 13V9m4 4V9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 16 16"><path d="M2.5 13.5h11M4 11V7m4 4V4m4 7V9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-people" viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.5 13c.5-2.5 2.3-4 4.5-4s4 1.5 4.5 4M11 3.5a2.3 2.3 0 0 1 0 4.4M12.5 9.4c1.2.6 2 1.8 2.2 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-memory" viewBox="0 0 16 16"><path d="M4 2.5h8a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM6 6h4M6 9h4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 16 16"><path d="M6 2.5 4.5 13.5M11.5 2.5 10 13.5M2.5 6h11M2 10h11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-file" viewBox="0 0 16 16"><path d="M4 2h5l3 3v9H4zM9 2v3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 16 16"><path d="M3 13l.8-3.2L10.6 3a1.4 1.4 0 0 1 2 2L5.8 11.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-run" viewBox="0 0 16 16"><path d="M3 3l6 5-6 5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 3v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-send" viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="12.5" cy="8" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="i-star" viewBox="0 0 20 20"><path d="M10 2.5l2.3 4.8 5.2.7-3.8 3.6.9 5.2L10 14.3l-4.6 2.5.9-5.2L2.5 8l5.2-.7z"/></symbol>
+  <symbol id="i-at" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 8v1a1.8 1.8 0 0 0 3.5 0V8a6 6 0 1 0-2.4 4.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 16 16"><path d="M10.5 5.5 6 10a1.4 1.4 0 0 0 2 2l5-5a2.8 2.8 0 0 0-4-4L4 8a4.2 4.2 0 0 0 6 6l3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-sessions" viewBox="0 0 20 20"><path d="M3 5.5h14M3 10h14M3 14.5h9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-chats" viewBox="0 0 20 20"><path d="M4 4h12v9H9l-4 3v-3H4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="i-approvals" viewBox="0 0 20 20"><path d="M4 16V7a6 6 0 0 1 12 0v9M4 16h12M7.5 16v-5m5 5v-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-me" viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 17c.6-3.2 3-5 6-5s5.4 1.8 6 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 </svg>
 
 <div class="shell">
-  <!-- ============================ THE RAIL ============================ -->
+  <!-- ======================= the rail: the dark of the room ======================= -->
   <aside class="rail" aria-label="Henosis">
-    <div class="brand"><svg class="mark" width="24" height="24" aria-hidden="true"><use href="#mark-small"/></svg>Henosis</div>
-    <button class="new" type="button"><span style="font-size:17px;line-height:1">+</span> New session</button>
+    <div class="brand"><svg class="mark" aria-hidden="true"><use href="#mark-small"/></svg>Henosis</div>
+    <div class="list">
+    <button class="new" type="button"><span style="font-size:18px;line-height:1">+</span> New session</button>
     <a class="item" href="#"><svg><use href="#i-search"/></svg>Search <span class="kbd">⌘K</span></a>
-    <a class="item" href="#"><svg><use href="#i-inbox"/></svg>Inbox <span class="count">3</span></a>
-    <a class="item" href="#"><svg><use href="#i-gate"/></svg>Approvals <span class="count pop">1</span></a>
-    <div class="section">Agents <span class="n">6</span></div>
-    <div class="crew"><span class="serif">Ana and Bo</span></div>
-    <a class="acard active" href="#" aria-label="Invoice PDF, running, Team with Bo, writing proration.ts, step 3 of 4, 12.4k tokens">
-      <div class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Invoice PDF</span><span class="pill team">Team</span></div>
-      <div class="doing"><i>Writing proration.ts</i> · step 3 of 4</div>
-      <div class="foot"><span class="stack"><span class="avatar sm driver">AM</span><span class="avatar sm">BL</span></span> with Bo <span class="tokens" style="--spent:31%">12.4k</span></div>
+    <a class="item" href="#"><svg><use href="#i-inbox"/></svg>Inbox <span class="count sm">2</span></a>
+    <a class="item" href="#"><svg><use href="#i-gate"/></svg>Approvals <span class="count sm pop">1</span></a>
+    <div class="section">Agents</div>
+    <div class="crew"><span class="serif">Ana and Bo</span> · crew</div>
+    <a class="agent active" href="#" aria-label="Billing page, running, Team with Bo, laying out the PDF, step 3 of 4, 5.4k tokens">
+      <div class="head"><span class="dot running"><span class="sr">running</span></span><span class="t">Billing page</span><span class="pill team">Team</span></div>
+      <div class="doing"><i>Laying out the PDF</i> · step 3 of 4</div>
+      <div class="foot"><span class="stack"><span class="avatar sm a driver">A</span><span class="avatar sm b">B</span></span> with Bo <span class="tokens" style="--spent:14%">5.4k</span></div>
     </a>
-    <a class="acard" href="#">
+    <a class="agent" href="#">
       <div class="head"><span class="dot awaiting"><span class="sr">awaiting approval</span></span><span class="t">Checkout</span><span class="pill team">Team</span></div>
-      <div class="doing"><i>Waits at the release gate</i> · stripe prorations apply</div>
-      <div class="foot"><span class="stack"><span class="avatar sm driver">BL</span><span class="avatar sm">AM</span></span> with Ana <span class="tokens warn" style="--spent:84%">33.6k</span></div>
+      <div class="doing"><i>Waits for approval</i> · migrate carts</div>
+      <div class="foot"><span class="stack"><span class="avatar sm b driver">B</span><span class="avatar sm a">A</span></span> with Ana <span class="tokens warn" style="--spent:86%">34.4k</span></div>
     </a>
-    <a class="acard" href="#">
-      <div class="head"><span class="dot blocked"><span class="sr">blocked</span></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
-      <div class="doing"><i>Blocked on proration</i> · two directives disagree</div>
-      <div class="foot"><span class="avatar sm">D</span> Dee <span class="tokens" style="--spent:12%">4.8k</span></div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot blocked"><span class="sr">blocked</span></span><span class="t">Invoice PDF</span><span class="pill solo">Solo</span></div>
+      <div class="doing"><i>Blocked</i> · tax-lines.ts touched by two agents</div>
+      <div class="foot"><span class="avatar sm c">C</span> Cy <span class="tokens" style="--spent:31%">12.1k</span></div>
     </a>
-    <a class="acard" href="#">
-      <div class="head"><span class="dot paused"><span class="sr">paused</span></span><span class="t">Billing page</span><span class="pill solo">Solo</span></div>
-      <div class="doing"><i>Paused by Ana</i> · 14:02</div>
-      <div class="foot"><span class="avatar sm">AM</span> Ana <span class="tokens" style="--spent:55%">22.0k</span></div>
+    <a class="agent" href="#">
+      <div class="head"><span class="dot paused"><span class="sr">paused</span></span><span class="t">Tax lines</span><span class="pill solo">Solo</span></div>
+      <div class="doing"><i>Paused</i> · Dee asked it to wait for the ledger</div>
+      <div class="foot"><span class="avatar sm d">D</span> Dee <span class="tokens" style="--spent:22%">8.8k</span></div>
     </a>
-    <a class="acard" href="#">
-      <div class="head"><span class="dot idle"><span class="sr">idle</span></span><span class="t">Receipts</span><span class="pill solo">Solo</span></div>
-      <div class="doing">Idle since Tuesday</div>
-    </a>
-    <a class="acard" href="#">
-      <div class="head"><span class="dot closed"><span class="sr">closed</span></span><span class="t">Onboarding mail</span></div>
-      <div class="doing">Closed · united into main</div>
+    <a class="agent" href="#" style="opacity:.78">
+      <div class="head"><span class="dot closed"><span class="sr">closed</span></span><span class="t">Receipts</span></div>
+      <div class="doing">United into main · yesterday</div>
     </a>
     <div class="section">Payments</div>
     <a class="item" href="#"><svg><use href="#i-grid"/></svg>Overview</a>
-    <a class="item" href="#"><svg><use href="#i-chart"/></svg>Usage</a>
-    <a class="item" href="#"><svg><use href="#i-memory"/></svg>Memory <span class="count">2</span></a>
+    <a class="item" href="#"><svg><use href="#i-memory"/></svg>Memory <span class="count sm">1</span></a>
     <div class="section">Chats</div>
-    <a class="item" href="#"><svg><use href="#i-hash"/></svg>billing <span class="count at">@</span></a>
-    <a class="item" href="#"><svg><use href="#i-hash"/></svg>release</a>
-    <div class="me">
-      <span class="avatar driver">AM</span>
-      <span style="flex:1;min-width:0"><div class="who">Ana Moreau</div><div class="s">owner · driving <i>Invoice PDF</i></div></span>
-      <svg width="16" height="16" style="color:var(--rail-muted)"><use href="#i-dots"/></svg>
+    <a class="item" href="#"><svg><use href="#i-hash"/></svg>billing <span class="count sm">3</span></a>
+    </div>
+    <!-- the rail's foot stands on the ground -->
+    <div class="ground">
+      <div class="today"><span>today</span><span>31.2k tokens</span><span>·</span><span>2 wait for you</span></div>
+      <div class="me"><span class="avatar a">A</span><span><span class="serif">Ana Moreau</span><br><span class="role">owner · driving <i>Billing page</i></span></span><button class="more" type="button" aria-label="Account"><svg><use href="#i-dots"/></svg></button></div>
     </div>
   </aside>
 
-  <!-- ============================ THE PAGE ============================ -->
+  <!-- ======================= the main column: the sky, one lamp, the ground ======================= -->
   <div class="main lit" id="main">
-    <div class="phonebar" aria-hidden="true">
-      <div class="status"><span>21:14</span><span class="mono" style="font-size:12px">●●●● ▴ ▮</span></div>
+    <div class="phone-top" aria-hidden="true">
+      <div class="statusbar"><span>14:32</span><span class="sig">●●●● ▮▮▮</span></div>
       <div class="bar">
-        <button class="ib" type="button" aria-label="Menu"><svg><use href="#i-menu"/></svg></button>
-        <div class="tt"><span class="t">Invoice PDF</span><span class="s"><b>Running</b> · turn 7 · with Bo</span></div>
-        <button class="ib on" type="button" aria-label="Team"><svg><use href="#i-people"/></svg></button>
+        <button class="mbtn" type="button" aria-label="Sessions"><svg><use href="#i-menu"/></svg></button>
+        <div class="t"><span class="serif">Billing page</span><span class="sub"><b>Running</b> · turn 7 · Team · with Bo</span></div>
+        <button class="mbtn right" type="button" aria-label="Details"><svg><use href="#i-people"/></svg></button>
       </div>
-      <div class="strip"><span class="pill team">Team · with Bo</span><span class="mono">12.4k tokens · 31 %</span><span class="pill" style="margin-left:auto;background:var(--apricot);color:#56352D">1 waits for you</span></div>
+      <div class="strip"><span class="tokchip" style="--spent:14%"><span>5.4k tokens <span class="pct">14 %</span><span class="live"></span></span><span class="hair"><i></i></span></span><span class="waits"><span class="count sm">1</span> waits for you</span></div>
     </div>
     <header class="topbar">
-      <div class="title"><span>Invoice PDF</span><span class="status"><span class="dot running"><span class="sr">running</span></span>Running · turn 7</span><span class="pill team">Team · with Bo</span></div>
-      <span class="chip mono" title="12.4k of 40k">12.4k tokens <span class="faint">31 %</span></span>
-      <span class="stack" aria-label="Ana, Bo and Cy are here with the agent. Ana is driving."><span class="avatar driver">AM</span><span class="avatar">BL</span><span class="avatar">CO</span><span class="avatar agent" aria-label="Invoice PDF agent"></span></span>
+      <div class="title"><span>Billing page</span><span class="status"><span class="dot running"><span class="sr">running</span></span>Running · turn 7</span><span class="pill team" title="Team: Ana and Bo are both in this session">Team · with Bo</span></div>
       <div class="right">
-        <span class="inspect" aria-label="Page inspector">
-          <span class="seg night" role="group" aria-label="Theme"><button type="button" id="th-light">Day</button><button type="button" id="th-dark">Night</button><button type="button" id="th-sys">System</button></span>
-          <button class="btn sm" type="button" id="calm">Calm <span class="kbd">c</span></button>
-        </span>
+        <span class="tokchip" style="--spent:14%" role="meter" aria-valuenow="14" aria-valuemin="0" aria-valuemax="100" aria-label="5.4k of 40k tokens, spending now"><span>5.4k tokens <span class="pct">14 %</span><span class="live"></span></span><span class="hair"><i></i></span></span>
+        <span class="stack" aria-label="Ana, driving, and Bo are here"><span class="avatar a driver">A</span><span class="avatar b">B</span><span class="avatar agent" title="Ana's agent"></span></span>
         <button class="btn sm on" type="button">Team</button>
         <button class="btn sm" type="button">Details</button>
       </div>
     </header>
 
-    <div class="scroll">
-      <div class="sheet">
-        <!-- ---------------- the stream ---------------- -->
-        <div class="col">
-          <div class="joinline"><svg class="mark" width="40" height="40" aria-hidden="true"><use href="#mark"/></svg><span><span class="who">Bo</span> joins the circle.</span><span class="when">14:06</span></div>
+    <div class="scroll" id="scroll">
+      <div class="column">
+        <div class="join"><svg class="mark" aria-hidden="true"><use href="#mark"/></svg><span><b>Bo</b> joins the circle.</span><span class="when">14:06</span></div>
 
-          <div class="msg human">
-            <div class="meta"><span class="avatar sm driver">AM</span><span class="who">Ana</span><span class="goal">Goal</span><span class="chip mono" style="height:22px">Billing page · Checkout</span><span class="when">14:07</span></div>
-            <div class="text">Make the invoice PDF carry the tax lines and the proration for mid-cycle plan changes. Dee owns the tax lines; take the proration from the Checkout branch and keep <mark class="mention">@Bo</mark> in the loop before anything touches stored invoices.</div>
-          </div>
-
-          <div class="msg agent">
-            <div class="meta"><span class="avatar sm agent" aria-hidden="true"></span><span class="who">Invoice PDF</span><span class="turn">turn 7 · step 3 of 4</span></div>
-            <div class="text">The proration lands as one function: <code class="mono">prorate(invoice, change)</code> returns the credit and the charge as two lines, so the PDF prints what Stripe will bill. Tax lines come from Dee's branch unchanged.</div>
-            <div class="steps">
-              <div class="step done"><svg><use href="#i-check"/></svg><span>read src/billing/invoice.ts</span><span class="r">1.2k</span></div>
-              <div class="step done"><svg><use href="#i-file"/></svg><span>read src/billing/tax-lines.ts · from Dee's branch</span><span class="r">0.9k</span></div>
-              <div class="step live"><svg><use href="#i-pen"/></svg><span>write src/billing/proration.ts</span><span class="r">3.1k so far</span></div>
-              <div class="step"><svg><use href="#i-run"/></svg><span>run pnpm test billing</span><span class="r">~2.0k</span></div>
-            </div>
-            <div class="out"><span class="d">$</span> pnpm test billing --filter proration<br><span class="k">✓</span> proration.test.ts · 14 passed · <span class="a">312 ms</span><br><span class="d">#</span> credit −18.40 · charge 42.00 · net 23.60 · <span class="d">as of 14:09</span></div>
-          </div>
-
-          <div class="notice gate" role="group" aria-label="Release gate">
-            <div class="kind"><span class="pill gate">Release gate</span>step 4 of 4 · Migrate stored invoices <span class="origin">waiting in Checkout</span></div>
-            <div class="sentence">Bo's agent asks to run <i>stripe prorations apply</i> on 1,204 stored invoices.</div>
-            <div class="command"><svg width="14" height="14" style="color:var(--ink-3)"><use href="#i-run"/></svg>stripe prorations apply --live --from checkout/proration <span class="pill irreversible">irreversible</span></div>
-            <div class="rule">Held by the people who consume the code. Needs two ratings at 4 or above; Dee has not rated yet.</div>
-            <div class="vote"><span class="avatar sm">CO</span><span><span class="name">Cy</span><span class="role">consumer</span> <span class="note">“Fine once the dry run matches.”</span></span><span class="stars sm" aria-label="4 of 5, Good"><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st on"><svg><use href="#i-star"/></svg></span><span class="tick"></span><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st"><svg><use href="#i-star"/></svg></span></span></div>
-            <div class="quorum"><span class="segs"><i class="on"></i><i class="next"></i></span>1 of 2 at 4+ · avg 4.0 · <span style="color:var(--warn-ink)">waits for one more</span></div>
-            <div class="row" style="gap:12px">
-              <span class="stars" role="radiogroup" aria-label="Your rating"><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st on"><svg><use href="#i-star"/></svg></span><span class="tick"></span><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st pre"><svg><use href="#i-star"/></svg></span><span class="word">Good</span></span>
-            </div>
-            <div class="actions"><button class="btn primary" type="button">Approve with 4 <span class="kbd" style="background:transparent;color:inherit;border-color:rgba(255,243,230,.35);box-shadow:none">a</span></button><button class="btn" type="button">Ask to revise</button><button class="btn ghost danger" type="button">Deny</button><span class="hint">4 if you leave it · <code class="mono" style="font-size:12px">a</code> again approves</span></div>
-          </div>
-
-          <div class="msg team">
-            <div class="meta"><span class="avatar sm">BL</span><span class="who">Bo</span><span class="to">to the team</span><span class="when">14:11</span></div>
-            <div class="text">Tax lines land before the PDF; Dee has the baton on them until 15:00. I will rate the gate once the dry run prints the same 23.60.</div>
-          </div>
-
-          <div class="notice contention">
-            <div class="kind">Contention <span class="origin"># billing · steered from the group</span></div>
-            <div class="sentence"><i>Tax lines</i> holds two directives that disagree: round per line, or round the total.</div>
-            <div class="rule">Driver wins under this project's policy. Dee is driving; Ana's directive waits as a note.</div>
-            <div class="actions"><button class="btn sm" type="button">Keep Dee's</button><button class="btn sm ghost" type="button">Open the thread</button></div>
-          </div>
-
-          <div class="plan">
-            <div class="head"><span class="serif">Proration for mid-cycle changes</span><span class="status"><span class="dot running"><span class="sr">running</span></span>Running</span><span class="rule">needs 2 at 3+</span></div>
-            <div>
-              <div class="pstep done"><span class="n"><svg width="11" height="11" style="color:#fff"><use href="#i-check"/></svg></span><span>Read the invoice and tax-line models<span class="d">invoice.ts, tax-lines.ts from Dee's branch</span></span><span class="pill risk read">read</span><span class="used under">2.1k</span><span class="est">~2.4k</span></div>
-              <div class="pstep done"><span class="n"><svg width="11" height="11" style="color:#fff"><use href="#i-check"/></svg></span><span>Draft prorate() with the two-line output<span class="d">credit and charge, printed as Stripe bills them</span></span><span class="pill risk write">write</span><span class="used over">4.6k</span><span class="est">~3.0k</span></div>
-              <div class="pstep running"><span class="n">3</span><span>Write proration.ts and its tests<span class="d">14 cases from the Checkout fixtures</span></span><span class="pill risk exec">exec</span><span class="used sofar">3.1k so far</span><span class="est">~4.0k</span></div>
-              <div class="pstep gate"><span class="n">4</span><span>Migrate stored invoices<span class="d">waits at the release gate</span></span><span class="pill risk irreversible">irreversible</span><span class="used"></span><span class="est">~2.0k</span></div>
-            </div>
-            <div class="budget" style="--pct:35%"><i></i><span class="tick" style="--at:28%"></span><span class="lbl" style="--at:28%">est</span><span class="tick warn" style="--at:80%"></span><span class="lbl" style="--at:80%">80 %</span></div>
-            <div class="foot" style="margin-top:10px">14.1k of 40k · Soft budget · nothing stops at 100 %</div>
-            <div class="raters"><span class="rater"><span class="avatar sm">CO</span><span class="name">Cy</span><span class="stars sm"><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st on"><svg><use href="#i-star"/></svg></span><span class="st"><svg><use href="#i-star"/></svg></span></span><q>clean split</q></span><span class="rater missing"><span class="avatar sm missing">D</span>Dee has not rated</span></div>
-            <div class="row"><button class="btn sm" type="button">Ask to revise</button><button class="btn sm ghost danger" type="button">Reject</button><span class="small faint" style="margin-left:4px">1 of 2 ratings · 4.0 average · waiting</span></div>
-          </div>
-
-          <div class="divider">Dee left the session · 14:20</div>
+        <div class="msg human">
+          <div class="meta"><span class="avatar sm a">A</span><span class="who">Ana</span><span class="chip scope">apps/billing</span><span class="when">14:08</span></div>
+          <div class="text"><span class="goal">Goal</span> · Ship the invoice PDF for the Billing page with the tax lines summed per jurisdiction and proration for the half-month case. Stop at the migration; Bo and Cy hold that gate.</div>
         </div>
 
-        <!-- ---------------- the specimen column ---------------- -->
-        <div class="col spec">
-          <div class="card">
-            <h3 style="margin-top:-2px">The night, by role</h3>
-            <div class="ladder" id="ladder">
-              <span class="role">light</span>
-              <div class="steps">
-                <div class="sw lamp"><b>lamp</b><span class="hx" data-prop="--apricot">#E2C4A6</span></div>
-                <div class="sw edge"><b>edge</b><span class="hx" id="edge-hx">apricot 14 %</span></div>
-                <div class="sw pulse"><b>pulse</b><span class="hx" id="pulse-hx">apricot 35 %</span></div>
-              </div>
-              <span class="role">air</span>
-              <div class="steps">
-                <div class="sw" data-bg="--rail"><b>rail</b><span class="hx" data-prop="--rail"></span></div>
-                <div class="sw" data-bg="--canvas"><b>canvas</b><span class="hx" data-prop="--canvas"></span></div>
-                <div class="sw" data-bg="--surface"><b>surface</b><span class="hx" data-prop="--surface"></span></div>
-                <div class="sw" data-bg="--surface-2"><b>raised</b><span class="hx" data-prop="--surface-2"></span></div>
-                <div class="sw" data-bg="--surface-3"><b>pressed</b><span class="hx" data-prop="--surface-3"></span></div>
-              </div>
-              <span class="role">shadow</span>
-              <div class="steps">
-                <div class="sw" data-bg="--out-bg"><b>output</b><span class="hx" data-prop="--out-bg"></span></div>
-                <div class="sw" data-bg="--accent"><b>hand</b><span class="hx" data-prop="--accent"></span></div>
-                <div class="sw" style="background:var(--canvas);box-shadow:var(--shadow-pop)"><b>shadow</b><span class="hx" id="shadow-hx">navy 16 %</span></div>
-              </div>
-            </div>
-            <p class="small muted" style="margin:0">By night nothing is white and nothing is grey: the lamp lights every top edge, the air is Dress Blues stepped toward the lamp, and every shadow is chocolate.</p>
+        <div class="msg agent">
+          <div class="meta"><span class="avatar sm agent" aria-hidden="true"></span><span class="who">Ana's agent</span><span class="turn">turn 7 · step 3 of 4</span></div>
+          <div class="text">Proration is done and the tax lines now sum per jurisdiction, with the Québec case covered. I am laying out the PDF next and will stop before <span class="serif i">Migrate stored invoices</span>, which is irreversible and waits at the release gate.</div>
+          <div class="steps">
+            <div class="step done"><svg><use href="#i-check"/></svg><span>read apps/billing/invoice.ts</span><span class="r">1.2k</span></div>
+            <div class="step done"><svg><use href="#i-check"/></svg><span>write apps/billing/proration.ts</span><span class="r">3.4k</span></div>
+            <div class="step live"><svg><use href="#i-run"/></svg><span>run pnpm test billing</span><span class="r">0.8k so far</span></div>
           </div>
-
-          <h3>Controls</h3>
-          <div class="row"><button class="btn primary" type="button">Approve with 4</button><button class="btn" type="button">Ask to revise</button><button class="btn brand" type="button">New session</button><button class="btn ghost danger" type="button">Deny</button><button class="btn icon" type="button" aria-label="Attach"><svg><use href="#i-clip"/></svg></button></div>
-          <div class="row"><span class="chip">Billing page</span><span class="chip on">Checkout</span><span class="seg"><button type="button">Agent</button><button type="button" class="on">Team</button></span><button class="switch on" type="button" role="switch" aria-checked="true" aria-label="Notify on gates"></button><button class="switch" type="button" role="switch" aria-checked="false" aria-label="Calm motion"></button><span class="lbl"><span class="check on"><svg><use href="#i-check"/></svg></span>Keep the dry run</span></div>
-          <div class="row"><span class="field focus" style="flex:1"><svg><use href="#i-search"/></svg><span class="ph">Search sessions, people, agents</span></span><span class="kbd">⌘K</span><span class="kbd live">a</span><span class="kbd pressed">j</span><span class="kbd">esc</span></div>
-
-          <h3>Pills, counts, mentions</h3>
-          <div class="row"><span class="pill team">Team</span><span class="pill solo">Solo</span><span class="pill planning"><span class="dot" style="background:var(--apricot-deep)"></span>Planning</span><span class="pill status ok"><span class="dot" style="background:var(--ok)"></span>Running</span><span class="pill status warn"><span class="dot" style="background:var(--warn)"></span>Awaiting</span><span class="pill status danger"><span class="dot" style="background:var(--danger)"></span>Blocked</span><span class="pill status info"><span class="dot" style="background:var(--info)"></span>Paused</span><span class="pill gate">Release gate</span><span class="pill irreversible">irreversible</span></div>
-          <div class="row"><span class="count">3</span><span class="count">12</span><span class="count">99+</span><span class="count at">@</span><span class="small" style="margin-left:4px"><mark class="mention">@Bo</mark> <mark class="mention you">@you</mark> <mark class="mention agent">@Invoice PDF</mark></span></div>
-
-          <h3>Status, avatars</h3>
-          <div class="row" style="gap:14px"><span class="status"><span class="dot running"></span>Running</span><span class="status"><span class="dot awaiting"></span>Awaiting</span><span class="status"><span class="dot blocked"></span>Blocked</span><span class="status"><span class="dot paused"></span>Paused</span><span class="status"><span class="dot idle"></span>Idle</span><span class="status"><span class="dot closed"></span>Closed</span><span class="status"><span class="dot offline"></span>Offline</span></div>
-          <div class="row" style="gap:12px"><span class="avatar lg driver">A</span><span class="avatar">BL<span class="pr"></span></span><span class="avatar off">CO<span class="pr away"></span></span><span class="avatar agent lg" aria-label="agent"><svg class="mark" width="26" height="26" aria-hidden="true"><use href="#mark-bare"/></svg></span><span class="avatar agent"></span><span class="avatar missing">?</span><span class="stack" style="margin-left:6px"><span class="avatar driver">AM</span><span class="avatar">BL</span><span class="avatar">CO</span><span class="avatar agent"></span><span class="more">+2</span></span></div>
-
-          <h3>Loaders</h3>
-          <div class="loaders"><svg class="mark joining" width="40" height="40" viewBox="0 0 96 96" role="status" aria-label="Opening the circle"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg><span class="loader orbit" role="status" aria-label="Joining Bo, Cy and Dee"><i></i><i></i><i></i></span><span class="loader halo" role="status" aria-label="Reconnecting"></span><span class="loader weave" role="status" aria-label="Opening Payments, 3 of 5"><i></i><i></i></span><span class="loader shimmer" aria-hidden="true"><i></i><i></i><i></i></span></div>
-
-          <h3>A tile, a row, a toast</h3>
-          <div class="card tight">
-            <div class="tile">
-              <span class="l">Tokens today · Payments</span>
-              <span class="v">38.2k<small>of 120k</small></span>
-              <svg class="spark" viewBox="0 0 120 36" aria-hidden="true"><rect class="band" x="0" y="12" width="120" height="12"/><path class="line" d="M0 28 L17 24 L34 26 L51 18 L68 20 L85 14 L102 16 L120 9"/><circle class="last" cx="120" cy="9" r="3"/></svg>
-              <span class="d">Ana's session spent 3.6k since noon; the team's normal band is 11–19k by this hour.</span>
-            </div>
-          </div>
-          <div class="card tight" style="gap:0;padding:6px">
-            <div class="rowitem"><span><span class="t">Approve the gate in <span class="serif">Checkout</span></span><span class="s">Bo's agent · stripe prorations apply · 1 of 2</span></span><span class="keys"><span class="kbd">a</span></span></div>
-            <div class="rowitem cursor"><span><span class="t">Take the baton on <span class="serif">Tax lines</span></span><span class="s">Dee offers it · rounding per line</span></span><span class="keys"><span class="kbd live">↵</span><span class="small faint">takes it</span></span></div>
-            <div class="rowitem"><span><span class="t">Read the unite notice</span><span class="s">United pdf-layout into main · 0c8d44</span></span><span class="keys"><span class="kbd">o</span></span></div>
-          </div>
+          <pre class="out"><span class="ok">✓</span> proration · half-month, leap day, cancelled mid-cycle <span class="dim">14 passed</span>
+<span class="ok">✓</span> tax-lines · per jurisdiction, QC + GST <span class="dim">9 passed</span>
+<span class="dim">› pdf-layout · 0 of 6 · writing</span></pre>
         </div>
+
+        <div class="msg team">
+          <div class="meta"><span class="avatar sm b">B</span><span class="who">Bo</span><span class="to">to the team</span><span class="when">14:21</span></div>
+          <div class="text">I checked the proration against last month's ledger; the half-month case matches to the cent. <mark class="mention you">@Ana</mark> the Québec line is the one to eyeball.</div>
+        </div>
+
+        <div class="notice contention enter" style="--i:1">
+          <div class="kind"><span class="kicker">Contention</span><span class="origin">tax-lines.ts · 14:24</span></div>
+          <div class="lead"><i>Bo's agent</i> and <i>Ana's agent</i> both touch <i>tax-lines.ts</i>. Bo has the baton.</div>
+          <div class="rule">Ana's agent will wait at its next step until Bo hands off or keeps the file.</div>
+          <div class="actions"><button class="btn sm" type="button">Hand off to Ana</button><button class="btn sm ghost" type="button">Keep the baton</button><span class="hint">Bo decides · nothing is lost either way</span></div>
+        </div>
+
+        <section class="plan enter" style="--i:2" aria-label="Plan: Invoice PDF">
+          <div class="head"><span class="serif">Invoice PDF</span><span class="status"><span class="dot running"><span class="sr">running</span></span>Running</span><span class="rulem">needs 2 at 3+</span></div>
+          <div>
+            <div class="pstep done"><span class="n"><svg><use href="#i-check"/></svg></span><span>Read the billing models<br><span class="d">invoice.ts, ledger.ts, the proration spec</span></span><span class="pill risk">read</span><span class="used under">1.2k</span><span class="est">~1.4k</span></div>
+            <div class="pstep done"><span class="n"><svg><use href="#i-check"/></svg></span><span>Write proration<br><span class="d">half-month and leap-day cases, tests</span></span><span class="pill risk write">write</span><span class="used over">3.4k</span><span class="est">~3.0k</span></div>
+            <div class="pstep running"><span class="n">3</span><span>Lay out the PDF<br><span class="d">tax lines per jurisdiction, totals, the footer</span></span><span class="pill risk exec">exec</span><span class="used sofar">0.8k so far</span><span class="est">~4.0k</span></div>
+            <div class="pstep gate"><span class="n">4</span><span>Migrate stored invoices<br><span class="d">waits at the release gate · Bo and Cy</span></span><span class="pill risk irreversible">irreversible</span><span class="used"></span><span class="est">~2.0k</span></div>
+          </div>
+          <div class="budget" role="meter" aria-valuenow="5400" aria-valuemin="0" aria-valuemax="40000" aria-label="5.4k of 40k tokens">
+            <div class="track" style="--spent:13.5%"><i></i><span class="tick est" style="--at:26%" data-l="est"></span><span class="tick" style="--at:80%" data-l="80 %"></span></div>
+            <div class="foot" style="margin-top:14px"><span>5.4k of 40k</span><span class="r">Soft budget · nothing stops at 100 %</span></div>
+          </div>
+          <div class="rating">
+            <span class="stars" role="radiogroup" aria-label="Your rating"><button type="button" class="on" aria-label="1 of 5, Not yet"><svg><use href="#i-star"/></svg></button><button type="button" class="on" aria-label="2 of 5, Risky"><svg><use href="#i-star"/></svg></button><button type="button" class="on" aria-label="3 of 5, Fine"><svg><use href="#i-star"/></svg></button><span class="tick" aria-hidden="true"></span><button type="button" class="on" aria-checked="true" role="radio" aria-label="4 of 5, Good"><svg><use href="#i-star"/></svg></button><button type="button" aria-label="5 of 5, Ship it"><svg><use href="#i-star"/></svg></button><span class="word">Good</span></span>
+            <span>1 of 2 ratings · 4.0 average · waiting · needs 2 at 3+</span>
+          </div>
+          <div class="raters"><span class="rater"><span class="avatar sm a">A</span><span class="who">Ana</span><span class="stars"><span class="on"><svg><use href="#i-star"/></svg></span><span class="on"><svg><use href="#i-star"/></svg></span><span class="on"><svg><use href="#i-star"/></svg></span><span class="on"><svg><use href="#i-star"/></svg></span><span><svg><use href="#i-star"/></svg></span></span><q>Fine, keep the gate</q></span><span class="rater missing"><span class="avatar sm">B</span>Bo has not rated</span></div>
+          <div class="actions"><button class="btn sm" type="button">Ask to revise</button><button class="btn sm ghost danger" type="button">Reject</button><span class="hint">Revise pauses the agent after this step · Reject stops it</span></div>
+        </section>
+
+        <div class="notice gate enter" style="--i:3">
+          <div class="kind"><span class="pill gate">Release gate</span><span class="origin">step 4 of 4 · waiting in Billing page</span></div>
+          <div class="lead"><i>Migrate stored invoices</i> waits for the people who consume the code.</div>
+          <div class="command"><span>pnpm billing:migrate --apply</span><span class="pill irreversible">irreversible</span></div>
+          <div class="rule">Needs 2 at 4+ from Bo and Cy. Ana's rating is a voice, not a vote.</div>
+          <div class="votes">
+            <div class="vote"><span class="avatar sm b">B</span><span><span class="who">Bo</span><span class="role">consumes · Checkout</span> <span class="note">the proration is right</span></span><span class="stars"><span class="on"><svg><use href="#i-star"/></svg></span><span class="on"><svg><use href="#i-star"/></svg></span><span class="on"><svg><use href="#i-star"/></svg></span><span class="on"><svg><use href="#i-star"/></svg></span><span><svg><use href="#i-star"/></svg></span><span class="mono" style="margin-left:6px">4</span></span></div>
+            <div class="vote missing"><span class="avatar sm">C</span><span><span class="who">Cy</span><span class="role">consumes · Invoice PDF</span> has not voted</span><span></span></div>
+          </div>
+          <div class="quorum"><span class="segs"><i class="on"></i><i class="next"></i></span><span>1 of 2 at 4+ · avg 4.0</span></div>
+          <div class="actions"><button class="btn primary" type="button">Approve with 4 <span class="kbd live">a</span></button><button class="btn" type="button">Ask to revise</button><button class="btn ghost danger" type="button">Reject</button><span class="hint">4 if you leave it</span></div>
+        </div>
+
+        <div class="divider">now · 14:32</div>
       </div>
     </div>
 
+    <!-- the ground -->
     <div class="composer-wrap">
-      <div class="composer focus" role="group" aria-label="Composer">
-        <div class="input">Say something · reaches Invoice PDF at its next step, and the team</div>
-        <div class="bar"><span class="seg"><button type="button">Agent</button><button type="button" class="on">Team</button></span><span class="chip mono" style="height:24px">Billing page · Checkout</span><span class="right"><button class="btn icon ghost" type="button" aria-label="Mention"><svg><use href="#i-at"/></svg></button><button class="btn icon ghost" type="button" aria-label="Attach"><svg><use href="#i-clip"/></svg></button><span class="kbd">⌘↵</span><button class="send" type="button" aria-label="Send to the team"><svg><use href="#i-send"/></svg></button></span></div>
-      </div>
+      <form class="composer" onsubmit="return false">
+        <textarea rows="1" aria-label="Message to Ana's agent" placeholder="Tell Ana's agent · reaches it at its next step"></textarea>
+        <div class="bar">
+          <span class="seg" role="group" aria-label="Who hears this"><button type="button" class="on">Agent</button><button type="button">Team</button></span>
+          <span class="chip"><span class="d"></span>Bo hears this too</span>
+          <span class="right"><button class="btn icon ghost" type="button" aria-label="Attach"><svg><use href="#i-clip"/></svg></button><span class="kbd">⌘↵</span><button class="send" type="submit" aria-label="Send to Ana's agent"><svg><use href="#i-send"/></svg></button></span>
+        </div>
+      </form>
+      <nav class="tabbar" aria-label="Tabs">
+        <a href="#" class="on"><svg><use href="#i-sessions"/></svg>Sessions</a>
+        <a href="#"><svg><use href="#i-chats"/></svg>Chats<span class="count sm">3</span></a>
+        <a href="#"><svg><use href="#i-approvals"/></svg>Approvals<span class="count sm">1</span></a>
+        <a href="#"><svg><use href="#i-me"/></svg>Me</a>
+      </nav>
     </div>
-    <div class="toasts" role="status" aria-live="polite">
-  <div class="toast"><span class="who">Cy's agent answered in <span class="i">#billing</span>.</span><span>“The dry run prints 23.60; same as the PDF.”</span><span class="acts"><button class="btn primary" type="button">Open</button><button class="btn" type="button">Later</button><span class="small" style="margin-left:auto;color:var(--rail-muted)">14:12</span></span><span class="life"></span></div>
-    </div>
-    <nav class="tabbar" aria-label="Sections">
-      <a href="#" class="on"><svg><use href="#i-sessions"/></svg>Sessions</a>
-      <a href="#"><svg><use href="#i-hash"/></svg>Chats<span class="count sm at">@</span></a>
-      <a href="#"><svg><use href="#i-gate"/></svg>Approvals<span class="count sm">1</span></a>
-      <a href="#"><svg><use href="#i-me"/></svg>Me</a>
-    </nav>
+    <div class="toasts" role="region" aria-live="polite" aria-label="Notices"></div>
   </div>
+
+  <!-- ======================= the specimen lane: every other component, in the same night ======================= -->
+  <aside class="drawer" aria-label="Every component, in the same night">
+    <div class="head"><span class="serif">The night</span>
+      <span class="inspector" style="margin-left:auto" aria-label="Page inspector, not part of the design">
+        <span class="seg" role="group" aria-label="Theme"><button type="button" id="th-light">Day</button><button type="button" id="th-dark">Night</button><button type="button" id="th-sys" class="on">Sys</button></span>
+        <button class="btn sm" type="button" id="calm" title="Calm motion (c)">Calm</button>
+      </span>
+    </div>
+
+    <div class="group">
+      <h3>Three places <span class="sum" id="theme-word">by day</span></h3>
+      <div class="ladder" id="ladder">
+        <div class="place"><b>Sky</b>
+          <div class="sw ink-light" style="background:var(--rail)"><b>rail</b><span class="hx"></span></div>
+          <div class="sw ink-dark" style="background:var(--canvas)"><b>canvas</b><span class="hx"></span></div>
+          <div class="sw ink-dark" style="background:var(--surface)"><b>surface</b><span class="hx"></span></div>
+          <div class="sw ink-dark" style="background:var(--surface-2)"><b>raised</b><span class="hx"></span></div>
+          <div class="sw ink-dark" style="background:var(--surface-3)"><b>pressed</b><span class="hx"></span></div>
+        </div>
+        <div class="place"><b>Ground</b>
+          <div class="sw" style="background:var(--ground);color:var(--ground-ink)"><b>ground</b><span class="hx"></span></div>
+          <div class="sw" style="background:var(--ground-2);color:var(--ground-ink)"><b>ground · 2</b><span class="hx"></span></div>
+          <div class="sw" style="background:var(--out-bg);color:var(--out-fg)"><b>output</b><span class="hx"></span></div>
+          <div class="sw" style="background:var(--accent);color:var(--accent-fg);box-shadow:inset 0 1px 0 var(--hand-edge)"><b>the hand</b><span class="hx"></span></div>
+          <div class="sw ink-dark" style="background:var(--surface);box-shadow:var(--shadow-pop)"><b>shadow</b><span class="hx" data-fixed="chocolate-black">chocolate-black</span></div>
+        </div>
+        <div class="place"><b>Light</b>
+          <div class="sw lamp ink-dark"><b>lamp</b><span class="hx" data-fixed="apricot 30 %">apricot 30 %</span></div>
+          <div class="sw edgesw ink-dark"><b>edge</b><span class="hx" data-fixed="apricot 14 %">apricot 14 %</span></div>
+          <div class="sw line ink-dark"><b>hairline</b><span class="hx" data-fixed="apricot 11 %">apricot 11 %</span></div>
+          <div class="sw pulse ink-dark"><b>pulse</b><span class="hx" data-fixed="apricot">apricot</span></div>
+          <div class="sw" style="background:var(--count-bg);color:var(--count-fg)"><b>count</b><span class="hx"></span></div>
+        </div>
+      </div>
+      <div class="small muted" style="line-height:18px">Sky is what you read. Ground is what you can touch. The lamp is the only light; the horizon is where they meet.</div>
+    </div>
+
+    <div class="group">
+      <h3>The hand, in a column <span class="sum">approvals queue</span></h3>
+      <div class="hands">
+        <button class="btn sm primary" type="button">Approve with 4 · Migrate stored invoices <span class="kbd">a</span></button>
+        <button class="btn sm primary" type="button">Approve with 4 · Migrate carts <span class="kbd">a</span></button>
+        <button class="btn sm primary" type="button">Keep this · tax-lines.ts <span class="kbd">k</span></button>
+        <button class="btn sm primary" type="button">Return to now <span class="kbd">n</span></button>
+        <button class="btn sm primary" type="button">Unite pdf-layout into main <span class="kbd">u</span></button>
+        <button class="btn sm primary shadowhand" type="button" title="the shadow chocolate, not shipped as a fill">Approve with 4 · at #6B4339 <span class="kbd">·</span></button>
+      </div>
+      <div class="small muted" style="line-height:18px">Six primaries at <span class="mono">#7A4B3E</span> with the lit edge; the last at <span class="mono">#6B4339</span>, kept for shadows and the ground, not for a fill.</div>
+    </div>
+
+    <div class="group">
+      <h3>Controls</h3>
+      <div class="row"><button class="btn sm primary" type="button">Approve with 4</button><button class="btn sm" type="button">Ask to revise</button><button class="btn sm ghost danger" type="button">Reject</button><button class="btn sm brand" type="button">+ New session</button></div>
+      <div class="row"><span class="chip on"><span class="d"></span>Billing page</span><span class="chip">Checkout</span><span class="seg"><button type="button" class="on">Agent</button><button type="button">Team</button></span><button class="switch on" type="button" role="switch" aria-checked="true" aria-label="Calm motion"></button><span class="check on" role="checkbox" aria-checked="true" aria-label="Notify me"><svg><use href="#i-check"/></svg></span><span class="check" role="checkbox" aria-checked="false" aria-label="Also email"></span></div>
+      <div class="field focus"><svg><use href="#i-search"/></svg><span>prorat</span><span class="ph">ion · 3 sessions, 1 memory</span><span class="kbd" style="margin-left:auto">esc</span></div>
+      <div class="row"><span class="kbd">⌘K</span><span class="kbd">j</span><span class="kbd live">a</span><span class="kbd pressed">4</span><span class="chip" style="height:24px;font-size:12px"><span class="d"></span>Keys live</span></div>
+    </div>
+
+    <div class="group">
+      <h3>Pills, counts, mentions</h3>
+      <div class="row"><span class="pill team">Team</span><span class="pill solo">Solo</span><span class="pill planning">Planning</span><span class="pill status">Running</span><span class="pill irreversible">irreversible</span><span class="pill gate">Release gate</span></div>
+      <div class="row"><span class="count">3</span><span class="count sm">12</span><span class="count">99+</span><span class="count at">@</span><span class="small"><mark class="mention">@Bo</mark> <mark class="mention you">@Ana</mark> <mark class="mention agent">@Cy's agent</mark></span></div>
+    </div>
+
+    <div class="group">
+      <h3>Status, avatars</h3>
+      <div class="row" style="gap:14px"><span class="status"><span class="dot running"></span>Running</span><span class="status"><span class="dot awaiting"></span>Awaiting</span><span class="status"><span class="dot blocked"></span>Blocked</span><span class="status"><span class="dot paused"></span>Paused</span><span class="status"><span class="dot idle"></span>Idle</span><span class="status"><span class="dot offline"></span>Offline</span></div>
+      <div class="row" style="gap:10px"><span class="avatar a driver">A<span class="pr"></span></span><span class="avatar b">B</span><span class="avatar c off">C</span><span class="avatar lg d">D</span><span class="avatar agent" title="an agent"></span><span class="stack"><span class="avatar a driver">A</span><span class="avatar b">B</span><span class="avatar c">C</span><span class="avatar agent"></span></span></div>
+    </div>
+
+    <div class="group">
+      <h3>Loaders <span class="sum">one per wait</span></h3>
+      <div class="loaders" role="status" aria-label="Opening the circle">
+        <svg class="mark joining loader join" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+        <span class="loader orbit"><i></i><i></i><i></i></span>
+        <span class="loader halo"><i></i></span>
+        <span class="loader weave"><i></i><i></i></span>
+        <span class="loader shimmer"><i></i><i></i></span>
+      </div>
+      <div class="small muted">Opening the circle · joining Bo and Cy · reconnecting, Bo still has the baton · rows arrive · words arrive.</div>
+    </div>
+
+    <div class="group">
+      <h3>A tile, rows, a toast</h3>
+      <div class="tile"><span class="l">Spent today · the team</span><span class="v">31.2k <small>tokens</small><svg class="spark" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true"><rect x="0" y="6" width="100" height="8"/><path d="M0 14L14 12L28 13L42 9L56 10L70 7L84 8L100 4"/><circle cx="100" cy="4" r="2.5"/></svg></span><span class="d">Ana and her two agents 11.4k · Bo 9.1k · Cy 6.2k · Dee 4.5k</span></div>
+      <div>
+        <div class="rowitem cursor"><span><span class="t">Migrate stored invoices</span><br><span class="s">Billing page · needs 2 at 4+ · Bo voted 4</span></span><span class="hint">a approves · esc leaves</span></div>
+        <div class="rowitem"><span><span class="t">Migrate carts</span><br><span class="s">Checkout · needs 2 at 3+ · nobody yet</span></span><span class="count sm">1</span></div>
+      </div>
+      <div class="toast"><span class="who">Cy's agent</span><span class="s">answered in <span class="mono">#billing</span> · the Québec line is a tax line, not a fee</span><span class="acts"><button class="btn" type="button">Open</button><button class="btn" type="button">Later</button></span><span class="life"></span></div>
+      <div class="small faint" style="line-height:18px">In the app the toasts region sits above the horizon, right-aligned at 360 px, so it never covers a notice's command or its Approve row.</div>
+    </div>
+  </aside>
 </div>
 
 <script>
 (function () {
   var root = document.documentElement, main = document.getElementById('main');
-  function relight() { main.classList.remove('lit'); void main.offsetWidth; main.classList.add('lit'); label(); }
-  function setTheme(t) { if (t) root.dataset.theme = t; else delete root.dataset.theme; relight(); mark(); }
-  function mark() {
-    var t = root.dataset.theme || 'sys';
-    [['th-light','light'],['th-dark','dark'],['th-sys','sys']].forEach(function (p) { document.getElementById(p[0]).classList.toggle('on', t === p[1]); });
-    document.getElementById('calm').classList.toggle('on', root.dataset.motion === 'calm');
+  // the lamp fades up once per theme change (inside the guard); under Calm it is simply on
+  function relight() { main.classList.remove('lit'); void main.offsetWidth; main.classList.add('lit'); }
+  function setTheme(t) {
+    if (t === 'system') delete root.dataset.theme; else root.dataset.theme = t;
+    ['light','dark','sys'].forEach(function (k) { var b = document.getElementById('th-' + k); if (b) b.classList.toggle('on', (k === 'sys' ? 'system' : k) === t); });
+    relight(); ladder();
   }
-  function hex(rgb) { var m = rgb.match(/\d+(\.\d+)?/g); if (!m) return rgb; return '#' + m.slice(0, 3).map(function (n) { return ('0' + Math.round(+n).toString(16)).slice(-2); }).join('').toUpperCase(); }
-  function label() {
-    var cs = getComputedStyle(root);
-    document.querySelectorAll('#ladder .sw[data-bg]').forEach(function (el) {
-      var v = cs.getPropertyValue(el.dataset.bg).trim(); el.style.background = v;
-      var dark = /^#[0-6]/i.test(v) || /^#..[0-6]/i.test(v);
-      el.classList.toggle('on-dark', dark); el.classList.toggle('on-light', !dark);
-      var hx = el.querySelector('.hx'); if (hx) hx.textContent = v.toUpperCase();
-    });
-    var night = root.dataset.theme === 'dark' || (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
-    document.getElementById('shadow-hx').textContent = night ? 'chocolate 60 %' : 'navy 16 %';
-    document.getElementById('edge-hx').textContent = night ? 'apricot 14 %' : 'none by day';
-    document.getElementById('pulse-hx').textContent = night ? 'apricot 35 %' : 'apricot 30 %';
-  }
-  document.getElementById('th-light').onclick = function () { setTheme('light'); };
-  document.getElementById('th-dark').onclick = function () { setTheme('dark'); };
-  document.getElementById('th-sys').onclick = function () { setTheme(null); };
-  document.getElementById('calm').onclick = function () { if (root.dataset.motion === 'calm') delete root.dataset.motion; else root.dataset.motion = 'calm'; mark(); };
+  ['light','dark'].forEach(function (k) { var b = document.getElementById('th-' + k); b && b.addEventListener('click', function () { setTheme(k); }); });
+  var sys = document.getElementById('th-sys'); sys && sys.addEventListener('click', function () { setTheme('system'); });
+  var calm = document.getElementById('calm');
+  function setCalm(on) { if (on) root.dataset.motion = 'calm'; else delete root.dataset.motion; calm && calm.classList.toggle('on', on); }
+  calm && calm.addEventListener('click', function () { setCalm(root.dataset.motion !== 'calm'); });
   document.addEventListener('keydown', function (e) {
-    if (e.metaKey || e.ctrlKey || e.altKey || /input|textarea/i.test(e.target.tagName)) return;
+    var tag = (e.target.tagName || '').toLowerCase(); if (tag === 'textarea' || tag === 'input') return;
     if (e.key === 'd') setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
-    if (e.key === 'c') document.getElementById('calm').click();
+    if (e.key === 'c') setCalm(root.dataset.motion !== 'calm');
   });
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', relight);
-  new MutationObserver(function () { label(); mark(); }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
-  mark(); label();
+  // the ladder prints the computed values, so it is a picture of the tokens and cannot lie
+  function hex(c) { var m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c); if (!m) return c; return '#' + [m[1], m[2], m[3]].map(function (n) { return (+n).toString(16).padStart(2, '0').toUpperCase(); }).join(''); }
+  function ladder() {
+    var dark = root.dataset.theme === 'dark' || (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+    var w = document.getElementById('theme-word'); if (w) w.textContent = dark ? 'by night' : 'by day';
+    document.querySelectorAll('#ladder .sw').forEach(function (sw) {
+      var hx = sw.querySelector('.hx'); if (!hx) return;
+      if (hx.dataset.fixed) { hx.textContent = dark ? hx.dataset.fixed : ({ 'apricot 30 %': 'apricot 35 %', 'apricot 14 %': 'none', 'apricot 11 %': 'navy 12 %', 'apricot': 'apricot-deep', 'chocolate-black': 'navy 16 %' })[hx.dataset.fixed] || hx.dataset.fixed; return; }
+      hx.textContent = hex(getComputedStyle(sw).backgroundColor);
+    });
+  }
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ladder);
+  ladder();
+  // a session opens at now
+  var s = document.getElementById('scroll'); if (s) s.scrollTop = s.scrollHeight;
 })();
 </script>
 </body>

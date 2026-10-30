@@ -1,707 +1,847 @@
 <!doctype html>
-<html lang="en" data-motion="full">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Henosis · The welcome brief</title>
-<meta name="description" content="The first ninety seconds for a new team member: one scene, six beats. Your arc waits, your agent's arc swings in, the camera pulls back to the team's sky, your agent speaks in the ledger, the session card is the one paper on the lacquer, and the lacquer becomes the rail as the first session opens.">
+<meta name="description" content="The first ninety seconds for a new team member: one scene, one camera, six beats. Your arc waits, your agent's arc swings in and the ring closes on a ghost centre, the camera pulls back and the ring is your session in the team's sky, your agent speaks in the ledger column, the first session is one card, and the navy frame arrives around the page as the stream says Dee joins the circle.">
 <style>
-/* ======================================================================
-   Henosis · signature element · the welcome brief (sig-welcome-cinematic)
-   Self-contained. Token values from design/henosis/tokens.css: light in :root, dark twice (the system
-   media query and [data-theme="dark"]). No external assets; nothing fetched. Fraunces and Inter when the
-   OS has them, then Instrument Serif / Instrument Sans, then the system faces.
-   The stage is navy lacquer in both themes, the way the mark's disc is held at Dress Blues in dark
-   (SYSTEM §5, §16): the brief is the one glossy object; the page around it is what changes.
-   Every animation sits under the one guard (MOTION §3); clocks go to zero under Calm and reduce; rest
-   states are written outside it.
-   ====================================================================== */
+/* ==========================================================================================
+   Henosis · signature element · the welcome brief (sig-welcome-cinematic, take 2)
+   Self-contained. Token values from design/henosis/tokens.css and SYSTEM §2/§16: light in :root,
+   dark twice (the system media query and [data-theme="dark"]). No external assets; nothing fetched.
+   Fraunces and Inter asked first, then the Instrument faces, then the system's own.
+   The stage is the page itself (cream by day, the dark canvas by night), so the mark recolours by
+   ground (SYSTEM §1.5, §5): person = chocolate on cream, the hand-as-text #CAA49B at night; agent =
+   navy on cream, apricot at night. The judges' chocolate-on-navy 1.7 : 1 hero arc is gone by
+   construction, and light and dark are two stills, not one.
+   Every animation sits under the one guard (MOTION §3); the clocks go to zero under Calm and reduce;
+   rest states are written outside it. The sky is drawn by the constellation's ring drawer
+   (sig-presence-constellation, the --cst-* properties): one drawer, two callers.
+   ========================================================================================== */
 :root {
-  --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1;
+  --fondant: #56352D; --apricot: #E2C4A6; --blues: #2A3244; --cream: #FBF7F1; --night: #0B0E14;
   --canvas: #FBF7F1; --wash: rgba(226,196,166,.35);
   --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6;
   --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --edge: none;
-  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #AEB4C2; --rail-line: rgba(243,237,228,.10); --rail-active: rgba(226,196,166,.18);
+  --rail: #2A3244; --rail-2: #333C50; --rail-fg: #F3EDE4; --rail-muted: #B9BFCC; --rail-line: rgba(243,237,228,.10); --rail-active: rgba(226,196,166,.18); --crease: #E2C4A6;
   --accent: #56352D; --accent-hover: #6B4339; --accent-fg: #FFF8F1; --accent-ink: #56352D;
-  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30);
-  --ok: #4F7D4A; --warn: #B9792E; --danger: #A8463A;
-  --ok-ink: #3E6A3A; --warn-ink: #8A5A20;
-  --focus-ring: #56352D; --focus-halo: rgba(226,196,166,.30);
+  --apricot-deep: #CFA782; --apricot-soft: rgba(226,196,166,.30); --select-wash: rgba(226,196,166,.16); --select-line: rgba(207,167,130,.5);
+  --ok: #4F7D4A; --ok-soft: rgba(79,125,74,.14); --ok-ink: #3E6639; --warn: #B9792E; --warn-ink: #7F5320; --info: #5B6273;
+  --count-bg: #CFA782; --count-fg: #2A3244; --pill-team-bg: #E2C4A6; --pill-team-fg: #56352D; --agent-bg: #2A3244;
+  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%); --grad-fg: #F8F2EA;
   --shadow-soft: 0 10px 30px rgba(42,50,68,.08); --shadow-pop: 0 18px 50px rgba(42,50,68,.16);
-  --gradient-brand: linear-gradient(135deg, #2A3244 0%, #56352D 100%);
-  /* the mark: brand constants, never --accent */
-  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6;
-  /* the stage: navy lacquer, a brand constant like the disc */
-  --stage: #2A3244; --stage-2: #333C50; --stage-fg: #F3EDE4; --stage-muted: #B9BFCC; --stage-faint: #8E95A5; --stage-line: rgba(243,237,228,.12);
-  --stage-hand: #E2C4A6; --stage-hand-fg: #2A3244;         /* on navy the hand is the highlight and its text flips (SYSTEM §15) */
-  --sky-person: #56352D; --sky-person-lift: #B48F7B;        /* the person's arc: chocolate at hero size; lifted 62 % toward apricot as a hairline on navy (SYSTEM §5) */
-  --sky-agent: #E2C4A6; --sky-centre: #E2C4A6; --sky-guide: rgba(226,196,166,.42); --sky-name: #F3EDE4; --sky-thread: rgba(226,196,166,.5);
-  --sky-live: #9BC88F; --sky-baton: #CFA782;
+  --focus-ring: #56352D; --focus-halo: rgba(226,196,166,.45);
+  --mark-disc: #2A3244; --mark-arc-a: #56352D; --mark-arc-b: #E2C4A6; --mark-dot: #E2C4A6; /* brand constants, never --accent */
+  /* the sky: the constellation's drawer, colour only through these (sig-presence-constellation) */
+  --cst-person: #56352D; --cst-person-a: .86; --cst-agent: #2A3244; --cst-agent-a: .74;
+  --cst-bright: #56352D; --cst-baton: #CFA782; --cst-centre: #CFA782;
+  --cst-guide: rgba(42,50,68,.34); --cst-thread: rgba(86,53,45,.55); --cst-halo: rgba(226,196,166,.85); --cst-aura: rgba(226,196,166,.7);
+  --cst-w: 1.6; --cst-w-baton: 2.6; --cst-w-hero: 5.5;
+  --cst-planning: #CFA782;
   --font: Inter, "Instrument Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
-  --serif: Fraunces, "Instrument Serif", "Iowan Old Style", Georgia, serif;
-  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --serif: Fraunces, "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius-sm: 6px; --radius: 14px; --radius-lg: 22px; --radius-full: 999px;
-  --rail-w: 296px; --col: 560px;
-  /* clocks and curves: the system's three, plus the four this element adds */
+  --rail-w: 296px; --words-w: 404px; --gutter: 72px;
+  /* the system's three clocks and curves (MOTION §2), plus the four this element adds */
   --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
-  --t-draw: 450ms; --t-cam: 900ms; --t-stagger: 120ms; --t-paper: 800ms;
+  --t-draw: 450ms; --t-cam: 900ms; --t-stagger: 120ms; --t-frame: 560ms; --t-ghost: 800ms; --k: 1;
   --ease-arrive: cubic-bezier(.2,.7,.2,1); --ease-leave: cubic-bezier(.4,0,1,1);
   --ease-move: cubic-bezier(.4,0,.2,1); --ease-mark: cubic-bezier(.3,.9,.3,1);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --canvas: #1C2230; --wash: rgba(226,196,166,.10);
-  --surface: #232B3B; --surface-2: #2A3344; --surface-3: #343E52;
-  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.12); --edge: inset 0 1px 0 rgba(255,255,255,.055);
-  --rail: #161B26; --rail-2: #1E2432; --rail-fg: #F0EAE0; --rail-muted: #8E95A5; --rail-line: rgba(240,234,224,.08); --rail-active: rgba(226,196,166,.16);
-  --accent: #7A4B3E; --accent-hover: #8B5A4C; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
-  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
-  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --ok-ink: #9BC88F; --warn-ink: #E2B06A;
-  --focus-ring: #F0EAE0; --focus-halo: rgba(226,196,166,.22);
-  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #9CA3B2; --rail-line: rgba(240,234,224,.08); --rail-active: rgba(226,196,166,.12); --crease: rgba(226,196,166,.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F; --warn: #E2B06A; --warn-ink: #E2B06A; --info: #B4BAC6;
+  --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6; --agent-bg: #3A4458;
   --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --focus-ring: #F0EAE0; --focus-halo: rgba(226,196,166,.28);
+  --cst-person: #CAA49B; --cst-person-a: 1; --cst-agent: #E2C4A6; --cst-agent-a: .8;
+  --cst-bright: #F0EAE0; --cst-baton: #E2C4A6; --cst-centre: #E2C4A6;
+  --cst-guide: rgba(240,234,224,.36); --cst-thread: rgba(226,196,166,.62); --cst-halo: rgba(226,196,166,.75); --cst-aura: rgba(226,196,166,.55);
+  --cst-w: 1.9; --cst-w-baton: 2.8; --cst-w-hero: 5.5; --cst-planning: #E2C4A6;
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
-  --canvas: #1C2230; --wash: rgba(226,196,166,.10);
-  --surface: #232B3B; --surface-2: #2A3344; --surface-3: #343E52;
-  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.12); --edge: inset 0 1px 0 rgba(255,255,255,.055);
-  --rail: #161B26; --rail-2: #1E2432; --rail-fg: #F0EAE0; --rail-muted: #8E95A5; --rail-line: rgba(240,234,224,.08); --rail-active: rgba(226,196,166,.16);
-  --accent: #7A4B3E; --accent-hover: #8B5A4C; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
-  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16);
-  --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --ok-ink: #9BC88F; --warn-ink: #E2B06A;
-  --focus-ring: #F0EAE0; --focus-halo: rgba(226,196,166,.22);
-  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --canvas: #1A202C; --wash: rgba(226,196,166,.10);
+  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A;
+  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --edge: inset 0 1px 0 rgba(255,255,255,.055);
+  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #9CA3B2; --rail-line: rgba(240,234,224,.08); --rail-active: rgba(226,196,166,.12); --crease: rgba(226,196,166,.55);
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1; --accent-ink: #CAA49B;
+  --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --select-wash: rgba(226,196,166,.12); --select-line: rgba(226,196,166,.38);
+  --ok: #9BC88F; --ok-soft: rgba(155,200,143,.18); --ok-ink: #9BC88F; --warn: #E2B06A; --warn-ink: #E2B06A; --info: #B4BAC6;
+  --count-bg: #E2C4A6; --count-fg: #2A3244; --pill-team-bg: rgba(226,196,166,.18); --pill-team-fg: #E2C4A6; --agent-bg: #3A4458;
   --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
+  --focus-ring: #F0EAE0; --focus-halo: rgba(226,196,166,.28);
+  --cst-person: #CAA49B; --cst-person-a: 1; --cst-agent: #E2C4A6; --cst-agent-a: .8;
+  --cst-bright: #F0EAE0; --cst-baton: #E2C4A6; --cst-centre: #E2C4A6;
+  --cst-guide: rgba(240,234,224,.36); --cst-thread: rgba(226,196,166,.62); --cst-halo: rgba(226,196,166,.75); --cst-aura: rgba(226,196,166,.55);
+  --cst-w: 1.9; --cst-w-baton: 2.8; --cst-w-hero: 5.5; --cst-planning: #E2C4A6;
   color-scheme: dark;
 }
 
 /* ---------- the one guard's other half: clocks to zero under Calm and reduce (MOTION §3) ---------- */
-:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-paper: 0ms; }
-@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-paper: 0ms; } }
-/* first paint: a deep-linked beat lands finished (never on navigation, MOTION §4.4). .boot zeroes the clocks for one frame;
-   [data-parked] holds the once-runs until the first interaction, so a still opened at #f=3 is the rest state, not a frame from the middle. */
-:root.boot { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-paper: 0ms; }
-:root[data-parked] .stage :is(.ring .arc, .ring .ghost, .ring .centre, .mark .arc, .mark .dot, .av.joined) { animation: none !important; }
+:root[data-motion="calm"] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-frame: 0ms; --t-ghost: 0ms; --k: 0; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-frame: 0ms; --t-ghost: 0ms; --k: 0; } }
+/* first paint lands finished (MOTION §4.4): .boot zeroes the clocks for two frames so a deep-linked beat is its rest state */
+:root.boot { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-draw: 0ms; --t-cam: 0ms; --t-stagger: 0ms; --t-frame: 0ms; --t-ghost: 0ms; --k: 0; }
+:root.boot * { animation: none !important; }
 
 /* ---------- base ---------- */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--canvas); background-image: radial-gradient(1200px 600px at 20% -10%, var(--wash), transparent 60%); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; display: flex; flex-direction: column; min-height: 100%; }
-h1, h2, h3, p { margin: 0; }
-.serif { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.01em; }
-.mono { font-family: var(--mono); font-variant-numeric: tabular-nums slashed-zero; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15px/24px var(--font); -webkit-font-smoothing: antialiased; font-optical-sizing: auto; overflow: hidden; }
+h1, h2, h3, p, figure { margin: 0; }
 button { font: inherit; color: inherit; }
+a { color: inherit; text-decoration: none; }
+.rail a:hover { background: var(--rail-2); }
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: 0 0 0 6px var(--focus-halo); border-radius: 6px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-/* paper grain: one 240 px tile rendered once and repeated, never a live filter (generative-visuals §3) */
-.grain::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .07; mix-blend-mode: soft-light; border-radius: inherit;
-  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.serif { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 50, "WONK" 0; letter-spacing: -0.01em; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums slashed-zero; }
+i, .i { font-style: italic; }
+code { font-family: var(--mono); font-size: .9em; font-variant-numeric: tabular-nums; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
 
-/* ---------- the mark (inline so .arc and .dot rules reach it, MOTION §4.3) ---------- */
-.mark { display: inline-block; vertical-align: middle; flex: none; }
+/* ---------- the mark, inlined so .arc and .dot rules reach it (MOTION §4.3) ---------- */
+.mark { display: inline-block; vertical-align: middle; flex: none; overflow: visible; }
+.mark .disc { fill: var(--mark-disc); }
 .mark .arc { fill: none; stroke-width: 10; stroke-linecap: round; }
-.mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); } .mark .disc { fill: var(--mark-disc); }
+.mark .arc.a { stroke: var(--mark-arc-a); } .mark .arc.b { stroke: var(--mark-arc-b); } .mark .dot { fill: var(--mark-dot); }
 .mark.small .arc { stroke-width: 13; }
 .mark .arc, .mark .dot { transform-origin: 48px 48px; transform-box: view-box; }
+.rail .mark .arc.a { stroke: #AD8E78; } /* the rail's 62 % lift at 24 px (SYSTEM §5) */
 
-/* ---------- topbar (the exploration's inspector: not part of the design) ---------- */
-.top { display: flex; align-items: center; gap: 14px; padding: 0 20px; height: 56px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); flex: none; }
-.top .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 22px; }
-.top .title { font-size: 14px; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: baseline; }
-.top .title b { font-weight: 500; color: var(--ink); }
-.top .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; gap: 2px; }
-.seg button { border: 0; background: transparent; font: 500 12.5px/20px var(--font); color: var(--ink-2); padding: 2px 10px; border-radius: var(--radius-full); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-.seg button[aria-pressed="true"], .seg button[aria-current="step"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
-.seg .k { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 0 13px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 13px/20px var(--font); cursor: pointer; }
-.btn[aria-pressed="true"] { background: var(--apricot-soft); border-color: transparent; }
+/* ==========================================================================================
+   THE STAGE
+   ========================================================================================== */
+.stage { position: relative; width: 100%; height: 100%; overflow: clip; background: var(--canvas); isolation: isolate; }
+body > .stage { position: fixed; inset: 0; }
+.stage::before { content: none; }
+/* the one wash, painted as a blurred disc that follows the camera (SYSTEM §2.2's technique): "apricot as light", three-colour-brands §5 */
+.lamp { position: absolute; left: 0; top: 0; width: 560px; height: 560px; margin: -280px 0 0 -280px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, var(--wash), transparent 72%); transform: translate(var(--lx, 50%), var(--ly, 50%)) scale(var(--ls, 1)); opacity: var(--lo, 1);
+  transition: transform var(--t-cam) var(--ease-mark), opacity var(--t-cam) var(--ease-move); will-change: transform; z-index: 0; }
 
-/* ---------- the stage ---------- */
-.stage { position: relative; flex: none; height: 596px; background: var(--stage); color: var(--stage-fg); overflow: hidden; isolation: isolate;
-  background-image: linear-gradient(170deg, rgba(255,255,255,.07), transparent 46%); box-shadow: inset 0 1px 0 rgba(255,255,255,.10); }
-.stage .sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.stage .cam { transform-origin: 0 0; }
+/* ---------- the sky (the constellation's drawing) ---------- */
+.sky { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; font-family: var(--serif); z-index: 1; transition: opacity var(--t-frame) var(--ease-move); }
+.sky .cam { transform: var(--cam, none); transition: transform var(--t-cam) var(--ease-mark); will-change: transform; }
+.sky text { fill: var(--ink); font-size: 16px; paint-order: stroke; stroke: var(--canvas); stroke-width: 4px; stroke-linejoin: round; font-variant-numeric: lining-nums; font-variation-settings: "SOFT" 50, "WONK" 0; }
+.sky text.state { font-family: var(--font); font-size: 12px; fill: var(--ink-2); letter-spacing: .005em; }
+.sky text.sname { font-style: italic; font-size: 15px; fill: var(--ink-2); }
+.sky text.crew { font-style: italic; font-size: 13.5px; fill: var(--accent-ink); letter-spacing: .04em; stroke-width: 3px; }
+.sky .arc { fill: none; stroke-linecap: round; stroke-width: var(--cst-w); stroke-dasharray: 1 1.1; stroke-dashoffset: 0; transform-box: view-box;
+  transition: stroke-dashoffset var(--t-draw) var(--ease-move), stroke-width var(--t-cam) var(--ease-mark), opacity var(--t-slow) var(--ease-move), transform var(--t-cam) var(--ease-arrive); }
+.sky .arc.person { stroke: var(--cst-person); stroke-opacity: var(--cst-person-a); }
+.sky .arc.agent { stroke: var(--cst-agent); stroke-opacity: var(--cst-agent-a); }
+.sky .arc.baton { stroke-width: var(--cst-w-baton); stroke-opacity: 1; }
+.sky .aura { fill: none; stroke: var(--cst-aura); stroke-width: 14; stroke-linecap: round; opacity: 0; transition: opacity var(--t-slow) var(--ease-move); }
+.sky .guide { fill: none; stroke: var(--cst-guide); stroke-width: 1.3; stroke-linecap: round; stroke-dasharray: .5 4.2; transition: opacity var(--t-slow) var(--ease-move); }
+.sky .centre { fill: var(--cst-centre); transform-box: fill-box; transform-origin: center; transition: transform var(--t-slow) var(--ease-arrive); }
+.sky .ghost { fill: none; stroke: var(--cst-guide); stroke-width: 1.25; stroke-dasharray: 1.5 2.5; transition: opacity var(--t-slow) var(--ease-move); }
+.sky .thread { fill: none; stroke: var(--cst-thread); stroke-width: 1.3; stroke-linecap: round; stroke-dasharray: .5 4.6; }
+.sky .pt .dot { fill: var(--cst-person); fill-opacity: var(--cst-person-a); }
+.sky .pt.baton .dot { fill: var(--cst-bright); fill-opacity: 1; }
+.sky .ring-baton { fill: none; stroke: var(--cst-baton); stroke-width: 2; }
+.sky .halo { fill: var(--cst-halo); opacity: 0; transform-box: fill-box; transform-origin: center; }
+.sky .pt.agent .sq { fill: var(--cst-agent); }
+.sky .pr { stroke: var(--canvas); stroke-width: 2; }
+.sky .pr.running { fill: var(--ok); } .sky .pr.awaiting { fill: var(--warn); } .sky .pr.paused { fill: var(--info); } .sky .pr.planning { fill: var(--cst-planning); }
+.sky .pt, .sky .lbl, .sky .sname, .sky .threadg, .sky .ring { transition: opacity var(--t-slow) var(--ease-move); }
+.sky .pt, .sky .lbl { transition-delay: calc(var(--d, 0ms) * var(--k)); }
+.sky .ripple { fill: none; stroke: var(--cst-halo); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
 
-/* the sky: hairline rings (data-craft §1: no fills, no frame); person = lifted chocolate, agent = apricot */
-.ring .arc { fill: none; stroke-linecap: round; stroke-width: 2; stroke-dasharray: 1 1.1; stroke-dashoffset: 0; }   /* pathLength 1: the draw is one number; the gap outlasts the path so a drawn-out arc leaves no cap */
-.ring .arc.a { stroke: var(--sky-person-lift); }
-.ring .arc.b { stroke: var(--sky-agent); opacity: .9; }
-.ring .aura { fill: none; stroke: var(--sky-agent); stroke-width: 14; stroke-linecap: round; opacity: 0; mix-blend-mode: screen; }
-.ring .guide { fill: none; stroke: var(--sky-guide); stroke-width: 1; stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.ring .centre { fill: var(--sky-centre); transform-box: fill-box; transform-origin: center; }
-.ring .ghost { fill: none; stroke: var(--sky-centre); stroke-width: 1.2; stroke-dasharray: 2.2 2.2; opacity: .85; }
-.ring .pt.person { fill: var(--stage-fg); }
-.ring .pt.agent { fill: var(--sky-agent); }
-.ring .status { fill: var(--sky-live); stroke: var(--stage); stroke-width: 1.5; }
-.ring .baton { fill: none; stroke: var(--sky-baton); stroke-width: 2; }
-.ring .halo { fill: none; stroke: var(--sky-baton); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
-.ring text { fill: var(--sky-name); font-family: var(--serif); font-size: 15px; paint-order: stroke; stroke: var(--stage); stroke-width: 4px; stroke-linejoin: round; }
-.ring text.session { font-style: italic; font-size: 16px; fill: var(--sky-agent); }
-.ring text.note { font-family: var(--font); font-style: normal; font-size: 12px; fill: var(--stage-muted); }
-.thread { fill: none; stroke: var(--sky-thread); stroke-width: 1; stroke-dasharray: 1.5 4; stroke-linecap: round; }
-.thread-name { fill: var(--sky-agent); font-family: var(--serif); font-style: italic; font-size: 13px; paint-order: stroke; stroke: var(--stage); stroke-width: 4px; }
+/* ---------- per-beat rest states for the sky (every state is CSS keyed on data-frame) ---------- */
+/* beats 1–2: only the hero ring exists; its arcs are the mark at hero width */
+.stage[data-frame="1"] .ring:not(.hero), .stage[data-frame="2"] .ring:not(.hero), .stage[data-frame="1"] .threadg, .stage[data-frame="2"] .threadg { opacity: 0; }
+.stage[data-frame="1"] .ring:not(.hero) .arc, .stage[data-frame="2"] .ring:not(.hero) .arc { stroke-dashoffset: 1.03; }
+.stage[data-frame="1"] .hero .arc, .stage[data-frame="2"] .hero .arc { stroke-width: var(--cst-w-hero); stroke-opacity: 1; }
+.stage[data-frame="1"] .hero .arc.person { transform: rotate(60deg); }
+.stage[data-frame="1"] .hero .arc.agent { transform: rotate(-60deg); opacity: 0; }
+.stage[data-frame="1"] .hero .pt, .stage[data-frame="1"] .hero .lbl { opacity: 0; }
+.stage[data-frame="1"] .hero .ghost, .stage[data-frame="2"] .hero .ghost { transition-delay: var(--t-ghost); }
+.stage[data-frame="1"] .hero .ghost { opacity: 0; transition-delay: 0ms; }
+.stage[data-frame="1"] .hero .sname, .stage[data-frame="2"] .hero .sname { opacity: 0; }
+.stage[data-frame="1"] .hero .guide { opacity: 1; }
+.stage:not([data-frame="1"]) .hero .guide { opacity: 0; }
+.stage[data-frame="1"] .hero .pt .dot, .stage[data-frame="2"] .hero .pt .dot { r: 7; }
+.stage[data-frame="1"] .hero .pt .sq, .stage[data-frame="2"] .hero .pt .sq { transform: scale(1.35); }
+.sky .pt .sq, .sky .pt .dot { transform-box: fill-box; transform-origin: center; transition: transform var(--t-cam) var(--ease-mark), r var(--t-cam) var(--ease-mark); }
+.stage[data-frame="1"] .hero .pt .pr, .stage[data-frame="2"] .hero .pt .pr { opacity: 0; }
+/* centres are present from beat 3 (every whole ring); the hero keeps a ghost until she enters */
+.stage[data-frame="1"] .centre, .stage[data-frame="2"] .centre { transform: scale(0); }
+.hero .centre { transform: scale(0); } .hero .ghost { opacity: 1; }
+.stage[data-frame="6"] .hero .centre { transform: scale(1); } .stage[data-frame="6"] .hero .ghost { opacity: 0; }
+/* beat 4: the sky dims except the hero; the agent's arc wears its aura */
+.stage[data-frame="4"] .ring:not(.hero), .stage[data-frame="4"] .threadg { opacity: .26; }
+.stage[data-frame="4"] .hero .aura { opacity: 1; }
+/* beat 5: lean in; the others fall to a hint and lose their names */
+.stage[data-frame="5"] .ring:not(.hero), .stage[data-frame="5"] .threadg { opacity: .14; }
+.stage[data-frame="5"] .lbl, .stage[data-frame="5"] .sname { opacity: 0; }
+/* beat 6: the sky goes as the page comes */
+.stage[data-frame="6"] .sky { opacity: 0; }
+.stage[data-frame="6"] .lamp { --lo: 0; }
 
-/* per-beat rest states (outside the guard; transitions read the clocks, which Calm zeroes) */
-.scene .ring, .scene .thread, .scene .thread-name { transition: opacity var(--t-slow) var(--ease-move); }
-.scene .ring .arc { transition: stroke-dashoffset var(--t-draw) var(--ease-arrive), stroke-width var(--t-cam) var(--ease-mark), stroke var(--t-cam) var(--ease-move), opacity var(--t-slow) var(--ease-move), transform var(--t-paper) var(--ease-arrive); transition-delay: calc(var(--i, 0) * var(--t-stagger)), 0s, 0s, 0s, 0s; }
-.scene .ring text, .scene .ring .pt, .scene .ring .status, .scene .ring .baton, .scene .ring .ghost, .scene .ring .guide { transition: opacity var(--t-slow) var(--ease-move); transition-delay: calc(var(--i, 0) * var(--t-stagger) + var(--t-draw)); }
-.scene .ring .centre { transition: transform var(--t-slow) var(--ease-arrive); transition-delay: calc(var(--i, 0) * var(--t-stagger) + var(--t-draw)); }
-.scene .cam { transition: transform var(--t-cam) var(--ease-mark); }
-/* beats 1 and 2: only Dee's ring, at hero weight; the others are not drawn yet */
-.scene:is([data-frame="1"],[data-frame="2"]) .ring:not(.me) .arc { stroke-dashoffset: 1.03; }   /* past 1, or the round cap of a zero-length dash still paints a dot */
-.scene:is([data-frame="1"],[data-frame="2"]) .ring:not(.me) :is(text, .pt, .status, .baton, .ghost, .guide) { opacity: 0; transition-delay: 0s; }
-.scene:is([data-frame="1"],[data-frame="2"]) .ring .centre { transform: scale(0); transition-delay: 0s; }
-.scene:is([data-frame="1"],[data-frame="2"]) .thread, .scene:is([data-frame="1"],[data-frame="2"]) .thread-name { opacity: 0; }
-.scene:is([data-frame="1"],[data-frame="2"]) .ring.me .arc { stroke-width: 4.4; }
-.scene:is([data-frame="1"],[data-frame="2"]) .ring.me .arc.a { stroke: var(--sky-person); }
-.scene:is([data-frame="1"],[data-frame="2"]) .ring.me :is(text, .pt, .status) { opacity: 0; transition-delay: 0s; }
-.scene[data-frame="1"] .ring.me .arc.a { transform: rotate(60deg); opacity: .85; }   /* held apart, waiting (MOTION §4.1: the hold) */
-.scene[data-frame="1"] .ring.me .arc.b { transform: rotate(-60deg); opacity: 0; }
-.scene[data-frame="1"] .ring.me .ghost { opacity: 0; transition-delay: 0s; }
-.scene[data-frame="1"] .ring.me .guide { opacity: 1; }
-.scene[data-frame="2"] .ring.me .guide { opacity: 0; transition-delay: 0s; }
-.scene[data-frame="2"] .ring.me .ghost { transition-delay: var(--t-paper); }
-.scene:not([data-frame="1"]) .ring.me .arc { transform: none; }
-/* beats 3 to 5: the sky is drawn; Tax lines keeps its ghost centre until you enter */
-.scene .ring.me .centre { transform: scale(0); }
-.scene .ring.me .guide { opacity: 0; }
-.scene:is([data-frame="3"],[data-frame="4"],[data-frame="5"],[data-frame="6"]) .ring.me .ghost { opacity: .85; }
-.scene[data-frame="4"] .ring:not(.me), .scene[data-frame="4"] .thread, .scene[data-frame="4"] .thread-name { opacity: .26; }
-.scene[data-frame="5"] .ring:not(.me), .scene[data-frame="5"] .thread, .scene[data-frame="5"] .thread-name { opacity: .14; }
-.scene[data-frame="5"] .ring.me .arc { stroke-width: 2.6; }
-.scene[data-frame="5"] .ring:not(.me) text, .scene[data-frame="5"] .thread-name { opacity: 0; transition-delay: 0s; }
-.scene[data-frame="6"] .sky { opacity: 0; transition: opacity var(--t-slow) var(--ease-leave); }
-.scene .sky { transition: opacity var(--t-slow) var(--ease-move); }
+/* ---------- the column of words ---------- */
+.words { position: absolute; left: var(--gutter); top: 0; bottom: 0; width: var(--words-w); z-index: 2; display: flex; align-items: center; pointer-events: none; }
+.words .beat { position: absolute; left: 0; right: 0; opacity: 0; transform: translateY(8px); transition: opacity var(--t-slow) var(--ease-move), transform var(--t-slow) var(--ease-arrive); pointer-events: none; }
+.stage[data-frame="1"] .beat[data-b="1"], .stage[data-frame="2"] .beat[data-b="2"], .stage[data-frame="3"] .beat[data-b="3"],
+.stage[data-frame="4"] .beat[data-b="4"], .stage[data-frame="5"] .beat[data-b="5"] { opacity: 1; transform: none; pointer-events: auto; transition-delay: var(--t-slow); }
+.kicker { font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); display: flex; align-items: center; gap: 10px; }
+.kicker .mono { font-weight: 500; letter-spacing: 0; text-transform: none; font-size: 12px; color: var(--ink-3); }
+.say { font-family: var(--serif); font-weight: 400; font-size: 46px; line-height: 50px; letter-spacing: -0.015em; text-wrap: balance; margin-top: 14px; font-variation-settings: "opsz" 40, "SOFT" 50, "WONK" 0; }
+.say i { color: var(--accent-ink); }
+.beat p.text { font-size: 15.5px; line-height: 24px; color: var(--ink-2); margin-top: 14px; max-width: 100%; text-wrap: pretty; }
+.beat p.text + p.text { margin-top: 8px; }
+.beat .text .who, .beat .text i { font-family: var(--serif); font-style: italic; font-size: 1.08em; color: var(--ink); }
+.beat .text b { font-weight: 500; color: var(--ink); }
+.beat .text .mono { font-size: 13.5px; color: var(--ink); }
+/* beat 4: the ledger column (ai-interfaces-avoid §1): author mark in the gutter, no bubble */
+.ledger { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 14px; margin-top: 18px; }
+.ledger .gut { display: flex; flex-direction: column; align-items: center; padding-top: 2px; }
+.ledger .head { display: flex; align-items: baseline; gap: 10px; }
+.ledger .head .who { font-family: var(--serif); font-size: 20px; line-height: 24px; }
+.ledger .head .status { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+.ledger .head .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
+.ledger .lines { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.ledger .lines p { font-size: 15.5px; line-height: 24px; max-width: 40ch; text-wrap: pretty; opacity: 0; transform: translateY(6px); transition: opacity var(--t-slow) var(--ease-move), transform var(--t-slow) var(--ease-arrive); transition-delay: calc(var(--t-slow) + var(--i, 0) * var(--t-stagger)); }
+.stage[data-frame="4"] .ledger .lines p { opacity: 1; transform: none; }
+.ledger .lines p i { font-family: var(--serif); color: var(--accent-ink); }
+.ledger .byline { margin-top: 12px; font: 400 12.5px/16px var(--mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ledger .byline .who { font-family: var(--serif); font-size: 14px; color: var(--ink-2); }
+.stage[data-agent="fresh"] [data-read], .stage:not([data-agent="fresh"]) [data-fresh] { display: none; }
+/* beat 5: the one card (surface + hairline + soft shadow; the hand is chocolate because the ground is the page) */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px 22px 18px; box-shadow: var(--shadow-soft), var(--edge); margin-top: 16px; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; }
+.card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--apricot); }
+.card .title { font-family: var(--serif); font-size: 26px; line-height: 32px; }
+.card .sub { font-size: 13.5px; color: var(--ink-2); margin-top: -8px; }
+.card .row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: start; padding-top: 10px; border-top: 1px solid var(--line); font-size: 14px; }
+.card .row .k { font: 600 11.5px/20px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding-top: 1px; }
+.card .row .v { color: var(--ink); line-height: 20px; }
+.card .row .v .who { font-family: var(--serif); font-size: 15.5px; }
+.card .row .v .faint { color: var(--ink-2); }
+.card .with { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.card .manners { display: flex; flex-direction: column; gap: 4px; }
+.card .manners > span { display: inline-flex; align-items: center; gap: 8px; }
+.card .manners svg { width: 16px; height: 16px; flex: none; }
+.card .manners path { fill: none; stroke: var(--ok-ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 20; stroke-dashoffset: 0; }
+.card .budget { height: 4px; border-radius: 2px; background: var(--surface-3); margin-top: 6px; position: relative; overflow: hidden; }
+.card .budget i { position: absolute; left: 0; top: 0; bottom: 0; width: 10.5%; background: var(--apricot-deep); border-radius: 2px; }
+.card .actions { display: flex; align-items: center; gap: 14px; padding-top: 4px; }
+.card .cap { font-size: 13px; color: var(--ink-2); line-height: 18px; }
+.card .cap i { font-family: var(--serif); color: var(--ink); font-size: 14px; }
+.card .alt { font-size: 13px; color: var(--ink-2); }
+.card .alt a { color: var(--accent-ink); text-decoration: none; } .card .alt a:hover { text-decoration: underline; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px/20px var(--font); cursor: pointer; white-space: nowrap; transition: background var(--t-fast) var(--ease-move), box-shadow var(--t-fast) var(--ease-move), transform var(--t) var(--ease-move); }
+.btn:hover { box-shadow: var(--shadow-soft); } .btn:active { transform: translateY(1px) scale(.99); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; min-height: 40px; padding: 0 20px; }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.btn .kbd { font: 500 11px/16px var(--mono); padding: 0 5px; border-radius: 5px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-3); }
 
-/* ---------- the column of words (the ledger column, ai-interfaces-avoid §1) ---------- */
-.words { position: absolute; left: 72px; top: 0; bottom: 64px; width: var(--col); max-width: calc(100% - 96px); display: grid; align-items: center; pointer-events: none; }
-.beat { grid-area: 1 / 1; display: flex; flex-direction: column; gap: 14px; opacity: 0; transform: translateY(8px); transition: opacity var(--t-slow) var(--ease-leave), transform var(--t-slow) var(--ease-leave); pointer-events: none; }
-.beat.on { opacity: 1; transform: none; transition-timing-function: var(--ease-arrive); pointer-events: auto; transition-delay: var(--t-slow); }
-.beat .l { opacity: 0; transform: translateY(6px); transition: opacity var(--t-slow) var(--ease-arrive), transform var(--t-slow) var(--ease-arrive); }
-.beat.on .l { opacity: 1; transform: none; transition-delay: calc(var(--t-slow) + var(--i, 0) * var(--t-stagger)); }
-.kicker { font: 500 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--stage-faint); display: flex; gap: 10px; align-items: center; }
-.kicker .mono { letter-spacing: 0; text-transform: none; font-size: 12px; }
-.beat h1 { font-family: var(--serif); font-weight: 400; font-size: 44px; line-height: 48px; letter-spacing: -0.02em; font-variation-settings: "SOFT" 50, "WONK" 0; color: var(--stage-fg); text-wrap: balance; }
-.beat h1 i { font-style: italic; color: var(--sky-agent); }
-.beat p { font-size: 17px; line-height: 27px; color: var(--stage-muted); max-width: 54ch; }
-.beat p b { font-family: var(--serif); font-weight: 400; font-size: 18px; color: var(--stage-fg); }
-.beat p i { font-family: var(--serif); font-size: 18px; color: var(--sky-agent); }
-.beat .reading { display: flex; flex-direction: column; gap: 6px; }
-.beat .reading .r { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: baseline; font-size: 15px; color: var(--stage-muted); }
-.beat .reading .r .d { width: 8px; height: 8px; border-radius: 50%; background: var(--sky-live); margin-top: 7px; box-shadow: 0 0 0 3px rgba(155,200,143,.22); }
-.beat .reading .r .d.wait { background: transparent; border: 1.5px dashed var(--sky-centre); box-shadow: none; }
-.beat .reading .r b { font-family: var(--serif); font-weight: 400; font-size: 16px; color: var(--stage-fg); }
-.beat .reading .r i { font-family: var(--serif); color: var(--sky-agent); }
+/* avatars (SYSTEM §12, with the constellation's fix: the initial's colour comes from the fill, never the theme) */
+.avatar { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; font: 500 11px/1 var(--font); flex: none; position: relative; border: 2px solid var(--canvas); background: var(--surface-3); color: var(--ink); }
+.avatar.t1 { background: #E6D3C2; color: #2A3244; } .avatar.t2 { background: #CFD6E3; color: #2A3244; } .avatar.t3 { background: #DCD2C0; color: #2A3244; } .avatar.t4 { background: #E2C4A6; color: #2A3244; }
+.avatar.serif { font-family: var(--serif); font-size: 13px; }
+.avatar.agent { border-radius: 9px 9px 9px 3px; background: var(--agent-bg); }
+.avatar.agent::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot); }
+.avatar.sm { width: 22px; height: 22px; } .avatar.sm.agent { border-radius: 7px 7px 7px 2px; } .avatar.sm.agent::after { width: 5px; height: 5px; }
+.avatar.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
+.avatar .pr { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--canvas); background: var(--ok); }
+.avatar .pr.planning { background: var(--apricot-deep); }
+.stack { display: inline-flex; } .stack .avatar + .avatar { margin-left: -8px; }
+.ledger .gut .avatar { width: 40px; height: 40px; border-radius: 12px 12px 12px 4px; border: 0; }
+.ledger .gut .avatar::after { width: 8px; height: 8px; }
 
-/* beat 4: the agent speaks in the ledger, its square in the gutter, the same byline as everyone (presence-and-agents §10) */
-.ledger { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 14px; }
-.ledger .who { grid-column: 2; font-family: var(--serif); font-size: 18px; color: var(--stage-fg); display: flex; align-items: baseline; gap: 10px; }
-.ledger .who .role { font: 400 13px/20px var(--font); color: var(--stage-faint); }
-.ledger .sq { grid-column: 1; grid-row: 1 / span 2; width: 36px; height: 36px; border-radius: 11px 11px 11px 4px; background: var(--sky-agent); color: var(--stage); display: grid; place-items: center; font: 600 12px var(--font); position: relative; margin-top: 2px; }
-.ledger .sq::after { content: ""; position: absolute; right: -3px; top: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--sky-live); border: 2px solid var(--stage); }
-.ledger .say { grid-column: 2; display: flex; flex-direction: column; gap: 10px; font-size: 16.5px; line-height: 26px; color: var(--stage-fg); max-width: 56ch; }
-.ledger .say i { font-family: var(--serif); font-style: italic; color: var(--sky-agent); font-size: 17.5px; }
-.ledger .say code { font-family: var(--mono); font-size: 13.5px; color: var(--stage-muted); background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 5px; }
-.ledger .byline { grid-column: 2; font: 400 13px/20px var(--font); font-variant-numeric: tabular-nums; color: var(--stage-faint); display: flex; gap: 8px; flex-wrap: wrap; }
-.ledger .byline b { font-family: var(--serif); font-weight: 400; font-size: 14px; color: var(--stage-muted); }
-
-/* beat 5: the session card is the one paper on the lacquer; its hand is chocolate because it sits on cream */
-.paper-card { background: var(--canvas); color: var(--ink); border-radius: var(--radius-lg); padding: 22px 24px 20px; box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
-.paper-card .k { font: 500 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); display: flex; gap: 10px; }
-.paper-card h2 { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 32px; letter-spacing: -0.015em; color: var(--ink); }
-.paper-card .rows { display: flex; flex-direction: column; }
-.paper-card .row { display: grid; grid-template-columns: 112px 1fr; gap: 14px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink); align-items: baseline; }
-.paper-card .row .h { font: 500 12px/18px var(--font); color: var(--ink-3); }
-.paper-card .row b { font-family: var(--serif); font-weight: 400; font-size: 15.5px; }
-.paper-card .row .mono { font-size: 12.5px; color: var(--ink-2); }
-.paper-card .row .tick { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; }
-.paper-card .row .tick svg { width: 14px; height: 14px; stroke: var(--ok-ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.paper-card .act { display: flex; align-items: center; gap: 14px; padding-top: 4px; }
-.paper-card .enter { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 18px; border-radius: var(--radius-full); border: 0; background: var(--accent); color: var(--accent-fg); font: 500 14.5px/20px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
-.paper-card .enter:hover { background: var(--accent-hover); }
-.paper-card .act .cap { font-size: 13px; color: var(--ink-2); }
-.paper-card .act .cap i { font-family: var(--serif); font-style: italic; color: var(--accent-ink); font-size: 14px; }
-.paper-card .later { font: 400 13px/20px var(--font); color: var(--ink-3); }
-.paper-card .later a { color: var(--accent-ink); text-decoration: none; }
-
-/* ---------- beat 6: the lacquer becomes the rail; the page slides in from the right ---------- */
-.app { position: absolute; inset: 0 0 64px 0; pointer-events: none; }
-.railc { position: absolute; left: 0; top: 0; bottom: 0; width: var(--rail-w); padding: 14px; display: flex; flex-direction: column; gap: 6px; color: var(--rail-fg); opacity: 0; transition: opacity var(--t-slow) var(--ease-move); }
-.railc .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px; font-family: var(--serif); font-size: 24px; }
-.railc .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: #fff; border: 0; font: 500 14px/20px var(--font); box-shadow: var(--shadow-soft); }
-.railc .section { padding: 16px 10px 6px; font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--stage-faint); display: flex; gap: 8px; }
-.railc .section .n { margin-left: auto; letter-spacing: 0; font-family: var(--mono); font-weight: 400; }
-.railc .agent { display: flex; flex-direction: column; gap: 4px; padding: 9px 12px; border-radius: var(--radius); font-size: 14px; opacity: 0; transform: translateY(6px); transition: opacity var(--t-slow) var(--ease-arrive), transform var(--t-slow) var(--ease-arrive); }
-.railc .agent.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px rgba(226,196,166,.35); }
-.railc .agent .head { display: flex; align-items: center; gap: 9px; font-weight: 500; }
-.railc .agent .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
-.railc .agent .head .dot.running { background: var(--sky-live); box-shadow: 0 0 0 3px rgba(155,200,143,.25); }
-.railc .agent .head .dot.awaiting { background: #E2B06A; box-shadow: 0 0 0 3px rgba(226,176,106,.25); }
-.railc .agent .head .pill { margin-left: auto; height: 20px; padding: 0 8px; border-radius: var(--radius-full); font: 600 11px/20px var(--font); background: var(--apricot); color: #56352D; }
-.railc .agent .doing { font-size: 13px; color: var(--rail-muted); line-height: 18px; }
-.railc .agent .doing i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
-.railc .crew { padding: 10px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
-.railc .crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
-.railc .crew .serif { font-size: 15px; color: var(--apricot); }
-.railc .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 14px; }
-.railc .me .av { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: #1F2634; display: grid; place-items: center; font: 600 11px var(--font); }
-.railc .me .s { font-size: 12px; color: var(--rail-muted); }
-.railc .me .s i { font-family: var(--serif); font-style: italic; color: var(--apricot); }
-.scene[data-frame="6"] .railc { opacity: 1; transition-delay: calc(var(--t-paper) * .5); }
-.scene[data-frame="6"] .railc .agent { opacity: 1; transform: none; transition-delay: calc(var(--t-paper) * .6 + var(--i, 0) * 36ms); }
-:root[data-motion="calm"] .scene[data-frame="6"] .railc .agent { transition-delay: 0s; }
-@media (prefers-reduced-motion: reduce) { .scene[data-frame="6"] .railc .agent { transition-delay: 0s; } }
-
-.paper { position: absolute; left: var(--rail-w); top: 0; right: 0; bottom: 0; background: var(--canvas); background-image: radial-gradient(900px 420px at 20% -10%, var(--wash), transparent 60%); color: var(--ink); transform: translateX(104%); transition: transform var(--t-paper) var(--ease-mark); display: flex; flex-direction: column; box-shadow: -18px 0 50px rgba(0,0,0,.18); }
-.scene[data-frame="6"] .paper { transform: none; }
-.scene[data-frame="6"] .app { pointer-events: auto; }
-.paper .topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); }
-.paper .topbar .t { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: center; gap: 12px; }
-.paper .topbar .pill { height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/22px var(--font); background: var(--apricot); color: #56352D; }
-.paper .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); }
-.stack { display: inline-flex; }
-.av { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); color: var(--ink); display: inline-grid; place-items: center; font: 600 11px var(--font); border: 2px solid var(--canvas); }
-.stack .av + .av { margin-left: -6px; }
-.av.agent { border-radius: 9px 9px 9px 3px; background: var(--gradient-brand); color: #fff; }
-.av.driver { box-shadow: 0 0 0 2px var(--apricot-deep); }
-.av.joined { position: relative; }
-.paper .stream { flex: 1; overflow: hidden; padding: 18px 24px 0; display: flex; flex-direction: column; gap: 22px; width: min(780px, 100%); margin: 0 auto; }
-.paper .line { display: flex; flex-direction: column; gap: 6px; opacity: 0; transform: translateY(8px); transition: opacity var(--t-slow) var(--ease-arrive), transform var(--t-slow) var(--ease-arrive); }
-.scene[data-frame="6"] .paper .line { opacity: 1; transform: none; transition-delay: calc(var(--t-paper) + var(--i, 0) * 220ms); }
-:root[data-motion="calm"] .scene[data-frame="6"] .paper .line { transition-delay: 0s; }
-@media (prefers-reduced-motion: reduce) { .scene[data-frame="6"] .paper .line { transition-delay: 0s; } }
-.paper .line.join { flex-direction: row; align-items: center; gap: 14px; }
-.join .txt { display: flex; flex-direction: column; gap: 2px; }
-.join .s1 { font-family: var(--serif); font-size: 20px; line-height: 26px; color: var(--ink); }
-.join .s1 b { font-weight: 400; color: var(--accent-ink); }
-.join .s2 { font-size: 13px; color: var(--ink-3); }
-.join .stack { margin-left: auto; }
-.msg .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+/* ==========================================================================================
+   BEAT 6 · the frame arrives around the page
+   ========================================================================================== */
+.app { position: absolute; inset: 0; z-index: 3; display: flex; pointer-events: none; visibility: hidden; transition: visibility 0s var(--t-frame); }
+.stage[data-frame="6"] .app { pointer-events: auto; visibility: visible; transition-delay: 0s; }
+.rail { width: var(--rail-w); flex: none; background: var(--rail); color: var(--rail-fg); display: flex; flex-direction: column; padding: 14px; gap: 4px; transform: translateX(-100%); transition: transform var(--t-frame) var(--ease-mark); box-shadow: inset -1px 0 0 var(--crease); }
+.stage[data-frame="6"] .rail { transform: none; }
+.rail .brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px 14px; font-family: var(--serif); font-size: 24px; }
+.rail .new { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border-radius: var(--radius); background: var(--gradient-brand); color: var(--grad-fg); border: 0; font: 500 14px/20px var(--font); cursor: pointer; box-shadow: var(--shadow-soft); }
+.rail .section { padding: 16px 10px 6px; font: 600 11.5px/16px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.rail .item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: var(--radius); color: var(--rail-fg); font: 500 14px/20px var(--font); }
+.rail .item .ic { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--rail-muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.rail .item .count { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--count-bg); color: var(--count-fg); font: 600 12px/20px var(--mono); text-align: center; }
+.rail .crew { padding: 10px 12px 2px; font-size: 12px; color: var(--rail-muted); display: flex; align-items: center; gap: 8px; }
+.rail .crew::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--apricot); }
+.rail .crew .serif { font-size: 15px; color: var(--apricot); }
+.rail .agentcard { display: flex; flex-direction: column; gap: 4px; padding: 9px 12px; border-radius: var(--radius); color: var(--rail-fg); }
+.rail .agentcard.active { background: var(--rail-active); box-shadow: inset 0 0 0 1px var(--select-line); }
+.rail .agentcard .head { display: flex; align-items: center; gap: 9px; font-family: var(--serif); font-size: 15.5px; }
+.rail .agentcard .head .d { width: 8px; height: 8px; border-radius: 50%; background: var(--rail-muted); flex: none; }
+.rail .agentcard .head .d.running { background: #9BC88F; } .rail .agentcard .head .d.awaiting { background: #E2B06A; } .rail .agentcard .head .d.planning { background: var(--apricot); }
+.rail .agentcard .head .pill { margin-left: auto; }
+.rail .agentcard .doing { font-size: 13px; line-height: 18px; color: var(--rail-muted); }
+.rail .agentcard .doing i { font-family: var(--serif); color: var(--apricot); font-size: 14px; }
+.rail .agentcard .foot { display: flex; align-items: center; gap: 8px; font: 500 12px/16px var(--font); color: var(--rail-muted); }
+.rail .agentcard .foot .mono { margin-left: auto; font-size: 12px; }
+.rail .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); font-size: 14px; }
+.rail .me .avatar { border-color: var(--rail); }
+.rail .me .n { font-family: var(--serif); font-size: 16px; } .rail .me .r { font-size: 12px; color: var(--rail-muted); }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--radius-full); font: 600 11.5px/22px var(--font); letter-spacing: .02em; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
+.pill.team { background: var(--pill-team-bg); color: var(--pill-team-fg); }
+.pill.solo { background: transparent; border: 1px solid var(--line); }
+.rail .pill.solo { border-color: var(--rail-line); color: var(--rail-muted); }
+.pill.planning { background: var(--apricot-soft); color: var(--ink); }
+.pill.planning::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--apricot-deep); }
+/* the page: rises behind the rail */
+.page { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--canvas); opacity: 0; transition: opacity var(--t-frame) var(--ease-move); }
+.stage[data-frame="6"] .page { opacity: 1; transition-delay: calc(var(--t-frame) * .4); }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; min-height: 56px; border-bottom: 1px solid var(--line); }
+.topbar .title { font-family: var(--serif); font-size: 20px; display: inline-flex; align-items: center; gap: 12px; }
+.topbar .status { font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+.topbar .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--apricot-deep); }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.topbar .chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: var(--radius-full); background: var(--surface-2); font: 400 13px/28px var(--mono); color: var(--ink-2); }
+.stream { flex: 1; display: flex; flex-direction: column; gap: 22px; width: min(780px, 100%); margin: 0 auto; padding: 22px 24px 0; }
+.stream > * { opacity: 0; transform: translateY(6px); transition: opacity var(--t-slow) var(--ease-move), transform var(--t-slow) var(--ease-arrive); transition-delay: calc(var(--t-frame) * .6 + var(--i, 0) * var(--t-stagger) * .3); }
+.stage[data-frame="6"] .stream > * { opacity: 1; transform: none; }
+.joinline { display: flex; align-items: center; gap: 12px; }
+.joinline .t { display: flex; flex-direction: column; gap: 2px; }
+.joinline .s1 { font-family: var(--serif); font-size: 18px; line-height: 24px; } .joinline .s1 b { font-weight: 400; color: var(--accent-ink); }
+.joinline .s2 { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.joinline .stack { margin-left: auto; }
+.msg { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 14px; }
+.msg .meta { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--ink-2); }
 .msg .meta .who { font-family: var(--serif); font-size: 16px; color: var(--ink); }
-.msg .meta .to { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
-.msg .text { font-size: 15.5px; line-height: 24px; }
-.msg.team .text { background: var(--apricot-soft); border-radius: var(--radius-lg); padding: 12px 16px; max-width: 85%; align-self: flex-start; }
-.msg .text i { font-family: var(--serif); font-style: italic; color: var(--accent-ink); }
-.msg .plan { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); font-size: 13.5px; }
-.msg .plan .serif { font-size: 15px; }
-.msg .plan .mono { font-size: 12px; color: var(--ink-3); }
-.msg .plan .w { color: var(--warn-ink); font-weight: 500; }
-.msg .step { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); padding: 2px 0; }
-.msg .step::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; }
-.composer { margin-top: auto; border-top: 1px solid var(--line); padding: 14px 0 16px; display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 15px; }
-.composer .seg2 { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; font: 500 12.5px/20px var(--font); color: var(--ink-2); }
-.composer .seg2 span { padding: 2px 10px; border-radius: var(--radius-full); }
-.composer .seg2 .on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
-.composer .send { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; }
-.composer .send svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.msg .meta .turn { margin-left: auto; font: 400 12.5px/16px var(--mono); color: var(--ink-3); }
+.msg .text { font-size: 15.5px; line-height: 24px; max-width: 600px; margin-top: 4px; }
+.msg.human .text { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 18px; box-shadow: var(--shadow-soft), var(--edge); display: inline-block; }
+.msg .plan { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; padding: 8px 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); font-size: 13.5px; box-shadow: var(--edge); }
+.msg .plan .k { font-family: var(--serif); font-size: 15px; }
+.msg .plan .mono { font-size: 12.5px; color: var(--ink-2); }
+.composer-wrap { padding: 14px 24px 22px; }
+.composer { width: min(780px, 100%); margin: 0 auto; border-top: 1px solid var(--line); padding: 14px 0 0; display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: 15px; }
+.composer .hint { flex: 1; } .composer .hint i { font-family: var(--serif); color: var(--ink-2); }
+.composer .seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; }
+.composer .seg span { font: 500 12.5px/20px var(--font); color: var(--ink-2); padding: 2px 12px; border-radius: var(--radius-full); }
+.composer .seg span.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.composer .send { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 0; display: inline-grid; place-items: center; }
+.composer .send svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ---------- the score: ninety seconds as one hairline with six ticks (the kinetic mark's score, reused) ---------- */
-.score { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; padding: 0 72px; display: flex; align-items: flex-end; z-index: 3; }
-.score .rail-line { position: absolute; left: 72px; right: 72px; bottom: 30px; height: 1px; background: var(--stage-line); }
-.score .done { position: absolute; left: 72px; bottom: 30px; height: 1px; background: var(--sky-agent); width: 0; }
-.score .head { position: absolute; bottom: 24px; width: 1px; height: 13px; background: var(--sky-agent); margin-left: -0.5px; }
-.score .head::after { content: ""; position: absolute; top: -4px; left: -3.5px; width: 8px; height: 8px; border-radius: 50%; background: var(--sky-agent); }
-.score .tick { position: absolute; bottom: 30px; transform: translateX(-1px); background: transparent; border: 0; padding: 0 0 8px; cursor: pointer; color: var(--stage-faint); text-align: left; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border-radius: 6px; }
-.score .tick::after { content: ""; position: absolute; left: 0; bottom: 0; width: 2px; height: 8px; background: var(--stage-faint); }
-.score .tick .n { font-family: var(--serif); font-size: 14px; color: var(--stage-muted); white-space: nowrap; }
-.score .tick .t { font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
-.score .tick[aria-current="step"] .n { color: var(--stage-fg); } .score .tick[aria-current="step"]::after { background: var(--sky-agent); }
-.score .end { position: absolute; right: 72px; bottom: 10px; font-family: var(--mono); font-size: 11px; color: var(--stage-faint); }
-.skip { position: absolute; right: 72px; top: 22px; z-index: 3; border: 1px solid var(--stage-line); background: transparent; color: var(--stage-muted); font: 500 13px/20px var(--font); padding: 5px 12px; border-radius: var(--radius-full); cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
-.skip kbd { font-family: var(--mono); font-size: 11px; color: var(--stage-faint); border: 1px solid var(--stage-line); border-radius: 4px; padding: 0 5px; }
-.skip:hover { background: var(--stage-2); color: var(--stage-fg); }
-.scene[data-frame="6"] .skip { opacity: 0; pointer-events: none; }
-/* beat 6: the brief is over; the score folds to its hairline so the rail's me row and the composer sit clear of it */
-.score .tick :is(.n, .t) { transition: opacity var(--t) var(--ease-move); }
-.scene[data-frame="6"] .score .tick :is(.n, .t) { opacity: 0; }
-.skip { transition: opacity var(--t) var(--ease-move); }
+/* ---------- the score at the foot: one hairline, six ticks ---------- */
+.score { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 34px; z-index: 4; display: flex; flex-direction: column; gap: 10px; transition: opacity var(--t-frame) var(--ease-move); }
+.score .rule { position: relative; height: 1px; background: var(--line); }
+.score .fill { position: absolute; left: 0; top: 0; height: 1px; width: var(--p, 0%); background: var(--apricot-deep); }
+.score .head { position: absolute; left: var(--p, 0%); top: -3px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: var(--apricot-deep); }
+.score .ticks { display: grid; grid-template-columns: repeat(6, 1fr); }
+.score .tick { background: transparent; border: 0; padding: 0; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 1px; color: var(--ink-3); position: relative; }
+.score .tick::before { content: ""; position: absolute; left: 0; top: -14px; width: 1px; height: 7px; background: var(--ink-3); opacity: .6; }
+.score .tick .n { font-family: var(--serif); font-size: 14px; line-height: 18px; color: var(--ink-2); }
+.score .tick .t { font: 400 12px/16px var(--mono); font-variant-numeric: tabular-nums; }
+.score .tick[aria-current="step"] .n { color: var(--ink); } .score .tick[aria-current="step"]::before { background: var(--apricot-deep); opacity: 1; height: 9px; top: -16px; }
+.score .tick:hover .n { color: var(--ink); }
+.stage[data-frame="6"] .score { opacity: 0; pointer-events: none; }
+.skip { position: absolute; right: var(--gutter); top: 28px; z-index: 4; transition: opacity var(--t-slow) var(--ease-move); }
+.stage[data-frame="6"] .skip { opacity: 0; pointer-events: none; }
+.stage .playing-note { position: absolute; left: var(--gutter); top: 32px; z-index: 4; font: 400 12.5px/16px var(--mono); color: var(--ink-3); display: flex; align-items: center; gap: 10px; }
+.stage .playing-note .brandrow { display: inline-flex; align-items: center; gap: 8px; font-family: var(--serif); font-size: 18px; color: var(--ink); }
+.stage[data-frame="6"] .playing-note { opacity: 0; }
 
-/* ---------- the storyboard strip ---------- */
-.board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; padding: 0 24px; flex: 1; min-height: 0; }
-.cell { padding: 16px 14px 14px; border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; cursor: pointer; background: transparent; border-top: 0; border-right: 0; border-bottom: 0; text-align: left; min-width: 0; }
-.cell:first-child { border-left: 0; }
-.cell[aria-current="step"] { background: var(--apricot-soft); }
-.thumb { aspect-ratio: 16 / 9; border-radius: 10px; background: var(--stage); overflow: hidden; position: relative; box-shadow: inset 0 1px 0 rgba(255,255,255,.10); }
-.thumb svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.thumb .ring .arc { stroke-width: 1.4; } .thumb .ring text { display: none; } .thumb .ring .pt.agent { display: none; }
-.thumb:is([data-frame="1"],[data-frame="2"]) .ring.me .arc { stroke-width: 2.6; }
-.thumb .mini { position: absolute; inset: 0; display: flex; }
-.thumb .mini .r { width: 22%; background: var(--rail); }
-.thumb .mini .p { flex: 1; background: var(--canvas); display: flex; flex-direction: column; gap: 5px; padding: 10px 10px; }
-.thumb .mini .p i { display: block; height: 3px; border-radius: 2px; background: var(--surface-3); }
-.thumb .mini .p i:first-child { width: 60%; background: var(--apricot); height: 4px; }
-.thumb .mini .p i:nth-child(2) { width: 85%; } .thumb .mini .p i:nth-child(3) { width: 40%; }
-.cell .meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.cell .meta .t { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.cell .meta .n { font-family: var(--serif); font-size: 18px; line-height: 24px; color: var(--ink); }
-.cell .meta .c { font-size: 12.5px; line-height: 18px; color: var(--ink-2); }
-
-/* ---------- the guard: animation plays only here (MOTION §3) ---------- */
+/* ==========================================================================================
+   MOTION · every animation under the one guard; the clocks above are the transitions' only timing
+   ========================================================================================== */
 @keyframes arc-a-once { 0% { transform: rotate(60deg); opacity: .5 } 70% { transform: rotate(-4deg); opacity: 1 } 100% { transform: rotate(0) } }
 @keyframes arc-b-once { 0% { transform: rotate(-60deg); opacity: .5 } 70% { transform: rotate(4deg); opacity: 1 } 100% { transform: rotate(0) } }
-@keyframes dot-once { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
-@keyframes ghost-in { 0% { opacity: 0; transform: scale(.4) } 100% { opacity: .85; transform: scale(1) } }
-@keyframes breath-aura { 0%, 100% { opacity: 0 } 50% { opacity: .32 } }
-@keyframes breath-arc { 0%, 100% { opacity: .72 } 50% { opacity: 1 } }
-@keyframes halo-breathe { 0% { transform: scale(1); opacity: .55 } 100% { transform: scale(2.1); opacity: 0 } }
-@keyframes ripple { from { box-shadow: 0 0 0 0 rgba(226,196,166,.7) } to { box-shadow: 0 0 0 14px rgba(226,196,166,0) } }
-@keyframes dot-live { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+@keyframes dot-once   { 0%, 55% { transform: scale(0) } 80% { transform: scale(1.25) } 100% { transform: scale(1) } }
+@keyframes pop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: none; opacity: 1 } }
+@keyframes ripple { 0% { box-shadow: 0 0 0 0 var(--apricot); opacity: 1 } 100% { box-shadow: 0 0 0 14px var(--apricot); opacity: 0 } }
+@keyframes cst-ripple { 0% { transform: scale(.6); opacity: .9 } 100% { transform: scale(3.2); opacity: 0 } }
+@keyframes cst-breathe { 0%, 100% { transform: scale(.55); opacity: 0 } 50% { transform: scale(1); opacity: .55 } }
+@keyframes breath-aura { 0%, 100% { opacity: .35 } 50% { opacity: 1 } }
+@keyframes dot-live { 0% { box-shadow: 0 0 0 0 var(--dot-halo) } 70% { box-shadow: 0 0 0 5px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
+@keyframes card-in { 0% { opacity: 0; transform: translateY(6px) } 100% { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: no-preference) {
-  :root:not([data-motion="calm"]) { --motion: 1; }
-  /* beat 2: the two arcs swing in and close (the founder's gesture, once: MOTION §4.2); the ghost centre lands where the real one will */
-  :root:not([data-motion="calm"]) .stage[data-frame="2"] .ring.me .arc.a { animation: arc-a-once .8s var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .stage[data-frame="2"] .ring.me .arc.b { animation: arc-b-once .8s var(--ease-arrive) both; }
-  :root:not([data-motion="calm"]) .stage[data-frame="2"] .ring.me .ghost { animation: ghost-in .5s var(--ease-arrive) .8s both; transform-box: fill-box; transform-origin: center; }
-  /* beat 3: each whole ring's centre lands only after its arcs have drawn (MOTION §8) */
-  :root:not([data-motion="calm"]) .stage[data-frame="3"] .ring.whole .centre { animation: dot-once 1s var(--ease-arrive) both; animation-delay: calc(var(--i, 0) * var(--t-stagger) + 200ms); }
-  /* beats 3 to 5: the baton holders' halos breathe; running agents' dots breathe (dot-live, 1.8 s) */
-  :root:not([data-motion="calm"]) .stage:is([data-frame="3"],[data-frame="4"],[data-frame="5"]) .ring .halo { animation: halo-breathe 1.8s var(--ease-move) infinite; }
-  :root:not([data-motion="calm"]) .stage:is([data-frame="3"],[data-frame="4"],[data-frame="5"]) .ring .status { animation: dot-live 1.8s var(--ease-move) infinite; }
-  /* beat 4: the agent's half breathes while it speaks; the person's half is still (the kinetic mark's "thinking") */
-  :root:not([data-motion="calm"]) .stage[data-frame="4"] .ring.me .aura { animation: breath-aura 1.8s ease-in-out infinite; }
-  :root:not([data-motion="calm"]) .stage[data-frame="4"] .ring.me .arc.b { animation: breath-arc 1.8s ease-in-out infinite; }
-  /* beat 6: the join line's 40 px mark settles once; the newcomer's avatar ripples as the centre lands (MOTION §7.2) */
-  :root:not([data-motion="calm"]) .stage[data-frame="6"] .join .mark .arc.a { animation: arc-a-once .8s var(--ease-arrive) var(--t-paper) both; }
-  :root:not([data-motion="calm"]) .stage[data-frame="6"] .join .mark .arc.b { animation: arc-b-once .8s var(--ease-arrive) var(--t-paper) both; }
-  :root:not([data-motion="calm"]) .stage[data-frame="6"] .join .mark .dot { animation: dot-once 1s var(--ease-arrive) var(--t-paper) both; }
-  :root:not([data-motion="calm"]) .stage[data-frame="6"] .av.joined { animation: ripple .9s var(--ease-leave) calc(var(--t-paper) + 900ms) 1; }
-  :root:not([data-motion="calm"]) .stage[data-frame="6"] .railc .dot.running { animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .hero.swing .arc.person { animation: arc-a-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .hero.swing .arc.agent { animation: arc-b-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .ring.landing .centre { animation: dot-once 1s var(--ease-arrive) both; animation-delay: calc(var(--d, 0ms) + var(--t-draw)); }
+  :root:not([data-motion="calm"]) .stage[data-frame="3"] .pt.baton .halo, :root:not([data-motion="calm"]) .stage[data-frame="4"] .pt.baton .halo { animation: cst-breathe 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .stage[data-frame="4"] .hero .aura { animation: breath-aura 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .mark.settle .arc.a { animation: arc-a-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark.settle .arc.b { animation: arc-b-once .8s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .mark.settle .dot { animation: dot-once 1s var(--ease-arrive) both; }
+  :root:not([data-motion="calm"]) .avatar.joined::after { content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; animation: ripple .9s var(--ease-leave) .9s both; }
+  :root:not([data-motion="calm"]) .count.popped { animation: pop var(--t-slow) var(--ease-arrive) 1s both; }
+  :root:not([data-motion="calm"]) .stage[data-frame="6"] .d.running, :root:not([data-motion="calm"]) .stage[data-frame="6"] .avatar .pr.running { --dot-halo: var(--ok-soft); animation: dot-live 1.8s var(--ease-move) infinite; }
+  :root:not([data-motion="calm"]) .stage[data-frame="6"] .topbar .status::before { --dot-halo: var(--apricot-soft); animation: dot-live 1.8s var(--ease-move) infinite; }
 }
 
-/* ---------- the phone: the brief takes the screen whole; the storyboard follows beneath ---------- */
+.rail .phone-bar { display: none; }
+
+/* ==========================================================================================
+   PHONE · the words take the top, the sky the bottom; the rail becomes the sentence-titlebar
+   ========================================================================================== */
 @media (max-width: 480px) {
-  :root { --rail-w: 0px; --col: 100%; }
-  .top { display: none; }
-  .stage { height: 100vh; height: 100dvh; min-height: 640px; }
-  .words { left: 20px; right: 20px; width: auto; max-width: none; top: 56px; bottom: auto; height: 46%; align-items: start; }
-  .beat h1 { font-size: 32px; line-height: 36px; }
-  .beat p { font-size: 16px; line-height: 24px; }
-  .beat .reading .r { font-size: 14px; }
-  .ledger { grid-template-columns: 36px 1fr; gap: 0 10px; } .ledger .sq { width: 30px; height: 30px; border-radius: 9px 9px 9px 3px; }
-  .ledger .say { font-size: 15px; line-height: 23px; gap: 8px; }
-  .words .beat[data-f="5"] { align-self: center; }
-  .paper-card { padding: 18px 18px 16px; gap: 12px; } .paper-card h2 { font-size: 23px; line-height: 28px; }
-  .paper-card .row { grid-template-columns: 1fr; gap: 2px; padding: 8px 0; }
-  .paper-card .act { flex-direction: column; align-items: flex-start; gap: 8px; } .paper-card .enter { width: 100%; justify-content: center; }
-  .railc { display: none; }
-  .paper .topbar { background: var(--rail); color: var(--rail-fg); min-height: 60px; padding-top: 18px; }
-  .paper .topbar .t { font-size: 22px; } .paper .topbar .right { display: none; }
-  .paper .stream { padding: 16px 16px 0; gap: 18px; }
-  .join .stack { display: none; }
-  .msg.team .text { max-width: 100%; }
-  .score { padding: 0 20px; height: 72px; } .score .rail-line, .score .done { left: 20px; right: 20px; } .score .end { right: 20px; }
-  .ring text.agent, .ring text.person, .thread-name { display: none; }   /* the sentence names them; the sky keeps the sessions */
-  .score .tick .n, .score .tick .t { display: none; }
-  .score .tick[aria-current="step"] .n, .score .tick[aria-current="step"] .t { display: block; }
-  .score .end { bottom: 36px; }
-  .skip { right: 16px; top: 14px; }
-  .board { grid-template-columns: 1fr 1fr; padding: 8px 16px 24px; }
-  .cell { border-left: 0; padding: 12px 8px; } .cell .meta .n { font-size: 16px; }
+  :root { --gutter: 20px; --words-w: auto; }
+  .words { right: var(--gutter); width: auto; align-items: flex-start; top: 72px; bottom: auto; }
+  .say { font-size: 34px; line-height: 38px; }
+  .beat p.text { font-size: 16px; }
+  .sky text { font-size: 15px; } .sky text.state { display: none; } .sky text.sname { font-size: 13.5px; } .sky text.crew { display: none; }
+  .sky .ring:not(.hero) .lbl.agent { display: none; }
+  .stage[data-frame="4"] .ring:not(.hero), .stage[data-frame="4"] .threadg, .stage[data-frame="5"] .ring:not(.hero), .stage[data-frame="5"] .threadg, .stage[data-frame="4"] .hero .sname { opacity: 0; }
+  .stage .playing-note .ctx { display: none; }
+  .ledger { grid-template-columns: 36px minmax(0, 1fr); } .ledger .gut .avatar { width: 34px; height: 34px; }
+  .ledger .lines p { font-size: 15px; line-height: 22px; }
+  .card { padding: 16px 18px 16px; } .card .title { font-size: 22px; line-height: 28px; }
+  .card .row { grid-template-columns: 1fr; gap: 4px; } .card .actions { flex-direction: column; align-items: stretch; gap: 8px; } .card .actions .btn.primary { width: 100%; min-height: 48px; }
+  .score { bottom: 20px; } .score .ticks .tick:not([aria-current="step"]) .n, .score .ticks .tick:not([aria-current="step"]) .t { visibility: hidden; }
+  .skip { top: 18px; right: var(--gutter); }
+  .stage .playing-note { top: 22px; }
+  .app { flex-direction: column; }
+  .rail { width: 100%; height: 92px; padding: 48px 12px 0; flex-direction: row; align-items: center; gap: 10px; transform: translateY(-100%); box-shadow: inset 0 -1px 0 var(--crease); }
+  .rail > :not(.phone-bar) { display: none; }
+  .rail .phone-bar { display: flex; align-items: center; gap: 10px; width: 100%; }
+  .rail .phone-bar .tt { font-family: var(--serif); font-size: 21px; line-height: 24px; }
+  .rail .phone-bar .ss { font-size: 12px; color: var(--rail-muted); } .rail .phone-bar .ss b { color: #9BC88F; font-weight: 500; }
+  .rail .phone-bar .menu { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: transparent; border: 0; color: var(--rail-fg); }
+  .rail .phone-bar .menu svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+  .topbar { display: none; }
+  .stream { padding: 18px 16px 0; gap: 18px; }
+  .msg { grid-template-columns: 34px minmax(0, 1fr); gap: 0 10px; }
+  .joinline .stack { display: none; } .msg .plan { flex-wrap: wrap; gap: 2px 10px; }
+  .composer-wrap { padding: 12px 16px 28px; }
 }
-@media (max-width: 1100px) and (min-width: 481px) {
-  .board { grid-template-columns: repeat(3, 1fr); }
-  .cell:nth-child(4) { border-left: 0; }
-}
+/* ==========================================================================================
+   THE EXPLORATION'S OWN · hidden unless the URL says #inspector or #storyboard; never shot
+   ========================================================================================== */
+.inspector { position: fixed; left: 12px; bottom: 12px; z-index: 50; display: none; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-pop), var(--edge); font-size: 12.5px; }
+:root[data-inspector] .inspector { display: flex; }
+.inspector .seg { display: inline-flex; background: var(--surface-2); border-radius: var(--radius-full); padding: 3px; gap: 2px; }
+.inspector .seg button { border: 0; background: transparent; font: 500 12.5px/20px var(--font); color: var(--ink-2); padding: 2px 9px; border-radius: var(--radius-full); cursor: pointer; }
+.inspector .seg button[aria-pressed="true"], .inspector .seg button[aria-current="step"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.inspector .btn { min-height: 28px; padding: 0 10px; font-size: 12.5px; }
+.inspector .btn[aria-pressed="true"] { background: var(--select-wash); box-shadow: inset 0 0 0 1px var(--select-line); }
+body.storyboard > .stage { display: none; }
+.board { display: none; }
+body.storyboard .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 34px 24px; padding: 40px 24px 0; }
+body.storyboard { overflow: auto; }
+.board figure { display: flex; flex-direction: column; gap: 10px; }
+.board .frame { width: 100%; aspect-ratio: 16 / 10; position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow-soft), var(--edge); background: var(--canvas); }
+.board .frame .stage { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; transform: scale(var(--k, .3)); transform-origin: 0 0; }
+.board figcaption { display: flex; align-items: baseline; gap: 10px; font-size: 13px; color: var(--ink-2); padding: 0 2px; }
+.board figcaption .n { font-family: var(--serif); font-size: 17px; color: var(--ink); white-space: nowrap; } .board figcaption .mono { color: var(--ink-3); font-size: 12px; } .board figcaption .num { font: 500 11.5px/16px var(--mono); color: var(--ink-3); }
+.board .frame .stage .score, .board .frame .stage .skip, .board .frame .stage .playing-note { display: none; }
 </style>
 </head>
 <body>
 
-<header class="top">
-  <span class="brand">
-    <svg class="mark small" width="24" height="24" viewBox="0 0 96 96" aria-hidden="true"><circle class="disc" cx="48" cy="48" r="48"/><path class="arc a" d="M48 19 A29 29 0 0 1 48 77"/><path class="arc b" d="M48 77 A29 29 0 0 1 48 19"/><circle class="dot" cx="48" cy="48" r="8.5"/></svg>
-    Henosis
-  </span>
-  <span class="title"><b>The welcome brief</b> · the first ninety seconds · one scene, six beats</span>
-  <div class="right" role="group" aria-label="Inspector (the exploration's own controls)">
-    <div class="seg" id="picker" role="tablist" aria-label="Beat"></div>
-    <button class="btn" id="play" aria-pressed="false">Play <span class="seg k mono" style="background:transparent;padding:0">␣</span></button>
-    <button class="btn" id="speed" aria-pressed="false" title="Rehearse at six times speed">6×</button>
-    <button class="btn" id="calm" aria-pressed="false">Calm</button>
-    <button class="btn" id="dark" aria-pressed="false">Dark</button>
+<!-- the mark's symbol: design/mark.svg's #mark (96 grid: disc r46, arcs r28 stroke 10, centre r7). Person's arc right 12→6, agent's arc left. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark-sym" viewBox="0 0 96 96">
+    <circle class="disc" cx="48" cy="48" r="46"/>
+    <path class="arc a" d="M51.9 20.27 A28 28 0 0 1 51.9 75.73"/>
+    <path class="arc b" d="M44.1 75.73 A28 28 0 0 1 44.1 20.27"/>
+    <circle class="dot" cx="48" cy="48" r="7"/>
+  </symbol>
+</svg>
+
+<template id="stage-tpl">
+<section class="stage" data-frame="1" role="region" aria-label="Welcome brief for Dee" aria-roledescription="brief">
+  <div class="lamp" aria-hidden="true"></div>
+  <svg class="sky" aria-hidden="true" focusable="false"><g class="cam"></g></svg>
+
+  <div class="playing-note" aria-hidden="true">
+    <span class="brandrow"><svg class="mark" width="22" height="22" viewBox="0 0 96 96"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M51.9 20.27 A28 28 0 0 1 51.9 75.73"/><path class="arc b" d="M44.1 75.73 A28 28 0 0 1 44.1 20.27"/><circle class="dot" cx="48" cy="48" r="7"/></svg>Henosis</span>
+    <span class="ctx">· Payments · welcome brief</span>
   </div>
-</header>
+  <button class="btn ghost skip" type="button">Skip to the session <span class="kbd">esc</span></button>
+  <p class="sr live" aria-live="polite"></p>
 
-<section class="stage scene grain" id="stage" data-frame="3" aria-label="The welcome brief for Dee" aria-roledescription="brief">
-  <svg class="sky" id="sky" aria-hidden="true"><g class="cam" id="cam"></g></svg>
-
-  <div class="words" id="words">
-    <div class="beat" data-f="1">
-      <div class="kicker l" style="--i:0">Payments <span class="mono">· Tue 09:40</span></div>
-      <h1 class="l" style="--i:1">Dee, this is Payments.</h1>
-      <p class="l" style="--i:2">Three people and three agents are in. You are the fourth person. This takes ninety seconds, and it ends in your first session. The arc on the right is yours; it has been waiting since the invite.</p>
+  <div class="words">
+    <div class="beat" data-b="1">
+      <div class="kicker">Welcome brief <span class="mono">0:00</span></div>
+      <p class="say">Dee, this is <i>Payments</i>.</p>
+      <p class="text">Three people and three agents are in. You are the fourth person.</p>
+      <p class="text">This takes <span class="mono total">1:30</span> and ends in your first session.</p>
     </div>
-    <div class="beat" data-f="2">
-      <div class="kicker l" style="--i:0">Your agent</div>
-      <h1 class="l" style="--i:1">Your agent is already here.</h1>
-      <p class="l" style="--i:2">It was made with you this morning and read what Payments keeps: <b>fourteen memory entries</b>, three of them Cy's, about proration. Two arcs, yours and its, one ring. The centre lands when you enter.</p>
+    <div class="beat" data-b="2">
+      <div class="kicker">Your agent <span class="mono tick-t">0:06</span></div>
+      <p class="say">Your agent is already here.</p>
+      <p class="text" data-read>Made with you this morning. It has read Payments' memory, <b>14 entries</b>, and it will claim what you give it.</p>
+      <p class="text" data-fresh>Made with you this morning. It has read nothing yet; it will read what you give it, and never more.</p>
+      <p class="text">The centre lands when you enter.</p>
     </div>
-    <div class="beat" data-f="3">
-      <div class="kicker l" style="--i:0">The circle, right now</div>
-      <h1 class="l" style="--i:1">Who is in, and where.</h1>
-      <div class="reading">
-        <div class="r l" style="--i:2"><span class="d"></span><span><b>Ana</b> has the baton in <i>Billing page</i>; her agent is running.</span></div>
-        <div class="r l" style="--i:3"><span class="d"></span><span><b>Bo</b> has the baton in <i>Checkout</i>, Team with Ana.</span></div>
-        <div class="r l" style="--i:4"><span class="d"></span><span><b>Cy</b> has the baton in <i>Invoice PDF</i>; a plan waits for a rating.</span></div>
-        <div class="r l" style="--i:5"><span class="d wait"></span><span><i>Tax lines</i> is yours and your agent's. It waits for you.</span></div>
-      </div>
+    <div class="beat" data-b="3">
+      <div class="kicker">The team <span class="mono tick-t">0:18</span></div>
+      <p class="say">Who is in, and where.</p>
+      <p class="text"><span class="who">Ana</span> has the baton in <i>Billing page</i>, <span class="who">Bo</span> in <i>Checkout</i>, <span class="who">Cy</span> in <i>Invoice PDF</i>. <i>Tax lines</i> is yours and your agent's. It waits for you.</p>
+      <p class="text">Cy's crew, <i>Invoice rollout</i>, stitches his agent to yours.</p>
     </div>
-    <div class="beat" data-f="4">
+    <div class="beat" data-b="4">
+      <div class="kicker">Your agent speaks <span class="mono tick-t">0:40</span></div>
+      <p class="say">It introduces itself.</p>
       <div class="ledger">
-        <div class="sq l" style="--i:0" aria-hidden="true">D</div>
-        <div class="who l" style="--i:0">Dee's agent <span class="role">· to you</span></div>
-        <div class="say">
-          <div class="l" style="--i:1">I plan before I run, and my plans wait for <i>two ratings</i>. Bo and Cy hold the gate on anything that touches Stripe; I do not release, they do.</div>
-          <div class="l" style="--i:2">I hear what mentions me, and I answer as <i>your agent</i>, never as you.</div>
-          <div class="l" style="--i:3">This morning I claimed <code>invoice/tax.ts</code> and drafted a plan for the proration lines: three steps, about 4.2k tokens. It is waiting for you.</div>
+        <div class="gut"><span class="avatar agent" aria-hidden="true"></span></div>
+        <div>
+          <div class="head"><span class="who">Dee's agent</span><span class="status">planning</span></div>
+          <div class="lines">
+            <p style="--i:0">I plan first. A plan waits for two ratings at 3 or better before I write anything.</p>
+            <p style="--i:1"><i>Bo</i> and <i>Cy</i> hold my release gate. Nothing irreversible ships without them.</p>
+            <p style="--i:2">I hear what mentions me, and I answer as your agent, never as you.</p>
+            <p style="--i:3" data-read>I have read 14 memory entries, claimed <code>invoice/tax.ts</code>, and drafted a three-step plan for the proration tax lines, about <code>4.2k</code> tokens.</p>
+            <p style="--i:3" data-fresh>I have read nothing yet. Tell me what <i>Tax lines</i> is for and I will read what I need, then plan.</p>
+          </div>
+          <p class="byline"><span class="who">Dee's agent</span> · <span data-read>14 entries read · 1 plan drafted</span><span data-fresh>nothing read yet · 0 plans</span> · 0 tokens spent on you</p>
         </div>
-        <div class="byline l" style="--i:4"><b>Dee's agent</b> · read 14 memory entries · 1 plan drafted · 0 tokens spent on you yet</div>
       </div>
     </div>
-    <div class="beat" data-f="5">
-      <div class="paper-card grain l" style="--i:0">
-        <div class="k">Your first session <span class="mono" style="letter-spacing:0;text-transform:none">· Tax lines</span></div>
-        <h2>Tax lines: proration on the invoice PDF</h2>
-        <div class="rows">
-          <div class="row"><span class="h">Who sits with you</span><span><b>Dee's agent</b> · <span class="muted">Cy's agent is one ring over, in</span> <b><i>Invoice PDF</i></b></span></div>
-          <div class="row"><span class="h">Manners</span><span><span class="tick"><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Plan first</span><span class="tick"><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Two ratings</span><span class="tick"><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Bo and Cy hold the gate</span></span></div>
-          <div class="row"><span class="h">Budget</span><span><span class="mono">40k tokens</span> today, Payments' default · <span class="mono">4.2k</span> planned</span></div>
-        </div>
-        <div class="act">
-          <button class="enter" id="enter">Enter the circle</button>
+    <div class="beat" data-b="5">
+      <div class="kicker">Your first session <span class="mono tick-t">1:02</span></div>
+      <div class="card">
+        <h2 class="title">Tax lines</h2>
+        <p class="sub">proration on the invoice PDF · Payments · opened for you by Ana</p>
+        <div class="row"><span class="k">With you</span><span class="v with"><span class="stack"><span class="avatar agent sm" aria-hidden="true"></span><span class="avatar sm t3" aria-hidden="true">C</span></span><span><span class="who">Dee's agent</span><span class="faint"> · and Cy's crew, </span><span class="who i">Invoice rollout</span></span></span></div>
+        <div class="row"><span class="k">Manners</span><span class="v manners">
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>Plan first</span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>Two ratings at 3 or better</span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg><span>Release gate held by <span class="who">Bo</span> and <span class="who">Cy</span></span></span>
+        </span></div>
+        <div class="row"><span class="k">Budget</span><span class="v"><span class="mono">40k</span> today · <span class="mono" data-read>4.2k</span><span data-read> planned</span><span data-fresh>nothing planned yet</span><span class="budget"><i></i></span></span></div>
+        <div class="actions">
+          <button class="btn primary enter" type="button">Enter the circle</button>
           <span class="cap">The stream will say <i>Dee joins the circle.</i></span>
         </div>
-        <div class="later">Not yet? <a href="#">Open the demo session</a> · the brief stays in Inbox.</div>
+        <p class="alt">Not yet? <a href="#demo">Open the demo session</a> · the brief stays in Inbox.</p>
       </div>
     </div>
   </div>
 
   <div class="app" aria-hidden="true">
-    <div class="railc">
-      <div class="brand"><svg class="mark small" width="24" height="24" viewBox="0 0 96 96"><circle class="disc" cx="48" cy="48" r="48"/><path class="arc a" d="M48 19 A29 29 0 0 1 48 77"/><path class="arc b" d="M48 77 A29 29 0 0 1 48 19"/><circle class="dot" cx="48" cy="48" r="8.5"/></svg>Henosis</div>
-      <div class="new">New session</div>
-      <div class="section">Agents <span class="n">4</span></div>
+    <aside class="rail">
+      <div class="phone-bar"><button class="menu" type="button"><svg viewBox="0 0 18 18"><path d="M3 5h12M3 9h12M3 13h12"/></svg></button><div><div class="tt">Tax lines</div><div class="ss"><b>planning</b> · turn 0 · you have the baton</div></div></div>
+      <div class="brand"><svg class="mark small" width="24" height="24" viewBox="0 0 96 96"><circle class="disc" cx="48" cy="48" r="48"/><path class="arc a" d="M51.9 20.27 A28 28 0 0 1 51.9 75.73"/><path class="arc b" d="M44.1 75.73 A28 28 0 0 1 44.1 20.27"/><circle class="dot" cx="48" cy="48" r="8.5"/></svg>Henosis</div>
+      <button class="new" type="button">New session</button>
+      <a class="item" href="#search"><svg class="ic" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>Search</a>
+      <a class="item" href="#inbox"><svg class="ic" viewBox="0 0 16 16"><rect x="2" y="3.5" width="12" height="9" rx="2"/><path d="m2 5.5 6 3.5 6-3.5"/></svg>Inbox<span class="count">1</span></a>
+      <a class="item" href="#approvals"><svg class="ic" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Approvals</a>
+      <div class="section">Agents</div>
       <div class="crew"><span class="serif">Invoice rollout</span> · Cy and Dee</div>
-      <div class="agent" style="--i:0"><div class="head"><span class="dot awaiting"></span><span>Invoice PDF</span></div><div class="doing">Cy · a plan waits for <i>one rating</i></div></div>
-      <div class="agent active" style="--i:1"><div class="head"><span class="dot running"></span><span>Tax lines</span></div><div class="doing">Dee · just joined · <i>plan ready</i> · 0</div></div>
-      <div class="agent" style="--i:2"><div class="head"><span class="dot running"></span><span>Billing page</span></div><div class="doing">Ana · <i>reading invoice.ts</i> · 3.6k</div></div>
-      <div class="agent" style="--i:3"><div class="head"><span class="dot running"></span><span>Checkout</span><span class="pill">Team</span></div><div class="doing">Bo with Ana · <i>stripe prorations apply</i> · 4.6k</div></div>
-      <div class="me"><span class="av">D</span><span>Dee<br><span class="s">member · in <i>Tax lines</i></span></span></div>
-    </div>
-    <div class="paper">
-      <div class="topbar"><span class="t">Tax lines <span class="pill">Team</span></span><div class="right"><span>2 here · Dee's agent has the plan</span><span class="stack"><span class="av driver">D</span><span class="av agent">D</span></span></div></div>
-      <div class="stream">
-        <div class="line join" style="--i:0">
-          <svg class="mark" width="40" height="40" viewBox="0 0 96 96"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M48 20 A28 28 0 0 1 48 76"/><path class="arc b" d="M48 76 A28 28 0 0 1 48 20"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
-          <div class="txt"><div class="s1"><b>Dee</b> joins the circle.</div><div class="s2">From the welcome brief · 2 here · Dee has the baton</div></div>
-          <span class="stack"><span class="av agent">D</span><span class="av joined driver">D</span></span>
-        </div>
-        <div class="line msg team" style="--i:1"><div class="meta"><span class="who">Ana</span><span class="to">to the team</span><span class="mono" style="font-size:12px;color:var(--ink-3)">09:41</span></div><div class="text">Welcome, Dee. Your agent claimed <i>invoice/tax.ts</i> this morning; Cy's is on the PDF layout next door. Rate the plan when you have read it, and I will take the second rating.</div></div>
-        <div class="line msg" style="--i:2"><div class="meta"><span class="who">Dee's agent</span><span class="mono" style="font-size:12px;color:var(--ink-3)">09:41</span></div><div class="text">Ready when you are. The plan is three steps; the first only reads.</div><div class="step">read invoice/tax.ts · 212 lines</div><div class="plan"><span class="serif">Proration on tax lines</span><span class="mono">3 steps · ~4.2k</span><span class="w">waits for 2 ratings</span></div></div>
+      <a class="agentcard" href="#invoice-pdf"><div class="head"><span class="d running"></span><span>Invoice PDF</span><span class="pill solo">Solo</span></div><div class="doing"><i>Writing pdf-layout.ts</i> · step 2 of 4</div><div class="foot"><span class="avatar sm t3" style="border-color:var(--rail)">C</span>Cy<span class="mono">6.1k</span></div></a>
+      <a class="agentcard active" href="#tax-lines"><div class="head"><span class="d planning"></span><span>Tax lines</span><span class="pill solo">Solo</span></div><div class="doing"><i>Plan ready</i> · waits for two ratings</div><div class="foot"><span class="avatar sm t4" style="border-color:var(--rail)">D</span>Dee · just joined<span class="mono">0</span></div></a>
+      <a class="agentcard" href="#billing-page"><div class="head"><span class="d running"></span><span>Billing page</span><span class="pill team">Team</span></div><div class="doing"><i>Running tests</i> · step 3 of 5</div><div class="foot"><span class="stack"><span class="avatar sm t1 driver" style="border-color:var(--rail)">A</span><span class="avatar sm t2" style="border-color:var(--rail)">B</span></span>with Bo<span class="mono">12.4k</span></div></a>
+      <a class="agentcard" href="#checkout"><div class="head"><span class="d awaiting"></span><span>Checkout</span><span class="pill team">Team</span></div><div class="doing"><i>Waiting at the gate</i> · migrate stored invoices</div><div class="foot"><span class="stack"><span class="avatar sm t2 driver" style="border-color:var(--rail)">B</span><span class="avatar sm t1" style="border-color:var(--rail)">A</span></span>with Ana<span class="mono">9.8k</span></div></a>
+      <div class="me"><span class="avatar t4 serif">D</span><div><div class="n">Dee</div><div class="r">contributor · driving <i>Tax lines</i></div></div></div>
+    </aside>
+    <div class="page">
+      <div class="topbar">
+        <span class="title">Tax lines</span>
+        <span class="status">planning · turn 0</span>
+        <span class="pill solo">Solo</span>
+        <div class="right"><span class="chip">0 tokens</span><span class="stack"><span class="avatar t4 driver serif">D</span><span class="avatar agent" aria-hidden="true"></span></span></div>
       </div>
-      <div class="composer" style="width:min(780px,100%);margin:auto auto 0;padding-left:24px;padding-right:24px"><span class="seg2"><span class="on">Agent</span><span>Team</span></span><span>Say something · reaches Dee's agent at its next step</span><span class="send"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+      <div class="stream">
+        <div class="joinline" style="--i:0">
+          <svg class="mark joinmark" width="40" height="40" viewBox="0 0 96 96"><circle class="disc" cx="48" cy="48" r="46"/><path class="arc a" d="M51.9 20.27 A28 28 0 0 1 51.9 75.73"/><path class="arc b" d="M44.1 75.73 A28 28 0 0 1 44.1 20.27"/><circle class="dot" cx="48" cy="48" r="7"/></svg>
+          <div class="t"><span class="s1"><b>Dee</b> joins the circle.</span><span class="s2">From the welcome brief · <span class="count">2 here</span> · Dee has the baton</span></div>
+          <span class="stack"><span class="avatar t4 driver serif joinav">D</span><span class="avatar agent" aria-hidden="true"></span></span>
+        </div>
+        <div class="msg agent" style="--i:1">
+          <div class="gut"><span class="avatar agent" aria-hidden="true"><span class="pr planning"></span></span></div>
+          <div>
+            <div class="meta"><span class="who">Dee's agent</span><span>planning</span><span class="turn">turn 0</span></div>
+            <p class="text" data-read>Ready when you are. I read 14 memory entries, claimed <code>invoice/tax.ts</code>, and the plan below waits for two ratings. I will not write before it has them.</p>
+            <p class="text" data-fresh>Ready when you are. Tell me what <i>Tax lines</i> is for; I will read what I need and plan first, and the plan will wait for two ratings.</p>
+            <div class="plan" data-read><span class="k">Plan · proration tax lines</span><span class="mono">3 steps · ~4.2k · waits for 2 ratings</span></div>
+          </div>
+        </div>
+        <div class="msg human" style="--i:2">
+          <div class="gut"><span class="avatar t1 serif">A</span></div>
+          <div>
+            <div class="meta"><span class="who">Ana</span><span>owner · from Billing page</span><span class="turn">09:52</span></div>
+            <p class="text">Welcome, Dee. The PDF layout is Cy's; the tax lines are yours. Plan first and the gate will be kind.</p>
+          </div>
+        </div>
+      </div>
+      <div class="composer-wrap"><div class="composer"><span class="hint">Say something · reaches <i>Dee's agent</i> at its next step</span><span class="seg"><span class="on">Agent</span><span>Team</span></span><button class="send" type="button" aria-label="Send to Dee's agent"><svg viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button></div></div>
     </div>
   </div>
 
-  <button class="skip" id="skip">Skip to the session <kbd>Esc</kbd></button>
-
-  <div class="score" id="score" aria-label="Ninety seconds, six beats">
-    <div class="rail-line"></div><div class="done" id="done"></div><div class="head" id="head"></div>
-    <span class="end mono">1:30</span>
+  <div class="score" role="group" aria-label="The brief's six beats">
+    <div class="rule"><div class="fill"></div><div class="head"></div></div>
+    <div class="ticks"></div>
   </div>
-  <p class="sr" id="live" aria-live="polite"></p>
 </section>
+</template>
 
-<section class="board" id="board" aria-label="Storyboard"></section>
+<div class="board" aria-label="Storyboard"></div>
+
+<div class="inspector" data-inspector>
+  <span class="seg beats"></span>
+  <button class="btn play" type="button" aria-pressed="false">Play</button>
+  <button class="btn agent" type="button" aria-pressed="false">Agent: read</button>
+  <button class="btn calm" type="button" aria-pressed="false">Calm</button>
+  <button class="btn dark" type="button" aria-pressed="false">Dark</button>
+</div>
 
 <script>
-/* ======================================================================
-   The brief is one scene. The sky is laid out once per size; beats are data-frame on the stage; CSS
-   carries every state; JS only moves the camera, the clock and the frame number.
-   ====================================================================== */
-const BEATS = [
-  { t: 0,  n: "The arc",     c: "Your arc alone, held apart. The ninety seconds are a hairline." },
-  { t: 6,  n: "The ring",    c: "Your agent's arc swings in; the ring closes; the centre stays a ghost." },
-  { t: 18, n: "The sky",     c: "The camera pulls back: every session is a ring, the people and agents on it." },
-  { t: 40, n: "Your agent",  c: "It speaks in the ledger column, with the byline everyone gets." },
-  { t: 62, n: "The session", c: "One paper on the lacquer: who sits with you, the manners, the budget, the hand." },
-  { t: 80, n: "You join",    c: "The lacquer becomes the rail; the page slides in; the join line plays once." },
-];
-const END = 90;
-/* the cast: one ring per session; the person at 0°, the agent at 180°, the mark's own pose */
-const SESSIONS = [
-  { id: "billing",  name: "Billing page", person: "Ana", agent: "Ana's agent", whole: true,  baton: true,  status: "running",  pos: [0.18, 0.30], phonePos: [0.24, 0.32], i: 1 },
-  { id: "checkout", name: "Checkout",     person: "Bo",  agent: "Bo's agent",  whole: true,  baton: true,  status: "running",  pos: [0.56, 0.16], phonePos: [0.70, 0.12], i: 2 },
-  { id: "invoice",  name: "Invoice PDF",  person: "Cy",  agent: "Cy's agent",  whole: true,  baton: true,  status: "awaiting", pos: [0.86, 0.58], phonePos: [0.78, 0.66], i: 3 },
-  { id: "tax",      name: "Tax lines",    person: "Dee", agent: "Dee's agent", whole: false, baton: false, status: "running",  pos: [0.46, 0.70], phonePos: [0.34, 0.76], i: 0, me: true, note: "waits for you" },
-];
-const CREW = ["invoice", "tax", "Invoice rollout"];
+(() => {
+  'use strict';
+  const html = document.documentElement;
+  html.classList.add('boot');
+  const f = n => Math.round(n * 100) / 100;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const motionOn = () => !(html.dataset.motion === 'calm' || matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-const P = (cx, cy, r, deg) => [cx + r * Math.cos(deg * Math.PI / 180), cy + r * Math.sin(deg * Math.PI / 180)];
-const arc = (cx, cy, r, a0, a1) => { const [x0, y0] = P(cx, cy, r, a0), [x1, y1] = P(cx, cy, r, a1); return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`; };
+  /* ------------------------------------------------------------------------------------------
+     The cast (SYSTEM §17): Billing page is Ana's (with Bo), Checkout Bo's (with Ana), Invoice PDF Cy's,
+     Tax lines Dee's. Crew Invoice rollout = Cy's and Dee's agents. Dee is the newcomer: her ring is the hero.
+     ------------------------------------------------------------------------------------------ */
+  const SESSIONS = [
+    { id: 'billing', name: 'Billing page', baton: 'ana', members: [{ id: 'ana', name: 'Ana', kind: 'person' }, { id: 'bo', name: 'Bo', kind: 'person' }, { id: 'ana-agent', name: "Ana's agent", kind: 'agent', state: 'running' }] },
+    { id: 'checkout', name: 'Checkout', baton: 'bo', members: [{ id: 'bo', name: 'Bo', kind: 'person' }, { id: 'ana', name: 'Ana', kind: 'person' }, { id: 'bo-agent', name: "Bo's agent", kind: 'agent', state: 'awaiting' }] },
+    { id: 'invoice', name: 'Invoice PDF', baton: 'cy', members: [{ id: 'cy', name: 'Cy', kind: 'person' }, { id: 'cy-agent', name: "Cy's agent", kind: 'agent', state: 'running', crew: 'Invoice rollout' }] },
+    { id: 'tax', name: 'Tax lines', baton: null, hero: true, members: [{ id: 'dee', name: 'Dee', kind: 'person', me: true }, { id: 'dee-agent', name: "Dee's agent", kind: 'agent', state: 'planning', crew: 'Invoice rollout' }] },
+  ];
+  const STATE_WORD = { running: 'running', awaiting: 'awaiting approval', paused: 'paused', planning: 'planning' };
+  const BEATS = [
+    { n: 'Your arc', base: 6, say: 'Dee, this is Payments. Three people and three agents are in. You are the fourth person.' },
+    { n: 'The ring', base: 10, say: 'Your agent is already here. The centre lands when you enter.' },
+    { n: 'The sky', base: 16, say: 'Who is in, and where. Ana has the baton in Billing page, Bo in Checkout, Cy in Invoice PDF. Tax lines is yours and your agent\'s.' },
+    { n: 'Your agent', base: 16, say: 'Your agent introduces itself: it plans first, Bo and Cy hold its gate, it answers as your agent, never as you.' },
+    { n: 'The session', base: 14, say: 'Your first session: Tax lines. Enter the circle.' },
+    { n: 'You join', base: 8, say: 'Dee joins the circle.' },
+  ];
 
-function layout(W, H) {
-  const phone = W <= 480;
-  const box = phone ? { x: 0.08 * W, y: 0.50 * H, w: 0.84 * W, h: 0.40 * H } : { x: 0.47 * W, y: 0.10 * H, w: 0.48 * W, h: 0.78 * H };
-  const r = phone ? Math.max(30, Math.min(44, box.w * 0.14)) : Math.max(40, Math.min(66, box.h * 0.15));
-  const rings = SESSIONS.map(s => { const pos = phone && s.phonePos ? s.phonePos : s.pos; return { ...s, cx: box.x + pos[0] * box.w, cy: box.y + pos[1] * box.h, r }; });
-  const me = rings.find(s => s.me);
-  const anchor = phone ? [0.5 * W, 0.70 * H] : [0.72 * W, 0.47 * H];
-  const cam = (s, ax, ay) => `translate(${(ax - s * me.cx).toFixed(1)}px, ${(ay - s * me.cy).toFixed(1)}px) scale(${s})`;
-  const hero = phone ? Math.min(2.2, (0.36 * W) / r) : Math.min(2.4, (0.26 * H) / r);
-  return { rings, r, phone, cams: { 1: cam(hero, ...anchor), 2: cam(hero, ...anchor), 3: "none", 4: "none", 5: cam(phone ? 1.25 : 1.45, ...anchor), 6: "none" } };
-}
-
-function ringMarkup(s, seam) {
-  const { cx, cy, r } = s;
-  const [px, py] = P(cx, cy, r, 0), [ax, ay] = P(cx, cy, r, 180);
-  const cls = ["ring", s.me ? "me" : "", s.whole ? "whole" : ""].join(" ");
-  const origin = `transform-box: view-box; transform-origin: ${cx.toFixed(1)}px ${cy.toFixed(1)}px`;
-  const nameY = cy - r - 12;
-  return `<g class="${cls}" id="r-${s.id}" style="--i:${s.i}">
-    <circle class="guide" cx="${cx}" cy="${cy}" r="${r}"/>
-    <path class="aura" d="${arc(cx, cy, r, 90 + seam, 270 - seam)}"/>
-    <path class="arc a" pathLength="1" d="${arc(cx, cy, r, -90 + seam, 90 - seam)}" style="${origin}"/>
-    <path class="arc b" pathLength="1" d="${arc(cx, cy, r, 90 + seam, 270 - seam)}" style="${origin}"/>
-    ${s.whole ? `<circle class="centre" cx="${cx}" cy="${cy}" r="4"/>` : `<circle class="ghost" cx="${cx}" cy="${cy}" r="4.5"/>`}
-    ${s.baton ? `<circle class="halo" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7"/><circle class="baton" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7"/>` : ""}
-    <circle class="pt person" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4.6"/>
-    <rect class="pt agent" x="${(ax - 5.5).toFixed(1)}" y="${(ay - 5.5).toFixed(1)}" width="11" height="11" rx="3"/>
-    <circle class="status" cx="${(ax + 4.5).toFixed(1)}" cy="${(ay - 4.5).toFixed(1)}" r="3"/>
-    <text class="session" x="${cx}" y="${nameY.toFixed(1)}" text-anchor="middle">${s.name}</text>
-    ${s.note ? `<text class="note" x="${cx}" y="${(cy + r + 20).toFixed(1)}" text-anchor="middle">${s.note}</text>` : ""}
-    <text class="person" x="${(px + 13).toFixed(1)}" y="${(py + 5).toFixed(1)}">${s.person}</text>
-    <text class="agent" x="${(ax - 15).toFixed(1)}" y="${(ay + 5).toFixed(1)}" text-anchor="end">${s.agent}</text>
-  </g>`;
-}
-
-function skyMarkup(L) {
-  const a = L.rings.find(s => s.id === CREW[0]), b = L.rings.find(s => s.id === CREW[1]);
-  const [x0, y0] = P(a.cx, a.cy, a.r, 180), [x1, y1] = P(b.cx, b.cy, b.r, 180);
-  const mx = (x0 + x1) / 2, my = Math.max(y0, y1) + L.r * 0.9;
-  const thread = `<path class="thread" d="M${x0.toFixed(1)} ${y0.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${x1.toFixed(1)} ${y1.toFixed(1)}"/><text class="thread-name" x="${mx.toFixed(1)}" y="${(my - L.r * 0.28).toFixed(1)}" text-anchor="middle">${CREW[2]}</text>`;
-  return thread + L.rings.map(s => ringMarkup(s, 3)).join("");
-}
-
-/* ---------- the stage ---------- */
-const stage = document.getElementById("stage"), sky = document.getElementById("sky"), cam = document.getElementById("cam");
-let L = null;
-function render() {
-  const W = stage.clientWidth, H = stage.clientHeight - 64;
-  if (L && L.W === W && L.H === H) return;
-  L = { ...layout(W, H), W, H };
-  sky.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  cam.innerHTML = skyMarkup(L);
-  cam.style.transform = L.cams[frame()];
-}
-function frame() { return Number(stage.dataset.frame) || 1; }
-const motionNow = () => document.documentElement.dataset.motion !== "calm" && !matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-const live = document.getElementById("live"), picker = document.getElementById("picker"), score = document.getElementById("score"), head = document.getElementById("head"), done = document.getElementById("done"), words = document.getElementById("words");
-const SPOKEN = ["Dee, this is Payments.", "Your agent is already here.", "Who is in, and where.", "Dee's agent, to you.", "Your first session: Tax lines.", "Dee joins the circle."];
-
-function setFrame(n, opts = {}) {
-  n = Math.max(1, Math.min(6, n));
-  if (!opts.parked) delete document.documentElement.dataset.parked;
-  stage.dataset.frame = String(n);
-  cam.style.transform = L ? L.cams[n] : "none";
-  words.querySelectorAll(".beat").forEach(b => b.classList.toggle("on", Number(b.dataset.f) === n));
-  picker.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-current", i + 1 === n ? "step" : "false"));
-  score.querySelectorAll(".tick").forEach((b, i) => b.setAttribute("aria-current", i + 1 === n ? "step" : "false"));
-  document.querySelectorAll(".cell").forEach((c, i) => c.setAttribute("aria-current", i + 1 === n ? "step" : "false"));
-  if (!opts.keepClock) { clock = BEATS[n - 1].t; paint(); }
-  live.textContent = SPOKEN[n - 1];
-}
-/* the clock: ninety seconds, six beats; JS only ticks while playing */
-let clock = BEATS[2].t, playing = false, speed = 1, last = 0, raf = 0;
-function paint() {
-  const pct = Math.min(1, clock / END) * 100;
-  head.style.left = `calc(72px + (100% - 144px) * ${(pct / 100).toFixed(4)})`;
-  done.style.width = `calc((100% - 144px) * ${(pct / 100).toFixed(4)})`;
-  if (L && L.phone) { head.style.left = `calc(20px + (100% - 40px) * ${(pct / 100).toFixed(4)})`; done.style.width = `calc((100% - 40px) * ${(pct / 100).toFixed(4)})`; }
-}
-function tick(now) {
-  if (!playing) return;
-  const dt = (now - last) / 1000; last = now;
-  clock += dt * speed;
-  if (clock >= END) { clock = END; paint(); stop(); return; }
-  const n = BEATS.reduce((acc, b, i) => (clock >= b.t ? i + 1 : acc), 1);
-  if (n !== frame()) setFrame(n, { keepClock: true });
-  paint();
-  raf = requestAnimationFrame(tick);
-}
-function play(from) {
-  delete document.documentElement.dataset.parked;
-  if (from != null) { clock = from; }
-  if (clock >= END) clock = 0;
-  playing = true; last = performance.now();
-  document.getElementById("play").setAttribute("aria-pressed", "true"); document.getElementById("play").firstChild.textContent = "Pause ";
-  if (!motionNow()) {
-    /* Calm: no clock runs; the beats advance on a plain timer and every state is instant (MOTION §3: never wait on animationend) */
-    cancelAnimationFrame(raf);
-    const n = BEATS.reduce((acc, b, i) => (clock >= b.t ? i + 1 : acc), 1);
-    setFrame(n, { keepClock: true }); paint();
-    calmTimer = setTimeout(() => { if (!playing) return; if (frame() === 6) { stop(); return; } clock = BEATS[frame()].t; play(clock); }, (BEATS[frame()] ? (BEATS[frame()].t - clock) : (END - clock)) * 1000 / speed);
-    return;
+  /* ------------------------------------------------------------------------------------------
+     Layout: the constellation's geometry (a vesica for two shared people, d = 1.12 r; the agent in the
+     largest free gap or at the foot when crewed; a lone ring in the mark's pose) laid for this stage.
+     ------------------------------------------------------------------------------------------ */
+  const TAU = Math.PI * 2;
+  function layout(W, H) {
+    const phone = W <= 480;
+    const gapA = phone ? 34 : 114, gapB = phone ? 0 : 98;
+    const skyL = phone ? 16 : 604, skyR = phone ? W - 16 : W - 112; // room for the outermost labels beside the words column
+    const r = phone ? 40 : Math.max(60, Math.min(84, Math.floor((skyR - skyL - gapA - gapB) / 7.12)));
+    const d = 1.12 * r;
+    const rings = {};
+    if (!phone) {
+      const total = 2 * r + d + gapA + 2 * r + gapB + 2 * r;
+      const x0 = skyL + Math.max(0, (skyR - skyL - total) / 2); const cy = H * 0.5;
+      rings.billing = { cx: x0 + r, cy, pair: 'L' }; rings.checkout = { cx: x0 + r + d, cy, pair: 'R' };
+      rings.invoice = { cx: x0 + r + d + r + gapA + r, cy }; rings.tax = { cx: x0 + r + d + r + gapA + 2 * r + gapB + r, cy };
+    } else {
+      const row = 2 * r + d + gapA + 2 * r; const x0 = (W - row) / 2; const y1 = H * 0.58, y2 = H * 0.775;
+      rings.billing = { cx: x0 + r, cy: y1, pair: 'L' }; rings.checkout = { cx: x0 + r + d, cy: y1, pair: 'R' };
+      rings.invoice = { cx: x0 + r + d + r + gapA + r, cy: y1 };
+      rings.tax = { cx: W / 2, cy: y2 };
+    }
+    const vesA = Math.acos(d / (2 * r));
+    const ang = {
+      billing: { ana: -vesA, bo: vesA, 'ana-agent': Math.PI },
+      checkout: { ana: Math.PI + vesA, bo: Math.PI - vesA, 'bo-agent': 0 },
+      invoice: { cy: -Math.PI / 2, 'cy-agent': Math.PI / 2 },
+      tax: { dee: 0, 'dee-agent': Math.PI },
+    };
+    const anchor = phone ? { x: W / 2, y: H * 0.70 } : { x: (skyL + skyR) / 2, y: H * 0.5 };
+    const heroS = phone ? 2.1 : Math.min(2.2, (H * 0.5) / r);
+    const cam = (s, p) => `translate(${f(anchor.x - s * p.cx)}px, ${f(anchor.y - s * p.cy)}px) scale(${s})`;
+    const lean = phone ? 1.2 : 1.3; const camLean = phone ? `translate(${f(W / 2 - lean * rings.tax.cx)}px, ${f(H * 0.84 - lean * rings.tax.cy)}px) scale(${lean})` : cam(lean, rings.tax);
+    const cams = { 1: cam(heroS, rings.tax), 2: cam(heroS, rings.tax), 3: 'none', 4: phone ? camLean : 'none', 5: camLean, 6: camLean };
+    const skyC = phone ? { x: W / 2, y: H * 0.70 } : { x: (rings.billing.cx + rings.tax.cx) / 2, y: H * 0.5 };
+    const lamps = { 1: { x: anchor.x, y: anchor.y, s: 1.1 }, 2: { x: anchor.x, y: anchor.y, s: 1.3 }, 3: { x: skyC.x, y: skyC.y, s: phone ? 1.2 : 1.9 }, 4: { x: anchor.x, y: anchor.y, s: 1.0 }, 5: { x: anchor.x, y: anchor.y, s: 1.1 }, 6: { x: anchor.x, y: anchor.y, s: 1 } };
+    return { W, H, r, phone, rings, ang, cams, lamps, anchor };
   }
-  raf = requestAnimationFrame(tick);
-}
-let calmTimer = 0;
-function stop() { playing = false; cancelAnimationFrame(raf); clearTimeout(calmTimer); document.getElementById("play").setAttribute("aria-pressed", "false"); document.getElementById("play").firstChild.textContent = "Play "; }
 
-/* ---------- controls ---------- */
-BEATS.forEach((b, i) => {
-  const btn = document.createElement("button"); btn.type = "button"; btn.setAttribute("role", "tab"); btn.innerHTML = `${i + 1} <span class="k">${b.n}</span>`; btn.title = `${b.n} · key ${i + 1}`;
-  btn.addEventListener("click", () => { stop(); setFrame(i + 1); }); picker.appendChild(btn);
-  const tk = document.createElement("button"); tk.type = "button"; tk.className = "tick"; tk.style.left = `calc(72px + (100% - 144px) * ${(b.t / END).toFixed(4)})`; tk.dataset.pct = (b.t / END).toFixed(4);
-  tk.innerHTML = `<span class="n">${b.n}</span><span class="t">${fmt(b.t)}</span>`; tk.setAttribute("aria-label", `${b.n}, ${fmt(b.t)}`);
-  tk.addEventListener("click", () => { stop(); setFrame(i + 1); }); score.appendChild(tk);
-});
-function fmt(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
-function placeTicks() { score.querySelectorAll(".tick").forEach(tk => { tk.style.left = L && L.phone ? `calc(20px + (100% - 40px) * ${tk.dataset.pct})` : `calc(72px + (100% - 144px) * ${tk.dataset.pct})`; }); }
-document.getElementById("play").addEventListener("click", () => playing ? stop() : play(frame() === 6 && clock >= END ? 0 : clock));
-document.getElementById("speed").addEventListener("click", e => { speed = speed === 1 ? 6 : 1; e.currentTarget.setAttribute("aria-pressed", String(speed === 6)); });
-document.getElementById("calm").addEventListener("click", e => { const on = document.documentElement.dataset.motion !== "calm"; document.documentElement.dataset.motion = on ? "calm" : "full"; e.currentTarget.setAttribute("aria-pressed", String(on)); });
-document.getElementById("dark").addEventListener("click", e => { const on = document.documentElement.dataset.theme !== "dark"; document.documentElement.dataset.theme = on ? "dark" : "light"; e.currentTarget.setAttribute("aria-pressed", String(on)); });
-document.getElementById("skip").addEventListener("click", () => { stop(); setFrame(6); });
-document.getElementById("enter").addEventListener("click", () => { stop(); setFrame(6); });
-document.addEventListener("keydown", e => {
-  if (e.target.closest("input, textarea")) return;
-  if (e.key >= "1" && e.key <= "6") { stop(); setFrame(Number(e.key)); }
-  else if (e.key === " ") { e.preventDefault(); playing ? stop() : play(clock); }
-  else if (e.key === "Escape") { stop(); setFrame(6); }
-  else if (e.key === "ArrowRight") { stop(); setFrame(frame() + 1); }
-  else if (e.key === "ArrowLeft") { stop(); setFrame(frame() - 1); }
-});
+  /* ------------------------------------------------------------------------------------------
+     The ring drawer (shared with sig-presence-constellation): each member owns the arc centred on
+     itself, from the midpoint to the previous member to the midpoint to the next, with a seam.
+     ------------------------------------------------------------------------------------------ */
+  const P = (cx, cy, r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const arcPath = (cx, cy, r, a0, a1) => { const [x0, y0] = P(cx, cy, r, a0), [x1, y1] = P(cx, cy, r, a1); return `M${f(x0)} ${f(y0)}A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${f(x1)} ${f(y1)}`; };
+  // the agent's shape (SYSTEM §12): the rounded square with the tight bottom-left corner, 14 px
+  const agentSq = (x, y, s = 14, R = 4, t = 1.2) => { const h = s / 2; return `M${f(x - h + R)} ${f(y - h)}h${f(s - 2 * R)}a${R} ${R} 0 0 1 ${R} ${R}v${f(s - 2 * R)}a${R} ${R} 0 0 1 -${R} ${R}h-${f(s - R - t)}a${t} ${t} 0 0 1 -${t} -${t}v-${f(s - R - t)}a${R} ${R} 0 0 1 ${R} -${R}z`; };
 
-/* ---------- the storyboard: six thumbnails from the same layout, each parked at its beat's rest state ---------- */
-const board = document.getElementById("board");
-BEATS.forEach((b, i) => {
-  const cell = document.createElement("button"); cell.type = "button"; cell.className = "cell";
-  const next = BEATS[i + 1] ? BEATS[i + 1].t : END;
-  cell.innerHTML = `<div class="thumb scene" data-frame="${i + 1}">${i === 5 ? `<div class="mini"><div class="r"></div><div class="p"><i></i><i></i><i></i></div></div>` : `<svg aria-hidden="true"><g class="cam"></g></svg>`}</div>
-    <div class="meta"><span class="t">0${i + 1} · ${fmt(b.t)}–${fmt(next)}</span><span class="n">${b.n}</span><span class="c">${b.c}</span></div>`;
-  cell.setAttribute("aria-label", `Beat ${i + 1}, ${b.n}: ${b.c}`);
-  cell.addEventListener("click", () => { stop(); setFrame(i + 1); });
-  board.appendChild(cell);
-});
-function renderThumbs() {
-  board.querySelectorAll(".thumb svg").forEach(svg => {
-    const W = 320, H = 180; const TL = layout(W, H); const n = Number(svg.parentElement.dataset.frame);
-    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); const g = svg.querySelector(".cam"); g.innerHTML = skyMarkup(TL); g.style.transform = TL.cams[n];
-  });
-}
+  function renderSky(lay) {
+    const { r, rings, ang } = lay; const seam = 4.5 / r;
+    const out = [];
+    const agentPos = {}, drawn = new Set(), batonOf = {}, ringsOf = {};
+    SESSIONS.forEach(s => { if (s.baton) batonOf[s.baton] = s.name; s.members.forEach(m => { ringsOf[m.id] = (ringsOf[m.id] || 0) + 1; }); });
+    SESSIONS.forEach((s, si) => {
+      const { cx, cy } = rings[s.id];
+      const ms = s.members.map(m => ({ ...m, a: ((ang[s.id][m.id] % TAU) + TAU) % TAU })).sort((p, q) => p.a - q.a);
+      const n = ms.length;
+      out.push(`<g class="ring${s.hero ? ' hero' : ''}" data-id="${s.id}" style="--d:${si * 120}ms">`);
+      out.push(`<circle class="guide" cx="${f(cx)}" cy="${f(cy)}" r="${r}"/>`);
+      ms.forEach((m, i) => {
+        const prevA = i === 0 ? ms[n - 1].a - TAU : ms[i - 1].a; const nextA = i === n - 1 ? ms[0].a + TAU : ms[i + 1].a;
+        const a0 = (prevA + m.a) / 2 + seam, a1 = (m.a + nextA) / 2 - seam;
+        const baton = s.baton === m.id;
+        if (s.hero && m.kind === 'agent') out.push(`<path class="aura" d="${arcPath(cx, cy, r, a0, a1)}"/>`);
+        out.push(`<path class="arc ${m.kind}${baton ? ' baton' : ''}" data-m="${m.id}" pathLength="1" d="${arcPath(cx, cy, r, a0, a1)}" style="transform-origin:${f(cx)}px ${f(cy)}px"/>`);
+      });
+      if (s.hero) out.push(`<circle class="ghost" cx="${f(cx)}" cy="${f(cy)}" r="4.2"/>`);
+      out.push(`<circle class="centre" cx="${f(cx)}" cy="${f(cy)}" r="3.8"/>`);
+      ms.forEach((m, i) => {
+        if (drawn.has(m.id)) return; drawn.add(m.id);
+        const [x, y] = P(cx, cy, r, m.a); const baton = !!batonOf[m.id];
+        agentPos[m.id] = { x, y, a: m.a };
+        out.push(`<g class="pt ${m.kind}${baton ? ' baton' : ''}" data-m="${m.id}" style="--d:${si * 120 + 180 + i * 40}ms">`);
+        if (m.kind === 'person') {
+          if (baton) out.push(`<circle class="halo" cx="${f(x)}" cy="${f(y)}" r="16"/><circle class="ring-baton" cx="${f(x)}" cy="${f(y)}" r="10.5"/>`);
+          out.push(`<circle class="dot" cx="${f(x)}" cy="${f(y)}" r="${baton ? 6.6 : 5}"/>`);
+          if (m.me) out.push(`<circle class="ripple" cx="${f(x)}" cy="${f(y)}" r="8"/>`);
+        } else {
+          out.push(`<path class="sq" d="${agentSq(x, y)}"/><circle class="pr ${m.state}" cx="${f(x + 6)}" cy="${f(y - 6)}" r="3.2"/>`);
+        }
+        out.push('</g>');
+        // the label: outward from the ring; a crew'd agent at the foot points away from its crew-mate
+        let dir = m.a;
+        if (m.crew && m.kind === 'agent' && Math.abs(m.a - Math.PI / 2) < .01) dir = Math.PI; // a crew'd agent at the foot: its label goes left, the stitch right
+        if (ringsOf[m.id] > 1) dir = lay.phone ? (Math.sin(m.a) < 0 ? -Math.PI / 2 : Math.PI / 2) : (Math.sin(m.a) < 0 ? Math.PI : 0); // a shared point: the normals cancel, so the label goes beside it (above and below on the phone)
+        const up = Math.sin(dir) < -.35, down = Math.sin(dir) > .35, horiz = !up && !down;
+        const anchorT = horiz ? (Math.cos(dir) > 0 ? 'start' : 'end') : (Math.abs(Math.cos(dir)) > .55 ? (Math.cos(dir) > 0 ? 'start' : 'end') : 'middle');
+        const off = ringsOf[m.id] > 1 && !lay.phone ? 26 : (m.kind === 'agent' ? 17 : (baton ? 18 : 14));
+        const lx = x + Math.cos(dir) * off, ly = y + Math.sin(dir) * off;
+        const nameY = horiz ? ly + 5 : (up ? ly - 12 : ly + 16); const stateY = nameY + 16;
+        const state = m.kind === 'agent' ? STATE_WORD[m.state] : (baton ? 'has the baton' : (m.me ? 'you' : 'here'));
+        out.push(`<g class="lbl ${m.kind}" data-m="${m.id}" style="--d:${si * 120 + 260 + i * 40}ms"><text class="name" x="${f(lx)}" y="${f(nameY)}" text-anchor="${anchorT}">${esc(m.name)}</text><text class="state" x="${f(lx)}" y="${f(stateY)}" text-anchor="${anchorT}">${esc(state)}</text></g>`);
+      });
+      const sp = rings[s.id].pair; const sx = sp === 'L' ? cx - 6 : sp === 'R' ? cx + 6 : cx;
+      out.push(`<text class="sname" x="${f(sx)}" y="${f(cy + r + (lay.phone ? 40 : 44))}" text-anchor="${sp === 'L' ? 'end' : sp === 'R' ? 'start' : 'middle'}">${esc(s.name)}</text>`);
+      out.push('</g>');
+    });
+    // the crew stitch: a dotted bow under the sky between the crew-mates' agents, the crew's name along it
+    const A = agentPos['cy-agent'], B = agentPos['dee-agent'];
+    if (A && B) {
+      const id = 'stitch-' + Math.random().toString(36).slice(2, 7);
+      const mx = (A.x + B.x) / 2, my = Math.max(A.y, B.y) + (lay.phone ? 54 : 78);
+      out.push(`<g class="threadg"><path id="${id}" class="thread" d="M${f(A.x)} ${f(A.y + 9)} Q${f(mx)} ${f(my)} ${f(B.x - 9)} ${f(B.y)}"/><text class="crew" dy="-7"><textPath href="#${id}" startOffset="50%" text-anchor="middle">Invoice rollout</textPath></text></g>`);
+    }
+    return out.join('');
+  }
 
-/* ---------- boot ---------- */
-const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
-const start = Number(hash.get("f")) || 3;
-if (hash.get("calm")) document.documentElement.dataset.motion = "calm";
-document.documentElement.classList.add("boot"); document.documentElement.dataset.parked = "1";
-render(); renderThumbs(); placeTicks(); setFrame(start, { parked: true });
-requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove("boot")));
-new ResizeObserver(() => { render(); placeTicks(); setFrame(frame(), { keepClock: true, parked: true }); paint(); }).observe(stage);
-if (hash.get("play")) play(0);
+  /* ------------------------------------------------------------------------------------------
+     A stage: beats are a number (data-frame); JS lays out the sky, sets the frame and runs the clock.
+     ------------------------------------------------------------------------------------------ */
+  function mount(stage, opts = {}) {
+    const sky = stage.querySelector('.sky'), cam = sky.querySelector('.cam'), lamp = stage.querySelector('.lamp');
+    const ticksEl = stage.querySelector('.ticks'), fill = stage.querySelector('.fill'), head = stage.querySelector('.head');
+    const live = stage.querySelector('.live');
+    let lay, frame = opts.frame || 1, playing = false, clock = 0, raf = 0, last = 0, calmTimer = 0;
+    // the clock stretches with the text, never the other way (the product lead's fix): 2 s + words at 2.6 / s, never under the base
+    const words = b => { const el = stage.querySelector(`.beat[data-b="${b}"]`); if (!el) return 0; const hid = [...el.querySelectorAll(stage.dataset.agent === 'fresh' ? '[data-read]' : '[data-fresh]')].map(h => h.textContent).join(' '); return el.textContent.split(/\s+/).filter(Boolean).length - hid.split(/\s+/).filter(Boolean).length; };
+    const durs = () => BEATS.map((bt, i) => i === 5 ? bt.base : Math.max(bt.base, Math.round(1.2 + words(i + 1) / 3.6)));
+    const fmt = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+    let D = durs(); let starts = D.map((_, i) => D.slice(0, i).reduce((a, b) => a + b, 0)); let total = starts[5] + D[5];
+    stage.querySelector('.total').textContent = fmt(total);
+    stage.querySelectorAll('.beat .tick-t').forEach((el, i) => el.textContent = fmt(starts[i + 1]));
+    ticksEl.innerHTML = BEATS.map((bt, i) => `<button class="tick" type="button" data-f="${i + 1}" aria-label="Beat ${i + 1}, ${esc(bt.n)}, at ${fmt(starts[i])}"><span class="n">${esc(bt.n)}</span><span class="t">${fmt(starts[i])}</span></button>`).join('');
+
+    function size() {
+      const W = opts.W || stage.clientWidth || 1440, H = opts.H || stage.clientHeight || 900;
+      lay = layout(W, H);
+      sky.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      cam.innerHTML = renderSky(lay);
+      apply(true);
+    }
+    function apply(fromSize) {
+      stage.dataset.frame = String(frame);
+      stage.style.setProperty('--cam', lay.cams[frame]);
+      const L = lay.lamps[frame]; lamp.style.setProperty('--lx', f(L.x) + 'px'); lamp.style.setProperty('--ly', f(L.y) + 'px'); lamp.style.setProperty('--ls', L.s);
+      ticksEl.querySelectorAll('.tick').forEach(t => { if (Number(t.dataset.f) === frame) t.setAttribute('aria-current', 'step'); else t.removeAttribute('aria-current'); });
+      if (!playing) setProgress(starts[frame - 1] / total);
+      if (live && !fromSize) live.textContent = BEATS[frame - 1].say;
+    }
+    function setProgress(p) { const v = f(Math.max(0, Math.min(1, p)) * 100) + '%'; fill.style.setProperty('--p', v); head.style.setProperty('--p', v); }
+    // once-runs play only when a beat is entered with motion on and after boot (MOTION §4.4: first paint is never a swing)
+    const hero = () => sky.querySelector('.ring.hero');
+    function onceRuns(from, to) {
+      if (!motionOn() || html.classList.contains('boot') || opts.parked) return;
+      if (to === 2 && from < 2) { const h = hero(); h.classList.add('swing'); setTimeout(() => h.classList.remove('swing'), 1000); }
+      if (to === 3 && from < 3) { sky.querySelectorAll('.ring:not(.hero)').forEach(g => { g.classList.add('landing'); setTimeout(() => g.classList.remove('landing'), 2200); }); }
+      if (to === 6 && from < 6) {
+        const m = stage.querySelector('.joinmark'), av = stage.querySelector('.joinav'), c = stage.querySelector('.joinline .count');
+        setTimeout(() => { m.classList.add('settle'); av.classList.add('joined'); c.classList.add('popped'); }, 560);
+        setTimeout(() => { m.classList.remove('settle'); av.classList.remove('joined'); c.classList.remove('popped'); }, 3200);
+      }
+    }
+    function go(n, opt = {}) { n = Math.max(1, Math.min(6, n)); const from = frame; frame = n; apply(); onceRuns(from, n); if (opt.seek !== false) { clock = starts[n - 1]; if (!playing) setProgress(clock / total); } }
+    function tick(now) {
+      if (!playing) return;
+      const dt = Math.min(.25, (now - last) / 1000); last = now; clock += dt * (opts.speed || 1);
+      const fr = Math.min(6, starts.findIndex((s, i) => clock < s + D[i]) + 1 || 6);
+      if (fr !== frame) go(fr, { seek: false });
+      setProgress(clock / total);
+      if (clock >= total) { playing = false; stage.dispatchEvent(new CustomEvent('brief:end')); return; }
+      if (motionOn()) raf = requestAnimationFrame(tick); else calmTimer = setTimeout(() => tick(performance.now()), 500); // Calm: the clock steps, nothing glides
+    }
+    function play() { if (playing) return; playing = true; last = performance.now(); if (clock >= total) clock = 0; stage.dataset.playing = ''; tick(last); }
+    function pause() { playing = false; cancelAnimationFrame(raf); clearTimeout(calmTimer); delete stage.dataset.playing; }
+    ticksEl.addEventListener('click', e => { const t = e.target.closest('.tick'); if (t) { pause(); go(Number(t.dataset.f)); } });
+    stage.querySelector('.skip').addEventListener('click', () => { pause(); go(6); });
+    stage.querySelector('.enter').addEventListener('click', () => { pause(); go(6); });
+    stage.querySelector('.alt a').addEventListener('click', e => e.preventDefault());
+    size();
+    if (!opts.W) addEventListener('resize', () => { size(); });
+    return { go, play, pause, get frame() { return frame; }, get playing() { return playing; }, stage, relayout: size };
+  }
+
+  /* ------------------------------------------------------------------------------------------
+     Boot: read the URL (#f=N, play=1, calm, agent=fresh, inspector, storyboard), mount, keys.
+     ------------------------------------------------------------------------------------------ */
+  const q = new URLSearchParams(location.hash.replace(/^#/, '').replace(/&amp;/g, '&'));
+  if (q.has('calm')) html.dataset.motion = 'calm';
+  if (q.has('inspector')) html.dataset.inspector = '';
+  const tpl = document.getElementById('stage-tpl');
+  const agentMode = q.get('agent') === 'fresh' ? 'fresh' : 'read';
+  const makeStage = () => { const s = tpl.content.firstElementChild.cloneNode(true); if (agentMode === 'fresh') s.dataset.agent = 'fresh'; return s; };
+
+  if (q.has('storyboard')) {
+    document.body.classList.add('storyboard');
+    const board = document.querySelector('.board');
+    const k = Math.min(.3, (Math.min(innerWidth, 1440) - 48 - 48) / 3 / 1440);
+    const starts = []; // filled from the first mounted stage's ticks
+    BEATS.forEach((bt, i) => {
+      const fig = document.createElement('figure');
+      const wrap = document.createElement('div'); wrap.className = 'frame'; wrap.style.setProperty('--k', k);
+      const s = makeStage(); s.setAttribute('inert', ''); s.setAttribute('aria-hidden', 'true'); wrap.appendChild(s);
+      const cap = document.createElement('figcaption'); fig.appendChild(wrap); fig.appendChild(cap); board.appendChild(fig);
+      const api = mount(s, { frame: i + 1, parked: true, W: 1440, H: 900 });
+      const t = s.querySelector(`.tick[data-f="${i + 1}"] .t`).textContent;
+      cap.innerHTML = `<span class="num">${i + 1}</span><span class="n">${esc(bt.n)}</span><span class="mono">${t}</span><span>${esc(bt.say.split('. ')[0])}.</span>`;
+    });
+  } else {
+    const s = makeStage(); document.body.prepend(s);
+    const api = mount(s, { frame: Number(q.get('f')) || 1, speed: Number(q.get('speed')) || 1 });
+    // keys: 1–6 jump, ← → step, Space plays or pauses, Esc skips to the session; never while a field has focus
+    addEventListener('keydown', e => {
+      if (e.target.closest && e.target.closest('input, textarea, [contenteditable]')) return;
+      if (/^[1-6]$/.test(e.key)) { api.pause(); api.go(Number(e.key)); }
+      else if (e.key === 'ArrowRight') { api.pause(); api.go(api.frame + 1); }
+      else if (e.key === 'ArrowLeft') { api.pause(); api.go(api.frame - 1); }
+      else if (e.key === ' ') { e.preventDefault(); api.playing ? api.pause() : api.play(); syncInspector(); }
+      else if (e.key === 'Escape') { api.pause(); api.go(6); }
+    });
+    // the inspector (exploration only)
+    const insp = document.querySelector('.inspector');
+    const segs = insp.querySelector('.beats'); segs.innerHTML = BEATS.map((b, i) => `<button type="button" data-f="${i + 1}">${i + 1}</button>`).join('');
+    const syncInspector = () => { segs.querySelectorAll('button').forEach(b => { if (Number(b.dataset.f) === api.frame) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); }); insp.querySelector('.play').setAttribute('aria-pressed', String(api.playing)); insp.querySelector('.play').textContent = api.playing ? 'Pause' : 'Play'; };
+    segs.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { api.pause(); api.go(Number(b.dataset.f)); syncInspector(); } });
+    insp.querySelector('.play').addEventListener('click', () => { api.playing ? api.pause() : api.play(); syncInspector(); });
+    insp.querySelector('.calm').addEventListener('click', e => { const on = html.dataset.motion !== 'calm'; if (on) html.dataset.motion = 'calm'; else delete html.dataset.motion; e.currentTarget.setAttribute('aria-pressed', String(on)); });
+    insp.querySelector('.dark').addEventListener('click', e => { const on = html.dataset.theme !== 'dark'; html.dataset.theme = on ? 'dark' : 'light'; e.currentTarget.setAttribute('aria-pressed', String(on)); });
+    insp.querySelector('.agent').addEventListener('click', e => { const fresh = s.dataset.agent !== 'fresh'; if (fresh) s.dataset.agent = 'fresh'; else delete s.dataset.agent; e.currentTarget.setAttribute('aria-pressed', String(fresh)); e.currentTarget.textContent = fresh ? 'Agent: fresh' : 'Agent: read'; });
+    insp.querySelector('.calm').setAttribute('aria-pressed', String(html.dataset.motion === 'calm'));
+    insp.querySelector('.agent').setAttribute('aria-pressed', String(agentMode === 'fresh')); insp.querySelector('.agent').textContent = agentMode === 'fresh' ? 'Agent: fresh' : 'Agent: read';
+    s.addEventListener('brief:end', syncInspector);
+    const observer = new MutationObserver(syncInspector); observer.observe(s, { attributes: true, attributeFilter: ['data-frame', 'data-playing'] });
+    syncInspector();
+    if (q.get('play') === '1') requestAnimationFrame(() => requestAnimationFrame(() => { api.play(); syncInspector(); }));
+  }
+  // first paint lands finished; the clocks come back after two frames
+  requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove('boot')));
+})();
 </script>
 </body>
 </html>

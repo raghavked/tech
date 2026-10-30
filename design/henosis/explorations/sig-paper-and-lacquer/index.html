@@ -61,11 +61,16 @@
   --lamp: 18% -10%;
   --wash-paint: radial-gradient(1200px 600px at var(--lamp), var(--wash), transparent 60%);
   /* THE GRAIN: one 240 px feTurbulence tile, rasterised once by the image decoder and repeated by the
-     compositor; the filter never runs against the viewport. sRGB interpolation keeps the tile's mean at
-     mid-grey so soft-light neither lightens nor darkens the stock. Alpha is forced opaque so the knob is
-     one number. */
-  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g' color-interpolation-filters='sRGB' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch' seed='7'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='240' height='240' filter='url(%23g)'/></svg>");
-  --grain-alpha: .11;
+     compositor; the filter never runs against the viewport. It is TONER, not light: soft-light on a
+     near-white base moves a pixel by under one level at any sane opacity (measured: sd .16 at .11), so the
+     stock takes the tile at `multiply`, with the noise folded so only the half below mid-grey darkens
+     (table .3 .65 1 1 1: the tooth of the sheet, not static). sRGB interpolation keeps the fold honest;
+     alpha is forced opaque so the knob is one number. At .22 the cream's luminance spreads 4.6 levels
+     (Nelson's 2 %) and its mean moves 3. */
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g' color-interpolation-filters='sRGB' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch' seed='7'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='table' tableValues='.3 .65 1 1 1'/><feFuncG type='table' tableValues='.3 .65 1 1 1'/><feFuncB type='table' tableValues='.3 .65 1 1 1'/><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='240' height='240' filter='url(%23g)'/></svg>");
+  --grain-blend: multiply; --grain-alpha: .22;
+  /* the night tile is the same noise inverted, laid at `screen`: light fibres on the dark stock */
+  --grain-night: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g' color-interpolation-filters='sRGB' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch' seed='7'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='table' tableValues='.3 .65 1 1 1'/><feFuncG type='table' tableValues='.3 .65 1 1 1'/><feFuncB type='table' tableValues='.3 .65 1 1 1'/><feFuncA type='table' tableValues='1 1'/></feComponentTransfer><feColorMatrix type='matrix' values='-1 0 0 0 1 0 -1 0 0 1 0 0 -1 0 1 0 0 0 1 0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>");
   /* THE SEAL'S TOOTH: a coarser noise thresholded to a bitmap, a luminance mask, so the ink breaks where
      the stock is rough (three-colour-brands' dithered transitions). About a seventh of the tile is bare. */
   --tooth: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='s' color-interpolation-filters='sRGB' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='.34' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='discrete' tableValues='0 0 0 1 1 1 1 1'/><feFuncG type='discrete' tableValues='0 0 0 1 1 1 1 1'/><feFuncB type='discrete' tableValues='0 0 0 1 1 1 1 1'/><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='140' height='140' filter='url(%23s)'/></svg>");
@@ -108,7 +113,7 @@
   --focus-ring: var(--ink);
   /* night stock: the grain rises so the dark page still reads as paper, not as flat grey; the sheen drops
      because the lamp is lower; what a sheet casts goes black; the seal takes the hand's text colour */
-  --grain-alpha: .13;
+  --grain: var(--grain-night); --grain-blend: screen; --grain-alpha: .20;
   --rule: rgba(202,164,155,.28); --rule-strong: rgba(202,164,155,.62);
   --rest: 0 1px 2px rgba(0,0,0,.28), 0 4px 12px rgba(0,0,0,.28);
   --sheen: linear-gradient(170deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 38%, transparent 56%);
@@ -134,7 +139,7 @@
   --danger: #E2847A; --danger-soft: rgba(226,132,122,.18); --danger-ink: #E2847A; --info: #B4BAC6;
   --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5);
   --focus-ring: var(--ink);
-  --grain-alpha: .13;
+  --grain: var(--grain-night); --grain-blend: screen; --grain-alpha: .20;
   --rule: rgba(202,164,155,.28); --rule-strong: rgba(202,164,155,.62);
   --rest: 0 1px 2px rgba(0,0,0,.28), 0 4px 12px rgba(0,0,0,.28);
   --sheen: linear-gradient(170deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 38%, transparent 56%);
@@ -144,8 +149,8 @@
   color-scheme: dark;
 }
 /* on a 2× panel the tile rasterises at 480 device pixels and reads finer, so the alpha steps down a notch (the judge's fix) */
-@media (min-resolution: 2dppx) { :root { --grain-alpha: .10; } :root[data-theme="dark"] { --grain-alpha: .12; } }
-@media (min-resolution: 2dppx) and (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --grain-alpha: .12; } }
+@media (min-resolution: 2dppx) { :root { --grain-alpha: .20; } :root[data-theme="dark"] { --grain-alpha: .18; } }
+@media (min-resolution: 2dppx) and (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --grain-alpha: .18; } }
 /* the inspector's switches (exploration only) */
 :root[data-grain="off"] { --grain-alpha: 0; }
 :root[data-sheen="off"] { --sheen: none; --lacquer-edge: none; }
@@ -164,13 +169,14 @@ button { font: inherit; color: inherit; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ============================ materials ============================ */
-/* STOCK. `.main` is the page: the wash is painted as the app paints it (the radial gradient L7 kept), the
-   grain is one overlay above everything written on the sheet. `overflow: clip` so no pseudo-element ever
-   widens the page (the judge's fix). A sheet laid over the stock (the drawer) sits above the overlay. */
+/* STOCK. `.main` is the page: the wash is painted as the app paints it (the radial gradient L7 kept), and
+   the grain is IN the stock, not over the writing: a z-index −1 pseudo-element blended with the page's own
+   background inside its isolated context. Everything laid on the stock (a sheet, a lacquered block, the
+   drawer, the composer) is smooth by construction; everything that is a wash on the stock (the team
+   message, the live step) shows the grain through. `overflow: clip` so nothing widens the page. */
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; isolation: isolate; overflow: clip; background: var(--wash-paint), var(--canvas); }
-.main::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 240px 240px; mix-blend-mode: soft-light; opacity: var(--grain-alpha); pointer-events: none; z-index: 5; }
-/* LACQUER. Every navy surface. Smooth: the grain overlay does reach the output block, and soft-light noise on
-   a dark base moves a pixel by at most one level, so no mask is needed. */
+.main::before { content: ""; position: absolute; inset: 0; z-index: -1; background-image: var(--grain); background-size: 240px 240px; mix-blend-mode: var(--grain-blend); opacity: var(--grain-alpha); pointer-events: none; }
+/* LACQUER. Every navy surface. Glossy and smooth: it is laid on the stock, so no grain reaches it. */
 .lacquer { background-color: var(--rail); background-image: var(--sheen); box-shadow: var(--lacquer-edge); color: var(--rail-fg); }
 /* SHEET: a white sheet resting on the stock. CARD: a heavier, warmer sheet (a chip, a command). PRESSED: a
    label debossed into the board. */
@@ -364,9 +370,9 @@ button { font: inherit; color: inherit; }
 .send svg { width: 16px; height: 16px; }
 
 /* ============================ the drawer: a sheet laid over the stock ============================
-   White --surface, so the grain stops at its edge (the judge's fix: a sheet stays a sheet). Its left edge is
-   a cut (navy hairline); the lines between its sections are drawn (chocolate rules). */
-.drawer { width: var(--drawer-w); flex: none; background: var(--surface); box-shadow: -1px 0 0 var(--line), var(--edge); display: flex; flex-direction: column; gap: 0; padding: 0; font-size: 14px; line-height: 20px; overflow: auto; position: relative; z-index: 6; }
+   White --surface laid on the stock, so the grain stops at its edge (the judge's fix: a sheet stays a sheet).
+   Its left edge is a cut (navy hairline); the lines between its sections are drawn (chocolate rules). */
+.drawer { width: var(--drawer-w); flex: none; background: var(--surface); box-shadow: -1px 0 0 var(--line), var(--edge); display: flex; flex-direction: column; gap: 0; padding: 0; font-size: 14px; line-height: 20px; overflow: auto; position: relative; }
 .drawer .head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; }
 .drawer .head .seg { margin-right: auto; }
 .drawer .head .live { font: 500 12px/16px var(--font); color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
@@ -386,7 +392,7 @@ button { font: inherit; color: inherit; }
 .drawer .tile .what { font-size: 13px; color: var(--rail-muted); }
 .drawer .tile .what i { font-family: var(--serif); color: var(--apricot); }
 .drawer .meter { display: flex; flex-direction: column; gap: 6px; font: 400 12.5px/16px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.drawer .meter .lbl { display: flex; } .drawer .meter .lbl b { color: var(--ink); font-weight: 500; } .drawer .meter .lbl span:last-child { margin-left: auto; }
+.drawer .meter .lbl { display: flex; flex-wrap: wrap; gap: 0 12px; } .drawer .meter .lbl b { color: var(--ink); font-weight: 500; } .drawer .meter .lbl span:last-child { margin-left: auto; }
 .drawer .fold { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13.5px; }
 .drawer .fold .chev { width: 12px; height: 12px; color: var(--ink-3); }
 
@@ -452,7 +458,7 @@ button { font: inherit; color: inherit; }
 .inspector .seals { display: flex; flex-wrap: wrap; gap: 14px 18px; padding: 6px 2px; }
 .inspector .seals .seal { transform: none; }
 .inspector .crop { height: 72px; border-radius: 10px; background: var(--canvas); box-shadow: var(--ring); position: relative; overflow: hidden; isolation: isolate; }
-.inspector .crop::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 720px 720px; mix-blend-mode: soft-light; opacity: calc(var(--grain-alpha) * 2.2); }
+.inspector .crop::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); background-size: 720px 720px; mix-blend-mode: var(--grain-blend); opacity: calc(var(--grain-alpha) * 2); }
 .inspector .crop .tag { position: absolute; right: 8px; bottom: 5px; font: 500 11px/14px var(--mono); color: var(--ink-3); z-index: 1; }
 .inspector p { margin: 0; color: var(--ink-2); }
 .inspector .legend { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font: 400 11.5px/16px var(--mono); color: var(--ink-3); }
@@ -473,7 +479,7 @@ button { font: inherit; color: inherit; }
   @page { size: A4; margin: 16mm 16mm 20mm; }
   html, body { height: auto; background: #fff; }
   .shell { display: block; } .rail, .drawer, .composer-wrap, .topbar .right, .topbar .menu, .inspector { display: none !important; }
-  .main { display: block; overflow: visible; } .main::after { display: none; }
+  .main { display: block; overflow: visible; } .main::before { display: none; }
   .body { display: block; } .scroll { overflow: visible; display: block; }
   .topbar { display: block; position: static; backdrop-filter: none; background: #fff; border-bottom: 0; padding: 0 0 10px; min-height: 0; }
   .topbar .title { display: flex; font-size: 24px; } .topbar .pill.team { display: none; }
@@ -639,7 +645,7 @@ button { font: inherit; color: inherit; }
           <div class="row"><div><div class="t">proration-ts</div><div class="s">open · 3 files · step 3 writes here</div></div><button class="btn sm" type="button">Compare</button></div>
         </div>
         <div class="group"><h3>Usage <span class="sum">35 % · about 25.9k left</span></h3>
-          <div class="meter"><div class="lbl"><b>14.1k</b>&nbsp;of 40k<span>est 11.5k</span></div><div class="budget" style="--pct:35%;--est:29%" role="meter" aria-label="14.1k of 40k tokens" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"><i></i><span class="tick est"></span><span class="tick eighty"></span></div><div class="lbl"><span>in 9.8k · out 4.3k</span><span>cache 2.1k · not counted</span></div></div>
+          <div class="meter"><div class="lbl"><b>14.1k</b>&nbsp;of 40k<span>est 11.5k</span></div><div class="budget" style="--pct:35%;--est:29%" role="meter" aria-label="14.1k of 40k tokens" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"><i></i><span class="tick est"></span><span class="tick eighty"></span></div><div class="lbl"><span>in 9.8k · out 4.3k</span><span class="faint">cache 2.1k · not counted</span></div></div>
         </div>
         <div class="group"><h3>Memory <span class="sum">3 entries · 1 conflict</span></h3><div class="fold"><svg class="chev" aria-hidden="true"><use href="#chev"/></svg>rounding · half-up at the line, from Checkout</div></div>
         <div class="group"><h3>Brief <span class="sum">as of 13:52</span></h3><div class="fold"><svg class="chev" aria-hidden="true"><use href="#chev"/></svg>The goal, the plan and the gate on one sheet</div></div>
@@ -667,7 +673,7 @@ button { font: inherit; color: inherit; }
   </div>
   <div class="legend">
     <b>lamp</b><span>18% −10% · wash, sheen 170°, rest shadows, deboss</span>
-    <b>grain</b><span>240 px tile · soft-light · .11 / .13 night · .10 at 2×</span>
+    <b>grain</b><span>in the stock · 240 px tile · multiply .22 · screen .20 at night · −.02 at 2×</span>
     <b>sheet</b><span>ring 1px navy · 0 1px 2px + 0 4px 12px chocolate .06</span>
     <b>lacquer</b><span>sheen white .13 → 0 at 56% · lit edge · casts nothing</span>
     <b>ink</b><span>rule chocolate .22 / .58 · the hand · the seal</span>
