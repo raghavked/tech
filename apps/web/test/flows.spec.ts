@@ -227,7 +227,8 @@ test("plan first: the agent proposes, Ana rates it, the plan is approved and the
   await page.getByLabel("Token budget").fill("20000");
   await page.getByLabel("Title", { exact: true }).fill(`Plan ${t}`);
   await page.getByLabel("Session id", { exact: true }).fill(session);
-  await page.getByRole("button", { name: "Open", exact: true }).click();
+  // The form's own Open: a decision toast about another session carries an Open icon too.
+  await agents.getByRole("button", { name: "Open", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`#/p/e2e-plan/s/${session}`));
   await expect(page.getByLabel("Directive", { exact: true })).toBeVisible();
 
