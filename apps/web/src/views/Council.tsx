@@ -911,7 +911,9 @@ export function InstructRoom({
   }, [council, member, meId]);
   const last = lines[lines.length - 1]?.seq;
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when a line lands
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [last]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "end" });
+  }, [last]);
   const closed = council.status === "concluded";
   const submit = () => {
     const t = text.trim();

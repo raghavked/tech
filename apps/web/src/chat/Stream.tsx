@@ -101,7 +101,9 @@ export function Stream({
   const end = useRef<HTMLDivElement>(null);
   const lastKey = `${items[items.length - 1]?.seq ?? -1}:${answering.length}`;
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when something lands
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [lastKey]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "end" });
+  }, [lastKey]);
   let lastDay = "";
   return (
     <section className="column chatcol" aria-label={copy.chat.messages}>
