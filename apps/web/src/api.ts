@@ -37,6 +37,82 @@ export interface Me {
   projects: ProjectRef[];
   /** team-theme: the teams whose look this user may change (a lead or manager of them). */
   styles?: string[];
+  /** `workspaces`: people make their own workspace here; `shared` (or absent): one org. */
+  tenancy?: "shared" | "workspaces";
+}
+
+/** What a workspace's agents run on, as Settings and the notice under the top row read it. */
+export interface WorkspaceModel {
+  provider: "anthropic";
+  connected: boolean;
+  last4: string | null;
+  addedBy: string | null;
+  addedByName: string | null;
+  addedAt: string | null;
+  /** The default model the admin picked; empty for the provider's default. */
+  model: string;
+  status: "ok" | "refused" | "none";
+  checkedAt: string | null;
+  /** `workspace`: its own key. `server`: the server owner's model. `demo`: the scripted stand-in. */
+  source: "workspace" | "server" | "demo";
+  /** The model id the agents run on right now. */
+  running: string;
+  defaultModel: string;
+  canManage: boolean;
+  /** Whether this server can keep keys at all. */
+  storage: boolean;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  role: "admin" | "member" | null;
+  teams: { id: string; name: string; projects: { id: string; name: string }[] }[];
+  members: number;
+  model: WorkspaceModel;
+}
+
+export interface WorkspacesResponse {
+  tenancy: "shared" | "workspaces";
+  canCreate: boolean;
+  workspaces: Workspace[];
+}
+
+export interface WorkspaceMember {
+  id: string;
+  name: string;
+  email: string | null;
+  role: "admin" | "member";
+}
+
+export interface WorkspaceInvite {
+  id: string;
+  orgId: string;
+  role: "admin" | "member";
+  email: string | null;
+  createdBy: string;
+  createdAt: string;
+  expiresAt: string;
+  uses: number;
+  state: "open" | "used" | "expired" | "revoked";
+}
+
+export interface WorkspaceMembers {
+  members: WorkspaceMember[];
+  invites: WorkspaceInvite[];
+  canManage: boolean;
+}
+
+/** GET /api/invites/:token: where an invitation link leads. */
+export interface InviteLookup {
+  workspace: { id: string; name: string };
+  role: "admin" | "member";
+  state: WorkspaceInvite["state"];
+  email: string | null;
+  expiresAt: string;
+  invitedBy: string | null;
+  /** The person asking is already in the workspace. */
+  member: boolean;
 }
 
 /** team-theme: how a team looks; the zod shape lives in @henosis/fleet (identity.ts). */
@@ -262,6 +338,26 @@ async function putJson<T>(url: string, body: unknown, token?: string): Promise<T
   return data;
 }
 
+/** A write (POST, PUT, DELETE) that answers JSON; the server's `error` sentence is the thrown message. */
+async function sendJson<T>(
+  method: "POST" | "PUT" | "DELETE",
+  url: string,
+  body?: unknown,
+): Promise<T> {
+  const res = await fetch(apiUrl(url), {
+    method,
+    headers: {
+      accept: "application/json",
+      ...(body !== undefined ? { "content-type": "application/json" } : {}),
+      ...authHeaders(),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(data.error ?? `${res.status} ${res.statusText}`);
+  return data;
+}
+
 export async function getJson<T>(url: string): Promise<T> {
   // `apiUrl` is a no-op in a browser; the desktop shell's bundled client prefixes its server.
   // Identity: the token rides along (the ID token in oidc mode; the server checks `?user=` against it).
@@ -283,8 +379,80 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return data;
 }
 
+/** `/api/workspaces/<org>[/rest]?user=<id>`: the person rides along for a dev-mode server. */
+const wsPath = (userId: string, org?: string, rest = "") =>
+  `/api/workspaces${org ? `/${encodeURIComponent(org)}` : ""}${rest}?user=${encodeURIComponent(userId)}`;
+
 export const api = {
   me: (userId: string) => getJson<Me>(`/api/me?user=${encodeURIComponent(userId)}`),
+  /** Workspaces (packages/server/src/workspaceApi.ts): the person's own, with what each runs on. */
+  workspaces: (userId: string) => getJson<WorkspacesResponse>(wsPath(userId)),
+  /** `as` is the person's display name, for a server that has only their id (dev mode). */
+  createWorkspace: (userId: string, name: string, as: string) =>
+    sendJson<{ workspace: Workspace }>("POST", `${wsPath(userId)}&name=${encodeURIComponent(as)}`, {
+      name,
+    }),
+  renameWorkspace: (userId: string, org: string, name: string) =>
+    sendJson<{ workspace: Workspace }>("PUT", wsPath(userId, org), { name }),
+  workspaceMembers: (userId: string, org: string) =>
+    getJson<WorkspaceMembers>(wsPath(userId, org, "/members")),
+  setWorkspaceRole: (userId: string, org: string, member: string, role: "admin" | "member") =>
+    sendJson<WorkspaceMembers>(
+      "PUT",
+      wsPath(userId, org, `/members/${encodeURIComponent(member)}`),
+      { role },
+    ),
+  removeWorkspaceMember: (userId: string, org: string, member: string) =>
+    sendJson<WorkspaceMembers | { left: true }>(
+      "DELETE",
+      wsPath(userId, org, `/members/${encodeURIComponent(member)}`),
+    ),
+  /** An invitation link; the token is answered once, here. */
+  createInvite: (
+    userId: string,
+    org: string,
+    opts: { role?: "admin" | "member"; email?: string } = {},
+  ) =>
+    sendJson<{ invite: WorkspaceInvite; token: string }>(
+      "POST",
+      wsPath(userId, org, "/invites"),
+      opts,
+    ),
+  revokeInvite: (userId: string, org: string, inviteId: string) =>
+    sendJson<{ invites: WorkspaceInvite[] }>(
+      "DELETE",
+      wsPath(userId, org, `/invites/${encodeURIComponent(inviteId)}`),
+    ),
+  addProject: (userId: string, org: string, name: string, teamId?: string) =>
+    sendJson<{ workspace: Workspace }>("POST", wsPath(userId, org, "/projects"), {
+      name,
+      ...(teamId ? { teamId } : {}),
+    }),
+  addTeam: (userId: string, org: string, name: string) =>
+    sendJson<{ workspace: Workspace }>("POST", wsPath(userId, org, "/teams"), { name }),
+  /** Connect or replace the workspace's own model key, and/or pick its default model. */
+  putWorkspaceModel: (userId: string, org: string, body: { key?: string; model?: string }) =>
+    sendJson<{ model: WorkspaceModel }>("PUT", wsPath(userId, org, "/model"), body),
+  removeWorkspaceModel: (userId: string, org: string) =>
+    sendJson<{ model: WorkspaceModel }>("DELETE", wsPath(userId, org, "/model")),
+  checkWorkspaceModel: (userId: string, org: string) =>
+    sendJson<{ model: WorkspaceModel; error?: string }>(
+      "POST",
+      wsPath(userId, org, "/model/check"),
+    ),
+  workspaceModels: (userId: string, org: string) =>
+    getJson<{ models: { id: string; name: string }[]; error?: string }>(
+      wsPath(userId, org, "/models"),
+    ),
+  invite: (userId: string, token: string) =>
+    getJson<InviteLookup>(
+      `/api/invites/${encodeURIComponent(token)}?user=${encodeURIComponent(userId)}`,
+    ),
+  acceptInvite: (userId: string, token: string, as: string) =>
+    sendJson<{ workspace: Workspace }>(
+      "POST",
+      `/api/invites/${encodeURIComponent(token)}/accept?user=${encodeURIComponent(userId)}&name=${encodeURIComponent(as)}`,
+    ),
   project: (id: string) => getJson<ProjectState>(`/api/projects/${encodeURIComponent(id)}`),
   sessions: (id: string) =>
     getJson<SessionRow[]>(`/api/projects/${encodeURIComponent(id)}/sessions`),

@@ -1,4 +1,4 @@
-/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId[/council/:councilId[/instruct/:profileId]]]`, `#/inbox`, `#/approvals`, `#/glance`, `#/memory/:orgId`, `#/settings`, `#/auth/callback`. */
+/** A tiny hash router: `#/`, `#/p/:projectId`, `#/p/:projectId/s/:sessionId`, `#/m/:teamId`, `#/c/:orgId[/:groupId[/council/:councilId[/instruct/:profileId]]]`, `#/inbox`, `#/approvals`, `#/glance`, `#/memory/:orgId`, `#/settings`, `#/join/:token`, `#/auth/callback`. */
 import { useSyncExternalStore } from "react";
 
 export type Route =
@@ -30,7 +30,9 @@ export type Route =
   /** Search over everything the team keeps; `q` is the query, `org` the scope. */
   | { name: "search"; q: string; org: string | null }
   | { name: "memory"; orgId: string; team: string | null; project: string | null }
-  | { name: "settings" };
+  | { name: "settings" }
+  /** An invitation link to a workspace: `#/join/<token>`. */
+  | { name: "join"; token: string };
 
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#/, "") || "/";
@@ -70,6 +72,7 @@ export function parseHash(hash: string): Route {
       project: params.get("project"),
     };
   if (parts[0] === "settings") return { name: "settings" };
+  if (parts[0] === "join" && parts[1]) return { name: "join", token: parts[1] };
   if (parts[0] === "approvals") return { name: "approvals" };
   if (parts[0] === "glance") return { name: "glance" };
   if (parts[0] === "auth" && parts[1] === "callback") return { name: "auth", query };
@@ -105,6 +108,7 @@ export const paths = {
     return `#/memory/${encodeURIComponent(orgId)}${q ? `?${q}` : ""}`;
   },
   settings: () => "#/settings",
+  join: (token: string) => `#/join/${encodeURIComponent(token)}`,
   approvals: () => "#/approvals",
   glance: () => "#/glance",
   authCallback: () => "#/auth/callback",

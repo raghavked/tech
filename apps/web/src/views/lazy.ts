@@ -19,6 +19,7 @@ export const Approvals = lazy(() =>
 );
 export const ChatView = lazy(() => import("./ChatView.js").then((m) => ({ default: m.ChatView })));
 export const Search = lazy(() => import("./Search.js").then((m) => ({ default: m.Search })));
+export const Join = lazy(() => import("./Join.js").then((m) => ({ default: m.Join })));
 export const GlancePanel = lazy(() =>
   import("./Glance.js").then((m) => ({ default: m.GlancePanel })),
 );

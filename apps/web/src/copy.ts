@@ -424,6 +424,134 @@ export const copy = {
     otherEmail: "Use another email",
   },
 
+  /**
+   * Workspaces: a company's own space on the server, its people and invitations, and the
+   * model key it brings (bring your own key).
+   */
+  workspace: {
+    step: "Your workspace",
+    createLine:
+      "A workspace is your company's own space: its people, its projects and its model key. Nobody outside it can see in.",
+    name: "Workspace name",
+    nameHint: "Your company or team",
+    create: "Create workspace",
+    creating: "Creating",
+    invited: "Invited by someone? Open the link they sent and you are in.",
+    created: (name: string) => `${name} is ready. You are its admin.`,
+    section: (name: string) => `Workspace · ${name}`,
+    rename: "Rename",
+    save: "Save",
+    cancel: "Cancel",
+    nameRow: "Name",
+    youAre: (role: "admin" | "member" | null) =>
+      role === "admin"
+        ? "You are an admin"
+        : role === "member"
+          ? "You are a member"
+          : "You are not a member",
+    // The model key
+    modelTitle: "Model key",
+    demoLine:
+      "Agents here run the demo model, which only acts out a session. Connect your company's Anthropic key and every agent in this workspace runs on it.",
+    demoMember: (name: string) =>
+      `Agents here run the demo model. An admin of ${name} can connect the workspace's own key.`,
+    keyLabel: "Anthropic API key",
+    keyHint: "sk-ant-…",
+    keyPromise:
+      "The key is checked with Anthropic, sealed on the server, and never shown again. Usage is billed by Anthropic to the key's owner, not by Henosis.",
+    connect: "Connect key",
+    connecting: "Checking with Anthropic",
+    connected: (last4: string) => `Connected · key ending ${last4}`,
+    connectedBy: (who: string, when: string) => `Added by ${who} on ${when}`,
+    working: "Working",
+    refused: "Refused by Anthropic",
+    refusedLine:
+      "Anthropic turned this key down. Replace it, or check it again if you fixed it there.",
+    offlineLine:
+      "The key is kept, but this server has provider calls switched off, so agents still run the demo model.",
+    serverLine: (model: string) =>
+      `Agents here run on the server owner's model (${model}). Connect a key to run this workspace on its own.`,
+    noStorage: "This server cannot keep keys yet. Whoever runs it sets HENOSIS_KEYS_SECRET first.",
+    check: "Check",
+    checked: "The key works.",
+    replace: "Replace",
+    disconnect: "Disconnect",
+    disconnectAsk: "Disconnect the key? Agents in this workspace go back to the demo model.",
+    disconnectYes: "Disconnect",
+    keep: "Keep it",
+    modelRow: "Model",
+    modelDetail: "What agents run on unless their own profile names another",
+    modelDefault: (id: string) => `Anthropic's default (${id})`,
+    runsOn: (id: string) => `Runs on ${id}`,
+    // People
+    membersTitle: "People",
+    you: "you",
+    admin: "Admin",
+    member: "Member",
+    roleOf: (name: string) => `Role of ${name}`,
+    remove: "Remove",
+    removeAsk: (name: string) => `Remove ${name} from the workspace?`,
+    leave: "Leave workspace",
+    leaveAsk: "Leave this workspace? You will need a new invitation to come back.",
+    // Invitations
+    inviteTitle: "Invite",
+    inviteLine: "Make a link and send it yourself. It works for 14 days.",
+    inviteEmail: "Their email (optional)",
+    inviteEmailHint: "only this address can use the link",
+    inviteRole: "Invite as",
+    inviteCreate: "Create invitation link",
+    inviteReady: "Copy this link now. It is not shown again.",
+    inviteOpenNote: "Anyone with this link can join until it expires or you withdraw it.",
+    inviteEmailNote: (email: string) => `Only ${email} can use it, once.`,
+    copyLink: "Copy link",
+    copied: "Link copied",
+    invitesOpen: "Invitations",
+    inviteFor: (email: string | null) => email ?? "Anyone with the link",
+    inviteState: (state: "open" | "used" | "expired" | "revoked", expires: string) =>
+      state === "open"
+        ? `Open until ${expires}`
+        : state === "used"
+          ? "Used"
+          : state === "expired"
+            ? "Expired"
+            : "Withdrawn",
+    withdraw: "Withdraw",
+    // Projects
+    projectsTitle: "Projects",
+    projectName: "Project name",
+    addProject: "Add project",
+    inTeam: (team: string) => `in ${team}`,
+    // The join page
+    joinTitle: "Join a workspace",
+    joinAsk: (name: string) => `Join ${name}?`,
+    joinLine: (by: string | null, role: "admin" | "member") =>
+      `${by ? `${by} invited you` : "You were invited"} as ${role === "admin" ? "an admin" : "a member"}.`,
+    joinEmail: (email: string) => `This invitation is for ${email}.`,
+    join: "Join",
+    joining: "Joining",
+    joinMember: (name: string) => `You are already in ${name}.`,
+    open: "Open workspace",
+    joinGone: (state: "used" | "expired" | "revoked") =>
+      state === "expired"
+        ? "This invitation has expired. Ask for a new one."
+        : state === "used"
+          ? "This invitation was already used."
+          : "This invitation was withdrawn.",
+    joinMissing: "This invitation does not exist. Check the link, or ask for a new one.",
+    joinSignIn: "Sign in to accept the invitation.",
+    // A link into a workspace the person is not in
+    notYoursTitle: "Not in your workspaces",
+    notYoursLine:
+      "This link leads into a workspace you are not in. If someone shared it with you, ask them for an invitation.",
+    // The quiet line under the top row
+    noticeAdmin: "Agents in this workspace run the demo model.",
+    noticeConnect: "Connect your key",
+    noticeMember: "Agents here run the demo model until an admin connects the workspace's key.",
+    noticeRefused: "The workspace's model key was refused by Anthropic.",
+    noticeFix: "Replace it",
+    dismiss: "Dismiss",
+  },
+
   session: {
     joining: "Joining…",
     connecting: "Connecting…",

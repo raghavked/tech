@@ -31,6 +31,7 @@ import {
   ChatView,
   GlancePanel,
   Inbox,
+  Join,
   Memory,
   Project,
   Search,
@@ -40,6 +41,12 @@ import {
   warmViews,
 } from "./views/lazy.js";
 import { AuthCallback } from "./views/SignIn.js";
+import {
+  inMyWorkspaces,
+  useWorkspaces,
+  workspaceOfProject,
+  workspaceOfTeam,
+} from "./workspaces.js";
 
 /**
  * Hook point (error-boundary-toasts): every view renders inside one error boundary that resets
@@ -135,6 +142,28 @@ function BrokenView({ error, onRetry }: { error: Error; onRetry: () => void }) {
 
 export { teamOfRoute };
 
+/** A link into a workspace the person is not in. */
+function NotYours({ ctx }: { ctx: ShellContext }) {
+  const w = copy.workspace;
+  return (
+    <Shell ctx={ctx} title={w.notYoursTitle}>
+      <div className="column page">
+        <div className="hero hero-card ws-join" role="alert">
+          <Mark size={64} />
+          <h1>{w.notYoursTitle}</h1>
+          <p className="muted">{w.notYoursLine}</p>
+          <a className="btn primary" href={paths.home()}>
+            {copy.home.title}
+          </a>
+        </div>
+      </div>
+    </Shell>
+  );
+}
+
+/** Where an invitation's token waits while the person signs in. */
+const JOIN_KEY = "henosis.join";
+
 function Page() {
   const route = useRoute();
   const identity = useIdentity();
@@ -142,6 +171,33 @@ function Page() {
   const me = useFetch<Me>(identity ? () => api.me(userId) : null, userId);
   const ctx: ShellContext = { route, identity, me: me.data };
   useEffect(warmViews, []);
+  // A workspace was made or joined (workspaces.ts): the person's projects changed.
+  const reloadMe = me.reload;
+  useEffect(() => {
+    addEventListener("henosis:me", reloadMe);
+    return () => removeEventListener("henosis:me", reloadMe);
+  }, [reloadMe]);
+  // An invitation opened before signing in is kept, and picked up again once the person is in
+  // (a sign-in that comes back through a link in an email loses the route it started from).
+  const joinToken = route.name === "join" ? route.token : null;
+  const signedIn = identity !== null;
+  const atHome = route.name === "home";
+  useEffect(() => {
+    try {
+      if (joinToken) {
+        if (signedIn) localStorage.removeItem(JOIN_KEY);
+        else localStorage.setItem(JOIN_KEY, joinToken);
+      } else if (signedIn && atHome) {
+        const kept = localStorage.getItem(JOIN_KEY);
+        if (kept) {
+          localStorage.removeItem(JOIN_KEY);
+          navigate(paths.join(kept));
+        }
+      }
+    } catch {
+      // private mode: the link still works when opened again after signing in
+    }
+  }, [joinToken, signedIn, atHome]);
   // team-theme: the page wears the team's colours while the route is in that team.
   useTeamTheme(identity ? teamOfRoute(route, me.data) : null);
   // Identity (auth.ts): back from the provider; the code becomes a token, then the route before.
@@ -150,6 +206,15 @@ function Page() {
     return (
       <Home me={me.data} meError={me.error} identity={identity} ctx={ctx} onRetry={me.reload} />
     );
+  // A server of workspaces: someone in no workspace yet makes or joins one first, and a link
+  // into a workspace they are not in says so instead of waiting on a door that stays shut.
+  if (me.data?.tenancy === "workspaces" && route.name !== "join" && route.name !== "settings") {
+    if (me.data.projects.length === 0)
+      return (
+        <Home me={me.data} meError={me.error} identity={identity} ctx={ctx} onRetry={me.reload} />
+      );
+    if (!inMyWorkspaces(route, me.data)) return <NotYours ctx={ctx} />;
+  }
   // widgets: the menu-bar panel is one surface without the shell around it.
   if (route.name === "glance")
     return (
@@ -219,6 +284,8 @@ function View({
       return <Approvals identity={identity} me={me} ctx={ctx} />;
     case "search": // search: everything the team keeps
       return <Search q={route.q} org={route.org} me={me} ctx={ctx} />;
+    case "join": // an invitation link to a workspace
+      return <Join key={route.token} token={route.token} identity={identity} ctx={ctx} />;
     default:
       return null;
   }
@@ -381,6 +448,7 @@ export function Shell({
         <div className={`busybar${busy ? " on" : ""}`} aria-hidden={!busy}>
           {busy && <Loader kind="weave" label={typeof busy === "string" ? busy : copy.wait.rows} />}
         </div>
+        <WorkspaceNotice ctx={ctx} />
         {below}
         <div className="body">
           <div className="scroll" ref={scroller}>
@@ -401,6 +469,71 @@ export function Shell({
         )}
       </div>
     </div>
+  );
+}
+
+const NOTICE_KEY = "henosis.workspace.notice";
+
+function noticeDismissed(orgId: string): boolean {
+  try {
+    return sessionStorage.getItem(`${NOTICE_KEY}.${orgId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * One quiet line under the top row while the workspace the page is in has no working model
+ * key: its agents run the demo model (or the provider refused the key). An admin gets the
+ * way to fix it; anyone can put the line away for this visit. A one-org server run by its
+ * owner says nothing here.
+ */
+function WorkspaceNotice({ ctx }: { ctx: ShellContext }) {
+  const userId = ctx.identity?.userId ?? null;
+  const ws = useWorkspaces(userId);
+  const [hidden, setHidden] = useState<string | null>(null);
+  const data = ws.data;
+  if (!data || data.tenancy !== "workspaces" || ctx.route.name === "settings") return null;
+  const r = ctx.route;
+  const here =
+    r.name === "session" || r.name === "fleet"
+      ? workspaceOfProject(data, r.projectId)
+      : r.name === "management"
+        ? workspaceOfTeam(data, r.teamId)
+        : r.name === "chat" || r.name === "memory"
+          ? (data.workspaces.find((w) => w.id === r.orgId) ?? null)
+          : (data.workspaces[0] ?? null);
+  if (!here) return null;
+  const refused = here.model.connected && here.model.status === "refused";
+  if (!refused && here.model.source !== "demo") return null;
+  if (hidden === here.id || noticeDismissed(here.id)) return null;
+  const w = copy.workspace;
+  return (
+    <p className={`ws-notice${refused ? " bad" : ""}`} role="status">
+      <Icon d={ICONS.key} size={14} />
+      <span className="grow">
+        {refused ? w.noticeRefused : here.model.canManage ? w.noticeAdmin : w.noticeMember}{" "}
+        {here.model.canManage && (
+          <a href={paths.settings()}>{refused ? w.noticeFix : w.noticeConnect}</a>
+        )}
+      </span>
+      <button
+        type="button"
+        className="btn ghost sm icon"
+        aria-label={w.dismiss}
+        title={w.dismiss}
+        onClick={() => {
+          try {
+            sessionStorage.setItem(`${NOTICE_KEY}.${here.id}`, "1");
+          } catch {
+            // private mode: put away for this page only
+          }
+          setHidden(here.id);
+        }}
+      >
+        <Icon d={ICONS.close} size={14} />
+      </button>
+    </p>
   );
 }
 

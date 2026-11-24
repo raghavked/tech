@@ -31,7 +31,11 @@ export function Home({
             <Mark size={64} settle />
             <h1>{copy.home.heroTitle}</h1>
             <p className="muted">{copy.home.heroLine}</p>
-            {needsIdentity && <p className="small danger">{copy.home.needsIdentity}</p>}
+            {needsIdentity && (
+              <p className="small danger">
+                {ctx.route.name === "join" ? copy.workspace.joinSignIn : copy.home.needsIdentity}
+              </p>
+            )}
           </div>
         )}
         {/* onboarding-empty-states: the three-step first run owns the rest of the page. */}

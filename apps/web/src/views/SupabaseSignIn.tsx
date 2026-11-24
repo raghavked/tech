@@ -48,7 +48,7 @@ export function SupabaseSignIn({
       <p className="row muted">
         <span className="grow">
           {copy.home.signedInAs(identity.name)} <span className="mono">{identity.userId}</span>
-          {me && me.projects.length === 0 && copy.home.ssoObserver}
+          {me && me.projects.length === 0 && me.tenancy !== "workspaces" && copy.home.ssoObserver}
         </span>
         <button
           type="button"

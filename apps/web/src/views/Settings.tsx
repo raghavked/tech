@@ -1,5 +1,6 @@
 /**
- * settings-page: #/settings. One column of quiet sections: Profile, My agent (the member model
+ * settings-page: #/settings. One column of quiet sections: Profile, Workspace (the model key,
+ * people, invitations and projects of each workspace the person is in), My agent (the member model
  * the person brings to a council), Notifications, Appearance, Team look and Team agents (for
  * leads), Keyboard, Team policy (read-only, from the current project) and Integrations.
  */
@@ -21,6 +22,7 @@ import { requestTour } from "../tour.js";
 import { Avatar, ICONS, Icon, toast } from "../ui.js";
 import { MyAgent, TeamAgents } from "./AgentSettings.js";
 import { TeamLook } from "./TeamLook.js";
+import { WorkspaceSettings } from "./WorkspaceSettings.js";
 
 const RISKS: { risk: RiskClass; detail: string }[] = [
   { risk: "read", detail: "Reading files and state" },
@@ -50,6 +52,7 @@ export function Settings({
       <div className="column page settings">
         <h1>Settings</h1>
         <Profile identity={identity} />
+        <WorkspaceSettings identity={identity} />
         <MyAgent identity={identity} />
         <Notifications />
         <Appearance />

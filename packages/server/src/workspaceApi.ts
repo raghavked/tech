@@ -164,7 +164,8 @@ export function handleWorkspaceApi(
     return json(401, { error: "unauthorized" });
   const seed = {
     userId,
-    name: who?.name ?? ctx.nameOf(userId),
+    // A verified token names the person; a dev-mode client says its own display name.
+    name: who?.name ?? url.searchParams.get("name")?.trim().slice(0, 80) ?? ctx.nameOf(userId),
     email: who?.email ?? null,
   };
   const run = (work: () => Promise<boolean> | boolean): boolean => {

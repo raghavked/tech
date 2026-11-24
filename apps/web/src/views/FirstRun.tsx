@@ -7,7 +7,7 @@
  * one row away.
  */
 import { type ReactNode, useMemo, useState } from "react";
-import type { Me, Notification, ProjectRef } from "../api.js";
+import { api, type Me, type Notification, type ProjectRef } from "../api.js";
 import { wsUrl } from "../client.js";
 import { copy } from "../copy.js";
 import {
@@ -26,7 +26,8 @@ import { navigate, paths } from "../router.js";
 import { useShellInbox, useShellPlatform } from "../shell.js";
 import { requestTourIfNew } from "../tour.js";
 import { type TrayItem, trayMenuOf } from "../tray.js";
-import { Avatar, ICONS, Icon, Mark, type MarkState } from "../ui.js";
+import { Avatar, ICONS, Icon, Mark, type MarkState, toast } from "../ui.js";
+import { reloadMe, reloadWorkspaces } from "../workspaces.js";
 
 /** The policy fields a new session starts with: plan first (on) and an optional token budget. */
 export function PolicyFields({
@@ -157,13 +158,15 @@ export function FirstRun({
       <Step {...step(1)} title="Who you are">
         {identityStep}
       </Step>
-      <Step {...step(2)} title="Your team">
+      <Step {...step(2)} title={me?.tenancy === "workspaces" ? copy.workspace.step : "Your team"}>
         {!identity ? (
           <p className="small faint">Your teams appear once you have a name.</p>
         ) : meError || !online ? (
           <OfflineState online={online} onRetry={onRetry} />
         ) : !me ? (
           <p className="muted">Loading…</p>
+        ) : teams.length === 0 && me.tenancy === "workspaces" ? (
+          <CreateWorkspace identity={identity} />
         ) : teams.length === 0 ? (
           <EmptyState
             text="No projects for you yet."
@@ -226,6 +229,61 @@ function Step({
         {children}
       </div>
     </li>
+  );
+}
+
+/**
+ * On a server of workspaces, a person who is in none yet: make one for their company (they
+ * become its admin), or open the invitation link someone sent.
+ */
+function CreateWorkspace({ identity }: { identity: Identity }) {
+  const c = copy.workspace;
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <form
+      className="form ws-create"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (busy || !name.trim()) return;
+        setBusy(true);
+        setError(null);
+        api
+          .createWorkspace(identity.userId, name.trim(), identity.name)
+          .then((res) => {
+            toast(c.created(res.workspace.name));
+            reloadWorkspaces();
+            reloadMe();
+          })
+          .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
+          .finally(() => setBusy(false));
+      }}
+    >
+      <p className="muted">{c.createLine}</p>
+      <label className="field">
+        <span>{c.name}</span>
+        <input
+          className="input"
+          value={name}
+          maxLength={60}
+          autoComplete="organization"
+          placeholder={c.nameHint}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </label>
+      {error && (
+        <p className="small danger" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="row">
+        <button type="submit" className="btn primary" disabled={busy || !name.trim()}>
+          {busy ? c.creating : c.create}
+        </button>
+      </div>
+      <p className="small faint">{c.invited}</p>
+    </form>
   );
 }
 

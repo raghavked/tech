@@ -5,6 +5,11 @@ import { defineConfig } from "@playwright/test";
 const WEB_PORT = Number(process.env.HENOSIS_SMOKE_PORT ?? 4173);
 const API_PORT = Number(process.env.HENOSIS_SMOKE_API_PORT ?? 7730);
 const STORE = API_PORT === 7730 ? "../../store-web-smoke" : `../../store-web-smoke-${API_PORT}`;
+// A second pair, one port up: a server of workspaces (HENOSIS_TENANCY=workspaces) that starts
+// empty, for test/workspaces.spec.ts, where a company makes its workspace and invites people.
+const WS_WEB_PORT = WEB_PORT + 1;
+const WS_API_PORT = API_PORT + 1;
+const WS_STORE = `${STORE}-workspaces`;
 
 export default defineConfig({
   testDir: "./test",
@@ -44,6 +49,22 @@ export default defineConfig({
       stderr: "pipe",
       // The preview proxies /ws and /api to the server this config started.
       env: { HENOSIS_WS: process.env.HENOSIS_WS ?? `ws://127.0.0.1:${API_PORT}` },
+    },
+    {
+      command: `rm -rf ${WS_STORE} && node ../../packages/cli/dist/main.js serve --port ${WS_API_PORT} --host 127.0.0.1 --dir ${WS_STORE}`,
+      url: `http://127.0.0.1:${WS_API_PORT}/health`,
+      reuseExistingServer: false,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { HENOSIS_OFFLINE: "1", HENOSIS_TENANCY: "workspaces" },
+    },
+    {
+      command: `pnpm exec vite preview --host 127.0.0.1 --port ${WS_WEB_PORT} --strictPort`,
+      url: `http://127.0.0.1:${WS_WEB_PORT}`,
+      reuseExistingServer: false,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { HENOSIS_WS: `ws://127.0.0.1:${WS_API_PORT}` },
     },
   ],
 });

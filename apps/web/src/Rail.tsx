@@ -50,6 +50,7 @@ import {
   teamOf,
 } from "./ui.js";
 import { UpdateRow } from "./update.js";
+import { useWorkspaces } from "./workspaces.js";
 
 /**
  * team-theme: the team a route belongs to. A project or a session of a project is in that
@@ -167,6 +168,9 @@ export const Rail = memo(function Rail({
   const activeGroups = route.name === "chat" && !route.groupId && !route.newGroup;
   // team-theme: the mark wears the current team's style and emblem.
   const look = useTeamThemeValue(identity ? teamOfRoute(route, me) : null);
+  // On a server of workspaces, a person who is in none yet: the rail offers nothing to open.
+  const unplaced = me?.tenancy === "workspaces" && projects.length === 0;
+  const workspaces = useWorkspaces(identity?.userId ?? null);
   const teams = useMemo(() => {
     const out = new Map<string, { id: string; name: string; projects: typeof projects }>();
     for (const p of projects) {
@@ -181,9 +185,10 @@ export const Rail = memo(function Rail({
   const orgs = useMemo(() => {
     const out = new Map<string, string>();
     for (const p of projects) out.set(p.orgId, p.orgName);
-    if (out.size === 0) out.set("default", "Default org");
+    // A server of workspaces has no org a person is in on trust: none until they make or join one.
+    if (out.size === 0 && !unplaced) out.set("default", "Default org");
     return [...out.entries()];
-  }, [projects]);
+  }, [projects, unplaced]);
   // groups-chats: the person's groups across their orgs, with unread counts, polled quietly.
   const chats = useChatUnread(
     orgs.map(([id]) => id),
@@ -200,14 +205,17 @@ export const Rail = memo(function Rail({
     !allRows.some(matchRow);
   // hook: approvals-queue — approvals waiting across every listed project
   const waiting = allRows.reduce((n, r) => n + pendingOf(r), 0);
-  const newHref = paths.fleet(firstProject) + (identity ? "?new=1" : "");
+  const newHref = unplaced ? paths.home() : paths.fleet(firstProject) + (identity ? "?new=1" : "");
   const [collapsed, toggleCollapsed] = useRailCollapsed();
   useRailKeys(newHref);
   const nameOf = (s: SessionRow) => (id: string) =>
     me?.user?.id === id ? copy.roles.you : (nameOfMember(s, id) ?? id);
   // the me row: what I am driving, and my role on the project I am in
   const mine = identity ? allRows.find((r) => r.open && isDriving(r, identity.userId)) : null;
-  const role = identity ? roleOf(allRows, identity.userId) : null;
+  // ...else my role in the workspace (its admin, a member).
+  const workspaceRole =
+    workspaces.data?.workspaces.find((w) => w.id === orgs[0]?.[0])?.role ?? null;
+  const role = identity ? (roleOf(allRows, identity.userId) ?? workspaceRole) : null;
   // the team I am in: the drawer's "who · where" line and the account menu's Team look row
   const whereName = teams[0]?.name ?? projects[0]?.name ?? null;
   let cardIndex = 0;
@@ -393,7 +401,7 @@ export const Rail = memo(function Rail({
               )}
             </>
           )}
-          {identity && teams.length === 0 && (
+          {identity && teams.length === 0 && !unplaced && (
             <RailItem
               href={paths.management("default")}
               icon={ICONS.overview}
@@ -415,7 +423,7 @@ export const Rail = memo(function Rail({
                 </RailItem>
               </div>
             ))}
-          {identity && (
+          {identity && !unplaced && (
             <RailItem
               href={paths.chat(firstOrg)}
               icon={ICONS.group}
@@ -436,7 +444,7 @@ export const Rail = memo(function Rail({
                 {orgs.length > 1 ? copy.shell.orgMemory(name) : copy.shell.memory}
               </RailItem>
             ))}
-          {identity && (
+          {identity && !unplaced && (
             <div className="section rail-section">
               {copy.shell.chats}
               <span className="n">{chats.total || ""}</span>

@@ -522,6 +522,8 @@ export const ICONS = {
   // existing glyphs, kept on the same grid and stroke
   menu: "M2.5 4.5h11M2.5 8h11M2.5 11.5h11",
   plus: "M8 3v10M3 8h10",
+  /** A key: the model key a workspace brings. */
+  key: "M10.25 8.5a3.25 3.25 0 1 0-3.1-2.3L1.75 11.6v2.65h2.65v-1.6h1.6v-1.6h1.4l1.05-1.05c.55.3 1.15.5 1.8.5zM11 5h.01",
   send: "M8 13V3M4 7l4-4 4 4",
   close: "M4 4l8 8M12 4l-8 8",
   chevron: "M6 4l4 4-4 4",
