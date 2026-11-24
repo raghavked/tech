@@ -117,6 +117,21 @@ the member sessions by profile; `GET /api/chat/:org/councils` lists them, latest
   the plan card's ratings; assignments as agent cards with live status; the conclusion with
   dissent. A side panel lists members with their models and a private "Instruct" box per
   model. Usage meter for the council.
+- **The table**: over the rounds, the same council as a drawing. The member models sit on a
+  ring with the chair at twelve and each person beside their model; a person in the room who
+  brought no model sits in the gap between two seats. A word is an arc from its seat to the
+  centre, ended by its stance (a dot agrees, a hollow dot adds, a dashed arc with a cross
+  differs); a seat's segment lights once its model has answered in the running round, and the
+  halo is on whoever the protocol waits for (`councilNext`). The chair's plan forms in the
+  centre with each step's number at its owner's edge; its rim closes from the left with the
+  models' words and from the right with the people's ratings, which each person also wears
+  as five segments and a count. A dissent opens the ring at its seat. Who is in the room is
+  whoever the chair's session shows online once the plan is open, and the viewer from the
+  start; a private instruction marks the table of the person who gave it and nobody else's.
+  The seats are a list: each model's tile is a button named by its state ("Dee's agent,
+  chair, agrees, answered round 2, Dee is in the room") that goes to its latest word, and the
+  line over the table says where the council stands, politely, when it changes. On a phone,
+  or past seven seats, the labels fold to the names.
 - **Instruct**: a one-to-one room with a model, opened from the member list; messages land
   as steers in that agent's session and are cited in its next council message.
 - The rail shows a council as a live agent card group under its group name: "Council ·
@@ -169,4 +184,7 @@ cooperation between a team's people and its agents, not a feature of a chat box.
   owners and ratings, the assignments as live agent cards and the conclusion with dissent,
   the members panel with an Instruct box per model, the one-to-one Instruct room, and the
   rail card "Council · 4 models · discussion 1 of 1". Walked end to end by
-  `apps/web/test/flows.spec.ts` against the scripted model.
+  `apps/web/test/flows.spec.ts` against the scripted model. The table is read by
+  `councilTable` (`apps/web/src/council.ts`) and laid out by `tableGeometry`
+  (`apps/web/src/councilGeometry.ts`), both tested in `council.test.ts`; the flow checks its
+  seats, their names and its two buttons.

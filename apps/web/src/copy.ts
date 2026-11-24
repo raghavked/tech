@@ -1722,6 +1722,83 @@ export const copy = {
     privateTo: (owner: string) => `private · ${owner} and the chair`,
     unknown: "No such council in this group.",
     noCouncils: "No councils yet.",
+    /**
+     * The council's table (views/CouncilTable.tsx): the models on a ring with their people
+     * beside them. A seat's accessible name is its facts joined by commas ("Dee's agent, chair,
+     * agrees, answered round 2, Dee is in the room"); the line over the table says where the
+     * council stands and is announced politely when it changes.
+     */
+    table: {
+      name: "The table",
+      seats: "Seats",
+      chair: "chair",
+      yours: "yours",
+      thinking: "thinking",
+      writing: "writing the plan",
+      wrote: "wrote the plan",
+      answered: (round: number) => `answered round ${round}`,
+      thinkingIn: (round: number) => `thinking in round ${round}`,
+      silent: "has not spoken yet",
+      dissents: "holds a dissent",
+      dissentWord: "dissents",
+      instructed: "you instructed it in private",
+      owns: (steps: number[]) =>
+        `owns ${steps.length === 1 ? "step" : "steps"} ${list(steps.map(String))}`,
+      here: (name: string) => `${name} is in the room`,
+      away: (name: string) => `${name} is not in the room`,
+      youHere: "you are in the room",
+      rated: (name: string, n: number) => `${name} rated the plan ${n}`,
+      youRated: (n: number) => `you rated the plan ${n}`,
+      waitsFor: (name: string) => `the plan waits for ${name}'s rating`,
+      waitsForYou: "the plan waits for your rating",
+      you: "you",
+      more: (n: number) => `${plural(n, "more person", "more people")} in the room`,
+      /** The centre before the plan: two short lines inside the dashed ring, and a count. */
+      forming: ["the plan", "forms here"],
+      chairWrites: (name: string) => [name, "is writing the plan"],
+      chairWritesShort: ["the chair", "is writing"],
+      noPlan: ["no plan", "in this council"],
+      wordsIn: (n: number, of: number) => (n ? `${n} of ${of} words in` : "no word yet"),
+      wordsRead: (n: number) => `${plural(n, "word")} read`,
+      thePlan: "The plan",
+      steps: (n: number, owners: number) => `${plural(n, "step")} · ${plural(owners, "owner")}`,
+      stepsOnly: (n: number) => plural(n, "step"),
+      /** The plan's state inside its disc: two or three words at most. */
+      centre: {
+        opening: "opening",
+        waitsForYou: "waits for you",
+        waits: "waits for ratings",
+        waitsShort: "awaits ratings",
+        approved: "approved",
+        revise: "sent back",
+        rejected: "rejected",
+        done: "done",
+        working: (done: number, of: number) => `${done} of ${of} done`,
+        concluded: (outcome: string) => outcome,
+      },
+      line: {
+        convened: "The council is convened. No word yet.",
+        round: (title: string) => `${title}.`,
+        answers: (title: string, answered: number, of: number, thinking: string[]) =>
+          `${title}. ${answered} of ${of} answered. ${list(thinking)} ${thinking.length === 1 ? "is" : "are"} thinking.`,
+        writing: (chair: string) => `${chair} is writing the plan.`,
+        opening: "The plan is written. Opening it for ratings.",
+        waitsForYou: (rated: number, of: number) =>
+          `The plan waits for your rating. ${rated} of ${of} at the table rated it.`,
+        waits: (rated: number, of: number) =>
+          `The plan waits for ratings. ${rated} of ${of} at the table rated it.`,
+        approved: (ratings: number, average: string) =>
+          ratings
+            ? `The plan is approved. ${plural(ratings, "rating")} · ${average} average.`
+            : "The plan is approved.",
+        revise: "The plan is back with the chair to revise.",
+        rejected: "The plan is rejected.",
+        working: (done: number, of: number) => `Working. ${done} of ${of} steps done.`,
+        concluded: (outcome: string) => `Concluded · ${outcome}.`,
+        dissent: (names: string[]) =>
+          `${list(names)} ${names.length === 1 ? "holds" : "hold"} a dissent.`,
+      },
+    },
   },
   /** settings-page, "Team look": how a lead styles their team (team-theme). */
   teamLook: {

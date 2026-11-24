@@ -1,0 +1,667 @@
+/* The council's table (views/CouncilTable.tsx; design/henosis/explorations/sig-council-table).
+   The member models on a ring with their people beside them, every word an arc to the centre,
+   the chair's plan in the middle with the mark's two arcs as its rim.
+
+   Colour by ground, one meaning each: on cream a model's stroke is navy, a person is the hand,
+   the centre is the only apricot on the stage; the warn ink marks a dissent and nothing else.
+   On the navy canvas the models' strokes turn apricot and the people take chocolate 300. The
+   lit ring is thin on purpose, so the plan is the heaviest thing on the table. */
+.council-table {
+  --table-rest: color-mix(in srgb, var(--blues) 20%, transparent);
+  --table-lit: var(--blues);
+  --table-settled: color-mix(in srgb, var(--blues) 42%, transparent);
+  --table-person: var(--accent);
+  --table-person-ink: var(--accent-ink);
+  --table-centre: var(--apricot);
+  --table-centre-ink: var(--blues);
+  --table-ghost: color-mix(in srgb, var(--blues) 34%, transparent);
+  --table-ghost-fill: 0.36;
+  --table-halo: color-mix(in srgb, var(--apricot-deep) 70%, transparent);
+  --table-rating: var(--star-on);
+  --table-track: color-mix(in srgb, var(--blues) 18%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .council-table {
+    --table-rest: color-mix(in srgb, var(--apricot) 20%, transparent);
+    --table-lit: var(--apricot);
+    --table-settled: color-mix(in srgb, var(--apricot) 46%, transparent);
+    --table-person: var(--accent-ink);
+    --table-ghost: color-mix(in srgb, var(--apricot) 42%, transparent);
+    --table-ghost-fill: 0.12;
+    --table-halo: color-mix(in srgb, var(--apricot) 50%, transparent);
+    --table-rating: var(--apricot);
+    --table-track: color-mix(in srgb, var(--ink) 18%, transparent);
+  }
+}
+:root[data-theme="dark"] .council-table {
+  --table-rest: color-mix(in srgb, var(--apricot) 20%, transparent);
+  --table-lit: var(--apricot);
+  --table-settled: color-mix(in srgb, var(--apricot) 46%, transparent);
+  --table-person: var(--accent-ink);
+  --table-ghost: color-mix(in srgb, var(--apricot) 42%, transparent);
+  --table-ghost-fill: 0.12;
+  --table-halo: color-mix(in srgb, var(--apricot) 50%, transparent);
+  --table-rating: var(--apricot);
+  --table-track: color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+/* the stage: the drawing under the list of seats; one unit of the drawing is one pixel */
+.ct-stage {
+  position: relative;
+  width: 100%;
+  min-height: 260px;
+}
+.ct-drawing {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: visible;
+  font-family: var(--font);
+  pointer-events: none;
+}
+
+/* the table: a hairline until a model answers in the round; a lit segment is the only heavy stroke */
+.ct-seg {
+  fill: none;
+  stroke: var(--table-rest);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.ct-seg.lit,
+.ct-seg.gap {
+  stroke: var(--table-lit);
+  stroke-width: 5;
+}
+.compact .ct-seg.lit,
+.compact .ct-seg.gap {
+  stroke-width: 4;
+}
+.ct-tick {
+  stroke: var(--table-lit);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+/* who is thinking: a halo on its segment; still when motion is off, breathing when it plays */
+.ct-halo {
+  fill: none;
+  stroke: var(--table-halo);
+  stroke-width: 12;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.ct-halo.thinking {
+  opacity: 0.6;
+}
+
+/* a word: the answer alone is a spoke that bends in at once and settles; a reply runs along the
+   inside of the table first; the latest word is the heaviest. The stance ends the arc: a dot
+   agrees, a hollow dot adds, a dashed arc with a short cross in the warn ink differs. */
+.ct-word {
+  fill: none;
+  stroke: var(--table-settled);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.ct-word.reply {
+  stroke: var(--table-lit);
+  stroke-width: 2.2;
+  opacity: 0.85;
+}
+.ct-word.latest {
+  stroke: var(--table-lit);
+  stroke-width: 3;
+  opacity: 1;
+}
+.ct-word.differ {
+  stroke-dasharray: 0.034 0.022;
+}
+.compact .ct-word.reply {
+  stroke-width: 1.8;
+}
+.compact .ct-word.latest {
+  stroke-width: 2.4;
+}
+.ct-wend {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ct-wend.agree {
+  fill: var(--table-lit);
+}
+.ct-wend.add {
+  fill: var(--canvas);
+  stroke: var(--table-lit);
+  stroke-width: 1.8;
+}
+.ct-wend.differ {
+  fill: none;
+  stroke: var(--warn);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+/* the centre: a dashed ghost while they deliberate, filling as the words come in; the plan once
+   the chair has written it. The rim is the mark: the models' arc on the left, the people's on the
+   right; they meet when the plan is approved. */
+.ct-ghost {
+  fill: var(--table-centre);
+  fill-opacity: calc(0.04 + var(--ct-words, 0) * var(--table-ghost-fill));
+  stroke: var(--table-ghost);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 7;
+}
+.ct-gtext {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 12.5px;
+  fill: var(--ink-2);
+  text-anchor: middle;
+}
+.ct-gtext.big {
+  font-size: 16px;
+}
+.ct-gcount {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  fill: var(--ink-2);
+  text-anchor: middle;
+}
+.ct-rim {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+.ct-rim.models {
+  stroke: var(--table-lit);
+}
+.ct-rim.people {
+  stroke: var(--table-person);
+}
+.ct-rim.none {
+  opacity: 0;
+}
+.ct-rim-track {
+  fill: none;
+  stroke: var(--table-track);
+  stroke-width: 1;
+}
+.ct-disc {
+  fill: var(--table-centre);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ct-ctext {
+  text-anchor: middle;
+  fill: var(--table-centre-ink);
+}
+.ct-ctext .t1 {
+  font-family: var(--serif);
+  font-size: 15.5px;
+}
+.ct-ctext.big .t1 {
+  font-size: 23px;
+}
+.ct-ctext .t2 {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.ct-ctext .t3 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 12px;
+}
+.ct-ctext.big .t3 {
+  font-size: 15px;
+}
+/* a step's number at its owner's edge of the plan; filled once the step reported done */
+.ct-mark {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ct-mark circle {
+  fill: var(--table-centre);
+  stroke: var(--table-centre-ink);
+  stroke-width: 1.25;
+}
+.ct-mark text {
+  font-family: var(--serif);
+  font-size: 12.5px;
+  fill: var(--table-centre-ink);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.compact .ct-mark text {
+  font-size: 11px;
+}
+.ct-mark.done circle {
+  fill: var(--table-centre-ink);
+}
+.ct-mark.done text {
+  fill: var(--table-centre);
+}
+
+/* a person: a circle with their initial on an opaque disc, so the table's stroke never runs
+   through the letter. In the room: a whole outline and the presence dot. Not in the room: a
+   dashed outline. Their rating is five segments around them and a count at the outer corner. */
+.ct-pback {
+  fill: var(--canvas);
+}
+.ct-pfill {
+  fill: var(--table-person);
+  fill-opacity: 0;
+  stroke: var(--table-person);
+  stroke-width: 1.75;
+}
+.ct-person.away .ct-pfill {
+  stroke-dasharray: 2.5 3;
+}
+.ct-pinit {
+  font-family: var(--serif);
+  font-size: 15px;
+  fill: var(--table-person-ink);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.compact .ct-pinit {
+  font-size: 12px;
+}
+.ct-phere {
+  fill: var(--ok);
+  stroke: var(--canvas);
+  stroke-width: 2;
+}
+.ct-ptrack {
+  fill: none;
+  stroke: var(--table-track);
+  stroke-width: 3;
+  stroke-dasharray: 0.86 0.14;
+  opacity: 0;
+}
+.ct-prate {
+  fill: none;
+  stroke: var(--table-rating);
+  stroke-width: 3;
+  opacity: 0;
+}
+.ct-pcut {
+  fill: none;
+  stroke: var(--canvas);
+  stroke-width: 4.5;
+  stroke-dasharray: 0.14 0.86;
+  stroke-dashoffset: 0.14;
+  opacity: 0;
+}
+.ct-pwait {
+  fill: none;
+  stroke: var(--table-halo);
+  stroke-width: 2;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ct-person.voting .ct-ptrack,
+.ct-person.voting .ct-pcut,
+.ct-person.voting .ct-prate {
+  opacity: 1;
+}
+/* still owed a rating: a finer track and one apricot ring */
+.ct-person.waited .ct-ptrack {
+  stroke-dasharray: 0.12 0.13;
+}
+.ct-person.waited .ct-pcut {
+  opacity: 0;
+}
+.ct-person.waited .ct-pwait {
+  opacity: 0.75;
+}
+.ct-badge {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ct-badge circle {
+  fill: var(--count-bg);
+  stroke: var(--canvas);
+  stroke-width: 1.5;
+}
+.ct-badge text {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 11.5px;
+  fill: var(--count-fg);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.compact .ct-badge text {
+  font-size: 10.5px;
+}
+/* a private word, on the table of the person who gave it and nobody else's: their circle fills
+   with the hand and a bridge joins it to the model; on someone else's model, a pip on its tile */
+.ct-bridge {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.ct-person.instructed .ct-pfill {
+  fill: var(--accent);
+  fill-opacity: 1;
+  stroke: var(--accent);
+}
+.ct-person.instructed .ct-pinit {
+  fill: var(--accent-fg);
+}
+
+/* a seat's label, outside the ring: named things are serif, read things are sans, the stance is mono */
+.ct-label .ct-name {
+  font-family: var(--serif);
+  font-size: 19px;
+  fill: var(--ink);
+}
+.compact .ct-label .ct-name {
+  font-size: 14px;
+}
+.ct-label .ct-owner {
+  font-size: 13px;
+  fill: var(--ink-2);
+}
+.ct-label .ct-yours {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  fill: var(--accent-ink);
+}
+.ct-label .ct-kicker {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--ink-3);
+}
+.ct-label .ct-state {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: var(--ink-3);
+}
+.ct-label .ct-state.differ {
+  fill: var(--warn-ink);
+}
+
+/* the seats as a list: each model's tile is a button over the drawing, the agent's shape with
+   the apricot centre, and at least 44 px to the touch */
+.ct-seats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ct-tile-seat {
+  position: absolute;
+  width: var(--ct-tile, 0);
+  height: var(--ct-tile, 0);
+  margin: calc(var(--ct-tile, 0px) / -2) 0 0 calc(var(--ct-tile, 0px) / -2);
+  transform: translate(var(--ct-step-x, 0), var(--ct-step-y, 0));
+}
+.ct-tile,
+.ct-tile:focus-visible {
+  border-radius: 30% 30% 30% 9%;
+}
+.ct-tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: var(--gradient-brand);
+  cursor: pointer;
+}
+.ct-tile::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
+.ct-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 26%;
+  height: 26%;
+  border-radius: 50%;
+  background: var(--apricot);
+}
+.ct-pip {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--canvas);
+}
+
+/* looking at one seat lights its words and dims the rest */
+.council-table.dim .ct-word:not(.mine),
+.council-table.dim .ct-wend:not(.mine) {
+  opacity: 0.14;
+}
+.council-table.dim .ct-seg.lit:not(.mine) {
+  opacity: 0.35;
+}
+.council-table.dim .ct-seat:not(.mine):not(.guest),
+.council-table.dim .ct-tile-seat:not(.mine) {
+  opacity: 0.45;
+}
+
+/* the dissent: a margin note under the table, in the warn ink */
+.ct-dissent {
+  align-self: center;
+  max-width: min(520px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+.ct-dk {
+  font: var(--t-kicker);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warn-ink);
+}
+.ct-dissent p {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.ct-dissent .ct-dt {
+  color: var(--ink-2);
+}
+/* on a phone the note names who dissents; what they hold is in the stream right under it */
+.compact .ct-dissent .ct-dt {
+  display: none;
+}
+
+/* the line over the table: where the council stands, and what this person can do about it */
+.ct-now {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-height: 34px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.ct-line {
+  flex: 1 1 240px;
+  margin: 0;
+  font: var(--t-text);
+  color: var(--ink-2);
+}
+.ct-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ct-acts a.btn:hover {
+  text-decoration: none;
+}
+/* on a phone the two actions share the row at the thumb's size */
+@media (max-width: 480px) {
+  .ct-acts {
+    flex: 1 1 100%;
+  }
+  .ct-acts .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
+
+/* the room's top row keeps its spacer a spacer on a phone, where the approvals page's card
+   shares the class name and would paint it as an empty card above the table */
+.council-head .row > .grow {
+  all: unset;
+  flex: 1 1 auto;
+}
+.council-head .row > .grow::before {
+  content: none;
+}
+
+/* where a seat's button lands in the stream: the word it went to wears the selection ring */
+.council [data-member]:focus {
+  outline: 2px solid var(--select-line);
+  outline-offset: 4px;
+}
+
+@keyframes ct-draw {
+  from {
+    stroke-dasharray: 0 1;
+  }
+  to {
+    stroke-dasharray: 1 0;
+  }
+}
+@keyframes ct-seat-breathe {
+  0% {
+    opacity: 0.9;
+    stroke-width: 6;
+  }
+  70%,
+  100% {
+    opacity: 0;
+    stroke-width: 22;
+  }
+}
+@keyframes ct-person-wait {
+  0% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+@keyframes ct-centre-land {
+  0% {
+    transform: scale(0.08);
+    opacity: 0.4;
+  }
+  70% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* motion (MOTION.md §3, the one guard): a word draws itself in when it is said, the plan lands
+   once when the chair writes it, a rating pops, a dissenting seat steps back; the only loops are
+   the halos of whoever the council waits for, on the 1.8 s status clock. Calm and reduced motion
+   leave the table as a finished drawing of the same state. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) .ct-word.enter {
+    animation: ct-draw 0.8s var(--ease-mark) both;
+  }
+  :root:not([data-motion="calm"]) .ct-word.differ.enter {
+    animation: fade-in 0.5s var(--ease-move) both;
+  }
+  :root:not([data-motion="calm"]) .ct-wend.enter {
+    animation: pop var(--t-slow) var(--ease-arrive) 0.6s both;
+  }
+  :root:not([data-motion="calm"]) .ct-halo.thinking {
+    animation: ct-seat-breathe 1.8s var(--ease-move) infinite;
+  }
+  :root:not([data-motion="calm"]) .ct-person.waited .ct-pwait {
+    animation: ct-person-wait 1.8s var(--ease-move) infinite;
+  }
+  :root:not([data-motion="calm"]) .ct-plan.enter .ct-disc {
+    animation: ct-centre-land 1s var(--ease-arrive) both;
+  }
+  :root:not([data-motion="calm"]) .ct-plan.enter .ct-ctext {
+    animation: word-in 0.5s var(--ease-arrive) 0.55s both;
+  }
+  :root:not([data-motion="calm"]) .ct-plan.enter .ct-mark {
+    animation: pop var(--t-slow) var(--ease-arrive) 0.7s both;
+  }
+  :root:not([data-motion="calm"]) .ct-badge.enter {
+    animation: pop var(--t-slow) var(--ease-arrive) both;
+  }
+  :root:not([data-motion="calm"]) .ct-bridge.enter {
+    animation: ct-draw 0.5s var(--ease-mark) both;
+  }
+  :root:not([data-motion="calm"]) .ct-seg {
+    transition:
+      stroke-dasharray 0.8s var(--ease-mark),
+      stroke-width var(--t-slow) var(--ease-move),
+      stroke var(--t-slow) var(--ease-move),
+      opacity var(--t-fast) var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .ct-seat,
+  :root:not([data-motion="calm"]) .ct-tile-seat {
+    transition:
+      transform 0.8s var(--ease-mark),
+      opacity var(--t-fast) var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .ct-word,
+  :root:not([data-motion="calm"]) .ct-wend {
+    transition:
+      opacity var(--t-fast) var(--ease-move),
+      stroke-width var(--t-slow) var(--ease-move),
+      stroke var(--t-slow) var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .ct-ghost {
+    transition: fill-opacity 0.6s var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .ct-rim,
+  :root:not([data-motion="calm"]) .ct-prate {
+    transition:
+      stroke-dasharray 0.7s var(--ease-mark),
+      opacity var(--t-slow) var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .ct-ptrack,
+  :root:not([data-motion="calm"]) .ct-pfill {
+    transition:
+      opacity var(--t-slow) var(--ease-move),
+      fill-opacity var(--t-slow) var(--ease-move);
+  }
+}

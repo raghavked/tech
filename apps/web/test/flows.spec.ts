@@ -483,6 +483,14 @@ test("a council: Ana convenes four models, they answer and discuss, she rates th
   await expect(room).toContainText("convened by Ana with 4 models");
   await expect(room).toContainText("chair Ana's agent");
 
+  // The table: the same council as a drawing. One seat per model with the chair first; each
+  // model's tile is a button named by its state, its person beside it.
+  const table = room.getByRole("region", { name: "The table" });
+  const seats = table.getByRole("list", { name: "Seats" });
+  await expect(seats.getByRole("listitem")).toHaveCount(4);
+  await expect(seats.getByRole("button").first()).toHaveAccessibleName(/^Ana's agent, chair, /);
+  await expect(seats.getByRole("button").first()).toHaveAccessibleName(/you are in the room/);
+
   // The individual round: one answer card per model, with its owner and model named.
   const alone = room.getByRole("region", { name: "Each answers alone" });
   await expect(alone.getByRole("article")).toHaveCount(4, { timeout: 30_000 });
@@ -494,6 +502,13 @@ test("a council: Ana convenes four models, they answer and discuss, she rates th
   const discussion = room.getByRole("region", { name: "Discussion" });
   await expect(discussion.locator(".stance")).toHaveCount(4, { timeout: 30_000 });
   await expect(discussion.locator(".stance").first()).toHaveText(/agrees|differs|adds/);
+  // The table carries each model's stance and the round it answered in; a seat goes to its word.
+  const boSeat = seats.getByRole("button", {
+    name: /^Bo's agent, (agrees|differs|adds), answered round 2/,
+  });
+  await expect(boSeat).toBeVisible();
+  await boSeat.click();
+  await expect(discussion.locator(":focus .who")).toHaveText("Bo's agent");
 
   // The rail shows the council as a card under its group.
   const rail = ana.getByRole("navigation", { name: "Sidebar" });
@@ -508,9 +523,21 @@ test("a council: Ana convenes four models, they answer and discuss, she rates th
   await expect(plan).toContainText("owner Chat team agent");
   const five = plan.getByRole("radio", { name: "5 of 5, Ship it" });
   await expect(five).toBeVisible({ timeout: 30_000 });
+  // The plan waits for Ana: the table says so politely, and its button lands on the plan's stars.
+  await expect(table.getByRole("status")).toContainText("The plan waits for your rating");
+  await expect(seats.getByRole("button").first()).toHaveAccessibleName(
+    /the plan waits for your rating$/,
+  );
+  await table.getByRole("button", { name: "Rate the plan" }).click();
+  await expect(
+    plan.getByRole("radiogroup", { name: "Rate the plan" }).locator(":focus"),
+  ).toHaveRole("radio");
   await five.click();
   await expect(plan).toContainText("Ana rated it 5");
   await expect(plan).toContainText("approved");
+  // Her rating sits on the table beside her model, and the table stops waiting for her.
+  await expect(seats.getByRole("button").first()).toHaveAccessibleName(/you rated the plan 5$/);
+  await expect(table.getByRole("button", { name: "Rate the plan" })).toHaveCount(0);
 
   // The assignments: one agent card per step, owned by the model that proposed it, with its status.
   const assignments = room.getByRole("region", { name: "Assignments" });
@@ -536,6 +563,7 @@ test("a council: Ana convenes four models, they answer and discuss, she rates th
     .toContain("Concluded · done");
   await expect(conclusion).toContainText(/dissents|No dissent recorded/);
   await expect(rail).toContainText("Council · 4 models · concluded: done");
+  await expect(table.getByRole("status")).toHaveText("Concluded · done.");
 
   // The members panel lists every model with its owner, the chair marked, and an Instruct room each.
   // The corner first: the member sessions' path collisions reached Ana as decision toasts, which
@@ -567,6 +595,18 @@ test("a council: Ana convenes four models, they answer and discuss, she rates th
     .click();
   await bo.getByRole("region", { name: "Councils" }).getByRole("link", { name: task }).click();
   await expect(bo.getByRole("region", { name: "Council room" })).toContainText("Concluded · done");
+  // His table seats the same four models; Ana's rating is on it, and it fits a phone.
+  const boSeats = bo
+    .getByRole("region", { name: "The table" })
+    .getByRole("list", { name: "Seats" });
+  await expect(boSeats.getByRole("listitem")).toHaveCount(4);
+  await expect(boSeats.getByRole("button").first()).toHaveAccessibleName(
+    /^Ana's agent, chair, .*Ana rated the plan 5$/,
+    { timeout: 15_000 },
+  );
+  await bo.setViewportSize({ width: 390, height: 844 });
+  await expect(boSeats.getByRole("button")).toHaveCount(4);
+  expect(await bo.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test("welcome an agent: the arrival card, what it was told, and the tour from Settings", async ({

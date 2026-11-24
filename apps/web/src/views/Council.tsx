@@ -1,7 +1,8 @@
 /**
  * The council (docs/19_council.md): a team's models deliberate on one task inside a group.
  * Three rooms share this file. The convene sheet (task, member models from the org's agent
- * profiles, chair, rounds, budget); the council room (the task, the rounds as sections with
+ * profiles, chair, rounds, budget); the council room (the task, the table that draws the
+ * council with its people at it (CouncilTable.tsx), the rounds as sections with
  * each model's answer as a card, the discussion as a stream with stance words, the chair's
  * plan as the plan card with owners and the team's ratings, the assignments as live agent
  * cards, the conclusion with its dissent, and a token meter); and the instruct room, a
@@ -36,6 +37,7 @@ import { copy } from "../copy.js";
 import {
   councilCard,
   councilSessionOf,
+  councilTable,
   councilWord,
   defaultChair,
   instructionsFor,
@@ -52,7 +54,9 @@ import { EmptyState } from "../empty.js";
 import { actorOf, type Identity } from "../identity.js";
 import { paths } from "../router.js";
 import { PlanCard } from "../stream/PlanCard.js";
+import { motionNow } from "../theme.js";
 import { AgentCard, Avatar, Dot, ICONS, Icon, Pill, TokenMeter } from "../ui.js";
+import { CouncilTable } from "./CouncilTable.js";
 
 /** A person's name as the group or the directory knows it; null when neither does. */
 function personName(group: Group, directory: ChatDirectoryListing | null, id: string) {
@@ -440,8 +444,55 @@ export function CouncilRoom({
     planState && council.synthesis ? (planState.plans[council.synthesis.planId] ?? null) : null;
   const steps = council.synthesis?.steps ?? [];
   const assigned = steps.filter((st) => council.assignments[st.id]);
+  // The table: the same council as a drawing. Who is in the room is whoever the chair's session
+  // shows online once it is open, and this person from the start; the ratings are that plan's.
+  const presence = plan.snap.presence;
+  const present = useMemo(() => {
+    const ids = new Set([meId]);
+    for (const p of presence) if (p.online && p.actor.kind === "human") ids.add(p.actor.id);
+    return ids;
+  }, [meId, presence]);
+  const table = councilTable({
+    council,
+    meId,
+    nameOf,
+    present,
+    plan: planRecord
+      ? {
+          status: planRecord.status,
+          ratings: Object.fromEntries(
+            Object.entries(planRecord.ratings).map(([id, r]) => [id, r.rating]),
+          ),
+        }
+      : null,
+  });
+  const room = useRef<HTMLElement>(null);
+  const arrive = (el: HTMLElement | null | undefined) => {
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: motionNow() === "full" ? "smooth" : "auto" });
+    el.focus({ preventScroll: true });
+  };
+  // A seat goes to its model's latest word; a chair that only writes the plan goes to the plan.
+  const goToSeat = (key: string) => {
+    const words = room.current?.querySelectorAll<HTMLElement>(`[data-member="${CSS.escape(key)}"]`);
+    arrive(
+      words?.[words.length - 1] ??
+        (key === council.chair.profileId
+          ? room.current?.querySelector<HTMLElement>(".council-round.synthesis")
+          : null),
+    );
+  };
+  const goToRating = () => {
+    const stars = room.current?.querySelector<HTMLElement>(
+      '.council-round.synthesis [role="radiogroup"]',
+    );
+    arrive(
+      stars?.querySelector<HTMLElement>('[role="radio"][tabindex="0"]') ??
+        stars?.querySelector<HTMLElement>('[role="radio"]'),
+    );
+  };
   return (
-    <section className="column page council" aria-label={copy.council.room}>
+    <section className="column page council" aria-label={copy.council.room} ref={room}>
       <header className="council-head">
         <div className="row wrap">
           <a className="small" href={paths.chat(orgId, group.id)}>
@@ -474,6 +525,15 @@ export function CouncilRoom({
         )}
       </header>
 
+      <CouncilTable
+        view={table}
+        onSeat={goToSeat}
+        onRate={goToRating}
+        instructHref={
+          table.mine ? paths.instruct(orgId, group.id, council.id, table.mine.profileId) : null
+        }
+      />
+
       {sequence.map((ref) => {
         const r = started.find((x) => x.round === ref.round && x.index === ref.index);
         if (ref.round === "vote") return null; // the ratings sit on the plan card
@@ -483,6 +543,7 @@ export function CouncilRoom({
             <section
               className="group council-round synthesis"
               aria-label={copy.council.roundTitle.synthesis}
+              tabIndex={-1}
               key={`${ref.round}/${ref.index}`}
             >
               <h2>
@@ -541,7 +602,13 @@ export function CouncilRoom({
                   />
                 ))}
                 {owed.map((m) => (
-                  <div className="answercard waiting" key={m.profileId} aria-busy="true">
+                  <div
+                    className="answercard waiting"
+                    key={m.profileId}
+                    aria-busy="true"
+                    data-member={m.profileId}
+                    tabIndex={-1}
+                  >
                     <div className="meta">
                       <Avatar id={m.profileId} name={m.name} agent />
                       <span className="who serif">{m.name}</span>
@@ -651,7 +718,12 @@ function AnswerCard({
   nameOf: (id: string) => string;
 }) {
   return (
-    <article className="answercard" aria-label={said.member.name}>
+    <article
+      className="answercard"
+      aria-label={said.member.name}
+      data-member={said.member.profileId}
+      tabIndex={-1}
+    >
       <div className="meta">
         <Avatar id={said.member.profileId} name={said.member.name} agent />
         <span className="who serif">{said.member.name}</span>
@@ -680,7 +752,11 @@ function DiscussionLine({
     ? said.text.replace(/^(agree|differ|add)(?:[\s:.!,-]+|$)/i, "").trim() || said.text
     : said.text;
   return (
-    <div className={`msg agent council-line${said.stance ? ` ${said.stance}` : ""}`}>
+    <div
+      className={`msg agent council-line${said.stance ? ` ${said.stance}` : ""}`}
+      data-member={said.member.profileId}
+      tabIndex={-1}
+    >
       <div className="meta">
         <Avatar id={said.member.profileId} name={said.member.name} agent />
         <span className="who serif">{said.member.name}</span>
