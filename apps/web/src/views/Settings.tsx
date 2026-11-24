@@ -10,13 +10,14 @@ import { type ReactNode, useState } from "react";
 import { Shell, type ShellContext } from "../App.js";
 import { api, type Integrations as IntegrationStatus, type Me, useFetch } from "../api.js";
 import { copy } from "../copy.js";
-import { clearIdentity, type Identity } from "../identity.js";
+import type { Identity } from "../identity.js";
 import { notifyPermission, requestNotifications } from "../notify.js";
 import { hotkeyLabel } from "../palette.js";
 import { NOTIFY_KINDS, useNotifyPrefs } from "../prefs.js";
 import { useRecents } from "../recents.js";
 import { navigate, paths } from "../router.js";
 import { SHORTCUTS } from "../shortcuts.js";
+import { signOutAnywhere } from "../supabase.js";
 import { type Theme, useTheme } from "../theme.js";
 import { requestTour } from "../tour.js";
 import { Avatar, ICONS, Icon, toast } from "../ui.js";
@@ -130,12 +131,23 @@ function Profile({ identity }: { identity: Identity }) {
           <Avatar id={identity.userId} name={identity.name} />
         </Row>
         <Row title={<span className="mono">{identity.userId}</span>} detail="User id" />
-        <Row title="Identity" detail="Remembered in this browser only">
+        <Row
+          title="Identity"
+          detail={
+            identity.provider === "supabase"
+              ? "Signed in with your email"
+              : identity.provider === "oidc"
+                ? "Signed in through your company's provider"
+                : "Remembered in this browser only"
+          }
+        >
           <span className="row">
-            <a className="btn ghost sm" href={paths.home()}>
-              Change
-            </a>
-            <button type="button" className="btn ghost sm" onClick={() => clearIdentity()}>
+            {(identity.provider ?? "dev") === "dev" && (
+              <a className="btn ghost sm" href={paths.home()}>
+                Change
+              </a>
+            )}
+            <button type="button" className="btn ghost sm" onClick={() => signOutAnywhere()}>
               Sign out
             </button>
           </span>

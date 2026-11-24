@@ -27,7 +27,7 @@ import { useFrame } from "./breakpoints.js";
 import { useChatUnread } from "./chat.js";
 import { copy } from "./copy.js";
 import { railCard } from "./council.js";
-import { clearIdentity, type Identity } from "./identity.js";
+import type { Identity } from "./identity.js";
 import { useInbox } from "./inbox.js";
 import { notifyPermission, requestNotifications } from "./notify.js";
 import { hotkeyLabel, openPalette, publishSidebarSessions } from "./palette.js";
@@ -36,6 +36,7 @@ import { navigate, paths, type Route } from "./router.js";
 import { MemoryResults, matchSession, needleOf, searchKeys, useMemorySearch } from "./search.js";
 import { isDesktop } from "./shell.js";
 import { isTyping, type TargetLike } from "./shortcuts.js";
+import { signOutAnywhere } from "./supabase.js";
 import { type Theme, useMotion, useTeamThemeValue, useTheme } from "./theme.js";
 import {
   type AgentRow,
@@ -924,7 +925,7 @@ function MeRow({
             type="button"
             className="mrow"
             onClick={() => {
-              clearIdentity();
+              signOutAnywhere();
               setOpen(false);
             }}
           >

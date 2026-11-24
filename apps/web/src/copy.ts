@@ -1862,6 +1862,8 @@ export const copy = {
     nameHint: "How it is called in the room",
     provider: "Runs on",
     providerHint: "The scripted stand-in answers offline; Claude needs a key on the server",
+    keyedHint: "Your workspace runs every agent on its own key",
+    keyedModelHint: "A model id for this agent alone; empty runs the workspace's model",
     scripted: "Scripted",
     claude: "Claude",
     claudeOffline: "Claude is not set up on this server; the scripted model stands in until it is",

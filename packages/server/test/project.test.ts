@@ -154,7 +154,14 @@ describe("project host", () => {
                 title: "S1",
               }),
             );
-            setTimeout(() => resolve({ ws, msgs }), 300);
+            // Resolve once the snapshot is in (not after a fixed wait, which a busy machine outruns).
+            const started = Date.now();
+            const poll = setInterval(() => {
+              if (msgs.some((m) => m.type === "snapshot") || Date.now() - started > 5000) {
+                clearInterval(poll);
+                resolve({ ws, msgs });
+              }
+            }, 20);
           });
         },
       );

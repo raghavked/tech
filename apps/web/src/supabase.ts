@@ -13,7 +13,7 @@
  * `identityOfSupabaseToken` is pure (vitest covers it); the rest touches the window.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { type AuthInfo, decodeJwt } from "./auth.js";
+import { type AuthInfo, decodeJwt, loadAuthInfo } from "./auth.js";
 import { clearIdentity, getIdentity, type Identity, saveIdentity } from "./identity.js";
 
 /**
@@ -144,4 +144,19 @@ export async function signOut(info: AuthInfo): Promise<void> {
     // The library could not load or the project refused: the identity goes either way.
   }
   clearIdentity();
+}
+
+/**
+ * Sign out, wherever the identity came from: under Supabase Auth the session the library
+ * keeps ends too, so a reload does not sign the person straight back in; otherwise the
+ * identity is simply forgotten.
+ */
+export function signOutAnywhere(): void {
+  if (getIdentity()?.provider !== "supabase") {
+    clearIdentity();
+    return;
+  }
+  loadAuthInfo()
+    .then((info) => signOut(info))
+    .catch(() => clearIdentity());
 }

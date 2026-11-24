@@ -117,6 +117,8 @@ function AgentFields({
   prefix: string;
 }) {
   const label = (s: string) => (withId ? `${s}: ${draft.id || prefix}` : s);
+  // A workspace of the person that runs on its own key (bring your own key).
+  const keyed = info.keyed?.[0] ?? null;
   const badId = withId && !ID.test(draft.id.trim());
   const badBudget = draft.budget.trim() !== "" && !BUDGET.test(draft.budget.trim());
   const toggleTool = (name: string) =>
@@ -149,30 +151,40 @@ function AgentFields({
           onChange={(e) => set({ name: e.target.value })}
         />
       </Row>
-      <Row
-        title={copy.agents.provider}
-        detail={
-          draft.provider === "claude" && !info.providers.claude
-            ? copy.agents.claudeOffline
-            : copy.agents.providerHint
-        }
-      >
-        <fieldset className="seg" aria-label={label(copy.agents.provider)}>
-          {(["scripted", "claude"] as const).map((p) => (
-            <button
-              type="button"
-              key={p}
-              className={draft.provider === p ? "on" : ""}
-              aria-pressed={draft.provider === p}
-              onClick={() => set({ provider: p })}
-            >
-              {p === "scripted" ? copy.agents.scripted : copy.agents.claude}
-            </button>
-          ))}
-        </fieldset>
-      </Row>
-      {draft.provider === "claude" && (
-        <Row title={copy.agents.model} detail={copy.agents.modelHint}>
+      {keyed ? (
+        // The workspace runs on its own key: every agent runs on its model, the stand-in retired.
+        <Row title={copy.agents.provider} detail={copy.agents.keyedHint}>
+          <span className="small muted mono">{keyed.model}</span>
+        </Row>
+      ) : (
+        <Row
+          title={copy.agents.provider}
+          detail={
+            draft.provider === "claude" && !info.providers.claude
+              ? copy.agents.claudeOffline
+              : copy.agents.providerHint
+          }
+        >
+          <fieldset className="seg" aria-label={label(copy.agents.provider)}>
+            {(["scripted", "claude"] as const).map((p) => (
+              <button
+                type="button"
+                key={p}
+                className={draft.provider === p ? "on" : ""}
+                aria-pressed={draft.provider === p}
+                onClick={() => set({ provider: p })}
+              >
+                {p === "scripted" ? copy.agents.scripted : copy.agents.claude}
+              </button>
+            ))}
+          </fieldset>
+        </Row>
+      )}
+      {(draft.provider === "claude" || keyed) && (
+        <Row
+          title={copy.agents.model}
+          detail={keyed ? copy.agents.keyedModelHint : copy.agents.modelHint}
+        >
           <input
             className="input mono sm"
             aria-label={label(copy.agents.model)}

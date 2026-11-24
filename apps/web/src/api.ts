@@ -263,6 +263,8 @@ export interface AgentsResponse {
   /** The orgs whose shared agents the person may edit (Settings, "Team agents"). */
   leads: string[];
   providers: { scripted: boolean; claude: boolean };
+  /** The person's workspaces that run on their own key, with the model their agents run on. */
+  keyed?: { orgId: string; model: string }[];
   tools: { name: string; risk: string }[];
 }
 
