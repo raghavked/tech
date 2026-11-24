@@ -1052,6 +1052,22 @@ export const copy = {
     /** The chip's accessible name: "Tokens: 12,400 used, 25% of the budget". */
     label: (used: string, pct: number | null) =>
       `Tokens: ${used} used${pct === null ? "" : `, ${pct}% of the budget`}`,
+    /** The spend ring's accessible name: "12,400 of 20,000 tokens, 62 percent of the budget". */
+    ringOfBudget: (used: string, budget: string, pct: number) =>
+      `${used} of ${budget} tokens, ${pct} percent of the budget`,
+    /** With no budget the ring says the spend alone and no percent. */
+    ringSpend: (used: string) => `${used} tokens, no budget set`,
+    /** Whose spend it is, first: "Billing page: 12,400 of 20,000 tokens, …". */
+    ringNamed: (what: string, figures: string) => `${what}: ${figures}`,
+    ringCache: (read: string) => `${read} cache read, not counted`,
+    spendingNow: "spending now",
+    /** The ring's state in words, read after its name. */
+    ringUnder: (left: string) => `under the budget, ${left} left`,
+    ringNear: (left: string) => `near the budget, ${left} left`,
+    ringOver: (by: string) => `over the budget by ${by}`,
+    /** The same states beside a ring, as a line a person reads. */
+    leftOf: (left: string) => `${left} left`,
+    overBy: (by: string) => `Over the budget by ${by}`,
   },
 
   project: {
@@ -1142,7 +1158,9 @@ export const copy = {
     forWinner: (who: string) => `for ${who}`,
     /** The spend card. */
     spend: "Spend by session",
-    spendSessions: (n: number) => `tokens · ${plural(n, "session")}`,
+    /** The ring's name on the spend card, and the count under its figures. */
+    spendWhat: "Project spend",
+    sessionsCounted: (n: number) => plural(n, "session"),
     budgetWord: "budget",
     budgetSum: "the sum of the sessions' budgets",
     budgetSet: "set by a lead",
@@ -1278,7 +1296,6 @@ export const copy = {
     rowNoun: "one",
     /** The hidden sentence a screen reader gets for a row: "161k in, 51k out tokens". */
     rowLabel: (input: string, output: string, unit: string) => `${input} in, ${output} out ${unit}`,
-    ofBudget: (used: string, budget: string) => `${used} of ${budget}`,
     readingEmpty: "Nothing counted yet.",
     readingEven: (noun: string) => `Even spread; no ${noun} is over a third.`,
     readingTop: (label: string, pct: number, n: number, noun: string) =>

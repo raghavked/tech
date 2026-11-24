@@ -6,6 +6,7 @@ import { onIdentityChange } from "./identity.js";
 import { connectLinks } from "./links.js";
 import { connectShell } from "./shell.js";
 import { supabaseClient } from "./supabase.js";
+import "./styles/spend-ring.css";
 
 // PWA shell: the service worker caches the shell and passes /ws and /api through. Its URL
 // and scope follow the app's base (`/` here, `/app/` on the hosted deployment).

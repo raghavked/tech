@@ -84,6 +84,17 @@ test("looking back folds the stream, not the token chip or the Team panel", asyn
   await expect(page.getByPlaceholder("Nothing is sent while you look back")).toHaveCount(0);
   await expect(page.getByLabel("Directive", { exact: true })).toBeEditable();
   await expect(chip).toHaveAttribute("aria-label", liveLabel ?? "");
+
+  // With no budget the breakdown's spend ring is the spend alone: an image named by its
+  // tokens, no meter and no percent; it opens over the scrubber and the stream.
+  await chip.click();
+  const breakdown = page.getByRole("dialog", { name: "Token breakdown" });
+  const ring = breakdown.getByRole("img", { name: /: [\d,]+ tokens, no budget set/ });
+  await expect(ring).toBeVisible();
+  await expect(ring).not.toContainText("%");
+  await expect(breakdown.getByRole("meter")).toHaveCount(0);
+  await expect(breakdown).toContainText("No budget set");
+  await ring.hover({ trial: true });
 });
 
 test("in dark the hand as text is chocolate 300, not the apricot pulse", async ({ page }) => {

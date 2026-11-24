@@ -522,7 +522,12 @@ export function Team({
                 label={copy.team.budgetTile}
                 value={compactTokens(totalTokens)}
                 unit={copy.team.budgetUnit(compactTokens(budget))}
-                meter={{ used: totalTokens, budget }}
+                meter={{
+                  input: usage?.totals.input ?? 0,
+                  output: usage?.totals.output ?? 0,
+                  cacheRead: usage?.cache.read ?? 0,
+                  budget,
+                }}
                 detail={copy.team.budgetDetail(
                   Math.round((totalTokens / budget) * 100),
                   budgetSource,

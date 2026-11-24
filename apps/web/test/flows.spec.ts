@@ -259,6 +259,38 @@ test("plan first: the agent proposes, Ana rates it, the plan is approved and the
   await expect(conversation(page)).toContainText("Done:", { timeout: 15_000 });
   await expect(plan).toContainText("Done");
   await expect(plan).toContainText(/\d+ used/);
+
+  // The spend ring in the token breakdown: a meter that says the numbers against the budget,
+  // with its state in words, beside the rows that keep the figures as text.
+  await page.getByLabel(/^Tokens: /).click();
+  const breakdown = page.getByRole("dialog", { name: "Token breakdown" });
+  const ring = breakdown.getByRole("meter", {
+    name: /: [\d,]+ of 20,000 tokens, \d+ percent of the budget/,
+  });
+  await expect(ring).toBeVisible();
+  await expect(ring).toHaveAttribute("aria-valuemax", "20000");
+  await expect(ring).toHaveAttribute(
+    "aria-valuetext",
+    /^(under|near) the budget, [\d,]+ left$|^over the budget by [\d,]+$/,
+  );
+  await expect(breakdown).toContainText(/[\d,]+ of 20,000 · \d+%/);
+  // The stream never covers the open breakdown: the ring takes the pointer.
+  await ring.hover({ trial: true });
+
+  // The project page draws the same ring on the spend card, and its 18 px cut on the session's row.
+  await page.goto("/#/p/e2e-plan");
+  const spend = page.getByRole("region", { name: "Spend by session" });
+  await expect(
+    spend.getByRole("meter", {
+      name: /^Project spend: [\d,]+ of [\d,]+ tokens, \d+ percent of the budget/,
+    }),
+  ).toBeVisible();
+  await expect(spend).toContainText(/[\d,]+ of [\d,]+ tokens/);
+  await expect(
+    page
+      .getByRole("region", { name: "Agents" })
+      .getByRole("meter", { name: new RegExp(`^Plan ${t}: [\\d,]+ of 20,000 tokens`) }),
+  ).toBeVisible();
 });
 
 test("a deploy waits until two contributors rate it 4 or better", async ({ browser }) => {

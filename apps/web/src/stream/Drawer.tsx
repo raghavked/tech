@@ -27,6 +27,7 @@ import { EmptyState } from "../empty.js";
 import { isComposing, PRESENCE_COMPOSING_TEAM } from "../presence.js";
 import type { TurnMark } from "../replay.js";
 import { paths } from "../router.js";
+import { SpendRing } from "../SpendRing.js";
 import { AgentCard, Avatar, ErrorLine, ICONS, Icon } from "../ui.js";
 import { ReplayToggle } from "../views/ReplayScrubber.js";
 import { describeCall } from "./blocks.js";
@@ -823,15 +824,13 @@ function DetailsFace({
   );
 }
 
-/** token-usage: the big number, the four-way split, the budget, and the last turns on one scale. */
+/** token-usage: the spend ring beside the big number, the four-way split as its legend, and the last turns on one scale. */
 export function UsageSection({ s }: { s: SessionState }) {
   const b = budgetStatus(s);
   const pct = b.budget === null ? null : Math.round(b.fraction * 100);
   const turns = [...s.turns].slice(-8).reverse();
   const heaviest = Math.max(1, ...s.turns.map((t) => t.usage.input + t.usage.output));
   const u = s.usage;
-  const all = u.input + u.output + u.cacheRead + u.cacheWrite;
-  const share = (n: number) => `${all > 0 ? (n / all) * 100 : 0}%`;
   const tone = b.over ? " over" : pct !== null && b.fraction >= BUDGET_WARN ? " warn" : "";
   const left = b.budget === null ? 0 : Math.max(0, b.budget - b.used);
   return (
@@ -846,44 +845,42 @@ export function UsageSection({ s }: { s: SessionState }) {
               : `${pct}% · ${copy.usage.left(compactTokens(left))}`}
         </span>
       </h3>
-      <div className="big">
-        <b>{formatTokens(b.used)}</b>
-        {b.budget !== null ? (
-          <span>{copy.usage.of(formatTokens(b.budget))}</span>
-        ) : (
-          <span>{copy.usage.tokens}</span>
-        )}
-        {pct !== null && <span className="pct">{pct}%</span>}
-      </div>
-      {b.budget !== null && (
-        <div className={`budget${tone}`} aria-hidden="true">
-          <i style={{ width: `${Math.min(100, Math.round(b.fraction * 100))}%` }} />
+      <div className="spend-fig">
+        <SpendRing
+          size="meter"
+          input={u.input}
+          output={u.output}
+          cacheRead={u.cacheRead}
+          budget={b.budget}
+          live={s.status === "running"}
+        />
+        <div className="big">
+          <b>{formatTokens(b.used)}</b>
+          {b.budget !== null ? (
+            <span>{copy.usage.of(formatTokens(b.budget))}</span>
+          ) : (
+            <span>{copy.usage.tokens}</span>
+          )}
         </div>
-      )}
-      <div className="stacked" aria-hidden="true">
-        <i className="k-in" style={{ width: share(u.input) }} />
-        <i className="k-out" style={{ width: share(u.output) }} />
-        <i className="k-cache" style={{ width: share(u.cacheRead) }} />
-        <i className="k-write" style={{ width: share(u.cacheWrite) }} />
       </div>
       <div className="split">
         <span>
-          <i className="sw k-in" />
+          <i className="spend-key key-in" />
           {copy.usage.input}
           <b>{compactTokens(u.input)}</b>
         </span>
         <span>
-          <i className="sw k-out" />
+          <i className="spend-key key-out" />
           {copy.usage.output}
           <b>{compactTokens(u.output)}</b>
         </span>
         <span>
-          <i className="sw k-cache" />
+          <i className="spend-key key-cache" />
           {copy.usage.cacheRead}
           <b>{compactTokens(u.cacheRead)}</b>
         </span>
         <span>
-          <i className="sw k-write" />
+          <i className="spend-key key-write" />
           {copy.usage.cacheWrite}
           <b>{compactTokens(u.cacheWrite)}</b>
         </span>

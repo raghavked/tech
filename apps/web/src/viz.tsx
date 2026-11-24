@@ -10,14 +10,16 @@
  *   the hover readout *replacing the row's value column* so it never covers a neighbour, a
  *   reading sentence and a table twin under every chart;
  * - `Area` for a lone series over turns, in the hand with the 10 % wash and a crosshair readout;
- * - `StatTile`: label · mono value · small unit · a detail line; colour only for a budget past
- *   80 %; deltas are ink with a sign.
+ * - `StatTile`: label · mono value · small unit · a detail line; a budgeted tile carries the
+ *   spend ring (SpendRing.tsx) under its value; colour only for a budget past 80 %; deltas are
+ *   ink with a sign.
  *
  * Text wears text tokens, never the series colour; axis ticks and values are mono.
  */
 import { compactTokens, formatTokens } from "@henosis/kernel";
 import { type ReactNode, useId, useState } from "react";
 import { copy } from "./copy.js";
+import { SpendRing } from "./SpendRing.js";
 
 /** The budget's amber line, the same 0.8 every meter uses. */
 export const BUDGET_WARN = 0.8;
@@ -37,10 +39,10 @@ export function StatTile({
   unit?: string;
   detail?: ReactNode;
   trend?: number[];
-  /** A soft budget under the value: the only colour a tile may carry, past 80 %. */
-  meter?: { used: number; budget: number };
+  /** Spend against a soft budget, drawn as the ring: the only colour a tile may carry, past 80 %. */
+  meter?: { input: number; output: number; cacheRead?: number; budget: number };
 }) {
-  const fraction = meter && meter.budget > 0 ? meter.used / meter.budget : null;
+  const fraction = meter && meter.budget > 0 ? (meter.input + meter.output) / meter.budget : null;
   const tone =
     fraction === null ? "" : fraction > 1 ? " over" : fraction >= BUDGET_WARN ? " warn" : "";
   return (
@@ -51,20 +53,7 @@ export function StatTile({
         {unit && <small>{unit}</small>}
       </span>
       {trend && trend.length > 1 && <Sparkline values={trend} />}
-      {meter && fraction !== null && (
-        // biome-ignore lint/a11y/useSemanticElements: a <meter> cannot be drawn as the 3 px hairline with the 80 % tick
-        <span
-          className="stat-meter"
-          role="meter"
-          aria-valuemin={0}
-          aria-valuemax={meter.budget}
-          aria-valuenow={Math.min(meter.used, meter.budget)}
-          aria-label={copy.viz.ofBudget(formatTokens(meter.used), formatTokens(meter.budget))}
-        >
-          <span className="fill" style={{ width: `${Math.min(100, fraction * 100)}%` }} />
-          <span className="tick" />
-        </span>
-      )}
+      {meter && fraction !== null && <SpendRing size="meter" what={label} {...meter} />}
       {detail && <span className="stat-detail">{detail}</span>}
     </div>
   );

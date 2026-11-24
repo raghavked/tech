@@ -1,0 +1,359 @@
+/* =====================================================================================
+   spend-ring (sig-token-art, SpendRing.tsx): token spend drawn as the mark's ring against a
+   soft budget. One chocolate stepped in lightness (input the lighter step, output the darker),
+   the budget outside the stroke (the 80 % tick, the amber share, the lap past 100 %), cache
+   read as a dotted arc inside, an apricot ember while a turn spends. The ramp is the
+   exploration's, validated on both grounds: 4.7 : 1 and 9.6 : 1 on white by day, 3.2 : 1 and
+   5.8 : 1 on the dark surface by night. A team look retints the ember (it is the pulse), never
+   the ramp.
+   ===================================================================================== */
+:root,
+.t-light {
+  --spend-in: #966961;
+  --spend-out: #633a33;
+  --spend-track: #f2e6e2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --spend-in: #927264;
+    --spend-out: #c19f91;
+    --spend-track: #3b3134;
+  }
+}
+:root[data-theme="dark"],
+.t-dark {
+  --spend-in: #927264;
+  --spend-out: #c19f91;
+  --spend-track: #3b3134;
+}
+
+/* the ring: three cuts of one drawing (96 units square, r 36 under a 9-unit stroke) */
+.spend-ring {
+  --ring: 72px;
+  --ring-ground: var(--surface);
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--ring);
+  height: var(--ring);
+  vertical-align: middle;
+}
+.spend-ring[data-cut="card"] {
+  --ring: 100px;
+}
+.spend-ring[data-cut="row"] {
+  --ring: 18px;
+}
+.spend-ring svg {
+  grid-area: 1 / 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.spend-ring .ring-track,
+.spend-ring .ring-seg {
+  fill: none;
+  stroke-width: 9;
+}
+.spend-ring .ring-track {
+  stroke: var(--spend-track);
+}
+.spend-ring .ring-in {
+  stroke: var(--spend-in);
+}
+.spend-ring .ring-out,
+.spend-ring .ring-fill {
+  stroke: var(--spend-out);
+}
+.spend-ring .ring-amber {
+  stroke: var(--warn);
+}
+/* past the budget: a second shape outside the ring, and the seam drawn through it */
+.spend-ring .ring-lap {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.spend-ring .ring-seam {
+  stroke: var(--ink-2);
+  stroke-width: 1.5;
+}
+.spend-ring[data-tone="over"] .ring-seam {
+  stroke: var(--danger);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.spend-ring .ring-tick {
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+}
+.spend-ring[data-tone="near"] .ring-tick,
+.spend-ring[data-tone="over"] .ring-tick {
+  stroke: var(--warn);
+}
+.spend-ring .ring-cache {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.spend-ring .ring-ember {
+  fill: var(--apricot-deep);
+  stroke: var(--ring-ground);
+  stroke-width: 2;
+}
+.spend-ring .ring-halo {
+  fill: var(--apricot-deep);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* the 18 px cut: track and fill only; amber from 80 %, red with a centre point past 100 % */
+.spend-ring[data-cut="row"] .ring-track,
+.spend-ring[data-cut="row"] .ring-seg {
+  stroke-width: 14;
+}
+.spend-ring[data-cut="row"][data-tone="near"] .ring-fill {
+  stroke: var(--warn);
+}
+.spend-ring[data-cut="row"][data-tone="over"] .ring-fill,
+.spend-ring[data-cut="row"] .ring-past {
+  stroke: var(--danger);
+}
+.spend-ring[data-cut="row"] .ring-past {
+  fill: var(--danger);
+  stroke: none;
+}
+
+/* inside the ring: a count, so mono; the percent takes an -ink token when the budget turns */
+.spend-ring .ring-mid {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.spend-ring .ring-n {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.spend-ring[data-cut="card"] .ring-n {
+  font-size: 15px;
+  line-height: 18px;
+}
+.spend-ring .ring-p {
+  font-size: 12px;
+  line-height: 14px;
+  color: var(--ink-2);
+}
+.spend-ring[data-tone="near"] .ring-pct {
+  color: var(--warn-ink);
+}
+.spend-ring[data-tone="over"] .ring-pct {
+  color: var(--danger-ink);
+}
+
+/* the ring beside its numbers, wherever it sits */
+.spend-fig {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* the legend: the same marks as the ring; cache write is not drawn, so its key is hollow */
+.spend-key {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.spend-key.key-in {
+  background: var(--spend-in);
+}
+.spend-key.key-out {
+  background: var(--spend-out);
+}
+.spend-key.key-cache {
+  border-radius: 0;
+  background:
+    radial-gradient(circle, var(--ink-3) 0 1px, transparent 1.3px) 0 50% / 3.4px 4px repeat-x;
+}
+.spend-key.key-write {
+  box-shadow: inset 0 0 0 1px var(--ink-3);
+}
+
+/* a stat tile's budget (the manager's view): the ring under the value */
+.stat .spend-ring {
+  align-self: flex-start;
+  margin: 2px 0;
+}
+
+/* a board row: the 18 px cut before the figures, the state in words under them */
+.agentrow .rowmeter {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 8px;
+}
+.agentrow .rowmeter .spend-state {
+  grid-column: 2;
+  line-height: 16px;
+}
+.agentrow .rowmeter[data-tone="near"] .used,
+.agentrow .rowmeter[data-tone="near"] .spend-state {
+  color: var(--warn-ink);
+}
+.agentrow .rowmeter[data-tone="over"] .used,
+.agentrow .rowmeter[data-tone="over"] .spend-state {
+  color: var(--danger-ink);
+}
+
+/* the session's token meter: the ring to the left of the four rows; the title row (a flex
+   item of the main column, so z-index needs no position) lifts over the scrubber and the
+   stream while the breakdown is open, so nothing covers it */
+.meter .pop.pop {
+  width: 300px;
+  max-width: calc(100vw - 24px);
+}
+.meter .pop .spend-ring {
+  --ring-ground: var(--overlay);
+}
+.meter .pop .spend-rows {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.topbar:has(.meter:hover, .meter:focus-within, .meter.pinned) {
+  z-index: 13;
+}
+
+/* the drawer's Usage block: the ring, the big number, then the four-way split as its legend */
+.drawer .usage .spend-fig .big {
+  flex-wrap: wrap;
+  row-gap: 0;
+  min-width: 0;
+}
+.drawer .usage .split .spend-key {
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+.drawer .usage .split .spend-key.key-cache {
+  border-radius: 0;
+}
+.drawer .turns .t .bar .k-in {
+  background: var(--spend-in);
+}
+.drawer .turns .t .bar .k-out {
+  background: var(--spend-out);
+}
+
+/* the project's spend card: the ring carries the figure, the words beside it say it in full */
+.card.spend .spend-fig {
+  gap: 16px;
+}
+.card.spend .spend-words {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ink-2);
+}
+.card.spend .spend-figures b {
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.card.spend .spend-state {
+  font-size: 13px;
+}
+.card.spend[data-tone="near"] .spend-state {
+  color: var(--warn-ink);
+}
+.card.spend[data-tone="over"] .spend-state {
+  color: var(--danger-ink);
+  font-weight: 500;
+}
+.card.spend .spend-sessions {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+/* motion, inside the one guard: the fill eases to a new figure, the ember breathes; under Calm
+   the ring sits at its figure and the ember is a still point */
+@keyframes spend-ember {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) .spend-ring .ring-seg,
+  :root:not([data-motion="calm"]) .spend-ring .ring-lap {
+    transition:
+      stroke-dasharray 300ms var(--ease-move),
+      stroke-dashoffset 300ms var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .spend-ring .ring-halo {
+    animation: spend-ember 1.8s var(--ease-leave) infinite;
+  }
+}
+
+/* forced colours: the drawing keeps its three roles (ground, spent, past the line) */
+@media (forced-colors: active) {
+  .spend-ring .ring-track {
+    stroke: GrayText;
+  }
+  .spend-ring .ring-seg,
+  .spend-ring .ring-seam,
+  .spend-ring .ring-tick,
+  .spend-ring .ring-cache {
+    stroke: CanvasText;
+  }
+  .spend-ring .ring-amber,
+  .spend-ring .ring-lap,
+  .spend-ring[data-tone="over"] .ring-seam,
+  .spend-ring[data-cut="row"][data-tone="over"] .ring-fill {
+    stroke: Highlight;
+  }
+  .spend-ring .ring-ember,
+  .spend-ring[data-cut="row"] .ring-past {
+    fill: Highlight;
+  }
+}
+
+/* a narrow window: the breakdown hangs from the chip's right edge, so it stays in the window */
+@media (max-width: 640px) {
+  .meter:not(.open) .pop.pop {
+    left: auto;
+    right: 0;
+  }
+}
+@media (max-width: 480px) {
+  .spend-ring[data-cut="card"] {
+    --ring: 96px;
+  }
+}

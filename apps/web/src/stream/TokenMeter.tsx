@@ -3,13 +3,15 @@
  * hairline that carries the 80 % tick, colour only when the budget turns, a pulsing apricot dot
  * while a turn spends. Hover or focus opens the breakdown, a tap pins it; `open` keeps it shown,
  * as the drawer's Usage block does. The popover keeps one fixed shape so the eye lands in the
- * same place every session: head · stacked bar · four rows including zeros · rule · budget ·
- * consequence · foot. The budget counts input and output only; cache never moves the bar.
+ * same place every session: head · the spend ring beside four rows including zeros · rule ·
+ * budget · consequence · foot. The ring (SpendRing) fills against the budget and the rows are
+ * its legend; the budget counts input and output only, so cache never moves the fill.
  */
 import { budgetStatus, compactTokens, formatTokens } from "@henosis/kernel";
 import type { Usage } from "@henosis/protocol";
 import { useState } from "react";
 import { copy } from "../copy.js";
+import { SpendRing } from "../SpendRing.js";
 
 /** Warn at 80% of a budget, danger past it. */
 export const BUDGET_WARN = 0.8;
@@ -38,13 +40,11 @@ export function TokenMeter({
   const none = b.used === 0 && usage.cacheRead === 0 && usage.cacheWrite === 0;
   const tone = b.over ? " over" : pct !== null && b.fraction >= BUDGET_WARN ? " warn" : "";
   const cls = `meter${none ? " none" : ""}${live ? " live" : ""}${tone}${open ? " open" : pinned ? " pinned" : ""}`;
-  const all = usage.input + usage.output + usage.cacheRead + usage.cacheWrite;
-  const share = (n: number) => (all > 0 ? `${((n / all) * 100).toFixed(1)}%` : "0%");
   const rows: [string, string, number][] = [
-    ["k-in", copy.usage.input, usage.input],
-    ["k-out", copy.usage.output, usage.output],
-    ["k-cache", copy.usage.cacheRead, usage.cacheRead],
-    ["k-write", copy.usage.cacheWrite, usage.cacheWrite],
+    ["in", copy.usage.input, usage.input],
+    ["out", copy.usage.output, usage.output],
+    ["cache", copy.usage.cacheRead, usage.cacheRead],
+    ["write", copy.usage.cacheWrite, usage.cacheWrite],
   ];
   const left = b.budget === null ? null : Math.max(0, b.budget - b.used);
   return (
@@ -81,18 +81,26 @@ export function TokenMeter({
             {live ? ` · ${copy.usage.live}` : ""}
           </span>
         </div>
-        <div className="stacked" aria-hidden="true">
-          {rows.map(([k, , n]) => (
-            <i key={k} className={k} style={{ width: share(n) }} />
-          ))}
-        </div>
-        {rows.map(([k, label, n]) => (
-          <div className="kv" key={k}>
-            <span className={`sw ${k}`} aria-hidden="true" />
-            <span>{label}</span>
-            <span className="v">{formatTokens(n)}</span>
+        <div className="spend-fig">
+          <SpendRing
+            size="meter"
+            input={usage.input}
+            output={usage.output}
+            cacheRead={usage.cacheRead}
+            budget={b.budget}
+            live={live}
+            what={session ?? copy.usage.thisSession}
+          />
+          <div className="spend-rows">
+            {rows.map(([k, label, n]) => (
+              <div className="kv" key={k}>
+                <span className={`spend-key key-${k}`} aria-hidden="true" />
+                <span>{label}</span>
+                <span className="v">{formatTokens(n)}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
         <div className="rule" />
         <div className="bud">
           <div className="row">
@@ -103,11 +111,6 @@ export function TokenMeter({
                 : copy.usage.ofBudget(formatTokens(b.used), formatTokens(b.budget), pct)}
             </span>
           </div>
-          {b.budget !== null && (
-            <div className={`budget${tone}`} aria-hidden="true">
-              <i style={{ width: `${Math.min(100, Math.round(b.fraction * 100))}%` }} />
-            </div>
-          )}
           <div className="left">
             {b.budget === null ? (
               copy.usage.softNone

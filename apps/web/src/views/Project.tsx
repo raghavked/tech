@@ -22,6 +22,7 @@ import { compactTokens, formatTokens } from "@henosis/kernel";
 import {
   type DirectiveMode,
   type SessionPolicyPatch,
+  type Usage,
   type UsageReport,
   usageTotal,
 } from "@henosis/protocol";
@@ -43,6 +44,7 @@ import type { Identity } from "../identity.js";
 import { createSession, ProjectClient } from "../projectClient.js";
 import { ReconnectLine } from "../reconnect.js";
 import { navigate, paths } from "../router.js";
+import { SpendRing, spendTone } from "../SpendRing.js";
 import {
   Avatar,
   doingOf,
@@ -57,7 +59,6 @@ import {
   toast,
   useConnectionToasts,
 } from "../ui.js";
-import { BUDGET_WARN } from "../viz.js";
 import { PolicyFields, policyOf } from "./FirstRun.js";
 import { InviteRow } from "./ShareSheet.js";
 
@@ -403,21 +404,31 @@ function CrewHeader({
   );
 }
 
-/** "48.2k of 120k" · "no budget" · "spent": mono number, a 3 px hairline with the 80 % tick. */
+/** "48.2k of 120k" · "no budget" · "spent": the spend ring's 18 px cut, then the mono number. */
 function RowMeter({
-  used,
+  usage,
   budget,
   closed,
+  what,
 }: {
-  used: number;
+  usage: Usage;
   budget: number | null;
   closed: boolean;
+  what: string;
 }) {
-  const fraction = budget ? used / budget : null;
-  const tone =
-    fraction === null ? "none" : fraction > 1 ? "over" : fraction >= BUDGET_WARN ? "warn" : "live";
+  const used = usageTotal(usage);
+  const tone = spendTone(used, budget);
   return (
-    <span className={`rowmeter ${tone}`}>
+    <span className="rowmeter" data-tone={tone}>
+      {tone !== "none" && (
+        <SpendRing
+          size="row"
+          input={usage.input}
+          output={usage.output}
+          budget={budget}
+          what={what}
+        />
+      )}
       <span className="figures">
         <span className="mono used">{compactTokens(used)}</span>
         <span className="faint small">
@@ -428,20 +439,8 @@ function RowMeter({
               : copy.project.noBudget}
         </span>
       </span>
-      {budget !== null && budget > 0 && (
-        // biome-ignore lint/a11y/useSemanticElements: a <meter> cannot be drawn as the 3 px hairline with the 80 % tick
-        <span
-          className="track"
-          role="meter"
-          aria-valuemin={0}
-          aria-valuemax={budget}
-          aria-valuenow={Math.min(used, budget)}
-          aria-label={copy.viz.ofBudget(formatTokens(used), formatTokens(budget))}
-        >
-          <span className="fill" style={{ width: `${Math.min(100, (fraction ?? 0) * 100)}%` }} />
-          <span className="tick" />
-        </span>
-      )}
+      {tone === "over" && <span className="small spend-state">{copy.usage.over}</span>}
+      {tone === "near" && <span className="small spend-state">{copy.usage.nearing}</span>}
     </span>
   );
 }
@@ -476,7 +475,7 @@ function BoardRow({
   const online = (row?.people ?? []).filter((p) => p.online);
   const others = online.filter((p) => p.id !== s.ownerId).map((p) => p.name);
   const doing = row ? doingOf(row) : null;
-  const tokens = usageTotal(usageOf(s));
+  const title = s.title || s.sessionId;
   const href = paths.session(projectId, s.sessionId);
   // The one verb the row waits for; nothing on a running row.
   const verb: { label: string; href: string } | null = !s.open
@@ -496,7 +495,7 @@ function BoardRow({
       <span className={`dot ${status === "awaiting_approval" ? "awaiting" : status}`} />
       <a className="what" href={href}>
         <span className="t serif">
-          {s.title || s.sessionId}
+          {title}
           {row && <TeamPill row={row} />}
         </span>
         <span className="s">
@@ -523,7 +522,7 @@ function BoardRow({
           {held && <span className="warn-ink"> · {copy.project.inContention}</span>}
         </span>
       </a>
-      <RowMeter used={tokens} budget={budget} closed={!s.open} />
+      <RowMeter usage={usageOf(s)} budget={budget} closed={!s.open} what={title} />
       <Status status={status} />
       <span className="act">
         {verb && (
@@ -691,9 +690,8 @@ function SpendCard({
   const max = Math.max(...rows.map((r) => r.total), 1);
   const total = usage ? usage.totals.input + usage.totals.output : 0;
   const b = state ? projectBudget(state, budgets) : null;
-  const fraction = b?.budget ? total / b.budget : null;
-  const tone =
-    fraction === null ? "" : fraction > 1 ? " over" : fraction >= BUDGET_WARN ? " warn" : "";
+  const cap = b?.budget ? b.budget : null;
+  const tone = spendTone(total, cap);
   // Plans: did the agents come in under their estimates?
   const plans = Object.values(state?.sessions ?? {})
     .map((s) => s.report?.plan)
@@ -701,7 +699,7 @@ function SpendCard({
   const est = plans.reduce((n, p) => n + p.estTokens, 0);
   const act = plans.reduce((n, p) => n + p.actualTokens, 0);
   return (
-    <section className={`card spend${tone}`} aria-label={copy.project.spend}>
+    <section className="card spend" data-tone={tone} aria-label={copy.project.spend}>
       <div className="row">
         <span className="kicker grow">{copy.project.spend}</span>
         {b?.budget ? (
@@ -710,27 +708,39 @@ function SpendCard({
           </span>
         ) : null}
       </div>
-      <div className="row figure">
-        <span className="stat-value">
-          {compactTokens(total)}
-          <small>{copy.project.spendSessions(usage?.bySession.length ?? 0)}</small>
-        </span>
-        {fraction !== null && <span className="mono pct">{Math.round(fraction * 100)}%</span>}
+      <div className="spend-fig">
+        <SpendRing
+          size="card"
+          input={usage?.totals.input ?? 0}
+          output={usage?.totals.output ?? 0}
+          cacheRead={usage?.cache.read ?? 0}
+          budget={cap}
+          what={copy.project.spendWhat}
+        />
+        <p className="spend-words">
+          <span className="spend-figures">
+            <b className="mono">{formatTokens(total)}</b>{" "}
+            {cap === null
+              ? copy.usage.tokens
+              : `${copy.usage.of(formatTokens(cap))} ${copy.usage.tokens}`}
+          </span>
+          {cap !== null && (
+            <span className="spend-state">
+              {tone === "over"
+                ? copy.usage.overBy(formatTokens(total - cap))
+                : tone === "near"
+                  ? copy.usage.nearing
+                  : copy.usage.leftOf(formatTokens(cap - total))}
+            </span>
+          )}
+          <span className="spend-sessions">
+            {cap !== null &&
+              tone === "near" &&
+              `${copy.usage.leftOf(formatTokens(cap - total))} · `}
+            {copy.project.sessionsCounted(usage?.bySession.length ?? 0)}
+          </span>
+        </p>
       </div>
-      {b?.budget ? (
-        // biome-ignore lint/a11y/useSemanticElements: a <meter> cannot be drawn as the 3 px hairline with the 80 % tick
-        <span
-          className="stat-meter"
-          role="meter"
-          aria-valuemin={0}
-          aria-valuemax={b.budget}
-          aria-valuenow={Math.min(total, b.budget)}
-          aria-label={copy.viz.ofBudget(formatTokens(total), formatTokens(b.budget))}
-        >
-          <span className="fill" style={{ width: `${Math.min(100, (fraction ?? 0) * 100)}%` }} />
-          <span className="tick" />
-        </span>
-      ) : null}
       <ul className="handbars">
         {rows.map((r) => (
           <li key={r.sessionId}>
