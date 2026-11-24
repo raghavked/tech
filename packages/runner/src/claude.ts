@@ -15,6 +15,70 @@ export function claudeAvailable(): boolean {
   );
 }
 
+/** A client that calls the provider with one given key (a workspace's own), never the environment's. */
+export function claudeClientFor(apiKey: string): Anthropic {
+  return new Anthropic({ apiKey, authToken: null });
+}
+
+/** A Claude model that runs on one given key. */
+export function claudeModelFor(apiKey: string, model: string = DEFAULT_CLAUDE_MODEL): ClaudeModel {
+  return new ClaudeModel(model || DEFAULT_CLAUDE_MODEL, claudeClientFor(apiKey));
+}
+
+/** True when the provider turned the key itself down (wrong, revoked, or not allowed to do this). */
+export function claudeKeyRefused(err: unknown): boolean {
+  return (
+    err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError
+  );
+}
+
+export type KeyCheck =
+  | { ok: true }
+  | { ok: false; reason: "refused" | "unreachable" | "model"; message: string };
+
+/**
+ * Ask the provider whether a key works, without spending a token: list one model with it (and,
+ * when a model id is named, look that model up). `refused` is the provider saying no to the
+ * key; `model` is a key that works but cannot see the model named; `unreachable` is anything
+ * else (the network, the provider being down), which says nothing about the key.
+ */
+export async function checkClaudeKey(apiKey: string, model?: string): Promise<KeyCheck> {
+  const client = claudeClientFor(apiKey);
+  try {
+    await client.models.list({ limit: 1 });
+  } catch (err) {
+    if (claudeKeyRefused(err))
+      return { ok: false, reason: "refused", message: "Anthropic did not accept this key." };
+    return {
+      ok: false,
+      reason: "unreachable",
+      message: "Anthropic could not be reached to check the key. Try again in a moment.",
+    };
+  }
+  if (model) {
+    try {
+      await client.models.retrieve(model);
+    } catch (err) {
+      if (err instanceof Anthropic.NotFoundError || claudeKeyRefused(err))
+        return { ok: false, reason: "model", message: `This key cannot use the model ${model}.` };
+      return {
+        ok: false,
+        reason: "unreachable",
+        message: "Anthropic could not be reached to check the model. Try again in a moment.",
+      };
+    }
+  }
+  return { ok: true };
+}
+
+/** The models a key can use, newest first, as the provider lists them. */
+export async function listClaudeModels(apiKey: string): Promise<{ id: string; name: string }[]> {
+  const out: { id: string; name: string }[] = [];
+  for await (const m of claudeClientFor(apiKey).models.list({ limit: 100 }))
+    out.push({ id: m.id, name: m.display_name });
+  return out;
+}
+
 const SYSTEM = `You are the shared agent in a Henosis session: several humans watch and steer you at once.
 The session's composed intent below is authoritative; it already arbitrates between them.
 Respect every standing constraint. Do not act on scopes marked under discussion.

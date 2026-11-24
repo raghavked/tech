@@ -15,11 +15,13 @@ import {
 import {
   authConfigFromEnv,
   HenosisServer,
+  keysSecretFrom,
   migrateStore,
   openLiveStore,
   openStoreEnd,
   renderMigrateTable,
   storeKindOf,
+  tenancyFromEnv,
 } from "@henosis/server";
 import {
   councilSection,
@@ -151,6 +153,7 @@ async function main(): Promise<number> {
       const token = typeof tokenFlag === "string" ? tokenFlag : process.env.HENOSIS_TOKEN;
       const auth = authConfigFromEnv(process.env, token);
       const { kind, store } = await pickStore(flags, root);
+      const tenancy = tenancyFromEnv(process.env);
       const server = new HenosisServer({
         root,
         store,
@@ -158,6 +161,10 @@ async function main(): Promise<number> {
         tools: defaultTools(),
         token,
         auth,
+        tenancy,
+        // A workspace can connect its own model key in Settings; a folder store keeps the
+        // secret that seals them beside itself when HENOSIS_KEYS_SECRET is not set.
+        keysSecret: keysSecretFrom(process.env, kind === "file" ? root : null),
         log: (l) => process.stderr.write(`${l}\n`),
       });
       server.integrations.email = mailConfigured(process.env);

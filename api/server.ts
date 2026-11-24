@@ -11,25 +11,32 @@
  *
  *   HENOSIS_STORE=postgres + HENOSIS_DATABASE_URL   the store (file under HENOSIS_DIR otherwise)
  *   HENOSIS_DIR                                      the blobs root (/tmp/henosis-store by default)
- *   ANTHROPIC_API_KEY, HENOSIS_OFFLINE=1             the Claude model, or the scripted one
+ *   HENOSIS_KEYS_SECRET                              seals the model key each workspace connects
+ *   HENOSIS_TENANCY                                  `workspaces` (the default under Supabase
+ *                                                    sign-in) or `shared`
  *   HENOSIS_AUTH=supabase, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_JWT_SECRET, HENOSIS_AUTO_JOIN
  *   HENOSIS_TOKEN                                    the dev-mode shared token instead
  *
- * Everything the function does with the store, the model and identity is the same code
+ * Models: the hosted service has no provider key of its own and reads none from the
+ * environment. Each workspace connects its own key in Settings (bring your own key) and its
+ * agents run on that; a workspace without one runs the scripted demo model.
+ *
+ * Everything else the function does with the store and identity is the same code
  * `henosis serve` runs; only the http server is Vercel's.
  */
 import { mkdirSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import type { Duplex } from "node:stream";
+import { defaultTools, ScriptedModel } from "@henosis/runner";
 import {
-  ClaudeModel,
-  claudeAvailable,
-  defaultTools,
-  type Model,
-  ScriptedModel,
-} from "@henosis/runner";
-import { authConfigFromEnv, HenosisServer, openLiveStore, storeKindOf } from "@henosis/server";
+  authConfigFromEnv,
+  HenosisServer,
+  keysSecretFrom,
+  openLiveStore,
+  storeKindOf,
+  tenancyFromEnv,
+} from "@henosis/server";
 
 /** Fluid compute: a session's websocket may stay open this long (seconds). */
 export const config = { maxDuration: 300 };
@@ -45,12 +52,6 @@ let attached = false;
 
 const log = (line: string) => process.stderr.write(`${line}\n`);
 
-/** The model `henosis serve --model claude` would run, when the key is there; the scripted one otherwise. */
-function pickModel(): Model {
-  if (process.env.HENOSIS_OFFLINE === "1" || !claudeAvailable()) return new ScriptedModel();
-  return new ClaudeModel();
-}
-
 async function build(): Promise<HenosisServer> {
   const root = resolve(process.env.HENOSIS_DIR || "/tmp/henosis-store");
   mkdirSync(root, { recursive: true });
@@ -62,11 +63,16 @@ async function build(): Promise<HenosisServer> {
   });
   const token = process.env.HENOSIS_TOKEN;
   const auth = authConfigFromEnv(process.env, token);
-  const model = pickModel();
+  const tenancy = tenancyFromEnv(process.env, auth.mode === "supabase" ? "workspaces" : "shared");
+  const keysSecret = keysSecretFrom(process.env);
   const server = new HenosisServer({
     root,
     store,
-    model,
+    // The demo model; a workspace's real work runs on the key it connected, never on one of ours.
+    model: new ScriptedModel(),
+    envKey: false,
+    keysSecret,
+    tenancy,
     tools: defaultTools(),
     token,
     auth,
@@ -74,7 +80,9 @@ async function build(): Promise<HenosisServer> {
   });
   server.attach(http, { wsPath: null, apiPrefix: API_PREFIX });
   attached = true;
-  log(`henosis function up (model ${server.describe().model}, store ${kind}, auth ${auth.mode})`);
+  log(
+    `henosis function up (store ${kind}, auth ${auth.mode}, tenancy ${tenancy}, workspace keys ${keysSecret ? "on" : "off: set HENOSIS_KEYS_SECRET"})`,
+  );
   return server;
 }
 

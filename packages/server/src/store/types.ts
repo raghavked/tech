@@ -57,6 +57,11 @@ export interface LiveStore {
   listDocs(): string[];
   /** Resolves once every write so far has reached the durable copy (at once for a file). */
   flush(): Promise<void>;
+  /**
+   * A store another process may also write (a database behind several instances): read the
+   * documents again and name those that changed. Absent on a store one process owns.
+   */
+  refreshDocs?(): Promise<string[]>;
   close(): Promise<void>;
 }
 

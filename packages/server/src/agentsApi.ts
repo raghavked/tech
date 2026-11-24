@@ -95,9 +95,25 @@ export function handleAgentsApi(
       mine: mine(),
       manager: user ? isManager(user) : false,
       chairPersona: CHAIR_PERSONA,
-      shared: ctx.orgs.sharedAgents().map(agentRow),
+      // On a server of workspaces: the shared agents of the person's own workspaces.
+      shared: (ctx.orgs.strict
+        ? ctx.orgs.orgsFor(userId).flatMap((o) => ctx.orgs.sharedAgents(o.id))
+        : ctx.orgs.sharedAgents()
+      ).map(agentRow),
       leads: ctx.orgs.agentLeadsFor(userId),
-      providers: { scripted: true, claude: ctx.models.claudeAvailable() },
+      providers: {
+        scripted: true,
+        // Claude runs here on the server's own key, or on the key of a workspace the person is in.
+        claude:
+          ctx.models.claudeAvailable() ||
+          ctx.orgs.orgsFor(userId).some((o) => ctx.models.claudeAvailable(o.id)),
+      },
+      // The workspaces of the person that run on their own key: there every agent runs on the
+      // workspace's model, whatever its profile says of the stand-in.
+      keyed: ctx.orgs
+        .orgsFor(userId)
+        .filter((o) => ctx.models.keyed(o.id))
+        .map((o) => ({ orgId: o.id, model: ctx.models.sessionModelName(o.id) })),
       tools: ctx.tools.specs().map((t) => ({ name: t.name, risk: t.risk })),
     });
     if (!write) return json(200, describe());
@@ -126,7 +142,11 @@ export function handleAgentsApi(
   if (!ctx.orgs.orgs.orgs.some((o) => o.id === orgId))
     return json(404, { error: `unknown organisation ${orgId}` });
   const canEdit = ctx.orgs.canManageAgents(userId, orgId);
-  const describe = () => ({ orgId, agents: ctx.orgs.sharedAgents().map(agentRow), canEdit });
+  const describe = () => ({
+    orgId,
+    agents: ctx.orgs.sharedAgents(orgId).map(agentRow),
+    canEdit,
+  });
   if (!write) return json(200, describe());
   if (!canEdit)
     return json(403, {
@@ -144,7 +164,7 @@ export function handleAgentsApi(
     const input = SharedAgentsInput.safeParse(raw);
     if (!input.success) return json(400, { error: issues("agents", input.error) });
     try {
-      ctx.orgs.setSharedAgents(input.data);
+      ctx.orgs.setSharedAgents(input.data, orgId);
     } catch (err) {
       return json(400, { error: err instanceof Error ? err.message : String(err) });
     }

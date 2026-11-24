@@ -40,7 +40,13 @@ import {
   type SessionPolicy,
   usageTotal,
 } from "@henosis/protocol";
-import { ClaudeModel, claudeAvailable, type Model, type ToolRegistry } from "@henosis/runner";
+import {
+  checkClaudeKey,
+  type KeyCheck,
+  listClaudeModels,
+  type Model,
+  type ToolRegistry,
+} from "@henosis/runner";
 import { type RawData, type WebSocket, WebSocketServer } from "ws";
 import { agentRow, handleAgentsApi } from "./agentsApi.js";
 import { Auth, type AuthConfig, AuthError, type AuthMode, type Principal } from "./auth.js";
@@ -59,14 +65,16 @@ import {
   UsageDays,
 } from "./glance.js";
 import type { ClientLink, SessionHost } from "./host.js";
+import { KeyVault } from "./keys.js";
 import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
 import { ModelFactory } from "./models.js";
 import { Notifier, type PushSubscription } from "./notify.js";
-import { DEFAULT_AUTO_JOIN, OrgRegistry } from "./orgs.js";
+import { DEFAULT_AUTO_JOIN, OrgRegistry, type Tenancy } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
 import { SAVED_SEARCH_PATH, SavedSearches, SEARCH_PATH, search, searchQueryOf } from "./search.js";
 import { FileStore, type LiveStore, LogWriter, MirrorStore } from "./store/index.js";
 import { computeUsage, USAGE_PATH, usageQueryOf } from "./usageApi.js";
+import { handleWorkspaceApi } from "./workspaceApi.js";
 
 export interface ServerOptions {
   /** The store root: the file store's folder, and where blobs live in every edition. */
@@ -91,6 +99,29 @@ export interface ServerOptions {
   log?: (line: string) => void;
   /** Which adapters run beside this server; reported by GET /api/integrations. */
   integrations?: Partial<Integrations>;
+  /**
+   * How the server holds organisations (orgs.ts): `shared`, the one-company server, by
+   * default; `workspaces` for the hosted service, where each company makes its own workspace
+   * and sees only that.
+   */
+  tenancy?: Tenancy | undefined;
+  /**
+   * The secret workspaces' model keys are sealed with (keys.ts, `keysSecretFrom`). Without it
+   * the server keeps no keys and Settings says so.
+   */
+  keysSecret?: string | null | undefined;
+  /**
+   * Whether the server's own environment key may be called. True by default (`henosis serve`
+   * on a person's own machine); the hosted service passes false, so only the key a workspace
+   * connected ever reaches the provider for that workspace.
+   */
+  envKey?: boolean | undefined;
+  /** Whether every provider call is blocked; HENOSIS_OFFLINE by default (tests inject). */
+  offline?: (() => boolean) | undefined;
+  /** How a key is checked with the provider, its models listed and its model built (tests inject stubs). */
+  buildKeyed?: ((apiKey: string, modelId: string) => Model) | undefined;
+  checkKey?: ((key: string, model?: string) => Promise<KeyCheck>) | undefined;
+  listModels?: ((key: string) => Promise<{ id: string; name: string }[]>) | undefined;
 }
 
 /** How `attach` mounts the server on an http server it did not create (docs/20_hosting.md). */
@@ -117,6 +148,9 @@ export interface Integrations {
 }
 
 const DEFAULT_POLICY: SessionPolicy = { ...DEFAULT_SESSION_POLICY };
+
+/** How old the documents of a shared database may be before a read refreshes them. */
+const FRESH_FOR_MS = 2000;
 
 type AnyClientMessage = ClientMessage | ProjectClientMessage | ChatClientMessage;
 const AnyClientMessageSchema = ClientMessage.or(ProjectClientMessage).or(ChatClientMessage);
@@ -149,8 +183,8 @@ export class HenosisServer {
   readonly chats = new Map<string, ChatHost>();
   /** One council host per organisation: it runs the councils its chat log convenes. */
   readonly councils = new Map<string, CouncilHost>();
-  /** Claude models by model id, one per distinct id a member profile names. */
-  private readonly claudeModels = new Map<string, Model>();
+  /** The workspaces' own model keys, sealed (keys.ts). */
+  readonly vault: KeyVault;
   readonly notifier: Notifier;
   /** Who is asking: dev-mode assertions or verified ID tokens (auth.ts). */
   readonly auth: Auth;
@@ -178,19 +212,41 @@ export class HenosisServer {
     // Every push payload carries the needs-you figure, so the badge and the tab agree.
     this.notifier.badge = (userId) => this.glance(userId).needsYou;
     this.integrations = { slack: false, github: false, email: false, ...opts.integrations };
-    this.models = new ModelFactory({ log: opts.log });
-    // supabase mode: a verified stranger is placed by the auto-join rules (orgs.ts).
+    this.vault = new KeyVault(this.store, opts.keysSecret ?? null);
+    this.models = new ModelFactory({
+      vault: this.vault,
+      fallback: opts.model,
+      ...(opts.envKey === false ? { claude: () => false } : {}),
+      ...(opts.offline ? { offline: opts.offline } : {}),
+      ...(opts.buildKeyed ? { buildKeyed: opts.buildKeyed } : {}),
+      log: opts.log,
+    });
+    this.orgs.tenancy = opts.tenancy ?? "shared";
+    // supabase mode on a one-org server: a verified stranger is placed by the auto-join rules
+    // (orgs.ts). On a server of workspaces nobody is placed: people make or join a workspace.
     this.orgs.autoJoin =
-      opts.auth?.mode === "supabase" ? (opts.auth.autoJoin ?? DEFAULT_AUTO_JOIN) : [];
+      opts.auth?.mode === "supabase" && !this.orgs.strict
+        ? (opts.auth.autoJoin ?? DEFAULT_AUTO_JOIN)
+        : [];
     for (const o of this.orgs.orgs.orgs) this.chat(o.id);
   }
 
   /** What `/health` reports beside the sessions: the model, the store and the identity mode in use. */
-  describe(): { model: "scripted" | "claude"; store: "file" | "postgres"; auth: AuthMode } {
+  describe(): {
+    model: "scripted" | "claude";
+    store: "file" | "postgres";
+    auth: AuthMode;
+    tenancy: Tenancy;
+    keys: boolean;
+  } {
     return {
+      // The server's own model: what a workspace without a key of its own runs on.
       model: this.opts.model.name.startsWith("scripted") ? "scripted" : "claude",
       store: this.store instanceof MirrorStore ? "postgres" : "file",
       auth: this.auth.mode,
+      tenancy: this.orgs.tenancy,
+      // Whether workspaces can connect their own model key here (the vault has a secret).
+      keys: this.vault.configured,
     };
   }
 
@@ -230,8 +286,11 @@ export class HenosisServer {
   private glanceSource(userId: string): GlanceSource {
     const projects: ProjectHost[] = [];
     for (const p of this.orgs.projectsFor(userId)) projects.push(this.project(p.projectId));
-    for (const [id, p] of this.projects)
-      if (!projects.some((x) => x.projectId === id)) projects.push(p);
+    // A one-org server also counts the projects that are open; a person sees only their own
+    // workspaces' on a server of several.
+    if (!this.orgs.strict)
+      for (const [id, p] of this.projects)
+        if (!projects.some((x) => x.projectId === id)) projects.push(p);
     const user = this.orgs.user(userId);
     return {
       projects,
@@ -257,7 +316,8 @@ export class HenosisServer {
       orgId: ref.orgId,
       teamId: ref.teamId,
       name: ref.name,
-      model: this.opts.model,
+      // The workspace's own key when it connected one, else the server's model (models.ts).
+      model: this.models.sessionModel(ref.orgId),
       tools: this.opts.tools,
       sessionPolicy: this.opts.defaultPolicy ?? DEFAULT_POLICY,
       memory: this.memory(ref.orgId),
@@ -322,7 +382,7 @@ export class HenosisServer {
       chat: host.chat,
       projectFor: (group) => this.projectForGroup(orgId, group),
       profile: (profileId) => this.orgs.agentProfile(profileId),
-      modelFor: (profile) => this.memberModel(profile),
+      modelFor: (profile) => this.memberModel(orgId, profile),
       personName: (userId) => this.orgs.user(userId)?.name ?? this.names.get(userId) ?? userId,
       onUsage: (userId, usage) => this.usageDays.record(userId, usage),
       log: this.opts.log,
@@ -353,20 +413,15 @@ export class HenosisServer {
     return projectId ? this.project(projectId) : null;
   }
 
-  /** The model a member profile speaks through; the scripted server model is the offline fallback. */
-  private memberModel(profile: AgentProfile | null): Model {
-    if (!profile) return this.opts.model;
-    if (this.opts.modelFor) return this.opts.modelFor(profile);
-    if (profile.provider === "claude" && claudeAvailable()) {
-      const key = profile.model || "default";
-      let m = this.claudeModels.get(key);
-      if (!m) {
-        m = profile.model ? new ClaudeModel(profile.model) : new ClaudeModel();
-        this.claudeModels.set(key, m);
-      }
-      return m;
-    }
-    return this.opts.model;
+  /**
+   * The model a member profile speaks through in a workspace's council: the workspace's own
+   * key when it connected one; else what the server offers (models.ts), the server's model
+   * being the offline fallback.
+   */
+  private memberModel(orgId: string, profile: AgentProfile | null): Model {
+    if (!profile) return this.models.sessionModel(orgId);
+    if (this.opts.modelFor && !this.models.keyed(orgId)) return this.opts.modelFor(profile);
+    return this.models.modelFor(profile, orgId);
   }
 
   /** Who is in the organisation, which sessions it runs and who leads, as the chat needs them. */
@@ -378,7 +433,8 @@ export class HenosisServer {
       const u = this.orgs.user(userId);
       // Phase-0 identity: a person users.json does not know is in, as they are for projects
       // and sessions (first in owns); a known person is in only where their memberships say.
-      if (!u) return true;
+      // On a server of workspaces nobody is in a workspace on trust.
+      if (!u) return !this.orgs.strict;
       return (
         u.orgs.some((o) => o.orgId === orgId) ||
         u.teams.some((t) => teamIds().includes(t.teamId)) ||
@@ -403,11 +459,12 @@ export class HenosisServer {
       },
       isLead: (userId, scope) => this.isLead(userId, orgId, scope),
       // Phase-0 identity (no users.json, no agents.json) takes member models on trust.
-      ...(this.orgs.users.size > 0 || this.orgs.agents.agents.length > 0
+      ...(this.orgs.strict || this.orgs.users.size > 0 || this.orgs.agents.agents.length > 0
         ? {
             profile: (profileId: string) => {
               const p = this.orgs.agentProfile(profileId);
-              return p ? { id: p.id, name: p.name, ownerId: p.ownerId } : null;
+              if (!p || !this.orgs.agentInOrg(p, orgId)) return null;
+              return { id: p.id, name: p.name, ownerId: p.ownerId };
             },
           }
         : {}),
@@ -695,7 +752,7 @@ export class HenosisServer {
       (userId ? (this.orgs.user(userId)?.teams ?? []) : [])
         .filter((m) => m.role === "manager" && teamIds.includes(m.teamId))
         .map((m) => m.teamId);
-    const models = this.orgs.agentProfiles().map((p) => ({
+    const models = this.orgs.agentProfiles(orgId).map((p) => ({
       profileId: p.id,
       name: p.name,
       ownerId: p.ownerId,
@@ -774,12 +831,94 @@ export class HenosisServer {
     return out;
   }
 
-  /** Find which project a stored session belongs to, defaulting to "default". */
-  projectOfSession(sessionId: string): string {
+  private freshAt = 0;
+  private freshening: Promise<void> | null = null;
+
+  /**
+   * A database that several instances of the server share: read its documents again (who is
+   * in which workspace, the sealed keys, the invitations) when they are older than a moment,
+   * or at once when `force` (before a write, and where a stale answer would send a person who
+   * just made or joined a workspace away). A store one process owns has nothing to refresh.
+   */
+  private freshen(force = false): Promise<void> {
+    const refresh = this.store.refreshDocs?.bind(this.store);
+    if (!refresh) return Promise.resolve();
+    if (!force && Date.now() - this.freshAt < FRESH_FOR_MS) return Promise.resolve();
+    if (this.freshening) return this.freshening;
+    this.freshening = refresh()
+      .then((changed) => {
+        this.freshAt = Date.now();
+        if (changed.some((n) => n === "orgs" || n === "users" || n === "agents" || n === "invites"))
+          this.orgs.reload();
+        if (changed.includes("keys")) this.vault.reload();
+      })
+      .catch((err: unknown) => {
+        this.opts.log?.(
+          `store: refresh failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      })
+      .finally(() => {
+        this.freshening = null;
+      });
+    return this.freshening;
+  }
+
+  /** The project a session lives in (open or stored), or null when no session has that id. */
+  sessionHome(sessionId: string): string | null {
     for (const [id, p] of this.projects) if (p.hosts.has(sessionId)) return id;
     const log = this.store.readLog("session", sessionId) as SerializedLog | null;
     const created = log?.events.main?.[0];
-    return created?.kind === "session.created" ? created.payload.projectId : "default";
+    return created?.kind === "session.created" ? created.payload.projectId : null;
+  }
+
+  /** Find which project a stored session belongs to, defaulting to "default". */
+  projectOfSession(sessionId: string): string {
+    return this.sessionHome(sessionId) ?? "default";
+  }
+
+  /**
+   * On a server of workspaces: refuse (as "not found") a project outside the person's
+   * workspaces, and a session id that already lives in another project, since a session is
+   * opened by its id and one workspace must never open another's.
+   */
+  private admit(userId: string | null, projectId: string, sessionId?: string): void {
+    if (!this.orgs.strict) return;
+    const ref = this.orgs.project(projectId);
+    if (!userId || !ref || !this.orgs.isMember(userId, ref.orgId))
+      throw new KernelError("not_found", `unknown project ${projectId}`);
+    if (sessionId) {
+      const home = this.sessionHome(sessionId);
+      if (home && home !== projectId)
+        throw new KernelError("invalid", "that session id is taken; pick another");
+    }
+  }
+
+  /**
+   * On a server of workspaces: which org a route reads, so a person outside it is told it
+   * does not exist. Null for a route that is about the person alone; undefined when the thing
+   * the route names is unknown.
+   */
+  private orgOfRoute(url: URL): string | null | undefined {
+    const path = url.pathname;
+    const part = (re: RegExp) => {
+      const m = path.match(re);
+      return m ? decodeURIComponent(m[1] as string) : null;
+    };
+    const team = part(/^\/api\/teams\/([^/]+)\/theme$/);
+    if (team) return this.orgs.orgOfTeam(team) ?? undefined;
+    const org =
+      part(/^\/api\/agents\/([^/]+)$/) ??
+      part(/^\/api\/memory\/([^/]+)/) ??
+      part(/^\/api\/chat\/([^/]+)/);
+    if (org) return org;
+    const project = part(/^\/api\/projects\/([^/]+)/);
+    if (project) return this.orgs.project(project)?.orgId ?? undefined;
+    const session = part(EXPORT_PATH);
+    if (session) {
+      const home = this.sessionHome(session);
+      return (home ? this.orgs.project(home)?.orgId : undefined) ?? undefined;
+    }
+    return null;
   }
 
   host(
@@ -875,15 +1014,21 @@ export class HenosisServer {
       void this.auth.describe().then((d) => json(200, d));
       return;
     }
-    void this.auth
-      .authenticate({ token: bearerOf(req, url), userId: url.searchParams.get("user") })
+    // Writes, and the two reads a person makes right after making or joining a workspace,
+    // answer from documents read this instant; other reads from ones a moment old at most.
+    const fresh =
+      req.method !== "GET" || url.pathname === "/api/me" || url.pathname === "/api/workspaces";
+    void this.freshen(fresh)
+      .then(() =>
+        this.auth.authenticate({ token: bearerOf(req, url), userId: url.searchParams.get("user") }),
+      )
       .then(
         (who) => {
           if (who?.verified) {
             this.orgs.resolve(who);
             if (!url.searchParams.get("user")) url.searchParams.set("user", who.userId);
           }
-          this.route(req, res, url);
+          this.route(req, res, url, who);
         },
         (err: unknown) =>
           json(err instanceof AuthError ? 401 : 500, {
@@ -892,16 +1037,39 @@ export class HenosisServer {
       );
   }
 
-  private route(req: IncomingMessage, res: ServerResponse, url: URL): boolean {
+  private route(
+    req: IncomingMessage,
+    res: ServerResponse,
+    url: URL,
+    who: Principal | null = null,
+  ): boolean {
     const json = jsonOn(res);
     try {
+      const strict = this.orgs.strict;
       if (url.pathname === "/health" || url.pathname === "/api/health")
         return json(200, {
           ok: true,
           ...this.describe(),
-          sessions: this.sessions(),
-          projects: [...this.projects.keys()],
+          // A server of workspaces tells a stranger nothing of what it holds.
+          sessions: strict ? [] : this.sessions(),
+          projects: strict ? [] : [...this.projects.keys()],
         });
+      if (strict) {
+        // Every other route is for a signed-in person, and reads one workspace at most: theirs.
+        const me = who?.userId ?? null;
+        if (!me) return json(401, { error: "unauthorized: sign in first" });
+        url.searchParams.set("user", me);
+        const orgId = this.orgOfRoute(url);
+        if (orgId === undefined || (orgId !== null && !this.orgs.isMember(me, orgId)))
+          return json(404, { error: "not found" });
+        // Usage and search read one workspace: the one asked for when it is the person's own,
+        // else their first; a person in none reads an org that does not exist, so nothing.
+        if (url.pathname === USAGE_PATH || url.pathname === SEARCH_PATH) {
+          const asked = url.searchParams.get("org");
+          const mine = this.orgs.orgsFor(me).map((o) => o.id);
+          url.searchParams.set("org", asked && mine.includes(asked) ? asked : (mine[0] ?? "~"));
+        }
+      }
       if (url.pathname === "/api/me") {
         const userId = url.searchParams.get("user");
         const user = this.orgs.user(userId);
@@ -910,8 +1078,32 @@ export class HenosisServer {
           projects: this.orgs.projectsFor(userId),
           // team-theme: the teams whose look this user may change (Settings, "Team look").
           styles: this.orgs.styledTeamsFor(userId),
+          // Whether people make their own workspaces here (`workspaces`) or the server is one org.
+          tenancy: this.orgs.tenancy,
         });
       }
+      // Workspaces, members, invitations and the model key a workspace brings (workspaceApi.ts).
+      if (
+        handleWorkspaceApi(
+          req,
+          url,
+          who,
+          {
+            orgs: this.orgs,
+            auth: this.auth,
+            vault: this.vault,
+            models: this.models,
+            checkKey: this.opts.checkKey ?? checkClaudeKey,
+            listModels: this.opts.listModels ?? listClaudeModels,
+            offline: this.opts.offline ?? (() => Boolean(process.env.HENOSIS_OFFLINE)),
+            nameOf: (id) => this.names.get(id) ?? null,
+            onCreated: (orgId) => void this.chat(orgId),
+            log: this.opts.log,
+          },
+          json,
+        )
+      )
+        return true;
       // team-theme: GET reads a team's look; PUT (a lead or manager of the team) sets or clears it.
       const tt = url.pathname.match(/^\/api\/teams\/([^/]+)\/theme$/);
       if (tt) {
@@ -950,7 +1142,11 @@ export class HenosisServer {
         }
         return json(200, { teamId, name: found.team.name, theme: found.team.theme ?? null });
       }
-      if (url.pathname === "/api/orgs") return json(200, this.orgs.orgs);
+      if (url.pathname === "/api/orgs")
+        return json(
+          200,
+          strict ? { orgs: this.orgs.orgsFor(url.searchParams.get("user")) } : this.orgs.orgs,
+        );
       // Member models (agentsApi.ts): a person's own agent and the org's shared team agents.
       if (
         handleAgentsApi(
@@ -1082,6 +1278,8 @@ export class HenosisServer {
           const sub = JSON.parse(body) as PushSubscription;
           if (!sub.userId || !sub.platform || !sub.token)
             return json(400, { error: "userId, platform and token are required" });
+          if (strict && sub.userId !== who?.userId)
+            return json(403, { error: "a device subscribes for the person signed in on it" });
           this.notifier.subscribe(sub);
           return json(200, {
             ok: true,
@@ -1336,6 +1534,13 @@ export class HenosisServer {
         return;
       }
       try {
+        // Joining and subscribing decide by membership: read it fresh where it is shared.
+        if (
+          msg.type === "join" ||
+          msg.type === "project.subscribe" ||
+          msg.type === "chat.subscribe"
+        )
+          await this.freshen(this.orgs.strict);
         if (msg.type === "join") {
           let who: Principal | null;
           try {
@@ -1355,6 +1560,7 @@ export class HenosisServer {
             : msg.actor;
           userId = msg.userId ?? actor.id;
           const pid = msg.projectId ?? this.projectOfSession(msg.sessionId);
+          this.admit(who ? userId : null, pid, msg.sessionId);
           projectHost = this.project(pid);
           this.ensureLedgerRole(projectHost, userId);
           const ref = this.orgs.project(pid);
@@ -1372,7 +1578,8 @@ export class HenosisServer {
           return;
         }
         if (msg.type === "project.subscribe") {
-          await identify(msg.token, msg.userId ?? userId);
+          const who = await identify(msg.token, msg.userId ?? userId);
+          this.admit(who?.userId ?? null, msg.projectId);
           if (subscriber && projectHost) projectHost.unsubscribe(subscriber);
           projectHost = this.project(msg.projectId);
           userId = msg.userId ?? userId;
@@ -1387,7 +1594,9 @@ export class HenosisServer {
           return;
         }
         if (msg.type === "chat.subscribe") {
-          await identify(msg.token, msg.userId, msg.name);
+          const who = await identify(msg.token, msg.userId, msg.name);
+          if (this.orgs.strict && (!who || !this.orgs.isMember(msg.userId, msg.orgId)))
+            throw new KernelError("not_found", `unknown organisation ${msg.orgId}`);
           if (chatSub && chatHost) chatHost.unsubscribe(chatSub);
           userId = msg.userId;
           if (msg.name && !this.orgs.user(msg.userId)) this.names.set(msg.userId, msg.name);
@@ -1493,6 +1702,7 @@ export class HenosisServer {
               projectHost.project.setPolicy(me, msg.policy);
               break;
             case "session.create":
+              this.admit(me, projectHost.projectId, msg.sessionId);
               projectHost.session(msg.sessionId, {
                 title: msg.title,
                 ownerId: me,

@@ -30,6 +30,8 @@ export const AgentProfile = z.object({
   persona: z.string().max(4000).default(""),
   tools: z.array(z.string().min(1)).default([]),
   budget: z.number().int().min(1).nullable().default(null),
+  /** A shared team agent's workspace, where one server holds several; absent on a one-org server. */
+  orgId: z.string().min(1).optional(),
 });
 export type AgentProfile = z.infer<typeof AgentProfile>;
 
@@ -38,11 +40,15 @@ export type AgentProfile = z.infer<typeof AgentProfile>;
  * shared one: everything but the id and the owner, which the store decides. Every field is
  * optional; what is absent keeps its default (a manager's persona stays the chair's).
  */
-export const AgentProfileInput = AgentProfile.omit({ id: true, ownerId: true }).partial();
+export const AgentProfileInput = AgentProfile.omit({
+  id: true,
+  ownerId: true,
+  orgId: true,
+}).partial();
 export type AgentProfileInput = z.infer<typeof AgentProfileInput>;
 
 /** A shared team agent as a lead writes it: a profile with its id and no owner. */
-export const SharedAgentInput = AgentProfile.omit({ ownerId: true });
+export const SharedAgentInput = AgentProfile.omit({ ownerId: true, orgId: true });
 export type SharedAgentInput = z.infer<typeof SharedAgentInput>;
 
 export const User = z.object({
@@ -212,6 +218,9 @@ export const OrgsFile = z.object({
     z.object({
       id: z.string(),
       name: z.string(),
+      /** A workspace a person made for their company: who made it and when (ISO). */
+      createdBy: z.string().optional(),
+      createdAt: z.string().optional(),
       teams: z.array(
         z.object({
           id: z.string(),

@@ -2,6 +2,8 @@
  * Org registry: the `orgs`, `users` and `agents` (the shared team agents) documents of the
  * store, with sane defaults when absent.
  */
+
+import { createHash, randomBytes } from "node:crypto";
 import {
   AgentProfile,
   type AgentProfileInput,
@@ -28,8 +30,103 @@ import {
   UsersFile,
 } from "@henosis/fleet";
 import type { Role } from "@henosis/protocol";
+import { z } from "zod";
 import type { Principal } from "./auth.js";
 import { FileStore, type LiveStore } from "./store/index.js";
+
+/**
+ * How one server holds organisations. `shared` is the one-company server the product began
+ * as: identity places people, and a person placed nowhere still sees the organisation as an
+ * observer. `workspaces` is the hosted service: each company makes its own workspace (an
+ * org), invites its people, and nothing of a workspace is visible to anyone outside it.
+ */
+export type Tenancy = "shared" | "workspaces";
+
+/**
+ * `HENOSIS_TENANCY`: `workspaces` or `shared`; `fallback` when unset (the hosted function
+ * passes `workspaces` under Supabase sign-in, `henosis serve` passes `shared`).
+ */
+export function tenancyFromEnv(
+  env: Record<string, string | undefined>,
+  fallback: Tenancy = "shared",
+): Tenancy {
+  const asked = env.HENOSIS_TENANCY?.trim().toLowerCase();
+  if (!asked) return fallback;
+  if (asked === "workspaces" || asked === "shared") return asked;
+  throw new Error(`HENOSIS_TENANCY=${asked} is not a mode; use workspaces or shared`);
+}
+
+/** A workspace role: an admin manages members, invites, the model key, teams and projects. */
+export type WorkspaceRole = "admin" | "member";
+
+export const INVITES_DOC = "invites";
+/** How long an invitation link works. */
+export const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+/** How many workspaces one person may make; a guard against a script making thousands. */
+export const MAX_WORKSPACES_PER_PERSON = 5;
+
+const Invite = z.object({
+  id: z.string(),
+  orgId: z.string(),
+  /** SHA-256 of the token; the token itself is shown once, to the person who made the link. */
+  tokenHash: z.string(),
+  role: z.enum(["admin", "member"]).default("member"),
+  /** When set, only a person signed in with this address may accept, once. */
+  email: z.string().optional(),
+  createdBy: z.string(),
+  createdAt: z.string(),
+  expiresAt: z.string(),
+  uses: z.number().int().default(0),
+  revoked: z.boolean().default(false),
+});
+export type Invite = z.infer<typeof Invite>;
+const InvitesFile = z.object({ invites: z.array(Invite).default([]) });
+
+/** An invitation as the API shows it: never the token or its hash. */
+export interface InviteView {
+  id: string;
+  orgId: string;
+  role: WorkspaceRole;
+  email: string | null;
+  createdBy: string;
+  createdAt: string;
+  expiresAt: string;
+  uses: number;
+  state: "open" | "used" | "expired" | "revoked";
+}
+
+/** A refusal the API turns into a status: 400 `invalid`, 403 `forbidden`, 404 `not_found`, 409 `conflict`. */
+export class WorkspaceError extends Error {
+  constructor(
+    readonly code: "invalid" | "forbidden" | "not_found" | "conflict",
+    message: string,
+  ) {
+    super(message);
+    this.name = "WorkspaceError";
+  }
+}
+
+/** A person as the registry needs them to write their row: who a verified token named. */
+export interface PersonSeed {
+  userId: string;
+  name?: string | null | undefined;
+  email?: string | null | undefined;
+}
+
+/** An id made from a name: lowercase letters, digits and hyphens, at most 32 characters. */
+export function slugOf(name: string): string {
+  const slug = name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32)
+    .replace(/-+$/g, "");
+  return slug;
+}
+
+const hashToken = (token: string): string => createHash("sha256").update(token).digest("hex");
 
 /**
  * Where a verified person nobody has placed yet lands (supabase mode, docs/20_hosting.md):
@@ -92,6 +189,10 @@ export class OrgRegistry {
   readonly agents: AgentsFile;
   /** Where a verified stranger is placed (see `AutoJoinRule`); empty outside supabase mode. */
   autoJoin: readonly AutoJoinRule[] = [];
+  /** How this server holds organisations (see `Tenancy`); the server sets it. */
+  tenancy: Tenancy = "shared";
+  /** Invitation links to workspaces: the `invites` document. */
+  private readonly invites: Invite[];
   private readonly store: LiveStore;
   /** Whether the `orgs` document exists in the store (the defaults are not written until needed). */
   private orgsPersisted: boolean;
@@ -107,6 +208,40 @@ export class OrgRegistry {
     const users = usersDoc ? UsersFile.parse(usersDoc) : { users: [] };
     this.users = new Map(users.users.map((u) => [u.id, u]));
     this.agents = agentsDoc ? AgentsFile.parse(agentsDoc) : { agents: [] };
+    const invitesDoc = this.store.readDoc(INVITES_DOC);
+    this.invites = invitesDoc ? InvitesFile.parse(invitesDoc).invites : [];
+  }
+
+  /**
+   * Read the registry's documents again from the store, in place (another instance of the
+   * server may have made a workspace, placed a person or written an invitation). What a
+   * verified request remembered of a person is dropped; the next request resolves them again.
+   */
+  reload(): void {
+    const orgsDoc = this.store.readDoc("orgs");
+    if (orgsDoc) {
+      const next = OrgsFile.parse(orgsDoc);
+      this.orgs.orgs = next.orgs;
+      if (next.sso) this.orgs.sso = next.sso;
+      else delete this.orgs.sso;
+      this.orgsPersisted = true;
+    }
+    const usersDoc = this.store.readDoc("users");
+    if (usersDoc) {
+      this.users.clear();
+      for (const u of UsersFile.parse(usersDoc).users) this.users.set(u.id, u);
+    }
+    const agentsDoc = this.store.readDoc("agents");
+    if (agentsDoc) this.agents.agents = AgentsFile.parse(agentsDoc).agents;
+    const invitesDoc = this.store.readDoc(INVITES_DOC);
+    if (invitesDoc)
+      this.invites.splice(0, this.invites.length, ...InvitesFile.parse(invitesDoc).invites);
+    this.resolved.clear();
+  }
+
+  /** True on a server of separate workspaces: membership decides everything a person can see. */
+  get strict(): boolean {
+    return this.tenancy === "workspaces";
   }
 
   project(projectId: string) {
@@ -118,9 +253,22 @@ export class OrgRegistry {
     return resolveAgentProfile(this.users.values(), this.agents, profileId);
   }
 
-  /** Every member model the org can convene. */
-  agentProfiles(): AgentProfile[] {
-    return listAgentProfiles(this.users.values(), this.agents);
+  /**
+   * Every member model an org can convene. On a server of workspaces that is the agents of the
+   * workspace's own people and its own shared agents; on a one-org server, everyone's.
+   */
+  agentProfiles(orgId?: string): AgentProfile[] {
+    if (!this.strict || !orgId) return listAgentProfiles(this.users.values(), this.agents);
+    const people = [...this.users.values()].filter((u) => this.isMember(u.id, orgId));
+    const personal = people.map((u) => personalAgentProfile(u));
+    return [...personal, ...this.sharedAgents(orgId)];
+  }
+
+  /** Whether a member model belongs to a workspace: one of its people's, or one of its shared agents. */
+  agentInOrg(profile: AgentProfile, orgId: string): boolean {
+    if (!this.strict) return true;
+    if (profile.ownerId) return this.isMember(profile.ownerId, orgId);
+    return profile.orgId === orgId;
   }
 
   // ---- member models (docs/19_council.md): Settings → My agent, Settings → Team agents ----
@@ -188,21 +336,29 @@ export class OrgRegistry {
     return next;
   }
 
-  /** The org's shared team agents: the agents doc rows that no person owns. */
-  sharedAgents(): AgentProfile[] {
-    return this.agents.agents.filter((a) => a.ownerId === null).map((a) => AgentProfile.parse(a));
+  /**
+   * The shared team agents: the agents doc rows that no person owns. On a server of workspaces
+   * each belongs to one workspace and only that workspace's are answered.
+   */
+  sharedAgents(orgId?: string): AgentProfile[] {
+    return this.agents.agents
+      .filter((a) => a.ownerId === null && (!this.strict || (orgId ? a.orgId === orgId : false)))
+      .map((a) => AgentProfile.parse(a));
   }
 
   /**
    * Replace the shared team agents and write the agents doc; the rows people own (phase-0
    * personal agents) are kept. Throws when two rows share an id or an id is a person's agent.
    */
-  setSharedAgents(list: SharedAgentInput[]): AgentProfile[] {
+  setSharedAgents(list: SharedAgentInput[], orgId?: string): AgentProfile[] {
+    const scoped = this.strict && orgId ? orgId : null;
     const seen = new Set<string>();
     const shared: AgentProfile[] = [];
     for (const raw of list) {
-      const p = AgentProfile.parse({ ...raw, ownerId: null });
+      const p = AgentProfile.parse({ ...raw, ownerId: null, ...(scoped ? { orgId: scoped } : {}) });
       if (seen.has(p.id)) throw new Error(`two shared agents are called ${p.id}`);
+      if (scoped && this.agents.agents.some((a) => a.id === p.id && a.orgId !== scoped))
+        throw new Error(`${p.id} is taken; pick another id`);
       seen.add(p.id);
       for (const u of this.users.values()) {
         const own = personalAgentProfile(u);
@@ -213,7 +369,11 @@ export class OrgRegistry {
         throw new Error(`${p.id} is a person's own agent`);
       shared.push(p);
     }
-    this.agents.agents = [...shared, ...this.agents.agents.filter((a) => a.ownerId !== null)];
+    // Kept: the rows people own, and on a server of workspaces every other workspace's agents.
+    const kept = this.agents.agents.filter(
+      (a) => a.ownerId !== null || (scoped !== null && a.orgId !== scoped),
+    );
+    this.agents.agents = [...shared, ...kept];
     this.store.writeDoc("agents", this.agents);
     return shared;
   }
@@ -312,7 +472,7 @@ export class OrgRegistry {
     if (!principal.verified)
       return known ?? mergeSsoUser(null, principal, membershipsOfGroups(null, []));
     const granted = membershipsOfGroups(this.sso, principal.groups);
-    if (!known)
+    if (!known && !this.strict)
       for (const rule of this.autoJoin) {
         this.ensurePlace(rule);
         if (!granted.projects.some((p) => p.projectId === rule.projectId))
@@ -397,7 +557,8 @@ export class OrgRegistry {
       for (const t of o.teams)
         for (const p of t.projects) {
           const ref = { orgId: o.id, teamId: t.id, projectId: p.id };
-          if (!u || deriveSessionRole(u, ref, null) !== "observer" || this.users.size === 0) {
+          const placed = u ? deriveSessionRole(u, ref, null) !== "observer" : false;
+          if (this.strict ? placed : !u || placed || this.users.size === 0) {
             out.push({
               orgId: o.id,
               orgName: o.name,
@@ -409,5 +570,354 @@ export class OrgRegistry {
           }
         }
     return out;
+  }
+
+  // ---- workspaces: a company's own org, its people, its invitations ----------------------
+
+  /** A person's role in an org: an org admin, a member (placed anywhere in it), or null. */
+  orgRole(userId: string | null | undefined, orgId: string): WorkspaceRole | null {
+    const u = this.user(userId);
+    const org = this.orgs.orgs.find((o) => o.id === orgId);
+    if (!u || !org) return null;
+    const direct = u.orgs.find((m) => m.orgId === orgId);
+    if (direct?.role === "admin") return "admin";
+    if (direct) return "member";
+    const inTeam = u.teams.some((m) => org.teams.some((t) => t.id === m.teamId));
+    const inProject = u.projects.some((m) =>
+      org.teams.some((t) => t.projects.some((p) => p.id === m.projectId)),
+    );
+    return inTeam || inProject ? "member" : null;
+  }
+
+  isMember(userId: string | null | undefined, orgId: string): boolean {
+    return this.orgRole(userId, orgId) !== null;
+  }
+
+  isOrgAdmin(userId: string | null | undefined, orgId: string): boolean {
+    return this.orgRole(userId, orgId) === "admin";
+  }
+
+  /**
+   * Whether a person may look inside an org at all. On a one-org server everyone may (a person
+   * placed nowhere observes); on a server of workspaces only its members.
+   */
+  canSee(userId: string | null | undefined, orgId: string): boolean {
+    return !this.strict || this.isMember(userId, orgId);
+  }
+
+  /** The orgs a person may look inside, as `canSee` decides. */
+  orgsFor(userId: string | null | undefined): OrgsFile["orgs"] {
+    return this.orgs.orgs.filter((o) => this.canSee(userId, o.id));
+  }
+
+  /** The org a team or a project belongs to, or null. */
+  orgOfTeam(teamId: string): string | null {
+    return findTeam(this.orgs, teamId)?.orgId ?? null;
+  }
+
+  private freeId(base: string, taken: (id: string) => boolean): string {
+    const root = base || "workspace";
+    if (!taken(root)) return root;
+    for (let n = 2; n < 10_000; n++) {
+      const id = `${root.slice(0, 27)}-${n}`;
+      if (!taken(id)) return id;
+    }
+    throw new WorkspaceError("conflict", "no free id for that name; pick another name");
+  }
+
+  private orgTaken = (id: string): boolean =>
+    id === "default" || this.orgs.orgs.some((o) => o.id === id);
+  private teamTaken = (id: string): boolean => findTeam(this.orgs, id) !== null;
+  private projectTaken = (id: string): boolean => findProject(this.orgs, id) !== null;
+
+  /**
+   * Make a workspace for a company: an org with a first team and a first project, and the
+   * person who made it as its admin. Ids are made from the name and are unique on the server.
+   */
+  createWorkspace(
+    by: PersonSeed,
+    rawName: string,
+    now: Date = new Date(),
+  ): OrgsFile["orgs"][number] {
+    const name = rawName.trim().replace(/\s+/g, " ");
+    if (name.length < 2 || name.length > 60)
+      throw new WorkspaceError("invalid", "a workspace name is 2 to 60 characters");
+    const made = this.orgs.orgs.filter((o) => o.createdBy === by.userId).length;
+    if (made >= MAX_WORKSPACES_PER_PERSON)
+      throw new WorkspaceError(
+        "conflict",
+        `one person can make ${MAX_WORKSPACES_PER_PERSON} workspaces; ask for an invitation to another`,
+      );
+    const id = this.freeId(slugOf(name), this.orgTaken);
+    const teamId = this.freeId(`${id}-team`.slice(0, 32), this.teamTaken);
+    const projectId = this.freeId(`${id}-main`.slice(0, 32), this.projectTaken);
+    const org = {
+      id,
+      name,
+      createdBy: by.userId,
+      createdAt: now.toISOString(),
+      teams: [{ id: teamId, name: "General", projects: [{ id: projectId, name: "Main" }] }],
+    };
+    this.orgs.orgs.push(org);
+    this.persistOrgs();
+    this.place(by, (u) => {
+      u.orgs = [...u.orgs.filter((m) => m.orgId !== id), { orgId: id, role: "admin" }];
+    });
+    return org;
+  }
+
+  /** Rename a workspace. */
+  renameWorkspace(orgId: string, rawName: string): void {
+    const org = this.orgs.orgs.find((o) => o.id === orgId);
+    if (!org) throw new WorkspaceError("not_found", `unknown workspace ${orgId}`);
+    const name = rawName.trim().replace(/\s+/g, " ");
+    if (name.length < 2 || name.length > 60)
+      throw new WorkspaceError("invalid", "a workspace name is 2 to 60 characters");
+    org.name = name;
+    this.persistOrgs();
+  }
+
+  /** Add a team to a workspace. */
+  createTeam(orgId: string, rawName: string): { id: string; name: string } {
+    const org = this.orgs.orgs.find((o) => o.id === orgId);
+    if (!org) throw new WorkspaceError("not_found", `unknown workspace ${orgId}`);
+    const name = rawName.trim().replace(/\s+/g, " ");
+    if (!name || name.length > 60)
+      throw new WorkspaceError("invalid", "a team name is 1 to 60 characters");
+    if (org.teams.some((t) => t.name.toLowerCase() === name.toLowerCase()))
+      throw new WorkspaceError("conflict", `there is already a team called ${name}`);
+    const id = this.freeId(
+      `${orgId}-${slugOf(name)}`.slice(0, 32).replace(/-+$/, ""),
+      this.teamTaken,
+    );
+    org.teams.push({ id, name, projects: [] });
+    this.persistOrgs();
+    return { id, name };
+  }
+
+  /** Add a project to a team of a workspace (its first team when none is named). */
+  createProject(
+    orgId: string,
+    rawName: string,
+    teamId?: string | null,
+  ): { id: string; name: string; teamId: string } {
+    const org = this.orgs.orgs.find((o) => o.id === orgId);
+    if (!org) throw new WorkspaceError("not_found", `unknown workspace ${orgId}`);
+    const team = teamId ? org.teams.find((t) => t.id === teamId) : org.teams[0];
+    if (!team)
+      throw new WorkspaceError(
+        "not_found",
+        teamId ? `unknown team ${teamId}` : "the workspace has no team",
+      );
+    const name = rawName.trim().replace(/\s+/g, " ");
+    if (!name || name.length > 60)
+      throw new WorkspaceError("invalid", "a project name is 1 to 60 characters");
+    if (team.projects.some((p) => p.name.toLowerCase() === name.toLowerCase()))
+      throw new WorkspaceError("conflict", `${team.name} already has a project called ${name}`);
+    const id = this.freeId(
+      `${orgId}-${slugOf(name)}`.slice(0, 32).replace(/-+$/, ""),
+      this.projectTaken,
+    );
+    team.projects.push({ id, name });
+    this.persistOrgs();
+    return { id, name, teamId: team.id };
+  }
+
+  /**
+   * Write a person's row (creating it from what their token said when users.json does not know
+   * them) and apply the same change to what a verified request remembered of them, so the next
+   * lookup in this request sees it.
+   */
+  private place(who: PersonSeed, change: (u: User) => void): User {
+    const resolved = this.resolved.get(who.userId);
+    const row: User = this.users.get(who.userId) ?? {
+      id: who.userId,
+      name: resolved?.name ?? who.name ?? who.email ?? who.userId,
+      ...((resolved?.email ?? who.email)
+        ? { email: (resolved?.email ?? who.email) as string }
+        : {}),
+      orgs: [],
+      teams: [],
+      projects: [],
+    };
+    change(row);
+    this.users.set(row.id, row);
+    if (resolved) change(resolved);
+    this.store.writeDoc("users", { users: [...this.users.values()] });
+    return row;
+  }
+
+  /** The people of an org with their role in it, admins first, then by name. */
+  members(
+    orgId: string,
+  ): { id: string; name: string; email: string | null; role: WorkspaceRole }[] {
+    const seen = new Map<
+      string,
+      { id: string; name: string; email: string | null; role: WorkspaceRole }
+    >();
+    for (const u of [...this.users.values(), ...this.resolved.values()]) {
+      const role = this.orgRole(u.id, orgId);
+      if (role) seen.set(u.id, { id: u.id, name: u.name, email: u.email ?? null, role });
+    }
+    return [...seen.values()].sort((a, b) =>
+      a.role === b.role ? a.name.localeCompare(b.name) : a.role === "admin" ? -1 : 1,
+    );
+  }
+
+  private adminCount(orgId: string): number {
+    return this.members(orgId).filter((m) => m.role === "admin").length;
+  }
+
+  /** Make a member an admin or an admin a member; the last admin stays one. */
+  setOrgRole(orgId: string, userId: string, role: WorkspaceRole): void {
+    const current = this.orgRole(userId, orgId);
+    if (!current) throw new WorkspaceError("not_found", "that person is not in this workspace");
+    if (current === role) return;
+    if (current === "admin" && this.adminCount(orgId) <= 1)
+      throw new WorkspaceError("conflict", "a workspace keeps at least one admin");
+    this.place({ userId }, (u) => {
+      u.orgs = [...u.orgs.filter((m) => m.orgId !== orgId), { orgId, role }];
+    });
+  }
+
+  /** Take a person out of an org: its org, team and project memberships go; the last admin stays. */
+  removeMember(orgId: string, userId: string): void {
+    const org = this.orgs.orgs.find((o) => o.id === orgId);
+    const current = this.orgRole(userId, orgId);
+    if (!org || !current)
+      throw new WorkspaceError("not_found", "that person is not in this workspace");
+    if (current === "admin" && this.adminCount(orgId) <= 1)
+      throw new WorkspaceError("conflict", "a workspace keeps at least one admin");
+    const teamIds = new Set(org.teams.map((t) => t.id));
+    const projectIds = new Set(org.teams.flatMap((t) => t.projects.map((p) => p.id)));
+    this.place({ userId }, (u) => {
+      u.orgs = u.orgs.filter((m) => m.orgId !== orgId);
+      u.teams = u.teams.filter((m) => !teamIds.has(m.teamId));
+      u.projects = u.projects.filter((m) => !projectIds.has(m.projectId));
+    });
+  }
+
+  private inviteView(i: Invite, now: Date): InviteView {
+    const state = i.revoked
+      ? "revoked"
+      : i.email && i.uses > 0
+        ? "used"
+        : Date.parse(i.expiresAt) <= now.getTime()
+          ? "expired"
+          : "open";
+    return {
+      id: i.id,
+      orgId: i.orgId,
+      role: i.role,
+      email: i.email ?? null,
+      createdBy: i.createdBy,
+      createdAt: i.createdAt,
+      expiresAt: i.expiresAt,
+      uses: i.uses,
+      state,
+    };
+  }
+
+  private persistInvites(): void {
+    this.store.writeDoc(INVITES_DOC, { invites: this.invites });
+  }
+
+  /**
+   * Make an invitation link to a workspace. The token is answered once, here; only its hash is
+   * kept. With an email the link is for that address alone and works once; without, anyone who
+   * has the link may join until it expires or is revoked.
+   */
+  createInvite(
+    orgId: string,
+    by: string,
+    opts: { role?: WorkspaceRole | undefined; email?: string | undefined } = {},
+    now: Date = new Date(),
+  ): { invite: InviteView; token: string } {
+    if (!this.orgs.orgs.some((o) => o.id === orgId))
+      throw new WorkspaceError("not_found", `unknown workspace ${orgId}`);
+    const email = opts.email?.trim().toLowerCase();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      throw new WorkspaceError("invalid", "that does not look like an email address");
+    const token = randomBytes(24).toString("base64url");
+    const invite: Invite = {
+      id: randomBytes(6).toString("hex"),
+      orgId,
+      tokenHash: hashToken(token),
+      role: opts.role ?? "member",
+      ...(email ? { email } : {}),
+      createdBy: by,
+      createdAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + INVITE_TTL_MS).toISOString(),
+      uses: 0,
+      revoked: false,
+    };
+    this.invites.push(invite);
+    this.persistInvites();
+    return { invite: this.inviteView(invite, now), token };
+  }
+
+  /** A workspace's invitations, newest first. */
+  invitesOf(orgId: string, now: Date = new Date()): InviteView[] {
+    return this.invites
+      .filter((i) => i.orgId === orgId)
+      .map((i) => this.inviteView(i, now))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  /** Revoke an invitation; false when the workspace has none with that id. */
+  revokeInvite(orgId: string, inviteId: string): boolean {
+    const i = this.invites.find((x) => x.orgId === orgId && x.id === inviteId);
+    if (!i) return false;
+    i.revoked = true;
+    this.persistInvites();
+    return true;
+  }
+
+  /** What an invitation link leads to, for the page that asks "Join Acme?"; null for a link that does not exist. */
+  inviteByToken(
+    token: string,
+    now: Date = new Date(),
+  ): { invite: InviteView; workspace: { id: string; name: string } } | null {
+    const i = this.invites.find((x) => x.tokenHash === hashToken(token));
+    const org = i ? this.orgs.orgs.find((o) => o.id === i.orgId) : undefined;
+    if (!i || !org) return null;
+    return { invite: this.inviteView(i, now), workspace: { id: org.id, name: org.name } };
+  }
+
+  /**
+   * Accept an invitation: the person joins the workspace with the invitation's role (a person
+   * already in it keeps the higher of the two). Refused for a link that is revoked, expired,
+   * used up, or addressed to someone else.
+   */
+  acceptInvite(
+    token: string,
+    who: PersonSeed,
+    now: Date = new Date(),
+  ): { id: string; name: string } {
+    const found = this.inviteByToken(token, now);
+    const i = found ? this.invites.find((x) => x.id === found.invite.id) : undefined;
+    if (!found || !i) throw new WorkspaceError("not_found", "this invitation does not exist");
+    if (found.invite.state !== "open")
+      throw new WorkspaceError(
+        "forbidden",
+        found.invite.state === "expired"
+          ? "this invitation has expired; ask for a new one"
+          : found.invite.state === "used"
+            ? "this invitation was already used"
+            : "this invitation was withdrawn",
+      );
+    if (i.email && i.email !== who.email?.trim().toLowerCase())
+      throw new WorkspaceError(
+        "forbidden",
+        `this invitation is for ${i.email}; sign in with that address`,
+      );
+    const current = this.orgRole(who.userId, i.orgId);
+    const role: WorkspaceRole = current === "admin" || i.role === "admin" ? "admin" : "member";
+    this.place(who, (u) => {
+      u.orgs = [...u.orgs.filter((m) => m.orgId !== i.orgId), { orgId: i.orgId, role }];
+    });
+    i.uses += 1;
+    this.persistInvites();
+    return found.workspace;
   }
 }

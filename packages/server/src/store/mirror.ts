@@ -27,6 +27,8 @@ export interface MirrorOptions {
 export class MirrorStore implements LiveStore {
   private readonly logs = new Map<string, AnyLog>();
   private readonly docs = new Map<string, unknown>();
+  /** How many times each document was written here, so a refresh never overwrites a newer local write. */
+  private readonly docWrites = new Map<string, number>();
   private tail: Promise<void> = Promise.resolve();
   private failed: Error | null = null;
   private readonly log: (line: string) => void;
@@ -89,7 +91,29 @@ export class MirrorStore implements LiveStore {
   writeDoc(name: string, json: unknown): void {
     const snapshot: unknown = JSON.parse(JSON.stringify(json));
     this.docs.set(name, snapshot);
+    this.docWrites.set(name, (this.docWrites.get(name) ?? 0) + 1);
     this.enqueue(() => this.inner.writeDoc(name, snapshot));
+  }
+
+  /**
+   * Read the documents again from the database and return the names of those that changed.
+   * The logs belong to the process that folds them and are not re-read; the documents (who is
+   * in which workspace, the sealed keys, the invitations) are small and may have been written
+   * by another instance of the server, which is what this is for. Pending writes are flushed
+   * first, and a document written here while the refresh was reading keeps the local value.
+   */
+  async refreshDocs(): Promise<string[]> {
+    await this.tail;
+    const before = new Map(this.docWrites);
+    const changed: string[] = [];
+    for (const name of await this.inner.listDocs()) {
+      const fresh = await this.inner.readDoc(name);
+      if ((this.docWrites.get(name) ?? 0) !== (before.get(name) ?? 0)) continue;
+      if (JSON.stringify(fresh) === JSON.stringify(this.docs.get(name) ?? null)) continue;
+      this.docs.set(name, fresh);
+      changed.push(name);
+    }
+    return changed;
   }
 
   listDocs(): string[] {
