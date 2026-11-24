@@ -102,6 +102,8 @@ describe("the key vault", () => {
     expect(made).toMatch(/^[0-9a-f]{64}$/);
     expect(keysSecretFrom({}, root)).toBe(made);
     expect(statSync(join(root, "keys.secret")).mode & 0o777).toBe(0o600);
+    // A store folder that does not exist yet is made for it.
+    expect(keysSecretFrom({}, join(root, "not", "yet"))).toMatch(/^[0-9a-f]{64}$/);
     // The environment wins over the file.
     expect(keysSecretFrom({ HENOSIS_KEYS_SECRET: SECRET }, root)).toBe(SECRET);
   });

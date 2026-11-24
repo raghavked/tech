@@ -12,7 +12,7 @@
  * secret the vault is not configured: it stores nothing and says so.
  */
 import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
-import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import type { LiveStore } from "./store/index.js";
@@ -85,6 +85,8 @@ export function keysSecretFrom(
     if (kept.length >= 16) return kept;
   }
   const made = randomBytes(32).toString("hex");
+  // The folder of a store that was never opened does not exist yet.
+  mkdirSync(localDir, { recursive: true });
   writeFileSync(file, `${made}\n`, { mode: 0o600 });
   chmodSync(file, 0o600);
   return made;
