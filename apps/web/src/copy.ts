@@ -467,6 +467,9 @@ export const copy = {
     refused: "Refused by Anthropic",
     refusedLine:
       "Anthropic turned this key down. Replace it, or check it again if you fixed it there.",
+    unreadable: "Reconnect needed",
+    unreadableLine:
+      "This server can no longer open the key it kept, so agents run the demo model. Connect the key again.",
     offlineLine:
       "The key is kept, but this server has provider calls switched off, so agents still run the demo model.",
     serverLine: (model: string) =>
@@ -548,6 +551,7 @@ export const copy = {
     noticeConnect: "Connect your key",
     noticeMember: "Agents here run the demo model until an admin connects the workspace's key.",
     noticeRefused: "The workspace's model key was refused by Anthropic.",
+    noticeUnreadable: "The workspace's model key has to be connected again.",
     noticeFix: "Replace it",
     dismiss: "Dismiss",
   },

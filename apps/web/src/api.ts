@@ -51,7 +51,7 @@ export interface WorkspaceModel {
   addedAt: string | null;
   /** The default model the admin picked; empty for the provider's default. */
   model: string;
-  status: "ok" | "refused" | "none";
+  status: "ok" | "refused" | "unreadable" | "none";
   checkedAt: string | null;
   /** `workspace`: its own key. `server`: the server owner's model. `demo`: the scripted stand-in. */
   source: "workspace" | "server" | "demo";

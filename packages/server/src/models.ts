@@ -26,11 +26,14 @@ import {
   type Model,
   type ModelRequest,
   type ModelResponse,
+  offlineFromEnv,
   ScriptedModel,
   type ToolRegistry,
   type ToolSpec,
 } from "@henosis/runner";
 import type { KeyVault } from "./keys.js";
+
+export { offlineFromEnv };
 
 export interface ModelFactoryOptions {
   /**
@@ -52,12 +55,6 @@ export interface ModelFactoryOptions {
   /** Whether an error is the provider turning the key itself down (tests inject). */
   refused?: ((err: unknown) => boolean) | undefined;
   log?: ((line: string) => void) | undefined;
-}
-
-/** HENOSIS_OFFLINE blocks every provider call; `0`, `false` and `no` mean it is not set. */
-export function offlineFromEnv(): boolean {
-  const v = (process.env.HENOSIS_OFFLINE ?? "").trim().toLowerCase();
-  return v !== "" && v !== "0" && v !== "false" && v !== "no";
 }
 
 /** What a workspace's work runs on: its own key, the server's own model, or the demo stand-in. */

@@ -172,8 +172,12 @@ function ModelKey({ workspace, identity }: { workspace: Workspace; identity: Ide
         <Icon d={ICONS.key} size={14} />
         {c.modelTitle}
         {m.connected && (
-          <span className={`pill status ${m.status === "refused" ? "blocked" : "running"}`}>
-            {m.status === "refused" ? c.refused : c.working}
+          <span className={`pill status ${m.status === "ok" ? "running" : "blocked"}`}>
+            {m.status === "refused"
+              ? c.refused
+              : m.status === "unreadable"
+                ? c.unreadable
+                : c.working}
           </span>
         )}
       </h3>
@@ -186,7 +190,8 @@ function ModelKey({ workspace, identity }: { workspace: Workspace; identity: Ide
             </span>
           </p>
           {m.status === "refused" && <p className="small danger">{c.refusedLine}</p>}
-          {m.status !== "refused" && m.source !== "workspace" && (
+          {m.status === "unreadable" && <p className="small danger">{c.unreadableLine}</p>}
+          {m.status === "ok" && m.source !== "workspace" && (
             <p className="small muted">{c.offlineLine}</p>
           )}
         </>

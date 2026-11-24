@@ -52,7 +52,11 @@ export interface KeyStatus {
   addedBy: string | null;
   addedAt: string | null;
   model: string;
-  status: "ok" | "refused" | "none";
+  /**
+   * `refused`: the provider turned the key down. `unreadable`: the key is kept but this
+   * server cannot open it (its secret changed), so it has to be connected again.
+   */
+  status: "ok" | "refused" | "unreadable" | "none";
   checkedAt: string | null;
 }
 
@@ -151,7 +155,7 @@ export class KeyVault {
       addedBy: k.addedBy,
       addedAt: k.addedAt,
       model: k.model,
-      status: k.status,
+      status: this.secret !== null && this.key(orgId, provider) === null ? "unreadable" : k.status,
       checkedAt: k.checkedAt,
     };
   }

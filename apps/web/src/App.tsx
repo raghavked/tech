@@ -504,7 +504,8 @@ function WorkspaceNotice({ ctx }: { ctx: ShellContext }) {
           ? (data.workspaces.find((w) => w.id === r.orgId) ?? null)
           : (data.workspaces[0] ?? null);
   if (!here) return null;
-  const refused = here.model.connected && here.model.status === "refused";
+  const unreadable = here.model.connected && here.model.status === "unreadable";
+  const refused = (here.model.connected && here.model.status === "refused") || unreadable;
   if (!refused && here.model.source !== "demo") return null;
   if (hidden === here.id || noticeDismissed(here.id)) return null;
   const w = copy.workspace;
@@ -512,7 +513,13 @@ function WorkspaceNotice({ ctx }: { ctx: ShellContext }) {
     <p className={`ws-notice${refused ? " bad" : ""}`} role="status">
       <Icon d={ICONS.key} size={14} />
       <span className="grow">
-        {refused ? w.noticeRefused : here.model.canManage ? w.noticeAdmin : w.noticeMember}{" "}
+        {unreadable
+          ? w.noticeUnreadable
+          : refused
+            ? w.noticeRefused
+            : here.model.canManage
+              ? w.noticeAdmin
+              : w.noticeMember}{" "}
         {here.model.canManage && (
           <a href={paths.settings()}>{refused ? w.noticeFix : w.noticeConnect}</a>
         )}

@@ -1,5 +1,5 @@
 /**
- * Claude adapter. Enabled only when an API key is available and HENOSIS_OFFLINE is unset.
+ * Claude adapter. Enabled only when an API key is available and HENOSIS_OFFLINE is off.
  * The runner records every response in the log, so a replay never reaches this file.
  */
 import Anthropic from "@anthropic-ai/sdk";
@@ -8,10 +8,15 @@ import type { Model, ModelRequest, ModelResponse } from "./model.js";
 
 export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
 
+/** HENOSIS_OFFLINE blocks every provider call; `0`, `false` and `no` mean it is not set. */
+export function offlineFromEnv(): boolean {
+  const v = (process.env.HENOSIS_OFFLINE ?? "").trim().toLowerCase();
+  return v !== "" && v !== "0" && v !== "false" && v !== "no";
+}
+
 export function claudeAvailable(): boolean {
   return (
-    !process.env.HENOSIS_OFFLINE &&
-    Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN)
+    !offlineFromEnv() && Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN)
   );
 }
 

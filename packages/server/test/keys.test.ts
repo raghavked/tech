@@ -55,7 +55,10 @@ describe("the key vault", () => {
     const vault = new KeyVault(store, SECRET);
     vault.set("acme", KEY_A, { userId: "ana" });
     vault.set("beta", KEY_B, { userId: "bo" });
-    expect(new KeyVault(new FileStore(root), "another-secret-entirely!").key("acme")).toBeNull();
+    const rotated = new KeyVault(new FileStore(root), "another-secret-entirely!");
+    expect(rotated.key("acme")).toBeNull();
+    // The key is still listed, and says it has to be connected again.
+    expect(rotated.describe("acme")).toMatchObject({ connected: true, status: "unreadable" });
     // Move acme's sealed key under beta's name: it must not open as beta's.
     const doc = store.readDoc(KEYS_DOC) as { orgs: Record<string, unknown> };
     store.writeDoc(KEYS_DOC, { orgs: { beta: doc.orgs.acme } });
