@@ -28,8 +28,10 @@ Deploying is copying `site/` to any static host; there is nothing to compile.
 - Hero: "One team, people and agents", the mark closing its arcs once on load (the swing is under
   the one motion guard, so `prefers-reduced-motion: reduce` shows the closed ring at rest), and the
   joining line under it.
-- Three sections: the session everyone can drop into; the council, a team's models deliberating
-  (`docs/19_council.md`); plan first, rate, then ship.
+- Four sections: the session everyone can drop into; the council, a team's models deliberating
+  (`docs/19_council.md`); plan first, rate, then ship; your company's own workspace on your own
+  key (`docs/20_hosting.md`, "Workspaces and keys"), drawn as the workspace's Settings card and
+  the demo-model notice.
 - The editions row: Starter, Team, Enterprise, from `docs/18_editions.md`.
 - A footer with the GitHub link placeholder.
 

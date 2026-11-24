@@ -123,7 +123,8 @@ nothing above `read` runs until the plan is approved.
 ## Non-goals for phase 0
 
 Model-written merge summaries, semantic scope inference, multi-agent sessions (several
-agents in one session), billing, hosted multi-tenant deployment. Each is on the roadmap.
+agents in one session), billing. Each is on the roadmap. Hosted multi-tenant deployment was
+on this list and is built: a workspace per company with its own model key (`20_hosting.md`).
 
 ## Success criteria for the pilot (phase 1)
 

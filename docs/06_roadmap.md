@@ -25,7 +25,8 @@ people and agents as members and @mentions that reach the agent's session; a vib
 expressive theme on the palette with loading and side motion; team customisation (accent,
 mark, motion, emblem) set by leads; the manager's view with token charts, plan compliance
 and gates; desktop first, mobile second. Also landed here, ahead of phase 1: OIDC sign-in
-and the Postgres store with `henosis migrate` (`18_editions.md`). The council
+and the Postgres store with `henosis migrate` (`18_editions.md`); and, ahead of phase 2,
+workspaces with a model key each on the hosted server (`20_hosting.md`). The council
 (`19_council.md`) has its events, wire commands and prompts; the host that runs its rounds,
 the rooms in the web app and the Slack and CLI commands are still owed.
 
@@ -53,8 +54,9 @@ Goal: three engineering teams using Henosis weekly on real multi-hour agent runs
 
 ## Phase 2: platform (months 5 to 9)
 
-- Hosted multi-tenant service on an actor-per-session substrate (Durable Objects or
-  equivalent), with the kernel unchanged.
+- Hosted multi-tenant service. Tenancy is done: each company has its own workspace and its
+  own model key (`20_hosting.md`, "Workspaces and keys"). Next: an actor-per-session
+  substrate (Durable Objects or equivalent), with the kernel unchanged.
 - Policy packs per industry: risk classes and approval rules for deploys, payments, legal
   filings, outbound customer communication.
 - Scope inference: a classifier proposes a scope for each directive; the author confirms.

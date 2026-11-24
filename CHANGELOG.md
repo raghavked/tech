@@ -73,6 +73,59 @@ least a minor bump; a fix is a patch. The pipeline itself is in `docs/16_desktop
 - [server] Every notification carries the one grammar (`who`, `verb`, `what`), a `tag` that
   replaces an earlier notice, the client's `route` and its `age` in seconds; mentions ride in
   the same inbox for the tray and never badge.
+- [server] Workspaces. With `HENOSIS_TENANCY=workspaces` (the default for the hosted function
+  under Supabase sign-in) a signed-in person makes a workspace for their company, with a
+  first team, General, and a first project, Main, and is its admin. Admins invite people by
+  link (14 days, optionally for one email address and one use, withdrawable), change roles,
+  remove people, and add teams and projects. `henosis serve` stays `shared`, the one-company
+  server.
+- [server] Bring your own key. An admin connects the workspace's Anthropic API key; it is
+  checked with Anthropic without spending a token, sealed, and from the next turn the
+  workspace's session agents and its council's member models run on it. The admin picks the
+  default model from what the key can use. A workspace without a key runs the scripted demo
+  model; disconnecting the key returns it there. Usage is billed by Anthropic to the key's
+  owner. On `henosis serve` the org admin in `users.json` connects a key the same way.
+- [server] `HENOSIS_KEYS_SECRET` seals the keys. Unset with a folder store, `henosis serve`
+  keeps a random secret beside the store in `keys.secret`.
+- [server] `GET /api/health` reports `tenancy` and `keys` (whether workspaces can connect a
+  key here).
+- [web] The first run asks a person who is in no workspace to make one. Settings, Workspace
+  holds the model key (connect, check, replace, disconnect, the default model), the people
+  and their roles, the invitations and the projects. An invitation link opens "Join Acme?"
+  at `#/join/<token>` and joins on one press.
+- [web] A workspace on the demo model says so in one line under the top row, with "Connect
+  your key" for an admin. A key Anthropic refused reads "Refused by Anthropic" in Settings,
+  and the turn it stopped ends with a sentence saying an admin can replace it.
+
+### Changed
+
+- [server] The hosted function has no provider key of its own and no longer reads
+  `ANTHROPIC_API_KEY`. A workspace's work runs on the key that workspace connected.
+  `henosis serve --model claude` with the operator's own key works as before.
+- [server] `HENOSIS_OFFLINE=1` blocks every provider call, workspace keys included; `0`,
+  `false` and `no` mean off.
+- [server] `HENOSIS_AUTO_JOIN` applies only to a `shared` server. On a server of workspaces a
+  new sign-up is placed nowhere and makes or joins a workspace.
+- [server] On a server of workspaces `GET /api/health` lists no sessions and no projects, and
+  every route but `/api/auth` and health needs a signed-in person.
+- [server] Several instances over one database read the documents (orgs, users, agents,
+  invitations, keys) again before a write and on the reads a person makes right after making
+  or joining a workspace, so they see each other's workspaces, members and keys without a
+  restart. A session log is still owned by the instance that folds it.
+
+### Security
+
+- [server] A workspace is invisible from outside. Every HTTP route and every websocket join
+  and subscription checks membership; anyone outside is answered 404, as if the workspace did
+  not exist; a session id that lives in another project is refused.
+- [server] A model key is sealed with AES-256-GCM under a key derived with HKDF-SHA256 from
+  `HENOSIS_KEYS_SECRET` and the workspace id, with the workspace id and provider bound in as
+  associated data. No route answers the key again: the API shows its last four characters,
+  who connected it and when. The server logs who connected or disconnected a key, never the
+  key. Rotating the secret means every workspace connects its key again.
+- [server] An invitation token is shown once and stored as a hash. Only an admin connects,
+  replaces or disconnects the key, invites, changes roles or removes people; a workspace
+  keeps at least one admin.
 
 ## 0.1.0 — 2026-10-02
 

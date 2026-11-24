@@ -43,10 +43,11 @@ Claude on the web, Claude Desktop and Claude mobile are one product. Brand and m
 [`design/`](design/) and [`docs/12_brand.md`](docs/12_brand.md). Business docs start at the
 [one-pager](docs/00_thesis_one_pager.md).
 
-> Phase 0. Dev-server authentication only, scripted model by default. The one hosted
-> deployment (landing page, app at `/app/`, server as a Vercel Function on Supabase) is
-> described in `docs/20_hosting.md`; see `docs/07_security_and_compliance.md` before pointing
-> it at anything real.
+> Phase 0. `henosis serve` starts with dev-server authentication and the scripted model. The
+> one hosted deployment (landing page, app at `/app/`, server as a Vercel Function on
+> Supabase) gives each company its own workspace and runs on the key that workspace brings;
+> it is described in `docs/20_hosting.md`. See `docs/07_security_and_compliance.md` before
+> pointing either at anything real.
 
 ## What is new here
 
@@ -75,6 +76,10 @@ Claude on the web, Claude Desktop and Claude mobile are one product. Brand and m
 - **Attributed team memory.** An agent's fact is Ana's fact: entry, session and commit are
   recorded; two engineers disagreeing on one key is a conflict readers see with both names;
   compaction keeps the names.
+- **Workspaces and your own key.** On the hosted service each company makes its own
+  workspace, invites its people by link, and nobody outside it sees in. An admin connects the
+  workspace's Anthropic API key in Settings; it is sealed on the server, never shown again,
+  and the workspace's agents run on it from the next turn. Until then they run the demo model.
 
 ## Quickstart (five minutes, no network)
 
@@ -103,19 +108,22 @@ In Ana's terminal type `Build a doubling helper and deploy it`; in Bo's type
 `/handoff bo` and `/accept <id>` on the other side, and `/brief`.
 
 With `ANTHROPIC_API_KEY` set, `pnpm serve -- --model claude` runs a real model through the
-same kernel. `HENOSIS_OFFLINE=1` blocks it.
+same kernel on your own key. The org admin in `users.json` can also connect a key in Settings,
+Workspace, with the server left on the scripted model. `HENOSIS_OFFLINE=1` blocks both.
 
 Environment the server reads:
 
 | Variable | Purpose |
 |---|---|
-| `ANTHROPIC_API_KEY` | enables the Claude adapter (`--model claude`) |
-| `HENOSIS_OFFLINE=1` | blocks the Claude adapter; tests and e2e set it |
+| `ANTHROPIC_API_KEY` | `henosis serve` only: the operator's own key for `--model claude`. The hosted function does not read it; there each workspace connects its own key in Settings |
+| `HENOSIS_OFFLINE=1` | blocks every provider call, a workspace's key included; tests and e2e set it. `0`, `false` and `no` mean off for workspace keys; `--model claude` on the operator's key wants it unset |
+| `HENOSIS_KEYS_SECRET` | the secret that seals the model key each workspace connects (16 characters or more). Unset with a folder store, `henosis serve` keeps a random one beside the store in `keys.secret`; unset with Postgres or in the hosted function, no key can be connected |
+| `HENOSIS_TENANCY` | `shared` (the default for `henosis serve`): one company's server, as before. `workspaces` (the default for the hosted function under `HENOSIS_AUTH=supabase`): each company makes its own workspace and sees only that |
 | `HENOSIS_TOKEN` | dev mode: the shared token every `join` must carry (same as `--token`) |
 | `HENOSIS_OIDC_ISSUER` | switches identity to single sign-on: the provider's issuer URL (Team edition) |
 | `HENOSIS_OIDC_CLIENT_ID` | the public client the web app signs in as; required with the issuer |
 | `HENOSIS_OIDC_AUDIENCE` | what ID tokens' `aud` must carry when it is not the client id (optional) |
-| `HENOSIS_AUTH=supabase` | sign-in through Supabase Auth, with `SUPABASE_URL` and `SUPABASE_ANON_KEY` (optional `SUPABASE_JWT_SECRET`); `HENOSIS_AUTO_JOIN` (`org:team:project:role`) places a new sign-up (`docs/20_hosting.md`) |
+| `HENOSIS_AUTH=supabase` | sign-in through Supabase Auth, with `SUPABASE_URL` and `SUPABASE_ANON_KEY` (optional `SUPABASE_JWT_SECRET`); on a `shared` server `HENOSIS_AUTO_JOIN` (`org:team:project:role`) places a new sign-up (`docs/20_hosting.md`) |
 | `HENOSIS_DATABASE_URL` | the postgres store's connection string (`--store postgres`, or `HENOSIS_STORE=postgres` in the hosted function) |
 | `HENOSIS_APP_URL` | where the web app is served, for links in Slack messages, PR comments and the digest |
 | `HENOSIS_SMTP_URL`, `HENOSIS_MAIL_FROM` | where `henosis digest` sends through (`smtp://user:pass@host:587`) and as whom |
@@ -124,6 +132,26 @@ Environment the server reads:
 In oidc mode the server verifies every ID token against the provider and maps the token's
 groups to teams and projects through `sso` in `orgs.json`; `docs/07_security_and_compliance.md`,
 "Identity", has the shape.
+
+### Workspaces and your own key
+
+A server holds organisations in one of two ways. `shared` is the one-company server: identity
+places people, and `orgs.json` and `users.json` say who is where. `workspaces` is the hosted
+service: a signed-in person makes a workspace for their company (an org with a first team,
+General, and a first project, Main) and is its admin. They invite people with a link that
+works for 14 days, can be addressed to one email and can be withdrawn; admins change roles,
+remove people, and add teams and projects. Every HTTP route and every websocket join checks
+membership, and a workspace answers anyone outside it as if it did not exist.
+
+Models are bring your own key. The hosted service has no provider key of its own. An admin
+pastes the workspace's Anthropic API key in Settings, Workspace; the server checks it with
+Anthropic, seals it with AES-256-GCM under a key derived from `HENOSIS_KEYS_SECRET` and the
+workspace id, and never answers it again: the app shows the last four characters, who
+connected it and when. From the next turn the workspace's session agents and its council's
+member models run on that key, on the default model the admin picks, and Anthropic bills the
+key's owner. A workspace without a key runs the scripted demo model and the app says so.
+The flow end to end is in `docs/20_hosting.md`, "Workspaces and keys"; the isolation rules
+and the key's lifecycle are in `docs/07_security_and_compliance.md`, "Tenancy and model keys".
 
 ## Commands
 
@@ -152,7 +180,8 @@ packages/fleet      project ledger: claims, lead directives, contentions, fleet 
 packages/memory     organisation memory: attributed entries, conflicts, compaction, curator
 packages/chat       groups and chats: a chained log per org where people and agents are members,
                     mentions, agent replies, read markers; the council's events, reducer and protocol
-packages/server     websocket and HTTP server, project, session and chat hosts, notifications, persistence
+packages/server     websocket and HTTP server, project, session and chat hosts, notifications, persistence;
+                    workspaces, invitations and the vault of the model keys workspaces bring
 packages/slack      Slack adapter on an interface with an in-memory fake; Bolt socket mode;
                     the council as a thread with rating buttons
 packages/email      the leads' digest and the invite as e-mail; mailer interface with a fake, .eml files and SMTP

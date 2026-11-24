@@ -13,10 +13,10 @@ verify` proves it in both.
 | | Starter | Team | Enterprise |
 |---|---|---|---|
 | Who | A founding team, a lab, one squad | A company with several teams and projects | A company with many orgs, compliance and a platform team |
-| Server | One `henosis serve` process, a folder as the store | One process per org, `henosis serve --store postgres` with the same logs in a database (`docs/04_technical_architecture.md`, "Storage"); `henosis migrate` moves a folder in and proves the copy by head hash | Sharded session actors, a database and an object store, a control plane |
+| Server | One `henosis serve` process, a folder as the store | One process per org, `henosis serve --store postgres` with the same logs in a database (`docs/04_technical_architecture.md`, "Storage"); `henosis migrate` moves a folder in and proves the copy by head hash. Or a workspace on the hosted service, where each company sees only its own (built; `20_hosting.md`, "Workspaces and keys") | Sharded session actors, a database and an object store, a control plane |
 | Identity | `users.json`, dev tokens | OIDC single sign-on, roles from the directory (`07_security_and_compliance.md`, "Identity") | SSO (OIDC or SAML), SCIM provisioning, device trust, per-event signatures |
 | Policy | Per project, set by its lead | Per team with project overrides | Org policy packs with team and project overrides; approval rules as code |
-| Models | The scripted model, one Claude key | Soft budgets per project and session (built); a key per team (owed) | A credential broker, per-participant grants, model routing and spend limits |
+| Models | The scripted model; one key, the operator's own or one the org admin connects in Settings | A key per workspace, the company's own, sealed on the server (built); soft budgets per project and session (built); a key per team (owed) | A credential broker, per-participant grants, model routing and spend limits |
 | Memory | One org store, the curator on a timer | One store per org, scoped to teams and projects | Tiered storage, retention rules, legal hold |
 | Surfaces | Web, CLI, desktop | Web, CLI, desktop, mobile, Slack | All, plus the PR adapter and a harness SDK |
 | Evidence | `henosis report`, exports as markdown | Session exports from the app (built); the audit view (owed) | PROV and in-toto exports, SIEM streams, data residency |
@@ -51,11 +51,18 @@ overrides; Enterprise ships policy packs (which risk classes need which raters, 
 exist, which paths are protected) that a platform team versions as code, and the kernel's
 approval evaluator stays the single enforcement point.
 
-**Models and credentials.** Starter runs one key. Team gives each team a key and each project
-a budget, which the usage API already reports. Enterprise puts a credential broker between
-the runner and every provider so an agent acts with the authority of the person who steered
-it and no secret ever reaches a session (`docs/research/credential-broker.md`), and sandboxes
-tools per session (`docs/research/tool-sandboxing.md`).
+**Models and credentials.** Starter runs one key: the operator's own in the environment
+(`--model claude`), or one the org admin connects in Settings. Team gives each workspace a
+key of its own, and that is built: an admin connects the company's Anthropic API key, the
+server checks it, seals it and never shows it again, and the workspace's session agents and
+council members run on it, billed by Anthropic to the key's owner
+(`07_security_and_compliance.md`, "Tenancy and model keys"). The hosted service has no key
+of its own, so a workspace without one runs the scripted demo model. Each project has a soft
+budget, which the usage API already reports; a key per team inside a workspace is owed.
+Enterprise puts a credential broker between the runner and every provider so an agent acts
+with the authority of the person who steered it and no secret ever reaches a session
+(`docs/research/credential-broker.md`), and sandboxes tools per session
+(`docs/research/tool-sandboxing.md`).
 
 **Scale of people.** The rail, the manager's view and the inbox are built from the project
 ledgers, so a company with a hundred projects reads the same screens; the server's usage and
@@ -77,12 +84,17 @@ desktop and mobile shells, the scripted model for offline work and the Claude ad
 tested offline. Team, in part: orgs, teams and projects from `orgs.json`, roles from
 `users.json`, OIDC single sign-on with groups mapped to teams (dev tokens stay the
 default), `henosis serve --store postgres` and `henosis migrate`, per-project policy on
-session creation, soft budgets and the usage API, session exports, the team look. Not yet
-in Team: a key per team, policy per team with project overrides, the audit view, the mobile
-shell in the stores. Enterprise: the designs and the research are in `docs/research/`; the
-roadmap (`docs/06_roadmap.md`) puts per-event signatures, the credential broker and
-sandboxing in phase 1, policy packs and hosting on sharded session actors in phase 2, and
-the audit exports in phase 3.
+session creation, soft budgets and the usage API, session exports, the team look. Also in
+Team, and built: workspaces on the hosted server (`HENOSIS_TENANCY=workspaces`), where a
+company makes its own workspace, invites people by link, and is invisible to everyone outside
+it; and a model key per workspace, connected by an admin, sealed with a secret the server
+holds and never answered by any route (`20_hosting.md`, "Workspaces and keys"). Not yet in
+Team: a key per team, policy per team with project overrides, the audit view, the mobile
+shell in the stores. The hosted deployment is one Vercel function and is sound for a small
+team and demos; one instance per live session is its known limit. Enterprise: the designs
+and the research are in `docs/research/`; the roadmap (`docs/06_roadmap.md`) puts per-event
+signatures, the credential broker and sandboxing in phase 1, policy packs and hosting on
+sharded session actors in phase 2, and the audit exports in phase 3.
 
 ## Why one product and not three
 
