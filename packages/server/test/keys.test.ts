@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { type Model, type ModelRequest, ScriptedModel } from "@henosis/runner";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanKey, KEYS_DOC, KeyVault, keysSecretFrom } from "../src/keys.js";
-import { KEY_REFUSED_MESSAGE, ModelFactory } from "../src/models.js";
+import { KEY_REFUSED_MESSAGE, ModelFactory, offlineFromEnv } from "../src/models.js";
 import { FileStore } from "../src/store/index.js";
 
 const SECRET = "a-test-secret-of-enough-length";
@@ -224,6 +224,28 @@ describe("the model factory with workspace keys", () => {
     expect(factory.keyed("acme")).toBe(false);
     expect(factory.sessionModel("acme").name).toBe(fallback.name);
     expect(factory.source("acme")).toBe("demo");
+  });
+
+  it("reads HENOSIS_OFFLINE as on unless it says otherwise", () => {
+    const was = process.env.HENOSIS_OFFLINE;
+    try {
+      for (const [value, on] of [
+        ["1", true],
+        ["true", true],
+        ["0", false],
+        ["false", false],
+        ["No", false],
+        ["", false],
+      ] as const) {
+        process.env.HENOSIS_OFFLINE = value;
+        expect(`${value}:${offlineFromEnv()}`).toBe(`${value}:${on}`);
+      }
+      delete process.env.HENOSIS_OFFLINE;
+      expect(offlineFromEnv()).toBe(false);
+    } finally {
+      if (was === undefined) delete process.env.HENOSIS_OFFLINE;
+      else process.env.HENOSIS_OFFLINE = was;
+    }
   });
 
   it("remembers a refused key and ends the turn with words the team can act on", async () => {

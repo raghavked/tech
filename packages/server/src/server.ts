@@ -67,7 +67,7 @@ import {
 import type { ClientLink, SessionHost } from "./host.js";
 import { KeyVault } from "./keys.js";
 import { memoryFeed, memoryQueryOf } from "./memoryQuery.js";
-import { ModelFactory } from "./models.js";
+import { ModelFactory, offlineFromEnv } from "./models.js";
 import { Notifier, type PushSubscription } from "./notify.js";
 import { DEFAULT_AUTO_JOIN, OrgRegistry, type Tenancy } from "./orgs.js";
 import { ProjectHost, type ProjectSubscriber } from "./projectHost.js";
@@ -1095,7 +1095,7 @@ export class HenosisServer {
             models: this.models,
             checkKey: this.opts.checkKey ?? checkClaudeKey,
             listModels: this.opts.listModels ?? listClaudeModels,
-            offline: this.opts.offline ?? (() => Boolean(process.env.HENOSIS_OFFLINE)),
+            offline: this.opts.offline ?? offlineFromEnv,
             nameOf: (id) => this.names.get(id) ?? null,
             onCreated: (orgId) => void this.chat(orgId),
             log: this.opts.log,
