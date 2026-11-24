@@ -153,6 +153,21 @@ export const copy = {
     yourRating: "Your rating",
     ratePlan: "Rate the plan",
     cleared: "No rating",
+    /** Under the dial: the keys that turn it, and the same for a finger. */
+    keys: "← → move · space picks · 1–5",
+    keysClear: "← → move · space picks · 1–5 · 0 clears",
+    touch: "turn the hand, or tap a word",
+    /** The notch's label on the rim: "bar 3.5". */
+    bar: (bar: number) => `bar ${average(bar)}`,
+    /** Beside the word while a stop is hovered or focused but not picked. */
+    previewing: (n: number) => `${n} of 5 · preview`,
+    clear: "clear",
+    clearLabel: "Clear your rating",
+    /** What the face draws, in words: the needle and the notch for a reader who cannot see them. */
+    reads: (count: number, min: number, avg: number, bar: number) =>
+      count
+        ? `${count} of ${min} ratings are in at ${average(avg)} on average. The bar is ${average(bar)}.`
+        : `No rating is in yet. The gate needs ${min} at ${average(bar)} or above.`,
   },
 
   shell: {
@@ -769,7 +784,6 @@ export const copy = {
     voice: "a voice, not a vote",
     voiceHint: "Your vote is a voice here; the rule counts contributors and above.",
     youCan: (name: string) => `You can approve, ${name}`,
-    decides: "your rating decides it",
     ratingNow: "rating now",
     notYet: "not yet",
     approve: "Approve",
@@ -780,14 +794,42 @@ export const copy = {
     /** A release gate: how many rated approvals there are against the rule's minimum. */
     progress: (count: number, min: number, avg: number) =>
       `${count} of ${min} raters${count ? ` · ${average(avg)} average` : ""}`,
-    /** "Approve with 4": the button carries the number it sends. */
-    approveWith: (n: number) => `Approve with ${n}`,
+    /** "Approve with 4": the button carries the number it sends, set in mono after these words. */
+    approveWithLead: "Approve with",
     /** The hint beside it while nothing is picked: "4 if you leave it". */
     ifYouLeaveIt: (n: number) => `${n} if you leave it`,
     rateHint: `Rate it before you approve; ${DEFAULT_RATING} if you leave it`,
-    withoutPick: (n: number) => `Approve without a pick sends ${n}`,
-    countsOnce: (who: string) => `Your rating counts once; ${who}'s is already in.`,
     picked: (n: number) => `${n} of 5`,
+    /** The hint beside the button once a stop is picked: "4 of 5 · Good". */
+    pickedWord: (n: number) => `${n} of 5 · ${RATING_WORDS[n - 1] ?? ""}`,
+    /** Beside the word once your rating is in. */
+    sent: (n: number) => `${n} of 5 · sent`,
+    /**
+     * What the dial reads beside it, in the tally's arithmetic: "With your 4 the average is 4.3:
+     * the gate opens." The number and the average are set by the view between these parts.
+     */
+    reading: {
+      withYour: "With your",
+      plain: "A plain Approve sends",
+      yours: "Your",
+      isIn: " is in; the average is",
+      is: " the average is",
+      wouldBe: "; the average would be",
+      opens: ": the gate opens.",
+      under: (bar: number) => `: under the bar of ${average(bar)}.`,
+      more: (n: number) =>
+        `; ${n === 1 ? "one more rating is" : `${n} more ratings are`} still needed.`,
+    },
+    /** The lowest pick of yours that opens the gate. */
+    lowestOpens: (lo: number) =>
+      lo <= 1
+        ? "Any rating opens it; only a deny holds it."
+        : `A ${lo} or above opens it; a ${lo - 1} holds it.`,
+    noneOpens: "No rating of yours can lift the average to the bar.",
+    yoursDecides: "Your rating decides it.",
+    waiting: "waiting",
+    ratersWord: "raters",
+    ratingsIn: "Ratings in",
     changeToDeny: "Change to deny",
     yourVoteIn: (approve: boolean, rating: number | null) =>
       `Your ${approve ? "approval" : "deny"} is in${rating ? ` · ${rating} of 5` : ""}.`,

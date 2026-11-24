@@ -35,7 +35,8 @@ import {
 import { Sentence } from "../notify.js";
 import { navigate, paths } from "../router.js";
 import { isTyping, type TargetLike } from "../shortcuts.js";
-import { Avatar, ICONS, Icon, Loader, Stars } from "../ui.js";
+import { MiniDial } from "../stream/RatingDial.js";
+import { Avatar, ICONS, Icon, Loader } from "../ui.js";
 
 interface Outcome {
   busy: boolean;
@@ -127,6 +128,9 @@ export function Inbox({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target as TargetLike | null)) return;
+      // A dial's own keys stay the dial's: arrows move along its stops, Enter and 1–5 pick, 0 clears.
+      const onDial = (e.target as Element | null)?.closest?.('[role="radio"]');
+      if (onDial && /^(Arrow(Up|Down|Left|Right)|Enter|[0-5])$/.test(e.key)) return;
       const { keys, cursor, visible, outcomes, approve, deny, accept, decline, open } =
         latest.current;
       const row = visible.find((n) => n.id === cursor) ?? null;
@@ -519,12 +523,11 @@ function InboxRow({
         {actionable && n.kind === "approval" && (
           <>
             {n.ratings && (
-              <Stars
+              <MiniDial
                 value={rating}
                 onChange={setRating}
                 onClear={() => setRating(null)}
-                size="sm"
-                tick
+                rest={DEFAULT_RATING}
                 word={false}
               />
             )}

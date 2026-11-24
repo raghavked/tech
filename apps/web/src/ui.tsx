@@ -1,4 +1,4 @@
-/** Small shared pieces on top of tokens.css v6: the mark, loaders, line icons, avatars, status, counts, pills, stars. */
+/** Small shared pieces on top of tokens.css v6: the mark, loaders, line icons, avatars, status, counts, pills. */
 import type { Resource } from "@henosis/fleet";
 import { compactTokens, formatTokens } from "@henosis/kernel";
 import type { EntryRecord } from "@henosis/memory";
@@ -9,7 +9,6 @@ import {
   Fragment,
   isValidElement,
   type ReactElement,
-  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   useEffect,
   useRef,
@@ -546,129 +545,9 @@ export const ICONS = {
 
 // ---- the rating control ------------------------------------------------------------------
 
-/** low (1–2), mid (3), high (4–5): the word's colour takes the -ink tokens. */
+/** low (1–2), mid (3), high (4–5): the word's colour takes the -ink tokens. The control itself is the dial (stream/RatingDial.tsx). */
 export function ratingLevel(n: number): "low" | "mid" | "high" {
   return n <= 2 ? "low" : n === 3 ? "mid" : "high";
-}
-
-/**
- * Five SVG stars in one radiogroup with a roving tabindex (rating-control): the rating control on
- * a plan and under a release gate, in the stream, the queue and the inbox. Each star is a radio
- * named "n of 5, Word"; the serif word beside says what the pick does; `tick` draws the gate
- * threshold after the third star. Keys: arrows preview, 1–5 pick, Enter picks, 0 clears.
- * `value` null means nothing chosen yet; Tab then lands on the default the button will send.
- */
-export function Stars({
-  value,
-  onChange,
-  onClear,
-  label = copy.rating.yourRating,
-  size = "md",
-  tick = false,
-  word = true,
-  disabled = false,
-  readonly = false,
-}: {
-  value: number | null;
-  onChange: (n: number) => void;
-  /** `0` clears the pick when the owner can hold "no rating". */
-  onClear?: (() => void) | undefined;
-  label?: string;
-  size?: "sm" | "md" | "lg";
-  /** Under a ratings rule: the hairline after the third star. */
-  tick?: boolean;
-  /** Show the word beside the stars. */
-  word?: boolean;
-  disabled?: boolean;
-  /** Submitted: the stars locked with a drawn check. */
-  readonly?: boolean;
-}) {
-  const [preview, setPreview] = useState<number | null>(null);
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const locked = disabled || readonly;
-  const shown = (locked ? null : preview) ?? value ?? 0;
-  const focusAt = value ?? (tick ? DEFAULT_RATING : 1);
-  const onKey = (e: ReactKeyboardEvent<HTMLButtonElement>, n: number) => {
-    if (locked) return;
-    let next: number | null = null;
-    switch (e.key) {
-      case "ArrowRight":
-      case "ArrowUp":
-        next = Math.min(5, n + 1);
-        break;
-      case "ArrowLeft":
-      case "ArrowDown":
-        next = Math.max(1, n - 1);
-        break;
-      case "Home":
-        next = 1;
-        break;
-      case "End":
-        next = 5;
-        break;
-      case "Enter":
-      case " ":
-        e.preventDefault();
-        onChange(n);
-        return;
-      case "0":
-        e.preventDefault();
-        onClear?.();
-        return;
-      default:
-        if (/^[1-5]$/.test(e.key)) {
-          e.preventDefault();
-          onChange(Number(e.key));
-        }
-        return;
-    }
-    e.preventDefault();
-    setPreview(next);
-    refs.current[next - 1]?.focus();
-  };
-  return (
-    <div
-      className={`stars${size !== "md" ? ` ${size}` : ""}${locked ? " locked" : ""}`}
-      role="radiogroup"
-      aria-label={label}
-      onMouseLeave={() => setPreview(null)}
-    >
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Fragment key={n}>
-          {tick && n === 4 && <span className="tick" aria-hidden="true" />}
-          {/* biome-ignore lint/a11y/useSemanticElements: a star is a drawn SVG button; the group is the radio control */}
-          <button
-            type="button"
-            role="radio"
-            ref={(el) => {
-              refs.current[n - 1] = el;
-            }}
-            className={`star${shown >= n ? (value !== null && n <= value ? " on" : " pre") : ""}`}
-            aria-checked={value === n}
-            aria-label={copy.rating.name(n)}
-            aria-disabled={readonly || undefined}
-            tabIndex={n === focusAt ? 0 : -1}
-            disabled={disabled}
-            onMouseEnter={() => !locked && setPreview(n)}
-            onFocus={() => !locked && setPreview(n)}
-            onBlur={() => setPreview(null)}
-            onClick={() => !locked && onChange(n)}
-            onKeyDown={(e) => onKey(e, n)}
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d={ICONS.star} />
-            </svg>
-          </button>
-        </Fragment>
-      ))}
-      {word && shown > 0 && (
-        <span className={`word ${ratingLevel(shown)}`} aria-hidden="true">
-          {copy.rating.word(shown)}
-        </span>
-      )}
-      {readonly && value !== null && <Icon d={ICONS.check} size={14} className="draw" />}
-    </div>
-  );
 }
 
 // ---- avatars, status, counts, pills ------------------------------------------------------

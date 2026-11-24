@@ -34,7 +34,7 @@ Contents: 0 File map · 1 Primitives · 2 The rail · 3 The session · 4 Overlay
 |---|---|---|
 | `design/mark.svg` | the five `<symbol>` cuts (`#mark #mark-small #mark-tiny #mark-bare #mark-mono`) | brand-board (does not exist yet; create it first, every board cites it) |
 | `apps/web/src/tokens.css` | `tokens.v5.css` dropped in (every selector and alias the app reads still resolves, SYSTEM.md §19) | all panels |
-| `apps/web/src/ui.tsx` | `Mark Icon ICONS Avatar Stack Dot Status Pill Count Chip Kbd ModeChip Btn Switch Seg Loader Toasts TypedToast Stars StarTiles TokenMeter AgentCard TeamPill Attribution StatTile Quorum JoinLine Wash` | §1–§3 |
+| `apps/web/src/ui.tsx` | `Mark Icon ICONS Avatar Stack Dot Status Pill Count Chip Kbd ModeChip Btn Switch Seg Loader Toasts TypedToast TokenMeter AgentCard TeamPill Attribution StatTile Quorum JoinLine Wash` | §1–§3 |
 | `apps/web/src/views/SessionView.tsx` | `Topbar Stream Message StepLine Notice ApprovalNotice Composer Drawer TeamPanel Details` | §3 |
 | `apps/web/src/stream/PlanCard.tsx` | `PlanCard PlanStep Raters Totals` | §3.9 |
 | `apps/web/src/views/ReplayScrubber.tsx` | `ReplayScrubber EdgeOfThePast` | §3.12 |
@@ -583,6 +583,18 @@ CSS: `.notice .kind .command .origin .actions .note .edited`, `.quorum` in token
 is page CSS to lift (§10.2).
 
 ### 3.8 `Stars`, `StarTiles` · rating-control (unjudged, adopted) · accessibility · approvals-queue · mobile panel
+
+**Replaced in the app by `Dial` and `MiniDial`** (sig-approval-dial; `apps/web/src/stream/RatingDial.tsx`,
+CSS in `apps/web/src/styles/approval-dial.css`: `.dial`, `.minidial`, `.dial-glyph`, tokens `--dial-*`).
+
+```ts
+function Dial(p: { value: number | null; onChange; onClear?; onPreview?; gate?: { count; min; average; bar } | null;
+                   rest?: number | null /* where the hand rests: DEFAULT_RATING */; size?: "md" | "sm"; readonly?: boolean; label?: string }): JSX.Element
+function MiniDial(p: { value: number | null; onChange? /* absent: the 36 x 28 glyph */; onClear?; gate?; rest?; word?: boolean;
+                       idle?: string; readonly?: boolean; kind?: "" | "waiting" | "voice" | "closed"; label?: string }): JSX.Element
+```
+
+What follows is the star control as it was specified, kept for the record.
 
 Five SVG stars in one radiogroup with roving tabindex (Unicode ★ is retired from manager-overview and
 agent-profile); 1.5 px outlined when empty, `--star-pre` on preview, `--star-on` when picked; the

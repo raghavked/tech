@@ -315,14 +315,6 @@ export function consequenceOf(r: QueueRow, pick: number | null): string | null {
   return copy.queue.waitsForNames(r.waitingFor);
 }
 
-/** The serif word beside the compact stars: a 3 is a voice, not a vote. */
-export function ratingWord(n: number | null): { word: string; tone: "low" | "mid" | "high" | "" } {
-  if (n === null) return { word: copy.queue.rate, tone: "" };
-  if (n <= 2) return { word: n === 1 ? "Not this" : "Weak", tone: "low" };
-  if (n === 3) return { word: "A voice", tone: "mid" };
-  return { word: n === 4 ? "Good" : "Strong", tone: "high" };
-}
-
 /** Oldest first, so the row that has waited longest is at the top. */
 export function sortRows(rows: QueueRow[]): QueueRow[] {
   return [...rows].sort(

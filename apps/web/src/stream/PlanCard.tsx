@@ -2,8 +2,9 @@
  * Plan first: the plan as a ledger in the stream (plan-card). A white card with a stripe that
  * carries the status; the goal with the italic serif "Goal" label; step rows on a grid of ring ·
  * title + detail · risk pill · actual · estimate; the totals meter against the budget with the
- * estimate tick; the team's ratings as chips with mini stars and "by the team's ratings" in
- * green; the decisions with one sentence under them. It renders from `state.plans[planId]`, so
+ * estimate tick; your rating on the compact dial and the team's ratings as chips, each with the
+ * same dial in miniature, and "by the team's ratings" in green; the decisions with one sentence
+ * under them. It renders from `state.plans[planId]`, so
  * it is live. The irreversible step's row points at the gate in the stream ("waits at the gate
  * below") when its approval is pending, so plan and gate are one object.
  */
@@ -23,8 +24,9 @@ import { type KeyboardEvent, memo, useState } from "react";
 import type { HenosisClient } from "../client.js";
 import { copy } from "../copy.js";
 import { isTyping } from "../shortcuts.js";
-import { ICONS, Icon, Stars } from "../ui.js";
+import { ICONS, Icon } from "../ui.js";
 import { isFresh } from "./clock.js";
+import { MiniDial } from "./RatingDial.js";
 
 /** What the card shows, as one string: the state is cloned on every event, so compare by value. */
 export function planSig(s: SessionState, planId: string, meId: string): string {
@@ -97,8 +99,8 @@ function PlanCardRow({
   const rank = rankOf(s, me.id);
   const live = !p.supersededBy;
   const moment = momentOf(p);
-  const showStars = live && human && rank >= ROLE_RANK.contributor;
-  const canRate = showStars && p.status === "proposed";
+  const showDial = live && human && rank >= ROLE_RANK.contributor;
+  const canRate = showDial && p.status === "proposed";
   const canDecide =
     live &&
     human &&
@@ -219,11 +221,18 @@ function PlanCardRow({
       {!live && <p className="small faint">{copy.plan.replaced}</p>}
       {live && (
         <div className="rating">
-          {showStars && (
-            <Stars
+          {showDial && (
+            <MiniDial
               value={mine?.rating ?? null}
               onChange={rate}
               label={copy.rating.ratePlan}
+              gate={{
+                count: r.count,
+                min: s.policy.planApproval.min,
+                average: r.average,
+                bar: s.policy.planApproval.average,
+              }}
+              idle={canRate ? copy.rating.ratePlan : ""}
               readonly={!canRate}
             />
           )}
@@ -256,7 +265,7 @@ function PlanCardRow({
             <span className="rater" key={id} title={x.note || undefined}>
               <span className="serif">{name(id)}</span>
               <span className="sr-only"> {copy.plan.ratedIt} </span>
-              <MiniStars n={x.rating} />
+              <MiniDial value={x.rating} />
               <span className="mono">{x.rating}</span>
               {x.note && <q>{x.note}</q>}
             </span>
@@ -325,15 +334,4 @@ function PlanCardRow({
 function tokensSoFar(s: SessionState, st: PlanStepRecord): number {
   const total = s.usage.input + s.usage.output + s.usage.cacheRead + s.usage.cacheWrite;
   return Math.max(0, total - st.startedTokens);
-}
-
-/** Five tiny stars, `n` of them lit; the number beside them carries the value for readers. */
-export function MiniStars({ n }: { n: number }) {
-  return (
-    <span className="mini" aria-hidden="true">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Icon key={i} d={ICONS.star} size={11} className={i <= n ? "fill" : ""} />
-      ))}
-    </span>
-  );
 }

@@ -4,11 +4,11 @@
  * and the call in a mono chip; a gate card carries the stripe as its only gradient, the plain
  * navy "Release gate" pill, the `irreversible` pill, the quorum meter and a chocolate consequence
  * phrase ("your 4 grants it", "waits for Ana or Bo"); an exec card a 44 px full-width Approve
- * beside a quiet Deny; a card where the vote is in the green check, the locked stars and "Change
+ * beside a quiet Deny; a card where the vote is in the green check, the rating as a small dial and "Change
  * to deny"; a driver-only call "Bo has the baton; this one is his call" with Nudge. The filter
  * bar sits at the thumb. Opening a gate lifts the one sheet (Sheet.tsx) over the dimmed queue
  * with the opened card ringed: "The release gate.", the held call in a navy mono bar, the rule in
- * plain words, the voices ledger, the star tiles, the note, the tally line and Approve with N.
+ * plain words, the voices ledger, the dial, the note, the tally line and Approve with N.
  */
 import { type ReactNode, useState } from "react";
 import {
@@ -22,8 +22,8 @@ import {
 import { average, copy } from "../copy.js";
 import { paths } from "../router.js";
 import { Sheet } from "../Sheet.js";
-import { StarTiles } from "../stream/StarTiles.js";
-import { Avatar, ICONS, Icon, Stars } from "../ui.js";
+import { Dial, MiniDial } from "../stream/RatingDial.js";
+import { Avatar, ICONS, Icon, ratingLevel } from "../ui.js";
 
 export type Vote = (
   v: "approve" | "deny",
@@ -134,13 +134,10 @@ export function QueueCard({
             <Icon d={ICONS.check} size={14} className="ok" />
             {copy.queue.yourVoteInShort}
             {r.ratings && r.myRating !== null && (
-              <Stars
-                value={r.myRating}
-                onChange={() => undefined}
-                size="sm"
-                word={false}
-                readonly
-              />
+              <span className="mine">
+                <MiniDial value={r.myRating} gate={r.quorum} />
+                <span className="mono">{r.myRating}</span>
+              </span>
             )}
           </span>
           {r.myVote === "approve" ? (
@@ -217,7 +214,7 @@ export function ThumbFilters({
 /**
  * The gate sheet (mobile-approvals; the rating sheet on the manager page is this sheet): the
  * held call in a navy mono bar with a lock and "held", the rule in plain words, the voices
- * ledger with dashed rings for people still to act, the star tiles, the note, the tally line
+ * ledger with dashed rings for people still to act, the dial, the note, the tally line
  * "Your 4 grants it", Approve with N beside a quiet Deny, and the fine print.
  */
 export function GateSheet({
@@ -327,6 +324,9 @@ export function GateSheet({
           <div key={v.who} className={`vote ${v.vote === "deny" ? "deny" : "rated"}`}>
             <Avatar id={v.who} name={v.who} />
             <span className="who serif">{v.who}</span>
+            {v.vote === "approve" && v.rating !== null && (
+              <MiniDial value={v.rating} gate={r.quorum} />
+            )}
             <span className="st">{copy.approval.voted(v.vote === "approve", v.rating)}</span>
             {v.note && <q className="q">{v.note}</q>}
           </div>
@@ -345,7 +345,36 @@ export function GateSheet({
       {r.ratings && state !== "driver-only" && (
         <section className="rate" aria-label={copy.queue.yourRating}>
           <span className="lbl">{copy.queue.yourRating}</span>
-          <StarTiles value={rating} onChange={onPick} readonly={mine} />
+          <Dial
+            value={rating}
+            onChange={onPick}
+            onClear={() => onPick(0)}
+            gate={r.quorum}
+            rest={mine ? null : DEFAULT_RATING}
+            readonly={mine}
+          />
+          {(!mine || rating !== null) && (
+            <div className={`word${rating ? ` ${ratingLevel(rating)}` : " rest"}`}>
+              <span className="w">{copy.rating.word(n)}</span>
+              <span className="n mono">
+                {mine
+                  ? copy.approval.sent(n)
+                  : rating
+                    ? copy.approval.picked(rating)
+                    : copy.approval.ifYouLeaveIt(DEFAULT_RATING)}
+              </span>
+              {!mine && rating !== null && (
+                <button
+                  type="button"
+                  className="clear"
+                  aria-label={copy.rating.clearLabel}
+                  onClick={() => onPick(0)}
+                >
+                  {copy.rating.clear}
+                </button>
+              )}
+            </div>
+          )}
           {!mine && (
             <input
               className="input note"

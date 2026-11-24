@@ -27,7 +27,8 @@ and who did it, and no more.
 6. **Henosis's own words** for its own ideas: the driver holds *the baton*, a person *drives* it,
    handing over *offers the baton*, a merge *unites* a branch, a steer and a constraint are
    *directions*, two of them at once is a *contention*. Before it acts the agent proposes a
-   *plan*; people *rate* it one to five (the control is five stars named "Rate n of 5"); the
+   *plan*; people *rate* it one to five (the control is a dial whose five stops are named
+   "4 of 5, Good"; the same dial rates a release gate); the
    plan is *approved*, sent back to *revise*, or *rejected*; while it waits the session is
    *Planning* and "The plan waits for ratings". An approval that needs ratings is a *release
    gate*; its progress reads "1 of 2 raters · 3 average", a plan's "2 of 2 ratings · 4.5

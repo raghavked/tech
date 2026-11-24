@@ -1,0 +1,982 @@
+/*
+ * The rating as a dial (sig-approval-dial; stream/RatingDial.tsx): the one rating shape. A rim of
+ * five stops over 240°, the rule's bar cut into it as a notch with the band past it washed
+ * apricot, the team's average a thin needle, your pick the chocolate knob and its pointer. The
+ * face a gate is rated on (.dial), the compact control (.minidial) and the glyph beside a rating
+ * someone gave (.dial-glyph) are one drawing, moved by four properties set on the element:
+ * --deg (the hand), --len (the fill, in degrees), --plen (the preview) and --avg-deg (the needle).
+ *
+ * Colour by job: the rim and the needle are the frame's navy, the fill is the pulse's deep step
+ * like every meter, the only chocolate on the face is the hand because it is the one thing you
+ * press, and the status hues appear only in the word, through the -ink tokens. By night the hand
+ * is the lifted chocolate and the needle is apricot, so the drawing is the same at night.
+ */
+:root {
+  --dial-rim: color-mix(in srgb, var(--ink) 16%, transparent);
+  --dial-tick: color-mix(in srgb, var(--ink) 55%, transparent);
+  --dial-zone: var(--apricot-soft);
+  --dial-fill: var(--apricot-deep);
+  --dial-pre: var(--apricot);
+  --dial-hand: var(--accent);
+  --dial-hand-fg: var(--accent-fg);
+  --dial-needle: var(--blues);
+  --dial-notch: var(--ink);
+  --dial-arc-person: var(--mark-arc-a);
+  --dial-arc-agent: var(--blues);
+  --dial-centre: var(--apricot);
+  /* what the dial sits on: the notch's cut and the halos take it, so a row can re-ground it */
+  --dial-ground: var(--surface);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --dial-pre: color-mix(in srgb, var(--apricot) 55%, transparent);
+    --dial-needle: var(--apricot);
+    --dial-arc-person: var(--accent-ink);
+    --dial-arc-agent: var(--apricot);
+  }
+}
+:root[data-theme="dark"] {
+  --dial-pre: color-mix(in srgb, var(--apricot) 55%, transparent);
+  --dial-needle: var(--apricot);
+  --dial-arc-person: var(--accent-ink);
+  --dial-arc-agent: var(--apricot);
+}
+
+/* ---- the face a gate is rated on ---------------------------------------------------------- */
+.dial {
+  position: relative;
+  width: 340px;
+  max-width: 100%;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dial.sm {
+  width: 260px;
+}
+.dial .face {
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+}
+.dial.dragging .face {
+  cursor: grabbing;
+}
+.dial.locked .face {
+  cursor: default;
+  touch-action: auto;
+}
+.dial svg,
+.minidial svg,
+.dial-glyph svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.dial svg {
+  aspect-ratio: 360 / 212;
+}
+.dial .band,
+.minidial .band {
+  fill: none;
+  stroke: var(--dial-zone);
+  stroke-width: 14;
+  stroke-linecap: butt;
+}
+.dial .rim,
+.minidial .rim,
+.dial-glyph .rim {
+  fill: none;
+  stroke: var(--dial-rim);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.dial .fill,
+.dial .pre,
+.minidial .fill,
+.minidial .pre,
+.dial-glyph .fill {
+  fill: none;
+  stroke: var(--dial-fill);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: var(--len, 0) 240;
+  transition:
+    stroke-dasharray var(--t) var(--ease-mark),
+    opacity var(--t-fast) var(--ease-move);
+}
+.dial .pre,
+.minidial .pre {
+  stroke: var(--dial-pre);
+  stroke-dasharray: var(--plen, 0) 240;
+  opacity: 0;
+}
+.dial.previewing .pre,
+.minidial.previewing .pre {
+  opacity: 1;
+}
+.dial.rest .fill,
+.dial.nohand .fill,
+.minidial.rest .fill,
+.minidial.nohand .fill,
+.dial-glyph.rest .fill,
+.dial-glyph.nohand .fill {
+  opacity: 0;
+}
+.dial.dragging .fill {
+  transition: none;
+}
+.dial .cut,
+.minidial .cut {
+  stroke: var(--dial-ground);
+  stroke-width: 7;
+  stroke-linecap: butt;
+}
+.dial .notch,
+.minidial .notch,
+.dial-glyph .notch {
+  fill: none;
+  stroke: var(--dial-notch);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.dial .bar-label {
+  font: 500 10.5px var(--mono);
+  letter-spacing: 0.04em;
+  fill: var(--ink-3);
+}
+.dial .dstop .tick,
+.minidial .dstop .tick {
+  stroke: var(--dial-tick);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    stroke var(--t-fast) var(--ease-move),
+    stroke-width var(--t-fast) var(--ease-move);
+}
+.dial .dstop.picked .tick,
+.minidial .dstop.picked .tick {
+  stroke: var(--dial-hand);
+  stroke-width: 2.5;
+}
+.dial .dstop .label {
+  font: italic 400 15px var(--serif);
+  fill: var(--ink-2);
+  transition: fill var(--t-fast) var(--ease-move);
+}
+.dial .dstop .num,
+.minidial .dstop .num {
+  font: 400 10.5px var(--mono);
+  fill: var(--ink-3);
+  paint-order: stroke;
+  stroke: var(--dial-ground);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.dial .dstop.near .label,
+.dial .dstop.picked .label {
+  fill: var(--ink);
+}
+.dial .dstop.picked .num,
+.dial .dstop.near .num,
+.minidial .dstop.picked .num,
+.minidial .dstop.near .num {
+  fill: var(--ink);
+}
+/* the needle: the team's average so far, under the stops so a number stays whole */
+.dial .needle-g,
+.minidial .needle-g {
+  transform-box: view-box;
+  transform-origin: 180px 136px;
+  transform: rotate(var(--avg-deg, 0deg));
+  transition:
+    transform var(--t-slow) var(--ease-mark),
+    opacity var(--t) var(--ease-move);
+}
+.dial .needle-halo,
+.minidial .needle-halo {
+  stroke: var(--dial-ground);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.dial .needle,
+.minidial .needle {
+  stroke: var(--dial-needle);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+.dial .needle-cap,
+.minidial .needle-cap {
+  fill: var(--dial-needle);
+}
+.dial.noavg .needle-g,
+.minidial.noavg .needle-g {
+  opacity: 0;
+}
+/* the hand: the one chocolate thing on the face */
+.dial .hand,
+.minidial .hand,
+.dial-glyph .hand {
+  transform-box: view-box;
+  transform-origin: 180px 136px;
+  transform: rotate(var(--deg, 60deg));
+  transition:
+    transform var(--t) var(--ease-mark),
+    opacity var(--t) var(--ease-move);
+}
+.dial.dragging .hand {
+  transition: none;
+}
+.dial .pointer,
+.minidial .pointer,
+.dial-glyph .pointer {
+  stroke: var(--dial-hand);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: opacity var(--t) var(--ease-move);
+}
+.dial.rest .pointer {
+  stroke-dasharray: 2 5;
+}
+.dial .knob,
+.minidial .knob,
+.dial-glyph .knob {
+  fill: var(--dial-hand);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform var(--t-fast) var(--ease-move);
+}
+.dial.pressing .knob {
+  transform: scale(0.94);
+}
+.dial .slot {
+  stroke: var(--dial-hand-fg);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: opacity var(--t) var(--ease-move);
+}
+.dial.rest .slot {
+  opacity: 0.5;
+}
+/* a reader who cannot rate: the instrument without a hand */
+.dial.nohand .hand,
+.minidial.nohand .hand,
+.dial-glyph.nohand .hand {
+  opacity: 0;
+}
+.dial.nohand .knob,
+.minidial.nohand .knob,
+.dial-glyph.nohand .knob {
+  fill: var(--surface-3);
+}
+/* sent: the hand stays where it was put, the pointer fades and the check is drawn in the knob */
+.dial .check {
+  fill: none;
+  stroke: var(--dial-hand-fg);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+.dial.sent .slot,
+.dial.sent .pointer {
+  opacity: 0;
+}
+.dial.sent .check {
+  opacity: 1;
+  stroke-dashoffset: 0;
+}
+/* the five radios: one over each stop, where the tick and the start of the word are */
+.dial .stop,
+.minidial .stop {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dial .stop:focus-visible,
+.minidial .stop:focus-visible {
+  border-radius: 50%;
+  outline-offset: -4px;
+}
+.dial.locked .stop,
+.minidial.locked .stop {
+  cursor: default;
+}
+.dial .dial-keys {
+  text-align: center;
+  font: 400 12px / 16px var(--mono);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+.dial .dial-keys .coarse {
+  display: none;
+}
+@media (pointer: coarse) {
+  .dial .dial-keys .fine {
+    display: none;
+  }
+  .dial .dial-keys .coarse {
+    display: inline;
+  }
+}
+/* the queue's open row: the same face at 260 px, its type a step up so it still reads */
+.dial.sm .dstop .label {
+  font-size: 18px;
+}
+.dial.sm .dstop .num,
+.dial.sm .bar-label {
+  font-size: 13.5px;
+}
+.dial.sm .dial-keys {
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+/* ---- the compact control: the same dial at r 34, the word beside it ------------------------ */
+.minidial {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.minidial .face {
+  position: relative;
+  display: block;
+  width: 112px;
+  flex: none;
+}
+.minidial svg {
+  aspect-ratio: 112 / 74;
+}
+.minidial .band {
+  stroke-width: 7;
+}
+.minidial .rim {
+  stroke-width: 1.5;
+}
+.minidial .fill,
+.minidial .pre {
+  stroke-width: 3.5;
+}
+.minidial .cut {
+  stroke-width: 3.5;
+}
+.minidial .dstop .tick {
+  stroke-width: 1.25;
+}
+.minidial .dstop.picked .tick {
+  stroke-width: 2;
+}
+.minidial .dstop .num {
+  font-size: 10.5px;
+  fill: var(--ink-2);
+  stroke-width: 2px;
+}
+.minidial .needle-g,
+.minidial .hand {
+  transform-origin: 56px 48px;
+}
+.minidial .needle-halo {
+  stroke-width: 3;
+}
+.minidial .pointer {
+  stroke-width: 2.25;
+}
+.minidial.rest .pointer {
+  stroke-dasharray: 2 3.5;
+}
+.minidial .stop {
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+}
+.minidial .stop:focus-visible {
+  outline-offset: -2px;
+}
+.minidial .reads {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.minidial .reads .w {
+  font: italic 400 19px / 1.2 var(--serif);
+  color: var(--ink);
+}
+.minidial .reads .n,
+.minidial .reads .idle {
+  font: 400 12px var(--mono);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.minidial .reads .idle {
+  font-family: var(--font);
+  font-size: 12.5px;
+}
+.minidial .reads.low .w {
+  color: var(--danger-ink);
+}
+.minidial .reads.mid .w {
+  color: var(--warn-ink);
+}
+.minidial .reads.high .w {
+  color: var(--ok-ink);
+}
+.minidial .reads .ic.draw {
+  color: var(--ok-ink);
+  align-self: center;
+}
+
+/* ---- the glyph: the same geometry at r 11 (36 × 28), beside a rating someone gave ---------- */
+.dial-glyph {
+  display: inline-block;
+  width: 36px;
+  height: 28px;
+  flex: none;
+  vertical-align: middle;
+}
+.dial-glyph svg {
+  height: 100%;
+}
+.dial-glyph .rim {
+  stroke-width: 1.5;
+}
+.dial-glyph .fill {
+  stroke-width: 3;
+}
+.dial-glyph .notch {
+  stroke-width: 1;
+}
+.dial-glyph .hand {
+  transform-origin: 18px 16px;
+}
+.dial-glyph .pointer {
+  stroke-width: 1.5;
+}
+.dial-glyph.rest .pointer {
+  stroke-dasharray: 1.5 2.5;
+}
+.dial-glyph.waiting .rim {
+  stroke-dasharray: 2 4;
+}
+.dial-glyph.voice {
+  opacity: 0.55;
+}
+/* the gate that opened: the rim's two ends swing down and meet, the person's in chocolate and the
+   agent's in navy, and the centre lights apricot: two arcs closing on one centre */
+.dial-glyph .close {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.dial-glyph .close.person {
+  stroke: var(--dial-arc-person);
+}
+.dial-glyph .close.agent {
+  stroke: var(--dial-arc-agent);
+}
+.dial-glyph .centre {
+  fill: none;
+  stroke: var(--dial-centre);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.divider .dial-glyph {
+  width: 31px;
+  height: 24px;
+  margin: -6px -4px -4px 0;
+}
+
+/* ---- the gate in the stream: the dial left, your reading right ----------------------------- */
+.notice .gate-face {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 26px;
+  align-items: center;
+}
+/* a step under the sheet's 340: the whole gate stays in one laptop screen above the composer */
+.notice .gate-face .dial {
+  width: 320px;
+}
+.notice .say {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.notice .say .lbl {
+  font: var(--t-kicker);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.notice .say .word,
+.gatesheet .rate .word,
+.qrow .rate .word {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-height: 44px;
+}
+.notice .say .word .w,
+.gatesheet .rate .word .w {
+  font: italic 400 38px / 1.1 var(--serif);
+  color: var(--ink);
+}
+.notice .say .word .n,
+.gatesheet .rate .word .n,
+.qrow .rate .word .n {
+  font: 400 13px var(--mono);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.notice .say .word.low .w,
+.gatesheet .rate .word.low .w,
+.qrow .rate .word.low .w {
+  color: var(--danger-ink);
+}
+.notice .say .word.mid .w,
+.gatesheet .rate .word.mid .w,
+.qrow .rate .word.mid .w {
+  color: var(--warn-ink);
+}
+.notice .say .word.high .w,
+.gatesheet .rate .word.high .w,
+.qrow .rate .word.high .w {
+  color: var(--ok-ink);
+}
+.notice .say.rest .word .w,
+.gatesheet .rate .word.rest .w {
+  color: var(--ink-3);
+}
+.notice .say .clear,
+.gatesheet .rate .clear {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-3);
+  font: 400 12.5px var(--font);
+  cursor: pointer;
+}
+.notice .say .clear:hover,
+.gatesheet .rate .clear:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+.notice .say .then {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.notice .say .then b {
+  font-weight: 600;
+}
+.notice .say .then .mono {
+  font-size: 13.5px;
+}
+.notice .say .next {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.notice .say .note {
+  width: 100%;
+  min-height: 34px;
+  font-size: 14px;
+}
+
+/* the ballots: rows, each with the same dial in miniature */
+.notice .ballots {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+  margin-top: 0;
+}
+.notice .ballots:empty {
+  display: none;
+}
+.notice .ballot {
+  display: grid;
+  grid-template-columns: 28px minmax(96px, auto) minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 42px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--line);
+}
+.notice .ballot .avatar {
+  --size: 28px;
+  font-size: 10px;
+}
+.notice .ballot .who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.notice .ballot .name {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink);
+}
+.notice .ballot .you {
+  font: 500 11.5px var(--font);
+  color: var(--ink-3);
+  margin-left: 4px;
+}
+.notice .ballot .role {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.notice .ballot .said {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: italic 400 14.5px var(--serif);
+  color: var(--ink-2);
+}
+.notice .ballot .said q {
+  quotes: "“" "”";
+}
+.notice .ballot .said.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 400 13px var(--font);
+  color: var(--ink-3);
+}
+.notice .ballot .said.state::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--ink-3);
+}
+.notice .ballot .said.live {
+  color: var(--ink-2);
+}
+.notice .ballot .said.live::before {
+  background: var(--apricot-deep);
+  box-shadow: none;
+}
+.notice .ballot .cast {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: end;
+}
+.notice .ballot .cast .n {
+  min-width: 1ch;
+  text-align: right;
+  font: 400 13px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.notice .ballot.mine .cast .n {
+  font-weight: 500;
+}
+.notice .ballot .cast .w {
+  min-width: 48px;
+  font: italic 400 14px var(--serif);
+  color: var(--ink-2);
+}
+.notice .ballot .cast .w.low {
+  color: var(--danger-ink);
+}
+.notice .ballot .cast .w.mid {
+  color: var(--warn-ink);
+}
+.notice .ballot .cast .w.high {
+  color: var(--ok-ink);
+}
+.notice .ballot .cast .no {
+  font: 500 13px var(--font);
+  color: var(--danger-ink);
+}
+.notice .ballot .cast .voice-note {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.notice .ballot.voice .cast .n,
+.notice .ballot.voice .said,
+.notice .ballot.waiting .cast .n {
+  color: var(--ink-3);
+}
+
+/* the tally: sans for what is read, mono for the counts, one voice per row */
+.notice .tally {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding-top: 2px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.notice .tally .quorum i {
+  width: 22px;
+}
+.notice .tally .quorum i.on {
+  background: var(--apricot-deep);
+}
+.notice .tally .mono {
+  font-size: 13px;
+  color: var(--ink);
+}
+.notice .tally.low .mono.avg {
+  color: var(--warn-ink);
+}
+.notice .tally .verdict {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--ink);
+}
+.notice .actions .btn .num,
+.gatesheet .btn .mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.notice.gate .actions .note {
+  font-size: 13.5px;
+}
+/* a gate is taller than the row of stars it replaces: whatever a key or a click scrolls into view
+   (the stop under the focus, "Approve with 4") lands above the composer, never under it */
+.scroll:has(.composer-wrap) {
+  scroll-padding-bottom: 168px;
+}
+
+/* ---- the plan card: your rating on the compact dial, the team's as chips with the glyph ---- */
+.plan .rating .minidial {
+  margin: -4px 0;
+}
+.plan .rater {
+  height: 30px;
+  padding-left: 4px;
+}
+.plan .rater .dial-glyph {
+  --dial-ground: var(--surface-2);
+  margin: 0 -2px;
+}
+/* while viewing the past the stream is read-only: the dials keep their reading, lose their turn */
+.past .minidial,
+.past .dial {
+  pointer-events: none;
+}
+.past .notice .say .note,
+.past .notice .say .clear,
+.past .dial .dial-keys {
+  display: none;
+}
+/* the palette's "Rate it first" row: the rating it would join, as the glyph */
+.palette .row.two .more .dial-glyph {
+  width: 27px;
+  height: 21px;
+  margin: -4px 0;
+}
+
+/* ---- the queue: the row under the cursor opens its gate on the full face ------------------- */
+.qrow .rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.qrow:hover .minidial,
+.qrow:hover .dial,
+.qrow.cursor .minidial,
+.qrow.cursor .dial {
+  --dial-ground: var(--surface-2);
+}
+.qrow .rate .minidial .reads .w {
+  font-size: 17px;
+}
+.qrow .rate .word {
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+}
+.qrow .rate .word .w {
+  font: italic 400 28px / 1.1 var(--serif);
+  color: var(--ink-3);
+}
+.qrow.open .ctl .line:first-child {
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.qrow .s .dial-glyph {
+  width: 27px;
+  height: 21px;
+  margin: -4px 3px -2px -2px;
+}
+.ibrow .act .minidial {
+  margin: -6px 0;
+}
+.ibrow.cursor .minidial,
+.ibrow:hover .minidial {
+  --dial-ground: var(--surface-2);
+}
+
+/* ---- the gate sheet and the phone's card ---------------------------------------------------- */
+.gatesheet .rate .dial {
+  width: 100%;
+  max-width: 340px;
+  align-self: center;
+}
+.gatesheet .rate .word {
+  justify-content: center;
+}
+.gatesheet .rate .clear {
+  margin-left: 0;
+}
+.gatesheet .vote .dial-glyph {
+  --dial-ground: var(--surface-2);
+  margin: -4px -2px;
+}
+.grow .act .in {
+  white-space: nowrap;
+}
+.grow .act .in .mine {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink);
+}
+
+/* ---- motion: transitions for travel, keyframes for events, all under the one guard --------- */
+@keyframes dial-detent {
+  40% {
+    transform: scale(1.5);
+  }
+}
+@keyframes dial-breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) .dial .dstop.click .tick,
+  :root:not([data-motion="calm"]) .minidial .dstop.click .tick {
+    animation: dial-detent 180ms var(--ease-mark);
+  }
+  :root:not([data-motion="calm"]) .notice .say .word .w {
+    animation: word-in var(--t-slow) var(--ease-arrive) both;
+  }
+  :root:not([data-motion="calm"]) .notice .ballot .said.live::before {
+    animation: dial-breathe 1.8s var(--ease-move) infinite;
+  }
+  :root:not([data-motion="calm"]) .dial.sent .check {
+    stroke-dasharray: 26;
+    stroke-dashoffset: 26;
+    animation: draw 450ms var(--ease-move) 50ms forwards;
+  }
+  :root:not([data-motion="calm"]) .divider.fresh .dial-glyph .close {
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+    animation: draw 600ms var(--ease-mark) 200ms forwards;
+  }
+  :root:not([data-motion="calm"]) .divider.fresh .dial-glyph .centre {
+    animation: pop 360ms var(--ease-arrive) 750ms both;
+  }
+}
+
+/* ---- the phone: the dial at the width of the thumb, the reading centred under it ----------- */
+@media (max-width: 720px) {
+  .notice .ballot {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+  }
+  .notice .ballot .said:not(.state) {
+    display: none;
+  }
+  .notice .ballot .said.state {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: -8px;
+  }
+}
+@media (max-width: 640px) {
+  .notice .gate-face {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    justify-items: center;
+  }
+  .notice .gate-face .dial {
+    width: 100%;
+    max-width: 340px;
+  }
+  .notice .say {
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
+  .notice .say .word {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .notice .say .clear {
+    margin-left: 0;
+  }
+  .notice .tally .verdict {
+    margin-left: 0;
+    flex: 1 1 100%;
+  }
+  /* the judges' fix: the actions wrap and the hint takes its own line under the buttons */
+  .notice.gate .actions .note {
+    flex: 1 1 100%;
+    white-space: normal;
+  }
+}
+@media (max-width: 480px) {
+  .dial .dstop .label {
+    font-size: 17px;
+  }
+  .notice .say .then,
+  .notice .say .note {
+    font-size: 16px;
+  }
+  .notice.gate .actions .btn {
+    min-height: 46px;
+  }
+  .notice.gate .actions .btn.primary {
+    flex: 1 1 auto;
+    font-size: 16px;
+  }
+  .notice.gate .actions .note {
+    text-align: center;
+  }
+  /* no keyboard under a thumb: the printed keys go */
+  .notice.gate .actions .keys {
+    display: none;
+  }
+  .plan .rating .minidial {
+    margin: 0;
+  }
+}

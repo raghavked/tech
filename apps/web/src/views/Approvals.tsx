@@ -20,7 +20,6 @@ import {
   pendingOf,
   type QueueFilter,
   type QueueRow,
-  ratingWord,
   rowState,
   rowsOf,
   sortRows,
@@ -33,7 +32,8 @@ import { actorOf, type Identity, initials } from "../identity.js";
 import { markRead, useInbox } from "../inbox.js";
 import { navigate, paths } from "../router.js";
 import { pressTwoStep, type TargetLike } from "../shortcuts.js";
-import { ErrorLine, ICONS, Icon, PHONE_QUERY, Stars, useMediaQuery } from "../ui.js";
+import { Dial, MiniDial } from "../stream/RatingDial.js";
+import { ErrorLine, ICONS, Icon, PHONE_QUERY, ratingLevel, useMediaQuery } from "../ui.js";
 import { useShortcutContextPublisher } from "../useShortcuts.js";
 import { GateSheet, Meter, QueueCard, ThumbFilters } from "./ApprovalsPhone.js";
 
@@ -200,8 +200,13 @@ export function Approvals({
   const [cursorKey, setCursorKey] = useState<string | null>(null);
   const keys = shown.map((r) => r.key);
   const cursor = cursorKey && keys.includes(cursorKey) ? cursorKey : (keys[0] ?? null);
-  // The stars picked on each row, so `1`–`5` and the button agree.
+  // The rating picked on each row's dial, so `1`–`5` and the button agree; `0` clears it.
   const [picks, setPicks] = useState<Record<string, number>>({});
+  const setPick = (key: string, n: number) =>
+    setPicks((p) => {
+      const { [key]: _was, ...rest } = p;
+      return n ? { ...rest, [key]: n } : rest;
+    });
   // The two-step: an irreversible row lit by a first `a`, waiting for the second.
   const [armed, setArmed] = useState<string | null>(null);
   useShortcutContextPublisher({ queue: { count: pending.length } });
@@ -241,6 +246,9 @@ export function Approvals({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target as TargetLike | null)) return;
+      // A dial's own keys stay the dial's: arrows move along its stops, Enter and 1–5 pick, 0 clears.
+      const onDial = (e.target as Element | null)?.closest?.('[role="radio"]');
+      if (onDial && /^(Arrow(Up|Down|Left|Right)|Enter|[0-5])$/.test(e.key)) return;
       const { keys, cursor, shown, vote, armed } = latest.current;
       const row = shown.find((r) => r.key === cursor) ?? null;
       const state = row ? rowState(row) : null;
@@ -371,7 +379,7 @@ export function Approvals({
           <GateSheet
             r={openRow}
             pick={picks[openRow.key] ?? null}
-            onPick={(n) => setPicks((p) => ({ ...p, [openRow.key]: n }))}
+            onPick={(n) => setPick(openRow.key, n)}
             onVote={(v, rating, override, note) => vote(openRow, v, rating, override, note)}
             onClose={() => setOpenKey(null)}
           />
@@ -458,7 +466,7 @@ export function Approvals({
                     cursor={r.key === cursor}
                     armed={armed === r.key}
                     pick={picks[r.key] ?? null}
-                    onPick={(n) => setPicks((p) => ({ ...p, [r.key]: n }))}
+                    onPick={(n) => setPick(r.key, n)}
                     onFocus={() => setCursorKey(r.key)}
                     onVote={(v, rating, override) => vote(r, v, rating, override)}
                     onNudge={() => nudge(r)}
@@ -611,11 +619,17 @@ function QueueRowItem({
 }) {
   const state = rowState(r);
   const rating = state === "voted" ? r.myRating : pick;
-  const word = ratingWord(rating);
+  // The row under the cursor opens: its gate is rated on the full face, the others on the compact dial.
+  const open = cursor && r.ratings && state !== "voted" && state !== "driver-only";
   const voted = r.votes
     .filter((v) => v.vote === "approve")
-    .map((v) => (v.rating ? `${v.who} approved with ${v.rating}` : `${v.who} approved`));
-  const denied = r.votes.filter((v) => v.vote === "deny").map((v) => `${v.who} denied`);
+    .map((v) => ({
+      text: v.rating ? `${v.who} approved with ${v.rating}` : `${v.who} approved`,
+      rating: v.rating,
+    }));
+  const denied = r.votes
+    .filter((v) => v.vote === "deny")
+    .map((v) => ({ text: `${v.who} denied`, rating: null }));
   const votesLine = [...voted, ...denied];
   const ownerInitials = initials(r.ownerName ?? r.agentName);
   const waits = copy.queue.waitsFor(r.waitsFor.role, r.waitsFor.who);
@@ -623,7 +637,7 @@ function QueueRowItem({
     // biome-ignore lint/a11y/noStaticElementInteractions: the row only moves the keyboard cursor; its buttons and link are the controls
     // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handling lives on the window (j/k/a/d)
     <div
-      className={`qrow s-${state}${r.ratings ? " gated" : ""}${cursor ? " cursor" : ""}${armed ? " armed" : ""}`}
+      className={`qrow s-${state}${r.ratings ? " gated" : ""}${cursor ? " cursor" : ""}${armed ? " armed" : ""}${open ? " open" : ""}`}
       data-key={r.key}
       aria-current={cursor ? "true" : undefined}
       onClick={onFocus}
@@ -661,8 +675,9 @@ function QueueRowItem({
           {votesLine.length ? (
             votesLine.map((v, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: the votes are positional
-              <span key={i} className={v.startsWith("you ") ? "you" : ""}>
-                {v}
+              <span key={i} className={v.text.startsWith("you ") ? "you" : ""}>
+                {r.ratings && v.rating !== null && <MiniDial value={v.rating} gate={r.quorum} />}
+                {v.text}
                 {i < votesLine.length - 1 && <span className="sep">·</span>}
               </span>
             ))
@@ -700,20 +715,35 @@ function QueueRowItem({
           </span>
           {r.ratings && state !== "driver-only" && (
             <span className={`rate${state === "voted" ? " locked" : ""}`}>
-              <Stars
-                value={rating}
-                onChange={onPick}
-                onClear={() => onPick(0)}
-                size="sm"
-                tick
-                word={false}
-                readonly={state === "voted"}
-                label="Your rating"
-              />
-              <span className={`word ${word.tone}`}>
-                {state === "voted" && <Icon d={ICONS.check} size={13} className="tick" />}
-                {word.word}
-              </span>
+              {open ? (
+                <>
+                  <Dial
+                    value={rating}
+                    onChange={onPick}
+                    onClear={() => onPick(0)}
+                    gate={r.quorum}
+                    size="sm"
+                  />
+                  <span className={`word${rating ? ` ${ratingLevel(rating)}` : ""}`}>
+                    <span className="w">{copy.rating.word(rating ?? DEFAULT_RATING)}</span>
+                    <span className="n mono">
+                      {rating
+                        ? copy.approval.picked(rating)
+                        : copy.approval.ifYouLeaveIt(DEFAULT_RATING)}
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <MiniDial
+                  value={rating}
+                  onChange={onPick}
+                  onClear={() => onPick(0)}
+                  gate={r.quorum}
+                  rest={DEFAULT_RATING}
+                  idle={copy.queue.rate}
+                  readonly={state === "voted"}
+                />
+              )}
             </span>
           )}
         </div>

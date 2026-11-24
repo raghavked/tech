@@ -431,6 +431,16 @@ approved/running, done, revision asked), the stripe carrying the state (apricot,
 
 ## 10. Rating control
 
+**Shipped as the dial** (sig-approval-dial; `apps/web/src/stream/RatingDial.tsx`,
+`apps/web/src/styles/approval-dial.css`). The stars below are retired from the app: `Dial` is the
+face a release gate is rated on (the stream's notice, the queue's open row, the phone's gate sheet)
+and `MiniDial` is the same drawing small, as the compact control on the plan card, the queue's rows
+and the inbox, and as the 36 x 28 glyph beside every rating someone gave. One radiogroup with a roving
+tabindex; each stop keeps the name "4 of 5, Good"; arrows move, Home and End jump, Space and Enter
+pick, 1-5 pick at once, 0 clears; a click picks the nearest word and a drag turns the hand. The
+rule's bar is the notch in the rim, the team's average the needle, the rule's count the tally's
+segments. The words, `DEFAULT_RATING`, "Approve with 4" and "4 if you leave it" are unchanged.
+
 `.stars` (rating-control, accessibility, approvals-queue) is one control everywhere a vote is taken:
 five SVG stars in one radiogroup with roving tabindex (Unicode `★` is retired from manager-overview and
 agent-profile), 1.5 px outlined when empty, `--star-pre` on preview, `--star-on` when picked; a

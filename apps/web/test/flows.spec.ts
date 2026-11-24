@@ -247,6 +247,13 @@ test("plan first: the agent proposes, Ana rates it, the plan is approved and the
   // Ana rates it 5: one rating at 3 or above is the default bar, so the plan is approved.
   await plan.getByRole("radio", { name: "5 of 5, Ship it" }).click();
   await expect(plan).toContainText("1 of 1 ratings · 5 average · approved");
+  // The plan's rating is the same dial, compact: one radiogroup, locked at her 5 once approved.
+  const rated = plan.getByRole("radiogroup", { name: "Rate the plan" });
+  await expect(rated.getByRole("radio", { name: "5 of 5, Ship it" })).toBeChecked();
+  await expect(rated.getByRole("radio", { name: "5 of 5, Ship it" })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
   await expect(plan).toContainText("Ana rated it 5");
   await expect(page.getByText("The plan waits for ratings")).toHaveCount(0);
 
@@ -315,6 +322,12 @@ test("a deploy waits until two contributors rate it 4 or better", async ({ brows
   await expect(conversation(bo)).toContainText("2 contributors or above rating it 4+ of 5");
   await expect(bo.getByRole("radio", { name: "3 of 5, Fine" })).toBeVisible();
 
+  // The rating is a dial (test/dial.spec.ts): one radiogroup that reads the gate's bar and the
+  // ratings in so far.
+  await expect(bo.getByRole("radiogroup", { name: "Your rating" })).toHaveAccessibleDescription(
+    "No rating is in yet. The gate needs 2 at 4 or above.",
+  );
+
   // Bo rates it 3 and approves: the button carries the number it sends; one rater, and the average is short.
   await bo.getByRole("radio", { name: "3 of 5, Fine" }).click();
   await bo.getByRole("button", { name: "Approve with 3" }).click();
@@ -322,8 +335,14 @@ test("a deploy waits until two contributors rate it 4 or better", async ({ brows
   await expect(conversation(ana)).toContainText("1 of 2 raters · 3 average");
   await expect(conversation(ana)).not.toContainText("Deployed to production");
 
+  // Cy's dial reads Bo's rating against the bar, and says what a 5 does before it is sent.
+  await expect(cy.getByRole("radiogroup", { name: "Your rating" })).toHaveAccessibleDescription(
+    "1 of 2 ratings are in at 3 on average. The bar is 4.",
+  );
+
   // Cy rates it 5: two raters, an average of 4, the deploy goes.
   await cy.getByRole("radio", { name: "5 of 5, Ship it" }).click();
+  await expect(conversation(cy)).toContainText("With your 5 the average is 4: the gate opens.");
   await cy.getByRole("button", { name: "Approve with 5" }).click();
   await expect(conversation(ana)).toContainText("Approved: deploy to production");
   await expect(conversation(ana)).toContainText("Deployed to production", { timeout: 15_000 });

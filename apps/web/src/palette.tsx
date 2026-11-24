@@ -22,6 +22,7 @@ import { copy } from "./copy.js";
 import { fuzzyScore, matchSpans } from "./fuzzy.js";
 import { useRecents } from "./recents.js";
 import { navigate, paths } from "./router.js";
+import { MiniDial } from "./stream/RatingDial.js";
 import { setTheme, useTheme } from "./theme.js";
 import { attribLine, ICONS, Icon, Mark, Status } from "./ui.js";
 
@@ -137,7 +138,7 @@ interface Item {
   hint?: string;
   status?: string | null;
   pill?: string;
-  two?: { stars: number; text: string };
+  two?: { rating: number; text: string };
   action?: PaletteAction;
   go?: string;
 }
@@ -423,13 +424,7 @@ export function CommandPalette({ ctx }: { ctx: ShellContext }) {
                       {it.two && (
                         <span className="more">
                           {copy.palette.rateFirst}
-                          <span className="stars sm" aria-hidden="true">
-                            {[1, 2, 3, 4, 5].map((n) => (
-                              <span key={n} className={n <= (it.two?.stars ?? 0) ? "on" : ""}>
-                                ★
-                              </span>
-                            ))}
-                          </span>
+                          <MiniDial value={it.two.rating} />
                           {copy.palette.enterSends(DEFAULT_RATING)}
                           {it.two.text && <span className="long"> · {it.two.text}</span>}
                         </span>
@@ -596,7 +591,7 @@ function itemsFor({
       ? {
           pill: "irreversible",
           two: {
-            stars: a.gate.rated[0]?.rating ?? DEFAULT_RATING,
+            rating: a.gate.rated[0]?.rating ?? DEFAULT_RATING,
             text: a.gate.rated.map((r) => copy.palette.alreadyRated(r.who, r.rating)).join(" · "),
           },
         }

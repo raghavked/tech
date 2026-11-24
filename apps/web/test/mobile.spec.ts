@@ -4,7 +4,7 @@ import { expect, type Page, test } from "@playwright/test";
  * The phone (design/henosis BACKLOG.md L3): one frame, one sheet, one needs-you number. The
  * four-tab bar is the frame and Sessions opens the rail drawer; the Approvals tab carries the
  * glance's needs-you count, the same figure the manager's sentence shows; the queue is a stack
- * of cards with the filters at the thumb; a release gate rates with the star tiles in the stream
+ * of cards with the filters at the thumb; a release gate rates with the dial in the stream
  * and opens the one bottom sheet from the queue. Every test runs at 390 × 844 with touch.
  */
 test.describe.configure({ timeout: 45_000 });
@@ -122,7 +122,7 @@ test("the tab bar is the frame and the Approvals tab carries the one needs-you n
   });
 });
 
-test("a release gate rates with the star tiles and opens the one sheet from the queue", async ({
+test("a release gate rates with the dial and opens the one sheet from the queue", async ({
   page,
 }) => {
   const session = `m-gate-${token()}`;
@@ -136,19 +136,31 @@ test("a release gate rates with the star tiles and opens the one sheet from the 
     timeout: 15_000,
   });
 
-  // the gate in the stream: five tiles, the pick says what it does, the button carries the number
+  // the gate in the stream: the dial at the width of the thumb, the pick says what it does, the
+  // button carries the number
   await expect(page.getByLabel("Conversation")).toContainText("deploy to production", {
     timeout: 15_000,
   });
-  const tiles = page.locator(".star-tiles");
-  await expect(tiles).toBeVisible();
-  await expect(page.locator(".tile-word")).toContainText("4 if you leave it");
-  await tiles.getByRole("radio", { name: "5 of 5, Ship it" }).click();
-  await expect(page.locator(".tile-word")).toContainText("Ship it · 5 of 5");
+  const gate = page.getByRole("region", { name: "Approval" }).last();
+  const dial = gate.getByRole("radiogroup", { name: "Your rating" });
+  await expect(dial).toBeVisible();
+  await expect(dial.getByRole("radio")).toHaveCount(5);
+  const face = await dial.boundingBox();
+  expect(face?.width ?? 0).toBeGreaterThanOrEqual(280);
+  expect((face?.x ?? 0) + (face?.width ?? 0)).toBeLessThanOrEqual(390);
+  await expect(gate).toContainText("4 if you leave it");
+  await dial.getByRole("radio", { name: "5 of 5, Ship it" }).click();
+  await expect(dial.getByRole("radio", { name: "5 of 5, Ship it" })).toBeChecked();
+  await expect(gate).toContainText("5 of 5 · Ship it");
   await expect(page.getByRole("button", { name: "Approve with 5" })).toBeVisible();
-  // a second tap on the pick clears it
-  await tiles.getByRole("radio", { name: "5 of 5, Ship it" }).click();
-  await expect(page.locator(".tile-word")).toContainText("4 if you leave it");
+  // a second tap on the pick keeps it; the quiet clear beside the word lets it go
+  await dial.getByRole("radio", { name: "5 of 5, Ship it" }).click();
+  await expect(page.getByRole("button", { name: "Approve with 5" })).toBeVisible();
+  await gate.getByRole("button", { name: "Clear your rating" }).click();
+  await expect(gate).toContainText("4 if you leave it");
+  await expect(page.getByRole("button", { name: "Approve with 4" })).toBeVisible();
+  // nothing on the page scrolls sideways under the dial
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
 
   // the queue: the gate card opens the sheet over the dimmed list with the card ringed
   await tabs(page)

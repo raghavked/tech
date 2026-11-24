@@ -9,7 +9,6 @@ import {
   glanceOf,
   ledeOf,
   moveCursor,
-  ratingWord,
   rowState,
   rowsOf,
 } from "./approvalsQueue.js";
@@ -228,11 +227,7 @@ describe("approvals queue rows", () => {
     expect(consequenceOf({ ...row("a3"), waitingFor: [] }, null)).toBe("waits for one more");
   });
 
-  it("names the rating and moves the cursor", () => {
-    expect(ratingWord(null)).toEqual({ word: "Rate", tone: "" });
-    expect(ratingWord(3)).toEqual({ word: "A voice", tone: "mid" });
-    expect(ratingWord(4)).toEqual({ word: "Good", tone: "high" });
-    expect(ratingWord(1)).toEqual({ word: "Not this", tone: "low" });
+  it("moves the cursor", () => {
     expect(moveCursor(["a", "b"], null, 1)).toBe("a");
     expect(moveCursor(["a", "b"], "a", 1)).toBe("b");
     expect(moveCursor(["a", "b"], "b", 1)).toBe("b");
