@@ -43,7 +43,6 @@ export function Stream({
   me,
   client,
   agentName,
-  showHandoff,
   past = null,
   lit = null,
   arrival = null,
@@ -54,7 +53,6 @@ export function Stream({
   client: HenosisClient;
   /** "Ana's agent": the stream's name for the agent. */
   agentName: string;
-  showHandoff: boolean;
   /** replay-scrubber: the marks ahead of the viewed turn, for the edge of the past. */
   past?: { marks: TurnMark[]; at: number } | null;
   /** The approval that ended the tour: it wears the halo for a while. */
@@ -117,9 +115,6 @@ export function Stream({
   );
   const name = (id: string) => s.participants[id]?.actor.name ?? id;
   const contentions = Object.values(s.contentions).filter((c) => !c.resolved);
-  const handoffs = Object.values(s.handoffs).filter(
-    (h) => h.status === "pending" && h.to === me.id,
-  );
   const canPick = s.driver === me.id || s.participants[me.id]?.role === "owner";
   return (
     <section className="column stream" aria-label={copy.stream.label}>
@@ -184,32 +179,6 @@ export function Stream({
           })}
         </section>
       ))}
-      {showHandoff &&
-        handoffs.map((h) => (
-          <section className="notice handoff" key={h.id} aria-label={copy.stream.baton}>
-            <span className="kind">{copy.stream.baton}</span>
-            <span className="ask">
-              <b className="serif">{name(h.from)}</b> {copy.stream.offersYou}
-            </span>
-            <span className="small muted">{copy.stream.acceptMeans}</span>
-            <div className="actions">
-              <button
-                type="button"
-                className="btn primary sm"
-                onClick={() => client.send({ type: "handoff.accept", handoffId: h.id })}
-              >
-                {copy.stream.accept}
-              </button>
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() => client.send({ type: "handoff.decline", handoffId: h.id })}
-              >
-                {copy.stream.decline}
-              </button>
-            </div>
-          </section>
-        ))}
       {past && <EdgeOfThePast marks={past.marks} at={past.at} />}
     </section>
   );

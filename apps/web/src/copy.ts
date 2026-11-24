@@ -599,7 +599,6 @@ export const copy = {
     contention: "Two directions",
     yours: "yours",
     baton: "The baton",
-    offersYou: "offers you the baton.",
     acceptMeans:
       "Accept and you drive this session; the agent keeps its plan and its claims. Decline and nothing changes.",
     turnEnded: (turn: number, reason: string, summary: string | undefined) =>
@@ -862,6 +861,36 @@ export const copy = {
     heldEmpty: "Nothing kept.",
     heldRemove: "Remove from what is kept",
     heldFoot: "Sent in order when you press Resend; nothing is sent twice.",
+    /**
+     * The baton lane across the top of the composer (stream/BatonLane.tsx). A null name is the
+     * reader: the sentence turns to "you". The lane's label, Decline and the driver's sentence
+     * are the stream's own (`stream.baton`, `stream.decline`, `stream.hasTheBaton`).
+     */
+    baton: {
+      take: "Take the baton",
+      handOffTo: (who: string) => `Hand off to ${who}`,
+      you: "You",
+      youHave: "You have the baton",
+      /** After who has it, for the person who may pass it on; the lane drops it when short of room. */
+      pick: "pick a seat to hand off",
+      nobody: "Nobody has the baton",
+      handingOff: (who: string | null) => (who ? `${who} is handing off…` : "You are handing off…"),
+      offers: (who: string | null, to: string) =>
+        who ? `${who} offers the baton to ${to}.` : `You offer the baton to ${to}.`,
+      took: (who: string | null, agent: string) =>
+        who ? `${who} has the baton.` : `You have the baton · steering ${agent}.`,
+      declinedIt: "declined the baton",
+      /** undefined: nobody held it when it was offered. */
+      stillDrives: (who: string | null | undefined) =>
+        who === undefined ? "nobody drives." : who ? `${who} still drives.` : "you still drive.",
+      more: (names: string[]) => `${names.length} more here: ${names.join(", ")}`,
+      /** The polite announcements; the driver's is `stream.hasTheBaton`. */
+      offersTo: (who: string, to: string) => `${who} offers the baton to ${to}.`,
+      saidDeclined: (who: string, driver: string | null) =>
+        driver
+          ? `${who} declined the baton. ${driver} still drives.`
+          : `${who} declined the baton.`,
+    },
   },
 
   // The desktop shell (design/henosis SCREENS.md §20 and §19 first run; BACKLOG.md L1).

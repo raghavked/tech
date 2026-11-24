@@ -640,7 +640,6 @@ export function SessionView({
               me={actor}
               client={client}
               agentName={agentName}
-              showHandoff={panel !== "team" && !past}
               past={past ? { marks: view.marks, at: marksAt } : null}
               lit={lit}
               arrival={
@@ -666,6 +665,7 @@ export function SessionView({
             connected={snap.connected}
             queued={snap.queued}
             presence={snap.presence}
+            agentName={agentName}
             planWaits={planWaits}
             liveStep={running ? liveStep : null}
             readonly={past ? { onReturn: () => setViewSeq(null) } : null}

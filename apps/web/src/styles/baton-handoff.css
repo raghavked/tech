@@ -1,0 +1,760 @@
+/* The baton (design/henosis/explorations/sig-baton-handoff; stream/BatonLane.tsx): the driver's ring
+   on a hairline lane across the top of the composer, and a handoff as that ring passing between
+   people. The lane folds to nothing while one person is alone, so a Solo session pays no row for it.
+   BatonLane.tsx owns the geometry (--seat, --pitch, --pad, --first, --lane-h) and where the ring is
+   (--bx, --rot, --dash); this file draws it and owns every clock. */
+
+.baton-fold {
+  /* Four damped springs, each sampled once into linear() so every device lands on the same frame
+     (travel: m 1.2 k 180 c 19, 7 % over; return: m 1.5 k 120 c 26, none; close: m 1 k 500 c 36;
+     lift: m 1 k 700 c 48), and two keyed clocks. BatonLane.tsx waits on the same numbers. */
+  --d-travel: 730ms;
+  --spring-travel: linear(
+    0,
+    0.023,
+    0.082,
+    0.166,
+    0.265,
+    0.371,
+    0.477,
+    0.58,
+    0.674,
+    0.76,
+    0.834,
+    0.896,
+    0.948,
+    0.989,
+    1.02,
+    1.042,
+    1.057,
+    1.066,
+    1.07,
+    1.069,
+    1.066,
+    1.061,
+    1.054,
+    1.047,
+    1.04,
+    1.032,
+    1.025,
+    1.019,
+    1.014,
+    1.009,
+    1.005,
+    1.002,
+    0.999,
+    0.998,
+    0.996,
+    0.996,
+    0.995,
+    0.995,
+    0.995,
+    0.996,
+    1
+  );
+  --d-return: 790ms;
+  --spring-return: linear(
+    0,
+    0.014,
+    0.05,
+    0.1,
+    0.16,
+    0.224,
+    0.291,
+    0.356,
+    0.42,
+    0.48,
+    0.537,
+    0.589,
+    0.638,
+    0.681,
+    0.721,
+    0.756,
+    0.787,
+    0.815,
+    0.84,
+    0.862,
+    0.881,
+    0.898,
+    0.912,
+    0.925,
+    0.936,
+    0.945,
+    0.954,
+    0.961,
+    0.967,
+    0.972,
+    0.976,
+    0.98,
+    0.983,
+    0.986,
+    0.988,
+    0.99,
+    0.992,
+    0.993,
+    0.994,
+    0.995,
+    1
+  );
+  --d-close: 340ms;
+  --spring-close: linear(
+    0,
+    0.016,
+    0.059,
+    0.119,
+    0.191,
+    0.269,
+    0.349,
+    0.429,
+    0.505,
+    0.576,
+    0.642,
+    0.701,
+    0.754,
+    0.801,
+    0.842,
+    0.876,
+    0.906,
+    0.93,
+    0.951,
+    0.967,
+    0.98,
+    0.991,
+    0.999,
+    1.004,
+    1.009,
+    1.011,
+    1.013,
+    1.014,
+    1.014,
+    1.014,
+    1.013,
+    1.012,
+    1.011,
+    1.01,
+    1.009,
+    1.008,
+    1.007,
+    1.006,
+    1.005,
+    1.004,
+    1
+  );
+  --d-lift: 220ms;
+  --spring-lift: linear(
+    0,
+    0.01,
+    0.036,
+    0.073,
+    0.12,
+    0.171,
+    0.227,
+    0.283,
+    0.34,
+    0.396,
+    0.45,
+    0.502,
+    0.551,
+    0.597,
+    0.64,
+    0.68,
+    0.716,
+    0.749,
+    0.779,
+    0.807,
+    0.831,
+    0.853,
+    0.873,
+    0.89,
+    0.906,
+    0.919,
+    0.931,
+    0.942,
+    0.951,
+    0.959,
+    0.965,
+    0.971,
+    0.976,
+    0.981,
+    0.984,
+    0.987,
+    0.99,
+    0.992,
+    0.994,
+    0.996,
+    1
+  );
+  --d-stop: 200ms;
+  --d-bump: 160ms;
+  --baton: var(
+    --apricot-deep
+  ); /* the driver ring's colour (SYSTEM §12): deep by day, apricot by night */
+  --baton-halo: color-mix(in srgb, var(--apricot-deep) 55%, transparent);
+  --baton-shadow: drop-shadow(0 5px 4px color-mix(in srgb, var(--rail) 28%, transparent));
+
+  /* The fold: a grid row from 0fr to 1fr. Closed it has no height, no paint and no tab stop; the
+     negative margin takes back the composer's 10 px gap, which the body below gives again. */
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  margin-bottom: -10px;
+}
+.baton-fold.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+}
+.baton-fold-in {
+  min-height: 0;
+  overflow: hidden;
+}
+/* the waiting halo breathes a little past the lane's top edge, into the composer's own padding */
+.baton-fold:not(.line) > .baton-fold-in {
+  overflow: clip;
+  overflow-clip-margin: 8px;
+}
+.baton-body {
+  margin: 0 0 10px;
+  border-bottom: 1px solid var(--line);
+}
+.baton-fold.line {
+  margin-bottom: 0;
+}
+
+/* ---- the lane: one hairline, the agent at its head, the people one turn of the ring apart ---- */
+.baton-lane {
+  --mid: calc(
+    (var(--lane-h) - 20px) /
+    2 +
+    4px
+  ); /* the track's y: the seats sit on it, their names under it */
+  position: relative;
+  height: var(--lane-h);
+}
+.baton-tracks {
+  position: absolute;
+  left: var(--pad);
+  right: var(--pad);
+  top: var(--mid);
+  height: 18px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.baton-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--line);
+}
+/* the lane gives under the weight: while the ring rolls, the straight track hands over to one with
+   an 8 px dip that rides under it */
+.baton-run {
+  position: absolute;
+  top: -0.5px;
+  width: 4000px;
+  max-width: none;
+  height: 18px;
+  left: calc(-2000px - var(--pad));
+  translate: calc(var(--bx) + 24px) 0;
+  opacity: 0;
+  overflow: visible;
+}
+.baton-run path {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.baton-lane.rolling .baton-track {
+  opacity: 0;
+}
+.baton-lane.rolling .baton-run {
+  opacity: 1;
+}
+/* the thread: a stitched guide from the agent to whoever drives it. The seam is stitched, not walled. */
+.baton-thread {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--mid);
+  height: 1px;
+  background: linear-gradient(90deg, var(--baton) 0 2px, transparent 2px) 0 0 / 6px 1px repeat-x;
+  clip-path: inset(0 calc(100% - var(--thread-to)) 0 var(--thread-from));
+  pointer-events: none;
+}
+
+.baton-seat {
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--mid) - var(--seat) / 2);
+  left: calc(var(--pad) + var(--first) + var(--pitch) * var(--i) - var(--seat) / 2);
+  width: var(--seat);
+  height: calc(var(--seat) + 20px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+/* the lane's avatars carry no ring of their own: the ring is one object, and it travels. Their edge
+   is clear, so the hairline meets the disc on any ground (the Team wash included). */
+.baton-seat .avatar {
+  --size: var(--seat);
+  --avatar-edge: var(--surface);
+  border-color: transparent;
+  background-clip: padding-box;
+}
+.composer.to-team .baton-seat .avatar {
+  --avatar-edge: color-mix(
+    in srgb,
+    var(--apricot) 18%,
+    color-mix(in srgb, var(--surface) 49%, var(--canvas))
+  );
+}
+.baton-seat.head {
+  left: var(--pad);
+  align-items: flex-start;
+}
+.baton-seat .label {
+  position: absolute;
+  top: calc(var(--seat) + 4px);
+  left: 50%;
+  translate: -50% 0;
+  white-space: nowrap;
+  font: 400 13px / 16px var(--serif);
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+.baton-seat .label .who {
+  display: block;
+  max-width: calc(var(--pitch) - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.baton-seat.head .label {
+  left: 0;
+  translate: none;
+}
+.baton-seat.head .label .who {
+  max-width: calc(var(--first) - 50px);
+}
+.baton-seat .label i {
+  font: 500 12px / 16px var(--font);
+  font-style: normal;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+/* a seat the baton can be handed to is a button: its name turns into the verb under the pointer */
+.baton-seat.hand {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.baton-seat.hand .verb {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font: 500 12px / 16px var(--font);
+  letter-spacing: 0;
+  color: var(--accent-ink);
+  opacity: 0;
+}
+.baton-seat.hand .label {
+  min-width: 56px;
+  text-align: center;
+}
+.baton-seat.hand:focus-visible .who,
+.baton-seat.hand:focus-visible .verb {
+  transition: none;
+}
+.baton-seat.hand:focus-visible .who {
+  opacity: 0;
+}
+.baton-seat.hand:focus-visible .verb {
+  opacity: 1;
+}
+@media (hover: hover) {
+  .baton-seat.hand:hover .who {
+    opacity: 0;
+  }
+  .baton-seat.hand:hover .verb {
+    opacity: 1;
+  }
+  .baton-seat.hand:hover .avatar {
+    box-shadow: 0 0 0 3px var(--apricot-soft);
+  }
+}
+/* the composer silences focus rings for its field; the lane's controls keep theirs. A seat wears
+   its ring on the avatar, where the baton would land. */
+.composer .baton-seat.hand:focus-visible .avatar,
+.composer .baton-line .btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--focus-halo);
+}
+.baton-more {
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--mid) - 11px);
+  left: calc(var(--pad) + var(--first) + var(--pitch) * var(--i) - 18px);
+  width: 36px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font-size: 11.5px;
+}
+
+/* the stop: 2 × 24 px of danger at the receiver's near edge. Red only for a person's no. */
+.baton-stop {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--mid) - 12px);
+  left: 0;
+  width: 2px;
+  height: 24px;
+  border-radius: 1px;
+  background: var(--danger);
+  translate: var(--sx) 0;
+  scale: 1 0;
+  pointer-events: none;
+}
+.baton-lane.stopped .baton-stop {
+  scale: 1 1;
+}
+
+/* the carrier travels, the sag rides it, the lift rises, the ring rolls */
+.baton-lane {
+  --d: 0ms;
+  --e: linear;
+}
+.baton-lane[data-spring="travel"] {
+  --d: var(--d-travel);
+  --e: var(--spring-travel);
+}
+.baton-lane[data-spring="return"] {
+  --d: var(--d-return);
+  --e: var(--spring-return);
+}
+.baton-lane[data-spring="close"] {
+  --d: var(--d-close);
+  --e: var(--spring-close);
+}
+.baton-carrier {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  top: calc(var(--mid) - 24px);
+  width: 48px;
+  height: 48px;
+  translate: var(--bx) 0;
+  pointer-events: none;
+}
+.baton-lane.rolling .baton-carrier {
+  will-change: translate;
+}
+.baton-lane.unheld .baton-carrier {
+  opacity: 0;
+}
+.baton-sag,
+.baton-lift {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+.baton-lift.up {
+  translate: 0 -6px;
+}
+.baton-ring,
+.baton-halo {
+  position: absolute;
+  inset: 0;
+  width: 48px;
+  height: 48px;
+  overflow: visible;
+}
+.baton-ring {
+  rotate: var(--rot);
+}
+.baton-ring .ring {
+  fill: none;
+  stroke: var(--baton);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1 0;
+  stroke-dashoffset: var(--dash);
+}
+/* the halo breathes under the ring and outside its shadow: the wait is apricot, never grey */
+.baton-halo circle {
+  fill: none;
+  stroke: var(--baton-halo);
+  stroke-width: 2;
+  opacity: 0;
+}
+.baton-lift.up .baton-ring {
+  filter: var(--baton-shadow);
+}
+.baton-lift.up .ring {
+  stroke-width: 2.6;
+  stroke-dasharray: 0.62 0.38;
+}
+
+/* at rest the lane's free end says who holds it; it leaves whole when the seats need the room */
+.baton-rest {
+  position: absolute;
+  left: var(--rest-from);
+  right: var(--pad);
+  top: calc(var(--mid) + var(--seat) / 2 + 4px);
+  height: 16px;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  overflow: hidden;
+  font: 400 12.5px / 16px var(--font);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.baton-rest::before {
+  content: "";
+  flex: 1 0 12px;
+  height: 16px;
+}
+.baton-rest > span {
+  flex: none;
+}
+.baton-rest .pick::before {
+  content: "·";
+  margin: 0 4px;
+}
+.baton-rest .serif {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.baton-lane.talking .baton-rest {
+  opacity: 0;
+}
+
+/* ---- the sentence row: who, how long, and the two things the person offered can press ---- */
+.baton-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 2px 6px 10px;
+}
+.baton-line .say {
+  min-width: 0;
+  font: 400 15px / 20px var(--font);
+  color: var(--ink);
+}
+.baton-line .say .serif {
+  font-size: 17px;
+}
+.baton-line .say .no {
+  color: var(--danger-ink);
+}
+.baton-line .clock {
+  font: 400 12.5px / 16px var(--mono);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.baton-line .acts {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+/* ---- the one guard (MOTION §3): every transition and animation of the lane lives here ---- */
+@keyframes baton-sag {
+  0% {
+    translate: 0 0;
+  }
+  40% {
+    translate: 0 2.5px;
+  }
+  72% {
+    translate: 0 -1px;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+/* the halo leaves the ring before it shows, so the open arc never reads as closed while it waits */
+@keyframes baton-halo {
+  0% {
+    stroke-width: 2;
+    opacity: 0;
+  }
+  14% {
+    stroke-width: 6;
+    opacity: 0.5;
+  }
+  70% {
+    stroke-width: 16;
+    opacity: 0;
+  }
+  100% {
+    stroke-width: 16;
+    opacity: 0;
+  }
+}
+@keyframes baton-bump {
+  0% {
+    scale: 1 1;
+    translate: 0 0;
+  }
+  40% {
+    scale: 0.84 1.1;
+    translate: var(--bump) 0;
+  }
+  100% {
+    scale: 1 1;
+    translate: 0 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) .baton-fold {
+    transition:
+      grid-template-rows var(--t-slow) var(--ease-mark),
+      opacity var(--t-slow) var(--ease-move),
+      visibility 0s linear var(--t-slow);
+  }
+  :root:not([data-motion="calm"]) .baton-fold.open {
+    transition:
+      grid-template-rows var(--t-slow) var(--ease-mark),
+      opacity var(--t-slow) var(--ease-move),
+      visibility 0s;
+  }
+  :root:not([data-motion="calm"]) .baton-carrier,
+  :root:not([data-motion="calm"]) .baton-run {
+    transition:
+      translate var(--d) var(--e),
+      opacity var(--t) var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .baton-track {
+    transition: opacity var(--t) var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .baton-ring {
+    transition:
+      rotate var(--d) var(--e),
+      filter var(--t) var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .baton-lift {
+    transition: translate var(--d-lift) var(--spring-lift);
+  }
+  :root:not([data-motion="calm"]) .baton-ring .ring {
+    transition:
+      stroke-dasharray var(--d-lift) var(--spring-lift),
+      stroke-width var(--d-lift) var(--spring-lift);
+  }
+  :root:not([data-motion="calm"]) .baton-lane[data-spring="close"] .baton-lift {
+    transition: translate var(--d-close) var(--spring-close);
+  }
+  :root:not([data-motion="calm"]) .baton-lane[data-spring="close"] .ring {
+    transition:
+      stroke-dasharray var(--d-close) var(--spring-close),
+      stroke-width var(--d-close) var(--spring-close);
+  }
+  :root:not([data-motion="calm"]) .baton-lane.rolling .baton-sag {
+    animation: baton-sag var(--d) var(--ease-move) both;
+  }
+  :root:not([data-motion="calm"]) .baton-lane.offered .baton-halo circle {
+    animation: baton-halo 1.8s var(--ease-move) infinite;
+  }
+  :root:not([data-motion="calm"]) .baton-sag.bump {
+    animation: baton-bump var(--d-bump) var(--ease-leave) both;
+    transform-origin: calc(50% - var(--bump) * 6) 50%;
+  }
+  :root:not([data-motion="calm"]) .baton-stop {
+    transition: scale var(--d-stop) var(--ease-arrive);
+  }
+  :root:not([data-motion="calm"]) .baton-thread {
+    transition: clip-path var(--t-slow) var(--ease-mark);
+  }
+  :root:not([data-motion="calm"]) .baton-rest,
+  :root:not([data-motion="calm"]) .baton-seat.hand .who,
+  :root:not([data-motion="calm"]) .baton-seat.hand .verb {
+    transition: opacity var(--t) var(--ease-move);
+  }
+  :root:not([data-motion="calm"]) .baton-seat.hand .avatar {
+    transition: box-shadow var(--t-fast) var(--ease-move);
+  }
+}
+/* calm or reduced: the lane's own clocks to zero, every end state kept */
+:root[data-motion="calm"] .baton-fold {
+  --d-travel: 0ms;
+  --d-return: 0ms;
+  --d-close: 0ms;
+  --d-lift: 0ms;
+  --d-stop: 0ms;
+  --d-bump: 0ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .baton-fold {
+    --d-travel: 0ms;
+    --d-return: 0ms;
+    --d-close: 0ms;
+    --d-lift: 0ms;
+    --d-stop: 0ms;
+    --d-bump: 0ms;
+  }
+}
+
+/* The typed toasts stand just above the composer (notify.tsx). The composer is taller by the lane,
+   and by the sentence row while a handoff is in the air, so the stack rises with it and a waiting
+   decision never covers the baton. */
+.shell:has(.baton-fold.open) ~ .ntoasts {
+  bottom: 238px;
+}
+.shell:has(.baton-fold.line.open) ~ .ntoasts {
+  bottom: 286px;
+}
+
+/* ---- the phone: the lane at the thumb, Take and Decline full width under the sentence ---- */
+@media (max-width: 480px) {
+  .shell:has(.baton-fold.open) ~ .ntoasts {
+    bottom: 198px;
+  }
+  .shell:has(.baton-fold.line.open) ~ .ntoasts {
+    bottom: 280px;
+  }
+  .baton-seat .label {
+    font-size: 12px;
+  }
+  .baton-seat .label .who {
+    max-width: calc(var(--pitch) - 10px);
+  }
+  .baton-seat .label i {
+    display: none;
+  }
+  /* beside four seats the agent's name has no room: the tile and its thread speak, the name is read out */
+  .baton-seat.head .label {
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .baton-line {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .baton-line .clock {
+    display: none;
+  }
+  .baton-line .acts {
+    margin-left: 0;
+    width: 100%;
+  }
+  .baton-line .acts .btn {
+    flex: 1;
+    min-height: 40px;
+  }
+}

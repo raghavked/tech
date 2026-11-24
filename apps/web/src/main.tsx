@@ -6,6 +6,7 @@ import { onIdentityChange } from "./identity.js";
 import { connectLinks } from "./links.js";
 import { connectShell } from "./shell.js";
 import { supabaseClient } from "./supabase.js";
+import "./styles/baton-handoff.css";
 import "./styles/council-table.css";
 import "./styles/spend-ring.css";
 

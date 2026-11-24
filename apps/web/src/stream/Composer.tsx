@@ -5,6 +5,7 @@
  * says "to the team" in italic serif. The hint line under the field names the keys and who you
  * are; while a plan waits it says what is refused; while the reader looks back the field goes
  * read-only with one chocolate "Return to now". Keys are printed on the field while nobody types.
+ * Across the top, folded away while one person is alone, runs the baton lane (BatonLane.tsx).
  */
 import type { SessionState } from "@henosis/kernel";
 import type { Actor, DirectiveMode, PresenceEntry } from "@henosis/protocol";
@@ -17,6 +18,7 @@ import { composingLine, PRESENCE_COMPOSING_TEAM, useComposing } from "../presenc
 import { closeHint } from "../shell.js";
 import { helpChordLabel } from "../shortcuts.js";
 import { Avatar, ICONS, Icon } from "../ui.js";
+import { BatonLane } from "./BatonLane.js";
 
 const MODES: DirectiveMode[] = ["steer", "constrain", "pause", "resume", "cancel"];
 
@@ -27,6 +29,7 @@ export function Composer({
   connected,
   queued,
   presence,
+  agentName,
   planWaits = false,
   readonly = null,
   liveStep = null,
@@ -38,6 +41,8 @@ export function Composer({
   /** Offline queue: what waits for the socket (see offlineQueue.ts). */
   queued: QueuedMessage[];
   presence: PresenceEntry[];
+  /** "Ana's agent": the name at the head of the baton lane. */
+  agentName: string;
   /** Plan first: a proposed plan waits for the team's ratings. */
   planWaits?: boolean;
   /** replay-scrubber: the composer is read-only; the one action returns to now. */
@@ -133,6 +138,14 @@ export function Composer({
           submit();
         }}
       >
+        <BatonLane
+          s={s}
+          me={me}
+          client={client}
+          presence={presence}
+          agentName={agentName}
+          frozen={past}
+        />
         <div className="field">
           <textarea
             ref={ta}

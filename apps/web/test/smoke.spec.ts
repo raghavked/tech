@@ -20,6 +20,10 @@ const details = (page: Page) => page.getByRole("complementary", { name: "Details
 const team = (page: Page) => page.getByRole("complementary", { name: "Team" });
 /** The person's own row in the Team face: "Ana", "you", "owner · driving". */
 const myRow = (page: Page) => team(page).locator(".person", { hasText: "you" });
+/** The baton lane across the top of the composer, and what it last said politely. */
+const baton = (page: Page) => page.getByRole("group", { name: "The baton" });
+const said = (page: Page, sentence: string) =>
+  page.getByRole("status").filter({ hasText: new RegExp(`^${sentence}$`) });
 
 test("two people share one live agent session in the browser", async ({ browser }) => {
   test.setTimeout(120_000);
@@ -29,6 +33,10 @@ test("two people share one live agent session in the browser", async ({ browser 
   await ana.getByRole("button", { name: "Team", exact: true }).click();
   await expect(myRow(ana)).toContainText("Ana");
   await expect(myRow(ana)).toContainText("driving");
+  // Alone, the baton lane is folded away and the composer gives it no room.
+  await expect(baton(ana)).toBeHidden();
+  const fold = ana.getByRole("form", { name: "Steer the agent" }).locator("> div").first();
+  expect(await fold.evaluate((el) => el.getBoundingClientRect().height)).toBe(0);
 
   const bo = await browser.newPage();
   await enter(bo, "Bo", "bo", session);
@@ -37,6 +45,10 @@ test("two people share one live agent session in the browser", async ({ browser 
   await expect(myRow(bo)).toContainText("contributor");
   await expect(team(ana)).toContainText("Bo");
   await expect(conversation(ana)).toContainText("Bo joins the circle");
+  // A second person is present: the lane unfolds and says who holds the baton.
+  await expect(baton(ana)).toBeVisible();
+  await expect(baton(ana)).toContainText("You have the baton");
+  await expect(baton(bo)).toContainText("Ana has the baton");
 
   // Ana sets the goal. Sessions from the home page plan first: the agent proposes, Ana rates
   // the plan, then the agent starts and asks for approval to run tests.
@@ -59,9 +71,11 @@ test("two people share one live agent session in the browser", async ({ browser 
   // Handoff to Bo (from the Team face) and read the brief (Catch-up, folded in Details).
   await ana.getByRole("button", { name: "Hand off", exact: true }).click();
   await expect(conversation(bo)).toContainText("Ana offers the baton to you");
+  await expect(baton(bo)).toContainText("Ana offers you the baton.");
   await bo.getByRole("button", { name: "Accept", exact: true }).click();
   await expect(team(ana).locator(".person", { hasText: "Bo" })).toContainText("driving");
   await expect(conversation(ana)).toContainText("Bo has the baton");
+  await expect(said(ana, "Bo has the baton")).toHaveCount(1);
   await expect(myRow(bo)).toContainText("driving");
   await team(bo).getByRole("button", { name: "Details", exact: true }).click();
   await details(bo)
@@ -69,6 +83,19 @@ test("two people share one live agent session in the browser", async ({ browser 
     .click();
   await details(bo).getByRole("button", { name: "Ask for brief" }).click();
   await expect(details(bo).locator("pre.brief")).toContainText("Driver: Bo");
+
+  // The baton lane hands off too: Bo passes it back from Ana's seat; Ana declines once (the
+  // baton rolls home and Bo still drives), then takes it.
+  await baton(bo).getByRole("button", { name: "Hand off to Ana" }).click();
+  await expect(baton(ana)).toContainText("Bo offers you the baton.");
+  await baton(ana).getByRole("button", { name: "Decline", exact: true }).click();
+  await expect(said(bo, "Ana declined the baton\\. Bo still drives\\.")).toHaveCount(1);
+  await expect(baton(bo)).toContainText("You have the baton");
+  await baton(bo).getByRole("button", { name: "Hand off to Ana" }).click();
+  await baton(ana).getByRole("button", { name: "Take the baton" }).click();
+  await expect(said(bo, "Ana has the baton")).toHaveCount(1);
+  await expect(baton(ana)).toContainText("You have the baton");
+  await expect(myRow(ana)).toContainText("driving");
 
   // The session is now in the sidebar as an agent card: a team of two, with Bo.
   const rail = ana.getByRole("navigation", { name: "Sidebar" });
