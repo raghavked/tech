@@ -613,6 +613,9 @@ export const copy = {
     joinsTheCircle: "joins the circle",
     /** The result line that took a notice's buttons: one message, edited in place. */
     edited: "(edited)",
+    /** The seal pressed on a decision that landed: one word set, one seal per screen. */
+    seal: { united: "United", approved: "Approved", denied: "Denied", returned: "Returned" },
+    sealLabel: (word: string, when: string) => `${word}, ${when}`,
     asRole: (role: string) => `as ${role}`,
     asAgent: "an agent",
     contention: "Two directions",

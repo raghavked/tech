@@ -125,3 +125,51 @@ test("in dark the hand as text is chocolate 300, not the apricot pulse", async (
   expect(read.apricot).toBe("#E2C4A6");
   if (read.pulse) expect(read.pulse).toBe("rgb(226, 196, 166)");
 });
+
+test("the night is one room: the sky's ramp, a lit hand, and one seal on the decision that landed", async ({
+  page,
+}) => {
+  await page.addInitScript(() => localStorage.setItem("henosis.theme", "dark"));
+  const session = `e2e-night-${token()}`;
+  await enter(page, "Ana", "ana", "e2e-leftovers", session);
+  const box = page.getByLabel("Directive", { exact: true });
+  await box.fill(`Build a counter ${token()}`);
+  await box.press("Enter");
+  const approve = page.getByRole("button", { name: /^Approve( with \d)?$/ });
+  await expect(approve).toBeVisible({ timeout: 15_000 });
+
+  const night = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const main = document.querySelector(".shell > .main") as HTMLElement;
+    const hand = [...document.querySelectorAll(".notice .btn.primary")].pop() as HTMLElement;
+    const value = (name: string) => root.getPropertyValue(name).trim().toUpperCase();
+    return {
+      canvas: value("--canvas"),
+      surface: value("--surface"),
+      ground: value("--out-bg"),
+      page: getComputedStyle(document.body).backgroundColor,
+      lamp: getComputedStyle(main).backgroundImage,
+      grain: getComputedStyle(main, "::before").mixBlendMode,
+      hand: getComputedStyle(hand).backgroundColor,
+      edge: getComputedStyle(hand).boxShadow,
+      shadow: root.getPropertyValue("--shadow-pop"),
+    };
+  });
+  // Dress Blues is the sky, chocolate-black the ground; the lamp and the dusk are on the page
+  expect(night.canvas).toBe("#121826");
+  expect(night.surface).toBe("#1A2131");
+  expect(night.ground).toBe("#140F0E");
+  expect(night.page).toBe("rgb(18, 24, 38)");
+  expect(night.lamp).toContain("radial-gradient");
+  expect(night.lamp).toContain("linear-gradient");
+  expect(night.grain).toBe("screen");
+  // the hand is the lifted fill, lit on its top edge; a shadow is the ground, never black
+  expect(night.hand).toBe("rgb(122, 75, 62)");
+  expect(night.edge).toContain("inset");
+  expect(night.shadow).toContain("20, 15, 14");
+
+  // the decision lands: its line takes the seal, and the page carries one seal
+  await approve.click();
+  await expect(page.getByRole("img", { name: /^Approved, / })).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator(".seal")).toHaveCount(1);
+});

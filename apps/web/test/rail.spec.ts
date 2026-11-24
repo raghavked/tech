@@ -86,6 +86,63 @@ test("the rail is the same on every route apart from the active row", async ({ p
   );
 });
 
+test("the rail is glass under one lamp: one frosted pane, a window per agent, solid when the system asks for less", async ({
+  page,
+}) => {
+  await signIn(page, "Gil", "gil");
+  const session = `glass-${Date.now()}`;
+  await page.goto(`/#/p/default/s/${session}`);
+  await expect(page.getByLabel("Directive", { exact: true })).toBeVisible();
+  const nav = rail(page);
+  // the waits pane holds the two rows that can carry a count
+  const waits = nav.locator(".pane.frost");
+  await expect(waits).toHaveCount(1);
+  await expect(waits.locator("a.item", { hasText: "Inbox" })).toBeVisible();
+  await expect(waits.locator("a.item", { hasText: "Approvals" })).toBeVisible();
+  // the session's card is a window in its project's pane
+  const card = nav.locator(".pane.roster a.agent.pane", { hasText: session });
+  await expect(card).toHaveAttribute("aria-current", "page", { timeout: 15_000 });
+  const read = () =>
+    page.evaluate(() => {
+      const el = document.querySelector("nav.sidebar.rail") as HTMLElement;
+      const pane = el.querySelector(".pane.frost") as HTMLElement;
+      const win = el.querySelector(".pane.roster a.agent.pane") as HTMLElement;
+      const blurOf = (e: Element) => getComputedStyle(e).backdropFilter || "none";
+      return {
+        frost: blurOf(pane),
+        frosted: [...el.querySelectorAll("*")].filter((e) => blurOf(e) !== "none").length,
+        ground: getComputedStyle(el).backgroundImage,
+        grain: getComputedStyle(el, "::before").display,
+        tile: getComputedStyle(el, "::before").backgroundImage,
+        pane: getComputedStyle(pane).backgroundImage,
+        corners: [
+          getComputedStyle(win).borderTopLeftRadius,
+          getComputedStyle(win).borderBottomLeftRadius,
+        ],
+      };
+    });
+  const glass = await read();
+  // one lamp and one sheen on the lacquer, the grain as a tile, and exactly one backdrop blur
+  expect(glass.ground).toContain("radial-gradient");
+  expect(glass.ground).toContain("linear-gradient");
+  expect(glass.tile).toContain("data:image/svg+xml");
+  expect(glass.frost).toContain("blur(10px)");
+  expect(glass.frosted).toBe(1);
+  // the window keeps the agent's tight bottom-left corner
+  expect(glass.corners).toEqual(["14px", "5px"]);
+
+  // prefers-reduced-transparency: no blur and no grain, and the pane stands on a solid ground
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
+  });
+  const solid = await read();
+  expect(solid.frost).toBe("none");
+  expect(solid.frosted).toBe(0);
+  expect(solid.grain).toBe("none");
+  expect(solid.pane).toContain("linear-gradient");
+});
+
 test.describe("folded", () => {
   test.use({ viewport: { width: 960, height: 760 } });
   test("below 1180 the rail folds to 72 px and the card opens on a rest", async ({ page }) => {

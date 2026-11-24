@@ -16,9 +16,19 @@
    --focus-ring …) is kept as an alias of the canonical token, so styles.css needs no rename to adopt
    this file. Every selector apps/web/src/tokens.css defined is still defined here.
 
-   DARK is re-weighed, not inverted: rail < canvas < surface, --edge instead of shadows, apricot as a
-   hairline and a 9–16 % wash, one lifted status triplet, cream ink not white. The two dark blocks are
-   byte-identical: the media query (system) and the attribute (chosen). Edit both. */
+   DARK is one night, re-weighed, not inverted (sig-night-mode). Dress Blues is the sky: a ramp at hue
+   222° from the rail to Dress Blues itself as the pressed step, and everything that is read hangs in it.
+   Apricot is the one lamp: every hairline, lit top edge (--edge), count and pulse is the same light.
+   Chocolate is the ground and every shadow: the output block, the band under the composer, --shadow-*;
+   nothing on the night casts black. The hand is a piece of the ground lifted into the sky (#7A4B3E) and
+   lit on its top edge (--hand-edge, --hand-rim). Cream ink, never white, never a cool grey. The two dark
+   blocks are byte-identical: the media query (system) and the attribute (chosen). Edit both.
+
+   SURFACES are one material in both themes (sig-glass-rail, sig-paper-and-lacquer): one lamp (--lamp on
+   the page, --lamp-rail where it falls on the rail), one grain tile at one --grain-alpha per theme, one
+   lacquer sheen on the navy, glass panes on the rail (--glass-*), a lit window where an agent works
+   (--pulse*), rules drawn in chocolate ink (--rule) and the seal (--seal, --tooth). The rules that
+   paint them are in apps/web/src/styles/surfaces-night.css. */
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap");
 
 /* Registered so a team's colours crossfade when the route enters that team. */
@@ -181,75 +191,123 @@
   --paper-bg: #FFFFFF; --paper-ink: #1F2634; --paper-ink-2: #5B6273; --paper-cream: #FBF7F1;
   --paper-line: rgba(31, 38, 52, 0.18); --paper-green: #3E6639; --paper-amber: #7F5320;
 
+  /* ---- surfaces: one lamp, one grain, one lacquer, in both themes (styles/surfaces-night.css) ---- */
+  --lamp: var(--canvas-wash);                 /* the page's one light: daylight from the top-left; at night a lamp hung over the table */
+  --lamp-rail: radial-gradient(560px 440px at 0% 0%, color-mix(in srgb, var(--team-glow) 15%, transparent), transparent 62%);   /* the same lamp where it falls on the rail */
+  --dusk: none;                               /* night: the sky warms toward the ground */
+  --ground: var(--canvas);                    /* what the composer and the phone's tab bar stand on: the page by day, chocolate-black at night */
+  --horizon: var(--line);                     /* the ground's top edge */
+  --lacquer: linear-gradient(170deg, rgba(255, 255, 255, 0.05), transparent 42%);   /* the sheen on navy: the lamp caught on gloss */
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g' color-interpolation-filters='sRGB' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch' seed='7'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='table' tableValues='.3 .65 1 1 1'/><feFuncG type='table' tableValues='.3 .65 1 1 1'/><feFuncB type='table' tableValues='.3 .65 1 1 1'/><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='240' height='240' filter='url(%23g)'/></svg>");   /* toner on paper: a 240 px tile decoded once, never a live filter */
+  --grain-night: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g' color-interpolation-filters='sRGB' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch' seed='7'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='table' tableValues='.3 .65 1 1 1'/><feFuncG type='table' tableValues='.3 .65 1 1 1'/><feFuncB type='table' tableValues='.3 .65 1 1 1'/><feFuncA type='table' tableValues='1 1'/></feComponentTransfer><feColorMatrix type='matrix' values='-1 0 0 0 1 0 -1 0 0 1 0 0 -1 0 1 0 0 0 1 0'/></filter><rect width='240' height='240' filter='url(%23g)'/></svg>");   /* the same noise inverted: light fibres on a dark stock */
+  --grain-page: var(--grain); --grain-blend: multiply;
+  --grain-alpha: 0.22;                        /* the one grain strength of the theme: the page reads it whole, the rail's lacquer a little over half */
+  --hand-edge: transparent; --hand-rim: transparent;   /* night: the lamp on the hand's top edge, and its rim */
+  --rule: rgba(86, 53, 45, 0.22); --rule-strong: rgba(86, 53, 45, 0.58);   /* a line under something is drawn in ink; an edge (--line) is cut */
+  --seal: #56352D;                            /* the seal's one ink */
+  --tooth: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='s' color-interpolation-filters='sRGB' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='.34' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='discrete' tableValues='0 0 0 1 1 1 1 1'/><feFuncG type='discrete' tableValues='0 0 0 1 1 1 1 1'/><feFuncB type='discrete' tableValues='0 0 0 1 1 1 1 1'/><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='140' height='140' filter='url(%23s)'/></svg>");   /* where the stock is rough the seal's ink breaks */
+  --on-ok: #FFFFFF;                           /* a numeral on the green disc */
+  --avatar-ground: var(--surface); --avatar-ink: var(--ink);   /* a person's wash and the initial on it: the initial follows the fill, never the theme */
+  /* the rail's glass: a pane is a tint, a rim, 1 px of light on its top edge, 1 px of shade under it, a foot and the 1 px it casts */
+  --glass: rgba(243, 237, 228, 0.05); --glass-2: rgba(243, 237, 228, 0.045); --glass-rim: rgba(243, 237, 228, 0.08);
+  --glass-edge: rgba(255, 255, 255, 0.16); --glass-shade: rgba(0, 0, 0, 0.14); --glass-foot: rgba(0, 0, 0, 0.34); --glass-drop: rgba(0, 0, 0, 0.22);
+  --glass-solid: color-mix(in srgb, var(--rail-fg) 6%, var(--rail));   /* a pane without transparency: no backdrop-filter, or the system asks for less */
+  --glass-blur: 10px;                         /* the waits pane only: it is the one pane over the lamp */
+  /* a lit window: an agent is working behind it; the light climbs to the pane that holds it */
+  --pulse: color-mix(in srgb, var(--team-glow) 28%, transparent); --pulse-edge: color-mix(in srgb, var(--team-glow) 62%, transparent);
+  --pulse-cast: color-mix(in srgb, var(--team-glow) 30%, transparent); --pulse-far: color-mix(in srgb, var(--team-glow) 24%, transparent);
+
   color-scheme: light;
 }
 
 /* ============================ DARK (system) ============================ */
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --canvas: #1A202C; --wash: rgba(226, 196, 166, 0.10);
-  --canvas-wash: radial-gradient(1200px 600px at 20% -10%, var(--wash), transparent 60%);
-  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A; --out-bg: #0E1218;
-  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240, 234, 224, 0.14);
-  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.055);
-  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
-  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08);
+  --canvas: #121826; --wash: rgba(226, 196, 166, 0.16);
+  --canvas-wash: radial-gradient(1100px 620px at 50% -6%, var(--wash), transparent 62%);   /* the lamp, hung over the table */
+  --surface: #1A2131; --surface-2: #222A3C; --surface-3: #2A3244; --out-bg: #140F0E;   /* the sky's ramp; the output block is a patch of ground */
+  --ink: #F2E9DD; --ink-2: #C4BAAE; --ink-3: #9A948C; --line: rgba(226, 196, 166, 0.11);   /* hairlines are lit, not drawn */
+  --edge: inset 0 1px 0 rgba(226, 196, 166, 0.14);
+  --rail: #0C1019; --rail-2: #161C28; --rail-fg: #F2E9DD; --rail-muted: #A39D95;
+  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(226, 196, 166, 0.08);
   --crease: color-mix(in srgb, var(--team-highlight) 55%, transparent);
-  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1;   /* the dark hand: 7.2 : 1 */
-  --accent-ink: #CAA49B;                                               /* chocolate 300 as text: 7.2 : 1 on the canvas */
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1;   /* the dark hand: the lifted fill, 6.9 : 1 under its text */
+  --accent-ink: #CAA49B;                                               /* chocolate 300 as text: 7.9 : 1 on the canvas */
+  --hand-edge: color-mix(in srgb, var(--team-glow) 45%, transparent); --hand-rim: color-mix(in srgb, var(--team-glow) 22%, transparent);
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
   --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
   --live-line: rgba(226, 196, 166, 0.35); --team-wash: rgba(226, 196, 166, 0.09);
   --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
   --count-bg: var(--apricot); --count-fg: #2A3244;
   --star-on: #E2C4A6; --star-pre: #CFA782;
-  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
   --gate-stripe: linear-gradient(180deg, #E2C4A6 0%, #7A4B3E 100%);
   --grad-fg: #F8F2EA;
   --ok: #9BC88F;     --ok-soft: rgba(155, 200, 143, 0.18);  --ok-ink: #9BC88F;
   --warn: #E2B06A;   --warn-soft: rgba(226, 176, 106, 0.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226, 132, 122, 0.18); --danger-ink: #E2847A;
   --info: #B4BAC6;   --info-soft: rgba(180, 186, 198, 0.16);  --info-ink: #B4BAC6;
-  --mention-agent-bg: #3A4458; --mention-person-fg: #F0EAE0;   /* a person on apricot-soft reads in ink; you stays chocolate on solid apricot */
-  --overlay: #242C3C; --overlay-edge: rgba(255, 255, 255, 0.06);
-  --scrim: rgba(0, 0, 0, 0.55); --dim: rgba(0, 0, 0, 0.62);
+  --mention-agent-bg: #2A3244; --mention-person-fg: #F2E9DD;   /* a person on apricot-soft reads in ink; you stays chocolate on solid apricot */
+  --overlay: #1A2131; --overlay-edge: rgba(226, 196, 166, 0.12);
+  --scrim: rgba(20, 12, 10, 0.6); --dim: rgba(20, 12, 10, 0.68);
   --focus-ring: var(--ink);
-  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.35); --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.5);
-  --bezel: #0F131B; --bar-agent: #3A4660; --seg-on: #4A5367;   /* one notch above the --surface-3 track, so .seg .on stays the lighter tab at night */
-  --mark-disc: #2A3244;   /* the disc keeps Dress Blues at night: chocolate on #0F131B fell to 1.7 : 1 */
+  --shadow-soft: 0 10px 30px rgba(20, 15, 14, 0.5); --shadow-pop: 0 18px 50px rgba(20, 15, 14, 0.65);   /* a shadow is the ground showing through */
+  --bezel: #0B0E14; --bar-agent: #3A4660; --seg-on: #333D52;   /* one notch above the --surface-3 track, so .seg .on stays the lighter tab at night */
+  --mark-disc: #2A3244;   /* the disc keeps Dress Blues at night: chocolate on the dark rail fell to 1.7 : 1 */
+  --lamp-rail: radial-gradient(560px 440px at 0% 0%, color-mix(in srgb, var(--team-glow) 11%, transparent), transparent 62%);
+  --dusk: linear-gradient(to top, rgba(86, 53, 45, 0.34), transparent 280px);
+  --ground: #140F0E; --horizon: rgba(226, 196, 166, 0.24);
+  --lacquer: linear-gradient(170deg, rgba(255, 255, 255, 0.035), transparent 42%);
+  --grain-page: var(--grain-night); --grain-blend: screen; --grain-alpha: 0.13;
+  --rule: rgba(202, 164, 155, 0.28); --rule-strong: rgba(202, 164, 155, 0.62);
+  --seal: #CAA49B; --on-ok: #0C1019; --avatar-ground: #F2E9DD; --avatar-ink: #1F2634;
+  --glass: rgba(242, 233, 221, 0.04); --glass-2: rgba(242, 233, 221, 0.04); --glass-rim: rgba(242, 233, 221, 0.065);
+  --glass-edge: rgba(226, 196, 166, 0.13); --glass-shade: rgba(20, 15, 14, 0.3); --glass-foot: rgba(20, 15, 14, 0.6); --glass-drop: rgba(20, 15, 14, 0.5);
+  --pulse: color-mix(in srgb, var(--team-glow) 22%, transparent); --pulse-edge: color-mix(in srgb, var(--team-glow) 50%, transparent);
+  --pulse-cast: color-mix(in srgb, var(--team-glow) 22%, transparent); --pulse-far: color-mix(in srgb, var(--team-glow) 20%, transparent);
   color-scheme: dark;
 } }
 /* ============================ DARK (chosen) ============================ */
 :root[data-theme="dark"] {
-  --canvas: #1A202C; --wash: rgba(226, 196, 166, 0.10);
-  --canvas-wash: radial-gradient(1200px 600px at 20% -10%, var(--wash), transparent 60%);
-  --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A; --out-bg: #0E1218;
-  --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240, 234, 224, 0.14);
-  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.055);
-  --rail: #10141C; --rail-2: #1A2030; --rail-fg: #F0EAE0; --rail-muted: #8E95A5;
-  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(240, 234, 224, 0.08);
+  --canvas: #121826; --wash: rgba(226, 196, 166, 0.16);
+  --canvas-wash: radial-gradient(1100px 620px at 50% -6%, var(--wash), transparent 62%);   /* the lamp, hung over the table */
+  --surface: #1A2131; --surface-2: #222A3C; --surface-3: #2A3244; --out-bg: #140F0E;   /* the sky's ramp; the output block is a patch of ground */
+  --ink: #F2E9DD; --ink-2: #C4BAAE; --ink-3: #9A948C; --line: rgba(226, 196, 166, 0.11);   /* hairlines are lit, not drawn */
+  --edge: inset 0 1px 0 rgba(226, 196, 166, 0.14);
+  --rail: #0C1019; --rail-2: #161C28; --rail-fg: #F2E9DD; --rail-muted: #A39D95;
+  --rail-active: rgba(226, 196, 166, 0.12); --rail-line: rgba(226, 196, 166, 0.08);
   --crease: color-mix(in srgb, var(--team-highlight) 55%, transparent);
-  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1;
-  --accent-ink: #CAA49B;
+  --accent: #7A4B3E; --accent-hover: #8A5748; --accent-fg: #FFF8F1;   /* the dark hand: the lifted fill, 6.9 : 1 under its text */
+  --accent-ink: #CAA49B;                                               /* chocolate 300 as text: 7.9 : 1 on the canvas */
+  --hand-edge: color-mix(in srgb, var(--team-glow) 45%, transparent); --hand-rim: color-mix(in srgb, var(--team-glow) 22%, transparent);
   --apricot-deep: #E2C4A6; --apricot-soft: rgba(226, 196, 166, 0.16);
   --select-wash: rgba(226, 196, 166, 0.12); --select-line: rgba(226, 196, 166, 0.38);
   --live-line: rgba(226, 196, 166, 0.35); --team-wash: rgba(226, 196, 166, 0.09);
   --pill-team-bg: rgba(226, 196, 166, 0.18); --pill-team-fg: #E2C4A6;
   --count-bg: var(--apricot); --count-fg: #2A3244;
   --star-on: #E2C4A6; --star-pre: #CFA782;
-  --gradient-brand: linear-gradient(135deg, #3A4661 0%, #7A4B3E 100%);
   --gate-stripe: linear-gradient(180deg, #E2C4A6 0%, #7A4B3E 100%);
   --grad-fg: #F8F2EA;
   --ok: #9BC88F;     --ok-soft: rgba(155, 200, 143, 0.18);  --ok-ink: #9BC88F;
   --warn: #E2B06A;   --warn-soft: rgba(226, 176, 106, 0.18); --warn-ink: #E2B06A;
   --danger: #E2847A; --danger-soft: rgba(226, 132, 122, 0.18); --danger-ink: #E2847A;
   --info: #B4BAC6;   --info-soft: rgba(180, 186, 198, 0.16);  --info-ink: #B4BAC6;
-  --mention-agent-bg: #3A4458; --mention-person-fg: #F0EAE0;   /* a person on apricot-soft reads in ink; you stays chocolate on solid apricot */
-  --overlay: #242C3C; --overlay-edge: rgba(255, 255, 255, 0.06);
-  --scrim: rgba(0, 0, 0, 0.55); --dim: rgba(0, 0, 0, 0.62);
+  --mention-agent-bg: #2A3244; --mention-person-fg: #F2E9DD;   /* a person on apricot-soft reads in ink; you stays chocolate on solid apricot */
+  --overlay: #1A2131; --overlay-edge: rgba(226, 196, 166, 0.12);
+  --scrim: rgba(20, 12, 10, 0.6); --dim: rgba(20, 12, 10, 0.68);
   --focus-ring: var(--ink);
-  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.35); --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.5);
-  --bezel: #0F131B; --bar-agent: #3A4660; --seg-on: #4A5367;   /* one notch above the --surface-3 track, so .seg .on stays the lighter tab at night */
-  --mark-disc: #2A3244;
+  --shadow-soft: 0 10px 30px rgba(20, 15, 14, 0.5); --shadow-pop: 0 18px 50px rgba(20, 15, 14, 0.65);   /* a shadow is the ground showing through */
+  --bezel: #0B0E14; --bar-agent: #3A4660; --seg-on: #333D52;   /* one notch above the --surface-3 track, so .seg .on stays the lighter tab at night */
+  --mark-disc: #2A3244;   /* the disc keeps Dress Blues at night: chocolate on the dark rail fell to 1.7 : 1 */
+  --lamp-rail: radial-gradient(560px 440px at 0% 0%, color-mix(in srgb, var(--team-glow) 11%, transparent), transparent 62%);
+  --dusk: linear-gradient(to top, rgba(86, 53, 45, 0.34), transparent 280px);
+  --ground: #140F0E; --horizon: rgba(226, 196, 166, 0.24);
+  --lacquer: linear-gradient(170deg, rgba(255, 255, 255, 0.035), transparent 42%);
+  --grain-page: var(--grain-night); --grain-blend: screen; --grain-alpha: 0.13;
+  --rule: rgba(202, 164, 155, 0.28); --rule-strong: rgba(202, 164, 155, 0.62);
+  --seal: #CAA49B; --on-ok: #0C1019; --avatar-ground: #F2E9DD; --avatar-ink: #1F2634;
+  --glass: rgba(242, 233, 221, 0.04); --glass-2: rgba(242, 233, 221, 0.04); --glass-rim: rgba(242, 233, 221, 0.065);
+  --glass-edge: rgba(226, 196, 166, 0.13); --glass-shade: rgba(20, 15, 14, 0.3); --glass-foot: rgba(20, 15, 14, 0.6); --glass-drop: rgba(20, 15, 14, 0.5);
+  --pulse: color-mix(in srgb, var(--team-glow) 22%, transparent); --pulse-edge: color-mix(in srgb, var(--team-glow) 50%, transparent);
+  --pulse-cast: color-mix(in srgb, var(--team-glow) 22%, transparent); --pulse-far: color-mix(in srgb, var(--team-glow) 20%, transparent);
   color-scheme: dark;
 }
 /* the one motion guard: motion plays unless the system asks for less or the team chose calm */
@@ -423,7 +481,6 @@ input[type="checkbox"]:not(.switch), input[type="radio"] { accent-color: var(--a
 .pill.status.paused { background: var(--info-soft); } .pill.status.paused::before { background: var(--info); }
 .pill.irreversible, .pill.danger { background: var(--danger-soft); color: var(--danger-ink); font-family: var(--mono); font-weight: 500; }
 .pill.gate { background: var(--rail); color: var(--apricot); }
-:root[data-theme="dark"] .pill.gate { box-shadow: inset 0 0 0 1px rgba(226, 196, 166, 0.45); }
 /* the pending count: the only solid apricot in the frame; absent at zero, 99+ cap, pops on change */
 .count, .pill.badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--count-bg); color: var(--count-fg); font: 600 11.5px/1 var(--mono); font-variant-numeric: tabular-nums; flex: none; letter-spacing: 0; }
 .count.xs { min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; } .count.sm { min-width: 18px; height: 18px; padding: 0 5px; font-size: 11px; } .count.lg { min-width: 24px; height: 24px; padding: 0 8px; font-size: 13px; }
@@ -502,7 +559,7 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
 .plan .steps { gap: 0; }
 .plan .pstep { display: grid; grid-template-columns: 22px 1fr auto auto auto; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .plan .pstep .n { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 11px; color: var(--ink-2); font-family: var(--mono); }
-.plan .pstep.done .n { background: var(--ok); border-color: var(--ok); color: #fff; }
+.plan .pstep.done .n { background: var(--ok); border-color: var(--ok); color: var(--on-ok); }
 .plan .pstep.running .n { border-color: var(--apricot-deep); box-shadow: 0 0 0 3px var(--apricot-soft); }
 .plan .pstep.gate .n { border-color: var(--accent); border-style: dashed; }
 .plan .pstep .risk { justify-self: start; }
@@ -684,7 +741,7 @@ mark.mention.agent { background: var(--mention-agent-bg); color: var(--mention-a
 .theme-toggle label { padding: 4px 10px; border-radius: var(--radius-full); cursor: pointer; }
 /* pinned panes for both-themes proof on a board (dark-mode): the pane carries its own token set */
 .t-light { --canvas: #FBF7F1; --surface: #FFFFFF; --surface-2: #F4EEE5; --surface-3: #ECE3D6; --ink: #1F2634; --ink-2: #5B6273; --ink-3: #6A7183; --line: rgba(42,50,68,.12); --rail: #2A3244; --rail-2: #333C50; --accent: #56352D; --accent-ink: #56352D; --accent-fg: #FFF8F1; --edge: none; --ok: #4F7D4A; --warn: #B9792E; --danger: #A8463A; --seg-on: var(--surface); color-scheme: light; background: var(--canvas); color: var(--ink); }
-.t-dark { --canvas: #1A202C; --surface: #242C3C; --surface-2: #2C3547; --surface-3: #37425A; --ink: #F0EAE0; --ink-2: #B4BAC6; --ink-3: #9CA3B2; --line: rgba(240,234,224,.14); --rail: #10141C; --rail-2: #1A2030; --accent: #7A4B3E; --accent-ink: #CAA49B; --accent-fg: #FFF8F1; --edge: inset 0 1px 0 rgba(255,255,255,.055); --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --ok-ink: #9BC88F; --warn-ink: #E2B06A; --danger-ink: #E2847A; --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --gradient-brand: linear-gradient(135deg, #3A4661, #7A4B3E); --gate-stripe: linear-gradient(180deg, #E2C4A6, #7A4B3E); --shadow-soft: 0 10px 30px rgba(0,0,0,.35); --shadow-pop: 0 18px 50px rgba(0,0,0,.5); --seg-on: #4A5367; color-scheme: dark; background: var(--canvas); color: var(--ink); }
+.t-dark { --canvas: #121826; --surface: #1A2131; --surface-2: #222A3C; --surface-3: #2A3244; --ink: #F2E9DD; --ink-2: #C4BAAE; --ink-3: #9A948C; --line: rgba(226,196,166,.11); --rail: #0C1019; --rail-2: #161C28; --accent: #7A4B3E; --accent-ink: #CAA49B; --accent-fg: #FFF8F1; --edge: inset 0 1px 0 rgba(226,196,166,.14); --ok: #9BC88F; --warn: #E2B06A; --danger: #E2847A; --ok-ink: #9BC88F; --warn-ink: #E2B06A; --danger-ink: #E2847A; --apricot-deep: #E2C4A6; --apricot-soft: rgba(226,196,166,.16); --gradient-brand: linear-gradient(135deg, #2A3244, #56352D); --gate-stripe: linear-gradient(180deg, #E2C4A6, #7A4B3E); --shadow-soft: 0 10px 30px rgba(20,15,14,.5); --shadow-pop: 0 18px 50px rgba(20,15,14,.65); --seg-on: #333D52; color-scheme: dark; background: var(--canvas); color: var(--ink); }
 
 /* ============================ MOTION ============================ */
 /* Rest is the end state: every keyframe set ends at the element's natural styles, so Calm and reduced

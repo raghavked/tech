@@ -50,7 +50,7 @@ describe("team look checks", () => {
     const checks = checksOf(DEFAULTS);
     const hand = checks.find((c) => c.id === "hand-text");
     expect(hand?.cream.pair).toEqual(["#56352D", "#FBF7F1"]);
-    expect(hand?.dark.pair).toEqual(["#E2C4A6", "#1A202C"]);
+    expect(hand?.dark.pair).toEqual(["#E2C4A6", "#121826"]);
     const onHand = checks.find((c) => c.id === "text-on-hand");
     expect(onHand?.dark.pair).toEqual(["#E2C4A6", "#2A3244"]);
   });

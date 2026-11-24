@@ -56,7 +56,15 @@ export type Block =
       turn: number;
     }
   | AgentBlock
-  | { kind: "divider"; id: string; text: string; danger?: boolean; turn: number }
+  | {
+      kind: "divider";
+      id: string;
+      text: string;
+      danger?: boolean;
+      turn: number;
+      /** A decision that landed takes the seal: a clean unite, a handoff that went back. */
+      seal?: { word: "united" | "returned"; seq: number };
+    }
   /** Someone joined the circle: the serif line with the mark closing once. */
   | { kind: "join"; id: string; who: string; role: string; agent: boolean; turn: number }
   | { kind: "approval"; id: string; approvalId: string; turn: number }
@@ -197,8 +205,15 @@ export class BlockFolder {
     const touched = () => {
       this.version += 1;
     };
-    const divider = (text: string, danger = false) => {
-      out.push({ kind: "divider", id: e.id, text, danger, turn });
+    const divider = (text: string, danger = false, seal?: "united" | "returned") => {
+      out.push({
+        kind: "divider",
+        id: e.id,
+        text,
+        danger,
+        turn,
+        ...(seal ? { seal: { word: seal, seq: e.seq } } : {}),
+      });
       touched();
     };
     switch (e.kind) {
@@ -358,7 +373,7 @@ export class BlockFolder {
         divider(copy.stream.hasTheBaton(name(e.actor)));
         break;
       case "handoff.declined":
-        divider(copy.stream.declined(name(e.actor)));
+        divider(copy.stream.declined(name(e.actor)), false, "returned");
         break;
       case "participant.joined":
         out.push({
@@ -388,6 +403,7 @@ export class BlockFolder {
           // The merge lands on the target branch; `payload.base` is the merge-base checkpoint.
           copy.stream.folded(e.payload.source, e.branch, e.payload.conflicts.length),
           e.payload.conflicts.length > 0,
+          e.payload.conflicts.length > 0 ? undefined : "united",
         );
         break;
       case "workspace.blocked":

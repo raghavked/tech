@@ -10,6 +10,7 @@ import "./styles/approval-dial.css";
 import "./styles/baton-handoff.css";
 import "./styles/council-table.css";
 import "./styles/spend-ring.css";
+import "./styles/surfaces-night.css";
 
 // PWA shell: the service worker caches the shell and passes /ws and /api through. Its URL
 // and scope follow the app's base (`/` here, `/app/` on the hosted deployment).

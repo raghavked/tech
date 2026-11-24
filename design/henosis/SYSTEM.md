@@ -69,15 +69,15 @@ dark blocks. The "app alias" column lists the name `apps/web/src/styles.css` rea
 
 | token | light | dark | role | app alias |
 |---|---|---|---|---|
-| `--canvas` | `#FBF7F1` | `#1A202C` | the page | `--bg` |
+| `--canvas` | `#FBF7F1` | `#121826` | the page | `--bg` |
 | `--wash` | apricot 35 % | apricot 10 % | the one wash, painted as a blurred disc by `.main::before` (loading-screens' flat-pixel technique replaces the dithered radial gradient; `--canvas-wash` stays as the fallback for pages that paint `body`) | `--wash` |
-| `--surface` | `#FFFFFF` | `#242C3C` | a card, a bubble, a sheet, the palette | – (new) |
-| `--surface-2` | `#F4EEE5` | `#2C3547` | raised: hover, composer, field | `--bg-2` |
-| `--surface-3` | `#ECE3D6` | `#37425A` | pressed: segment track, off star tile, the empty quorum segment | `--bg-3` |
-| `--out-bg` | `var(--rail)` | `#0E1218` | the agent's tool output block: the deepest surface in both themes (session-dark) | – |
-| `--ink` | `#1F2634` | `#F0EAE0` | text; cream at night, never white (dark-mode) | `--fg` |
-| `--ink-2` | `#5B6273` | `#B4BAC6` | meta lines, captions, hints | `--fg-2` |
-| `--ink-3` | `#6A7183` | `#9CA3B2` | metadata only, 12 px floor, never a sentence (accessibility lifted it from `#8E94A3` at 2.85 : 1 to 4.6 : 1; colour-system wrote the rule) | `--fg-3` |
+| `--surface` | `#FFFFFF` | `#1A2131` | a card, a bubble, a sheet, the palette | – (new) |
+| `--surface-2` | `#F4EEE5` | `#222A3C` | raised: hover, composer, field | `--bg-2` |
+| `--surface-3` | `#ECE3D6` | `#2A3244` | pressed: segment track, off star tile, the empty quorum segment | `--bg-3` |
+| `--out-bg` | `var(--rail)` | `#140F0E` | the agent's tool output block: the deepest surface in both themes (session-dark) | – |
+| `--ink` | `#1F2634` | `#F2E9DD` | text; cream at night, never white (dark-mode) | `--fg` |
+| `--ink-2` | `#5B6273` | `#C4BAAE` | meta lines, captions, hints | `--fg-2` |
+| `--ink-3` | `#6A7183` | `#9A948C` | metadata only, 12 px floor, never a sentence (accessibility lifted it from `#8E94A3` at 2.85 : 1 to 4.6 : 1; colour-system wrote the rule) | `--fg-3` |
 | `--line` | navy 12 % | cream 14 % | every hairline except the crease; dark goes to .14 so row dividers survive (dark-mode) | `--line` |
 | `--edge` | `none` | `inset 0 1px 0 rgba(255,255,255,.055)` | the top highlight that replaces shadows at night (session-dark); appended to every raised surface's `box-shadow` | – |
 
@@ -85,9 +85,9 @@ dark blocks. The "app alias" column lists the name `apps/web/src/styles.css` rea
 
 | token | light | dark | role | app alias |
 |---|---|---|---|---|
-| `--rail` | `var(--team-surface)` = `#2A3244` | `#10141C` | the rail, titlebars, toasts, the output block, the mark's disc; the darker night rail is the one three navigation explorations re-derived so Dress Blues stays the frame at night (rail's fix) | `--rail-bg` |
-| `--rail-2` | `#333C50` | `#1A2030` | hover, the account menu, the collapsed rail's hover card | `--rail-hover` |
-| `--rail-fg` | `#F3EDE4` | `#F0EAE0` | text on the rail | `--rail-fg` |
+| `--rail` | `var(--team-surface)` = `#2A3244` | `#0C1019` | the rail, titlebars, toasts, the output block, the mark's disc; the darker night rail is the one three navigation explorations re-derived so Dress Blues stays the frame at night (rail's fix) | `--rail-bg` |
+| `--rail-2` | `#333C50` | `#161C28` | hover, the account menu, the collapsed rail's hover card | `--rail-hover` |
+| `--rail-fg` | `#F3EDE4` | `#F2E9DD` | text on the rail | `--rail-fg` |
 | `--rail-muted` | `#AEB4C2` | `#8E95A5` | secondary text on the rail (6.6 : 1 light) | `--rail-fg-2` |
 | `--rail-active` | apricot 18 % | apricot 12 % | where you are (rail) | `--rail-active` |
 | `--rail-line` | cream 10 % | cream 8 % | hairlines on the rail | `--rail-line` |
@@ -151,7 +151,7 @@ the `-ink` tokens equal the dot colour because the lifted tints clear 7 : 1 as t
 
 | token | light | dark | role |
 |---|---|---|---|
-| `--overlay` / `--overlay-edge` | `--surface` / `--line` | `#242C3C` / white 6 % | the palette, a sheet, a menu: at night a lit surface with `--edge` and a 6 % hairline instead of a shadow halo (command-palette, shortcuts, search) |
+| `--overlay` / `--overlay-edge` | `--surface` / `--line` | `#1A2131` / apricot 12 % | the palette, a sheet, a menu: at night a lit surface with `--edge` and a 6 % hairline instead of a shadow halo (command-palette, shortcuts, search) |
 | `--scrim` | navy 46 % | black 55 % | under a sheet or the palette; no blur (mobile panel, navigation panel) |
 | `--dim` | navy 52 % | black 62 % | the look-here layer for the tour, the first approval and the palette's "show me" (tour) |
 | `--halo` | `0 0 0 3px apricot, 0 0 0 10px apricot 28 %` | same | the one lit target under the dim |
@@ -594,13 +594,21 @@ the changes. The `.rail .new` reset must also reach the preview's `.prail .new`.
 
 ## 16. Dark
 
-The dark block (byte-identical under the system media query and `[data-theme="dark"]`) is the fold of
-session-dark's knobs, dark-mode's proposal and the navigation panel's rail: rail `#10141C` < canvas
-`#1A202C` < surface `#242C3C` < surface-2 `#2C3547` < surface-3 `#37425A`, with the output block
-`#0E1218` as the one thing deeper than the canvas; `--edge` on every raised surface; `--line` .14; cream
-ink; the hand `#7A4B3E` as a fill and `#CAA49B` as text; apricot-deep → apricot; the status triplet
-`#9BC88F / #E2B06A / #E2847A`; the brand gradient `#3A4661 → #7A4B3E`; the gate stripe apricot →
-chocolate; the mark's disc held at `#2A3244`; scrim black 55 %, dim 62 %; the focus ring cream.
+The dark block (byte-identical under the system media query and `[data-theme="dark"]`) is one night
+(sig-night-mode, shipped as surfaces-night). Dress Blues is the sky: rail `#0C1019` < canvas `#121826` <
+surface `#1A2131` < surface-2 `#222A3C` < surface-3 `#2A3244` (Dress Blues itself), hue 222° throughout.
+Apricot is the one lamp: `--line` apricot 11 %, `--edge` apricot 14 % on every raised surface, the lamp
+over the table (`--lamp`) and every pulse. Chocolate is the ground and every shadow: the output block
+and the band under the composer `#140F0E` (`--ground`), `--shadow-*` chocolate-black at 50 / 65 %, the
+dusk rising from the bottom of the page (`--dusk`). Cream ink `#F2E9DD / #C4BAAE / #9A948C`, never white,
+never a cool grey; the hand `#7A4B3E` as a fill, lit on its top edge (`--hand-edge`, `--hand-rim`), and
+`#CAA49B` as text; apricot-deep → apricot; the status triplet `#9BC88F / #E2B06A / #E2847A`; the brand
+gradient is the daytime navy → chocolate; the gate stripe apricot → chocolate; the mark's disc held at
+`#2A3244`; scrim and dim warm (`rgba(20,12,10)` at 60 / 68 %); the focus ring cream. A person's avatar
+takes its wash on cream with navy ink at night (`--avatar-ground`, `--avatar-ink`): the initial follows
+the fill, never the theme. One grain tile at one `--grain-alpha` per theme (.22 by day as toner, .13 at
+night as light fibres) sits in the stock under the page and, at a little over half, under the rail's
+glass (§6, sig-glass-rail).
 "Shape keeps the hand and the pulse apart": filled pills are the hand, dots, rings, hairlines and
 washes are the pulse; never an apricot text link beside an apricot pill. Boards prove both themes with
 pinned `.t-light` / `.t-dark` panes (dark-mode), which the tokens now provide.

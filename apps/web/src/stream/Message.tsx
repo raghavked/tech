@@ -17,6 +17,7 @@ import { ApprovalNotice } from "./ApprovalNotice.js";
 import { type Block, estimateHeight, type Step } from "./blocks.js";
 import { isFresh, timeOf } from "./clock.js";
 import { PlanCard } from "./PlanCard.js";
+import { Seal } from "./Seal.js";
 import { useBlocks } from "./useBlocks.js";
 import { VirtualList } from "./VirtualList.js";
 
@@ -94,7 +95,20 @@ export function Stream({
         case "join":
           return <JoinLine b={b} />;
         case "divider":
-          return <div className={`divider${b.danger ? " danger" : ""}`}>{b.text}</div>;
+          return (
+            <div className={`divider${b.danger ? " danger" : ""}${b.seal ? " sealed" : ""}`}>
+              {b.text}
+              {b.seal && (
+                <Seal
+                  id={b.id}
+                  rank={b.seal.seq}
+                  word={b.seal.word}
+                  when={timeOf(b.id) ?? copy.stream.turn(b.turn)}
+                  fresh={isFresh(b.id)}
+                />
+              )}
+            </div>
+          );
         case "approval":
           return (
             <ApprovalNotice

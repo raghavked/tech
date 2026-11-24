@@ -1,0 +1,548 @@
+/* The surfaces: one material under one lamp, in both themes (design/henosis/explorations/
+   sig-night-mode, sig-glass-rail, sig-paper-and-lacquer; the three panels asked for one patch).
+
+   The tokens are in tokens.css: --lamp, --lamp-rail, --dusk, --ground, --lacquer, --grain*,
+   --hand-edge, --hand-rim, --rule, --seal, --tooth, --glass-*, --pulse*. This file is every rule
+   that paints them:
+
+     the page    the lamp and the dusk on .main, the grain in the stock (under what is written)
+     the ground  the composer and the phone's tab bar stand on it; at night it is chocolate-black
+     the hand    lit on its top edge at night, with a rim, so six in a column read as six buttons
+     the rail    lacquer, the lamp's spill, grain; panes of glass; a lit window where an agent works
+     the ink     rules drawn in chocolate, the seal on a decision that landed
+     the night   the places that still read as day when the tokens turn
+
+   Cost: one grain layer under the page and one under the rail (a 240 px tile decoded once, never a
+   live filter); one backdrop-filter, on the waits pane, with a solid pane where the browser has
+   none or the system asks for less transparency; one opacity animation per lit window. */
+
+/* ============================ THE PAGE ============================ */
+/* the lamp over the table, the dusk rising from the ground, then the sky itself */
+.shell > .main {
+  background: var(--lamp), var(--dusk), var(--canvas);
+}
+/* the grain is in the stock: under everything laid on the page, so a sheet stays smooth */
+.shell > .main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--grain-page);
+  background-size: 240px 240px;
+  mix-blend-mode: var(--grain-blend);
+  opacity: var(--grain-alpha);
+}
+@media (min-resolution: 2dppx) {
+  /* the tile rasterises at 480 device pixels and reads finer, so it steps down */
+  .shell > .main::before {
+    opacity: calc(var(--grain-alpha) - 0.02);
+  }
+  .sidebar.rail::before {
+    opacity: calc((var(--grain-alpha) - 0.02) * 0.55);
+  }
+}
+
+/* ============================ THE GROUND ============================ */
+/* the composer stands on the ground and the sky settles into it; by day the ground is the page */
+.composer-wrap {
+  background: linear-gradient(to top, var(--ground) 70%, transparent);
+}
+@media (max-width: 480px) {
+  .tabbar {
+    background: var(--ground);
+    border-top-color: var(--horizon);
+  }
+}
+/* the agent's output is a patch of ground inside the sky, with the lamp on its top edge */
+.out,
+.step-out {
+  box-shadow: var(--edge);
+}
+
+/* ============================ THE HAND ============================ */
+/* a piece of the ground lifted into the sky: lit on top, rimmed, in every place the hand is a fill */
+.btn.primary {
+  box-shadow:
+    inset 0 1px 0 var(--hand-edge),
+    0 0 0 1px var(--hand-rim);
+}
+.btn.primary:hover {
+  box-shadow:
+    inset 0 1px 0 var(--hand-edge),
+    0 0 0 3px color-mix(in srgb, var(--team-glow) 35%, transparent);
+}
+.btn.primary:disabled,
+.send:disabled {
+  box-shadow: none;
+}
+.btn.brand {
+  box-shadow: inset 0 1px 0 var(--hand-edge);
+}
+.send {
+  box-shadow:
+    inset 0 1px 0 var(--hand-edge),
+    0 0 0 1px var(--hand-rim),
+    var(--shadow-soft);
+}
+.send:hover:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 var(--hand-edge),
+    0 0 0 3px color-mix(in srgb, var(--team-glow) 35%, transparent);
+}
+.kbd.live,
+kbd.live {
+  box-shadow:
+    inset 0 1px 0 var(--hand-edge),
+    0 1px 0 var(--glass-drop);
+}
+.avatar.agent {
+  box-shadow: inset 0 1px 0 var(--hand-edge);
+}
+.pill.gate {
+  background: var(--team-surface);
+  box-shadow: inset 0 0 0 1px var(--hand-rim);
+}
+/* the lamp on the top edge of the small raised things too */
+.chip,
+.notice .command,
+.plan .rater:not(.missing) {
+  box-shadow: var(--edge);
+}
+.chip.on {
+  box-shadow:
+    inset 0 0 0 1px var(--select-line),
+    var(--edge);
+}
+
+/* ============================ THE RAIL: LAYERED NAVY GLASS ============================ */
+/* the ground: lacquer (the 170° sheen), the lamp's spill at the top-left, the grain under the panes */
+.sidebar.rail {
+  isolation: isolate;
+  background: var(--lamp-rail), var(--lacquer), var(--rail);
+}
+.sidebar.rail::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--grain-night);
+  background-size: 240px 240px;
+  mix-blend-mode: screen;
+  /* lacquer is smoother than paper: it shows a little over half the theme's tooth */
+  opacity: calc(var(--grain-alpha) * 0.55);
+}
+/* a pane of glass: tint, rim, the light on its top edge with 1 px of shade under it (the glass has
+   thickness), the shadow under its foot, the 1 px it casts. A state turns two knobs and no more. */
+.sidebar .pane {
+  --pane-tint: var(--glass);
+  --pane-edge: var(--glass-edge);
+  position: relative;
+  background: var(--pane-tint);
+  border: 1px solid var(--glass-rim);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 var(--pane-edge),
+    inset 0 2px 0 var(--glass-shade),
+    inset 0 -1px 0 var(--glass-foot),
+    0 1px 0 var(--glass-drop);
+}
+/* the one frosted pane: it sits over the lamp, so the blur has something to sample */
+.sidebar .pane.frost {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
+}
+/* the waits pane: Inbox and Approvals, the two rows that can carry a count */
+.sidebar .waits {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px;
+  margin: 2px 0;
+  flex: none;
+}
+/* the roster pane: a project and its agents; opaque lacquer beneath, so tint alone and no frost */
+.sidebar .roster {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px;
+  margin: 2px 0 4px;
+  flex: none;
+}
+.sidebar .roster .crew-block,
+.sidebar .roster .solo-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+/* a long roster scrolls; it never squeezes the plain rows under it to make room for the panes */
+.sidebar .lists > .item {
+  flex: none;
+}
+/* a row on glass: the hover is a tint, so the pane's edge still shows through it */
+.sidebar .pane .item {
+  border-radius: 14px;
+}
+.sidebar .pane .item:hover,
+.sidebar .me-wrap.pane .me:hover {
+  background: color-mix(in srgb, var(--rail-fg) 8%, transparent);
+}
+.sidebar .pane .item.active {
+  background: var(--rail-active);
+}
+/* the light climbs: a pane that holds a lit window catches a little of it on its own top edge */
+.sidebar .roster:has(.agent.running) {
+  --pane-edge: var(--pulse-far);
+}
+/* the window: a pane on a pane, concentric (18 − 4 = 14), with the agent's tight bottom-left corner.
+   `a.agent` on `.sidebar.rail` so these outrank tokens.css's card rule and its three :not()s. */
+.sidebar.rail a.agent.pane {
+  --pane-tint: var(--glass-2);
+  --pane-edge: var(--glass-edge);
+  border-radius: 14px 14px 14px 5px;
+  padding: 7px 9px;
+  background: var(--pane-tint);
+  flex: none;
+}
+.sidebar.rail a.agent.pane:hover {
+  --pane-tint: color-mix(in srgb, var(--rail-fg) 10%, transparent);
+  background: var(--pane-tint);
+}
+.sidebar.rail a.agent.pane.active {
+  --pane-tint: var(--rail-active);
+  background: var(--pane-tint);
+  box-shadow:
+    inset 0 1px 0 var(--pane-edge),
+    inset 0 2px 0 var(--glass-shade),
+    inset 0 -1px 0 var(--glass-foot),
+    inset 0 0 0 1px var(--select-line),
+    inset 3px 0 0 var(--apricot),
+    0 1px 0 var(--glass-drop);
+}
+.sidebar.rail a.agent.pane > * {
+  position: relative;
+  z-index: 1;
+}
+/* lit from inside: where an agent is working the light pools under the window's top edge, the edge
+   itself warms, and the light falls on the sill below. At rest it is simply lit. */
+.sidebar.rail a.agent.pane.running {
+  --pane-edge: var(--pulse-edge);
+}
+.sidebar.rail a.agent.pane.running::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(190px 46px at 18% -14%, var(--pulse), transparent 72%);
+  box-shadow: 0 10px 26px -10px var(--pulse-cast);
+}
+@keyframes glass-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* two windows never breathe in phase: the card's place in the rail staggers the clock */
+  :root:not([data-motion="calm"]) .sidebar.rail a.agent.pane.running::before {
+    animation: glass-breathe 1.8s var(--ease-move) infinite;
+    animation-delay: calc(min(var(--i, 0), 8) * -450ms);
+  }
+}
+/* the people at the window: the system's 22 px avatar, one initial, the driver first and ringed */
+.sidebar.rail .agent .foot {
+  min-height: 22px;
+}
+.sidebar.rail .agent .foot .stack .avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+  border-width: 2px;
+}
+.sidebar.rail .agent .foot .stack .avatar + .avatar {
+  margin-left: -6px;
+}
+.sidebar.rail .agent .foot .stack .avatar.driver {
+  box-shadow: 0 0 0 1.5px var(--apricot-deep);
+  z-index: 1;
+}
+/* New session: the one gradient, with the same lit edge as the glass: the brightest pane of the stack */
+.sidebar.rail .new {
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 1px 0 var(--glass-edge),
+    inset 0 -1px 0 var(--glass-foot);
+}
+.sidebar.rail .new:hover {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--team-glow) 35%, transparent),
+    var(--shadow-soft),
+    inset 0 1px 0 var(--glass-edge),
+    inset 0 -1px 0 var(--glass-foot);
+}
+.sidebar.rail .search {
+  box-shadow: var(--edge);
+}
+/* the me row: the bottom pane */
+.sidebar .me-wrap.pane {
+  padding: 0;
+  margin-top: 6px;
+  flex: none;
+}
+.sidebar .me-wrap.pane .me {
+  border-radius: 17px;
+  padding: 7px 8px 7px 10px;
+}
+/* the account menu and the hover card float off the glass: solid, with the lamp on their top edge */
+.sidebar .menu .seg {
+  background: var(--glass-foot);
+}
+/* folded to 72 px the rail keeps the lacquer and the lamp and has no panes: the same object, its glass removed */
+.sidebar.collapsed .pane {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.sidebar.collapsed .waits {
+  display: contents;
+}
+.sidebar.collapsed .me-wrap.pane {
+  padding-top: 4px;
+}
+/* the phone: the same glass as a 332 px sheet, its outer corners the sheet's */
+@media (max-width: 480px) {
+  .sidebar.rail {
+    border-radius: 0 var(--radius-sheet) var(--radius-sheet) 0;
+    box-shadow: var(--shadow-pop), var(--edge);
+  }
+  .sidebar.rail a.agent.pane {
+    padding: 9px 11px;
+  }
+}
+/* no backdrop-filter: the frosted pane is a solid one */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sidebar .pane.frost {
+    background: linear-gradient(var(--pane-tint), var(--pane-tint)), var(--glass-solid);
+  }
+  .topbar {
+    background: var(--canvas);
+  }
+}
+/* less transparency asked for: no blur, no grain, and every pane is its tint on a solid ground */
+@media (prefers-reduced-transparency: reduce) {
+  .sidebar .pane.frost {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .sidebar .pane,
+  .sidebar.rail a.agent.pane,
+  .sidebar.rail a.agent.pane:hover,
+  .sidebar.rail a.agent.pane.active {
+    background: linear-gradient(var(--pane-tint), var(--pane-tint)), var(--glass-solid);
+  }
+  .sidebar.collapsed .pane {
+    background: none;
+  }
+  .shell > .main::before,
+  .sidebar.rail::before {
+    display: none;
+  }
+  .topbar {
+    background: var(--canvas);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* ============================ THE INK ============================ */
+/* an edge is cut (--line); a line under something is drawn, in chocolate */
+.divider::before,
+.divider::after {
+  background: var(--rule);
+}
+.plan .totals {
+  border-top-color: var(--rule);
+}
+.drawer .drawer-head,
+.drawer > .group {
+  border-bottom-color: var(--rule);
+}
+hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+/* the seal: the mark in one ink beside the word and the time, pressed at −4° on a decision that
+   landed; its ink breaks where the stock is rough. One per screen, only in the stream. */
+.seal {
+  --seal-ink: var(--seal);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 4px 10px 4px 7px;
+  border: 2px solid var(--seal-ink);
+  border-radius: 7px;
+  color: var(--seal-ink);
+  font: 600 11.5px / 16px var(--font);
+  font-style: normal;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: rotate(-4deg);
+  opacity: 0.92;
+  -webkit-mask-image: var(--tooth);
+  mask-image: var(--tooth);
+  -webkit-mask-size: 140px 140px;
+  mask-size: 140px 140px;
+  -webkit-mask-mode: luminance;
+  mask-mode: luminance;
+}
+.seal::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1px solid var(--seal-ink);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.seal .mark {
+  width: 18px;
+  height: 18px;
+  --mark-arc-a: currentColor;
+  --mark-arc-b: currentColor;
+  --mark-dot: currentColor;
+  --mark-dash: 4 6;
+}
+.seal .when {
+  font: 500 11.5px / 16px var(--mono);
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+.seal.denied {
+  --seal-ink: var(--danger-ink);
+}
+.seal.returned {
+  --seal-ink: var(--warn-ink);
+}
+.divider .seal {
+  margin: -4px 0 -4px 4px;
+}
+@keyframes seal-press {
+  0% {
+    opacity: 0;
+    transform: rotate(-1deg) scale(1.12);
+  }
+  100% {
+    opacity: 0.92;
+    transform: rotate(-4deg) scale(1);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="calm"]) .seal.fresh {
+    animation: seal-press var(--t-slow) var(--ease-arrive) both;
+  }
+}
+/* on paper the seal prints solid and the stock has no screen grain */
+@media print {
+  .seal {
+    -webkit-mask-image: none;
+    mask-image: none;
+    opacity: 1;
+  }
+  .shell > .main::before,
+  .sidebar.rail::before {
+    display: none;
+  }
+}
+
+/* ============================ THE NIGHT, PLACE BY PLACE ============================ */
+/* a person's wash follows the fill, not the theme: at night the wash is mixed with cream and the
+   initial is navy, as it already is on the rail */
+.avatar.t1 {
+  background: color-mix(in srgb, var(--apricot) 55%, var(--avatar-ground));
+  color: var(--avatar-ink);
+}
+.avatar.t2 {
+  background: color-mix(in srgb, #8ea0c4 42%, var(--avatar-ground));
+  color: var(--avatar-ink);
+}
+.avatar.t3 {
+  background: color-mix(in srgb, #b98c7c 48%, var(--avatar-ground));
+  color: var(--avatar-ink);
+}
+.avatar.t4 {
+  background: color-mix(in srgb, #9bb08f 48%, var(--avatar-ground));
+  color: var(--avatar-ink);
+}
+/* the small toast is Dress Blues in both themes: lacquer with the lamp on its edge, never a cream
+   pill on the night */
+.toasts .toast {
+  background: var(--lacquer), var(--blues);
+  color: var(--rail-fg);
+  box-shadow: var(--shadow-pop), var(--edge);
+}
+/* the project's direction field is the composer's own: no well of the browser's inside the sheet */
+.direction .composer input {
+  width: 100%;
+  min-height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+}
+.direction .composer input::placeholder {
+  color: var(--ink-3);
+}
+/* an exec risk word keeps its ground at night: ink at 10 %, navy by day and cream by night */
+.pill.risk.exec {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+/* metadata on a raised or washed ground takes the second ink, so it clears 4.5 : 1 at night too */
+.seg.range > .faint,
+.gaterow.pending .s {
+  color: var(--ink-2);
+}
+/* the Team look's preview pins both canvases: the cream one is cream whatever the theme, and the
+   dark one is this night */
+.look:not([data-canvas="dark"]) {
+  --canvas: #fbf7f1;
+  --surface: #ffffff;
+  --surface-2: #f4eee5;
+  --surface-3: #ece3d6;
+  --ink: #1f2634;
+  --ink-2: #5b6273;
+  --ink-3: #6a7183;
+  --line: rgba(42, 50, 68, 0.12);
+  --edge: none;
+}
+.look[data-canvas="dark"] {
+  --canvas: #121826;
+  --surface: #1a2131;
+  --surface-2: #222a3c;
+  --surface-3: #2a3244;
+  --ink: #f2e9dd;
+  --ink-2: #c4baae;
+  --ink-3: #9a948c;
+  --line: rgba(226, 196, 166, 0.11);
+  --edge: inset 0 1px 0 rgba(226, 196, 166, 0.14);
+}
+/* the chat's agent rule at night is lit, not cool grey: the rail's second voice to apricot-deep */
+:root[data-theme="dark"] .chatcol .msg.agent .body {
+  border-image: linear-gradient(to bottom, #a39d95, #cfa782) 1;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .chatcol .msg.agent .body {
+    border-image: linear-gradient(to bottom, #a39d95, #cfa782) 1;
+  }
+}

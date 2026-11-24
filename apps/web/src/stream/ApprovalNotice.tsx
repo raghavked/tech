@@ -26,8 +26,9 @@ import { average, copy } from "../copy.js";
 import { isTyping } from "../shortcuts.js";
 import { Avatar, ICONS, Icon, ratingLevel } from "../ui.js";
 import { describeCall } from "./blocks.js";
-import { isFresh } from "./clock.js";
+import { arrivalOf, clockText, FRESH_MS, isFresh } from "./clock.js";
 import { Dial, type DialGate, MiniDial } from "./RatingDial.js";
+import { landedAt, Seal } from "./Seal.js";
 
 /** What an approval row shows, as one string: the state is cloned on every event, so compare by value. */
 function approvalSig(s: SessionState, id: string, meId: string): string {
@@ -596,6 +597,9 @@ function Decided({
   const avg = rated.length ? rated.reduce((n, b) => n + (b.rating ?? 0), 0) / rated.length : 0;
   // The draw plays only when the decision just arrived; history shows the finished check.
   const [fresh] = useState(() => isFresh(a.id) || Object.keys(a.ballots).length > 0);
+  // The seal says when the decision landed here, or the turn when it is history; it presses once.
+  const landed = landedAt(a.id, arrivalOf(a.id) !== null);
+  const [pressed] = useState(() => landed !== null && Date.now() - landed < FRESH_MS);
   return (
     <div className={`divider decided${granted ? " ok" : " danger"}${fresh ? " fresh" : ""}`}>
       {granted &&
@@ -612,6 +616,13 @@ function Decided({
           : ""}
       </span>
       <span className="edited">{copy.stream.edited}</span>
+      <Seal
+        id={a.id}
+        rank={a.requestedSeq}
+        word={granted ? "approved" : "denied"}
+        when={landed === null ? copy.stream.turn(a.turn) : clockText(landed)}
+        fresh={pressed}
+      />
     </div>
   );
 }

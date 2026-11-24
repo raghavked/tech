@@ -9,7 +9,7 @@ import { PALETTE } from "./theme.js";
 export const HEX = /^#[0-9a-fA-F]{6}$/;
 
 /** The dark canvas and the rail's text, the two grounds the checks run against beside cream. */
-export const DARK_CANVAS = "#1A202C";
+export const DARK_CANVAS = "#121826";
 export const RAIL_TEXT = "#F6F0E7";
 /** The text on a button in the hand, on cream. */
 export const HAND_TEXT = "#FFF8F0";

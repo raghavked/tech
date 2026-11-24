@@ -228,7 +228,7 @@ export const Rail = memo(function Rail({
       const crewCount = groups.filter(([c]) => c !== null).length;
       const soloCount = groups.find(([c]) => c === null)?.[1].length ?? 0;
       return (
-        <div key={p.projectId} className="project-block">
+        <div key={p.projectId} className="project-block pane roster">
           <a
             className={`item project${activeProject === p.projectId ? " active" : ""}`}
             href={paths.fleet(p.projectId)}
@@ -360,27 +360,28 @@ export const Rail = memo(function Rail({
             {hotkeyLabel()}
           </button>
         </label>
+        {/* the waits pane: the two rows that can carry a count, on the one frosted pane of the glass */}
         {identity && (
-          <RailItem
-            href={paths.inbox()}
-            icon={ICONS.inbox}
-            active={route.name === "inbox"}
-            count={inbox.unread}
-            className="inbox"
-          >
-            {copy.shell.inbox}
-          </RailItem>
-        )}
-        {identity && (
-          <RailItem
-            href={paths.approvals()}
-            icon={ICONS.approve}
-            active={route.name === "approvals"}
-            count={waiting}
-            className="inbox"
-          >
-            {copy.shell.approvals}
-          </RailItem>
+          <div className="pane frost waits">
+            <RailItem
+              href={paths.inbox()}
+              icon={ICONS.inbox}
+              active={route.name === "inbox"}
+              count={inbox.unread}
+              className="inbox"
+            >
+              {copy.shell.inbox}
+            </RailItem>
+            <RailItem
+              href={paths.approvals()}
+              icon={ICONS.approve}
+              active={route.name === "approvals"}
+              count={waiting}
+              className="inbox"
+            >
+              {copy.shell.approvals}
+            </RailItem>
+          </div>
         )}
         <div className="lists" ref={listsRef}>
           {identity && teams.length > 0 && (
@@ -475,7 +476,7 @@ export const Rail = memo(function Rail({
                       .map((c) => (
                         <a
                           key={c.councilId}
-                          className={`agent enter council${activeCouncil === c.councilId ? " active" : ""}${collapsed ? " compact" : ""}`}
+                          className={`agent pane enter council${c.status === "concluded" ? "" : " running"}${activeCouncil === c.councilId ? " active" : ""}${collapsed ? " compact" : ""}`}
                           href={paths.council(id, g.groupId, c.councilId)}
                           title={c.task}
                           aria-current={activeCouncil === c.councilId ? "page" : undefined}
@@ -638,7 +639,7 @@ export function AgentCard({
         : reported;
   return (
     <a
-      className={`agent enter${active ? " active" : ""}${compact ? " compact" : ""}`}
+      className={`agent pane enter${status === "running" ? " running" : ""}${active ? " active" : ""}${compact ? " compact" : ""}`}
       href={href}
       title={row.sessionId}
       aria-current={active ? "page" : undefined}
@@ -661,7 +662,14 @@ export function AgentCard({
         {online.length > 0 && (
           <Stack max={3}>
             {online.map((p) => (
-              <Avatar key={p.id} id={p.id} name={p.name} size="xs" driver={p.driving} />
+              <Avatar
+                key={p.id}
+                id={p.id}
+                name={p.name.trim().charAt(0) || "?"}
+                title={p.name}
+                size="sm"
+                driver={p.driving}
+              />
             ))}
           </Stack>
         )}
@@ -841,7 +849,7 @@ function MeRow({
   );
   const roleWord = role ?? copy.shell.member;
   return (
-    <div className="me-wrap">
+    <div className="me-wrap pane">
       {open && (
         <div className="menu" role="menu" aria-label={copy.account.menu}>
           <div className="mrow">
